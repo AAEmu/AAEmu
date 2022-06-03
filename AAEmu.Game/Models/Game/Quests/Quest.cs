@@ -277,8 +277,6 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActObjSphere":
                                 {
                                     // только для сфер
-
-
                                     Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     Update();
@@ -297,7 +295,6 @@ namespace AAEmu.Game.Models.Game.Quests
         {
             if (!send) { return; }
 
-            var complete = false;
             for (; Step <= QuestComponentKind.Reward; Step++)
             {
                 if (Step is QuestComponentKind.Fail or QuestComponentKind.Drop)
@@ -324,10 +321,16 @@ namespace AAEmu.Game.Models.Game.Quests
                         continue;
                 }
 
+                var completes = new List<bool>();
+                for (var i = 0; i < components.Length; i++)
+                {
+                    completes.Add(false);
+                }
                 EarlyCompletion = false;
                 ExtraCompletion = false;
-                var selective = new List<bool>();
-                var questActObjItemGather = false;
+                var selectives = new List<bool>();
+                var selective = false;
+                var complete = false;
 
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {
@@ -363,13 +366,12 @@ namespace AAEmu.Game.Models.Game.Quests
                                                 complete = qa.Use(Owner, this, Objectives[componentIndex]);
                                                 Step = next;
                                                 ComponentId = components[componentIndex].Id;
-                                                _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                                                 break;
                                             default:
                                                 complete = false;
-                                                _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                                                 break;
                                         }
+                                        _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                                     }
                                     break;
                                 }
@@ -387,15 +389,13 @@ namespace AAEmu.Game.Models.Game.Quests
                                     Owner.Quests.Complete(TemplateId, 0);
                                     return;
                                 }
-                                else
-                                {
-                                    // компонент - выполнен, мы у нужного Npc
-                                    Status = QuestStatus.Ready;
-                                    _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
-                                }
+                                // компонент - выполнен, мы у нужного Npc
+                                Status = QuestStatus.Ready;
+                                _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                                 break;
                             case "QuestActConAutoComplete":
                                 // компонент - выполнен
+                                complete = true;
                                 Status = QuestStatus.Ready;
                                 _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                                 Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -443,31 +443,28 @@ namespace AAEmu.Game.Models.Game.Quests
                                     if (Objectives[componentIndex] == 0)
                                         Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
                                     complete = act.Use(Owner, this, Objectives[componentIndex]);
+                                    completes[componentIndex] = complete; // продублируем информацию
                                     // проверка результатов на валидность
-                                    if (!Template.Selective)
+                                    if (Template.Selective)
                                     {
-                                        if (complete)
-                                        {
-                                            // компонент - выполнен
-                                            Status = QuestStatus.Ready;
-                                            _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
-                                        }
-                                        else
-                                        {
-                                            // компонент - в процессе выполнения
-                                            Status = QuestStatus.Progress;
-                                            ComponentId = 0;
-                                            // если complete == false, также надо слать пакет SCQuestContextUpdatedPacket
-                                            _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
-                                        }
+                                        // Если Selective = true, то разрешается быть подходящим одному предмету из нескольких
+                                        selectives.Add(completes[componentIndex]);
+                                        selective = true;
+                                    }
+                                    // проверка результатов на валидность
+                                    if (complete)
+                                    {
+                                        // компонент - выполнен
+                                        Status = QuestStatus.Ready;
                                     }
                                     else
                                     {
-                                        // Если Selective = true, то разрешается быть подходящим одному предмету из нескольких
-                                        selective.Add(complete);
-                                        questActObjItemGather = true;
-                                        _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
+                                        // компонент - в процессе выполнения
+                                        Status = QuestStatus.Progress;
+                                        ComponentId = 0;
+                                        // если complete == false, также надо слать пакет SCQuestContextUpdatedPacket
                                     }
+                                    _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, completes[componentIndex], act.DetailType);
                                     break;
                                 }
                             default:
@@ -476,12 +473,12 @@ namespace AAEmu.Game.Models.Game.Quests
                                 // эти акты могут быть парными: ItemGather & MonsterHunt & MonsterGroupHunt & Interaction
                                 {
                                     complete = act.Use(Owner, this, Objectives[componentIndex]);
+                                    completes[componentIndex] = complete; // продублируем информацию
                                     // проверка результатов на валидность
                                     if (complete)
                                     {
                                         // компонент - выполнен
                                         Status = QuestStatus.Ready;
-                                        _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                                     }
                                     else
                                     {
@@ -489,25 +486,40 @@ namespace AAEmu.Game.Models.Game.Quests
                                         Status = QuestStatus.Progress;
                                         ComponentId = 0;
                                         // если complete == false, также надо слать пакет SCQuestContextUpdatedPacket
-                                        _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                                     }
+                                    _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                                     break;
                                 }
                         }
                         SupplyItem = 0;
-                        //_log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, acts[i].DetailType);
                     }
 
-                    if (complete)
+                    if (completes[componentIndex] || complete)
                     {
                         UseSkill(components, componentIndex);
                     }
                 }
 
-                if (questActObjItemGather)
+                // TODO added for quest Id=1135 - достаточно выполнение одного элемента itemGather || monsterHunt
+                // TODO added for quest Id=1511 - обязательно выполнение обеих элементов itemGather
+                if (components.Length > 1)
+                {
+                    complete = Template.Score > 0 ? completes.Any(b => b == true) : completes.All(b => b == true);
+                    if (complete)
+                    {
+                        Status = QuestStatus.Ready;
+                    }
+                    else
+                    {
+                        Status = QuestStatus.Progress;
+                        ComponentId = 0;
+                    }
+                }
+
+                if (selective)
                 {
                     // Если Selective = true, то разрешается быть подходящим одному предмету из нескольких
-                    if (selective.Contains(true))
+                    if (selectives.Contains(true))
                     {
                         Status = QuestStatus.Ready;
                         complete = true;
@@ -736,7 +748,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
                                     Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[componentIndex], null);
                                     //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
-                                    _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId{6}, Count{7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
+                                    _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId {6}, Count {7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
                                     break;
                                 }
                             case "QuestActObjItemGather":
@@ -748,7 +760,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                         Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
                                         Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[componentIndex], null);
                                         //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
-                                        _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId{6}, Count{7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
+                                        _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId {6}, Count {7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
                                     }
                                     break;
                                 }
@@ -761,7 +773,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                         Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
                                         Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[componentIndex], null);
                                         //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
-                                        _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId{6}, Count{7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
+                                        _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId {6}, Count {7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
                                     }
                                     break;
                                 }
@@ -769,84 +781,6 @@ namespace AAEmu.Game.Models.Game.Quests
                     }
                 }
             }
-
-            //for (var step = QuestComponentKind.None; step <= QuestComponentKind.Reward; step++)
-            //{
-            //    var component = Template.GetComponent(step);
-            //    if (component == null)
-            //    {
-            //        continue;
-            //    }
-
-            //    var idx = 0;
-            //    var acts = QuestManager.Instance.GetActs(component.Id);
-            //    foreach (var act in acts)
-            //    {
-            //        //var items = new List<(Item, int)>();
-            //        switch (act.DetailType)
-            //        {
-            //            case "QuestActSupplyItem" when step == QuestComponentKind.Supply:
-            //                {
-            //                    var template = act.GetTemplate<QuestActSupplyItem>();
-            //                    if (template.DestroyWhenDrop)
-            //                    {
-            //                        Owner.Inventory.TakeoffBackpack(ItemTaskType.QuestRemoveSupplies);
-            //                    }
-
-            //                    Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
-            //                    Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[idx], null);
-            //                    //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
-            //                    _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId{6}, Count{7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
-            //                    idx++;
-            //                    break;
-            //                }
-            //            case "QuestActObjItemGather":
-            //                {
-            //                    var template = act.GetTemplate<QuestActObjItemGather>();
-            //                    if (template.DestroyWhenDrop)
-            //                    {
-            //                        Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
-            //                        Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[idx], null);
-            //                        //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
-            //                        _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId{6}, Count{7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
-            //                        idx++;
-            //                    }
-
-            //                    break;
-            //                }
-            //            case "QuestActObjItemUse":
-            //                {
-            //                    var template = act.GetTemplate<QuestActObjItemUse>();
-            //                    if (template.DropWhenDestroy)
-            //                    {
-            //                        Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
-            //                        Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[idx], null);
-            //                        //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
-            //                        _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId{6}, Count{7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
-            //                        idx++;
-            //                    }
-
-            //                    break;
-            //                }
-            //        }
-            //        /*
-            //        var tasks = new List<ItemTask>();
-            //        foreach (var (item, count) in items)
-            //        {
-            //            if (item.Count == 0)
-            //            {
-            //                tasks.Add(new ItemRemove(item));
-            //            }
-            //            else
-            //            {
-            //                tasks.Add(new ItemCountUpdate(item, -count));
-            //            }
-            //        }
-            //        Owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.QuestRemoveSupplies, tasks, new List<ulong>()));
-            //        */
-            //    }
-
-            //}
         }
 
         public void Drop(bool update)
@@ -1074,7 +1008,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             goto exit;
                     }
                 }
-                exit: ;
+                exit:;
             }
             Update(checking);
         }
@@ -1150,7 +1084,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         case "QuestActObjInteraction":
                             {
                                 var template = act.GetTemplate<QuestActObjInteraction>();
-                                //if (template.WorldInteractionId == type) // This operator is commented out for the quest id=3708
+                                //if (template.WorldInteractionId == type) // TODO This operator is commented out for the quest id=3708
                                 {
                                     if (template.DoodadId == interactionTarget.TemplateId)
                                     {
@@ -1163,53 +1097,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             }
                         default:
                             _log.Warn("[Quest] OnInteraction: character {0}, wants to do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
-
                             break;
-                            //case "QuestActObjItemUse":
-                            //    {   // нужен для квеста получения питомцам
-                            //        var template = act.GetTemplate<QuestActObjItemUse>();
-                            //        if (template.ItemId == interactionTarget.ItemTemplateId)
-                            //        {
-                            //            checking = true;
-                            //            Objectives[componentIndex]++;
-                            //        }
-                            //        //List<Item> item;
-                            //        //Owner.Inventory.Bag.GetAllItemsByTemplate(template.ItemId, -1, out item, out Objectives[componentIndex]);
-                            //        //if (Objectives[componentIndex] > 0)
-                            //        //{
-                            //        //    checking = true;
-                            //        //    Objectives[componentIndex]++; // TODO проверить нужен он здесь?
-                            //        //}
-                            //        break;
-                            //    }
-                            //case "QuestActObjItemGather":
-                            //    {   // нужен для квеста рубить деревья
-                            //        var template = act.GetTemplate<QuestActObjItemGather>();
-                            //        if (interactionTarget.TemplateId == template.HighlightDoodadId)
-                            //        {
-                            //            Objectives[componentIndex]++;
-                            //            checking = true;
-                            //        }
-                            //        //Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
-                            //        //if (Objectives[componentIndex] > 0)
-                            //        //{
-                            //        //    checking = true;
-                            //        //    //Objectives[componentIndex]++;
-                            //        //}
-                            //        break;
-                            //    }
-                            //case "QuestActObjItemGroupUse":
-                            //    {
-                            //        //var template = act.GetTemplate<QuestActObjItemGroupUse>();
-                            //        //List<Item> item;
-                            //        //Owner.Inventory.Bag.GetAllItemsByTemplate(template.ItemGroupId, -1, out item, out Objectives[componentIndex]);
-                            //        //if (QuestManager.Instance.CheckGroupItem(template.ItemGroupId, item[0].TemplateId))
-                            //        //{
-                            //        checking = true;
-                            //        Objectives[componentIndex]++; // TODO проверить нужен он здесь?
-                            //                                      //}
-                            //        break;
-                            //    }
                     }
                 }
             }
