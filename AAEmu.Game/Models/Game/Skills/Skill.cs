@@ -81,11 +81,12 @@ namespace AAEmu.Game.Models.Game.Skills
                         return SkillResult.CooldownTime;
                     }
 
-                    if (caster.GlobalCooldown >= DateTime.UtcNow && !Template.IgnoreGlobalCooldown)
-                    {
-                        _log.Warn("Skill: CooldownTime [2]!");
-                        return SkillResult.CooldownTime;
-                    }
+                    // Commented out the line to eliminate the hanging of the skill
+                    //if (caster.GlobalCooldown >= DateTime.UtcNow && !Template.IgnoreGlobalCooldown)
+                    //{
+                    //    _log.Warn("Skill: CooldownTime [2]!");
+                    //    return SkillResult.CooldownTime;
+                    //}
 
                     caster.SkillLastUsed = DateTime.UtcNow;
                 }

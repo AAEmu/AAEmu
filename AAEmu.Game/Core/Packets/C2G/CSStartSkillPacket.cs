@@ -1,4 +1,7 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -15,6 +18,21 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
+            // Will delay for 150 Milliseconds to eliminate the hanging of the skill
+            var source = new CancellationTokenSource();
+            var t = Task.Run(async delegate
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(100), source.Token);
+                return 0;
+            });
+            try {
+                t.Wait();
+            }
+            catch (AggregateException ae) {
+                foreach (var e in ae.InnerExceptions)
+                    Console.WriteLine("{0}: {1}", e.GetType().Name, e.Message);
+            }
+
             var skillId = stream.ReadUInt32();
             // if (skillId == 2 || skillId == 3 || skillId == 4)
             //     return;
@@ -33,6 +51,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (flagType > 0) skillObject.Read(stream);
 
             _log.Trace("StartSkill: Id {0}, flag {1}", skillId, flag);
+
             if (skillCaster is SkillCasterUnit scu)
             {
                 var unit = WorldManager.Instance.GetUnit(scu.ObjId);
