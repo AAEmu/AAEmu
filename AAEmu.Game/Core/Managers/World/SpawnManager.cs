@@ -82,13 +82,15 @@ namespace AAEmu.Game.Core.Managers.World
                                 if (!NpcManager.Instance.Exist(spawner.UnitId))
                                     continue; // TODO ... so mb warn here?
                                 spawner.Position.WorldId = world.Id;
-                                spawner.Position.ZoneId =
-                                    WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                                spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
                                 // Convert degrees from the file to radians for use
                                 spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
                                 spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
                                 spawner.Position.Roll = spawner.Position.Roll.DegToRad();
-                                npcSpawners.Add(spawner.Id, spawner);
+                                if (!npcSpawners.ContainsKey(spawner.Id))
+                                {
+                                    npcSpawners.Add(spawner.Id, spawner);
+                                }
                             }
                         else
                             throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
@@ -130,7 +132,10 @@ namespace AAEmu.Game.Core.Managers.World
                                 spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
                                 spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
                                 spawner.Position.Roll = spawner.Position.Roll.DegToRad();
-                                doodadSpawners.Add(spawner.Id, spawner);
+                                if (!doodadSpawners.ContainsKey(spawner.Id))
+                                {
+                                    doodadSpawners.Add(spawner.Id, spawner);
+                                }
                             }
                         }
                         else
@@ -166,7 +171,10 @@ namespace AAEmu.Game.Core.Managers.World
                                 spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
                                 spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
                                 spawner.Position.Roll = spawner.Position.Roll.DegToRad();
-                                transferSpawners.Add(spawner.Id, spawner);
+                                if (!transferSpawners.ContainsKey(spawner.Id))
+                                {
+                                    transferSpawners.Add(spawner.Id, spawner);
+                                }
                             }
                         }
                         else
@@ -198,9 +206,11 @@ namespace AAEmu.Game.Core.Managers.World
                                 if (!GimmickManager.Instance.Exist(spawner.UnitId))
                                     continue;
                                 spawner.Position.WorldId = world.Id;
-                                spawner.Position.ZoneId =
-                                    WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
-                                gimmickSpawners.Add(spawner.Id, spawner);
+                                spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                                if (!gimmickSpawners.ContainsKey(spawner.Id))
+                                {
+                                    gimmickSpawners.Add(spawner.Id, spawner);
+                                }
                             }
                         }
                         else
