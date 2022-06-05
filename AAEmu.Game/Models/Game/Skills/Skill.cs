@@ -222,7 +222,7 @@ namespace AAEmu.Game.Models.Game.Skills
                             }
                         }
 
-                        if (caster.GetRelationStateTo(target) != RelationState.Friendly)
+                        if (target != null && caster.GetRelationStateTo(target) != RelationState.Friendly)
                         {
                             return null; //TODO отправлять ошибку?
                         }
@@ -240,7 +240,7 @@ namespace AAEmu.Game.Models.Game.Skills
                             }
                         }
 
-                        if (caster.GetRelationStateTo(target) != RelationState.Hostile)
+                        if (target != null && caster.GetRelationStateTo(target) != RelationState.Hostile)
                         {
                             if (!caster.CanAttack(target))
                             {
