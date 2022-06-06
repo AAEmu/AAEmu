@@ -22,19 +22,14 @@ namespace AAEmu.Commons.Utils.Updater
         */
 
         /// <summary>
-        /// Scans and runs updates from the SQL\Updates folder
+        /// Checks if the updates table already exists
         /// </summary>
-        /// <param name="connection">A valid MySqlConnection</param>
-        /// <param name="moduleNamePrefix">either aaemu_login or aaemu_game</param>
-        /// <param name="databaseSchemaName">actual database name for this configuration</param>
+        /// <param name="connection"></param>
+        /// <param name="databaseSchemaName"></param>
         /// <returns></returns>
-        public static bool Run(MySqlConnection connection, string moduleNamePrefix, string databaseSchemaName)
+        private static bool UpdatesTableExists(MySqlConnection connection, string databaseSchemaName)
         {
-            _log.Debug($"Updating database for {moduleNamePrefix}");
-
             var updateDbExists = false;
-
-            // Check if the updates table already exists
             using (var command = connection.CreateCommand())
             {
                 command.Connection = connection;
@@ -48,32 +43,155 @@ namespace AAEmu.Commons.Utils.Updater
                         updateDbExists = true;
                 }
             }
+            return updateDbExists;
+        }
+        
+        /// <summary>
+        /// Create initial table
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <returns></returns>
+        private static bool CreateUpdatesTable(MySqlConnection connection)
+        {
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "CREATE TABLE `updates` ( " +
+                                      "`script_name` varchar(255) NOT NULL, " +
+                                      "`installed` tinyint NOT NULL DEFAULT '0', " +
+                                      "`install_date` datetime NOT NULL, " +
+                                      "`last_error` text NOT NULL " +
+                                      ") COMMENT='Table containing SQL update script information' COLLATE 'utf8mb4_general_ci';" +
+                                      "ALTER TABLE `updates` ADD PRIMARY KEY `script_name` (`script_name`);";
+                try
+                {
+                    command.ExecuteNonQuery();
+                }
+                catch
+                {
+                    _log.Fatal("Failed to create updates table!");
+                    // Failed to create the new table
+                    return false;
+                }
+
+                _log.Info("Created updates table");
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Mark all current updates as installed
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="allUpdatesFiles"></param>
+        /// <param name="moduleNamePrefix"></param>
+        /// <returns></returns>
+        private static void InitializeUpdatesTable(MySqlConnection connection, List<string> allUpdatesFiles, string moduleNamePrefix)
+        {
+            using (var command = connection.CreateCommand())
+            {
+                command.Connection = connection;
+
+                foreach (var thisScriptFile in allUpdatesFiles)
+                {
+                    var fName = Path.GetFileName(thisScriptFile);
+                    if (fName == null)
+                        continue; // shouldn't happen here
+                    fName = fName.ToLower();
+                    if (!fName.Contains(moduleNamePrefix))
+                        continue; // This files is not related to us, ignore (technically shouldn't happen, but add it anyway)
+
+                    command.CommandText = "REPLACE INTO `updates` " +
+                                          "(`script_name`,`installed`,`install_date`,`last_error`" +
+                                          ") VALUES (" +
+                                          "@script_name,@installed,@install_date,@last_error)";
+
+                    command.Parameters.Clear();
+                    command.Parameters.AddWithValue("@script_name", fName);
+                    command.Parameters.AddWithValue("@installed", 1);
+                    command.Parameters.AddWithValue("@install_date", DateTime.UtcNow);
+                    command.Parameters.AddWithValue("@last_error", "Initialized");
+
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
+        private static bool InstallUpdatesFiles(MySqlConnection connection, List<string> filesToRun)
+        {
+            foreach (var fName in filesToRun)
+            {
+                var sql = File.ReadAllText(fName);
+
+                // Run update script
+                var success = false;
+                var errorText = string.Empty;
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.CommandText = sql;
+
+                    try
+                    {
+                        command.ExecuteNonQuery();
+                        success = true;
+                    }
+                    catch (Exception e)
+                    {
+                        errorText = e.Message;
+                    }
+                }
+
+                // Save the results
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.CommandText = "REPLACE INTO `updates` " +
+                                          "(`script_name`,`installed`,`install_date`,`last_error`" +
+                                          ") VALUES (" +
+                                          "@script_name,@installed,@install_date,@last_error)";
+
+                    command.Parameters.Clear();
+                    command.Parameters.AddWithValue("@script_name", fName);
+                    command.Parameters.AddWithValue("@installed", success ? 1 : 0);
+                    command.Parameters.AddWithValue("@install_date", success ? DateTime.UtcNow : DateTime.MinValue);
+                    command.Parameters.AddWithValue("@last_error", errorText);
+
+                    command.ExecuteNonQuery();
+                }
+
+                if (!success)
+                {
+                    _log.Error($"Failed to run update script: {fName}");
+                    _log.Error(errorText);
+                    return false;
+                }
+
+                _log.Info($"Installed: {fName}");
+                //filesAlreadyUpdated.Add(fName);
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Scans and runs updates from the SQL\Updates folder
+        /// </summary>
+        /// <param name="connection">A valid MySqlConnection</param>
+        /// <param name="moduleNamePrefix">either aaemu_login or aaemu_game</param>
+        /// <param name="databaseSchemaName">actual database name for this configuration</param>
+        /// <returns></returns>
+        public static bool Run(MySqlConnection connection, string moduleNamePrefix, string databaseSchemaName)
+        {
+            _log.Debug($"Updating database for {moduleNamePrefix}");
+
+            // Check if the updates table already exists
+            var updateDbExists = UpdatesTableExists(connection, databaseSchemaName);
 
             // (try to) Create the table if it doesn't exist yet
             if (updateDbExists == false)
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "CREATE TABLE `updates` ( " +
-                                          "`script_name` varchar(255) NOT NULL, " +
-                                          "`installed` tinyint NOT NULL DEFAULT '0', " +
-                                          "`install_date` datetime NOT NULL, " +
-                                          "`last_error` text NOT NULL " +
-                                          ") COMMENT='Table containing SQL update script information' COLLATE 'utf8mb4_general_ci';" +
-                                          "ALTER TABLE `updates` ADD PRIMARY KEY `script_name` (`script_name`);";
-                    try
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                    catch
-                    {
-                        _log.Fatal("Failed to create updates table!");
-                        // Failed to create the new table
-                        return false;
-                    }
-
-                    _log.Info("Created updates table");
-                }
+                if (!CreateUpdatesTable(connection))
+                    return false;
             }
 
             // Get the Updates Files List
@@ -90,35 +208,7 @@ namespace AAEmu.Commons.Utils.Updater
 
             // If we're running this version for the first time, assume that all updates have been installed before
             if (updateDbExists == false)
-            {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-
-                    foreach (var thisScriptFile in allUpdatesFiles)
-                    {
-                        var fName = Path.GetFileName(thisScriptFile);
-                        if (fName == null)
-                            continue; // shouldn't happen here
-                        fName = fName.ToLower();
-                        if (!fName.Contains(moduleNamePrefix))
-                            continue; // This files is not related to us, ignore (technically shouldn't happen, but add it anyway)
-
-                        command.CommandText = "REPLACE INTO `updates` " +
-                                              "(`script_name`,`installed`,`install_date`,`last_error`" +
-                                              ") VALUES (" +
-                                              "@script_name,@installed,@install_date,@last_error)";
-
-                        command.Parameters.Clear();
-                        command.Parameters.AddWithValue("@script_name", fName);
-                        command.Parameters.AddWithValue("@installed", 1);
-                        command.Parameters.AddWithValue("@install_date", DateTime.UtcNow);
-                        command.Parameters.AddWithValue("@last_error", "Initialized");
-
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
+                InitializeUpdatesTable(connection,allUpdatesFiles,moduleNamePrefix);
 
             // Load the DB contents
             using (var command = connection.CreateCommand())
@@ -160,8 +250,7 @@ namespace AAEmu.Commons.Utils.Updater
             if (filesToRun.Count > 0)
             {
                 Thread.Sleep(1000);
-                Console.WriteLine(
-                    $"Warning, there are {filesToRun.Count} updates for the database that need to be installed first !");
+                Console.WriteLine($"Warning, there are {filesToRun.Count} updates for the database that need to be installed first !");
                 Console.WriteLine("-----");
                 foreach (var fName in filesToRun)
                 {
@@ -169,63 +258,13 @@ namespace AAEmu.Commons.Utils.Updater
                 }
 
                 Console.WriteLine("-----");
-                Console.Write(
-                    "Please type YES (all caps) to try and automatically install the updates, or press Ctrl+C here to quit: ");
+                Console.Write("Please type YES (all caps) to try and automatically install the updates, or press Ctrl+C here to quit: ");
                 var yesNo = Console.ReadLine();
                 if (yesNo != "YES")
                     return false;
 
-                foreach (var fName in filesToRun)
-                {
-                    var sql = File.ReadAllText(fName);
-
-                    // Run update script
-                    var success = false;
-                    var errorText = string.Empty;
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.Connection = connection;
-                        command.CommandText = sql;
-
-                        try
-                        {
-                            command.ExecuteNonQuery();
-                            success = true;
-                        }
-                        catch (Exception e)
-                        {
-                            errorText = e.Message;
-                        }
-                    }
-
-                    // Save the results
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.Connection = connection;
-                        command.CommandText = "REPLACE INTO `updates` " +
-                                              "(`script_name`,`installed`,`install_date`,`last_error`" +
-                                              ") VALUES (" +
-                                              "@script_name,@installed,@install_date,@last_error)";
-
-                        command.Parameters.Clear();
-                        command.Parameters.AddWithValue("@script_name", fName);
-                        command.Parameters.AddWithValue("@installed", success ? 1 : 0);
-                        command.Parameters.AddWithValue("@install_date", success ? DateTime.UtcNow : DateTime.MinValue);
-                        command.Parameters.AddWithValue("@last_error", errorText);
-
-                        command.ExecuteNonQuery();
-                    }
-
-                    if (!success)
-                    {
-                        _log.Error($"Failed to run update script: {fName}");
-                        _log.Error(errorText);
-                        return false;
-                    }
-
-                    _log.Info($"Installed: {fName}");
-                    filesAlreadyUpdated.Add(fName);
-                }
+                if (!InstallUpdatesFiles(connection, filesToRun))
+                    return false;
             }
             else
             {
