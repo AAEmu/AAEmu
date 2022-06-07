@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 using AAEmu.Commons.Utils;
@@ -75,18 +76,48 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 lock (caster.GCDLock)
                 {
+                    // Commented out the line to eliminate the hanging of the skill
+                    // TODO added for quest Id = 886 - скилл срабатывает часто, что не дает работать квесту - крысы не появляются
                     if (caster.SkillLastUsed.AddMilliseconds(150) > DateTime.UtcNow)
                     {
-                        _log.Warn("Skill: CooldownTime [1]!");
-                        return SkillResult.CooldownTime;
+                        _log.Warn("Skill: CooldownTime [150]!");
+                        // Will delay for 150 Milliseconds to eliminate the hanging of the skill
+                        var source = new CancellationTokenSource();
+                        var t = Task.Run(async delegate
+                        {
+                            await Task.Delay(TimeSpan.FromMilliseconds(150), source.Token);
+                            return 0;
+                        });
+                        try {
+                            t.Wait();
+                        }
+                        catch (AggregateException ae) {
+                            foreach (var e in ae.InnerExceptions)
+                                _log.Trace("{0}: {1}", e.GetType().Name, e.Message);
+                        }
+                        //return SkillResult.CooldownTime;
                     }
 
                     // Commented out the line to eliminate the hanging of the skill
-                    //if (caster.GlobalCooldown >= DateTime.UtcNow && !Template.IgnoreGlobalCooldown)
-                    //{
-                    //    _log.Warn("Skill: CooldownTime [2]!");
-                    //    return SkillResult.CooldownTime;
-                    //}
+                    if (caster.GlobalCooldown >= DateTime.UtcNow && !Template.IgnoreGlobalCooldown)
+                    {
+                        _log.Warn("Skill: CooldownTime [50]!");
+                        // Will delay for 50 Milliseconds to eliminate the hanging of the skill
+                        var source = new CancellationTokenSource();
+                        var t = Task.Run(async delegate
+                        {
+                            await Task.Delay(TimeSpan.FromMilliseconds(50), source.Token);
+                            return 0;
+                        });
+                        try {
+                            t.Wait();
+                        }
+                        catch (AggregateException ae) {
+                            foreach (var e in ae.InnerExceptions)
+                                _log.Trace("{0}: {1}", e.GetType().Name, e.Message);
+                        }
+                        //return SkillResult.CooldownTime;
+                    }
 
                     caster.SkillLastUsed = DateTime.UtcNow;
                 }
@@ -103,7 +134,10 @@ namespace AAEmu.Game.Models.Game.Skills
             var target = GetInitialTarget(caster, casterCaster, targetCaster);
             InitialTarget = target;
             if (target == null)
+            {
+                _log.Warn("Skill: SkillResult.NoTarget!");
                 return SkillResult.NoTarget;//We should try to make sure this doesnt happen
+            }
 
             TlId = SkillManager.Instance.NextId();
             if (Template.Plot != null)

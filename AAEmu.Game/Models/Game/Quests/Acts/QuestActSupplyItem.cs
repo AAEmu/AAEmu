@@ -1,11 +1,6 @@
-﻿using System.Collections.Generic;
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 
@@ -24,18 +19,16 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public override bool Use(Character character, Quest quest, int objective)
         {
             _log.Warn("QuestActSupplyItem");
-            //if (objective >= Count)
-            //    return true;
-            //else
-            //{
+            if (objective >= Count) // checking for call recursion
+            {
+                return true;
+            }
+
             if (ItemManager.Instance.IsAutoEquipTradePack(ItemId))
             {
                 return character.Inventory.TryEquipNewBackPack(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
             }
-            else
-            {
-                return character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
-            }
+            return character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
             //    /*
             //    var template = ItemManager.Instance.GetTemplate(ItemId);
             //    if (template is BackpackTemplate backpackTemplate)

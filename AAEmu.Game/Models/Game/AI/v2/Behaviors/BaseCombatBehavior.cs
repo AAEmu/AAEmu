@@ -73,10 +73,14 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
             foreach (var abuser in abusers)
             {
-                if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
+                if (Ai.AlreadyTargetted)
+                    return true;
+
+                if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead && !Ai.AlreadyTargetted)
                 {
                     Ai.Owner.CurrentAggroTarget = abuser.ObjId;
                     Ai.Owner.SetTarget(abuser);
+                    Ai.AlreadyTargetted = true;
                     return true;
                 }
                 else
@@ -85,6 +89,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 }
             }
             Ai.Owner.SetTarget(null);
+            Ai.AlreadyTargetted = false;
             return false;
         }
     }

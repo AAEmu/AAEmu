@@ -164,13 +164,18 @@ namespace AAEmu.Game.Models.Game.Quests
                                 }
                             case "QuestActSupplyItem":
                                 {
-                                    res = act.Use(Owner, this, 0); // получим предмет
+                                    res = act.Use(Owner, this, SupplyItem); // if SupplyItem = 0, we get the item
                                     if (!res)
                                     {
                                         Owner.SendErrorMessage(ErrorMessageType.BagFull);
                                     }
-                                    Step = QuestComponentKind.Supply; // почему то переключается на Progress? Потому что, срабатывает OnItemGather.
+                                    //Step = QuestComponentKind.Supply; // почему то переключается на Progress? Потому что, срабатывает OnItemGather.
                                     supply = res; // если было пополнение предметом, то на метод Update() не переходить
+                                    if (Step == QuestComponentKind.Progress)
+                                    {
+                                        // TODO added for quest Id=748 - получение того же предмета повторно
+                                        Status = QuestStatus.Ready;
+                                    }
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     break;
                                 }
@@ -255,7 +260,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     UseSkill(components, componentIndex);
                                     break;
                                 }
-                            case "QuestActSupplyItem":
+                            case "QuestActSupplyItem" when Step == QuestComponentKind.Supply:
                                 {
                                     res = act.Use(Owner, this, 0); // получим предмет
                                     if (!res)
@@ -957,6 +962,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public void OnItemGather(Item item, int count)
         {
             var checking = false;
+            var tmpStep = Step;
             Step = QuestComponentKind.Progress;
             var components = Template.GetComponents(Step);
             if (components.Length == 0)
@@ -975,8 +981,13 @@ namespace AAEmu.Game.Models.Game.Quests
                                 if (template.ItemId == item.TemplateId)
                                 {
                                     checking = true;
-                                    SupplyItem += count;
+                                    SupplyItem += count; // the same as Objectives, but for QuestActSupplyItem
                                     _log.Warn("[Quest] OnItemGather: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
+                                    if (tmpStep == QuestComponentKind.Supply)
+                                    {
+                                        Step = tmpStep;
+                                        return; // возврат в метод Start()
+                                    }
                                 }
                                 break;
                             }

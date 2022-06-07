@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             }
             catch (AggregateException ae) {
                 foreach (var e in ae.InnerExceptions)
-                    Console.WriteLine("{0}: {1}", e.GetType().Name, e.Message);
+                    _log.Trace("{0}: {1}", e.GetType().Name, e.Message);
             }
 
             var skillId = stream.ReadUInt32();
