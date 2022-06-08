@@ -77,6 +77,13 @@ namespace AAEmu.Game.Models.Game.Quests
             if (component.KindId == QuestComponentKind.Supply)
             {
                 var (_, component2) = Template.Components.ElementAt(2); // возьмём компонент следующий за Supply
+                // TODO added for quest Id=748 - получение того же предмета повторно
+                var acts2 = QuestManager.Instance.GetActs(component2.Id);
+                if (component2.KindId == QuestComponentKind.Progress && acts2.Any(qa => qa.DetailType == "QuestActSupplyItem"))
+                {
+                    Status = QuestStatus.Ready;
+                    return;
+                }
                 Status = component2.KindId == QuestComponentKind.Progress ? QuestStatus.Progress : QuestStatus.Ready;
                 return;
             }
@@ -169,13 +176,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     {
                                         Owner.SendErrorMessage(ErrorMessageType.BagFull);
                                     }
-                                    //Step = QuestComponentKind.Supply; // почему то переключается на Progress? Потому что, срабатывает OnItemGather.
                                     supply = res; // если было пополнение предметом, то на метод Update() не переходить
-                                    if (Step == QuestComponentKind.Progress)
-                                    {
-                                        // TODO added for quest Id=748 - получение того же предмета повторно
-                                        Status = QuestStatus.Ready;
-                                    }
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     break;
                                 }

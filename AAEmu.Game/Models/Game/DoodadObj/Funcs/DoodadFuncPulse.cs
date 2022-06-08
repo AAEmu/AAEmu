@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override bool Use(Unit caster, Doodad owner)
         {
-            _log.Trace("DoodadFuncPulse");
+            _log.Debug("DoodadFuncPulse: Flag {0}", Flag);
             return false;
         }
     }
