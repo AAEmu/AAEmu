@@ -15,8 +15,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             Skill skill,
             SkillObject skillObject,
             DateTime time,
-            int value1,
-            int value2,
+            int value1, // Item TemplateId
+            int value2, // Item Count
             int value3,
             int value4)
         {

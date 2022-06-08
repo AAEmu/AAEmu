@@ -820,18 +820,19 @@ namespace AAEmu.Game.Models.Game.NPChar
 
             var oldPosition = Transform.Local.ClonePosition();
 
-            var targetDist = MathUtil.CalculateDistance(Transform.Local.Position, other);
-            if (targetDist <= 0.01f)
+            var targetDist = MathUtil.CalculateDistance(Transform.Local.Position, other, true);
+            if (targetDist <= 1f)
                 return;
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
             var travelDist = Math.Min(targetDist, distance);
 
             // TODO: Implement proper use for Transform.World.AddDistanceToFront)
-            var (newX, newY) = Transform.Local.AddDistanceToFront(travelDist, targetDist, Transform.Local.Position, other);
+            var (newX, newY, newZ) = Transform.Local.AddDistanceToFront(travelDist, targetDist, Transform.Local.Position, other);
 
             // TODO: Implement Transform.World to do proper movement
-            Transform.Local.SetPosition(newX, newY, WorldManager.Instance.GetHeight(Transform));
+            //Transform.Local.SetPosition(newX, newY, WorldManager.Instance.GetHeight(Transform));
+            Transform.Local.SetPosition(newX, newY, newZ);
 
             var angle = MathUtil.CalculateAngleFrom(Transform.Local.Position, other);
             var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, (float)angle.DegToRad());

@@ -442,6 +442,13 @@ namespace AAEmu.Game.Models.Game.Quests
                                     _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                                     return;
                                 }
+                            case "QuestActEtcItemObtain":
+                                {
+                                    // TODO added for quest Id=882.
+                                    // ничего не делаем
+                                    _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, completes[componentIndex], act.DetailType);
+                                    break;
+                                }
                             case "QuestActObjItemGather":
                                 {
                                     // нужно посмотреть в инвентарь, так как после Start() ещё не знаем, есть предмет в инвентаре или нет

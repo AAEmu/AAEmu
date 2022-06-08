@@ -17,6 +17,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Effects.Enums;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
@@ -78,14 +79,19 @@ namespace AAEmu.Game.Models.Game.Skills
                 {
                     // Commented out the line to eliminate the hanging of the skill
                     // TODO added for quest Id = 886 - скилл срабатывает часто, что не дает работать квесту - крысы не появляются
-                    if (caster.SkillLastUsed.AddMilliseconds(150) > DateTime.UtcNow)
+                    var delay = 150;
+                    if (Id == 2 || Id == 3 || Id == 4)
                     {
-                        _log.Warn("Skill: CooldownTime [150]!");
+                        delay = caster is Character ? 300 : 1500;
+                    }
+                    if (caster.SkillLastUsed.AddMilliseconds(delay) > DateTime.UtcNow)
+                    {
+                        _log.Warn("Skill: CooldownTime [{0}]!", delay);
                         // Will delay for 150 Milliseconds to eliminate the hanging of the skill
                         var source = new CancellationTokenSource();
                         var t = Task.Run(async delegate
                         {
-                            await Task.Delay(TimeSpan.FromMilliseconds(150), source.Token);
+                            await Task.Delay(TimeSpan.FromMilliseconds(delay), source.Token);
                             return 0;
                         });
                         try {

@@ -18,6 +18,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 return;
             }
 
+            if (Ai.Owner.CurrentTarget == null) { return; }
             MoveInRange(Ai.Owner.CurrentTarget, delta);
             if (!CanUseSkill)
                 return;
