@@ -191,7 +191,10 @@ namespace AAEmu.Commons.Utils.Updater
             if (updateDbExists == false)
             {
                 if (!CreateUpdatesTable(connection))
+                {
+                    _log.Fatal($"Was unable to create updates table in {databaseSchemaName} !");
                     return false;
+                }
             }
 
             // Get the Updates Files List
