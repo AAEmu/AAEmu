@@ -27,8 +27,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj,
+        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             _log.Trace("SpawnEffect");
@@ -36,7 +35,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (OwnerTypeId == 1) // NPC
             {
                 var npc = NpcManager.Instance.Create(0, SubType);
-                npc.Spawner = new NpcSpawner();
+                npc.Spawner = new NPChar.NpcSpawner();
                 npc.Spawner.RespawnTime = 0; // don't respawn
                 npc.Transform = caster.Transform.CloneDetached(npc);
                 var rpy = target.Transform.World.ToRollPitchYawDegrees();
@@ -64,6 +63,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, caster, 1);
                     npc.Ai.OnAggroTargetChanged();
                     npc.Ai.GoToCombat();
+                }
+
+                if (LifeTime > 0)
+                {
+                    npc.Despawn = DateTime.UtcNow.AddSeconds(LifeTime);
+                    SpawnManager.Instance.AddDespawn(npc);
                 }
             }
         }
