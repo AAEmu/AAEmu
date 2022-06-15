@@ -6,7 +6,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.NpcSpawner;
+using AAEmu.Game.Models.Game.NPChar.NPSpawner;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Utils.DB;
 
@@ -28,7 +28,6 @@ namespace AAEmu.Game.GameData
             _passivesForNpc = new Dictionary<uint, List<NpcPassiveBuff>>();
             _npcSpawnerNpc = new Dictionary<uint, NpcSpawnerNpc>();
             _npcSpawners = new Dictionary<uint, NpcSpawnerTemplate>();
-
 
             using (var command = connection.CreateCommand())
             {
@@ -161,49 +160,31 @@ namespace AAEmu.Game.GameData
             }
         }
 
-        private uint GetTemplateId(uint memberId)
+        public List<uint> GetSpawnersId(uint memberId)
         {
+            var res = new List<uint>();
             foreach (var (_, npcSpawnerTemplate) in _npcSpawners)
             {
-                foreach (var npcSpawnerNpc in npcSpawnerTemplate.Npcs)
+                foreach (var npc in npcSpawnerTemplate.Npcs)
                 {
-                    if (npcSpawnerNpc.MemberId == memberId && npcSpawnerTemplate.MaxPopulation == 1)
+                    if (npc.MemberId == memberId)
                     {
-                        return npcSpawnerNpc.NpcSpawnerId;
+                        res.Add(npc.NpcSpawnerId);
                     }
                 }
             }
 
-            return 0;
+            return res;
         }
 
-        public float GetSpawnDelay(uint memberId)
+        public NpcSpawnerTemplate GetNpcSpawnerTemplate(uint npcSpawnerId)
         {
             foreach (var (_, npcSpawnerTemplate) in _npcSpawners)
             {
-                foreach (var npcSpawnerNpc in npcSpawnerTemplate.Npcs)
-                {
-                    if (npcSpawnerNpc.MemberId == memberId && npcSpawnerTemplate.MaxPopulation == 1)
-                    {
-                        return npcSpawnerTemplate.SpawnDelayMin;
-                    }
-                }
-            }
-
-            return 0f;
-        }
-
-        public NpcSpawnerTemplate GetNpcSpawnerTemplate(uint templateId)
-        {
-            foreach (var (_, npcSpawnerTemplate) in _npcSpawners)
-            {
-                foreach (var npcSpawnerNpc in npcSpawnerTemplate.Npcs)
-                {
-                    if (npcSpawnerNpc.NpcSpawnerId == templateId)
+                    if (npcSpawnerTemplate.Id == npcSpawnerId)
                     {
                         return npcSpawnerTemplate;
                     }
-                }
             }
 
             return null;

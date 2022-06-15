@@ -45,10 +45,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         private void RemoveEffectsAndDelete(Unit unit)
         {
             unit.Buffs.RemoveAllEffects();
-            //unit.Delete();
             if (unit is Npc npc && npc.Spawner != null)
             {
-                npc.Spawner.RespawnTime = (int)NpcGameData.Instance.GetSpawnDelay(npc.TemplateId); // reset the respawn time
                 npc.Spawner.DespawnWithRespawn(npc);
             }
         }

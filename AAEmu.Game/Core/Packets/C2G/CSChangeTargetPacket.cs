@@ -29,7 +29,10 @@ namespace AAEmu.Game.Core.Packets.C2G
                         Connection.ActiveChar.CurrentTarget?.ObjId ?? 0), true);
 
             if (Connection.ActiveChar.CurrentTarget == null)
+            {
+                Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: not found in Db", targetId);
                 return;
+            }
             if (Connection.ActiveChar.CurrentTarget is Npc npc)
                 Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3}", targetId, npc.TemplateId, npc.Ai?.GetType().Name.Replace("AiCharacter", ""), npc.Ai?.GetCurrentBehavior()?.GetType().Name.Replace("Behavior", ""));
             else if (Connection.ActiveChar.CurrentTarget is House house)
@@ -37,9 +40,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             else if (Connection.ActiveChar.CurrentTarget is Transfer transfer)
                 Connection.ActiveChar.SendMessage("ObjId: {0}, Transfer TemplateId: {1}\nPos: {2}", targetId, transfer.TemplateId, transfer.Transform.ToString());
             else if (Connection.ActiveChar.CurrentTarget is Character character)
-                Connection.ActiveChar.SendMessage("ObjId: {0}, CharacterId: {1}, \nPos: {2}", targetId, character.Id, character.Transform.ToFullString(true,true));
+                Connection.ActiveChar.SendMessage("ObjId: {0}, CharacterId: {1}, \nPos: {2}", targetId, character.Id, character.Transform.ToFullString(true, true));
             else
-                Connection.ActiveChar.SendMessage("ObjId: {0}, Pos: {1}, {2}", targetId, Connection.ActiveChar.CurrentTarget.Transform.ToString(),Connection.ActiveChar.CurrentTarget.Name);
+                Connection.ActiveChar.SendMessage("ObjId: {0}, Pos: {1}, {2}", targetId, Connection.ActiveChar.CurrentTarget.Transform.ToString(), Connection.ActiveChar.CurrentTarget.Name);
         }
     }
 }

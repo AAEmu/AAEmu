@@ -1,0 +1,98 @@
+﻿using System;
+using System.Collections.Generic;
+
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.Models.Game.Schedules;
+using AAEmu.Game.Utils.DB;
+
+using Microsoft.Data.Sqlite;
+using DayOfWeek = AAEmu.Game.Models.Game.Schedules.DayOfWeek;
+
+namespace AAEmu.Game.GameData
+{
+    [GameData]
+    public class SchedulesGameData : Singleton<SchedulesGameData>, IGameDataLoader
+    {
+        private Dictionary<int, GameSchedules> _gameSchedules;
+        private Dictionary<int, GameScheduleSpawners> _gameScheduleSpawners;
+
+        public void Load(SqliteConnection connection)
+        {
+            _gameSchedules = new Dictionary<int, GameSchedules>();
+            _gameScheduleSpawners = new Dictionary<int, GameScheduleSpawners>();
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM game_schedules";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new GameSchedules();
+                        template.Id = reader.GetInt32("id");
+                        template.Name = reader.GetString("name");
+                        template.DayOfWeekId = (DayOfWeek) reader.GetInt32("day_of_week_id");
+                        template.StartTime = reader.GetInt32("start_time");
+                        template.EndTime = reader.GetInt32("end_time");
+                        template.StYear = reader.GetInt32("st_year");
+                        if (template.StYear < DateTime.UtcNow.Year)
+                        {
+                            template.StYear = DateTime.UtcNow.Year;
+                        }
+                        template.StMonth = reader.GetInt32("st_month");
+                        template.StDay = reader.GetInt32("st_day");
+                        template.StHour = reader.GetInt32("st_hour");
+                        template.StMin = reader.GetInt32("st_min");
+                        template.EdYear = reader.GetInt32("ed_year");
+                        if (template.EdYear < DateTime.UtcNow.Year)
+                        {
+                            template.EdYear = 9999;
+                        }
+                        template.EdMonth = reader.GetInt32("ed_month");
+                        template.EdDay = reader.GetInt32("ed_day");
+                        template.EdHour = reader.GetInt32("ed_hour");
+                        template.EdMin = reader.GetInt32("ed_min");
+                        template.StartTimeMin = reader.GetInt32("start_time_min");
+                        template.EndTimeMin = reader.GetInt32("end_time_min");
+                        if (!_gameSchedules.ContainsKey(template.Id))
+                        {
+                            _gameSchedules.Add(template.Id, template);
+                        }
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM game_schedule_spawners";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new GameScheduleSpawners();
+                        template.Id = reader.GetInt32("id");
+                        template.GameScheduleId = reader.GetInt32("game_schedule_id");
+                        template.SpawnerId = reader.GetInt32("spawner_id");
+
+                        if (!_gameScheduleSpawners.ContainsKey(template.Id))
+                        {
+                            _gameScheduleSpawners.Add(template.Id, template);
+                        }
+                    }
+                }
+            }
+        }
+
+        public void PostLoad()
+        {
+            GameScheduleManager.Instance.LoadGameSchedules(_gameSchedules);
+            GameScheduleManager.Instance.LoadGameScheduleSpawners(_gameScheduleSpawners);
+        }
+    }
+}
