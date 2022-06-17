@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Models.Game.NPChar.NPSpawner;
+﻿using System.Collections.Generic;
+
+using AAEmu.Game.Models.Game.NPChar.NPSpawner;
 using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.World
@@ -10,8 +12,7 @@ namespace AAEmu.Game.Models.Game.World
         public WorldSpawnPosition Position { get; set; }
         public int RespawnTime { get; set; } = 15;
         public int DespawnTime { get; set; } = 20;
-
-        public NpcSpawnerTemplate Template { get; set; }
+        public Dictionary<uint, NpcSpawnerTemplate> Template { get; set; } // npcSpawnerId, template
 
         public virtual T Spawn(uint objId)
         {

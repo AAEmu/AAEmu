@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 
 using AAEmu.Commons.Utils;
+using AAEmu.Game.GameData;
+using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Schedules;
 
 using NLog;
@@ -16,6 +19,17 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<int, GameSchedules> _gameSchedules; // GameScheduleId, GameSchedules
         private Dictionary<int, GameScheduleSpawners> _gameScheduleSpawners;
         private List<int> GameScheduleId { get; set; }
+
+        public void Load()
+        {
+            // Dictionary<string, int> dic = readSettings();
+
+            _log.Info("Loading shchedule...");
+
+            SchedulesGameData.Instance.PostLoad();
+
+            _log.Info("Loaded shchedule");
+        }
 
         public void LoadGameSchedules(Dictionary<int, GameSchedules> gameSchedules)
         {

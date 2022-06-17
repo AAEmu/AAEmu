@@ -34,7 +34,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 return;
             }
             if (Connection.ActiveChar.CurrentTarget is Npc npc)
-                Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3}", targetId, npc.TemplateId, npc.Ai?.GetType().Name.Replace("AiCharacter", ""), npc.Ai?.GetCurrentBehavior()?.GetType().Name.Replace("Behavior", ""));
+                Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3} SpawnerId {4}", targetId, npc.TemplateId, npc.Ai?.GetType().Name.Replace("AiCharacter", ""), npc.Ai?.GetCurrentBehavior()?.GetType().Name.Replace("Behavior", ""), npc.Spawner.Id);
             else if (Connection.ActiveChar.CurrentTarget is House house)
                 Connection.ActiveChar.SendMessage("ObjId: {0}, HouseId: {1}, Pos: {2}", targetId, house.Id, house.Transform.ToString());
             else if (Connection.ActiveChar.CurrentTarget is Transfer transfer)

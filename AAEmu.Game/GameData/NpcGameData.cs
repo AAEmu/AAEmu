@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.NPChar.NPSpawner;
+using AAEmu.Game.Models.Game.Schedules;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Utils.DB;
 
@@ -19,8 +20,9 @@ namespace AAEmu.Game.GameData
     {
         private Dictionary<uint, List<NpcSkill>> _skillsForNpc;
         private Dictionary<uint, List<NpcPassiveBuff>> _passivesForNpc;
-        public Dictionary<uint, NpcSpawnerNpc> _npcSpawnerNpc;
-        public Dictionary<uint, NpcSpawnerTemplate> _npcSpawners;
+        public Dictionary<uint, NpcSpawnerNpc> _npcSpawnerNpc;    // npcSpawnerId, nsn
+        public Dictionary<uint, NpcSpawnerTemplate> _npcSpawners; // npcSpawnerId, template
+        public Dictionary<uint, List<uint>> _npcMemberAndSpawnerId; // memberId, List<npcSpawnerId>
 
         public void Load(SqliteConnection connection)
         {
@@ -28,32 +30,31 @@ namespace AAEmu.Game.GameData
             _passivesForNpc = new Dictionary<uint, List<NpcPassiveBuff>>();
             _npcSpawnerNpc = new Dictionary<uint, NpcSpawnerNpc>();
             _npcSpawners = new Dictionary<uint, NpcSpawnerTemplate>();
+            _npcMemberAndSpawnerId = new Dictionary<uint, List<uint>>();
 
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM np_skills";
                 command.Prepare();
-                using (var sqliteReader = command.ExecuteReader())
-                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                using var sqliteReader = command.ExecuteReader();
+                using var reader = new SQLiteWrapperReader(sqliteReader);
+                while (reader.Read())
                 {
-                    while (reader.Read())
+                    var template = new NpcSkill()
                     {
-                        var template = new NpcSkill()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            SkillId = reader.GetUInt32("skill_id"),
-                            SkillUseCondition = (SkillUseConditionKind)reader.GetUInt32("skill_use_condition_id"),
-                            SkillUseParam1 = reader.GetFloat("skill_use_param1"),
-                            SkillUseParam2 = reader.GetFloat("skill_use_param2")
-                        };
+                        Id = reader.GetUInt32("id"),
+                        OwnerId = reader.GetUInt32("owner_id"),
+                        OwnerType = reader.GetString("owner_type"),
+                        SkillId = reader.GetUInt32("skill_id"),
+                        SkillUseCondition = (SkillUseConditionKind)reader.GetUInt32("skill_use_condition_id"),
+                        SkillUseParam1 = reader.GetFloat("skill_use_param1"),
+                        SkillUseParam2 = reader.GetFloat("skill_use_param2")
+                    };
 
-                        if (!_skillsForNpc.ContainsKey(template.OwnerId))
-                            _skillsForNpc.Add(template.OwnerId, new List<NpcSkill>());
+                    if (!_skillsForNpc.ContainsKey(template.OwnerId))
+                        _skillsForNpc.Add(template.OwnerId, new List<NpcSkill>());
 
-                        _skillsForNpc[template.OwnerId].Add(template);
-                    }
+                    _skillsForNpc[template.OwnerId].Add(template);
                 }
             }
 
@@ -61,24 +62,22 @@ namespace AAEmu.Game.GameData
             {
                 command.CommandText = "SELECT * FROM np_passive_buffs";
                 command.Prepare();
-                using (var sqliteReader = command.ExecuteReader())
-                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                using var sqliteReader = command.ExecuteReader();
+                using var reader = new SQLiteWrapperReader(sqliteReader);
+                while (reader.Read())
                 {
-                    while (reader.Read())
+                    var template = new NpcPassiveBuff()
                     {
-                        var template = new NpcPassiveBuff()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            PassiveBuffId = reader.GetUInt32("passive_buff_id")
-                        };
+                        Id = reader.GetUInt32("id"),
+                        OwnerId = reader.GetUInt32("owner_id"),
+                        OwnerType = reader.GetString("owner_type"),
+                        PassiveBuffId = reader.GetUInt32("passive_buff_id")
+                    };
 
-                        if (!_passivesForNpc.ContainsKey(template.OwnerId))
-                            _passivesForNpc.Add(template.OwnerId, new List<NpcPassiveBuff>());
+                    if (!_passivesForNpc.ContainsKey(template.OwnerId))
+                        _passivesForNpc.Add(template.OwnerId, new List<NpcPassiveBuff>());
 
-                        _passivesForNpc[template.OwnerId].Add(template);
-                    }
+                    _passivesForNpc[template.OwnerId].Add(template);
                 }
             }
 
@@ -86,30 +85,29 @@ namespace AAEmu.Game.GameData
             {
                 command.CommandText = "SELECT * FROM npc_spawners";
                 command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                using var sqliteReader = command.ExecuteReader();
+                using var reader = new SQLiteWrapperReader(sqliteReader);
+                while (reader.Read())
                 {
-                    while (reader.Read())
-                    {
-                        var template = new NpcSpawnerTemplate();
-                        template.Id = reader.GetUInt32("id");
-                        template.NpcSpawnerCategoryId = (NpcSpawnerCategory)reader.GetUInt32("npc_spawner_category_id");
-                        template.Name = reader.GetString("name");
-                        template.Comment = reader.GetString("comment", "");
-                        template.MaxPopulation = reader.GetUInt32("maxPopulation");
-                        template.StartTime = reader.GetFloat("startTime");
-                        template.EndTime = reader.GetFloat("endTime");
-                        template.DestroyTime = reader.GetFloat("destroyTime");
-                        template.SpawnDelayMin = reader.GetFloat("spawn_delay_min");
-                        template.ActivationState = reader.GetBoolean("activation_state");
-                        template.SaveIndun = reader.GetBoolean("save_indun");
-                        template.MinPopulation = reader.GetUInt32("min_population");
-                        template.TestRadiusNpc = reader.GetFloat("test_radius_npc");
-                        template.TestRadiusPc = reader.GetFloat("test_radius_pc");
-                        template.SuspendSpawnCount = reader.GetUInt32("suspend_spawn_count");
-                        template.SpawnDelayMax = reader.GetFloat("spawn_delay_max");
-                        template.Npcs = new List<NpcSpawnerNpc>();
-                        _npcSpawners.Add(template.Id, template);
-                    }
+                    var template = new NpcSpawnerTemplate();
+                    template.Id = reader.GetUInt32("id");
+                    template.NpcSpawnerCategoryId = (NpcSpawnerCategory)reader.GetUInt32("npc_spawner_category_id");
+                    template.Name = reader.GetString("name");
+                    template.Comment = reader.GetString("comment", "");
+                    template.MaxPopulation = reader.GetUInt32("maxPopulation");
+                    template.StartTime = reader.GetFloat("startTime");
+                    template.EndTime = reader.GetFloat("endTime");
+                    template.DestroyTime = reader.GetFloat("destroyTime");
+                    template.SpawnDelayMin = reader.GetFloat("spawn_delay_min");
+                    template.ActivationState = reader.GetBoolean("activation_state");
+                    template.SaveIndun = reader.GetBoolean("save_indun");
+                    template.MinPopulation = reader.GetUInt32("min_population");
+                    template.TestRadiusNpc = reader.GetFloat("test_radius_npc");
+                    template.TestRadiusPc = reader.GetFloat("test_radius_pc");
+                    template.SuspendSpawnCount = reader.GetUInt32("suspend_spawn_count");
+                    template.SpawnDelayMax = reader.GetFloat("spawn_delay_max");
+                    template.Npcs = new List<NpcSpawnerNpc>();
+                    _npcSpawners.Add(template.Id, template);
                 }
             }
 
@@ -117,24 +115,23 @@ namespace AAEmu.Game.GameData
             {
                 command.CommandText = "SELECT * FROM npc_spawner_npcs";
                 command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                using var sqliteReader = command.ExecuteReader();
+                using var reader = new SQLiteWrapperReader(sqliteReader);
+                while (reader.Read())
                 {
-                    while (reader.Read())
+                    var nsn = new NpcSpawnerNpc();
+                    nsn.Id = reader.GetUInt32("id");
+                    nsn.NpcSpawnerId = reader.GetUInt32("npc_spawner_id");
+                    nsn.MemberId = reader.GetUInt32("member_id");
+                    nsn.MemberType = reader.GetString("member_type");
+                    nsn.Weight = reader.GetFloat("weight");
+
+                    if (_npcSpawners.ContainsKey(nsn.NpcSpawnerId))
                     {
-                        var template = new NpcSpawnerNpc();
-                        template.Id = reader.GetUInt32("id");
-                        template.NpcSpawnerId = reader.GetUInt32("npc_spawner_id");
-                        template.MemberId = reader.GetUInt32("member_id");
-                        template.MemberType = reader.GetString("member_type");
-                        template.Weight = reader.GetFloat("weight");
-
-                        if (_npcSpawners.ContainsKey(template.NpcSpawnerId))
-                        {
-                            _npcSpawners[template.NpcSpawnerId].Npcs.Add(template);
-                        }
-
-                        _npcSpawnerNpc.Add(template.Id, template);
+                        _npcSpawners[nsn.NpcSpawnerId].Npcs.Add(nsn);
                     }
+
+                    _npcSpawnerNpc.Add(nsn.Id, nsn);
                 }
             }
         }
@@ -160,34 +157,61 @@ namespace AAEmu.Game.GameData
             }
         }
 
-        public List<uint> GetSpawnersId(uint memberId)
+        public void GetMemberAndSpawnerId()
         {
-            var res = new List<uint>();
-            foreach (var (_, npcSpawnerTemplate) in _npcSpawners)
+            _npcMemberAndSpawnerId = new Dictionary<uint, List<uint>>();
+
+            foreach (var (_, nsn) in _npcSpawnerNpc)
             {
-                foreach (var npc in npcSpawnerTemplate.Npcs)
+
+                if (!_npcMemberAndSpawnerId.ContainsKey(nsn.MemberId))
                 {
-                    if (npc.MemberId == memberId)
-                    {
-                        res.Add(npc.NpcSpawnerId);
-                    }
+                    _npcMemberAndSpawnerId.Add(nsn.MemberId, new List<uint> { nsn.NpcSpawnerId });
+                }
+                else
+                {
+                    _npcMemberAndSpawnerId[nsn.MemberId].Add(nsn.NpcSpawnerId);
                 }
             }
 
-            return res;
+            foreach (var (_, slist) in _npcMemberAndSpawnerId)
+            {
+                if (slist.Count <= 1) { continue; }
+                var item = slist.Where(t => _npcSpawners[t].NpcSpawnerCategoryId == NpcSpawnerCategory.Normal).ToList();
+                var remove = slist.Where(t => !GameScheduleManager.Instance.GetGameScheduleSpawnersData(t)).ToList();
+                if (remove.Count == slist.Count)
+                {
+                    // если вдруг все удалить надо, то оставим только Autocreated
+                    remove = null;
+                }
+
+                if (remove != null)
+                {
+                    // оставим только ту запись, которая есть в GameScheduleSpawnrs
+                    foreach (var i in remove)
+                    {
+                        slist.Remove(i);
+                    }
+                }
+                else
+                {
+                    // оставим только запись Autocreated
+                    foreach (var i in item)
+                    {
+                        slist.Remove(i);
+                    }
+                }
+            }
+        }
+
+        public List<uint> GetSpawnersId(uint memberId)
+        {
+            return _npcMemberAndSpawnerId.ContainsKey(memberId) ? _npcMemberAndSpawnerId[memberId] : null;
         }
 
         public NpcSpawnerTemplate GetNpcSpawnerTemplate(uint npcSpawnerId)
         {
-            foreach (var (_, npcSpawnerTemplate) in _npcSpawners)
-            {
-                    if (npcSpawnerTemplate.Id == npcSpawnerId)
-                    {
-                        return npcSpawnerTemplate;
-                    }
-            }
-
-            return null;
+            return _npcSpawners.ContainsKey(npcSpawnerId) ? _npcSpawners[npcSpawnerId] : null;
         }
     }
 }

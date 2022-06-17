@@ -104,7 +104,10 @@ namespace AAEmu.Game
             ModelManager.Instance.Load();
 
             AIManager.Instance.Initialize();
+
+            GameScheduleManager.Instance.Load();
             NpcManager.Instance.Load();
+            
             DoodadManager.Instance.Load();
             TaxationsManager.Instance.Load();
             HousingManager.Instance.Load();

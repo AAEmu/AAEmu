@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -12,6 +13,8 @@ using AAEmu.Game.Models.Game.Merchant;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.NPChar.NPSpawner;
+using AAEmu.Game.Models.Game.Schedules;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -32,6 +35,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         private Dictionary<uint, List<uint>> _tccLookup;
         // you can provide a seed here if you want NPCs to more reliable retain their appearance between reboots, or leave out the seed to get it random every time
         private Random _loadCustomRandom = new Random(123456789);
+        public Dictionary<uint, NpcSpawnerNpc> _npcSpawnerNpc;    // npcSpawnerId, nsn
+        public Dictionary<uint, NpcSpawnerTemplate> _npcSpawners; // npcSpawnerId, template
+        public Dictionary<uint, List<uint>> _npcMemberAndSpawnerId; // memberId, List<npcSpawnerId>
 
         public bool Exist(uint templateId)
         {
@@ -749,6 +755,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
                 _log.Info("Loaded {0} merchant packs", _goods.Count);
             }
+
+            NpcGameData.Instance.GetMemberAndSpawnerId();
         }
 
         public void LoadAiParams()

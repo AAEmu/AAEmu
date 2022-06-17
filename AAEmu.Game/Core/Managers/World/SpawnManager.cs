@@ -52,7 +52,7 @@ namespace AAEmu.Game.Core.Managers.World
             var worlds = WorldManager.Instance.GetWorlds();
             _log.Info("Loading spawns...");
             var jsonFileName = string.Empty;
-            uint idx = ushort.MaxValue;
+            var idx = 1u; // for npc spawner.Id
             foreach (var world in worlds)
             {
                 var npcSpawners = new Dictionary<uint, NpcSpawner>();
@@ -90,22 +90,18 @@ namespace AAEmu.Game.Core.Managers.World
                                 spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
                                 spawner.Position.Roll = spawner.Position.Roll.DegToRad();
                                 var npcSpawnersId = NpcGameData.Instance.GetSpawnersId(spawner.UnitId);
-                                if (npcSpawnersId.Count > 1)
+                                if (!npcSpawners.ContainsKey(idx))
                                 {
                                     foreach (var npcSpawnerId in npcSpawnersId)
                                     {
-                                        spawner.NpcSpawnerId = npcSpawnerId;
-                                        spawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(npcSpawnerId);
-                                        if (spawner.Template == null) { continue; }
+                                        spawner.NpcSpawnerId.Add(npcSpawnerId);
+                                        if (!spawner.Template.ContainsKey(npcSpawnerId))
+                                        {
+                                            spawner.Template.Add(npcSpawnerId, NpcGameData.Instance.GetNpcSpawnerTemplate(npcSpawnerId));
+                                        }
                                         npcSpawners.Add(idx, spawner);
-                                        idx++;
+                                        idx++; // будем перенумеровывать
                                     }
-                                }
-                                else if (!npcSpawners.ContainsKey(spawner.Id))
-                                {
-                                    spawner.NpcSpawnerId = npcSpawnersId[0];
-                                    spawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(npcSpawnersId[0]);
-                                    npcSpawners.Add(spawner.Id, spawner);
                                 }
                             }
                         else
@@ -549,11 +545,22 @@ namespace AAEmu.Game.Core.Managers.World
                             ObjectIdManager.Instance.ReleaseId(obj.ObjId);
                             obj.Delete();
                         }
+                        RemoveDespawn(obj);
                     }
                 }
 
                 Thread.Sleep(1000);
             }
+        }
+
+
+        public bool CheckSpawnerPosition(NpcSpawner spawner)
+        {
+            foreach (var spawner0 in _npcSpawners[(byte)spawner.Position.WorldId].Values)
+            {
+                spawner.Equals(spawner0.Position);
+            }
+            return true;
         }
     }
 }

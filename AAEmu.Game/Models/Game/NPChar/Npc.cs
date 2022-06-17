@@ -821,7 +821,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             var oldPosition = Transform.Local.ClonePosition();
 
             var targetDist = MathUtil.CalculateDistance(Transform.Local.Position, other, true);
-            if (targetDist <= 1f)
+            if (targetDist <= 0.05f)
                 return;
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
