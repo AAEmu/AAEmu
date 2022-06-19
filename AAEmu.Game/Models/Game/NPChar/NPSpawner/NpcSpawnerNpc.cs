@@ -39,7 +39,7 @@ namespace AAEmu.Game.Models.Game.NPChar.NPSpawner
                 return null;
             }
 
-            //_log.Warn("Spawn npc templateId {1} objId {3} from spawn {0}, nps spawner Id {2}", Id, MemberId, NpcSpawnerId, npc.ObjId);
+            _log.Trace("Spawn npc templateId {1} objId {3} from spawn {0}, nps spawner Id {2}", Id, MemberId, NpcSpawnerId, npc.ObjId);
 
             npc.Transform.ApplyWorldSpawnPosition(npcSpawner.Position);
             if (npc.Transform == null)
@@ -54,10 +54,10 @@ namespace AAEmu.Game.Models.Game.NPChar.NPSpawner
                 npc.Ai.GoToSpawn();
             }
 
-            npc.Spawner = npcSpawner;
-            //npc.Spawner.Position = npcSpawner.Position;
+            npc.Spawner = new NpcSpawner();
+            npc.Spawner.Position = npcSpawner.Position;
             npc.Spawner.Id = NpcSpawnerId;
-            //npc.Spawner.Template = template;
+            npc.Spawner.Template = npcSpawner.Template;
             npc.Spawner.RespawnTime = (int)Rand.Next(npc.Spawner.Template[NpcSpawnerId].SpawnDelayMin, npc.Spawner.Template[NpcSpawnerId].SpawnDelayMax);
             npc.Spawn();
 

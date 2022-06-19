@@ -2,14 +2,14 @@
 {
     public enum DayOfWeek : int
     {
-        Sunday = 0x1,
-        Monday = 0x2,
-        Tuesday = 0x3,
-        Wednesday = 0x4,
-        Thursday = 0x5,
-        Friday = 0x6,
-        Saturday = 0x7,
-        Invalid = 0x8
+        Sunday = 1,
+        Monday = 2,
+        Tuesday = 3,
+        Wednesday = 4,
+        Thursday = 5,
+        Friday = 6,
+        Saturday = 7,
+        Invalid = 8
     }
 
     public class GameSchedules

@@ -4,6 +4,7 @@ using System.Linq;
 
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -12,7 +13,6 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
-using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Doodads;
 using AAEmu.Game.Utils.DB;
@@ -329,6 +329,20 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// </summary>
         public override void Spawn()
         {
+            #region Schedule
+            // First, let's check if the schedule has such an spawnerId
+            if (GameScheduleManager.Instance.GetGameScheduleDoodadsData(TemplateId))
+            {
+                // if there is, we'll check the time for the spawning
+                if (!GameScheduleManager.Instance.CheckDoodadInGameSchedules(TemplateId))
+                {
+                    _log.Debug("Spawn: Doodad TemplateId {1}, objId {2} FuncGroupId {0} not on the schedule ...",
+                        FuncGroupId, TemplateId, ObjId);
+                    return; // Reschedule when OK
+                }
+            }
+            #endregion Schedule
+
             base.Spawn();
             FuncGroupId = GetFuncGroupId();  // Start phase
             var unit = WorldManager.Instance.GetUnit(OwnerObjId);

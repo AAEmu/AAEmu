@@ -17,11 +17,15 @@ namespace AAEmu.Game.GameData
     {
         private Dictionary<int, GameSchedules> _gameSchedules;
         private Dictionary<int, GameScheduleSpawners> _gameScheduleSpawners;
+        private Dictionary<int, GameScheduleDoodads> _gameScheduleDoodads;
+        private Dictionary<int, GameScheduleQuests> _gameScheduleQuests;
 
         public void Load(SqliteConnection connection)
         {
             _gameSchedules = new Dictionary<int, GameSchedules>();
             _gameScheduleSpawners = new Dictionary<int, GameScheduleSpawners>();
+            _gameScheduleDoodads = new Dictionary<int, GameScheduleDoodads>();
+            _gameScheduleQuests = new Dictionary<int, GameScheduleQuests>();
 
             using (var command = connection.CreateCommand())
             {
@@ -87,12 +91,56 @@ namespace AAEmu.Game.GameData
                     }
                 }
             }
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM game_schedule_doodads";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new GameScheduleDoodads();
+                        template.Id = reader.GetInt32("id");
+                        template.GameScheduleId = reader.GetInt32("game_schedule_id");
+                        template.DoodadId = reader.GetInt32("doodad_id");
+
+                        if (!_gameScheduleDoodads.ContainsKey(template.Id))
+                        {
+                            _gameScheduleDoodads.Add(template.Id, template);
+                        }
+                    }
+                }
+            }
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM game_schedule_quests";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new GameScheduleQuests();
+                        template.Id = reader.GetInt32("id");
+                        template.GameScheduleId = reader.GetInt32("game_schedule_id");
+                        template.QuestId = reader.GetInt32("quest_id");
+
+                        if (!_gameScheduleQuests.ContainsKey(template.Id))
+                        {
+                            _gameScheduleQuests.Add(template.Id, template);
+                        }
+                    }
+                }
+            }
         }
 
         public void PostLoad()
         {
             GameScheduleManager.Instance.LoadGameSchedules(_gameSchedules);
             GameScheduleManager.Instance.LoadGameScheduleSpawners(_gameScheduleSpawners);
+            GameScheduleManager.Instance.LoadGameScheduleDoodads(_gameScheduleDoodads);
+            GameScheduleManager.Instance.LoadGameScheduleQuests(_gameScheduleQuests);
         }
     }
 }

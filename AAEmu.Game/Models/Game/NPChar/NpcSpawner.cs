@@ -137,8 +137,9 @@ namespace AAEmu.Game.Models.Game.NPChar
                 if (GameScheduleManager.Instance.GetGameScheduleSpawnersData(spawnerId))
                 {
                     // if there is, we'll check the time for the spawning
-                    if (!GameScheduleManager.Instance.CheckInGameSchedules(spawnerId))
+                    if (!GameScheduleManager.Instance.CheckSpawnerInGameSchedules(spawnerId))
                     {
+                        _log.Debug("DoSpawn: Npc TemplateId {0}, NpcSpawnerId {1} not on the schedule...", UnitId, Id);
                         continue; // Reschedule when OK
                     }
                 }
