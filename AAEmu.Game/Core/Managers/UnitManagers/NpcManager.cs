@@ -13,7 +13,6 @@ using AAEmu.Game.Models.Game.Merchant;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.NPChar.NPSpawner;
 using AAEmu.Game.Models.Game.Schedules;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;

@@ -929,5 +929,10 @@ namespace AAEmu.Game.Models.Game.NPChar
             SendPacket(new SCAggroTargetChangedPacket(ObjId, other?.ObjId ?? 0));
             BroadcastPacket(new SCTargetChangedPacket(ObjId, other?.ObjId ?? 0), true);
         }
+    
+        public void DoDespawn(Npc npc)
+        {
+            Spawner.DoDespawn(npc);
+        }
     }
 }

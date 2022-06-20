@@ -336,8 +336,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 // if there is, we'll check the time for the spawning
                 if (!GameScheduleManager.Instance.CheckDoodadInGameSchedules(TemplateId))
                 {
-                    _log.Debug("Spawn: Doodad TemplateId {1}, objId {2} FuncGroupId {0} not on the schedule ...",
-                        FuncGroupId, TemplateId, ObjId);
+                    //_log.Debug("Spawn: Doodad TemplateId {1}, objId {2} FuncGroupId {0} not on the schedule ...", FuncGroupId, TemplateId, ObjId);
                     return; // Reschedule when OK
                 }
             }

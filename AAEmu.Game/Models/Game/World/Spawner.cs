@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-using AAEmu.Game.Models.Game.NPChar.NPSpawner;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.World

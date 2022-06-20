@@ -8,6 +8,8 @@ using AAEmu.Game.Models.Game.Schedules;
 
 using NLog;
 
+using DayOfWeek = AAEmu.Game.Models.Game.Schedules.DayOfWeek;
+
 namespace AAEmu.Game.Core.Managers
 {
     public class GameScheduleManager : Singleton<GameScheduleManager>
@@ -16,6 +18,7 @@ namespace AAEmu.Game.Core.Managers
 
         private Dictionary<int, GameSchedules> _gameSchedules; // GameScheduleId, GameSchedules
         private Dictionary<int, GameScheduleSpawners> _gameScheduleSpawners;
+        private Dictionary<int, List<int>> _gameScheduleSpawnerIds;
         private Dictionary<int, GameScheduleDoodads> _gameScheduleDoodads;
         private Dictionary<int, GameScheduleQuests> _gameScheduleQuests;
         private List<int> GameScheduleId { get; set; }
@@ -25,6 +28,8 @@ namespace AAEmu.Game.Core.Managers
             _log.Info("Loading shchedules...");
 
             SchedulesGameData.Instance.PostLoad();
+
+            GetGameScheduleSpawnersData();
 
             _log.Info("Loaded shchedules");
         }
@@ -52,10 +57,14 @@ namespace AAEmu.Game.Core.Managers
             _gameScheduleQuests = gameScheduleQuests;
         }
 
-        public bool CheckSpawnerInGameSchedules(uint spawnerId)
+        public bool CheckSpawnerInScheduleSpawners(int spawnerId)
         {
-            if (!GetGameScheduleSpawnersData(spawnerId)) { return false; }
-            var res = CheckScheduler();
+            return _gameScheduleSpawnerIds.ContainsKey(spawnerId);
+        }
+
+        public bool CheckSpawnerInGameSchedules(int spawnerId)
+        {
+            var res = CheckScheduler(spawnerId);
             return res.Contains(true);
         }
 
@@ -73,9 +82,14 @@ namespace AAEmu.Game.Core.Managers
             return res.Contains(true);
         }
 
-        private List<bool> CheckScheduler()
+        private List<bool> CheckScheduler(int spawnerId)
         {
-            var res = (from gameScheduleId in GameScheduleId
+            if (!_gameScheduleSpawnerIds.ContainsKey(spawnerId))
+            {
+                return new List<bool>();
+            }
+
+            var res = (from gameScheduleId in _gameScheduleSpawnerIds[spawnerId]
                        where _gameSchedules.ContainsKey(gameScheduleId)
                        select _gameSchedules[gameScheduleId]
                 into gs
@@ -83,15 +97,82 @@ namespace AAEmu.Game.Core.Managers
             return res;
         }
 
+        private List<bool> CheckScheduler()
+        {
+            var res = (from gameScheduleId in GameScheduleId
+                       where _gameSchedules.ContainsKey(gameScheduleId)
+                       select _gameSchedules[gameScheduleId]
+                into gs
+                       select CheckData(gs)).ToList();
+
+            return res;
+        }
+
+        public TimeSpan GetRemainingTime(int spawnerId)
+        {
+            if (!_gameScheduleSpawnerIds.ContainsKey(spawnerId))
+            {
+                return TimeSpan.Zero;
+            }
+
+            var remainingTime = TimeSpan.MaxValue;
+            foreach (var gameScheduleId in _gameScheduleSpawnerIds[spawnerId])
+            {
+                if (_gameSchedules.ContainsKey(gameScheduleId))
+                {
+                    var gameSchedules = _gameSchedules[gameScheduleId];
+                    var timeSpan = GetRemainingTimeStart(gameSchedules);
+                    if (timeSpan <= remainingTime)
+                    {
+                        remainingTime = timeSpan;
+                    }
+                }
+            }
+
+            return remainingTime;
+        }
+
         public bool GetGameScheduleSpawnersData(uint spawnerId)
         {
-            GameScheduleId = new List<int>();
+            try
+            {
+                GameScheduleId = new List<int>();
+                foreach (var gss in _gameScheduleSpawners.Values)
+                {
+                    if (gss.SpawnerId != spawnerId) { continue; }
+                    try
+                    {
+                        GameScheduleId.Add(gss.GameScheduleId);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
+            return GameScheduleId.Count != 0;
+        }
+
+        private void GetGameScheduleSpawnersData()
+        {
+            _gameScheduleSpawnerIds = new Dictionary<int, List<int>>();
+
             foreach (var gss in _gameScheduleSpawners.Values)
             {
-                if (gss.SpawnerId != spawnerId) { continue; }
-                GameScheduleId.Add(gss.GameScheduleId);
+                if (!_gameScheduleSpawnerIds.ContainsKey(gss.SpawnerId))
+                {
+                    _gameScheduleSpawnerIds.Add(gss.SpawnerId, new List<int> { gss.GameScheduleId });
+                }
+                else
+                {
+                    _gameScheduleSpawnerIds[gss.SpawnerId].Add(gss.GameScheduleId);
+                }
             }
-            return GameScheduleId.Count != 0;
         }
 
         public bool GetGameScheduleDoodadsData(uint doodadId)
@@ -123,9 +204,9 @@ namespace AAEmu.Game.Core.Managers
             var curDay = DateTime.UtcNow.Day;
             var curMonth = DateTime.UtcNow.Month;
             var curYear = DateTime.UtcNow.Year;
-            var curDayOfWeek = (Models.Game.Schedules.DayOfWeek)DateTime.UtcNow.DayOfWeek + 1;
+            var curDayOfWeek = (DayOfWeek)DateTime.UtcNow.DayOfWeek + 1;
 
-            if (value.DayOfWeekId == Models.Game.Schedules.DayOfWeek.Invalid)
+            if (value.DayOfWeekId == DayOfWeek.Invalid)
             {
                 if (value.EndTime == 0 && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
                 {
@@ -167,6 +248,134 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
             return false;
+        }
+
+        public TimeSpan GetRemainingTimeStart(GameSchedules value)
+        {
+            var curHours = DateTime.UtcNow.TimeOfDay.Hours;
+            var curMinutes = DateTime.UtcNow.TimeOfDay.Minutes;
+            var curDayOfWeek = (DayOfWeek)DateTime.UtcNow.DayOfWeek + 1;
+
+            var curTime = TimeSpan.FromHours(curHours) + TimeSpan.FromMinutes(curMinutes);
+            var remainingTime = TimeSpan.FromHours(1);
+            TimeSpan otherTime;
+
+            if (value.DayOfWeekId == DayOfWeek.Invalid)
+            {
+                if (value.StartTime > 0)
+                {
+                    otherTime = TimeSpan.FromHours(value.StartTime) + TimeSpan.FromMinutes(value.StartTimeMin);
+                    remainingTime = curTime - otherTime;
+                    if (remainingTime < TimeSpan.Zero)
+                    {
+                        remainingTime = TimeSpan.FromHours(24) - curTime + otherTime;
+                    }
+                }
+                if (value.StHour > 0)
+                {
+                    otherTime = TimeSpan.FromHours(value.StHour) + TimeSpan.FromMinutes(value.StMin);
+                    remainingTime = curTime - otherTime;
+                    if (remainingTime < TimeSpan.Zero)
+                    {
+                        remainingTime = TimeSpan.FromHours(24) - curTime + otherTime;
+                    }
+                }
+
+                return remainingTime;
+
+            }
+
+            if (curDayOfWeek == value.DayOfWeekId)
+            {
+                if (value.StartTime > 0)
+                {
+                    otherTime = TimeSpan.FromHours(value.StartTime) + TimeSpan.FromMinutes(value.StartTimeMin);
+                    remainingTime = curTime - otherTime;
+                    if (remainingTime < TimeSpan.Zero)
+                    {
+                        remainingTime = TimeSpan.FromHours(24) - curTime + otherTime;
+                    }
+                }
+                if (value.StHour > 0)
+                {
+                    otherTime = TimeSpan.FromHours(value.StHour) + TimeSpan.FromMinutes(value.StMin);
+                    remainingTime = curTime - otherTime;
+                    if (remainingTime < TimeSpan.Zero)
+                    {
+                        remainingTime = TimeSpan.FromHours(24) - curTime + otherTime;
+                    }
+                }
+            }
+            return remainingTime;
+        }
+
+        private TimeSpan GetRemainingTime(GameSchedules value)
+        {
+            var curHours = DateTime.UtcNow.TimeOfDay.Hours;
+            var curMinutes = DateTime.UtcNow.TimeOfDay.Minutes;
+            var curDayOfWeek = (DayOfWeek)DateTime.UtcNow.DayOfWeek + 1;
+
+            var curDate = TimeSpan.FromHours(curHours) + TimeSpan.FromMinutes(curMinutes);
+            TimeSpan otherDate;
+
+            if (value.DayOfWeekId == DayOfWeek.Invalid)
+            {
+                if (value.EndTime == 0 && value.StHour == 0 && value.EdHour == 0)
+                {
+                    return TimeSpan.Zero;
+                }
+                if (value.StartTime > 0)
+                {
+                    otherDate = TimeSpan.FromHours(value.StartTime) + TimeSpan.FromMinutes(value.StartTimeMin);
+                    return curDate - otherDate;
+                }
+                if (value.EndTime > 0)
+                {
+                    otherDate = TimeSpan.FromHours(value.EndTime) + TimeSpan.FromMinutes(value.EndTimeMin);
+                    return curDate - otherDate;
+                }
+                if (value.StHour > 0)
+                {
+                    otherDate = TimeSpan.FromHours(value.StHour) + TimeSpan.FromMinutes(value.StMin);
+                    return curDate - otherDate;
+                }
+                if (value.EdHour > 0)
+                {
+                    otherDate = TimeSpan.FromHours(value.EdHour) + TimeSpan.FromMinutes(value.EdMin);
+                    return curDate - otherDate;
+                }
+            }
+            else
+            {
+                if (curDayOfWeek == value.DayOfWeekId)
+                {
+                    if (value.EndTime == 0 && value.StHour == 0 && value.EdHour == 0)
+                    {
+                        return TimeSpan.Zero;
+                    }
+                    if (value.StartTime > 0)
+                    {
+                        otherDate = TimeSpan.FromHours(value.StartTime) + TimeSpan.FromMinutes(value.StartTimeMin);
+                        return curDate - otherDate;
+                    }
+                    if (value.EndTime > 0)
+                    {
+                        otherDate = TimeSpan.FromHours(value.EndTime) + TimeSpan.FromMinutes(value.EndTimeMin);
+                        return curDate - otherDate;
+                    }
+                    if (value.StHour > 0)
+                    {
+                        otherDate = TimeSpan.FromHours(value.StHour) + TimeSpan.FromMinutes(value.StMin);
+                        return curDate - otherDate;
+                    }
+                    if (value.EdHour > 0)
+                    {
+                        otherDate = TimeSpan.FromHours(value.EdHour) + TimeSpan.FromMinutes(value.EdMin);
+                        return curDate - otherDate;
+                    }
+                }
+            }
+            return TimeSpan.FromHours(1);
         }
     }
 }

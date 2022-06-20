@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace AAEmu.Game.Models.Game.NPChar.NPSpawner
+namespace AAEmu.Game.Models.Game.NPChar
 {
     public enum NpcSpawnerCategory : uint
     {

@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.World;
-
 using NLog;
 
-namespace AAEmu.Game.Models.Game.NPChar.NPSpawner
+namespace AAEmu.Game.Models.Game.NPChar
 {
     public class NpcSpawnerNpc : Spawner<Npc>
     {
@@ -57,6 +56,7 @@ namespace AAEmu.Game.Models.Game.NPChar.NPSpawner
             npc.Spawner = new NpcSpawner();
             npc.Spawner.Position = npcSpawner.Position;
             npc.Spawner.Id = NpcSpawnerId;
+            npc.Spawner.UnitId = MemberId;
             npc.Spawner.Template = npcSpawner.Template;
             npc.Spawner.RespawnTime = (int)Rand.Next(npc.Spawner.Template[NpcSpawnerId].SpawnDelayMin, npc.Spawner.Template[NpcSpawnerId].SpawnDelayMax);
             npc.Spawn();

@@ -6,8 +6,6 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.NPChar.NPSpawner;
-using AAEmu.Game.Models.Game.Schedules;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Utils.DB;
 
