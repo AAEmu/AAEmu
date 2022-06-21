@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
@@ -45,9 +46,28 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 trp = PortalManager.Instance.GetWorldgatesById(returnPointId);
             }
 
-            if (trp == null && character.MainWorldPosition == null) { return; }
-
-            if (character.MainWorldPosition != null)
+            if (trp != null)
+            {
+                character.DisabledSetPosition = true;
+                character.SendPacket(
+                    new SCLoadInstancePacket(
+                        1,
+                        trp.ZoneId,
+                        trp.X,
+                        trp.Y,
+                        trp.Z,
+                        0,
+                        0,
+                        0
+                    )
+                );
+                //var xyz = new Vector3(trp.X, trp.Y, trp.Z);
+                //character.Transform = new Transform(character, null, xyz);
+                // возвращаемся в main_world
+                character.Transform = new Transform(character, null, 0, trp.ZoneId, 0, trp.X, trp.Y, trp.Z, 0);
+                character.MainWorldPosition = null;
+            }
+            else if (character.MainWorldPosition != null)
             {
                 character.DisabledSetPosition = true;
                 character.SendPacket(
@@ -66,13 +86,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 character.Transform = character.MainWorldPosition.Clone(character);
                 character.MainWorldPosition = null;
             }
-            else
-            {
-                if (trp == null) { return; }
+            if (trp == null) { return; }
 
-                caster.DisabledSetPosition = true;
-                caster.SendPacket(new SCTeleportUnitPacket(TeleportReason.MoveToLocation, 0, trp.X, trp.Y, trp.Z, trp.Yaw));
-            }
+            caster.DisabledSetPosition = true;
+            caster.SendPacket(new SCTeleportUnitPacket(TeleportReason.MoveToLocation, 0, trp.X, trp.Y, trp.Z, trp.Yaw));
         }
     }
 }
