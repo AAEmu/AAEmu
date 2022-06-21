@@ -90,6 +90,33 @@
         }
     },
     {
+        "Name": "instance_library_1",
+        "SpawnPosition": {
+            "ZoneId": 296,
+            "X": 621.05,
+            "Y": 643.36,
+            "Z": 134.64
+        }
+    },
+    {
+        "Name": "instance_library_2",
+        "SpawnPosition": {
+            "ZoneId": 297,
+            "X": 510.2,
+            "Y": 2538.6,
+            "Z": 128.4
+        }
+    },
+    {
+        "Name": "instance_library_3",
+        "SpawnPosition": {
+            "ZoneId": 298,
+            "X": 516.8,
+            "Y": 4611.5,
+            "Z": 145.4
+        }
+    },
+    {
         "Name": "instance_nachashgar",
         "SpawnPosition": {
             "ZoneId": 278,

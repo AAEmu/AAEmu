@@ -21,7 +21,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 character.DisabledSetPosition = true;
                 var zone = ZoneManager.Instance.GetZoneById(ZoneId);
                 var world = WorldManager.Instance.GetWorldByZone(zone.ZoneKey);
-
+                // we take the coordinates of the zone
+                foreach (var wz in world.XmlWorldZones.Values)
+                {
+                    if (wz.Id == zone.ZoneKey)
+                    {
+                        world.SpawnPosition = wz.SpawnPosition;
+                    }
+                }
                 if (world.SpawnPosition != null)
                 {
                     character.SendPacket(
@@ -39,8 +46,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
                     character.MainWorldPosition = character.Transform.CloneDetached(character);
                     // TODO: use proper instance Id using a manager
-                    character.Transform = new Transform(character, null, world.Id, world.SpawnPosition.ZoneId, world.Id,
-                        world.SpawnPosition.X, world.SpawnPosition.Y, world.SpawnPosition.Z, 0);
+                    character.Transform = new Transform(character, null, world.Id, world.SpawnPosition.ZoneId, world.Id, world.SpawnPosition.X, world.SpawnPosition.Y, world.SpawnPosition.Z, 0);
                     character.InstanceId = world.Id; // TODO all instances are sys now
                 }
                 else

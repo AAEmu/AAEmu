@@ -175,6 +175,18 @@ namespace AAEmu.Game.Core.Managers.World
                     world.Id = id;
                     xmlWorld.ReadNode(worldNode, world);
                     world.SpawnPosition = worldSpawnLookup.FirstOrDefault(w => w.Name == world.Name)?.SpawnPosition ?? new WorldSpawnPosition();
+                    // add coordinates for zones
+                    foreach (var worldZones in world.XmlWorldZones.Values)
+                    {
+                        foreach (var wsl in worldSpawnLookup)
+                        {
+                            if (wsl.Name == worldZones.Name)
+                            {
+                                worldZones.SpawnPosition = wsl.SpawnPosition;
+                            }
+                        }
+                    }
+
                     _worlds.Add(id, world);
 
                     // cache zone keys to world reference
