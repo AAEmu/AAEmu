@@ -96,6 +96,39 @@
         "SubZoneId": 614
     },
     {
+        "Id": 617,
+        "Name": "Mistral Hall",
+        "ZoneId": 293,
+        "X": 2564.2,
+        "Y": 30189.5,
+        "Z": 366.2,
+        "ZoneId": 293,
+        "ZRot": 0.0,
+        "SubZoneId": 1098
+    },
+    {
+        "Id": 618,
+        "Name": "Verdant Skychamber",
+        "ZoneId": 294,
+        "X": 2564.1,
+        "Y": 28149.8,
+        "Z": 366.3,
+        "ZoneId": 294,
+        "ZRot": 0.0,
+        "SubZoneId": 1099
+    },
+    {
+        "Id": 619,
+        "Name": "Evening Botanica",
+        "ZoneId": 295,
+        "X": 2564.5,
+        "Y": 26091.6,
+        "Z": 366.3,
+        "ZoneId": 294,
+        "ZRot": 0.0,
+        "SubZoneId": 1100
+    },
+    {
         "Id": 672,
         "Name": "Haranya Rally Point",
         "ZoneId": 282,
