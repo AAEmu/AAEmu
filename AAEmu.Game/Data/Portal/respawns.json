@@ -2499,6 +2499,33 @@
         "SubZoneId": 10650
     },
     {
+        "Id": 675,
+        "Name": "Respawn: Mistral Hall",
+        "X": 2559.2,
+        "Y": 30275.5,
+        "Z": 390.4,
+        "ZRot": 84,
+        "SubZoneId": 1098
+    },
+    {
+        "Id": 676,
+        "Name": "Respawn: Verdant Skychamber",
+        "X": 2559.2,
+        "Y": 30275.5,
+        "Z": 390.4,
+        "ZRot": 84,
+        "SubZoneId": 1099
+    },
+    {
+        "Id": 677,
+        "Name": "Respawn: Evening Botanica",
+        "X": 2559.2,
+        "Y": 30275.5,
+        "Z": 390.4,
+        "ZRot": 84,
+        "SubZoneId": 1100
+    },
+    {
         "Id": 680,
         "Name": "Respawn: Mahadevi Port",
         "X": 18972.80,

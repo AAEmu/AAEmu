@@ -174,7 +174,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     }
                     else
                     {
-                        if (funcs.Any(fu => DoFunc(caster, skillId, fu))) { return; }
+                        //if (funcs.Any(fu => DoFunc(caster, skillId, fu))) { return; } // -1
+                        var list = funcs.Select(fu => DoFunc(caster, skillId, fu)).ToList();
+                        if (list.Any(b => b)) { return; }
                     }
                 }
                 else

@@ -117,6 +117,42 @@
         }
     },
     {
+        "Name": "instance_library_boss_1",
+        "SpawnPosition": {
+            "ZoneId": 303,
+            "X": 2560.8,
+            "Y": 512.5,
+            "Z": 255.7 // TODO уточнить высоту
+        }
+    },
+    {
+        "Name": "instance_library_boss_2",
+        "SpawnPosition": {
+            "ZoneId": 304,
+            "X": 2560.8,
+            "Y": 1536.5,
+            "Z": 255.7 // TODO уточнить высоту
+        }
+    },
+    {
+        "Name": "instance_library_boss_3",
+        "SpawnPosition": {
+            "ZoneId": 305,
+            "X": 2560.8,
+            "Y": 2560.5,
+            "Z": 255.7 // TODO уточнить высоту
+        }
+    },
+    {
+        "Name": "instance_library_tower_defense",
+        "SpawnPosition": {
+            "ZoneId": 306,
+            "X": 3584.8,
+            "Y": 512.5,
+            "Z": 255.7 // TODO уточнить высоту
+        }
+    },
+    {
         "Name": "instance_nachashgar",
         "SpawnPosition": {
             "ZoneId": 278,

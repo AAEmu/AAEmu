@@ -22,6 +22,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 character.DisabledSetPosition = true;
                 var zone = ZoneManager.Instance.GetZoneById(ZoneId);
                 var world = WorldManager.Instance.GetWorldByZone(zone.ZoneKey);
+                // we take the coordinates of the zone
+                foreach (var wz in world.XmlWorldZones.Values)
+                {
+                    if (wz.Id == zone.ZoneKey)
+                    {
+                        world.SpawnPosition = wz.SpawnPosition;
+                    }
+                }
 
                 if (world.SpawnPosition != null)
                 {

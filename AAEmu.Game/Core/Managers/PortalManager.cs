@@ -84,7 +84,7 @@ namespace AAEmu.Game.Core.Managers
                 : null;
         }
 
-        public Portal GetRespawnlById(uint id)
+        public Portal GetRespawnById(uint id)
         {
             return _respawnsKey != null && _respawnsKey.ContainsKey(id)
                 ? _respawns.ContainsKey(_respawnsKey[id])
