@@ -500,6 +500,9 @@ namespace AAEmu.Game.Models.Game.Units
         /// <returns></returns>
         public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
         {
+            if (baseUnit == null)
+                return 0.0f;
+
             if (Transform.World.Position.Equals(baseUnit.Transform.World.Position))
                 return 0.0f;
 

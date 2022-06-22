@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.AI.States
         public override void Enter()
         {
             _log.Debug("Entering MoveToTargetState - {0}", Target.Name);
-            PreviousDistance = MathUtil.CalculateDistance(AI.Owner, Target);
+            PreviousDistance = MathUtil.CalculateDistance(AI.Owner, Target, true);
         }
 
         public override void Tick(TimeSpan delta)
@@ -36,7 +36,7 @@ namespace AAEmu.Game.Models.Game.AI.States
                 // Go in combat 
             }
             
-            PreviousDistance = MathUtil.CalculateDistance(AI.Owner, Target);
+            PreviousDistance = MathUtil.CalculateDistance(AI.Owner, Target, true);
         }
     }
 }
