@@ -183,6 +183,7 @@ namespace AAEmu.Game.Core.Managers.World
                             if (wsl.Name == worldZones.Name)
                             {
                                 worldZones.SpawnPosition = wsl.SpawnPosition;
+                                break;
                             }
                         }
                     }

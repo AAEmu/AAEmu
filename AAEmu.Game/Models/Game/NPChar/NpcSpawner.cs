@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-
+using System.Threading;
 using AAEmu.Commons.Utils;
 
 using AAEmu.Game.Core.Managers;
@@ -205,6 +205,7 @@ namespace AAEmu.Game.Models.Game.NPChar
                         _log.Debug("DoSpawn: Npc TemplateId {0}, NpcSpawnerId {1} spawn [1] reschedule next time...", UnitId, Id);
                         _log.Debug("DoSpawn: delay {0}", delay.ToString());
                         TaskManager.Instance.Schedule(new NpcSpawnerDoSpawnTask(this), delay);
+                        Thread.Sleep(50);
                         continue; // Reschedule when OK
                     }
                 }

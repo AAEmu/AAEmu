@@ -40,13 +40,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                             world.SpawnPosition.Z,
                             0,
                             0,
-                            0
+                            world.SpawnPosition.Yaw
                         )
                     );
 
                     character.MainWorldPosition = character.Transform.CloneDetached(character);
                     // TODO: use proper instance Id using a manager
-                    character.Transform = new Transform(character, null, world.Id, world.SpawnPosition.ZoneId, world.Id, world.SpawnPosition.X, world.SpawnPosition.Y, world.SpawnPosition.Z, 0);
+                    character.Transform = new Transform(character, null, world.Id, world.SpawnPosition.ZoneId, world.Id, world.SpawnPosition.X, world.SpawnPosition.Y, world.SpawnPosition.Z, world.SpawnPosition.Yaw);
                     character.InstanceId = world.Id; // TODO all instances are sys now
                 }
                 else

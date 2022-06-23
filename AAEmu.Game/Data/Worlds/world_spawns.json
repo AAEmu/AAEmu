@@ -120,36 +120,36 @@
         "Name": "instance_library_boss_1",
         "SpawnPosition": {
             "ZoneId": 303,
-            "X": 2560.8,
-            "Y": 512.5,
-            "Z": 255.7 // TODO уточнить высоту
+            "X": 2498.29,
+            "Y": 181.488,
+            "Z": 131.087
         }
     },
     {
         "Name": "instance_library_boss_2",
         "SpawnPosition": {
             "ZoneId": 304,
-            "X": 2560.8,
-            "Y": 1536.5,
-            "Z": 255.7 // TODO уточнить высоту
+            "X": 2867.995,
+            "Y": 1645.93,
+            "Z": 136.859
         }
     },
     {
         "Name": "instance_library_boss_3",
         "SpawnPosition": {
             "ZoneId": 305,
-            "X": 2560.8,
-            "Y": 2560.5,
-            "Z": 255.7 // TODO уточнить высоту
+            "X": 2624.0,
+            "Y": 2416.0,
+            "Z": 129.0
         }
     },
     {
         "Name": "instance_library_tower_defense",
         "SpawnPosition": {
             "ZoneId": 306,
-            "X": 3584.8,
-            "Y": 512.5,
-            "Z": 255.7 // TODO уточнить высоту
+            "X": 3671.562,
+            "Y": 631.305,
+            "Z": 210.962 // TODO уточнить координаты
         }
     },
     {

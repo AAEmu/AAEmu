@@ -144,9 +144,10 @@ namespace AAEmu.Game.Core.Managers.World
                                 spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
                                 spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
                                 spawner.Position.Roll = spawner.Position.Roll.DegToRad();
-                                if (!doodadSpawners.ContainsKey(spawner.Id))
+                                if (!doodadSpawners.ContainsKey(idx))
                                 {
-                                    doodadSpawners.Add(spawner.Id, spawner);
+                                    doodadSpawners.Add(idx, spawner);
+                                    idx++;
                                 }
                             }
                         }
@@ -183,9 +184,10 @@ namespace AAEmu.Game.Core.Managers.World
                                 spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
                                 spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
                                 spawner.Position.Roll = spawner.Position.Roll.DegToRad();
-                                if (!transferSpawners.ContainsKey(spawner.Id))
+                                if (!transferSpawners.ContainsKey(idx))
                                 {
-                                    transferSpawners.Add(spawner.Id, spawner);
+                                    transferSpawners.Add(idx, spawner);
+                                    idx++;
                                 }
                             }
                         }
@@ -219,9 +221,10 @@ namespace AAEmu.Game.Core.Managers.World
                                     continue;
                                 spawner.Position.WorldId = world.Id;
                                 spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
-                                if (!gimmickSpawners.ContainsKey(spawner.Id))
+                                if (!gimmickSpawners.ContainsKey(idx))
                                 {
-                                    gimmickSpawners.Add(spawner.Id, spawner);
+                                    gimmickSpawners.Add(idx, spawner);
+                                    idx++;
                                 }
                             }
                         }
