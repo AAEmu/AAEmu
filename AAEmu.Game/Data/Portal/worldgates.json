@@ -126,6 +126,16 @@
         "SubZoneId": 1100
     },
     {
+        "Id": 621,
+        "Name": "instance_library_boss_1", // Screening Hall
+        "ZoneId": 303,
+        "X": 2239.6,
+        "Y": 214.6,
+        "Z": 150.481,
+        "Yaw": 0.0,
+        "SubZoneId": 1101
+    },
+    {
         "Id": 672,
         "Name": "Haranya Rally Point",
         "ZoneId": 282,
