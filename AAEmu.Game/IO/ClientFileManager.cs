@@ -7,10 +7,11 @@ using AAEmu.Game.Models;
 using AAEmu.Commons.Utils.AAPak;
 using NLog;
 using SQLitePCL;
+using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.IO
 {
-    public static class ClientFileManager
+    public class ClientFileManager : Singleton<ClientFileManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         
@@ -21,7 +22,7 @@ namespace AAEmu.Game.IO
         /// </summary>
         /// <param name="pathName">Path to a Directory or game_pak file</param>
         /// <returns></returns>
-        public static bool AddSource(string pathName)
+        public bool AddSource(string pathName)
         {
             if (string.IsNullOrWhiteSpace(pathName))
                 return false;
@@ -69,7 +70,7 @@ namespace AAEmu.Game.IO
             return false;
         }
 
-        public static void ClearSources()
+        public void ClearSources()
         {
             for (var i = Sources.Count - 1; i >= 0; i--)
             {
@@ -79,7 +80,7 @@ namespace AAEmu.Game.IO
             }
         }
 
-        public static List<string> ListSources()
+        public List<string> ListSources()
         {
             var list = new List<string>();
             foreach (var source in Sources)
@@ -92,7 +93,7 @@ namespace AAEmu.Game.IO
         /// </summary>
         /// <param name="fileName">filename to search for</param>
         /// <returns>First found ClientSource, or null</returns>
-        public static ClientSource GetFileSource(string fileName)
+        public ClientSource GetFileSource(string fileName)
         {
             foreach (var source in Sources)
             {
@@ -107,7 +108,7 @@ namespace AAEmu.Game.IO
         /// </summary>
         /// <param name="fileName">relative filename to check</param>
         /// <returns></returns>
-        public static bool FileExists(string fileName)
+        public bool FileExists(string fileName)
         {
             var source = GetFileSource(fileName);
             return (source != null);
@@ -118,7 +119,7 @@ namespace AAEmu.Game.IO
         /// </summary>
         /// <param name="fileName"></param>
         /// <returns></returns>
-        public static Stream GetFileStream(string fileName)
+        public Stream GetFileStream(string fileName)
         {
             var source = GetFileSource(fileName);
             if (source == null)
@@ -130,7 +131,7 @@ namespace AAEmu.Game.IO
             return source.GetFileStream(fileName);
         }
 
-        public static string GetFileAsString(string fileName)
+        public string GetFileAsString(string fileName)
         {
             var source = GetFileSource(fileName);
             if (source == null)
@@ -138,7 +139,7 @@ namespace AAEmu.Game.IO
             return source.GetFileAsString(fileName);
         }
 
-        public static void Initialize()
+        public void Initialize()
         {
             ClearSources();
             foreach (var source in AppConfiguration.Instance.ClientData.Sources)
@@ -157,7 +158,7 @@ namespace AAEmu.Game.IO
         /// <param name="searchPattern">search pattern to use</param>
         /// <param name="includeSubDirectories"></param>
         /// <returns>List of filenames</returns>
-        public static List<string> GetFilesInDirectory(string directory, string searchPattern, bool includeSubDirectories)
+        public List<string> GetFilesInDirectory(string directory, string searchPattern, bool includeSubDirectories)
         {
             var list = new List<string>();
             var baseList = new List<string>(); // Helper

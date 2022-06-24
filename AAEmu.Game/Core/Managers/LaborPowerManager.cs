@@ -4,7 +4,7 @@ using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Models.Tasks.LaborPower;
-
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 
 /*
@@ -23,7 +23,7 @@ using NLog;
  */
 namespace AAEmu.Game.Core.Managers
 {
-    public class LaborPowerManager : Singleton<LaborPowerManager>
+    public class LaborPowerManager : Singleton<LaborPowerManager>, ILaborPowerManager
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
 
@@ -33,9 +33,12 @@ namespace AAEmu.Game.Core.Managers
         private const short LpChange = 5;
         private const short UpLimit = 5000;
         private const double Delay = 5; // min
+        private readonly IServiceProvider _services;
 
-        public LaborPowerManager()
+        public LaborPowerManager(IServiceProvider services)
         {
+            _services = services;
+            _log = services.GetService<ILogManager>().GetCurrentClassLogger();
             //_onlineChar = new List<LaborPower>();
             //_offlineChar = new List<LaborPower>();
         }
@@ -55,7 +58,7 @@ namespace AAEmu.Game.Core.Managers
         }
         public void LaborPowerTick()
         {
-            var connections = GameConnectionTable.Instance.GetConnections();
+            var connections = _services.GetRequiredService<IGameConnectionTable>().GetConnections();
             foreach (var connection in connections)
             {
                 foreach (var character in connection.Characters.Where(character => character.Value.IsOnline))
