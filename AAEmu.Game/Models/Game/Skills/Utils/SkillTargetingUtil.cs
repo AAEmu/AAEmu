@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Skills.Utils
 {
     public static class SkillTargetingUtil
     {
-        public static IEnumerable<T> FilterWithRelation<T>(SkillTargetRelation relation, T caster, IEnumerable<T> units) where T : BaseUnit
+        public static IEnumerable<T> FilterWithRelation<T>(SkillTargetRelation relation, T caster, IEnumerable<T> units) where T : IBaseUnit
         {
             switch (relation)
             {
@@ -18,7 +18,7 @@ namespace AAEmu.Game.Models.Game.Skills.Utils
                 case SkillTargetRelation.Friendly:
                     return units.Where(o => caster.GetRelationStateTo(o) == RelationState.Friendly && !caster.CanAttack(o));
                 case SkillTargetRelation.Hostile:
-                    return units.Where(caster.CanAttack);
+                    return units.Where(o => caster.CanAttack(o));
                 case SkillTargetRelation.Party:
                     return units;
                 case SkillTargetRelation.Raid:

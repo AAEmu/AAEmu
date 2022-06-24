@@ -23,13 +23,15 @@ using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using AAEmu.Game.Core.Network.Connections;
 
 namespace AAEmu.Game
 {
     public class GameService : IHostedService, IDisposable
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-
+        IServiceScope _serviceScope;
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             _log.Info("Starting daemon: AAEmu.Game");
@@ -49,98 +51,29 @@ namespace AAEmu.Game
 
             stopWatch.Start();
 
-            Load(ConfigureServices().BuildServiceProvider());
+            var serviceProvider = ConfigureServices().BuildServiceProvider();
+            _serviceScope = serviceProvider.CreateScope();
+            
+            await Load(serviceProvider);
+
+            stopWatch.Stop();
+            _log.Info("Server started! Took {0}", stopWatch.Elapsed);
         }
 
         public IServiceCollection ConfigureServices() {
-            _log.Info("Loading DI");
+            _log.Info("Loading Dependency Injection Services");
             var services = new ServiceCollection()
-            .AddSingleton(TickManager.Instance)
-            .AddSingleton(TaskIdManager.Instance)
-            .AddSingleton(TaskManager.Instance)
-            .AddSingleton(FeaturesManager.Instance)
-            .AddSingleton(ClientFileManager.Instance)
-            .AddSingleton(LocalizationManager.Instance)
-            .AddSingleton(ObjectIdManager.Instance)
-            .AddSingleton(TradeIdManager.Instance)
-            .AddSingleton(ZoneManager.Instance)
-            .AddSingleton(WorldManager.Instance)
-            .AddSingleton(ContainerIdManager.Instance)
-            .AddSingleton(ItemIdManager.Instance)
-            .AddSingleton(DoodadIdManager.Instance)
-            .AddSingleton(ChatManager.Instance)
-            .AddSingleton(CharacterIdManager.Instance)
-            .AddSingleton(FamilyIdManager.Instance)
-            .AddSingleton(ExpeditionIdManager.Instance)
-            .AddSingleton(VisitedSubZoneIdManager.Instance)
-            .AddSingleton(PrivateBookIdManager.Instance)
-            .AddSingleton(FriendIdManager.Instance)
-            .AddSingleton(MateIdManager.Instance)
-            .AddSingleton(HousingIdManager.Instance)
-            .AddSingleton(HousingTldManager.Instance)
-            .AddSingleton(TeamIdManager.Instance)
-            .AddSingleton(LaborPowerManager.Instance)
-            .AddSingleton(QuestIdManager.Instance)
-            .AddSingleton(MailIdManager.Instance)
-            .AddSingleton(UccIdManager.Instance)
-            .AddSingleton(MusicIdManager.Instance)
-            .AddSingleton(ShipyardIdManager.Instance)
-            .AddSingleton(ShipyardManager.Instance)
-            .AddSingleton(GameDataManager.Instance)
-            .AddSingleton(QuestManager.Instance)
-            .AddSingleton(FormulaManager.Instance)
-            .AddSingleton(ExpirienceManager.Instance)
-            .AddSingleton(TlIdManager.Instance)
-            .AddSingleton(SpecialtyManager.Instance)
-            .AddSingleton(ItemManager.Instance)
-            .AddSingleton(ItemManager.Instance)
-            .AddSingleton(AnimationManager.Instance)
-            .AddSingleton(PlotManager.Instance)
-            .AddSingleton(SkillManager.Instance)
-            .AddSingleton(CraftManager.Instance)
-            .AddSingleton(MateManager.Instance)
-            .AddSingleton(SlaveManager.Instance)
-            .AddSingleton(TeamManager.Instance)
-            .AddSingleton(AuctionManager.Instance)
-            .AddSingleton(MailManager.Instance)
-            .AddSingleton(NameManager.Instance)
-            .AddSingleton(FactionManager.Instance)
-            .AddSingleton(ExpeditionManager.Instance)
-            .AddSingleton(CharacterManager.Instance)
-            .AddSingleton(FamilyManager.Instance)
-            .AddSingleton(PortalManager.Instance)
-            .AddSingleton(FriendMananger.Instance)
-            .AddSingleton(ModelManager.Instance)
-            .AddSingleton(AIManager.Instance)
-            .AddSingleton(NpcManager.Instance)
-            .AddSingleton(DoodadManager.Instance)
-            .AddSingleton(TaxationsManager.Instance)
-            .AddSingleton(HousingManager.Instance)
-            .AddSingleton(TransferManager.Instance)
-            .AddSingleton(GimmickManager.Instance)
-            .AddSingleton(ShipyardManager.Instance)
-            .AddSingleton(SpawnManager.Instance)
-            .AddSingleton(AccessLevelManager.Instance)
-            .AddSingleton(CashShopManager.Instance)
-            .AddSingleton(UccManager.Instance)
-            .AddSingleton(MusicManager.Instance)
-            .AddSingleton(TimeManager.Instance)
-            .AddSingleton(TaskManager.Instance)
-            .AddSingleton(SaveManager.Instance)
-            .AddSingleton(AreaTriggerManager.Instance)
-            .AddSingleton(SpecialtyManager.Instance)
-            .AddSingleton(BoatPhysicsManager.Instance)
-            .AddSingleton(TransferManager.Instance)
-            .AddSingleton(GimmickManager.Instance)
-            .AddSingleton(SlaveManager.Instance)
-            .AddSingleton(CashShopManager.Instance)
-            .AddSingleton(GameDataManager.Instance);
+            .AddSingleton<ITaskManager>(TaskManager.Instance)
+            .AddSingleton<ILaborPowerManager>(LaborPowerManager.Instance)
+            .AddSingleton<IGameConnectionTable>(GameConnectionTable.Instance)
+            .AddSingleton<IDateTimeManager, DateTimeManager>()
+            .AddSingleton<ILogManager, NLogManager>();
 
+            services.AddLogging();
             return services;
         }
 
-
-        public void Load(IServiceProvider serviceProvider) 
+        public async Task Load(IServiceProvider serviceProvider) 
         {
             TickManager.Instance.Initialize();
             TaskIdManager.Instance.Initialize();
@@ -175,6 +108,8 @@ namespace AAEmu.Game
             HousingIdManager.Instance.Initialize();
             HousingTldManager.Instance.Initialize();
             TeamIdManager.Instance.Initialize();
+
+            serviceProvider.GetRequiredService<ILaborPowerManager>().Initialize();
             LaborPowerManager.Instance.Initialize();
             QuestIdManager.Instance.Initialize();
             MailIdManager.Instance.Initialize();
@@ -231,7 +166,7 @@ namespace AAEmu.Game
             ScriptCompiler.Compile();
 
             TimeManager.Instance.Start();
-            TaskManager.Instance.Start();
+            serviceProvider.GetRequiredService<ITaskManager>().Start();
             
             SaveManager.Instance.Initialize();
             AreaTriggerManager.Instance.Initialize();
@@ -263,9 +198,7 @@ namespace AAEmu.Game
             GameNetwork.Instance.Start();
             StreamNetwork.Instance.Start();
             LoginNetwork.Instance.Start();
-            
-            stopWatch.Stop();
-            _log.Info("Server started! Took {0}", stopWatch.Elapsed);
+
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
@@ -290,14 +223,14 @@ namespace AAEmu.Game
             TickManager.Instance.Stop();
             TimeManager.Instance.Stop();
             
-            ClientFileManager.ClearSources();
+            ClientFileManager.Instance.ClearSources();
             return Task.CompletedTask;
         }
 
         public void Dispose()
         {
             _log.Info("Disposing ...");
-
+            _serviceScope.Dispose();
             LogManager.Flush();
         }
     }

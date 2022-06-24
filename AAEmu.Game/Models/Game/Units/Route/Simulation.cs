@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
     /// </summary>
     public class Simulation : Patrol
     {
-        public Simulation(Unit unit)
+        public Simulation(IUnit unit)
         {
             Init(unit);
         }
@@ -574,7 +574,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             RepeatMove(this, npc, TargetPosition.Local.Position.X, TargetPosition.Local.Position.Y, TargetPosition.Local.Position.Z);
         }
 
-        public void Init(Unit unit) //Вызывается при включении скрипта
+        public void Init(IUnit unit) //Вызывается при включении скрипта
         {
             switch (unit)
             {

@@ -95,7 +95,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        public void SendFactions(Character character)
+        public void SendFactions(ICharacter character)
         {
             if (_systemFactions.Values.Count == 0)
                 character.SendPacket(new SCFactionListPacket());
@@ -111,7 +111,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        public void SendRelations(Character character)
+        public void SendRelations(ICharacter character)
         {
             if (_relations.Count == 0)
                 character.SendPacket(new SCFactionRelationListPacket());

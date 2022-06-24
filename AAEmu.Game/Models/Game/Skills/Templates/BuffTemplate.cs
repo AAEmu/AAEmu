@@ -208,7 +208,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             target.Buffs.AddBuff(new Buff(target, caster, casterObj, this, source?.Skill, time) { AbLevel = abLevel });
         }
 
-        public void Start(Unit caster, BaseUnit owner, Buff buff)
+        public void Start(IUnit caster, IBaseUnit owner, Buff buff)
         {
             foreach (var template in Bonuses)
             {
@@ -225,7 +225,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                 owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);
         }
 
-        public void TimeToTimeApply(Unit caster, BaseUnit owner, Buff buff)
+        public void TimeToTimeApply(IUnit caster, IBaseUnit owner, Buff buff)
         {
             if (TickAreaRadius > 0)
             {
@@ -247,9 +247,9 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             }
         }
 
-        public void DoAreaTick(Unit caster, BaseUnit owner, Buff buff)
+        public void DoAreaTick(IUnit caster, IBaseUnit owner, Buff buff)
         {
-            var units = WorldManager.Instance.GetAround<Unit>(owner, TickAreaRadius);
+            var units = WorldManager.Instance.GetAround<IUnit>(owner, TickAreaRadius);
 
             if (owner == null)
                 owner = caster;
@@ -293,7 +293,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             }
         }
 
-        public void Dispel(Unit caster, BaseUnit owner, Buff buff, bool replaced = false)
+        public void Dispel(IUnit caster, IBaseUnit owner, Buff buff, bool replaced = false)
         {
             foreach (var template in Bonuses)
                 owner.RemoveBonus(buff.Index, template.Attribute);

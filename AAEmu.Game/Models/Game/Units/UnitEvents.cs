@@ -37,7 +37,7 @@ namespace AAEmu.Game.Models.Game.Units
 
     public class OnAttackArgs : EventArgs
     {
-        public Unit Attacker { get; set; }
+        public IUnit Attacker { get; set; }
     }
 
     public class OnAttackedArgs : EventArgs
@@ -47,37 +47,37 @@ namespace AAEmu.Game.Models.Game.Units
 
     public class OnDamageArgs : EventArgs
     {
-        public Unit Attacker { get; set; }
+        public IUnit Attacker { get; set; }
         public int Amount { get; set; }
     }
 
     public class OnDamagedArgs : EventArgs
     {
-        public Unit Attacker { get; set; }
+        public IUnit Attacker { get; set; }
         public int Amount { get; set; }
     }
 
     public class OnDamagedMeleeArgs : EventArgs
     {
-        public Unit Attacker { get; set; }
+        public IUnit Attacker { get; set; }
         public int Amount { get; set; }
     }
 
     public class OnDamagedRangedArgs : EventArgs
     {
-        public Unit Attacker { get; set; }
+        public IUnit Attacker { get; set; }
         public int Amount { get; set; }
     }
 
     public class OnDamagedSpellArgs : EventArgs
     {
-        public Unit Attacker { get; set; }
+        public IUnit Attacker { get; set; }
         public int Amount { get; set; }
     }
 
     public class OnDamagedSiegeArgs : EventArgs
     {
-        public Unit Attacker { get; set; }
+        public IUnit Attacker { get; set; }
         public int Amount { get; set; }
     }
 
@@ -103,8 +103,8 @@ namespace AAEmu.Game.Models.Game.Units
 
     public class OnDeathArgs : EventArgs
     {
-        public Unit Killer { get; set; }
-        public Unit Victim { get; set; }
+        public IUnit Killer { get; set; }
+        public IUnit Victim { get; set; }
     }
 
     public class OnUnmountArgs : EventArgs
@@ -114,7 +114,7 @@ namespace AAEmu.Game.Models.Game.Units
 
     public class OnKillArgs : EventArgs
     {
-        public Unit target { get; set; }
+        public IUnit target { get; set; }
     }
 
     public class OnDamagedCollisionArgs : EventArgs
@@ -139,7 +139,7 @@ namespace AAEmu.Game.Models.Game.Units
 
     public class OnHealedArgs : EventArgs
     {
-        public Unit Healer { get; set; }
+        public IUnit Healer { get; set; }
         public int HealAmount { get; set; }
     }
 }

@@ -7,36 +7,36 @@ namespace AAEmu.Game.Core.Network.Connections
 {
     public class GameConnectionTable : Singleton<GameConnectionTable>, IGameConnectionTable
     {
-        private ConcurrentDictionary<uint, GameConnection> _connections;
+        private ConcurrentDictionary<uint, IGameConnection> _connections;
 
         private GameConnectionTable()
         {
-            _connections = new ConcurrentDictionary<uint, GameConnection>();
+            _connections = new ConcurrentDictionary<uint, IGameConnection>();
         }
 
-        public void AddConnection(GameConnection con)
+        public void AddConnection(IGameConnection con)
         {
             _connections.TryAdd(con.Id, con);
         }
 
-        public GameConnection GetConnection(uint id)
+        public IGameConnection GetConnection(uint id)
         {
             _connections.TryGetValue(id, out var con);
             return con;
         }
 
-        public GameConnection RemoveConnection(uint id)
+        public IGameConnection RemoveConnection(uint id)
         {
             _connections.TryRemove(id, out var con);
             return con;
         }
 
-        public List<GameConnection> GetConnections()
+        public List<IGameConnection> GetConnections()
         {
-            return new List<GameConnection>(_connections.Values);
+            return new List<IGameConnection>(_connections.Values);
         }
 
-        public GameConnection GetConnectionByAccount(uint accountId)
+        public IGameConnection GetConnectionByAccount(uint accountId)
         {
             var connectionInfo = _connections.Where(c => c.Value.AccountId == accountId).ToList();
             if (connectionInfo.Count >= 1)

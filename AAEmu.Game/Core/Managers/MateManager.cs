@@ -69,7 +69,7 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
-        public void ChangeStateMate(GameConnection connection, uint tlId, byte newState)
+        public void ChangeStateMate(IGameConnection connection, uint tlId, byte newState)
         {
             var owner = connection.ActiveChar;
             var mateInfo = GetActiveMate(owner.ObjId);
@@ -79,7 +79,7 @@ namespace AAEmu.Game.Core.Managers
             //owner.BroadcastPacket(new SCMateStatePacket(), );
         }
 
-        public void ChangeTargetMate(GameConnection connection, uint tlId, uint objId)
+        public void ChangeTargetMate(IGameConnection connection, uint tlId, uint objId)
         {
             var owner = connection.ActiveChar;
             var mateInfo = GetActiveMateByTlId(tlId);
@@ -90,7 +90,7 @@ namespace AAEmu.Game.Core.Managers
             _log.Debug("ChangeTargetMate. tlId: {0}, objId: {1}, targetObjId: {2}", mateInfo.TlId, mateInfo.ObjId, objId);
         }
 
-        public Mate RenameMount(GameConnection connection, uint tlId, string newName)
+        public Mate RenameMount(IGameConnection connection, uint tlId, string newName)
         {
             var owner = connection.ActiveChar;
             if (string.IsNullOrWhiteSpace(newName) || newName.Length == 0 || !_nameRegex.IsMatch(newName)) return null;
@@ -101,7 +101,7 @@ namespace AAEmu.Game.Core.Managers
             return mateInfo;
         }
 
-        public void MountMate(GameConnection connection, uint tlId, AttachPointKind attachPoint, AttachUnitReason reason)
+        public void MountMate(IGameConnection connection, uint tlId, AttachPointKind attachPoint, AttachUnitReason reason)
         {
             var character = connection.ActiveChar;
             var mateInfo = GetActiveMateByTlId(tlId);

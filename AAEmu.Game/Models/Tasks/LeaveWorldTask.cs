@@ -11,10 +11,10 @@ namespace AAEmu.Game.Models.Tasks
 {
     public class LeaveWorldTask : Task
     {
-        private readonly GameConnection _connection;
+        private readonly IGameConnection _connection;
         private readonly byte _target;
 
-        public LeaveWorldTask(GameConnection connection, byte target)
+        public LeaveWorldTask(IGameConnection connection, byte target)
         {
             _connection = connection;
             _target = target;

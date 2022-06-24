@@ -33,13 +33,13 @@ namespace AAEmu.Game.Models.Game.Units
         TurretState = 8
     }
 
-    public class BaseUnit : GameObject
+    public class BaseUnit : GameObject, IBaseUnit
     {
         public string Name { get; set; } = string.Empty;
         public SystemFaction Faction { get; set; }
 
         public virtual float Scale { get; set; } = 1f;
-        
+
         public Buffs Buffs { get; set; }
         public SkillModifiers SkillModifiersCache { get; set; }
         public BuffModifiers BuffModifiersCache { get; set; }
@@ -53,7 +53,7 @@ namespace AAEmu.Game.Models.Game.Units
             CombatBuffs = new CombatBuffs(this);
         }
 
-        public bool CanAttack(BaseUnit target)
+        public bool CanAttack(IBaseUnit target)
         {
             if (this.Faction == null || target.Faction == null)
                 return false;
@@ -66,7 +66,7 @@ namespace AAEmu.Game.Models.Game.Units
                 var trgIsFlagged = other.Buffs.CheckBuff((uint)BuffConstants.Retribution);
 
                 //check safezone
-                if (other.Faction.MotherId != 0 && other.Faction.MotherId == zone.FactionId 
+                if (other.Faction.MotherId != 0 && other.Faction.MotherId == zone.FactionId
                     && !me.IsActivelyHostile(other) && !trgIsFlagged)
                 {
                     return false;
@@ -89,14 +89,14 @@ namespace AAEmu.Game.Models.Game.Units
                 //Check if npc is protected by safe zone
                 //TODO fix npc safety
                 //if (zone.FactionId != 0 && target.Faction.MotherId == zone.FactionId)
-                    //return false;
+                //return false;
             }
-            
+
 
             return relation == RelationState.Hostile;
         }
 
-        public RelationState GetRelationStateTo(BaseUnit unit) => this.Faction?.GetRelationState(unit.Faction) ?? RelationState.Neutral;
+        public RelationState GetRelationStateTo(IBaseUnit unit) => this.Faction?.GetRelationState(unit.Faction) ?? RelationState.Neutral;
 
         public virtual void AddBonus(uint bonusIndex, Bonus bonus)
         {
@@ -105,8 +105,9 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual void RemoveBonus(uint bonusIndex, UnitAttribute attribute)
         {
         }
-        
-        public virtual double ApplySkillModifiers(Skill skill, SkillAttribute attribute, double baseValue) {
+
+        public virtual double ApplySkillModifiers(Skill skill, SkillAttribute attribute, double baseValue)
+        {
             return SkillModifiersCache.ApplyModifiers(skill, attribute, baseValue);
         }
 
@@ -115,9 +116,9 @@ namespace AAEmu.Game.Models.Game.Units
             return BuffModifiersCache.ApplyModifiers(buff, attr, value);
         }
 
-        public virtual void InterruptSkills() {}
+        public virtual void InterruptSkills() { }
 
-        public virtual bool UnitIsVisible(BaseUnit unit)
+        public virtual bool UnitIsVisible(IBaseUnit unit)
         {
             if (unit == null)
                 return false;

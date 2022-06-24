@@ -2203,7 +2203,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
         }
 
-        public Doodad Create(uint bcId, uint id, GameObject obj = null)
+        public Doodad Create(uint bcId, uint id, IGameObject obj = null)
         {
             if (!_templates.ContainsKey(id))
                 return null;

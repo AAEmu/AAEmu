@@ -465,7 +465,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             
         }
 
-        public void Create(GameConnection connection, string name, byte race, byte gender, uint[] body,
+        public void Create(IGameConnection connection, string name, byte race, byte gender, uint[] body,
             UnitCustomModelParams customModel, byte ability1)
         {
             var nameValidationCode = NameManager.Instance.ValidationCharacterName(name);
@@ -660,7 +660,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         /// <param name="gameConnection"></param>
         /// <param name="dbConnection"></param>
         /// <returns>Returns true if a character was marked deleted, otherwise false</returns>
-        public bool CheckForDeletedCharactersDeletion(Character character, GameConnection gameConnection, MySqlConnection dbConnection)
+        public bool CheckForDeletedCharactersDeletion(Character character, IGameConnection gameConnection, MySqlConnection dbConnection)
         {
             if ((character.DeleteTime > DateTime.MinValue) && (character.DeleteTime <= DateTime.UtcNow))
             {
@@ -774,7 +774,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
         }
         
-        public void SetDeleteCharacter(GameConnection gameConnection, uint characterId)
+        public void SetDeleteCharacter(IGameConnection gameConnection, uint characterId)
         {
             if (gameConnection.Characters.ContainsKey(characterId))
             {
@@ -825,7 +825,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             CheckForDeletedCharacters();
         }
 
-        public void SetRestoreCharacter(GameConnection gameConnection, uint characterId)
+        public void SetRestoreCharacter(IGameConnection gameConnection, uint characterId)
         {
             if (gameConnection.Characters.ContainsKey(characterId))
             {

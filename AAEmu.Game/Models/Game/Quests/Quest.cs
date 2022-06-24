@@ -516,7 +516,7 @@ namespace AAEmu.Game.Models.Game.Quests
             Update(res);
         }
 
-        public void OnInteraction(WorldInteractionType type, Units.BaseUnit target)
+        public void OnInteraction(WorldInteractionType type, Units.IBaseUnit target)
         {
             var res = false;
             var component = Template.GetComponent(Step);

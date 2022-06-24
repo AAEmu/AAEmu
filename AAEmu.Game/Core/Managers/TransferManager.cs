@@ -365,7 +365,7 @@ namespace AAEmu.Game.Core.Managers
                 var transferPaths = new Dictionary<uint, List<TransferRoads>>();
                 
                 var worldLevelDesignDir = Path.Combine("game", "worlds", world.Name, "level_design", "zone");
-                var pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "transfer_path.xml", true);
+                var pathFiles = ClientFileManager.Instance.GetFilesInDirectory(worldLevelDesignDir, "transfer_path.xml", true);
                 
                 foreach(var pathFileName in pathFiles)
                 {
@@ -376,7 +376,7 @@ namespace AAEmu.Game.Core.Managers
                         continue;
                     }
 
-                    var contents = ClientFileManager.GetFileAsString(pathFileName);
+                    var contents = ClientFileManager.Instance.GetFileAsString(pathFileName);
                     
                     if (string.IsNullOrWhiteSpace(contents))
                     {

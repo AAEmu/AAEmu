@@ -36,7 +36,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
             _removedMembers.Add(member.CharacterId);
         }
 
-        public void OnCharacterLogin(Character character)
+        public void OnCharacterLogin(ICharacter character)
         {
             var member = GetMember(character);
             if (member == null)
@@ -48,7 +48,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
             ChatManager.Instance.GetGuildChat(this).JoinChannel(character);
         }
 
-        public void OnCharacterLogout(Character character)
+        public void OnCharacterLogout(ICharacter character)
         {
             var member = GetMember(character);
             if (member != null)
@@ -70,7 +70,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
             return null;
         }
 
-        public ExpeditionMember GetMember(Character character)
+        public ExpeditionMember GetMember(ICharacter character)
         {
             foreach (var member in Members)
                 if (member.CharacterId == character.Id)

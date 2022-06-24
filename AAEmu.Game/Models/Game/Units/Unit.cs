@@ -27,7 +27,7 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Units
 {
-    public class Unit : BaseUnit
+    public class Unit : BaseUnit, IUnit
     {
         public virtual UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.None;
 
@@ -165,7 +165,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get => (float)CalculateWithBonuses(100d, UnitAttribute.IncomingAggroMul);
         }
-        public BaseUnit CurrentTarget { get; set; }
+        public IBaseUnit CurrentTarget { get; set; }
         public virtual byte RaceGender => 0;
         public virtual UnitCustomModelParams ModelParams { get; set; }
         public byte ActiveWeapon { get; set; }
@@ -190,7 +190,7 @@ namespace AAEmu.Game.Models.Game.Units
         public uint SkillId;
         public ushort TlId { get; set; }
         public ItemContainer Equipment { get; set; }
-        public GameConnection Connection { get; set; }
+        public IGameConnection Connection { get; set; }
 
         /// <summary>
         /// Unit巡逻
@@ -251,7 +251,7 @@ namespace AAEmu.Game.Models.Game.Units
         /// <param name="attacker"></param>
         /// <param name="value"></param>
         /// <param name="killReason"></param>
-        public virtual void ReduceCurrentHp(Unit attacker, int value, KillReason killReason = KillReason.Damage)
+        public virtual void ReduceCurrentHp(IUnit attacker, int value, KillReason killReason = KillReason.Damage)
         {
             if (Hp <= 0)
                 return;
@@ -280,7 +280,7 @@ namespace AAEmu.Game.Models.Game.Units
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
         }
 
-        public virtual void ReduceCurrentMp(Unit unit, int value)
+        public virtual void ReduceCurrentMp(IUnit unit, int value)
         {
             if (Hp == 0)
                 return;
@@ -293,7 +293,7 @@ namespace AAEmu.Game.Models.Game.Units
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
         }
 
-        public virtual void DoDie(Unit killer, KillReason killReason)
+        public virtual void DoDie(IUnit killer, KillReason killReason)
         {
             InterruptSkills();
 
@@ -480,7 +480,7 @@ namespace AAEmu.Game.Models.Game.Units
         /// <param name="baseUnit"></param>
         /// <param name="includeZAxis"></param>
         /// <returns></returns>
-        public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
+        public float GetDistanceTo(IBaseUnit baseUnit, bool includeZAxis = false)
         {
             if (Transform.World.Position.Equals(baseUnit.Transform.World.Position))
                 return 0.0f;
@@ -540,8 +540,8 @@ namespace AAEmu.Game.Models.Game.Units
             }
             return defaultVal;
         }
-        
-        
+
+
 
         public string GetAttribute(uint attr) => GetAttribute((UnitAttribute)attr);
 

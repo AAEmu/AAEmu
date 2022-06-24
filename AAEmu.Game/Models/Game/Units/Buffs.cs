@@ -184,7 +184,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
-        public void AddBuff(uint buffId, Unit caster)
+        public void AddBuff(uint buffId, IUnit caster)
         {
             var buff = SkillManager.Instance.GetBuffTemplate(buffId);
             var casterObj = new SkillCasterUnit(caster.ObjId);

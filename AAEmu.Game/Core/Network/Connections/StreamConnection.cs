@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using AAEmu.Commons.Network;
@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Network.Connections
 
         public uint Id => _session.SessionId;
         public IPAddress Ip => _session.Ip;
-        public GameConnection GameConnection { get; set; }
+        public IGameConnection GameConnection { get; set; }
         public PacketStream LastPacket { get; set; }
 
         public StreamConnection(Session session)

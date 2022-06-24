@@ -450,7 +450,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public void ConstructHouseTax(GameConnection connection, uint designId, float x, float y, float z)
+        public void ConstructHouseTax(IGameConnection connection, uint designId, float x, float y, float z)
         {
             // TODO validation position and some range...
 
@@ -478,7 +478,7 @@ namespace AAEmu.Game.Core.Managers
         /// </summary>
         /// <param name="connection"></param>
         /// <param name="tlId"></param>
-        public void HouseTaxInfo(GameConnection connection, ushort tlId)
+        public void HouseTaxInfo(IGameConnection connection, ushort tlId)
         {
             if (!_housesTl.ContainsKey(tlId))
                 return;
@@ -537,7 +537,7 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="moneyAmount"></param>
         /// <param name="ht"></param>
         /// <param name="autoUseAaPoint"></param>
-        public void Build(GameConnection connection, uint designId, float posX, float posY, float posZ, float zRot,
+        public void Build(IGameConnection connection, uint designId, float posX, float posY, float posZ, float zRot,
             ulong itemId, int moneyAmount, int ht, bool autoUseAaPoint)
         {
             // TODO validate house by range...
@@ -657,7 +657,7 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="connection"></param>
         /// <param name="tlId"></param>
         /// <param name="permission"></param>
-        public void ChangeHousePermission(GameConnection connection, ushort tlId, HousingPermission permission)
+        public void ChangeHousePermission(IGameConnection connection, ushort tlId, HousingPermission permission)
         {
             if (!_housesTl.ContainsKey(tlId))
                 return;
@@ -692,7 +692,7 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="connection"></param>
         /// <param name="tlId"></param>
         /// <param name="name"></param>
-        public void ChangeHouseName(GameConnection connection, ushort tlId, string name)
+        public void ChangeHouseName(IGameConnection connection, ushort tlId, string name)
         {
             if (!_housesTl.ContainsKey(tlId))
                 return;
@@ -712,7 +712,7 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="house"></param>
         /// <param name="failedToPayTax"></param>
         /// <param name="forceRestoreAllDecor"></param>
-        public void Demolish(GameConnection connection, House house, bool failedToPayTax, bool forceRestoreAllDecor)
+        public void Demolish(IGameConnection connection, House house, bool failedToPayTax, bool forceRestoreAllDecor)
         {
             if (!_houses.ContainsKey(house.Id))
             {

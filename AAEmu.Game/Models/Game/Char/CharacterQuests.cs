@@ -137,7 +137,7 @@ namespace AAEmu.Game.Models.Game.Char
                 quest.OnItemUse(item);
         }
 
-        public void OnInteraction(WorldInteractionType type, Units.BaseUnit target)
+        public void OnInteraction(WorldInteractionType type, Units.IBaseUnit target)
         {
             foreach (var quest in Quests.Values)
                 quest.OnInteraction(type, target);

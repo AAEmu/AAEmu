@@ -114,7 +114,7 @@ namespace AAEmu.Game.Core.Managers
             character.Transform.Local.SetPosition(0, 0, 0, 0, 0, 0);
         }
 
-        public void BindSlave(GameConnection connection, uint tlId)
+        public void BindSlave(IGameConnection connection, uint tlId)
         {
             var unit = connection.ActiveChar;
             var slave = _tlSlaves[tlId];

@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Managers
 
         private Dictionary<uint, Expedition> _expeditions;
 
-        public Expedition Create(string name, Character owner)
+        public Expedition Create(string name, ICharacter owner)
         {
             var expedition = new Expedition();
             expedition.Id = ExpeditionIdManager.Instance.GetNextId();
@@ -166,7 +166,7 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
-        public void CreateExpedition(string name, GameConnection connection)
+        public void CreateExpedition(string name, IGameConnection connection)
         {
             var owner = connection.ActiveChar;
             if (owner.Expedition != null)
@@ -295,7 +295,7 @@ namespace AAEmu.Game.Core.Managers
             Save(expedition);
         }
 
-        public void Invite(GameConnection connection, string invitedName)
+        public void Invite(IGameConnection connection, string invitedName)
         {
             var inviter = connection.ActiveChar;
 
@@ -313,7 +313,7 @@ namespace AAEmu.Game.Core.Managers
             );
         }
 
-        public void ReplyInvite(GameConnection connection, uint id1, uint id2, bool reply)
+        public void ReplyInvite(IGameConnection connection, uint id1, uint id2, bool reply)
         {
             var invited = connection.ActiveChar;
             if (!reply)
@@ -334,7 +334,7 @@ namespace AAEmu.Game.Core.Managers
             // invited.Save(); // Moved to SaveMananger
         }
 
-        public void ChangeExpeditionRolePolicy(GameConnection connection, ExpeditionRolePolicy policy)
+        public void ChangeExpeditionRolePolicy(IGameConnection connection, ExpeditionRolePolicy policy)
         {
             var expedition = _expeditions[policy.Id];
 
@@ -379,7 +379,7 @@ namespace AAEmu.Game.Core.Managers
             Save(expedition);
         }
 
-        public void Kick(GameConnection connection, uint kickedId)
+        public void Kick(IGameConnection connection, uint kickedId)
         {
             var character = connection.ActiveChar;
             var expedition = character.Expedition;
@@ -409,7 +409,7 @@ namespace AAEmu.Game.Core.Managers
             Save(expedition);
         }
 
-        public void ChangeMemberRole(GameConnection connection, byte newRole, uint changedId)
+        public void ChangeMemberRole(IGameConnection connection, byte newRole, uint changedId)
         {
             var character = connection.ActiveChar;
             var expedition = character.Expedition;
@@ -431,7 +431,7 @@ namespace AAEmu.Game.Core.Managers
             Save(expedition);
         }
 
-        public void ChangeOwner(GameConnection connection, uint newOwnerId)
+        public void ChangeOwner(IGameConnection connection, uint newOwnerId)
         {
             var owner = connection.ActiveChar;
             var expedition = owner.Expedition;
@@ -464,7 +464,7 @@ namespace AAEmu.Game.Core.Managers
             Save(expedition);
         }
 
-        public bool Disband(Character owner)
+        public bool Disband(ICharacter owner)
         {
             var guild = owner.Expedition;
             if (guild == null)
@@ -497,7 +497,7 @@ namespace AAEmu.Game.Core.Managers
             return true;
         }
 
-        public void SendExpeditionInfo(Character character)
+        public void SendExpeditionInfo(ICharacter character)
         {
             character.SendPacket(new SCExpeditionRolePolicyListPacket(character.Expedition.Policies));
             character.SendPacket(new SCExpeditionMemberListPacket(character.Expedition));
@@ -513,7 +513,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public ExpeditionMember GetMemberFromCharacter(Expedition expedition, Character character, bool owner)
+        public ExpeditionMember GetMemberFromCharacter(Expedition expedition, ICharacter character, bool owner)
         {
             var member = new ExpeditionMember();
             member.IsOnline = true;
@@ -531,7 +531,7 @@ namespace AAEmu.Game.Core.Managers
             return member;
         }
 
-        public void SendExpeditions(Character character)
+        public void SendExpeditions(ICharacter character)
         {
             if (_expeditions.Values.Count > 0)
             {

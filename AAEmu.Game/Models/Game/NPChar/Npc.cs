@@ -701,7 +701,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             //Equip = new Item[28];
         }
 
-        public override void DoDie(Unit killer, KillReason killReason)
+        public override void DoDie(IUnit killer, KillReason killReason)
         {
             base.DoDie(killer, killReason);
             AggroTable.Clear();
@@ -730,7 +730,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }
 
-        public void AddUnitAggro(AggroKind kind, Unit unit, int amount)
+        public void AddUnitAggro(AggroKind kind, IUnit unit, int amount)
         {
             amount = (int)(amount * (unit.AggroMul / 100.0f));
             amount = (int)(amount * (IncomingAggroMul / 100.0f));
@@ -751,7 +751,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
-        public void ClearAggroOfUnit(Unit unit)
+        public void ClearAggroOfUnit(IUnit unit)
         {
             if(AggroTable.TryRemove(unit.ObjId, out var value))
             {
@@ -789,7 +789,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             ClearAggroOfUnit(args.Victim);
         }
 
-        public void OnDamageReceived(Unit attacker, int amount)
+        public void OnDamageReceived(IUnit attacker, int amount)
         {
             // 25 means "dummy" AI -> should not respond!
             // if (Template.AiFileId != 25 && (Patrol == null || Patrol.PauseAuto(this)))

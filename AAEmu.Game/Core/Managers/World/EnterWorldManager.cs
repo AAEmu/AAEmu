@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
@@ -39,7 +39,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        public void Login(GameConnection connection, uint accountId, uint token)
+        public void Login(IGameConnection connection, uint accountId, uint token)
         {
             if (_accounts.ContainsKey(token))
             {
@@ -69,7 +69,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        public void Leave(GameConnection connection, byte type)
+        public void Leave(IGameConnection connection, byte type)
         {
             switch (type)
             {

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using AAEmu.Commons.Utils;
@@ -34,7 +34,7 @@ namespace AAEmu.Game.Core.Managers
             return new Unsubscriber<float>(_observers, observer);
         }
 
-        public IDisposable Subscribe(GameConnection connection, IObserver<float> observer)
+        public IDisposable Subscribe(IGameConnection connection, IObserver<float> observer)
         {
             connection.SendPacket(new SCDetailedTimeOfDayPacket(GetTime()));
             return Subscribe(observer);

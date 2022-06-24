@@ -25,9 +25,9 @@ namespace AAEmu.Game.Models.Game.Skills
         public Skill Skill { get; set; }
         // public EffectTemplate Template { get; set; }
         public BuffTemplate Template { get; set; }
-        public Unit Caster { get; set; }
+        public IUnit Caster { get; set; }
         public SkillCaster SkillCaster { get; set; }
-        public BaseUnit Owner { get; set; }
+        public IBaseUnit Owner { get; set; }
         public EffectState State { get; set; }
         public bool InUse { get; set; }
         public int Duration { get; set; }
@@ -40,7 +40,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public BuffEvents Events { get;}
         public BuffTriggersHandler Triggers { get;}
 
-        public Buff(BaseUnit owner, Unit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
+        public Buff(IBaseUnit owner, IUnit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
         {
             Owner = owner;
             Caster = caster;

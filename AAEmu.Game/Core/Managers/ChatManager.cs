@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Managers
         public ChatType chatType;
         public short subType; // used for things like zonekey for /shout
         public uint faction;
-        public List<Character> members;
+        public List<ICharacter> members;
         public long internalId;
         public string internalName;
 
@@ -26,12 +26,12 @@ namespace AAEmu.Game.Core.Managers
             chatType = ChatType.White;
             subType = 0;
             faction = 0;
-            members = new List<Character>();
+            members = new List<ICharacter>();
             internalId = 0;
             internalName = string.Empty;
         }
 
-        public bool JoinChannel(Character character)
+        public bool JoinChannel(ICharacter character)
         {
             if (character == null)
                 return false;
@@ -46,7 +46,7 @@ namespace AAEmu.Game.Core.Managers
             return true;
         }
 
-        public bool LeaveChannel(Character character)
+        public bool LeaveChannel(ICharacter character)
         {
             if (character == null)
                 return false;
@@ -67,7 +67,7 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="ability"></param>
         /// <param name="languageType"></param>
         /// <returns>Number of members the message was sent to</returns>
-        public int SendMessage(Character origin, string msg, int ability = 0, byte languageType = 0)
+        public int SendMessage(ICharacter origin, string msg, int ability = 0, byte languageType = 0)
         {
             var res = 0;
             foreach(var m in members)

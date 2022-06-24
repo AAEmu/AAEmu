@@ -81,7 +81,7 @@ namespace AAEmu.Game.Core.Network.Game
             }
         }
 
-        public void OnReceive(GameConnection connection, byte[] buf, int bytes)
+        public void OnReceive(IGameConnection connection, byte[] buf, int bytes)
         {
             try
             {
@@ -169,7 +169,7 @@ namespace AAEmu.Game.Core.Network.Game
             _packets[level].TryAdd(type, classType);
         }
 
-        private void HandleUnknownPacket(GameConnection connection, uint type, byte level, PacketStream stream)
+        private void HandleUnknownPacket(IGameConnection connection, uint type, byte level, PacketStream stream)
         {
             var dump = new StringBuilder();
             for (var i = stream.Pos; i < stream.Count; i++)

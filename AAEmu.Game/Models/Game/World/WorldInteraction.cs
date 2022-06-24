@@ -6,7 +6,7 @@ namespace AAEmu.Game.Models.Game.World
 {
     public interface IWorldInteraction
     {
-        void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType, uint skillId, uint doodadId = 0, DoodadFuncTemplate objectFunc = null);
+        void Execute(IUnit caster, SkillCaster casterType, IBaseUnit target, SkillCastTarget targetType, uint skillId, uint doodadId = 0, DoodadFuncTemplate objectFunc = null);
     }
     
     public enum WorldInteractionType

@@ -8,11 +8,11 @@ using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.World
 {
-    public class GameObject
+    public class GameObject : IGameObject
     {
         public Guid Guid { get; set; } = Guid.NewGuid();
         public uint ObjId { get; set; }
-        public uint InstanceId { get; set; } = WorldManager.DefaultInstanceId ;
+        public uint InstanceId { get; set; } = WorldManager.DefaultInstanceId;
         public bool DisabledSetPosition { get; set; }
         /// <summary>
         /// Contains position, rotation, zone and instance information
@@ -27,12 +27,12 @@ namespace AAEmu.Game.Models.Game.World
         public DateTime Respawn { get; set; }
         public DateTime Despawn { get; set; }
         public virtual bool IsVisible { get; set; }
-        public GameObject ParentObj { get; set; }
-        public virtual float ModelSize { get; set; } = 0f; 
+        public IGameObject ParentObj { get; set; }
+        public virtual float ModelSize { get; set; } = 0f;
 
         public GameObject()
         {
-            Transform = new Transform.Transform(this,null);
+            Transform = new Transform.Transform(this, null);
         }
 
         public virtual void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
@@ -101,7 +101,7 @@ namespace AAEmu.Game.Models.Game.World
             if ((Transform != null) && (Transform.Children.Count > 0))
                 foreach (var child in Transform.Children.ToArray())
                     //if (child?.GameObject != character) // Never send to self, or the client crashes
-                        child?.GameObject?.AddVisibleObject(character);
+                    child?.GameObject?.AddVisibleObject(character);
         }
 
         public virtual void RemoveVisibleObject(Character character)
@@ -114,12 +114,12 @@ namespace AAEmu.Game.Models.Game.World
             if ((Transform != null) && (Transform.Children.Count > 0))
                 foreach (var child in Transform.Children.ToArray())
                     //if (child?.GameObject != character) // Never send to self, or the client crashes
-                        child?.GameObject?.RemoveVisibleObject(character);
+                    child?.GameObject?.RemoveVisibleObject(character);
         }
 
         public virtual string DebugName()
         {
-            return "("+ ObjId.ToString() +") - " + ToString();
+            return "(" + ObjId.ToString() + ") - " + ToString();
         }
     }
 }

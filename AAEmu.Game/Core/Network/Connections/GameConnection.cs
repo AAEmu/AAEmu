@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Network.Connections
         World
     }
 
-    public class GameConnection
+    public class GameConnection : IGameConnection
     {
         private Session _session;
 
@@ -32,17 +32,17 @@ namespace AAEmu.Game.Core.Network.Connections
         public uint AccountId { get; set; }
         public IPAddress Ip => _session.Ip;
         public PacketStream LastPacket { get; set; }
-        
+
         public AccountPayment Payment { get; set; }
-        
+
         public int PacketCount { get; set; }
-        
+
         public List<IDisposable> Subscribers { get; set; }
         public GameState State { get; set; }
-        public Character ActiveChar { get; set; }
-        public Dictionary<uint, Character> Characters;
-        public Dictionary<uint, House> Houses;
-        
+        public ICharacter ActiveChar { get; set; }
+        public Dictionary<uint, ICharacter> Characters { get; set; }
+        public Dictionary<uint, House> Houses { get; set; }
+
         public Task LeaveTask { get; set; }
         public DateTime LastPing { get; set; }
 
@@ -50,8 +50,8 @@ namespace AAEmu.Game.Core.Network.Connections
         {
             _session = session;
             Subscribers = new List<IDisposable>();
-            
-            Characters = new Dictionary<uint, Character>();
+
+            Characters = new Dictionary<uint, ICharacter>();
             Houses = new Dictionary<uint, House>();
             Payment = new AccountPayment(this);
             // AddAttribute("gmFlag", true);
@@ -75,7 +75,7 @@ namespace AAEmu.Game.Core.Network.Connections
         public void OnDisconnect()
         {
             AccountManager.Instance.Remove(AccountId);
-            
+
             if (ActiveChar != null)
                 foreach (var subscriber in ActiveChar.Subscribers)
                     subscriber.Dispose();
@@ -106,7 +106,7 @@ namespace AAEmu.Game.Core.Network.Connections
             Subscribers.Add(disposable);
         }
 
-        
+
 
         public void LoadAccount()
         {

@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         //This acts as an interface/relay for doodad function chain
         //public async void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
-        public void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public void Use(IUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             owner.ToPhaseAndUse = false;
             var template = DoodadManager.Instance.GetFuncTemplate(FuncId, FuncType);

@@ -11,15 +11,15 @@ namespace AAEmu.Game.Core.Managers
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        private ConcurrentDictionary<uint, GameConnection> _accounts;
+        private ConcurrentDictionary<uint, IGameConnection> _accounts;
 
         public AccountManager()
         {
-            _accounts = new ConcurrentDictionary<uint, GameConnection>();
+            _accounts = new ConcurrentDictionary<uint, IGameConnection>();
             TickManager.Instance.OnTick.Subscribe(RemoveDeadConnections, TimeSpan.FromSeconds(30));
         }
 
-        public void Add(GameConnection connection)
+        public void Add(IGameConnection connection)
         {
             if (_accounts.ContainsKey(connection.AccountId))
                 return;

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
 {
     public class SummonDoodad : IWorldInteraction
     {
-        public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
+        public void Execute(IUnit caster, SkillCaster casterType, IBaseUnit target, SkillCastTarget targetType,
             uint skillId, uint doodadId, DoodadFuncTemplate objectFunc)
         {
             var doodad = DoodadManager.Instance.Create(0, (uint)doodadId, caster);

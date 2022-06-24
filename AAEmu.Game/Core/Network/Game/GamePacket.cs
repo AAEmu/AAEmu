@@ -7,7 +7,7 @@ using AAEmu.Game.Core.Packets.Proxy;
 
 namespace AAEmu.Game.Core.Network.Game
 {
-    public abstract class GamePacket : PacketBase<GameConnection>
+    public abstract class GamePacket : PacketBase<IGameConnection>
     {
         public byte Level { get; set; }
 
@@ -67,7 +67,7 @@ namespace AAEmu.Game.Core.Network.Game
             return ps;
         }
 
-        public override PacketBase<GameConnection> Decode(PacketStream ps)
+        public override PacketBase<IGameConnection> Decode(PacketStream ps)
         {
             try
             {

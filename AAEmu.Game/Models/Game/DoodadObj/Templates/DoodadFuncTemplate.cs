@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Units;
+﻿using AAEmu.Game.Models.Game.Units;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Templates
@@ -8,6 +8,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Templates
         protected static Logger _log = LogManager.GetCurrentClassLogger(); 
         
         public uint Id { get; set; }
-        public abstract void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0);
+        public abstract void Use(IUnit caster, Doodad owner, uint skillId, int nextPhase = 0);
     }
 }

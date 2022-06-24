@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.World
 
         private readonly uint _worldId;
         private readonly object _objectsLock = new object();
-        private GameObject[] _objects;
+        private IGameObject[] _objects;
         private int _objectsSize, _charactersSize;
         private Region[] _neighbors;
         private int _playerCount;
@@ -42,7 +42,7 @@ namespace AAEmu.Game.Models.Game.World
             ZoneKey = zoneKey;
         }
 
-        public void AddObject(GameObject obj)
+        public void AddObject(IGameObject obj)
         {
             if (obj == null)
                 return;
@@ -86,7 +86,7 @@ namespace AAEmu.Game.Models.Game.World
                         obj is BaseUnit bu ? " - " + bu.Name : "");
         }
 
-        public void RemoveObject(GameObject obj) // TODO Нужно доделать =_+
+        public void RemoveObject(IGameObject obj) // TODO Нужно доделать =_+
         {
             if (obj == null)
                 return;
@@ -137,7 +137,7 @@ namespace AAEmu.Game.Models.Game.World
                         obj is BaseUnit bu ? " - " + bu.Name : "");
         }
 
-        public void AddToCharacters(GameObject obj)
+        public void AddToCharacters(IGameObject obj)
         {
             if (_objects == null)
                 return;
@@ -177,7 +177,7 @@ namespace AAEmu.Game.Models.Game.World
             }
         }
 
-        public void RemoveFromCharacters(GameObject obj)
+        public void RemoveFromCharacters(IGameObject obj)
         {
             if (_objects == null)
                 return;

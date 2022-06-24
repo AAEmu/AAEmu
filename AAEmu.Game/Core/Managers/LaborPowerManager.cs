@@ -3,6 +3,7 @@ using System.Linq;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.IO;
 using AAEmu.Game.Models.Tasks.LaborPower;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
@@ -25,7 +26,7 @@ namespace AAEmu.Game.Core.Managers
 {
     public class LaborPowerManager : Singleton<LaborPowerManager>, ILaborPowerManager
     {
-        protected static Logger _log = LogManager.GetCurrentClassLogger();
+        protected static ILogger _logger;
 
         //private List<LaborPower> _onlineChar;
         //private List<LaborPower> _offlineChar;
@@ -33,32 +34,36 @@ namespace AAEmu.Game.Core.Managers
         private const short LpChange = 5;
         private const short UpLimit = 5000;
         private const double Delay = 5; // min
-        private readonly IServiceProvider _services;
+        private readonly ITaskManager _taskManager;
+        private readonly IGameConnectionTable _gameConnectionTable;
+        private readonly IDateTimeManager _dateTimeManager;
 
-        public LaborPowerManager(IServiceProvider services)
+        public LaborPowerManager(ILogManager logManager, ITaskManager taskManager, IGameConnectionTable gameConnectionTable, IDateTimeManager dateTimeManager)
         {
-            _services = services;
-            _log = services.GetService<ILogManager>().GetCurrentClassLogger();
+            _logger = logManager.GetCurrentLogger();
+            _taskManager = taskManager;
+            _gameConnectionTable = gameConnectionTable;
+            _dateTimeManager = dateTimeManager;
             //_onlineChar = new List<LaborPower>();
             //_offlineChar = new List<LaborPower>();
         }
 
         public void Initialize()
         {
-            _log.Info("Initialising Labor Power Manager...");
+            _logger.Info("Initialising Labor Power Manager...");
             LaborPowerTickStart();
         }
 
         public void LaborPowerTickStart()
         {
-            _log.Debug("LaborPowerTickStart: Started");
+            _logger.Debug("LaborPowerTickStart: Started");
 
             var lpTickStartTask = new LaborPowerTickStartTask();
-            TaskManager.Instance.Schedule(lpTickStartTask, TimeSpan.FromMinutes(Delay), TimeSpan.FromMinutes(Delay));
+            _taskManager.Schedule(lpTickStartTask, TimeSpan.FromMinutes(Delay), TimeSpan.FromMinutes(Delay));
         }
         public void LaborPowerTick()
         {
-            var connections = _services.GetRequiredService<IGameConnectionTable>().GetConnections();
+            var connections = _gameConnectionTable.GetConnections();
             foreach (var connection in connections)
             {
                 foreach (var character in connection.Characters.Where(character => character.Value.IsOnline))
@@ -70,21 +75,21 @@ namespace AAEmu.Game.Core.Managers
                     }
 
                     // Offline Regeneration: 10 Labor Points every 5 minutes
-                    if ((DateTime.UtcNow - character.Value.LaborPowerModified).TotalMinutes > Delay)
+                    if ((_dateTimeManager.UtcNow - character.Value.LaborPowerModified).TotalMinutes > Delay)
                     {
-                        var needAddOfflineLp = (short)((DateTime.UtcNow - character.Value.LaborPowerModified).TotalMinutes / Delay * LpChangePremium);
+                        var needAddOfflineLp = (short)((_dateTimeManager.UtcNow - character.Value.LaborPowerModified).TotalMinutes / Delay * LpChangePremium);
                         var calculatedOfflineLp = (short)(character.Value.LaborPower + needAddOfflineLp);
                         if (calculatedOfflineLp <= UpLimit)
                         {
-                            character.Value.LaborPowerModified = DateTime.UtcNow;
+                            character.Value.LaborPowerModified = _dateTimeManager.UtcNow;
                             character.Value.ChangeLabor(needAddOfflineLp, 0);
-                            _log.Debug("Character {1} gained {0} offline Labor Point(s)", needAddOfflineLp, character.Value.Name);
+                            _logger.Debug("Character {1} gained {0} offline Labor Point(s)", needAddOfflineLp, character.Value.Name);
                         }
                         else
                         {
                             var valueLp = (short)(UpLimit - character.Value.LaborPower);
-                            _log.Debug("Character {1} gained {0} offline Labor Point(s)", valueLp, character.Value.Name);
-                            character.Value.LaborPowerModified = DateTime.UtcNow;
+                            _logger.Debug("Character {1} gained {0} offline Labor Point(s)", valueLp, character.Value.Name);
+                            character.Value.LaborPowerModified = _dateTimeManager.UtcNow;
                             character.Value.ChangeLabor(valueLp, 0);
                         }
                         continue;
@@ -94,14 +99,14 @@ namespace AAEmu.Game.Core.Managers
                     var change = (short)(UpLimit - character.Value.LaborPower);
                     if (change >= LpChangePremium)
                     {
-                        _log.Debug("Character {1} gained {0} Labor Point(s)", LpChangePremium, character.Value.Name);
-                        character.Value.LaborPowerModified = DateTime.UtcNow;
+                        _logger.Debug("Character {1} gained {0} Labor Point(s)", LpChangePremium, character.Value.Name);
+                        character.Value.LaborPowerModified = _dateTimeManager.UtcNow;
                         character.Value.ChangeLabor(LpChangePremium, 0);
                     }
                     else if (change != 0)
                     {
-                        _log.Debug("Character {1} gained {0} Labor Point(s)", change, character.Value.Name);
-                        character.Value.LaborPowerModified = DateTime.UtcNow;
+                        _logger.Debug("Character {1} gained {0} Labor Point(s)", change, character.Value.Name);
+                        character.Value.LaborPowerModified = _dateTimeManager.UtcNow;
                         character.Value.ChangeLabor(change, 0);
                     }
                 }

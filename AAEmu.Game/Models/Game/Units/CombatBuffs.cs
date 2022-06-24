@@ -42,7 +42,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
-        public void TriggerCombatBuffs(Unit attacker, Unit receiver, SkillHitType type, bool isHeal)
+        public void TriggerCombatBuffs(IUnit attacker, IUnit receiver, SkillHitType type, bool isHeal)
         {
             if (!_cbuffsByHitType.ContainsKey(type))
                 return;

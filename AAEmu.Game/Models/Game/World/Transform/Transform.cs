@@ -20,7 +20,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
     /// </summary>
     public class Transform : IDisposable
     {
-        private GameObject _owningObject;
+        private IGameObject _owningObject;
         private uint _worldId = WorldManager.DefaultWorldId ;
         private uint _instanceId = WorldManager.DefaultInstanceId;
         private uint _zoneId = 0;
@@ -52,7 +52,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// <summary>
         /// The GameObject this Transform is attached to
         /// </summary>
-        public GameObject GameObject { get => _owningObject; }
+        public IGameObject GameObject { get => _owningObject; }
         /// <summary>
         /// World ID
         /// </summary>
@@ -75,7 +75,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         public PositionAndRotation World { get => GetWorldPosition(); }
         // TODO: It MIGHT be interesting to cache the world Transform, but would generate more overhead when moving parents (vehicles/mounts)
 
-        private void InternalInitializeTransform(GameObject owningObject, Transform parentTransform, Transform stickyParentTransform)
+        private void InternalInitializeTransform(IGameObject owningObject, Transform parentTransform, Transform stickyParentTransform)
         {
             _owningObject = owningObject;
             _parentTransform = parentTransform;
@@ -88,38 +88,38 @@ namespace AAEmu.Game.Models.Game.World.Transform
             _debugTrackers = new List<Character>();
         }
 
-        public Transform(GameObject owningObject, Transform parentTransform = null, Transform stickyParentTransform = null)
+        public Transform(IGameObject owningObject, Transform parentTransform = null, Transform stickyParentTransform = null)
         {
             InternalInitializeTransform(owningObject, parentTransform, stickyParentTransform);
         }
 
-        public Transform(GameObject owningObject, Transform parentTransform, float x, float y, float z)
+        public Transform(IGameObject owningObject, Transform parentTransform, float x, float y, float z)
         {
             InternalInitializeTransform(owningObject, parentTransform, null);
             Local.Position = new Vector3(x, y, z);
         }
 
-        public Transform(GameObject owningObject, Transform parentTransform, Vector3 position)
+        public Transform(IGameObject owningObject, Transform parentTransform, Vector3 position)
         {
             InternalInitializeTransform(owningObject, parentTransform, null);
             Local.Position = position;
         }
 
-        public Transform(GameObject owningObject, Transform parentTransform, float posX, float posY, float posZ, float roll, float pitch, float yaw)
+        public Transform(IGameObject owningObject, Transform parentTransform, float posX, float posY, float posZ, float roll, float pitch, float yaw)
         {
             InternalInitializeTransform(owningObject, parentTransform, null);
             Local.Position = new Vector3(posX, posY, posZ);
             Local.Rotation = new Vector3(roll, pitch, yaw);
         }
 
-        public Transform(GameObject owningObject, Transform parentTransform, Vector3 position, Vector3 rotation)
+        public Transform(IGameObject owningObject, Transform parentTransform, Vector3 position, Vector3 rotation)
         {
             InternalInitializeTransform(owningObject, parentTransform, null);
             Local.Position = position;
             Local.Rotation = rotation;
         }
 
-        public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float roll, float pitch, float yaw)
+        public Transform(IGameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float roll, float pitch, float yaw)
         {
             InternalInitializeTransform(owningObject, parentTransform,null);
             WorldId = worldId;
@@ -129,7 +129,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
             Local.Rotation = new Vector3(roll, pitch, yaw);
         }
 
-        public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float yaw)
+        public Transform(IGameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float yaw)
         {
             InternalInitializeTransform(owningObject, parentTransform,null);
             WorldId = worldId;
@@ -139,7 +139,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
             Local.Rotation = new Vector3(0f, 0f, yaw);
         }
 
-        public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, PositionAndRotation posRot)
+        public Transform(IGameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, PositionAndRotation posRot)
         {
             InternalInitializeTransform(owningObject, parentTransform,null);
             WorldId = worldId;

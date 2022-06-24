@@ -7,9 +7,9 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCCharacterStatePacket : GamePacket
     {
-        private readonly Character _character;
+        private readonly ICharacter _character;
 
-        public SCCharacterStatePacket(Character character) : base(SCOffsets.SCCharacterStatePacket, 1)
+        public SCCharacterStatePacket(ICharacter character) : base(SCOffsets.SCCharacterStatePacket, 1)
         {
             _character = character;
         }

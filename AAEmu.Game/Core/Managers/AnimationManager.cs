@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -36,7 +36,7 @@ namespace AAEmu.Game.Core.Managers
         private List<AnimCombatSyncEvent> ParseGFile(string gFileName)
         {
             var res = new List<AnimCombatSyncEvent>();
-            var lines = ClientFileManager.GetFileAsString(gFileName).Split("\r\n");
+            var lines = ClientFileManager.Instance.GetFileAsString(gFileName).Split("\r\n");
 
             AnimCombatSyncEvent lastCombatSyncEvent = null;
             AnimDuration lastAnimDuration = null;

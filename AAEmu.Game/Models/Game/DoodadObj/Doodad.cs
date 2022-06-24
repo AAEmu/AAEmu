@@ -77,7 +77,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <summary>
         /// This "uses" the doodad. Using a doodad means running its functions in doodad_funcs
         /// </summary>
-        public void Use(Unit unit, uint skillId, uint recursionDepth = 0)
+        public void Use(IUnit unit, uint skillId, uint recursionDepth = 0)
         {
             recursionDepth++;
             if (recursionDepth % 10 == 0)

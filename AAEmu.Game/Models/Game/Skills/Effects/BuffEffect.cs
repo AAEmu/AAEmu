@@ -20,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public override uint BuffId => Buff.Id;
         public override bool OnActionTime => Buff.Tick > 0;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+        public override void Apply(IUnit caster, SkillCaster casterObj, IBaseUnit target, SkillCastTarget targetObj,
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {

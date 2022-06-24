@@ -129,7 +129,7 @@ namespace AAEmu.Game.Core.Managers.World
 
             #region LoadClientData
             
-            var worldXmlPaths = ClientFileManager.GetFilesInDirectory(Path.Combine("game", "worlds"), "world.xml", true);
+            var worldXmlPaths = ClientFileManager.Instance.GetFilesInDirectory(Path.Combine("game", "worlds"), "world.xml", true);
 
             if (worldXmlPaths.Count <= 0)
             {
@@ -164,7 +164,7 @@ namespace AAEmu.Game.Core.Managers.World
                 if (worldName == "main_world")
                     WorldManager.DefaultWorldId = id; // prefer to do it like this, in case we change order or IDs later on
                 
-                var worldXmlData = ClientFileManager.GetFileStream(Path.Combine("game", "worlds", worldName, "world.xml"));
+                var worldXmlData = ClientFileManager.Instance.GetFileStream(Path.Combine("game", "worlds", worldName, "world.xml"));
                 var xml = new XmlDocument();
                 xml.Load(worldXmlData);
                 var worldNode = xml.SelectSingleNode("/World");
@@ -332,7 +332,7 @@ namespace AAEmu.Game.Core.Managers.World
         {
             // Use world.xml to check if we have client data enabled
             var worldXmlTest = Path.Combine("game", "worlds", world.Name, "world.xml");
-            if (!ClientFileManager.FileExists(worldXmlTest))
+            if (!ClientFileManager.Instance.FileExists(worldXmlTest))
                 return false;
 
             var version = VersionCalc.Draft;
@@ -343,8 +343,8 @@ namespace AAEmu.Game.Core.Managers.World
                 var cellFileName = $"{cellX:000}_{cellY:000}";
                 var heightMapFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client",
                     "terrain", "heightmap.dat");
-                if (ClientFileManager.FileExists(heightMapFile))
-                    using (var stream = ClientFileManager.GetFileStream(heightMapFile))
+                if (ClientFileManager.Instance.FileExists(heightMapFile))
+                    using (var stream = ClientFileManager.Instance.GetFileStream(heightMapFile))
                     {
                         if (stream == null)
                         {
@@ -520,7 +520,7 @@ namespace AAEmu.Game.Core.Managers.World
                 return transform.World.Position.Z;
         }
 
-        private GameObject GetRootObj(GameObject obj)
+        private IGameObject GetRootObj(IGameObject obj)
         {
             if (obj.ParentObj == null)
             {
@@ -532,7 +532,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        public Region GetRegion(GameObject obj)
+        public Region GetRegion(IGameObject obj)
         {
             obj = GetRootObj(obj);
             InstanceWorld world = GetWorld(obj.Transform.WorldId);
@@ -687,7 +687,7 @@ namespace AAEmu.Game.Core.Managers.World
                 _gimmicks.TryRemove(obj.ObjId, out _);
         }
 
-        public void AddVisibleObject(GameObject obj)
+        public void AddVisibleObject(IGameObject obj)
         {
             if (obj == null || !obj.IsVisible)
                 return;
@@ -759,7 +759,7 @@ namespace AAEmu.Game.Core.Managers.World
                     AddVisibleObject(child.GameObject);
         }
 
-        public void RemoveVisibleObject(GameObject obj)
+        public void RemoveVisibleObject(IGameObject obj)
         {
             if (obj?.Region == null)
                 return;
@@ -777,7 +777,7 @@ namespace AAEmu.Game.Core.Managers.World
                     RemoveVisibleObject(child.GameObject);
         }
 
-        public List<T> GetAround<T>(GameObject obj) where T : class
+        public List<T> GetAround<T>(IGameObject obj) where T : class
         {
             var result = new List<T>();
             if (obj.Region == null)
@@ -789,7 +789,7 @@ namespace AAEmu.Game.Core.Managers.World
             return result;
         }
 
-        public List<T> GetAround<T>(GameObject obj, float radius, bool useModelSize = false) where T : class
+        public List<T> GetAround<T>(IGameObject obj, float radius, bool useModelSize = false) where T : class
         {
             var result = new List<T>();
             if (obj.Region == null)
@@ -811,7 +811,7 @@ namespace AAEmu.Game.Core.Managers.World
             return result;
         }
 
-        private bool RadiusFitsCurrentRegion(GameObject obj, float radius)
+        private bool RadiusFitsCurrentRegion(IGameObject obj, float radius)
         {
             var xMod = obj.Transform.World.Position.X % REGION_SIZE;
             if (xMod - radius < 0 || xMod + radius > REGION_SIZE)

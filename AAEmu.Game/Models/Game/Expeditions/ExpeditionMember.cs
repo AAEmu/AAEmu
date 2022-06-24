@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
         public string Memo { get; set; }
         public DateTime TransferRequestedTime { get; set; }
 
-        public void Refresh(Character character)
+        public void Refresh(ICharacter character)
         {
             IsOnline = true;
             Position = character.Transform.World.Position;

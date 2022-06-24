@@ -16,9 +16,9 @@ namespace AAEmu.Game.Models.Game.NPChar
     {
         private object _lock = new object();
         
-        public Unit Owner { get; }
+        public IUnit Owner { get; }
 
-        public Aggro(Unit owner)
+        public Aggro(IUnit owner)
         {
             Owner = owner;
         }

@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
 
-        public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
+        public void Execute(IUnit caster, SkillCaster casterType, IBaseUnit target, SkillCastTarget targetType,
             uint skillId, uint doodadId, DoodadFuncTemplate objectFunc)
         {
             _log.Trace("World interaction SkillID: {0}", skillId);

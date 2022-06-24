@@ -2,8 +2,8 @@
 {
     public interface ILaborPowerManager
     {
-        void Initialize();
         void LaborPowerTickStart();
         void LaborPowerTick();
+        void Initialize();
     }
 }
