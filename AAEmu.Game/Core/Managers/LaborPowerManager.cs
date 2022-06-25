@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Linq;
-
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.Tasks.LaborPower;
-using Microsoft.Extensions.DependencyInjection;
 using NLog;
 
 /*
@@ -24,7 +21,7 @@ using NLog;
  */
 namespace AAEmu.Game.Core.Managers
 {
-    public class LaborPowerManager : Singleton<LaborPowerManager>, ILaborPowerManager
+    public class LaborPowerManager : ILaborPowerManager
     {
         protected static ILogger _logger;
 
@@ -58,7 +55,7 @@ namespace AAEmu.Game.Core.Managers
         {
             _logger.Debug("LaborPowerTickStart: Started");
 
-            var lpTickStartTask = new LaborPowerTickStartTask();
+            var lpTickStartTask = new LaborPowerTickStartTask(this);
             _taskManager.Schedule(lpTickStartTask, TimeSpan.FromMinutes(Delay), TimeSpan.FromMinutes(Delay));
         }
         public void LaborPowerTick()

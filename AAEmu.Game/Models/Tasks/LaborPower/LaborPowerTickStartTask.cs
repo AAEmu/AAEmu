@@ -4,13 +4,16 @@ namespace AAEmu.Game.Models.Tasks.LaborPower
 {
     public class LaborPowerTickStartTask : Task
     {
-        public LaborPowerTickStartTask()
+        private readonly ILaborPowerManager _laborPowerManager;
+
+        public LaborPowerTickStartTask(ILaborPowerManager laborPowerManager)
         {
+            _laborPowerManager = laborPowerManager;
         }
 
         public override void Execute()
         {
-            LaborPowerManager.Instance.LaborPowerTick();
+            _laborPowerManager.LaborPowerTick();
         }
     }
 }

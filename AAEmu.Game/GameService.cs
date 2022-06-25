@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.Updater;
 using AAEmu.Game.IO;
 using AAEmu.Game.Core.Managers;
@@ -17,13 +15,11 @@ using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using AAEmu.Game.Core.Network.Connections;
 
 namespace AAEmu.Game
@@ -64,7 +60,7 @@ namespace AAEmu.Game
             _log.Info("Loading Dependency Injection Services");
             var services = new ServiceCollection()
             .AddSingleton<ITaskManager>(TaskManager.Instance)
-            .AddSingleton<ILaborPowerManager>(LaborPowerManager.Instance)
+            .AddSingleton<ILaborPowerManager, LaborPowerManager>()
             .AddSingleton<IGameConnectionTable>(GameConnectionTable.Instance)
             .AddSingleton<IDateTimeManager, DateTimeManager>()
             .AddSingleton<ILogManager, NLogManager>();
@@ -110,7 +106,6 @@ namespace AAEmu.Game
             TeamIdManager.Instance.Initialize();
 
             serviceProvider.GetRequiredService<ILaborPowerManager>().Initialize();
-            LaborPowerManager.Instance.Initialize();
             QuestIdManager.Instance.Initialize();
             MailIdManager.Instance.Initialize();
             UccIdManager.Instance.Initialize();
@@ -230,7 +225,7 @@ namespace AAEmu.Game
         public void Dispose()
         {
             _log.Info("Disposing ...");
-            _serviceScope.Dispose();
+            _serviceScope?.Dispose();
             LogManager.Flush();
         }
     }
