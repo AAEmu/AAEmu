@@ -237,7 +237,6 @@ namespace AAEmu.Game.Core.Managers.World
             var amountBonus = 0; // TODO: negotiation bonus
             var finalPrice = finalPriceNoInterest + interest + amountBonus ;
 
-
             var itemTypeToDeliver = npc.Template.SpecialtyCoinId;
             var amountOfItemsTotalPayout = (int)Math.Round(finalPrice);
             var amountOfItemsSeller = amountOfItemsTotalPayout ;
@@ -294,7 +293,6 @@ namespace AAEmu.Game.Core.Managers.World
             player.Inventory.Equipment.ConsumeItem(ItemTaskType.SellBackpack, backpack.TemplateId, 1, backpack);
             // TODO: Calculate proper labor by skill level
             player.ChangeLabor(-60, (int)ActabilityType.Commerce);
-
 
             // Add one pack sold in this zone during this tick
             if (!_soldPackAmountInTick.ContainsKey(backpack.TemplateId))

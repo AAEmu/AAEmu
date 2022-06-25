@@ -76,7 +76,6 @@ namespace AAEmu.Game.Models.Game.World
                         Interlocked.Increment(ref region._playerCount);
                     }
                 }
-
             }
             // Show debug info to subscribed players
             if (obj.Transform._debugTrackers.Count > 0)
@@ -127,8 +126,8 @@ namespace AAEmu.Game.Models.Game.World
                         Interlocked.Decrement(ref region._playerCount);
                     }
                 }
-                
             }
+
             // Show debug info to subscribed players
             if (obj.Transform._debugTrackers.Count > 0)
                 foreach (var chr in obj.Transform._debugTrackers)

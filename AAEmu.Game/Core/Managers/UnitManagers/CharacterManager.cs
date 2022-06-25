@@ -459,10 +459,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
         public void PlayerRoll(ICharacter Self, int max)
         {
-
             var roll = Rand.Next(1, max);
             Self.BroadcastPacket(new SCChatMessagePacket(ChatType.System, string.Format(Self.Name + " rolled " + roll.ToString() + ".")), true);
-            
         }
 
         public void Create(IGameConnection connection, string name, byte race, byte gender, uint[] body,
@@ -593,7 +591,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     NameManager.Instance.RemoveCharacterName(characterId);
                     // TODO release items...
                 }
-                
             }
             else
             {
@@ -813,7 +810,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             // Not the correct message, but it seems funny enough
                             gameConnection.SendPacket(new SCErrorMsgPacket(ErrorMessageType.CannotDeleteCharWhileBotSuspected, 0, true));
                         }
-
                     }
                 }
             }
@@ -925,7 +921,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 {
                     Log.Error($"Something failed during hairstyle creation for player {character.Name} ({character.Id})!");
                 }
-                
             }
             character.ModelParams = modelParams;
             

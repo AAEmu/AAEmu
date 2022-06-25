@@ -28,7 +28,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int operation = value3;
             //value 4 unused
 
-
             //There is a high chance this is not implemented correctly..
             //If refactoring. See PlotConditions -> Variable as well
             if (skill.ActivePlotState != null)

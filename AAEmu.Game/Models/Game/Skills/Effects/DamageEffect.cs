@@ -220,7 +220,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 }
             }
 
-
             min *= Multiplier;
             max *= Multiplier;
 
@@ -371,7 +370,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 caster.Mp = Math.Min(caster.MaxMp, caster.Mp + manaStolen);
                 caster.BroadcastPacket(new SCUnitPointsPacket(caster.ObjId, caster.Hp, caster.Mp), true);
             }
-
 
             if (Bonuses != null)
             {

@@ -413,7 +413,6 @@ namespace AAEmu.Game.Core.Managers
                         _log.Error("Something went wrong when paying tax for mailId {0}", mail.Id);
 
                     mail.Body.BillingAmount = consumedCerts ;
-
                 }
             }
             else
@@ -429,7 +428,6 @@ namespace AAEmu.Game.Core.Managers
                 {
                     character.SubtractMoney(SlotType.Inventory, mail.Body.BillingAmount);
                 }
-
             }
 
             if (!HousingManager.Instance.PayWeeklyTax(house))

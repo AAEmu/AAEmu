@@ -64,7 +64,6 @@ namespace AAEmu.Game
                     services.AddSingleton<IHostedService, GameService>();
                     services.AddSingleton<IHostedService, DiscordBotService>();
                 });
-            
 
             await builder.RunConsoleAsync();
         }

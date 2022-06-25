@@ -316,6 +316,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
                 caster.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * (caster.GlobalCooldownMul / 100));
             }
+
             if (caster is Npc && Template.SkillControllerId != 0)
             {
                 var scTemplate = SkillManager.Instance.GetEffectTemplate(Template.SkillControllerId, "SkillController") as SkillControllerTemplate;
@@ -339,7 +340,6 @@ namespace AAEmu.Game.Models.Game.Skills
                 var dist = MathUtil.CalculateDistance(caster.Transform.World.Position, targetUnit.Transform.World.Position, true);
                 if (dist >= SkillManager.Instance.GetSkillTemplate(Id).MinRange && dist <= SkillManager.Instance.GetSkillTemplate(Id).MaxRange)
                 {
-
                     var sc = SkillController.CreateSkillController(scTemplate, caster, targetUnit);
                     if (sc != null)
                     {
@@ -530,7 +530,6 @@ namespace AAEmu.Game.Models.Game.Skills
                 ApplyEffects(caster, casterCaster, target, targetCaster, skillObject);
                 EndSkill(caster);
             }
-
         }
 
         private IEnumerable<IBaseUnit> FilterAoeUnits(IBaseUnit caster, IEnumerable<IBaseUnit> units)

@@ -556,7 +556,6 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
             }
         
-    
             Update(res);
         }
 

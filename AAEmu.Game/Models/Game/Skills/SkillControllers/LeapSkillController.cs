@@ -49,7 +49,6 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
 
             var distance = MathUtil.CalculateDistance(Owner.Transform.World.Position, _endPosition, true);
             _calculatedSpeed = distance / (Duration / 1000f);
-
         }
 
         public void Tick(TimeSpan delta)

@@ -33,7 +33,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             {
                 _log.Error("Special effects: UserMusicSaveNotes - Invalid Arguments");
             }
-
         }
     }
 }

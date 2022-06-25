@@ -33,7 +33,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                     player.Inventory.Bag.ConsumeItem(Items.Actions.ItemTaskType.SkillReagents, reagent.ItemId, reagent.Amount, null);
                 }
             }
-
         }
     }
 }

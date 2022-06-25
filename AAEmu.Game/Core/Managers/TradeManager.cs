@@ -98,8 +98,8 @@ namespace AAEmu.Game.Core.Managers
                 TargetItems = new List<Item>(),
                 OwnerMoneyPutup = 0,
                 TargetMoneyPutup = 0
-
             };
+
             _trades.Add(nextId, template);
 
             _log.Info("Trade Id:{4} started between {0}({1}) - {2}({3}).", owner.Name, owner.ObjId, target.Name, target.ObjId, nextId);
@@ -249,7 +249,6 @@ namespace AAEmu.Game.Core.Managers
                 }
                 else if (isOwnerWhoAdd)
                 {
-
                     _trades[tradeId].LockOwner = true;
                     _log.Info("Trade Id:{0} {1}({2}) locked trade.", tradeId, owner.Name, owner.ObjId);
                 }
@@ -282,7 +281,6 @@ namespace AAEmu.Game.Core.Managers
 
                 if (isOwnerWhoAdd)
                 {
-
                     _trades[tradeId].OkOwner = true;
                     _log.Info("Trade Id:{0} {1}({2}) ok trade.", tradeId, owner.Name, owner.ObjId);
                 }

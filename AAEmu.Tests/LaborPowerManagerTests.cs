@@ -47,7 +47,6 @@ namespace AAEmu.Tests
             mockLogger.Verify(l => l.Debug(It.IsAny<string>()), Times.Never);
         }
 
-
         [Theory]
         [InlineData(6000)]
         [InlineData(5001)]
@@ -297,9 +296,7 @@ namespace AAEmu.Tests
             //Assert
             mockCharacter.Verify(c => c.ChangeLabor(It.IsIn((short)(5000 - currentLaborPower)), It.IsIn(0)), Times.Once());
             mockLogger.Verify(l => l.Debug(It.Is<string>(v => v.Contains("gained {0} Labor")), It.IsIn((short)(5000 - currentLaborPower)), It.IsIn("Test Character")), Times.Once);
-
         }
-
 
         private LaborPowerManager SetupManager(out Mock<ILogManager> mockLogManager, out Mock<ILogger> mockLogger, out Mock<ITaskManager> mockTaskManager, out Mock<IGameConnectionTable> mockGameConnectionTable, out Mock<IDateTimeManager> mockDateTimeManager)
         {

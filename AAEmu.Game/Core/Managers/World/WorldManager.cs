@@ -948,7 +948,6 @@ namespace AAEmu.Game.Core.Managers.World
             character.SendPacket(new SCOnOffSnowPacket(IsSnowing));
 
         }
-
         public void ResendVisibleObjectsToCharacter(ICharacter character)
         {
             // Re-send visible flags to character getting out of cinema

@@ -33,7 +33,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                        " TargetBuffTagId {8}, TargetNoBuffTagId {9}, UseOriginSource {10}",
                 Duration, Tick, TargetRelation, BuffId, ProjectileId, ShowToFriendlyOnly, NextPhase, AoeShapeId, TargetBuffTagId, TargetNoBuffTagId, UseOriginSource);
 
-
             var areaTrigger = new AreaTrigger()
             {
                 Shape = WorldManager.Instance.GetAreaShapeById(AoeShapeId),

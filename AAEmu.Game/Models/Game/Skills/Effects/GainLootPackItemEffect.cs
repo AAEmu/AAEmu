@@ -42,7 +42,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (casterObj is SkillItem skillItem)
                 sourceItem = character.Inventory.Bag.GetItemByItemId(skillItem.ItemId);
 
-
             _log.Debug("LootGroups {0}", string.Join(',', lootGroups.Select(x => x.Id)));
 
             var rowG = lootGroups.Length;

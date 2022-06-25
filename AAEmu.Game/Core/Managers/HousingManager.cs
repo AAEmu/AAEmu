@@ -552,7 +552,6 @@ namespace AAEmu.Game.Core.Managers
                 return;
             }
 
-
             var zoneId = WorldManager.Instance.GetZoneId(connection.ActiveChar.Transform.WorldId, posX, posY);
 
             var houseTemplate = _housingTemplates[designId];
@@ -597,7 +596,6 @@ namespace AAEmu.Game.Core.Managers
                     if (consumedCerts != 0)
                         _log.Error("Something went wrong when paying tax for new building for player {0}", connection.ActiveChar.Name);
                 }
-
             }
             else
             {
@@ -610,7 +608,6 @@ namespace AAEmu.Game.Core.Managers
                 }
                 connection.ActiveChar.SubtractMoney(SlotType.Inventory, totalTaxAmountDue, Models.Game.Items.Actions.ItemTaskType.HouseCreation);
             }
-
 
             if (connection.ActiveChar.Inventory.Bag.ConsumeItem(Models.Game.Items.Actions.ItemTaskType.HouseBuilding, sourceDesignItem.TemplateId, 1, sourceDesignItem) <= 0)
             {
@@ -1559,7 +1556,6 @@ namespace AAEmu.Game.Core.Managers
             }
 
             var itemUcc = UccManager.Instance.GetUccFromItem(item);
-
 
             // Create decoration doodad
             var decorationDesign = GetDecorationDesignFromId(designId);

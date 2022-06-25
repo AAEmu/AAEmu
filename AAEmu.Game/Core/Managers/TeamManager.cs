@@ -289,7 +289,6 @@ namespace AAEmu.Game.Core.Managers
                 ChatManager.Instance.GetRaidChat(activeTeam).LeaveChannel(unit);
             ChatManager.Instance.GetPartyChat(activeTeam, unit).LeaveChannel(unit);
 
-
             if ((riskyAction == RiskyAction.Leave || riskyAction == RiskyAction.Kick) && activeTeam.RemoveMember(targetId))
             {
                 // Check if person leaving is the leader, if so, find a new leader
