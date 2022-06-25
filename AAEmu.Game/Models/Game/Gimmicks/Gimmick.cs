@@ -49,7 +49,7 @@ namespace AAEmu.Game.Models.Game.Gimmicks
         {
         }
 
-        public override void AddVisibleObject(Character character)
+        public override void AddVisibleObject(ICharacter character)
         {
             character.SendPacket(new SCGimmicksCreatedPacket(new[] { this }));
             var temp = new Gimmick[0];
@@ -57,7 +57,7 @@ namespace AAEmu.Game.Models.Game.Gimmicks
             base.AddVisibleObject(character);
         }
 
-        public override void RemoveVisibleObject(Character character)
+        public override void RemoveVisibleObject(ICharacter character)
         {
             base.RemoveVisibleObject(character);
             character.SendPacket(new SCGimmicksRemovedPacket(new[] { GimmickId }));

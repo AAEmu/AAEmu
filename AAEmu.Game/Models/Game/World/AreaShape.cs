@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.World
         public float Value2 { get; set; }
         public float Value3 { get; set; }
 
-        public List<T> ComputeCuboid<T>(GameObject origin, List<T> toCheck) where T : GameObject
+        public List<T> ComputeCuboid<T>(IGameObject origin, List<T> toCheck) where T : IGameObject
         {
             // Z check
             var zOffset = Value3;
@@ -60,7 +60,7 @@ namespace AAEmu.Game.Models.Game.World
         private static Logger _log = LogManager.GetCurrentClassLogger();
         public AreaShape Shape { get; set; }
         public Doodad Owner { get; set; }
-        public Unit Caster { get; set; }
+        public IUnit Caster { get; set; }
         private List<Unit> Units { get; set; }
         
         
@@ -103,14 +103,14 @@ namespace AAEmu.Game.Models.Game.World
             Units = units;
         }
 
-        public void OnEnter(Unit unit)
+        public void OnEnter(IUnit unit)
         {
             if (SkillTargetingUtil.IsRelationValid(TargetRelation, Caster, unit))
                 InsideBuffTemplate?.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), null, new EffectSource(), null, DateTime.UtcNow);
             // unit.Effects.AddEffect(new Effect(Owner, Caster, new SkillCasterUnit(Caster.ObjId), InsideBuffTemplate, null, DateTime.UtcNow));
         }
 
-        public void OnLeave(Unit unit)
+        public void OnLeave(IUnit unit)
         {
             if (InsideBuffTemplate != null)
                 unit.Buffs.RemoveBuff(InsideBuffTemplate.BuffId);

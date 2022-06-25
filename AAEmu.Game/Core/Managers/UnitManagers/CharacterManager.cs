@@ -457,7 +457,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             Log.Info("Loaded {0} character templates", _templates.Count);
         }
 
-        public void PlayerRoll(Character Self, int max)
+        public void PlayerRoll(ICharacter Self, int max)
         {
 
             var roll = Rand.Next(1, max);
@@ -900,7 +900,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             //inventory.Equip[(int) slot] = item;
         }
 
-        public void ApplyBeautySalon(Character character, uint hairModel, UnitCustomModelParams modelParams)
+        public void ApplyBeautySalon(ICharacter character, uint hairModel, UnitCustomModelParams modelParams)
         {
             // TODO: Add support for future X-day Salon Certificate items
             

@@ -192,7 +192,7 @@ namespace AAEmu.Game.Models.Game.Housing
             base.Hide();
         }
 
-        public override void AddVisibleObject(Character character)
+        public override void AddVisibleObject(ICharacter character)
         {
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCHouseStatePacket(this));
@@ -210,7 +210,7 @@ namespace AAEmu.Game.Models.Game.Housing
             base.AddVisibleObject(character);
         }
 
-        public override void RemoveVisibleObject(Character character)
+        public override void RemoveVisibleObject(ICharacter character)
         {
             base.RemoveVisibleObject(character);
 

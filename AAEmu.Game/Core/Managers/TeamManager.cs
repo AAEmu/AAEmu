@@ -75,7 +75,7 @@ namespace AAEmu.Game.Core.Managers
             return _activeInvitations.ContainsKey(targetId) ? _activeInvitations[targetId] : null;
         }
 
-        public void InviteAreaToTeam(Character owner, uint teamId, bool isParty)
+        public void InviteAreaToTeam(ICharacter owner, uint teamId, bool isParty)
         {
             var characters = WorldManager.Instance.GetAround<Character>(owner, 100.0f); // CHECK IF 100m
             if (characters.Count <= 0) return;
@@ -87,7 +87,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public void AskToJoin(Character owner, string targetName, uint teamId, bool isParty, Character targetObj = null)
+        public void AskToJoin(ICharacter owner, string targetName, uint teamId, bool isParty, Character targetObj = null)
         {
             var target = targetObj ?? WorldManager.Instance.GetCharacter(targetName);
             if (target == null) return;
@@ -130,7 +130,7 @@ namespace AAEmu.Game.Core.Managers
             target.SendPacket(new SCAskToJoinTeamPacket(activeTeam?.Id ?? 0u, owner.Id, owner.Name, isParty));
         }
 
-        public void ReplyToJoinTeam(Character target, uint teamId, bool isParty, uint ownerId, bool isReject, string charName, bool isArea)
+        public void ReplyToJoinTeam(ICharacter target, uint teamId, bool isParty, uint ownerId, bool isReject, string charName, bool isArea)
         {
             var activeInvitation = GetActiveInvitation(target.Id);
             if (activeInvitation == null)
@@ -190,7 +190,7 @@ namespace AAEmu.Game.Core.Managers
             _activeInvitations.Remove(activeInvitation.Target.Id);
         }
 
-        public void MoveTeamMember(Character owner, uint teamId, uint targetId, uint target2Id, byte fromIndex, byte toIndex)
+        public void MoveTeamMember(ICharacter owner, uint teamId, uint targetId, uint target2Id, byte fromIndex, byte toIndex)
         {
             var activeTeam = GetActiveTeam(teamId);
             if (activeTeam == null || activeTeam.OwnerId != owner.Id) return;
@@ -245,7 +245,7 @@ namespace AAEmu.Game.Core.Managers
             ChatManager.Instance.GetPartyChat(newTeam, activeInvitation.Target).JoinChannel(activeInvitation.Target);
         }
 
-        public void CreateSoloTeam(Character character, bool asParty)
+        public void CreateSoloTeam(ICharacter character, bool asParty)
         {
             if (GetActiveTeamByUnit(character.Id) != null)
             {
@@ -273,7 +273,7 @@ namespace AAEmu.Game.Core.Managers
             ChatManager.Instance.GetPartyChat(newTeam,character).JoinChannel(character);
         }
 
-        public void AskRiskyTeam(Character unit, uint teamId, uint targetId, RiskyAction riskyAction)
+        public void AskRiskyTeam(ICharacter unit, uint teamId, uint targetId, RiskyAction riskyAction)
         {
             // Get Team data
             var activeTeam = GetActiveTeam(teamId);
@@ -356,7 +356,7 @@ namespace AAEmu.Game.Core.Managers
             ChatManager.Instance.CleanUpChannels();
         }
 
-        public void MakeTeamOwner(Character unit, uint teamId, uint memberId)
+        public void MakeTeamOwner(ICharacter unit, uint teamId, uint memberId)
         {
             var activeTeam = GetActiveTeam(teamId);
             if ((activeTeam?.OwnerId != unit.Id) || activeTeam.OwnerId == memberId) return;
@@ -365,7 +365,7 @@ namespace AAEmu.Game.Core.Managers
             activeTeam.BroadcastPacket(new SCTeamOwnerChangedPacket(activeTeam.Id, activeTeam.OwnerId));
         }
 
-        public void ConvertToRaid(Character owner, uint teamId)
+        public void ConvertToRaid(ICharacter owner, uint teamId)
         {
             var activeTeam = GetActiveTeam(teamId);
             if (activeTeam?.OwnerId != owner.Id) 
@@ -378,7 +378,7 @@ namespace AAEmu.Game.Core.Managers
                     ChatManager.Instance.GetRaidChat(activeTeam).JoinChannel(m.Character);
         }
 
-        public void SetTeamMemberRole(Character unit, uint teamId, uint memberId, MemberRole role)
+        public void SetTeamMemberRole(ICharacter unit, uint teamId, uint memberId, MemberRole role)
         {
             if (!Enum.IsDefined(typeof(MemberRole), role)) role = MemberRole.Undecided;
             var activeTeam = GetActiveTeam(teamId);
@@ -390,7 +390,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public void SetOverHeadMarker(Character unit, uint teamId, OverHeadMark index, byte type, uint targetId)
+        public void SetOverHeadMarker(ICharacter unit, uint teamId, OverHeadMark index, byte type, uint targetId)
         {
             var activeTeam = GetActiveTeam(teamId);
             if (activeTeam == null || activeTeam.OwnerId != unit.Id && !activeTeam.IsParty) return;
@@ -411,7 +411,7 @@ namespace AAEmu.Game.Core.Managers
             activeTeam.BroadcastPacket(new SCOverHeadMarkerSetPacket(teamId, index, type == 2, targetId));
         }
 
-        public void ChangeLootingRule(Character owner, uint teamId, LootingRule newRules, byte flags)
+        public void ChangeLootingRule(ICharacter owner, uint teamId, LootingRule newRules, byte flags)
         {
             var activeTeam = GetActiveTeam(teamId);
             if (activeTeam?.OwnerId != owner.Id) return;
@@ -421,7 +421,7 @@ namespace AAEmu.Game.Core.Managers
             activeTeam.BroadcastPacket(new SCTeamLootingRuleChangedPacket(teamId, newRules, flags));
         }
 
-        public void SetPingPos(Character unit, uint teamId, bool hasPing, WorldSpawnPosition position, uint insId)
+        public void SetPingPos(ICharacter unit, uint teamId, bool hasPing, WorldSpawnPosition position, uint insId)
         {
             var activeTeam = GetActiveTeam(teamId);
             if ( (activeTeam.OwnerId != unit.Id) && (activeTeam == null || !activeTeam.IsMarked(unit.Id)) ) return;
@@ -430,7 +430,7 @@ namespace AAEmu.Game.Core.Managers
             activeTeam.BroadcastPacket(new SCTeamPingPosPacket(hasPing, position, insId));
         }
 
-        public void SetOffline(Character unit)
+        public void SetOffline(ICharacter unit)
         {
             var activeTeam = GetActiveTeamByUnit(unit.Id);
             var memberInfo = activeTeam?.ChangeStatus(unit);
@@ -449,7 +449,7 @@ namespace AAEmu.Game.Core.Managers
             activeTeam.BroadcastPacket(new SCTeamMemberDisconnectedPacket(activeTeam.Id, unit.Id, memberInfo));
         }
 
-        public void MemberRemoveFromTeam(Character unit, Character source, RiskyAction leaveType)
+        public void MemberRemoveFromTeam(ICharacter unit, ICharacter source, RiskyAction leaveType)
         {
             var activeTeam = GetActiveTeamByUnit(unit.Id);
             var memberInfo = activeTeam?.ChangeStatus(unit);
@@ -480,7 +480,7 @@ namespace AAEmu.Game.Core.Managers
             activeTeam.BroadcastPacket(new SCTeamRemoteMembersExPacket(new[] {activeTeam.Members[index]}), id);
         }
 
-        public void UpdateAtLogin(Character unit)
+        public void UpdateAtLogin(ICharacter unit)
         {
             var activeTeam = GetActiveTeamByUnit(unit.Id);
             if (activeTeam == null) return;
@@ -505,8 +505,8 @@ namespace AAEmu.Game.Core.Managers
     public class InvitationTemplate
     {
         public uint TeamId { get; set; }
-        public Character Owner { get; set; }
-        public Character Target { get; set; }
+        public ICharacter Owner { get; set; }
+        public ICharacter Target { get; set; }
         public DateTime Time { get; set; }
         public bool IsParty { get; set; }
     }

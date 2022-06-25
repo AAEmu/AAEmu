@@ -49,7 +49,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             return 0;
         }
         
-        private int GetProjectileDelay(BaseUnit caster, BaseUnit target)
+        private int GetProjectileDelay(IBaseUnit caster, IBaseUnit target)
         {
             if (Speed <= 0)
                 return 0;

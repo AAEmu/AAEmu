@@ -126,7 +126,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <summary>
         /// This executes a doodad's phase. Phase functions start as soon as the doodad switches to a new phase.
         /// </summary>
-        public void DoPhase(Unit unit, uint skillId, uint recursionDepth = 0)
+        public void DoPhase(IUnit unit, uint skillId, uint recursionDepth = 0)
         {
             recursionDepth++;
             if (recursionDepth % 10 == 0)
@@ -165,7 +165,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// </summary>
         /// <param name="unit">Unit who triggered the change</param>
         /// <param name="funcGroupId">New phase to go to</param>
-        public void GoToPhase(Unit unit, int funcGroupId, uint skillId = 0)
+        public void GoToPhase(IUnit unit, int funcGroupId, uint skillId = 0)
         {
             _log.Trace("Going to phase {0}", funcGroupId);
             if (funcGroupId == -1)
@@ -185,7 +185,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
         }
 
-        public void GoToPhaseAndUse(Unit unit, int funcGroupId, uint skillId, uint recursionDepth = 0)
+        public void GoToPhaseAndUse(IUnit unit, int funcGroupId, uint skillId, uint recursionDepth = 0)
         {
             recursionDepth++;
             _log.Trace("Going to phase {0} and using it", funcGroupId);
@@ -230,7 +230,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             return 0;
         }
 
-        public void OnSkillHit(Unit caster, uint skillId)
+        public void OnSkillHit(IUnit caster, uint skillId)
         {
             var funcs = DoodadManager.Instance.GetFuncsForGroup(CurrentPhaseId);
             foreach (var func in funcs)
@@ -242,13 +242,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
         }
 
-        public override void AddVisibleObject(Character character)
+        public override void AddVisibleObject(ICharacter character)
         {
             character.SendPacket(new SCDoodadCreatedPacket(this));
             base.AddVisibleObject(character);
         }
 
-        public override void RemoveVisibleObject(Character character)
+        public override void RemoveVisibleObject(ICharacter character)
         {
             base.RemoveVisibleObject(character);
             character.SendPacket(new SCDoodadRemovedPacket(ObjId));

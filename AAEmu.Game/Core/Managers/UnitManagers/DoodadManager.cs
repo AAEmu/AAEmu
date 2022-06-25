@@ -2303,7 +2303,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         /// <summary>
         /// Saves and creates a doodad 
         /// </summary>
-        public Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId)
+        public Doodad CreatePlayerDoodad(ICharacter character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId)
         {
             _log.Warn("{0} is placing a doodad {1} at position {2} {3} {4}", character.Name, id, x, y, z);
 

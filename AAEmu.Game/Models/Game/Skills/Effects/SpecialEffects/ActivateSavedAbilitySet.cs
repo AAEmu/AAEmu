@@ -7,9 +7,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     {
         //protected override SpecialType SpecialEffectActionType => SpecialType.ActivateSavedAbilitySet;
         
-        public override void Execute(Unit caster,
+        public override void Execute(IUnit caster,
             SkillCaster casterObj,
-            BaseUnit target,
+            IBaseUnit target,
             SkillCastTarget targetObj,
             CastAction castObj,
             Skill skill,

@@ -128,7 +128,7 @@ namespace AAEmu.Game.Core.Managers
 
         }
 
-        private static bool CheckItemAndRemove(Character owner, uint itemId, int amount)
+        private static bool CheckItemAndRemove(ICharacter owner, uint itemId, int amount)
         {
             if (!owner.Inventory.CheckItems(SlotType.Inventory, itemId, amount)) return false;
             owner.Inventory.Bag.ConsumeItem(ItemTaskType.Teleport, itemId, amount,null);
@@ -148,7 +148,7 @@ namespace AAEmu.Game.Core.Managers
             */
         }
 
-        private bool CheckCanOpenPortal(Character owner, uint targetZoneId)
+        private bool CheckCanOpenPortal(ICharacter owner, uint targetZoneId)
         {
             var targetContinent = ZoneManager.Instance.GetTargetIdByZoneId(targetZoneId);
             var ownerContinent = ZoneManager.Instance.GetTargetIdByZoneId(owner.Transform.ZoneId);
@@ -170,7 +170,7 @@ namespace AAEmu.Game.Core.Managers
             return false; // Not enough items
         }
 
-        private static void MakePortal(Unit owner, bool isExit, Portal portalInfo, SkillObjectUnk1 portalEffectObj)
+        private static void MakePortal(IUnit owner, bool isExit, Portal portalInfo, SkillObjectUnk1 portalEffectObj)
         {
             // 3891 - Portal Entrance
             // 6949 - Portal Exit
@@ -205,7 +205,7 @@ namespace AAEmu.Game.Core.Managers
             TaskManager.Instance.Schedule(killTask, TimeSpan.FromSeconds(30));
         }
 
-        public void OpenPortal(Character owner, SkillObjectUnk1 portalEffectObj)
+        public void OpenPortal(ICharacter owner, SkillObjectUnk1 portalEffectObj)
         {
             var portalInfo = owner.Portals.GetPortalInfo((uint)portalEffectObj.Id);
             if (!CheckCanOpenPortal(owner, portalInfo.ZoneId)) return;
@@ -214,7 +214,7 @@ namespace AAEmu.Game.Core.Managers
             MakePortal(owner, true, portalInfo, portalEffectObj);    // Exit (yellow)
         }
 
-        public void UsePortal(Character character, uint objId)
+        public void UsePortal(ICharacter character, uint objId)
         {
             // TODO - Cooldown between portals
             var portalInfo = (Models.Game.Units.Portal)WorldManager.Instance.GetNpc(objId);
@@ -228,7 +228,7 @@ namespace AAEmu.Game.Core.Managers
                 portalInfo.TeleportPosition.World.Position.Y, portalInfo.TeleportPosition.World.Position.Z, portalInfo.TeleportPosition.World.Rotation.Z));
         }
 
-        public void DeletePortal(Character owner, byte type, uint id)
+        public void DeletePortal(ICharacter owner, byte type, uint id)
         {
             var isPrivate = type != 1;
             var portalInfo = owner.Portals.GetPortalInfo(id);

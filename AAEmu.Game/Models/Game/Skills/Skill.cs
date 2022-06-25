@@ -46,7 +46,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public ushort TlId { get; set; }
         public PlotState ActivePlotState { get; set; }
         public Dictionary<uint, SkillHitType> HitTypes { get; set; }
-        public BaseUnit InitialTarget { get; set; }//Temp Hack Fix. Replace this with UnitsEffected
+        public IBaseUnit InitialTarget { get; set; }//Temp Hack Fix. Replace this with UnitsEffected
         private bool _bypassGcd;
         public bool Cancelled { get; set; } = false;
         public Action Callback { get; set; }
@@ -59,7 +59,7 @@ namespace AAEmu.Game.Models.Game.Skills
             HitTypes = new Dictionary<uint, SkillHitType>();
         }
 
-        public Skill(SkillTemplate template, Unit owner = null)
+        public Skill(SkillTemplate template, IUnit owner = null)
         {
             HitTypes = new Dictionary<uint, SkillHitType>();
             Id = template.Id;
@@ -70,7 +70,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 Level = 1;
         }
 
-        public SkillResult Use(Unit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null, bool bypassGcd = false)
+        public SkillResult Use(IUnit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null, bool bypassGcd = false)
         {
             _bypassGcd = bypassGcd;
             if (!_bypassGcd)
@@ -176,9 +176,9 @@ namespace AAEmu.Game.Models.Game.Skills
             return SkillResult.Success;
         }
 
-        private BaseUnit GetInitialTarget(Unit caster, SkillCaster skillCaster, SkillCastTarget targetCaster)
+        private IBaseUnit GetInitialTarget(IUnit caster, SkillCaster skillCaster, SkillCastTarget targetCaster)
         {
-            var target = (BaseUnit)caster;
+            var target = (IBaseUnit)caster;
             // HACKFIX : Mounts and Turbulence
             if (skillCaster.Type == SkillCasterType.Unk3 || ((caster == null) && (skillCaster.Type == SkillCasterType.Unit)))
                 target = WorldManager.Instance.GetUnit(skillCaster.ObjId);
@@ -306,7 +306,7 @@ namespace AAEmu.Game.Models.Game.Skills
             return target;
         }
 
-        public void Cast(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
+        public void Cast(IUnit caster, SkillCaster casterCaster, IBaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
         {
             if (!_bypassGcd)
             {
@@ -452,7 +452,7 @@ namespace AAEmu.Game.Models.Game.Skills
             SkillManager.Instance.ReleaseId(TlId);
         }
 
-        public void StartChanneling(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
+        public void StartChanneling(IUnit caster, SkillCaster casterCaster, IBaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
         {
             if (Template.ChannelingBuffId != 0)
             {
@@ -479,7 +479,7 @@ namespace AAEmu.Game.Models.Game.Skills
             TaskManager.Instance.Schedule(caster.SkillTask, TimeSpan.FromMilliseconds(Template.ChannelingTime));
         }
 
-        public void EndChanneling(Unit caster, Doodad channelDoodad)
+        public void EndChanneling(IUnit caster, Doodad channelDoodad)
         {
             caster.SkillTask = null;
             if (Template.ChannelingBuffId != 0)
@@ -498,7 +498,7 @@ namespace AAEmu.Game.Models.Game.Skills
             caster.Events.OnChannelingCancel(this, new OnChannelingCancelArgs());
         }
 
-        public void ScheduleEffects(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
+        public void ScheduleEffects(IUnit caster, SkillCaster casterCaster, IBaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
         {
             if (Template.ToggleBuffId != 0)
             {
@@ -533,18 +533,18 @@ namespace AAEmu.Game.Models.Game.Skills
 
         }
 
-        private IEnumerable<BaseUnit> FilterAoeUnits(BaseUnit caster, IEnumerable<BaseUnit> units)
+        private IEnumerable<IBaseUnit> FilterAoeUnits(IBaseUnit caster, IEnumerable<IBaseUnit> units)
         {
             units = SkillTargetingUtil.FilterWithRelation(Template.TargetRelation, caster, units);
             return units;
         }
 
-        public void ApplyEffects(Unit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
+        public void ApplyEffects(IUnit caster, SkillCaster casterCaster, IBaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
         {
-            var targets = new List<BaseUnit>(); // TODO crutches
+            var targets = new List<IBaseUnit>(); // TODO crutches
             if (Template.TargetAreaRadius > 0)
             {
-                var units = WorldManager.Instance.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius, true);
+                var units = WorldManager.Instance.GetAround<IBaseUnit>(targetSelf, Template.TargetAreaRadius, true);
                 units.Add(targetSelf);
                 units = FilterAoeUnits(caster, units).ToList();
 
@@ -573,10 +573,10 @@ namespace AAEmu.Game.Models.Game.Skills
             var consumedItems = new List<(Item,int)>();
             var consumedItemTemplates = new List<(uint, int)>(); // itemTemplateId, amount
 
-            var effectsToApply = new List<(BaseUnit target, SkillEffect effect)>(targets.Count * Template.Effects.Count);
+            var effectsToApply = new List<(IBaseUnit target, SkillEffect effect)>(targets.Count * Template.Effects.Count);
             foreach (var effect in Template.Effects)
             {
-                var effectedTargets = new List<BaseUnit>();
+                var effectedTargets = new List<IBaseUnit>();
                 switch (effect.ApplicationMethod)
                 {
                     case SkillEffectApplicationMethod.Target:
@@ -756,7 +756,7 @@ namespace AAEmu.Game.Models.Game.Skills
             }
         }
 
-        public void EndSkill(Unit caster)
+        public void EndSkill(IUnit caster)
         {
             if (Template.ConsumeLaborPower > 0 && caster is Character chart && !Cancelled)
             {
@@ -785,7 +785,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 character1.ResetSkillCooldown(Template.Id, false);
         }
 
-        public void Stop(Unit caster, Doodad channelDoodad = null)
+        public void Stop(IUnit caster, Doodad channelDoodad = null)
         {
             if (Template.ChannelingTime > 0)
             {
@@ -809,7 +809,7 @@ namespace AAEmu.Game.Models.Game.Skills
             //TlId = 0;
         }
 
-        public SkillHitType RollCombatDice(Unit attacker, Unit target)
+        public SkillHitType RollCombatDice(IUnit attacker, IUnit target)
         {
             // TODO
             //  -Calculate Hit/Miss Rates
@@ -900,7 +900,7 @@ AlwaysHit:
             return true;
         }
 
-        public void ConsumeMana(Unit caster)
+        public void ConsumeMana(IUnit caster)
         {
             var baseCost = (((caster.GetAbLevel((AbilityType)Template.AbilityId) - 1) * 1.6 + 8) * 3) / 3.65;
             var cost2 = baseCost * Template.ManaLevelMd + Template.ManaCost;

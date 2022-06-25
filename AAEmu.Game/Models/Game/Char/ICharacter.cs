@@ -104,7 +104,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         void AddExp(int exp, bool shouldAddAbilityExp);
         bool AddMoney(SlotType moneyLocation, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney);
-        void AddVisibleObject(Character character);
+        void AddVisibleObject(ICharacter character);
         void ChangeGamePoints(GamePointKind kind, int change);
         void ChangeLabor(short change, int actabilityId);
         bool ChangeMoney(SlotType moneylocation, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney);
@@ -115,11 +115,11 @@ namespace AAEmu.Game.Models.Game.Char
         bool ForceDismount(AttachUnitReason reason = AttachUnitReason.PrefabChanged);
         string GetOption(ushort key);
         WeaponWieldKind GetWeaponWieldKind();
-        bool IsActivelyHostile(Character target);
+        bool IsActivelyHostile(ICharacter target);
         void Load();
         void OnZoneChange(uint lastZoneKey, uint newZoneKey);
         void PushSubscriber(IDisposable disposable);
-        void RemoveVisibleObject(Character character);
+        void RemoveVisibleObject(ICharacter character);
         void ResetAllSkillCooldowns(bool triggerGcd);
         void ResetSkillCooldown(uint skillId, bool gcd);
         bool Save(MySqlConnection connection, MySqlTransaction transaction);
@@ -130,7 +130,7 @@ namespace AAEmu.Game.Models.Game.Char
         void SendOption(ushort key);
         void SetAction(byte slot, ActionSlotType type, uint actionId);
         void SetFaction(uint factionId);
-        void SetHostileActivity(Character attacker);
+        void SetHostileActivity(ICharacter attacker);
         void SetOption(ushort key, string value);
         void SetPirate(bool pirate);
         bool SubtractMoney(SlotType moneyLocation, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney);

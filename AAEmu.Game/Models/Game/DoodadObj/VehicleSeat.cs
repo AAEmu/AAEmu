@@ -14,12 +14,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         // objId Doodad - Chair, bench, bed where we sit down or lay
         // List<character.Id> List of employed places on a chair, bench, beds, or 0, if the place is free
         private Dictionary<uint, List<uint>> _seats;
-        private BaseUnit _parent;
+        private IBaseUnit _parent;
 
         // Space = 1-means that there is one place (a chair), Space = 2-means that there are two places to sit (a bench on transport)
         // Spot = 0 sit left, = 1 sit right on the bench
 
-        public VehicleSeat(BaseUnit parentVehicle)
+        public VehicleSeat(IBaseUnit parentVehicle)
         {
             _seats = new Dictionary<uint, List<uint>>(); // objId, List<character.Id>
             _parent = parentVehicle;
@@ -35,14 +35,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             _seats.Add(objId, tmp); // Add a list with empty places
         }
 
-        private void AddSeat(Character character, uint seatObjId, int spot)
+        private void AddSeat(ICharacter character, uint seatObjId, int spot)
         {
             _seats[seatObjId][spot] = character.Id; // occupied place
             character.Transform.Parent = null;
             character.Transform.StickyParent = _parent.Transform;
         }
         
-        public void UnLoadPassenger(Character character, uint seatObjId)
+        public void UnLoadPassenger(ICharacter character, uint seatObjId)
         {
             for (var i = 0; i < _seats[seatObjId].Count; i++)
             {
@@ -72,7 +72,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             return -1;
         }
 
-        public int LoadPassenger(Character character, uint seatObjId, int space)
+        public int LoadPassenger(ICharacter character, uint seatObjId, int space)
         {
             if (!_seats.ContainsKey(seatObjId))
             {

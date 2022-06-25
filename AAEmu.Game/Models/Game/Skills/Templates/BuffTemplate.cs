@@ -170,7 +170,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             DynamicBonuses = new List<DynamicBonusTemplate>();
         }
 
-        public void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+        public void Apply(IUnit caster, SkillCaster casterObj, IBaseUnit target, SkillCastTarget targetObj,
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {

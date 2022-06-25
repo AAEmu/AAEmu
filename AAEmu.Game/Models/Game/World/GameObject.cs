@@ -96,7 +96,7 @@ namespace AAEmu.Game.Models.Game.World
                 chr.SendPacket(packet);
         }
 
-        public virtual void AddVisibleObject(Character character)
+        public virtual void AddVisibleObject(ICharacter character)
         {
             if ((Transform != null) && (Transform.Children.Count > 0))
                 foreach (var child in Transform.Children.ToArray())
@@ -104,7 +104,7 @@ namespace AAEmu.Game.Models.Game.World
                     child?.GameObject?.AddVisibleObject(character);
         }
 
-        public virtual void RemoveVisibleObject(Character character)
+        public virtual void RemoveVisibleObject(ICharacter character)
         {
             if ((character.CurrentTarget != null) && (character.CurrentTarget == this))
             {

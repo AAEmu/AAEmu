@@ -98,7 +98,7 @@ namespace AAEmu.Game.Models.Game.Team
             return false;
         }
 
-        public (TeamMember member, int partyIndex) AddMember(Character unit)
+        public (TeamMember member, int partyIndex) AddMember(ICharacter unit)
         {
             for (var i = 0; i < Members.Length; i++)
             {
@@ -139,7 +139,7 @@ namespace AAEmu.Game.Models.Game.Team
             }
         }
 
-        public TeamMember ChangeStatus(Character unit)
+        public TeamMember ChangeStatus(ICharacter unit)
         {
             var i = GetIndex(unit.Id);
             if (i < 0)

@@ -1238,7 +1238,7 @@ namespace AAEmu.Game.Models.Game.Char
             return WeaponWieldKind.None;
         }
 
-        public void SetHostileActivity(Character attacker)
+        public void SetHostileActivity(ICharacter attacker)
         {
             if (_hostilePlayers.ContainsKey(attacker.ObjId))
                 _hostilePlayers[attacker.ObjId] = DateTime.UtcNow;
@@ -1246,7 +1246,7 @@ namespace AAEmu.Game.Models.Game.Char
                 _hostilePlayers.TryAdd(attacker.ObjId, DateTime.UtcNow);
         }
 
-        public bool IsActivelyHostile(Character target)
+        public bool IsActivelyHostile(ICharacter target)
         {
             if (_hostilePlayers.TryGetValue(target.ObjId, out var value))
             {
@@ -2090,7 +2090,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         #endregion
 
-        public override void AddVisibleObject(Character character)
+        public override void AddVisibleObject(ICharacter character)
         {
             if (this != character) // Never send to self, or the client crashes
                 character.SendPacket(new SCUnitStatePacket(this));
@@ -2103,7 +2103,7 @@ namespace AAEmu.Game.Models.Game.Char
             base.AddVisibleObject(character);
         }
 
-        public override void RemoveVisibleObject(Character character)
+        public override void RemoveVisibleObject(ICharacter character)
         {
             base.RemoveVisibleObject(character);
 

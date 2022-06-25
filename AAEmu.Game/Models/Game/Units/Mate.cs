@@ -433,7 +433,7 @@ namespace AAEmu.Game.Models.Game.Units
             DbInfo.Level = Level;
         }
 
-        public override void AddVisibleObject(Character character)
+        public override void AddVisibleObject(ICharacter character)
         {
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCMateStatePacket(ObjId));
@@ -451,7 +451,7 @@ namespace AAEmu.Game.Models.Game.Units
             base.AddVisibleObject(character);
         }
 
-        public override void RemoveVisibleObject(Character character)
+        public override void RemoveVisibleObject(ICharacter character)
         {
             base.RemoveVisibleObject(character);
 

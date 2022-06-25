@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public int Ratio { get; set; }
         public uint SpawnDoodadId { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(IUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Debug("DoodadFuncRatioRespawn : Ratio {0}, SpawnDoodadId {1}", Ratio, SpawnDoodadId);
             owner.ToPhaseAndUse = false;

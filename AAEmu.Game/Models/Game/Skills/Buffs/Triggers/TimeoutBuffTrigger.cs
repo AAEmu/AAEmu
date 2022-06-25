@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
             }
 
             var target = _buff.Owner;
-            var source = (Unit)_buff.Owner;
+            IUnit source = (Unit)_buff.Owner;
             
             if (Template.UseOriginalSource)
             {

@@ -139,7 +139,7 @@ namespace AAEmu.Game.Core.Managers
                 mateInfo.TlId, attachPoint, reason, string.Join(", ",mateInfo.Passengers.Values.ToList()));
         }
 
-        public void UnMountMate(Character character, uint tlId, AttachPointKind attachPoint, AttachUnitReason reason)
+        public void UnMountMate(ICharacter character, uint tlId, AttachPointKind attachPoint, AttachUnitReason reason)
         {
             var mateInfo = GetActiveMateByTlId(tlId);
             if (mateInfo == null) return;
@@ -177,7 +177,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public void AddActiveMateAndSpawn(Character owner, Mate mate, Item item)
+        public void AddActiveMateAndSpawn(ICharacter owner, Mate mate, Item item)
         {
             if (_activeMates.ContainsKey(owner.ObjId))
             {
@@ -195,7 +195,7 @@ namespace AAEmu.Game.Core.Managers
             _log.Debug("Mount spawned. ownerObjId: {0}, tlId: {1}, mateObjId: {2}", owner.ObjId, mate.TlId, mate.ObjId);
         }
 
-        public void RemoveActiveMateAndDespawn(Character owner, uint tlId)
+        public void RemoveActiveMateAndDespawn(ICharacter owner, uint tlId)
         {
             if (!_activeMates.TryGetValue(owner.ObjId,out var mateInfo)) return; 
             if (mateInfo.TlId != tlId) return; // skip if invalid tlId
@@ -215,7 +215,7 @@ namespace AAEmu.Game.Core.Managers
         /// Remove all mounts that are in the world and owned by character
         /// </summary>
         /// <param name="character"></param>
-        public void RemoveAndDespawnAllActiveOwnedMates(Character character)
+        public void RemoveAndDespawnAllActiveOwnedMates(ICharacter character)
         {
             if (character == null) return;
             foreach (var mate in _activeMates)

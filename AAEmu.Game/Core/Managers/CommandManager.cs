@@ -57,7 +57,7 @@ namespace AAEmu.Game.Core.Managers
         }
 
 
-        private void ForceScriptsReload(Character character)
+        private void ForceScriptsReload(ICharacter character)
         {
             CommandManager.Instance.Clear();
             if (ScriptCompiler.Compile())
@@ -81,7 +81,7 @@ namespace AAEmu.Game.Core.Managers
                 return cmd;
         }
 
-        public bool Handle(Character character, string text)
+        public bool Handle(ICharacter character, string text)
         {
             // Un-escape the string, as the client sends it escaped
             // It is required if you want to test things like @NPC_NAME() and |cFF00FFFF text colors |r

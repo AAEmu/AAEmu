@@ -552,13 +552,13 @@ namespace AAEmu.Game.Core.Managers.World
             return result.ToArray();
         }
 
-        public GameObject GetGameObject(uint objId)
+        public IGameObject GetGameObject(uint objId)
         {
             _objects.TryGetValue(objId, out var ret);
             return ret;
         }
 
-        public BaseUnit GetBaseUnit(uint objId)
+        public IBaseUnit GetBaseUnit(uint objId)
         {
             _baseUnits.TryGetValue(objId, out var ret);
             return ret;
@@ -823,7 +823,7 @@ namespace AAEmu.Game.Core.Managers.World
             return true;
         }
 
-        public List<T> GetAroundByShape<T>(GameObject obj, AreaShape shape) where T : GameObject
+        public List<T> GetAroundByShape<T>(IGameObject obj, AreaShape shape) where T : GameObject
         {
             if (shape.Value1 == 0 && shape.Value2 == 0 && shape.Value3 == 0)
                 _log.Warn("AreaShape with no size values was used");
@@ -838,7 +838,7 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 var diagonal = Math.Sqrt(shape.Value1 * shape.Value1 + shape.Value2 * shape.Value2);
                 var res = GetAround<T>(obj, (float) diagonal, true);
-                res = shape.ComputeCuboid(obj, res);
+                res = shape.ComputeCuboid<T>(obj, res);
                 return res;
             }
 
@@ -930,7 +930,7 @@ namespace AAEmu.Game.Core.Managers.World
             return world.ValidRegion(x, y);
         }
 
-        public void OnPlayerJoin(Character character)
+        public void OnPlayerJoin(ICharacter character)
         {
             //turn snow on off 
             Snow(character);
@@ -942,14 +942,14 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        public void Snow(Character character)
+        public void Snow(ICharacter character)
         {
             //send the char the packet
             character.SendPacket(new SCOnOffSnowPacket(IsSnowing));
 
         }
 
-        public void ResendVisibleObjectsToCharacter(Character character)
+        public void ResendVisibleObjectsToCharacter(ICharacter character)
         {
             // Re-send visible flags to character getting out of cinema
             var stuffs = WorldManager.Instance.GetAround<GameObject>(character, REGION_NEIGHBORHOOD_SIZE * REGION_SIZE);

@@ -31,7 +31,7 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
         public LeapDirection Direction { get; set; }
 
 
-        public LeapSkillController(SkillControllerTemplate template, Unit owner, Unit target)
+        public LeapSkillController(SkillControllerTemplate template, IUnit owner, IUnit target)
         {
             Template = template;
             Owner = owner;

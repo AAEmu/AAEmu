@@ -8,9 +8,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class Detach : SpecialEffectAction
     {
-        public override void Execute(Unit caster,
+        public override void Execute(IUnit caster,
             SkillCaster casterObj,
-            BaseUnit target,
+            IBaseUnit target,
             SkillCastTarget targetObj,
             CastAction castObj,
             Skill skill,

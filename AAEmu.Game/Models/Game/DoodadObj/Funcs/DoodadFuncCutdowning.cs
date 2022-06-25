@@ -6,7 +6,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncCutdowning : DoodadFuncTemplate
     {
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(IUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             //TODO Tree falling effect goes here?
             // DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId);

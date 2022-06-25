@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public int Param2 { get; set; }
         public int Param3 { get; set; }
 
-        public bool Check(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, PlotEventCondition eventCondition, Skill skill)
+        public bool Check(IUnit caster, SkillCaster casterCaster, IBaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, PlotEventCondition eventCondition, Skill skill)
         {
             var res = true;
             switch (Kind)
@@ -91,26 +91,26 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             return NotCondition ? !res : res;
         }
 
-        private static bool ConditionLevel(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionLevel(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int minLevel, int maxLevel, int unk3)
         {
             return caster.Level >= minLevel && caster.Level <= maxLevel;
         }
 
-        private static bool ConditionRelation(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionRelation(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
         {
             // Param1 is either 1, 4 or 5
             return true;
         }
 
-        private static bool ConditionDirection(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionDirection(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3, PlotEventCondition eventCondition)
         {
             return MathUtil.IsFront(caster, target);
         }
 
-        private static bool ConditionBuffTag(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionBuffTag(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int tagId, int unk2, int unk3, PlotEventCondition eventCondition)
         {
             // if (eventCondition.TargetId == PlotEffectTarget.Source)
@@ -120,7 +120,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             return target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)tagId));
         }
 
-        private static bool ConditionWeaponEquipStatus(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionWeaponEquipStatus(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int weaponEquipStatus, int unk2, int unk3)
         {
             // Weapon equip status can be :
@@ -135,7 +135,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             return false;
         }
         
-        private static bool ConditionChance(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionChance(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int chance, int unk2, int unk3)
         {
             // Param2 is only used once, and its value is "1"
@@ -143,14 +143,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             return roll <= chance;
         }
         
-        private static bool ConditionDead(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionDead(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
         {
             var unitTarget = (Unit)target;
             return unitTarget.Hp == 0;
         }
         
-        private static bool ConditionCombatDiceResult(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionCombatDiceResult(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3, Skill skill)
         {
             if (target is Unit trg)
@@ -175,7 +175,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             return true; // Every CombatDiceResult is a NotCondition -> false makes it true.
         }
         
-        private static bool ConditionInstrumentType(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionInstrumentType(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int instrumentTypeId, int unk2, int unk3)
         {
             // Param1 is either 21, 22 or 23
@@ -193,7 +193,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             return false;
         }
         
-        private static bool ConditionRange(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionRange(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int minRange, int maxRange, int unk3)
         {
             // Param1 = Min range
@@ -204,7 +204,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             return range >= minRange && range <= maxRange;
         }
         
-        private static bool ConditionVariable(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionVariable(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
         {
             int index = unk1;
@@ -221,14 +221,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             return false;
         }
         
-        private static bool ConditionUnitAttrib(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionUnitAttrib(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
         {
             // All 3 params used. No idea.
             return true;
         }
 
-        private static bool ConditionActability(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionActability(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int actabilityId, int op, int level)
         {
             // Check actability level
@@ -238,7 +238,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             return true;
         }
         
-        private static bool ConditionStealth(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionStealth(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
         {
             // unsure if player or target
@@ -247,13 +247,13 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             return true;
         }
         
-        private static bool ConditionVisible(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionVisible(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
         {
             // used for LOS ?
             return true;
         }
-        private static bool ConditionABLevel(Unit caster, SkillCaster casterCaster, BaseUnit target,
+        private static bool ConditionABLevel(IUnit caster, SkillCaster casterCaster, IBaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int abilityType, int min, int max)
         {
             if (caster is Character character)

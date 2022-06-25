@@ -4,7 +4,7 @@ namespace AAEmu.Game.Models.Game
 {
     public interface ICommand
     {
-        void Execute(Character character, string[] args);
+        void Execute(ICharacter character, string[] args);
         string GetCommandLineHelp();
         string GetCommandHelpText();
     }

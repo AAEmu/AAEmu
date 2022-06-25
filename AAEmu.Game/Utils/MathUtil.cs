@@ -13,7 +13,7 @@ namespace AAEmu.Game.Utils
         /// <param name="obj1"></param>
         /// <param name="obj2"></param>
         /// <returns>Angle in degree</returns>
-        public static double CalculateAngleFrom(GameObject obj1, GameObject obj2)
+        public static double CalculateAngleFrom(IGameObject obj1, IGameObject obj2)
         {
             return CalculateAngleFrom(obj1.Transform.World.Position.X, obj1.Transform.World.Position.Y, obj2.Transform.World.Position.X, obj2.Transform.World.Position.Y);
         }
@@ -87,7 +87,7 @@ namespace AAEmu.Game.Utils
             return (sbyte)(degree * - 1);
         }
 
-        public static bool IsFront(GameObject obj1, GameObject obj2)
+        public static bool IsFront(IGameObject obj1, IGameObject obj2)
         {
             var degree = CalculateAngleFrom(obj1, obj2);
             var degree2 = obj2.Transform.World.Rotation.Z;

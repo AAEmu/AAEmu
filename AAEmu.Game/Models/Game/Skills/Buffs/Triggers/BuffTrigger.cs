@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
         protected Buff _buff;
-        protected readonly BaseUnit _owner;
+        protected readonly IBaseUnit _owner;
         public BuffTriggerTemplate Template { get; set; }
         public virtual void Execute(object sender, EventArgs eventArgs)
         {
@@ -27,7 +27,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
             }
 
             var target = _buff.Owner;
-            var source = (Unit)_buff.Owner;
+            IUnit source = (Unit)_buff.Owner;
 
             if (Template.UseOriginalSource)
             {

@@ -310,7 +310,7 @@ namespace AAEmu.Game.Models.Game.World
 
         public List<T> GetList<T>(List<T> result, uint exclude) where T : class
         {
-            GameObject[] temp;
+            IGameObject[] temp;
             lock (_objectsLock)
             {
                 if (_objects == null || _objectsSize == 0)

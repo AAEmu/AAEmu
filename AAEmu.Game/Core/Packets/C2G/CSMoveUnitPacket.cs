@@ -234,7 +234,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         }
 
-        private static void RemoveEffects(BaseUnit unit, MoveType moveType)
+        private static void RemoveEffects(IBaseUnit unit, MoveType moveType)
         {
             if (moveType.VelX != 0 || moveType.VelY != 0 || moveType.VelZ != 0)
                 unit.Buffs.TriggerRemoveOn(BuffRemoveOn.Move);

@@ -15,8 +15,8 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
             Ended
         }
         public SkillControllerTemplate Template { get; set; }
-        public Unit Owner { get; protected set; }
-        public Unit Target { get; protected set; }
+        public IUnit Owner { get; protected set; }
+        public IUnit Target { get; protected set; }
 
         public SCState State { get; protected set; }
 
@@ -35,7 +35,7 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
             State = SCState.Ended;
         }
 
-        public static SkillController CreateSkillController(SkillControllerTemplate template, Unit owner, Unit target)
+        public static SkillController CreateSkillController(SkillControllerTemplate template, IUnit owner, IUnit target)
         {
             switch ((SkillControllerKind)template.KindId)
             {

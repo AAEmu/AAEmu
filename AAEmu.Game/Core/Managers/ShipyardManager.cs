@@ -43,7 +43,7 @@ namespace AAEmu.Game.Core.Managers
             TaskManager.Instance.Schedule(shipyardTickStartTask, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
         }
 
-        public Shipyard Create(Character owner, ShipyardData shipyardData)
+        public Shipyard Create(ICharacter owner, ShipyardData shipyardData)
         {
             if (!_shipyardsTemplate.ContainsKey(shipyardData.TemplateId))
                 return null;

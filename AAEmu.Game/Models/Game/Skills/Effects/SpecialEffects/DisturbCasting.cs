@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         // Parameters are estimated to be :
         // value1 = chance ?
         // value2 = delay ?
-        public override void Execute(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+        public override void Execute(IUnit caster, SkillCaster casterObj, IBaseUnit target, SkillCastTarget targetObj, CastAction castObj,
             Skill skill, SkillObject skillObject, DateTime time, int chance, int delay, int value3, int value4)
         {
             if (target is Unit unit)

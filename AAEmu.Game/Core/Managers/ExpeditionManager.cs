@@ -358,7 +358,7 @@ namespace AAEmu.Game.Core.Managers
         /// Removes a character from their Guild
         /// </summary>
         /// <param name="character"></param>
-        public void Leave(Character character)
+        public void Leave(ICharacter character)
         {
             var expedition = character.Expedition;
             if (expedition == null) return;

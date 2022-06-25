@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         private int _nextPhase;
         private float _endScale;
 
-        public DoodadFuncGrowthTask(Unit caster, Doodad owner, uint skillId, int nextPhase, float endScale) : base(caster, owner, skillId)
+        public DoodadFuncGrowthTask(IUnit caster, Doodad owner, uint skillId, int nextPhase, float endScale) : base(caster, owner, skillId)
         {
             _nextPhase = nextPhase;
             _endScale = endScale;

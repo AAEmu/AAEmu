@@ -27,10 +27,10 @@ namespace AAEmu.Game.Models.Game.Units
         
         public SlaveTemplate Template { get; set; }
         // public Character Driver { get; set; }
-        public Character Summoner { get; set; }
+        public ICharacter Summoner { get; set; }
         public List<Doodad> AttachedDoodads { get; set; }
         public List<Slave> AttachedSlaves { get; set; }
-        public Dictionary<AttachPointKind, Character> AttachedCharacters { get; set; }
+        public Dictionary<AttachPointKind, ICharacter> AttachedCharacters { get; set; }
         public DateTime SpawnTime { get; set; }
         public sbyte ThrottleRequest { get; set; }
         public sbyte Throttle { get; set; }
@@ -48,7 +48,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             AttachedDoodads = new List<Doodad>();
             AttachedSlaves = new List<Slave>();
-            AttachedCharacters = new Dictionary<AttachPointKind, Character>();
+            AttachedCharacters = new Dictionary<AttachPointKind, ICharacter>();
         }
 
         #region Attributes
@@ -574,7 +574,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         #endregion
         
-        public override void AddVisibleObject(Character character)
+        public override void AddVisibleObject(ICharacter character)
         {
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
@@ -583,7 +583,7 @@ namespace AAEmu.Game.Models.Game.Units
             base.AddVisibleObject(character);
         }
 
-        public override void RemoveVisibleObject(Character character)
+        public override void RemoveVisibleObject(ICharacter character)
         {
             base.RemoveVisibleObject(character);
 

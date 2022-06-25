@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public int RemainTime { get; set; }
         public uint GroupId { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(IUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             owner.ToPhaseAndUse = false;
 

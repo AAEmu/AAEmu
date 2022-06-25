@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public uint UnitId { get; set; }
         public Transform Position { get; set; }
 
-        public PlotObject(BaseUnit unit) 
+        public PlotObject(IBaseUnit unit) 
         {
             Type = PlotObjectType.UNIT;
             UnitId = unit.ObjId;

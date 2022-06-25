@@ -26,7 +26,7 @@ namespace AAEmu.Game.Core.Managers
 
         private static int MaxListingFee = 1000000; // 100g
 
-        public void ListAuctionItem(Character player, ulong itemId, int startPrice, int buyoutPrice, byte duration)
+        public void ListAuctionItem(ICharacter player, ulong itemId, int startPrice, int buyoutPrice, byte duration)
         {
             var newItem = player.Inventory.GetItemById(itemId);
             var newAuctionItem = CreateAuctionItem(player, newItem, startPrice, buyoutPrice, duration);
@@ -117,7 +117,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public void CancelAuctionItem(Character player, ulong auctionId)
+        public void CancelAuctionItem(ICharacter player, ulong auctionId)
         {
             var auctionItem = GetAuctionItemFromID(auctionId);
 
@@ -147,7 +147,7 @@ namespace AAEmu.Game.Core.Managers
 
             return item;
         }
-        public void BidOnAuctionItem(Character player, ulong auctionId, int bidAmount)
+        public void BidOnAuctionItem(ICharacter player, ulong auctionId, int bidAmount)
         {
             var auctionItem = GetAuctionItemFromID(auctionId);
             if (auctionItem != null)
@@ -351,7 +351,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public AuctionItem CreateAuctionItem(Character player, Item itemToList, int startPrice, int buyoutPrice, byte duration)
+        public AuctionItem CreateAuctionItem(ICharacter player, Item itemToList, int startPrice, int buyoutPrice, byte duration)
         {
             var newItem = itemToList;
 

@@ -941,7 +941,7 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="failedToPayTax">Set true if demilishing due to failed tax, this adds a delay to the mail</param>
         /// <param name="forceRestoreAllDecor">For GM commands or server merges. Will try to send ALL placed furniture if set to true, even those that normally don't get returned.</param>
         /// <param name="newOwner">New owner Character if buying, otherwise leave null</param>
-        public void ReturnHouseItemsToOwner(House house, bool failedToPayTax, bool forceRestoreAllDecor, Character newOwner)
+        public void ReturnHouseItemsToOwner(House house, bool failedToPayTax, bool forceRestoreAllDecor, ICharacter newOwner)
         {
             if (house.OwnerId <= 0)
                 return;
@@ -1244,7 +1244,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
         
-        public bool SetForSale(ushort houseTlId, uint price, uint buyerId, Character seller) =>
+        public bool SetForSale(ushort houseTlId, uint price, uint buyerId, ICharacter seller) =>
             SetForSale(GetHouseByTlId(houseTlId), price, buyerId, seller);
 
         /// <summary>
@@ -1255,7 +1255,7 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="buyerId">Use CharacterId for selling to a specific person</param>
         /// <param name="seller">Current owner of the property (needed to manipulate inventory)</param>
         /// <returns></returns>
-        public bool SetForSale(House house, uint price, uint buyerId, Character seller)
+        public bool SetForSale(House house, uint price, uint buyerId, ICharacter seller)
         {
             if (house == null)
                 return false;
@@ -1370,7 +1370,7 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="money"></param>
         /// <param name="character"></param>
         /// <returns>Returns true if successful</returns>
-        public bool BuyHouse(uint houseId, uint money, Character character)
+        public bool BuyHouse(uint houseId, uint money, ICharacter character)
         {
             var house = GetHouseById(houseId);
 
@@ -1535,7 +1535,7 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="parentObjId"></param>
         /// <param name="itemId"></param>
         /// <returns></returns>
-        public bool DecorateHouse(Character player, ushort houseId, uint designId, Vector3 pos, Quaternion quat, uint parentObjId, ulong itemId)
+        public bool DecorateHouse(ICharacter player, ushort houseId, uint designId, Vector3 pos, Quaternion quat, uint parentObjId, ulong itemId)
         {
             // Check Player
             if (player == null)
@@ -1608,7 +1608,7 @@ namespace AAEmu.Game.Core.Managers
             return res;
         }
 
-        public void HousingToggleAllowRecover(Character character, ushort houseTl)
+        public void HousingToggleAllowRecover(ICharacter character, ushort houseTl)
         {
             var house = GetHouseByTlId(houseTl);
             if (house == null)

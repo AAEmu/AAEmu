@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public bool UseOriginSource { get; set; }
         public List<uint> Effects { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(IUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Trace("DoodadFuncClout : Duration {0}, Tick {1}, TargetRelationId {2}, BuffId {3}," +
                        " ProjectileId {4}, ShowToFriendlyOnly {5}, NextPhase {6}, AoeShapeId {7}," +

@@ -715,7 +715,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             Ai?.GoToDead();
         }
 
-        public override void AddVisibleObject(Character character)
+        public override void AddVisibleObject(ICharacter character)
         {
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
@@ -723,7 +723,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             base.AddVisibleObject(character);
         }
 
-        public override void RemoveVisibleObject(Character character)
+        public override void RemoveVisibleObject(ICharacter character)
         {
             base.RemoveVisibleObject(character);
 
@@ -925,7 +925,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             // AI?.OnSkillEnd(skill);
         }
 
-        public void SetTarget(Unit other)
+        public void SetTarget(IUnit other)
         {
             CurrentTarget = other;
             SendPacket(new SCAggroTargetChangedPacket(ObjId, other?.ObjId ?? 0));

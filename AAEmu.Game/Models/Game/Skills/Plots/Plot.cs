@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         
         public PlotTree Tree { get; set; }
 
-        public async Task Run(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
+        public async Task Run(IUnit caster, SkillCaster casterCaster, IBaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
         {
             var state = new PlotState(caster, casterCaster, target, targetCaster, skillObject, skill);
             caster.ActivePlotState = state;

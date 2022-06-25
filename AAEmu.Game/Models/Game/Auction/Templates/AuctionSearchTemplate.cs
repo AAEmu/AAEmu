@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Auction.Templates
 {
     public class AuctionSearchTemplate
     {
-        public Character Player { get; set; }
+        public ICharacter Player { get; set; }
         public string ItemName { get; set; }
         public bool ExactMatch { get; set; }
         public byte Grade { get; set; }

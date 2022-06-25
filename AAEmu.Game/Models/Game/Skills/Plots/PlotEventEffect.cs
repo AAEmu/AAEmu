@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             if (buffEffect != null)
                 flag = 6; //idk what this does?  
 
-            Unit source;
+            IUnit source;
             switch (SourceId)
             {
                 case PlotEffectSource.OriginalSource:
@@ -46,7 +46,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             
             foreach (var newTarget in targetInfo.EffectedTargets)
             {
-                BaseUnit target;
+                IBaseUnit target;
                 switch (TargetId)
                 {
                     case PlotEffectTarget.OriginalSource:

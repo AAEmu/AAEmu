@@ -7,9 +7,9 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCCharacterGenderAndModelModifiedPacket : GamePacket
     {
-        private readonly Character _character;
+        private readonly ICharacter _character;
 
-        public SCCharacterGenderAndModelModifiedPacket(Character character) : base(SCOffsets.SCCharacterGenderAndModelModifiedPacket, 1)
+        public SCCharacterGenderAndModelModifiedPacket(ICharacter character) : base(SCOffsets.SCCharacterGenderAndModelModifiedPacket, 1)
         {
             _character = character;
         }

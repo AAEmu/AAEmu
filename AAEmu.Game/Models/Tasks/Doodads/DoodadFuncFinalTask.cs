@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         private int _delay;
         private DateTime? _respawnTime;
 
-        public DoodadFuncFinalTask(Unit caster, Doodad owner, uint skillId, bool respawn, int delay) : base(caster, owner, skillId)
+        public DoodadFuncFinalTask(IUnit caster, Doodad owner, uint skillId, bool respawn, int delay) : base(caster, owner, skillId)
         {
             _respawn = respawn;
             _owner = owner;

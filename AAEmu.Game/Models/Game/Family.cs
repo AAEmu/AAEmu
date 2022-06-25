@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -41,13 +41,13 @@ namespace AAEmu.Game.Models.Game
             _removedMembers.Add(member.Id);
         }
 
-        public void RemoveMember(Character character)
+        public void RemoveMember(ICharacter character)
         {
             var member = GetMember(character);
             RemoveMember(member);
         }
 
-        public FamilyMember GetMember(Character character)
+        public FamilyMember GetMember(ICharacter character)
         {
             foreach (var member in Members)
                 if (member.Id == character.Id)
@@ -140,7 +140,7 @@ namespace AAEmu.Game.Models.Game
 
     public class FamilyMember : PacketMarshaler
     {
-        public Character Character { get; set; }
+        public ICharacter Character { get; set; }
         
         public uint Id { get; set; }
         public string Name { get; set; }

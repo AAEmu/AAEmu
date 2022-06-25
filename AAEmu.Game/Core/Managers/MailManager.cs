@@ -348,7 +348,7 @@ namespace AAEmu.Game.Core.Managers
             // TODO: Return expired mails back to owner if undelivered/unread
         }
 
-        public bool PayChargeMoney(Character character, long mailId, bool autoUseAAPoint)
+        public bool PayChargeMoney(ICharacter character, long mailId, bool autoUseAAPoint)
         {
             var mail = GetMailById(mailId);
             if (mail == null)

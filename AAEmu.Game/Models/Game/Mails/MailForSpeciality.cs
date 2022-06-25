@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Mails
 {
     public class MailForSpeciality : BaseMail
     {
-        private Character _sender;
+        private ICharacter _sender;
         private uint _crafterId;
         private uint _tradedPack;
         private int _tradedRate;
@@ -75,7 +75,7 @@ namespace AAEmu.Game.Models.Game.Mails
          * 
          */
 
-        public MailForSpeciality(Character seller, uint crafterId, uint tradepackTemplate, int tradeRate, uint itemRewardTemplateId, 
+        public MailForSpeciality(ICharacter seller, uint crafterId, uint tradepackTemplate, int tradeRate, uint itemRewardTemplateId, 
             int itemCountBase, int itemCountBonus, int itemCountForSeller, int itemCountForCrafter, int interestRate) : base()
         {
             _sender = seller;

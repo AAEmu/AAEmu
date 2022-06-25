@@ -40,7 +40,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                 //     return cacheResult;
                 // }
 
-                Unit source;
+                IUnit source;
                 switch (SourceId)
                 {
                     case PlotEffectSource.OriginalSource:
@@ -62,7 +62,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                 var result = true;
                 foreach (var newTarget in targetInfo.EffectedTargets)
                 {
-                    BaseUnit target;
+                    IBaseUnit target;
                     switch (TargetId)
                     {
                         case PlotEffectTarget.OriginalSource:

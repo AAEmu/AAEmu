@@ -139,7 +139,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        public int GetRatioForSpecialty(Character player)
+        public int GetRatioForSpecialty(ICharacter player)
         {
             var backpack = player.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack);
             if (backpack == null) 
@@ -152,7 +152,7 @@ namespace AAEmu.Game.Core.Managers.World
             return _priceRatios[backpack.TemplateId][zoneId];
         }
 
-        public int GetBasePriceForSpecialty(Character player, uint npcId)
+        public int GetBasePriceForSpecialty(ICharacter player, uint npcId)
         {
             // Sanity checks
             var backpack = player.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack);
@@ -199,7 +199,7 @@ namespace AAEmu.Game.Core.Managers.World
             return (int) (Math.Floor(bundleItem.Profit * (bundleItem.Ratio / 1000f)) + bundleItem.Item.Refund);
         }
 
-        public void SellSpecialty(Character player, uint npcObjId)
+        public void SellSpecialty(ICharacter player, uint npcObjId)
         {
             if (player.LaborPower < 60)
             {

@@ -78,14 +78,14 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public void InviteToFamily(Character inviter, string invitedCharacterName, string title)
+        public void InviteToFamily(ICharacter inviter, string invitedCharacterName, string title)
         {
             var invited = WorldManager.Instance.GetCharacter(invitedCharacterName);
             if (invited != null && invited.Family == 0)
                 invited.SendPacket(new SCFamilyInvitationPacket(inviter.Id, inviter.Name, 1, title));
         }
 
-        public void ReplyToInvite(uint invitorId, Character invitedChar, bool join, string title)
+        public void ReplyToInvite(uint invitorId, ICharacter invitedChar, bool join, string title)
         {
             if (!join)
                 return;
@@ -121,7 +121,7 @@ namespace AAEmu.Game.Core.Managers
         /// Called by a character when logging in. Sends the character a family description packet. Sends every other family member an Online update packet.
         /// </summary>
         /// <param name="character"></param>
-        public void OnCharacterLogin(Character character)
+        public void OnCharacterLogin(ICharacter character)
         {
             var family = _families[character.Family];
             var member = _familyMembers[character.Id];
@@ -135,7 +135,7 @@ namespace AAEmu.Game.Core.Managers
         /// Called when a player logs out. Sends an update to every family member to mark him as offline.
         /// </summary>
         /// <param name="character"></param>
-        public void OnCharacterLogout(Character character)
+        public void OnCharacterLogout(ICharacter character)
         {
             var family = _families[character.Family];
             var member = family.GetMember(character);
@@ -148,7 +148,7 @@ namespace AAEmu.Game.Core.Managers
         /// Called when a player wants to leave a family. Removes him from the family, saves it, and updates family members.
         /// </summary>
         /// <param name="character"></param>
-        public void LeaveFamily(Character character)
+        public void LeaveFamily(ICharacter character)
         {
             var family = _families[character.Family];
             character.Family = 0;
@@ -194,7 +194,7 @@ namespace AAEmu.Game.Core.Managers
         /// </summary>
         /// <param name="kicker"></param>
         /// <param name="kickedId"></param>
-        public void KickMember(Character kicker, uint kickedId) 
+        public void KickMember(ICharacter kicker, uint kickedId) 
         {
             if (kicker.Family == 0) return;
             Family family = _families[kicker.Family];
@@ -232,7 +232,7 @@ namespace AAEmu.Game.Core.Managers
                 SaveFamily(family);
         }
 
-        public void ChangeTitle(Character owner, uint memberId, string newTitle)
+        public void ChangeTitle(ICharacter owner, uint memberId, string newTitle)
         {
             if (owner.Family == 0) return;
             Family family = _families[owner.Family];
@@ -246,7 +246,7 @@ namespace AAEmu.Game.Core.Managers
             family.SendPacket(new SCFamilyTitleChangedPacket(family.Id, memberId, newTitle));
         }
 
-        public void ChangeOwner(Character previousOwner, uint memberId)
+        public void ChangeOwner(ICharacter previousOwner, uint memberId)
         {
             if (previousOwner.Family == 0) return;
             Family family = _families[previousOwner.Family];
@@ -267,7 +267,7 @@ namespace AAEmu.Game.Core.Managers
             return _families[id];
         }
 
-        private static FamilyMember GetMemberForCharacter(Character character, byte owner, string title)
+        private static FamilyMember GetMemberForCharacter(ICharacter character, byte owner, string title)
         {
             var member = new FamilyMember();
             member.Character = character;

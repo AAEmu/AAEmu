@@ -159,7 +159,7 @@ namespace AAEmu.Game.Core.Managers
             return res;
         }
 
-        public void LeaveAllChannels(Character character)
+        public void LeaveAllChannels(ICharacter character)
         {
             foreach (var c in _factionChannels)
                 c.Value?.LeaveChannel(character);
@@ -327,7 +327,7 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="party">Team(raid) you belong</param>
         /// <param name="myChar">You</param>
         /// <returns>ChatChannel based on your position inside a Raid</returns>
-        public ChatChannel GetPartyChat(Team party, Character myChar)
+        public ChatChannel GetPartyChat(Team party, ICharacter myChar)
         {
             uint partyId = party.Id << 6;
             // Find my position inside the raid

@@ -85,25 +85,24 @@ namespace AAEmu.Tests
         }
 
         [Fact]
-        public void LaborPowerTick_NegativeOffLineMinutes_ShouldNotChangeCurrentCharacterLabor()
+        public void LaborPowerTick_WhenMoreLaborThanShortMax_ShouldMaxCurrentCharacterLabor()
         {
             //Arrange
             var sut = SetupManager(out _, out var mockLogger, out _, out var mockGameConnectionTable, out var mockDateTimeManager);
             var mockGameConnection = new Mock<IGameConnection>();
-            mockDateTimeManager.SetupGet(d => d.UtcNow).Returns(new DateTime(2010, 10, 10));
-            var dateLaborPowerModified = new DateTime(2010, 10, 11);
+            mockDateTimeManager.SetupGet(d => d.UtcNow).Returns(new DateTime(2010, 10, 25));
+            var dateLaborPowerModified = new DateTime(2010, 10, 9);
 
             var mockCharacter = new Mock<ICharacter>();
-            var character = mockCharacter.Object;
-            character.IsOnline = true;
-            character.Name = "Test Character";
-            character.LaborPower = 200;
-            character.LaborPowerModified = dateLaborPowerModified;
+            mockCharacter.SetupGet(d => d.IsOnline).Returns(true);
+            mockCharacter.SetupGet(d => d.Name).Returns("Test Character");
+            mockCharacter.SetupGet(d => d.LaborPower).Returns(200);
+            mockCharacter.SetupGet(d => d.LaborPowerModified).Returns(dateLaborPowerModified);
 
             var onlineCharacters = new Dictionary<uint, ICharacter>()
             {
                 {
-                    0, character
+                    0, mockCharacter.Object
                 }
             };
 
@@ -118,7 +117,7 @@ namespace AAEmu.Tests
             sut.LaborPowerTick();
 
             //Assert
-            mockCharacter.Verify(c => c.ChangeLabor(It.IsIn<short>(character.LaborPower), It.IsIn(0)), Times.Once());
+            mockCharacter.Verify(c => c.ChangeLabor(It.IsIn<short>(4800), It.IsIn(0)), Times.Once());
             mockLogger.Verify(l => l.Debug(It.IsAny<string>()), Times.Once);
             mockLogger.Verify(l => l.Info(It.IsAny<string>()), Times.Never);
         }

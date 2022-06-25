@@ -16,16 +16,16 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         public bool IsCasting { get; set; }
 
         public Skill ActiveSkill { get; set; }
-        public Unit Caster { get; set; }
+        public IUnit Caster { get; set; }
         public SkillCaster CasterCaster { get; set; }
-        public BaseUnit Target { get; set; }
+        public IBaseUnit Target { get; set; }
         public SkillCastTarget TargetCaster { get; set; }
         public SkillObject SkillObject { get; set; }
-        public List<(BaseUnit unit, uint buffId)> ChanneledBuffs { get; set; }
+        public List<(IBaseUnit unit, uint buffId)> ChanneledBuffs { get; set; }
 
-        public Dictionary<uint,List<GameObject>> HitObjects { get; set; }
+        public Dictionary<uint,List<IGameObject>> HitObjects { get; set; }
 
-        public PlotState(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
+        public PlotState(IUnit caster, SkillCaster casterCaster, IBaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
         {
             _cancellationRequest = false;
 
@@ -36,9 +36,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             SkillObject = skillObject;
             ActiveSkill = skill;
             
-            HitObjects = new Dictionary<uint, List<GameObject>>();
+            HitObjects = new Dictionary<uint, List<IGameObject>>();
             Tickets = new Dictionary<uint, int>();
-            ChanneledBuffs = new List<(BaseUnit, uint)>();
+            ChanneledBuffs = new List<(IBaseUnit, uint)>();
             Variables = new int[12];
         }
 

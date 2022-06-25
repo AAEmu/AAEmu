@@ -79,7 +79,7 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
-        public void UnbindSlave(Character character, uint tlId, AttachUnitReason reason)
+        public void UnbindSlave(ICharacter character, uint tlId, AttachUnitReason reason)
         {
             var slave = _tlSlaves[tlId];
             var attachPoint = slave.AttachedCharacters.FirstOrDefault(x => x.Value == character).Key;
@@ -92,7 +92,7 @@ namespace AAEmu.Game.Core.Managers
             character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, reason), true);
         }
 
-        public void BindSlave(Character character, uint objId, AttachPointKind attachPoint, AttachUnitReason bondKind)
+        public void BindSlave(ICharacter character, uint objId, AttachPointKind attachPoint, AttachUnitReason bondKind)
         {
             // Check if the target spot is already taken
             var slave = _tlSlaves.FirstOrDefault(x => x.Value.ObjId == objId).Value;
@@ -123,7 +123,7 @@ namespace AAEmu.Game.Core.Managers
         }
 
         // TODO - GameConnection connection
-        public void Delete(Character owner, uint objId)
+        public void Delete(ICharacter owner, uint objId)
         {
             var activeSlaveInfo = GetActiveSlaveByObjId(objId);
             if (activeSlaveInfo == null) return;
@@ -159,7 +159,7 @@ namespace AAEmu.Game.Core.Managers
             SpawnManager.Instance.AddDespawn(activeSlaveInfo);
         }
 
-        public void Create(Character owner, SkillItem skillData, bool hideSpawnEffect = false, Transform positionOverride = null)
+        public void Create(ICharacter owner, SkillItem skillData, bool hideSpawnEffect = false, Transform positionOverride = null)
         {
             var activeSlaveInfo = GetActiveSlaveByOwnerObjId(owner.ObjId);
             if (activeSlaveInfo != null)

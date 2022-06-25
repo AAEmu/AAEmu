@@ -214,7 +214,7 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="id"></param>
         /// <param name="lootAll"></param>
         /// <returns>True if everything was looted, false if not all could be looted</returns>
-        public bool TookLootDropItems(Character character, uint id, bool lootAll)
+        public bool TookLootDropItems(ICharacter character, uint id, bool lootAll)
         {
             // TODO: Bug fix for the following; 
             /*
@@ -252,7 +252,7 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="lootDropItem"></param>
         /// <param name="count"></param>
         /// <returns>Returns false if the item could not be picked up.</returns>
-        public bool TookLootDropItem(Character character, List<Item> lootDropItems, Item lootDropItem, int count)
+        public bool TookLootDropItem(ICharacter character, List<Item> lootDropItems, Item lootDropItem, int count)
         {
             var objId = (uint)(lootDropItem.Id >> 32);
             if (lootDropItem.TemplateId == Item.Coins)

@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public uint ZoneId { get; set; }
         public uint ItemId { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(IUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Debug("DoodadFuncEnterInstance, ZoneId: {0}, ItemId: {1}", ZoneId, ItemId);
 

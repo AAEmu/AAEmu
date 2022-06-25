@@ -20,22 +20,22 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
     {
         private Logger _log = NLog.LogManager.GetCurrentClassLogger();
 
-        public BaseUnit Source { get; set; }
-        private BaseUnit PreviousSource { get; set; }
-        public BaseUnit Target { get; set; }
-        private BaseUnit PreviousTarget { get; set; }
-        public List<BaseUnit> EffectedTargets { get; set; }
+        public IBaseUnit Source { get; set; }
+        private IBaseUnit PreviousSource { get; set; }
+        public IBaseUnit Target { get; set; }
+        private IBaseUnit PreviousTarget { get; set; }
+        public List<IBaseUnit> EffectedTargets { get; set; }
 
         public PlotTargetInfo(PlotState state)
         {
-            EffectedTargets = new List<BaseUnit>();
+            EffectedTargets = new List<IBaseUnit>();
             PreviousSource = state.Caster;
             PreviousTarget = state.Target;
         }
 
-        public PlotTargetInfo(BaseUnit source, BaseUnit target)
+        public PlotTargetInfo(IBaseUnit source, IBaseUnit target)
         {
-            EffectedTargets = new List<BaseUnit>();
+            EffectedTargets = new List<IBaseUnit>();
             PreviousSource = source;
             PreviousTarget = target;
             Source = source;
@@ -137,13 +137,13 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             }
             else
             {
-                state.HitObjects.Add(plotEvent.Id, new List<GameObject>(unitsInRange));
+                state.HitObjects.Add(plotEvent.Id, new List<IGameObject>(unitsInRange));
             }
 
             return posUnit;
         }
 
-        private BaseUnit UpdateRandomUnitTarget(PlotTargetRandomUnitParams args, PlotState state, PlotEventTemplate plotEvent)
+        private IBaseUnit UpdateRandomUnitTarget(PlotTargetRandomUnitParams args, PlotState state, PlotEventTemplate plotEvent)
         {
             //TODO for now we get all units in a 5 meters radius
             var randomUnits = WorldManager.Instance.GetAroundByShape<Unit>(Source, args.Shape);
@@ -166,7 +166,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             }
             else
             {
-                state.HitObjects.Add(plotEvent.Id, new List<GameObject>{ randomUnit });
+                state.HitObjects.Add(plotEvent.Id, new List<IGameObject>{ randomUnit });
             }
 
             return randomUnit;
@@ -208,13 +208,13 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             }
             else
             {
-                state.HitObjects.Add(plotEvent.Id, new List<GameObject>(unitsInRange));
+                state.HitObjects.Add(plotEvent.Id, new List<IGameObject>(unitsInRange));
             }
 
             return posUnit;
         }
 
-        private IEnumerable<Unit> FilterTargets(IEnumerable<Unit> units, PlotState state, IPlotTargetParams args, PlotEventTemplate plotEvent)
+        private IEnumerable<IUnit> FilterTargets(IEnumerable<IUnit> units, PlotState state, IPlotTargetParams args, PlotEventTemplate plotEvent)
         {
             var template = state.ActiveSkill.Template;
             var filtered = units;

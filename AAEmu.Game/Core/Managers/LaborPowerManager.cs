@@ -77,12 +77,16 @@ namespace AAEmu.Game.Core.Managers
                     // Offline Regeneration: 10 Labor Points every 5 minutes
                     if ((_dateTimeManager.UtcNow - character.Value.LaborPowerModified).TotalMinutes > Delay)
                     {
-                        var needAddOfflineLp = (short)((_dateTimeManager.UtcNow - character.Value.LaborPowerModified).TotalMinutes / Delay * LpChangePremium);
-                        var calculatedOfflineLp = (short)(character.Value.LaborPower + needAddOfflineLp);
+                        var needAddOfflineLp = (_dateTimeManager.UtcNow - character.Value.LaborPowerModified).TotalMinutes / Delay * LpChangePremium;
+                        var calculatedOfflineLp = character.Value.LaborPower + needAddOfflineLp;
+                        if (needAddOfflineLp > short.MaxValue)
+                        {
+                            needAddOfflineLp = short.MaxValue;
+                        }
                         if (calculatedOfflineLp <= UpLimit)
                         {
                             character.Value.LaborPowerModified = _dateTimeManager.UtcNow;
-                            character.Value.ChangeLabor(needAddOfflineLp, 0);
+                            character.Value.ChangeLabor((short)needAddOfflineLp, 0);
                             _logger.Debug("Character {1} gained {0} offline Labor Point(s)", needAddOfflineLp, character.Value.Name);
                         }
                         else

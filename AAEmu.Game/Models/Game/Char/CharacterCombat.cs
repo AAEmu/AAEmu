@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Units;
+﻿using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Char
         public uint HostileFactionKills { get; set; }
         public uint HonorGainedInCombat { get; set; }
 
-        public override void DoDie(Unit killer, KillReason killReason)
+        public override void DoDie(IUnit killer, KillReason killReason)
         {
             base.DoDie(killer, killReason);
 

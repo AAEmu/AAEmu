@@ -19,12 +19,12 @@ namespace AAEmu.Game.Models.Game.World
         DateTime Respawn { get; set; }
         Transform.Transform Transform { get; set; }
 
-        void AddVisibleObject(Character character);
+        void AddVisibleObject(ICharacter character);
         void BroadcastPacket(GamePacket packet, bool self);
         string DebugName();
         void Delete();
         void Hide();
-        void RemoveVisibleObject(Character character);
+        void RemoveVisibleObject(ICharacter character);
         void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ);
         void Show();
         void Spawn();

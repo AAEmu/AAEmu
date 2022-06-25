@@ -20,12 +20,12 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCUnitStatePacket : GamePacket
     {
-        private readonly Unit _unit;
+        private readonly IUnit _unit;
         private readonly BaseUnitType _baseUnitType;
         private ModelPostureType _modelPostureType;
         //private byte _attachPoint;
 
-        public SCUnitStatePacket(Unit unit) : base(SCOffsets.SCUnitStatePacket, 1)
+        public SCUnitStatePacket(IUnit unit) : base(SCOffsets.SCUnitStatePacket, 1)
         {
             _unit = unit;
             switch (_unit)
@@ -430,7 +430,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         }
         
         #region Inventory_Equip
-        private void Inventory_Equip(PacketStream stream, Unit unit0, BaseUnitType baseUnitType)
+        private void Inventory_Equip(PacketStream stream, IUnit unit0, BaseUnitType baseUnitType)
         {
             var unit = new Unit();
             switch (baseUnitType)

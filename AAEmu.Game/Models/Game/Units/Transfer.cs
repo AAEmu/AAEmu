@@ -36,7 +36,7 @@ namespace AAEmu.Game.Models.Game.Units
         public TransferSpawner Spawner { get; set; }
         public override UnitCustomModelParams ModelParams { get; set; }
         public List<Doodad> AttachedDoodads { get; set; }
-        public List<Character> AttachedCharacters { get; set; }
+        public List<ICharacter> AttachedCharacters { get; set; }
         public DateTime SpawnTime { get; set; }
         public float RotationDegrees { get; set; }
         public Vector3 Velocity { get; set; }
@@ -58,7 +58,7 @@ namespace AAEmu.Game.Models.Game.Units
             AttachedDoodads = new List<Doodad>();
             Routes = new Dictionary<int, List<WorldSpawnPosition>>();
             TransferPath = new List<WorldSpawnPosition>();
-            AttachedCharacters = new List<Character>();
+            AttachedCharacters = new List<ICharacter>();
         }
 
         #region Attributes
@@ -406,7 +406,7 @@ namespace AAEmu.Game.Models.Game.Units
             Show();
         }
 
-        public override void AddVisibleObject(Character character)
+        public override void AddVisibleObject(ICharacter character)
         {
             IsVisible = true;
             // spawn the cabin
@@ -415,7 +415,7 @@ namespace AAEmu.Game.Models.Game.Units
             base.AddVisibleObject(character);
         }
 
-        public override void RemoveVisibleObject(Character character)
+        public override void RemoveVisibleObject(ICharacter character)
         {
             base.RemoveVisibleObject(character);
             

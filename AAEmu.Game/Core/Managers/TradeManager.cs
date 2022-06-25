@@ -58,7 +58,7 @@ namespace AAEmu.Game.Core.Managers
             return true;
         }
 
-        private void UnlockTrade(Character owner, Character target, uint tradeId)
+        private void UnlockTrade(ICharacter owner, ICharacter target, uint tradeId)
         {
             if (!_trades[tradeId].LockOwner && !_trades[tradeId].LockTarget) return;
 
@@ -71,7 +71,7 @@ namespace AAEmu.Game.Core.Managers
             _log.Info("Trade Id:{0} Lockers opened and Ok undone.", tradeId);
         }
 
-        public void CanStartTrade(Character owner, Character target)
+        public void CanStartTrade(ICharacter owner, ICharacter target)
         {
             if (IsTrading(owner.ObjId) || IsTrading(target.ObjId)) return;
 
@@ -80,7 +80,7 @@ namespace AAEmu.Game.Core.Managers
             target.SendPacket(new SCCanStartTradePacket(owner.ObjId));
         }
 
-        public void StartTrade(Character owner, Character target)
+        public void StartTrade(ICharacter owner, ICharacter target)
         {
             if (IsTrading(owner.ObjId) || IsTrading(target.ObjId)) return;
 
@@ -127,7 +127,7 @@ namespace AAEmu.Game.Core.Managers
             target.SendPacket(new SCTradeCanceledPacket(reason, !causedByMe));
         }
 
-        public void AddItem(Character character, SlotType slotType, byte slot, int amount)
+        public void AddItem(ICharacter character, SlotType slotType, byte slot, int amount)
         {
             var tradeId = GetTradeId(character.ObjId);
             var item = character.Inventory.GetItem(slotType, slot);
@@ -160,7 +160,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public void AddMoney(Character character, int moneyAmount)
+        public void AddMoney(ICharacter character, int moneyAmount)
         {
             var tradeId = GetTradeId(character.ObjId);
             if (tradeId != 0 && character.Money >= moneyAmount)
@@ -192,7 +192,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public void RemoveItem(Character character, SlotType slotType, byte slot)
+        public void RemoveItem(ICharacter character, SlotType slotType, byte slot)
         {
             var tradeId = GetTradeId(character.ObjId);
             var item = character.Inventory.GetItem(slotType, slot);
@@ -227,7 +227,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public void LockTrade(Character character, bool _lock)
+        public void LockTrade(ICharacter character, bool _lock)
         {
             var tradeId = GetTradeId(character.ObjId);
             if (tradeId != 0)
@@ -268,7 +268,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public void OkTrade(Character character)
+        public void OkTrade(ICharacter character)
         {
             var tradeId = GetTradeId(character.ObjId);
             if (tradeId != 0)
@@ -313,7 +313,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public void FinishTrade(Character owner, Character target, uint tradeId)
+        public void FinishTrade(ICharacter owner, Character target, uint tradeId)
         {
             var tradeInfo = _trades[tradeId];
 

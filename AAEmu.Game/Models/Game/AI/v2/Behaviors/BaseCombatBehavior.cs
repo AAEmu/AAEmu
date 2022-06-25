@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         protected float _nextTimeToDelay;
         protected bool _strafeDuringDelay;
         
-        public void MoveInRange(BaseUnit target, TimeSpan delta)
+        public void MoveInRange(IBaseUnit target, TimeSpan delta)
         {
             if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e => e.Template.Stun || e.Template.Sleep))
                 return;
@@ -92,7 +92,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         }
         
         // UseSkill (delay)
-        public void UseSkill(Skill skill, BaseUnit target, float delay = 0)
+        public void UseSkill(Skill skill, IBaseUnit target, float delay = 0)
         {
             _nextTimeToDelay = delay;
             var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);

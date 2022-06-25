@@ -32,7 +32,7 @@ namespace AAEmu.Game.Models.Game.Skills.Utils
             }
         }
 
-        public static bool IsRelationValid(SkillTargetRelation relation, BaseUnit caster, BaseUnit target)
+        public static bool IsRelationValid(SkillTargetRelation relation, IBaseUnit caster, IBaseUnit target)
         {
             switch (relation)
             {

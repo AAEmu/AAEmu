@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
     {
         private int _nextPhase;
 
-        public DoodadFuncTimerTask(Unit caster, Doodad owner, uint skillId, int nextPhase) : base(caster, owner, skillId)
+        public DoodadFuncTimerTask(IUnit caster, Doodad owner, uint skillId, int nextPhase) : base(caster, owner, skillId)
         {
             _nextPhase = nextPhase;
         }

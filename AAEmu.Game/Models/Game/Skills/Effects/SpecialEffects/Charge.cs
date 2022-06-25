@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.Charge;
         
-        public override void Execute(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+        public override void Execute(IUnit caster, SkillCaster casterObj, IBaseUnit target, SkillCastTarget targetObj, CastAction castObj,
             Skill skill, SkillObject skillObject, DateTime time, int buffId, int minCharge, int maxCharge, int unused)
         {
             lock (caster.ChargeLock)
