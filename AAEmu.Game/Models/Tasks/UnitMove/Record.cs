@@ -6,14 +6,14 @@ namespace AAEmu.Game.Models.Tasks.UnitMove
     public class Record : Task
     {
         private readonly Simulation _patrol;
-        private readonly Character _ch;
+        private readonly ICharacter _ch;
 
         /// <summary>
         /// Initialization task
         /// </summary>
         /// <param name="patrol"></param>
         /// <param name="ch"></param>
-        public Record(Simulation sim, Character ch)
+        public Record(Simulation sim, ICharacter ch)
         {
             _patrol = sim;
             _ch = ch;

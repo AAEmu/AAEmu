@@ -203,7 +203,7 @@ namespace AAEmu.Game.Core.Managers
             if (kickerMember.Role != 1) return; // Only the steward can kick
 
             // Load kicked character
-            Character kickedCharacter = WorldManager.Instance.GetCharacterById(kickedId);
+            ICharacter kickedCharacter = WorldManager.Instance.GetCharacterById(kickedId);
             bool isOnline = false;
             if (kickedCharacter != null) 
             {

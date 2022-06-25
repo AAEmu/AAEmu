@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
@@ -8,7 +9,7 @@ namespace AAEmu.Game.Scripts.Commands
 {
     public class MoveAll : ICommand
     {
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             foreach (var otherChar in WorldManager.Instance.GetAllCharacters())
             {

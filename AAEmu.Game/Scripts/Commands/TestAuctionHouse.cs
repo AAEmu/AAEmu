@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
+using AAEmu.Game.Core;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Auction;
+using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -29,7 +24,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Adds every item into the auction house.";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             var allItems = ItemManager.Instance.GetAllItems();
             character.SendMessage($"Trying to add {allItems.Count} items to the Auction House!");

@@ -1,18 +1,14 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System.Globalization;
+using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
 using NLog;
-using System;
-using System.Globalization;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -34,7 +30,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Spawns a npc or doodad using <unitId> as a template. Or remove a doodad";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             if (args.Length < 2)
             {

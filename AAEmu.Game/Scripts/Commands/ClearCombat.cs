@@ -1,6 +1,6 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Scripts.Commands
@@ -23,7 +23,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Command to clear combat.";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             character.SendPacket(new SCCombatClearedPacket(character.ObjId));
         }

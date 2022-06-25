@@ -1,7 +1,8 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -23,7 +24,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Displays information about your pinged position. (map marker)";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
 
             if ((character.LocalPingPosition.X == 0f) && (character.LocalPingPosition.Y == 0f))

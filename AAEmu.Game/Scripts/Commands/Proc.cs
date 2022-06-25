@@ -1,5 +1,5 @@
+﻿using AAEmu.Game.Core;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Procs;
 
@@ -13,7 +13,7 @@ namespace AAEmu.Game.Scripts.Commands
             CommandManager.Instance.Register(name, this);
         }
         
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             if (args.Length == 0)
             {

@@ -1,10 +1,6 @@
-﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game;
+﻿using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -26,7 +22,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Creates a party with just yourself in it. This can be usefull to use with \"" + CommandManager.CommandPrefix + "teleport .\" command.";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             var currentTeam = TeamManager.Instance.GetActiveTeamByUnit(character.Id);
             if (currentTeam != null)

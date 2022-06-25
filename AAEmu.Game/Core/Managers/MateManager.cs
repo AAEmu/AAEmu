@@ -144,9 +144,9 @@ namespace AAEmu.Game.Core.Managers
             var mateInfo = GetActiveMateByTlId(tlId);
             if (mateInfo == null) return;
 
-            
+
             // Request seat position
-            Character targetObj = null;
+            ICharacter targetObj = null;
             if (mateInfo.Passengers.TryGetValue(attachPoint, out var seatInfo))
             {
                 // Check if seat is taken by player

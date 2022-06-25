@@ -42,9 +42,9 @@ namespace AAEmu.Game.Core.Managers.World
         private Dictionary<uint, uint> _worldIdByZoneId;
         private Dictionary<uint, WorldInteractionGroup> _worldInteractionGroups;
         public bool IsSnowing = false;
-        private readonly ConcurrentDictionary<uint, GameObject> _objects;
-        private readonly ConcurrentDictionary<uint, BaseUnit> _baseUnits;
-        private readonly ConcurrentDictionary<uint, Unit> _units;
+        private readonly ConcurrentDictionary<uint, IGameObject> _objects;
+        private readonly ConcurrentDictionary<uint, IBaseUnit> _baseUnits;
+        private readonly ConcurrentDictionary<uint, IUnit> _units;
         private readonly ConcurrentDictionary<uint, Doodad> _doodads;
         private readonly ConcurrentDictionary<uint, Npc> _npcs;
         private readonly ConcurrentDictionary<uint, Character> _characters;
@@ -71,9 +71,9 @@ namespace AAEmu.Game.Core.Managers.World
 
         public WorldManager()
         {
-            _objects = new ConcurrentDictionary<uint, GameObject>();
-            _baseUnits = new ConcurrentDictionary<uint, BaseUnit>();
-            _units = new ConcurrentDictionary<uint, Unit>();
+            _objects = new ConcurrentDictionary<uint, IGameObject>();
+            _baseUnits = new ConcurrentDictionary<uint, IBaseUnit>();
+            _units = new ConcurrentDictionary<uint, IUnit>();
             _doodads = new ConcurrentDictionary<uint, Doodad>();
             _npcs = new ConcurrentDictionary<uint, Npc>();
             _characters = new ConcurrentDictionary<uint, Character>();
@@ -582,7 +582,7 @@ namespace AAEmu.Game.Core.Managers.World
             return ret ;
         }
 
-        public Unit GetUnit(uint objId)
+        public IUnit GetUnit(uint objId)
         {
             _units.TryGetValue(objId, out var ret);
             return ret;
@@ -594,7 +594,7 @@ namespace AAEmu.Game.Core.Managers.World
             return ret;
         }
 
-        public Character GetCharacter(string name)
+        public ICharacter GetCharacter(string name)
         {
             foreach (var player in _characters.Values)
                 if (name.ToLower().Equals(player.Name.ToLower()))
@@ -610,12 +610,12 @@ namespace AAEmu.Game.Core.Managers.World
         /// <param name="TargetName">Possible target name</param>
         /// <param name="FirstNonNameArgument">Returns 1 if TargetName was a valid online character, 0 otherwise</param>
         /// <returns></returns>
-        public Character GetTargetOrSelf(Character character, string TargetName, out int FirstNonNameArgument)
+        public ICharacter GetTargetOrSelf(ICharacter character, string TargetName, out int FirstNonNameArgument)
         {
             FirstNonNameArgument = 0;
             if ((TargetName != null) && (TargetName != string.Empty))
             {
-                Character player = WorldManager.Instance.GetCharacter(TargetName);
+                ICharacter player = WorldManager.Instance.GetCharacter(TargetName);
                 if (player != null)
                 {
                     FirstNonNameArgument = 1;
@@ -627,13 +627,13 @@ namespace AAEmu.Game.Core.Managers.World
             return character;
         }
 
-        public Character GetCharacterByObjId(uint id)
+        public ICharacter GetCharacterByObjId(uint id)
         {
             _characters.TryGetValue(id, out var ret);
             return ret;
         }
 
-        public Character GetCharacterById(uint id)
+        public ICharacter GetCharacterById(uint id)
         {
             foreach (var player in _characters.Values)
                 if (player.Id.Equals(id))
@@ -641,7 +641,7 @@ namespace AAEmu.Game.Core.Managers.World
             return null;
         }
 
-        public void AddObject(GameObject obj)
+        public void AddObject(IGameObject obj)
         {
             if (obj == null)
                 return;
@@ -664,7 +664,7 @@ namespace AAEmu.Game.Core.Managers.World
                 _gimmicks.TryAdd(gimmick.ObjId, gimmick);
         }
 
-        public void RemoveObject(GameObject obj)
+        public void RemoveObject(IGameObject obj)
         {
             if (obj == null)
                 return;

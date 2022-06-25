@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -25,7 +26,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Command used for testing and moving house binding points";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             if (character.CurrentTarget != null && character.CurrentTarget is House house)
             {

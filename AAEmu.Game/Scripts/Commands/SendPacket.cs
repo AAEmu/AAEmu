@@ -1,9 +1,9 @@
-﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.Char;
-using System;
+﻿using System;
 using System.IO;
+using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -25,7 +25,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Send packet (hex) to player's character from either a file path or received message";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             if (args.Length != 1)
             {

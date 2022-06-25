@@ -1,6 +1,5 @@
-﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.AI.UnitTypes;
+﻿using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.v2.AiCharacters;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
@@ -25,7 +24,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Forces the HoldPosition AI to the target";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             if (character.CurrentTarget == null)
             {

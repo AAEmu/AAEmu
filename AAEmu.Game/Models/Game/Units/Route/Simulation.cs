@@ -190,7 +190,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             return result;
         }
         //***************************************************************
-        public void StartRecord(Simulation sim, Character ch)
+        public void StartRecord(Simulation sim, ICharacter ch)
         {
             if (SavePathEnabled) { return; }
             if (MoveToPathEnabled)
@@ -206,7 +206,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             SavePathEnabled = true;
             RepeatTo(ch, MoveTrigerDelay, sim);
         }
-        public void Record(Simulation sim, Character ch)
+        public void Record(Simulation sim, ICharacter ch)
         {
             //if (!SavePathEnabled) { return; }
             var s = "|" + ch.Transform.World.Position.X + "|" + ch.Transform.World.Position.Y + "|" + ch.Transform.World.Position.Z + "|";
@@ -437,7 +437,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
         }
 
-        public void RepeatTo(Character ch, double time = 1000, Simulation sim = null)
+        public void RepeatTo(ICharacter ch, double time = 1000, Simulation sim = null)
         {
             if ((sim ?? this).SavePathEnabled)
             {

@@ -30,7 +30,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         private Transform _stickyParentTransform;
         private List<Transform> _stickyChildren;
         private Vector3 _lastFinalizePos; // Might use this later for cheat detection or delta movement
-        public List<Character> _debugTrackers;
+        public List<ICharacter> _debugTrackers;
         private object _lock = new object();
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
             _stickyParentTransform = null;
             _stickyChildren = new List<Transform>();
             _lastFinalizePos = Vector3.Zero;
-            _debugTrackers = new List<Character>();
+            _debugTrackers = new List<ICharacter>();
         }
 
         public Transform(IGameObject owningObject, Transform parentTransform = null, Transform stickyParentTransform = null)
@@ -598,7 +598,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
             }
         }
 
-        public bool ToggleDebugTracker(Character player)
+        public bool ToggleDebugTracker(ICharacter player)
         {
             if (_debugTrackers.Contains(player))
             {

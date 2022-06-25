@@ -1,5 +1,5 @@
-﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game;
+﻿using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
 
@@ -22,7 +22,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Does script related actions. Allowed <action> are: reload, reboot, save";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             if (args.Length == 0)
             {

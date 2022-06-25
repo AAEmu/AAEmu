@@ -1,15 +1,9 @@
 ﻿using System;
-using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
-using AAEmu.Game.Models.Game.Housing;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -31,7 +25,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Sends a dummy mail to yourself of given type";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
 
             // Example: Dummy pack base 1g at 125% no bonus, seller is not the crafter

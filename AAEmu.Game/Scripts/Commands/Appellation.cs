@@ -1,6 +1,6 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Scripts.Commands
@@ -23,7 +23,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Sets your current title using <titleId>";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             if (args.Length == 0)
             {

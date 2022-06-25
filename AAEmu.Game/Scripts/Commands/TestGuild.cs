@@ -1,14 +1,6 @@
-﻿using System;
+﻿using AAEmu.Game.Core;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Expeditions;
-using AAEmu.Game.Models.Game.Faction;
-using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -30,7 +22,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Manually creates a guild from your current party. Normal rules still apply.";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             if (args.Length == 0)
             {

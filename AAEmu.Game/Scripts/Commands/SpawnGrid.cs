@@ -1,16 +1,11 @@
-﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
+﻿using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 using NLog;
-using System;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -35,7 +30,7 @@ namespace AAEmu.Game.Scripts.Commands
                 "Example: " + CommandManager.CommandPrefix + "spawngrid doodad 320 5 5 2";
         }
 
-        public void SpawnDoodad(uint unitId, Character character, float newX, float newY)
+        public void SpawnDoodad(uint unitId, ICharacter character, float newX, float newY)
         {
             var doodadSpawner = new DoodadSpawner();
             doodadSpawner.Id = 0;
@@ -51,7 +46,7 @@ namespace AAEmu.Game.Scripts.Commands
             character.SendMessage(doodadSpawner.Position.ToString());
         }
 
-        public void SpawnNPC(uint unitId,Character character,float newX, float newY)
+        public void SpawnNPC(uint unitId, ICharacter character,float newX, float newY)
         {
             var npcSpawner = new NpcSpawner();
             npcSpawner.Id = 0;
@@ -66,7 +61,7 @@ namespace AAEmu.Game.Scripts.Commands
             npcSpawner.SpawnAll();
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             if (args.Length < 5)
             {

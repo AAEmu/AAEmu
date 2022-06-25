@@ -1,7 +1,6 @@
+﻿using AAEmu.Game.Core;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
 
@@ -25,7 +24,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Advances the targetted house one step further";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             var targetHouse = character.CurrentTarget as House;
             if (targetHouse == null)

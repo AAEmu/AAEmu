@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Text;
+using AAEmu.Game.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Models.Game.World.Transform;
-using System.Numerics;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
@@ -33,7 +30,7 @@ namespace AAEmu.Game.Scripts.Commands
                 "Note: Only lists objects in viewing range of you (recommended maximum radius of 100).";
         }
         
-        public int ShowObjectData(Character character, GameObject go, int index, string indexPrefix, bool verbose)
+        public int ShowObjectData(ICharacter character, IGameObject go, int index, string indexPrefix, bool verbose)
         {
             var indexStr = indexPrefix;
             if (indexStr != String.Empty)
@@ -66,7 +63,7 @@ namespace AAEmu.Game.Scripts.Commands
             return 1 + go.Transform.Children.Count;
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             if (args.Length < 1)
             {

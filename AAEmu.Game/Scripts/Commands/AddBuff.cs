@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using AAEmu.Game.Core;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Tasks.Skills;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -30,7 +29,7 @@ namespace AAEmu.Game.Scripts.Commands
                 "You can also use 'v' instead of 'view' and 'at' or 't' instead of 'AsTarget'";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             var firstArg = 0;
             if (args.Length <= 0)
@@ -39,8 +38,8 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            Unit sourceUnit = character;
-            Unit targetUnit = null ;
+            IUnit sourceUnit = character;
+            IUnit targetUnit = null ;
 
             if (!(character.CurrentTarget is Unit selectedUnit))
             {

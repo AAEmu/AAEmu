@@ -1,9 +1,6 @@
-﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game;
+﻿using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Scripts.Commands
@@ -26,7 +23,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Gets distance using various calculations with target";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             var target = character.CurrentTarget;
 

@@ -311,7 +311,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public void FinishTrade(ICharacter owner, Character target, uint tradeId)
+        public void FinishTrade(ICharacter owner, ICharacter target, uint tradeId)
         {
             var tradeInfo = _trades[tradeId];
 

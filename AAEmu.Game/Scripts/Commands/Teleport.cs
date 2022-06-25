@@ -1,10 +1,9 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System.Collections.Generic;
+using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Packets.G2C;
-using System.Collections.Generic;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -541,7 +540,7 @@ namespace AAEmu.Game.Scripts.Commands
             #endregion
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             if (args.Length == 1) 
             {

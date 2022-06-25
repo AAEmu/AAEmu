@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.Items.Procs
             LastProc = DateTime.MinValue;
         }
 
-        public bool Apply(Unit owner, bool ignoreRoll = false)
+        public bool Apply(IUnit owner, bool ignoreRoll = false)
         {
             if (DateTime.UtcNow < LastProc.AddSeconds(Template.CooldownSec))
                 return false;

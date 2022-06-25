@@ -1,14 +1,15 @@
 ﻿using System;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 using AAEmu.Commons.IO;
+using AAEmu.Game.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Core.Managers.World;
 using Newtonsoft.Json;
 using NLog;
 
@@ -81,7 +82,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Adds a set of items based on a kit name to target player.";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             if (args.Length == 0)
             {
@@ -90,7 +91,7 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
+            ICharacter targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
 
             string kitname = string.Empty;
             int itemsAdded = 0;

@@ -1,15 +1,9 @@
-﻿using NLog;
-using System;
-
+﻿using AAEmu.Game.Core;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Utils;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Units.Route;
+using NLog;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -42,7 +36,7 @@ namespace AAEmu.Game.Scripts.Commands
                 "|15626,0|14983,88|141,3446|\n" +
                 "===================================================;\n";
         }
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             string nameFile = "movefile";
             string cmd = "";

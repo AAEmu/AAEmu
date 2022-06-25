@@ -1,9 +1,10 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
 
@@ -27,9 +28,9 @@ namespace AAEmu.Game.Scripts.Commands
             return "Kills target";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
-            Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, null, out var _);
+            ICharacter targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, null, out var _);
             var playerTarget = character.CurrentTarget;
             if (playerTarget is Unit aUnit)
             {

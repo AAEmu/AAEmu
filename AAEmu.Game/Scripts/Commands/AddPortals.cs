@@ -1,11 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using AAEmu.Game.Core;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -28,7 +24,7 @@ namespace AAEmu.Game.Scripts.Commands
                 "If [<x> <y> <z> <zoneid>] is ommited or incomplete, your current position will be used.";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             if (args.Length == 0)
             {
@@ -37,7 +33,7 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
+            ICharacter targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
 
             var portalName = args[firstarg+0];
             var position = character.Transform.CloneAsSpawnPosition();

@@ -17,16 +17,13 @@
 * 
 */
 
-using System.Collections.Generic;
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.Char;
 using System;
-using AAEmu.Game.Models.Game.Chat;
-using System.Collections.Concurrent;
-using AAEmu.Game.Core.Managers.World;
 using System.Drawing;
+using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Scripts.Commands
          
@@ -95,7 +92,7 @@ namespace AAEmu.Game.Scripts.Commands
             }
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             //if no arguments send help information
             if (args.Length == 0)

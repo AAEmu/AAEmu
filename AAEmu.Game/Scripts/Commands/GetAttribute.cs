@@ -1,8 +1,8 @@
 ﻿using System;
+using AAEmu.Game.Core;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Units;
 
@@ -26,9 +26,9 @@ namespace AAEmu.Game.Scripts.Commands
             return "getattribute <attrId || attrName> [target]";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
-            Unit target = character;
+            IUnit target = character;
             int argsIdx = 0;
 
             if (args.Length == 0)

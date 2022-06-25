@@ -1,6 +1,6 @@
 ﻿using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Models.Game
+namespace AAEmu.Game.Core
 {
     public interface ICommand
     {

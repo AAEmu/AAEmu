@@ -154,7 +154,7 @@ namespace AAEmu.Game.Models.Game.Char
             Owner.SendPacket(new SCDeleteBlockedUserPacket(blocked.Id, true, name, 0));
         }
 
-        private Blocked FormatBlocked(Character blocked)
+        private Blocked FormatBlocked(ICharacter blocked)
         {
             return new Blocked()
             {

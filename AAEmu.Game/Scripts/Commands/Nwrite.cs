@@ -1,29 +1,17 @@
-﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using AAEmu.Commons.IO;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Json;
-using AAEmu.Game.Utils;
-using NLog;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.Threading;
-using AAEmu.Commons.IO;
-using AAEmu.Commons.Utils;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.IO;
-using MySql.Data;
+using NLog;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -46,7 +34,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "write's npc's or doodad's current position / rotation to json";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             var worlds = WorldManager.Instance.GetWorlds();
             var npcs = WorldManager.Instance.GetAllNpcs();

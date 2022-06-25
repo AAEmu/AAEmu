@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.Framework;
@@ -35,7 +35,7 @@ namespace AAEmu.Game.Models.Game.AI.States
             return npc.AggroTable.Values.Count > 0;
         }
 
-        public Unit GetTopDamageAggro()
+        public IUnit GetTopDamageAggro()
         {
             if (!(AI.Owner is Npc npc))
                 return null;
@@ -48,7 +48,7 @@ namespace AAEmu.Game.Models.Game.AI.States
             return unit;
         }
         
-        public Unit GetTopHealAggro()
+        public IUnit GetTopHealAggro()
         {
             if (!(AI.Owner is Npc npc))
                 return null;

@@ -1,13 +1,12 @@
 ﻿using System;
+using AAEmu.Game.Core;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Tasks.Skills;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -29,11 +28,11 @@ namespace AAEmu.Game.Scripts.Commands
             return "Forces unit(target optional) to use a skill";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             int argsIdx = 0;
-            Unit source = character;
-            Unit target = character.CurrentTarget == null ? character : (Unit)character.CurrentTarget;
+            IUnit source = character;
+            IUnit target = character.CurrentTarget == null ? character : (IUnit)character.CurrentTarget;
 
             if (target == null) return;
 
@@ -79,7 +78,7 @@ namespace AAEmu.Game.Scripts.Commands
             TaskManager.Instance.Schedule(new UseSkillTask(useSkill, source, casterObj, target, targetObj, skillObject), TimeSpan.FromMilliseconds(0));
         }
 
-        private void DoAoe(Character character, SkillTemplate skill)
+        private void DoAoe(ICharacter character, SkillTemplate skill)
         {
             foreach (var target in WorldManager.Instance.GetAround<Unit>(character, 20f))
             {

@@ -1,14 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using AAEmu.Game.Core;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -30,7 +26,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Show content of target's item container.\rEquipment = 1, Inventory = 2 (default), Bank = 3, Trade = 4, Mail = 5";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             if ((!(character.CurrentTarget is Character)) && (character.CurrentTarget is Unit unit))
             {
@@ -52,7 +48,7 @@ namespace AAEmu.Game.Scripts.Commands
             }
             else
             {
-                Character targetPlayer = character;
+                ICharacter targetPlayer = character;
                 var firstarg = 0;
                 if (args.Length > 0)
                     targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out firstarg);

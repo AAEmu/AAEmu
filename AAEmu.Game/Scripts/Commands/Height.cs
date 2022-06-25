@@ -1,6 +1,6 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Scripts.Commands
@@ -22,9 +22,9 @@ namespace AAEmu.Game.Scripts.Commands
             return "Gets your or target's current height and that of the supposed floor (using heightmap data)";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
-            Character targetPlayer = character;
+            ICharacter targetPlayer = character;
             if (args.Length > 0)
                 targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
 

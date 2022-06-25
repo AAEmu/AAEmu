@@ -284,7 +284,7 @@ namespace AAEmu.Game.Core.Managers
 
         #endregion
 
-        public Dictionary<long, BaseMail> GetCurrentMailList(Character character)
+        public Dictionary<long, BaseMail> GetCurrentMailList(ICharacter character)
         {
             var tempMails = _allPlayerMails.Where(x => x.Value.Body.RecvDate <= DateTime.UtcNow && (x.Value.Header.ReceiverId == character.Id || x.Value.Header.SenderId == character.Id)).ToDictionary(x => x.Key, x => x.Value);
             character.Mails.unreadMailCount.Received = 0;

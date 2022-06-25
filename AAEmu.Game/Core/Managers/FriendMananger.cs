@@ -157,7 +157,7 @@ namespace AAEmu.Game.Core.Managers
             return friendInfo.Count > 0 ? GetFriendInfo(new List<uint> {friendId})[0] : null;
         }
 
-        private static Friend FormatFriend(Character friend)
+        private static Friend FormatFriend(ICharacter friend)
         {
             return new Friend()
             {

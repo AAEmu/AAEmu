@@ -1,9 +1,9 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -26,7 +26,7 @@ namespace AAEmu.Game.Scripts.Commands
                 "Do note that going above the intended max level might break skills.";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             if (args.Length == 0)
             {
@@ -35,7 +35,7 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
+            ICharacter targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
 
             byte level = 0;
             if (byte.TryParse(args[firstarg + 0], out byte parselevel))

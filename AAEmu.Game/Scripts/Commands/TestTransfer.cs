@@ -1,9 +1,6 @@
-﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game;
+﻿using AAEmu.Game.Core;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -25,7 +22,7 @@ namespace AAEmu.Game.Scripts.Commands
             return "Spawns a transportation vehicle";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(ICharacter character, string[] args)
         {
             character.SendMessage("[testtransfer] function disabled");
             //if (args.Length < 1)
