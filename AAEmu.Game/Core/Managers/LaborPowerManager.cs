@@ -70,7 +70,14 @@ namespace AAEmu.Game.Core.Managers
                 {
                     if (character.Value.LaborPower >= UpLimit)
                     {
-                        // _log.Warn("No need to increase Labor Point, since they reached the limit {0} for Char: {1}", UpLimit, character.Value.Name);
+                        // _logger.Warn("No need to increase Labor Point, since they reached the limit {0} for Char: {1}", UpLimit, character.Value.Name);
+                        continue;
+                    }
+
+                    if (character.Value.LaborPower < 0)
+                    {
+                        _logger.Warn("Char: {1} has negative {0} labor points, reseting to 0.", character.Value.LaborPower, character.Value.Name);
+                        character.Value.ChangeLabor((short)(character.Value.LaborPower * -1), 0);
                         continue;
                     }
 
@@ -100,18 +107,18 @@ namespace AAEmu.Game.Core.Managers
                     }
 
                     // Online Regeneration: 10 Labor Points every 5 minutes
-                    var change = (short)(UpLimit - character.Value.LaborPower);
-                    if (change >= LpChangePremium)
+                    var laborAmoutUntilUpLimit = (short)(UpLimit - character.Value.LaborPower);
+                    if (laborAmoutUntilUpLimit >= LpChangePremium)
                     {
                         _logger.Debug("Character {1} gained {0} Labor Point(s)", LpChangePremium, character.Value.Name);
                         character.Value.LaborPowerModified = _dateTimeManager.UtcNow;
                         character.Value.ChangeLabor(LpChangePremium, 0);
                     }
-                    else if (change != 0)
+                    else if (laborAmoutUntilUpLimit > 0 && laborAmoutUntilUpLimit < LpChangePremium)
                     {
-                        _logger.Debug("Character {1} gained {0} Labor Point(s)", change, character.Value.Name);
+                        _logger.Debug("Character {1} gained {0} Labor Point(s)", laborAmoutUntilUpLimit, character.Value.Name);
                         character.Value.LaborPowerModified = _dateTimeManager.UtcNow;
-                        character.Value.ChangeLabor(change, 0);
+                        character.Value.ChangeLabor(laborAmoutUntilUpLimit, 0);
                     }
                 }
             }
