@@ -14,6 +14,7 @@ AAEmu.Tests/bin/
 AAEmu.Tests/obj/
 AAEmu.Game/Data/compact.sqlite3
 AAEmu.Game/Data/Worlds/*/hmap.dat
+AAEmu.Game/ClientData/game_pak
 AAEmu.Game/Config.json
 AAEmu.Login/Config.json
 publish/

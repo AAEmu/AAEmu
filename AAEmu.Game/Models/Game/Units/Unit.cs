@@ -464,7 +464,7 @@ namespace AAEmu.Game.Models.Game.Units
             return value;
         }
 
-        public void SendPacket(GamePacket packet)
+        public virtual void SendPacket(GamePacket packet)
         {
             Connection?.SendPacket(packet);
         }

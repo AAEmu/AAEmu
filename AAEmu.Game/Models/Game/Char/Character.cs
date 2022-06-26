@@ -1362,7 +1362,7 @@ namespace AAEmu.Game.Models.Game.Char
         }
 
 
-        public void ChangeLabor(short change, int actabilityId)
+        public virtual void ChangeLabor(short change, int actabilityId)
         {
             var actabilityChange = 0;
             byte actabilityStep = 0;

@@ -1,0 +1,31 @@
+{
+    "Id": 1,
+    "AdditionalesId": [],
+    "SecretKey": "test",
+    "AutoAccount": true,
+    "Network": {
+        "Host": "127.0.0.1",
+        "Port": 1239,
+        "NumConnections": 10
+    },
+    "StreamNetwork": {
+        "Host": "127.0.0.1",
+        "Port": 1250
+    },
+    "LoginNetwork": {
+        "Host": "127.0.0.1",
+        "Port": "1234"
+    },
+    "Connections": {
+        "MySQLProvider": {
+            "Host": "localhost",
+            "Port": "3306",
+            "User": "root",
+            "Password": "nml9102!!!",
+            "Database": "aaemu_game"
+        }
+    },
+    "CharacterNameRegex": "^[a-zA-Z0-9а-яА-Я]{1,18}$",
+    "MaxConcurencyThreadPool": 8,
+    "HeightMapsEnable": true
+}

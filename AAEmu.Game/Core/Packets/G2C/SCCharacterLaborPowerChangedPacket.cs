@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -10,6 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _point;
         private readonly byte _step;
         
+        public int Amount => _amount;
         public SCCharacterLaborPowerChangedPacket(int amount, int action, int point, byte step) 
             : base(SCOffsets.SCCharacterLaborPowerChangedPacket, 1)
         {
