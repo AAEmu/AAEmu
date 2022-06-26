@@ -2218,7 +2218,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 // TODO for test
                 PlantTime = DateTime.UtcNow,
                 //GrowthTime = DateTime.UtcNow.AddMilliseconds(template.MinTime),
-                GrowthTime = DateTime.UtcNow.AddMilliseconds(10000),
+                //GrowthTime = DateTime.UtcNow.AddMilliseconds(10000),
                 
                 OwnerType = DoodadOwnerType.System
             };

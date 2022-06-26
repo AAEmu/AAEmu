@@ -74,7 +74,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     var template = acts[i].GetTemplate<QuestActObjItemGather>();
                                     // TODO: Check both inventory and warehouse
-                                    Owner.Inventory.Bag.GetAllItemsByTemplate(template.Id, -1, out _, out var objectivesCounted);
+                                    Owner.Inventory.Bag.GetAllItemsByTemplate(template.ItemId, -1, out _, out var objectivesCounted);
                                     Objectives[i] = objectivesCounted;
                                     //Objectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
                                     if (Objectives[i] > template.Count) // TODO check to overtime

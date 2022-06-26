@@ -634,17 +634,17 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         /// <summary>
         /// Searches container for a list of items that have a specified templateId
         /// </summary>
-        /// <param name="templateId">templateId to search for</param>
+        /// <param name="itemTemplateId">templateId to search for</param>
         /// <param name="foundItems">List of found item objects</param>
         /// <param name="gradeToFind">Only lists items of specific grade is gradeToFind >= </param>
         /// <param name="unitsOfItemFound">Total count of the count values of the found items</param>
         /// <returns>True if any item was found</returns>
-        public bool GetAllItemsByTemplate(uint templateId, int gradeToFind, out List<Item> foundItems, out int unitsOfItemFound)
+        public bool GetAllItemsByTemplate(uint itemTemplateId, int gradeToFind, out List<Item> foundItems, out int unitsOfItemFound)
         {
             foundItems = new List<Item>();
             unitsOfItemFound = 0;
             foreach (var i in Items)
-                if ((i.TemplateId == templateId) && ((gradeToFind < 0) || (gradeToFind == i.Grade)))
+                if ((i.TemplateId == itemTemplateId) && ((gradeToFind < 0) || (gradeToFind == i.Grade)))
                 {
                     foundItems.Add(i);
                     unitsOfItemFound += i.Count;
