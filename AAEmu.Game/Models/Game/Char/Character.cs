@@ -1165,7 +1165,17 @@ namespace AAEmu.Game.Models.Game.Char
         [UnitAttribute(UnitAttribute.LungCapacity)]
         public uint LungCapacity
         {
-            get => (uint)CalculateWithBonuses(60000, UnitAttribute.LungCapacity);
+            get
+            {
+                if (Race == Race.Elf)
+                {
+                    return (uint)CalculateWithBonuses(80000, UnitAttribute.LungCapacity); //Elves racial skill Endurance Training gives +20 secs lung capacity
+                }
+                else
+                {
+                    return (uint)CalculateWithBonuses(60000, UnitAttribute.LungCapacity);
+                }
+            }
         }
 
         [UnitAttribute(UnitAttribute.FallDamageMul)]
