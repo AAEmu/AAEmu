@@ -7,7 +7,7 @@
         <VersionPrefix>0.0.2.0</VersionPrefix>
         <VersionSuffix>alpha</VersionSuffix>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <LangVersion>7.3</LangVersion>
+        <LangVersion>9.0</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
@@ -32,10 +32,6 @@
         <None Include="Scripts\Commands\TestTracker.cs">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
           <LinkBase>Scripts\</LinkBase>
-        </None>
-        <None Update="Gonfigurations\expedition.json">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-          <LinkBase>Data\</LinkBase>
         </None>
         <None Update="Configurations\Expedition.json">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -80,6 +76,15 @@
     </ItemGroup>
 
     <ItemGroup>
+      <None Update="Scripts\Commands\GodMode.cs">
+        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      </None>
+      <None Update="Scripts\Commands\NpcCmd.cs">
+        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      </None>
+      <None Update="Scripts\Commands\DoodadCmd.cs">
+        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      </None>
       <None Update="Scripts\Commands\ReloadConfigs.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>

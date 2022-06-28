@@ -5,10 +5,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncMachinePartsCollect : DoodadFuncTemplate
     {
+        // doodad_funcs
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncMachinePartsCollect");
-            owner.ToPhaseAndUse = false;
+            _log.Trace("DoodadFuncMachinePartsCollect");
+
         }
     }
 }

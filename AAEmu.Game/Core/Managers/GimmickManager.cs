@@ -10,7 +10,6 @@ using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks;
-using AAEmu.Game.Models.Tasks.Gimmicks;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -52,7 +51,8 @@ namespace AAEmu.Game.Core.Managers
             gimmick.Spawner = spawner;
             gimmick.Template = template;
             gimmick.GimmickId = gimmick.ObjId;
-            gimmick.TemplateId = template.Id;
+            gimmick.TemplateId = template.Id; // duplicate Id
+            gimmick.Id = template.Id;
             gimmick.Faction = new SystemFaction();
             gimmick.ModelPath = template.ModelPath;
             gimmick.Patrol = null;
@@ -131,8 +131,19 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Warn("GimmickTickTask: Started");
 
-            GimmickTickTask = new GimmickTickStartTask();
-            TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMinutes(DelayInit));
+            //GimmickTickTask = new GimmickTickStartTask();
+            //TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMinutes(DelayInit));
+            TickManager.Instance.OnTick.Subscribe(GimmickTick, TimeSpan.FromMilliseconds(Delay), true);
+        }
+        internal void GimmickTick(TimeSpan delta)
+        {
+            var activeGimmicks = GetActiveGimmicks();
+            foreach (var gimmick in activeGimmicks)
+            {
+                GimmickTick(gimmick);
+            }
+
+            //TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMilliseconds(Delay));
         }
         internal void GimmickTick()
         {

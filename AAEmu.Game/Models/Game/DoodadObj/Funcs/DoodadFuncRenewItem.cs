@@ -5,12 +5,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncRenewItem : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint SkillId { get; set; }
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncRenewItem");
-            owner.ToPhaseAndUse = false;
+            _log.Trace("DoodadFuncRenewItem");
+
         }
     }
 }

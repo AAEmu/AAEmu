@@ -13,5 +13,6 @@
         public uint Almighty { get; set; }
         public DoodadFuncGroupKind GroupKindId { get; set; }
         public uint SoundId { get; set; }
+        public string Model { get; set; }
     }
 }

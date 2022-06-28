@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
@@ -11,8 +12,9 @@ using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    public class DoodadFuncClout : DoodadFuncTemplate
+    public class DoodadFuncClout : DoodadPhaseFuncTemplate
     {
+        // doodad_phase_funcs
         public int Duration { get; set; }
         public int Tick { get; set; }
         public SkillTargetRelation TargetRelation { get; set; }
@@ -26,13 +28,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public bool UseOriginSource { get; set; }
         public List<uint> Effects { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override bool Use(Unit caster, Doodad owner)
         {
-            _log.Trace("DoodadFuncClout : Duration {0}, Tick {1}, TargetRelationId {2}, BuffId {3}," +
-                       " ProjectileId {4}, ShowToFriendlyOnly {5}, NextPhase {6}, AoeShapeId {7}," +
-                       " TargetBuffTagId {8}, TargetNoBuffTagId {9}, UseOriginSource {10}",
-                Duration, Tick, TargetRelation, BuffId, ProjectileId, ShowToFriendlyOnly, NextPhase, AoeShapeId, TargetBuffTagId, TargetNoBuffTagId, UseOriginSource);
-
+            if (caster is Character)
+                _log.Debug("DoodadFuncClout : Duration {0}, Tick {1}, TargetRelationId {2}, BuffId {3}, ProjectileId {4}, ShowToFriendlyOnly {5}, NextPhase {6}, AoeShapeId {7}, TargetBuffTagId {8}, TargetNoBuffTagId {9}, UseOriginSource {10}", Duration, Tick, TargetRelation, BuffId, ProjectileId, ShowToFriendlyOnly, NextPhase, AoeShapeId, TargetBuffTagId, TargetNoBuffTagId, UseOriginSource);
+            else
+                _log.Trace("DoodadFuncClout : Duration {0}, Tick {1}, TargetRelationId {2}, BuffId {3}, ProjectileId {4}, ShowToFriendlyOnly {5}, NextPhase {6}, AoeShapeId {7}, TargetBuffTagId {8}, TargetNoBuffTagId {9}, UseOriginSource {10}", Duration, Tick, TargetRelation, BuffId, ProjectileId, ShowToFriendlyOnly, NextPhase, AoeShapeId, TargetBuffTagId, TargetNoBuffTagId, UseOriginSource);
 
             var areaTrigger = new AreaTrigger()
             {
@@ -43,7 +44,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 TargetRelation = TargetRelation,
                 TickRate = Tick,
                 EffectPerTick = Effects.Select(eid => SkillManager.Instance.GetEffectTemplate(eid)).ToList(),
-                SkillId = skillId
+                //SkillId = skillId
             };
 
             AreaTriggerManager.Instance.AddAreaTrigger(areaTrigger);
@@ -56,11 +57,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     await Task.Delay(Duration);
                     if (NextPhase == -1)
                         owner.Delete();
-                    owner.GoToPhase(caster, NextPhase);
+                    owner.DoPhaseFuncs(caster, NextPhase);
                     AreaTriggerManager.Instance.RemoveAreaTrigger(areaTrigger);
                 });
             }
-            owner.ToPhaseAndUse = false;
+
+            return false;
         }
     }
 }

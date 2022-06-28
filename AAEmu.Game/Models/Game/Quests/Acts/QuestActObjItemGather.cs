@@ -1,5 +1,5 @@
+﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
-using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts
 {
@@ -15,10 +15,43 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public bool DropWhenDestroy { get; set; }
         public bool DestroyWhenDrop { get; set; }
 
+        public static int GatherStatus = 0;
+
         public override bool Use(Character character, Quest quest, int objective)
         {
-            _log.Warn("QuestActObjItemGather");
-            return objective >= Count;
+            _log.Debug("QuestActObjItemGather: QuestActObjItemGatherId {0}, Count {1}, UseAlias {2}, QuestActObjAliasId {3}, HighlightDoodadId {4}, HighlightDoodadPhase {5}, quest {6}, objective {7}, Score {8}",
+                ItemId, Count, UseAlias, QuestActObjAliasId, HighlightDoodadId, HighlightDoodadPhase, quest.TemplateId, objective, quest.Template.Score);
+
+            if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
+            {
+                GatherStatus = objective * Count; // Count в данном случае % за единицу
+                quest.OverCompletionPercent = GatherStatus + QuestActObjMonsterHunt.HuntStatus + QuestActObjMonsterGroupHunt.GroupHuntStatus + QuestActObjInteraction.InteractionStatus;
+
+                if (quest.Template.LetItDone)
+                {
+                    if (quest.OverCompletionPercent >= quest.Template.Score * 3 / 5)
+                        quest.EarlyCompletion = true;
+
+                    if (quest.OverCompletionPercent > quest.Template.Score)
+                        quest.ExtraCompletion = true;
+                }
+
+                return quest.OverCompletionPercent >= quest.Template.Score;
+            }
+            else
+            {
+                if (quest.Template.LetItDone)
+                {
+                    quest.OverCompletionPercent = objective * 100 / Count;
+
+                    if (quest.OverCompletionPercent >= 60)
+                        quest.EarlyCompletion = true;
+
+                    if (quest.OverCompletionPercent > 100)
+                        quest.ExtraCompletion = true;
+                }
+                return objective >= Count;
+            }
         }
     }
 }

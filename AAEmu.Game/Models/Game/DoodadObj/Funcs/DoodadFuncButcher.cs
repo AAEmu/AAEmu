@@ -5,12 +5,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncButcher : DoodadFuncTemplate
     {
+        // doodad_funcs
         public string CorpseModel { get; set; }
-        
+
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncButcher");
-            owner.ToPhaseAndUse = false;
+            _log.Trace("DoodadFuncButcher");
+
         }
     }
 }

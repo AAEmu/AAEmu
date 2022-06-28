@@ -1,6 +1,6 @@
-﻿namespace AAEmu.Game.Models.Game.Quests
+﻿namespace AAEmu.Game.Models.Game.Quests.Static
 {
-    public enum QuestStatus
+    public enum QuestContextStatus
     {
         Invalid = 0,
         Progress = 1,

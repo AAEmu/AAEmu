@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
@@ -204,6 +205,8 @@ namespace AAEmu.Game.Models.Game.Units
         public UnitProcs Procs { get; set; }
         public object ChargeLock { get; set; }
 
+        public bool ConditionChance { get; set; }
+
         public Unit()
         {
             Events = new UnitEvents();
@@ -253,6 +256,16 @@ namespace AAEmu.Game.Models.Game.Units
         /// <param name="killReason"></param>
         public virtual void ReduceCurrentHp(Unit attacker, int value, KillReason killReason = KillReason.Damage)
         {
+            if (attacker.CurrentTarget is Character character)
+            {
+                if (AppConfiguration.Instance.World.GodMode)
+                {
+                    _log.Debug("{1}:{0}'s Damage disabled because of GM or Admin flag", character.Name, character.Id);
+                    return; // GodMode On : take 0 damage from Npc
+                }
+
+            }
+
             if (Hp <= 0)
                 return;
 
@@ -377,6 +390,11 @@ namespace AAEmu.Game.Models.Game.Units
         {
             Invisible = value;
             BroadcastPacket(new SCUnitInvisiblePacket(ObjId, Invisible), true);
+        }
+
+        public void SetGodMode(bool value)
+        {
+            AppConfiguration.Instance.World.GodMode = value;
         }
 
         public void SetCriminalState(bool criminalState)
@@ -540,8 +558,6 @@ namespace AAEmu.Game.Models.Game.Units
             }
             return defaultVal;
         }
-        
-        
 
         public string GetAttribute(uint attr) => GetAttribute((UnitAttribute)attr);
 
@@ -635,5 +651,26 @@ namespace AAEmu.Game.Models.Game.Units
             return fallDmg;
         }
 
+        /// <summary>
+        /// Set the faction of the owner
+        /// </summary>
+        /// <param name="factionId"></param>
+        public void SetFaction(uint factionId)
+        {
+            if (this is Character) { return; } // do not change the faction for the character
+            BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
+            Faction = FactionManager.Instance.GetFaction(factionId);
+
+            // TODO added for quest Id=2486
+            if (this is not Npc npc) { return; }
+            // Npc attacks the character
+            var characters = WorldManager.Instance.GetAround<Character>(npc, 5.0f);
+            foreach (var character in characters.Where(CanAttack))
+            {
+                npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, character, 1);
+                npc.Ai.OnAggroTargetChanged();
+                npc.Ai.GoToCombat();
+            }
+        }
     }
 }

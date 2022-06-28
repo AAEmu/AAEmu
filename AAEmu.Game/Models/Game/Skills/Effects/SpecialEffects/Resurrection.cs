@@ -25,6 +25,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         {
             if (target is Character character && character.Hp <= 0)
             {
+                // TODO ...
+                if (caster is Character) { _log.Debug("Special effects: Resurrection value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+                
                 character.SendPacket(new SCNotifyResurrectionPacket(casterObj));
                 character.ResurrectHpPercent = (uint) value2;
                 character.ResurrectMpPercent = (uint) value3;

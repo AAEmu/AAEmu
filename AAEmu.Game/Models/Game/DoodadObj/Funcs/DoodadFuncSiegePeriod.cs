@@ -4,22 +4,23 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    public class DoodadFuncSiegePeriod : DoodadFuncTemplate
+    public class DoodadFuncSiegePeriod : DoodadPhaseFuncTemplate
     {
         public uint SiegePeriodId { get; set; }
-        public uint NextPhase { get; set; }
+        public int NextPhase { get; set; }
         public bool Defense { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override bool Use(Unit caster, Doodad owner)
         {
-            _log.Debug("DoodadFuncSiegePeriod");
+            _log.Trace("DoodadFuncSiegePeriod");
             if (caster is Character)
             {
                 //I think this is used to reschedule anything that needs triggered at a specific gametime
                 owner.OverridePhase = NextPhase;
-                owner.ToPhaseAndUse = true;
+                return true;
             }
-            owner.ToPhaseAndUse = false;
+
+            return false;
         }
     }
 }

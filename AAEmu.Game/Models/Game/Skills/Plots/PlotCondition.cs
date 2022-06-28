@@ -4,7 +4,6 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
-using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 using NLog;
@@ -140,6 +139,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         {
             // Param2 is only used once, and its value is "1"
             var roll = Rand.Next(0, 100);
+            caster.ConditionChance = roll <= chance;
             return roll <= chance;
         }
         

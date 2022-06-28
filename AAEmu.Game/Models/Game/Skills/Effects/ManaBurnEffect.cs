@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
-            _log.Debug("ManaBurnEffect");
+            _log.Trace("ManaBurnEffect");
             var min = 0.0f;
             var max = 0.0f;
             

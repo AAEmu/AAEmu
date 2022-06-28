@@ -4,14 +4,12 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 
-using NLog;
-
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class SpawnSlave : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.SpawnSlave;
-        
+
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,
@@ -25,7 +23,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
-            _log.Warn("SpawnSlave - value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
+            // TODO ...
+            if (caster is Character) { _log.Debug("Special effects: SpawnSlave value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
             var owner = (Character)caster;
             var skillData = (SkillItem)casterObj;

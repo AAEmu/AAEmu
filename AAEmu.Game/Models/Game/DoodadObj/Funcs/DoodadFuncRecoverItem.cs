@@ -10,9 +10,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncRecoverItem : DoodadFuncTemplate
     {
+        // doodad_funcs
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncRecoverItem");
+            _log.Trace("DoodadFuncRecoverItem");
 
             var character = (Character)caster;
             var addedItem = false;
@@ -23,9 +24,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 {
                     // Recoverable doodads, should be referencing a item in a System container, if this is not the case,
                     // that means that it was already picked up by somebody else
-                    if (item._holdingContainer.ContainerType != SlotType.System)
+                    if (item._holdingContainer?.ContainerType != SlotType.System)
                     {
-                        owner.ToPhaseAndUse = false;
                         // character.SendErrorMessage(ErrorMessageType.Backpack); // TODO: Not sure what error I need to put here
                         return;
                     }
@@ -34,7 +34,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     if (owner.DbHouseId > 0)
                     {
                         var house = HousingManager.Instance.GetHouseById(owner.DbHouseId);
-                        if ((house != null) && (!house.AllowedToInteract(character)))
+                        if (house != null && !house.AllowedToInteract(character))
                         {
                             character.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
                             return;
@@ -68,10 +68,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 _log.Warn("DoodadFuncRecoverItem: Doodad {0} has no item information attached to it", owner.InstanceId);
             }
 
-            if ((addedItem) && (item != null) && (item._holdingContainer.ContainerType == SlotType.Equipment))
+            if (addedItem && item != null && item._holdingContainer.ContainerType == SlotType.Equipment)
                 character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId,(byte)item.Slot,item), false);
 
-            owner.ToPhaseAndUse = addedItem;
+            owner.ToNextPhase = addedItem;
         }
     }
 }

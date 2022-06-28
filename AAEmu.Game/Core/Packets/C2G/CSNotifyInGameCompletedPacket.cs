@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
           
             WorldManager.Instance.OnPlayerJoin(Connection.ActiveChar);
-            _log.Info("NotifyInGameCompleted");
+            _log.Info("NotifyInGameCompleted SubZoneId {0}", Connection.ActiveChar.SubZoneId);
         }
     }
 }

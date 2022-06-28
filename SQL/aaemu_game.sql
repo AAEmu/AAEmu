@@ -175,11 +175,12 @@ CREATE TABLE `characters` (
   `num_bank_slot` smallint unsigned NOT NULL DEFAULT '50',
   `expanded_expert` tinyint NOT NULL,
   `slots` blob NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
-  `deleted` int NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Basic player character data';
+  `created_at` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+  `updated_at` datetime(0) NOT NULL DEFAULT '0001-01-01 00:00:00',
+  `deleted` int(11) NOT NULL DEFAULT 0,
+  `return_district` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`, `account_id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = 'Basic player character data' ROW_FORMAT = DYNAMIC;
 
 
 DROP TABLE IF EXISTS `completed_quests`;

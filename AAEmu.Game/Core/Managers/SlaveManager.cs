@@ -297,7 +297,7 @@ namespace AAEmu.Game.Core.Managers
 
                 doodad.SetScale(doodadBinding.Scale);
 
-                doodad.CurrentPhaseId = doodad.GetFuncGroupId();
+                doodad.FuncGroupId = doodad.GetFuncGroupId();
                 doodad.Transform = template.Transform.CloneAttached(doodad);
                 doodad.Transform.Parent = template.Transform;
                 

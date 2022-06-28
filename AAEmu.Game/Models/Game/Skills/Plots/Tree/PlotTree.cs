@@ -31,7 +31,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         {
             var treeWatch = new Stopwatch();
             treeWatch.Start();
-            _log.Debug("Executing plot tree with ID {0}", PlotId);
+            _log.Trace("Executing plot tree with ID {0}", PlotId);
             try
             {
                 var stopWatch = new Stopwatch();

@@ -6,14 +6,12 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
-using NLog;
-
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class TeleportToUnit : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.TeleportToUnit;
-        
+
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,
@@ -27,7 +25,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
-            _log.Warn("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
+            // TODO ...
+            if (caster is Character) { _log.Debug("Special effects: TeleportToUnit value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+
             if (target == null)
             {
                 //this shouldn't happen?
@@ -37,7 +37,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             var pos = target.Transform.World.Position;
             var distance = (float)value1 / 1000f;
             var (endX, endY) = MathUtil.AddDistanceToFront(distance, target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.ToRollPitchYawDegrees().Z);
-            
+
             switch (caster)
             {
                 case Character character:

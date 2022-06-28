@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Data;
 using System.IO;
-using System.Linq;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Models;
 using AAEmu.Commons.Utils;
@@ -18,7 +15,6 @@ using AAEmu.Game.Models.Game.Char.Templates;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Housing;
@@ -26,9 +22,7 @@ using NLog;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Tasks.Characters;
 using AAEmu.Game.Utils;
-using Microsoft.CodeAnalysis.Text;
 using MySql.Data.MySqlClient;
-using SQLitePCL;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
 {
@@ -476,7 +470,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 var template = GetTemplate(race, gender);
 
                 var character = new Character(customModel);
-                character.Id = characterId;
+                character.Id = characterId; // duplicate Id
+                character.TemplateId = characterId;
                 character.AccountId = connection.AccountId;
                 character.Name = name.Substring(0, 1).ToUpper() + name.Substring(1);
                 character.Race = (Race) race;
@@ -485,11 +480,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.Level = 1;
                 character.Faction = FactionManager.Instance.GetFaction(template.FactionId);
                 character.FactionName = "";
+                character.AccessLevel = 100; // TODO для тестирования создаем с полными правами
                 character.LaborPower = 50;
                 character.LaborPowerModified = DateTime.UtcNow;
                 character.NumInventorySlots = template.NumInventorySlot;
                 character.NumBankSlots = template.NumBankSlot;
                 character.Inventory = new Inventory(character);
+                character.Created = DateTime.UtcNow;
                 character.Updated = DateTime.UtcNow;
                 character.Ability1 = (AbilityType) ability1;
                 character.Ability2 = AbilityType.None;

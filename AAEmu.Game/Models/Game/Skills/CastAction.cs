@@ -76,6 +76,7 @@ namespace AAEmu.Game.Models.Game.Skills
     public class CastBuff : CastAction
     {
         private Buff _buff;
+        public Buff Buff { get => _buff; }
 
         public CastBuff(Buff buff)
         {

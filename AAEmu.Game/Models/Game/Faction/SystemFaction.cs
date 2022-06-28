@@ -46,6 +46,9 @@ namespace AAEmu.Game.Models.Game.Faction
                     var motherRelations = motherFaction.Relations;
                     if (motherRelations.ContainsKey(otherFactionId))
                         return motherRelations[otherFactionId].State;
+
+                    // TODO not found, so enemy (id = [1, 2, 3])
+                    return RelationState.Hostile;
                 }
             }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Skills;
 using NLog;
@@ -24,15 +25,25 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int chance,
             int value4)
         {
+            // TODO ...
+            if (caster is Character) { _log.Debug("Special effects: SkillUse skillId {0}, delay {1}, value3 {2}, value4 {3}", skillId, delay, chance, value4); }
+
             if (Rand.Next(0, 100) > chance && chance != 0)
+            {
+                caster.ConditionChance = false;
                 return;
+            }
+            else
+            {
+                caster.ConditionChance = true;
+            }
+
             target = caster.CurrentTarget;
             var useSkill = new Skill(SkillManager.Instance.GetSkillTemplate((uint)skillId));
             targetObj = new SkillCastUnitTarget(target?.ObjId ?? 0);
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.UseSkill);//Not sure if it belongs here.
             TaskManager.Instance.Schedule(new UseSkillTask(useSkill, caster, casterObj, target, targetObj, skillObject), TimeSpan.FromMilliseconds(delay));
             //useSkill.ApplyEffects(caster, casterObj, target, targetObj, skillObject);
-            _log.Trace("SkillId {0}, Delay {1}, Chance {2}, value4 {3}", skillId, delay, chance, value4);
         }
     }
 }

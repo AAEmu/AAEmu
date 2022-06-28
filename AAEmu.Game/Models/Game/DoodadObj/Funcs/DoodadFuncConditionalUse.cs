@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncConditionalUse : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint SkillId { get; set; }
         public uint FakeSkillId { get; set; }
         public uint QuestId { get; set; }
@@ -14,8 +15,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncConditionalUse");
-            owner.ToPhaseAndUse = false;
+            _log.Trace("DoodadFuncConditionalUse");
+
         }
     }
 }

@@ -26,8 +26,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
-            _log.Warn("value1 {0}, value2 {1}, value3 {2}, value4 {3}", target.Transform.ZoneId, value1, target.Name, targetObj.ObjId);
-            
+            if (caster is Character) { _log.Debug("Special effects: FishingLoot value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+
             var lootTableId = new uint();
             var zoneId = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId).GroupId;
             

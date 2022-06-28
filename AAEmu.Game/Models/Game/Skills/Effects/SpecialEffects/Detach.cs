@@ -21,12 +21,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
+            if (caster is Character) { _log.Debug("Special effects: Detach value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+
             if (caster is Character chara)
             {
                 //maybe we should check what were attached to?
                 //MateManager.Instance.UnMountMate(chara, skill.TlId, ap, DetachUnitReason.UnmountMate);
             }
-            _log.Warn("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
         }
     }
 

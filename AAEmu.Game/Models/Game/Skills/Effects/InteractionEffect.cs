@@ -2,6 +2,7 @@
 
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -33,13 +34,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.Interaction);
 
             var action = (IWorldInteraction)Activator.CreateInstance(classType);
-            if (source != null && source.Skill != null && casterObj != null && target != null && targetObj != null && source.Skill.Template != null)
+            if (source is {Skill: { }} && casterObj != null && target != null && targetObj != null && source.Skill.Template != null)
             {
                 action?.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId);
             }
 
-            // TODO do we need this call?
-            if (caster is Character character)
+            if (caster is not Character character) { return; }
+            if (target is Doodad)
             {
                 character.Quests.OnInteraction(WorldInteraction, target);
             }

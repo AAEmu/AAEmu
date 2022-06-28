@@ -26,6 +26,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
+            // TODO ...
+            if (caster is Character) { _log.Debug("Special effects: ResetCooldown skillId {0}, tagId {1}, gcd {2}, value4 {3}", value1, value2, value3, value4); }
+
             uint skillId = (uint)value1;
             uint tagId = (uint)value2;
             bool gcd = value3 == 1;
@@ -43,7 +46,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             }
 
             //Maybe do this for NPC's ?
-            _log.Warn("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
         }
     }
 }

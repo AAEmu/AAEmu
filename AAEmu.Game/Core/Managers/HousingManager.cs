@@ -87,7 +87,8 @@ namespace AAEmu.Game.Core.Managers
             house.TlId = tlId > 0 ? tlId : (ushort)HousingTldManager.Instance.GetNextId();
             house.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
             house.Template = template;
-            house.TemplateId = template.Id;
+            house.TemplateId = template.Id; // duplicate Id
+            house.Id = template.Id;
             house.Faction = FactionManager.Instance.GetFaction(factionId); // TODO: Inherit from owner
             house.Name = LocalizationManager.Instance.Get("housings", "name", template.Id);
             house.Hp = house.MaxHp;

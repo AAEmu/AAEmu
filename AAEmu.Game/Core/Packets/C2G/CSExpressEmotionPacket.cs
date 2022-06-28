@@ -12,13 +12,13 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var objId = stream.ReadBc();
-            var obj2Id = stream.ReadBc();
+            var objId = stream.ReadBc();  // character
+            var obj2Id = stream.ReadBc(); // target
             var emotionId = stream.ReadUInt32();
 
-            //_log.Warn("ExpressEmotion, ObjId: {0}, Obj2Id: {1}, EmotionId: {2}", objId, obj2Id, emotionId);
-            // TODO - verify ids
-            Connection.ActiveChar.BroadcastPacket(new SCEmotionExpressedPacket(objId, obj2Id, emotionId), true);
+            _log.Warn("ExpressEmotion, ObjId: {0}, Obj2Id: {1}, EmotionId: {2}", objId, obj2Id, emotionId);
+            Connection?.ActiveChar?.BroadcastPacket(new SCEmotionExpressedPacket(objId, obj2Id, emotionId), true);
+            Connection?.ActiveChar?.Quests?.OnExpressFire(emotionId, objId, obj2Id);
         }
     }
 }

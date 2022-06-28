@@ -11,16 +11,13 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
-
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class GradeEnchant : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.GradeEnchant;
-        
+
         private enum GradeEnchantResult
         {
             Break = 0,
@@ -43,7 +40,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
-            _log.Warn("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
+            if (caster is Character) { _log.Debug("Special effects: GradeEnchant value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
             // Get Player
             if ((!(caster is Character character)) || (character == null))
@@ -100,7 +97,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 return;
             }
 
-            if (!character.Inventory.CheckItems(SlotType.Inventory,scroll.ItemTemplateId, 1))
+            if (!character.Inventory.CheckItems(SlotType.Inventory, scroll.ItemTemplateId, 1))
             {
                 // No scroll
                 character.SendErrorMessage(ErrorMessageType.NotEnoughRequiredItem);

@@ -1,6 +1,4 @@
 ﻿using System;
-using AAEmu.Commons.Network;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -34,11 +32,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
             // TODO for test
             doodad.PlantTime = DateTime.UtcNow;
-            //if (doodad.GrowthTime.Millisecond <= 0)
-            //{
-            //    //doodad.GrowthTime = DateTime.UtcNow.AddMilliseconds(template.MinTime);
-            //    doodad.GrowthTime = DateTime.UtcNow.AddMilliseconds(10000);
-            //}
 
             if (Scale > 0)
                 doodad.SetScale(Scale);
@@ -67,11 +60,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             doodad.Transform.ApplyWorldSpawnPosition(Position);
             // TODO for test
             doodad.PlantTime = DateTime.UtcNow;
-            //if (doodad.GrowthTime.Millisecond <= 0)
-            //{
-            //    doodad.GrowthTime = DateTime.UtcNow.AddMilliseconds(doodad.Template.MinTime);
-            //doodad.GrowthTime = DateTime.UtcNow.AddMilliseconds(10000);
-            //}
             if (Scale > 0)
                 doodad.SetScale(Scale);
             if (doodad.Transform == null)

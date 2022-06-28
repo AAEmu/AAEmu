@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
@@ -16,6 +16,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         public override void Execute(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
             Skill skill, SkillObject skillObject, DateTime time, int buffId, int minCharge, int maxCharge, int unused)
         {
+            if (caster is Character) { _log.Debug("Special effects: Charge buffId {0}, minCharge {1}, maxCharge {2}, unused {3}", buffId, minCharge, maxCharge, unused); }
+
             lock (caster.ChargeLock)
             {
                 var buff = caster.Buffs.GetEffectFromBuffId((uint)buffId);

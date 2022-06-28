@@ -9,12 +9,12 @@ namespace AAEmu.Game.Models.Game.World.Interactions
 {
     public class Use : IWorldInteraction
     {
-        protected static Logger _log = LogManager.GetCurrentClassLogger();
+        private static Logger _log = LogManager.GetCurrentClassLogger();
 
         public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
             uint skillId, uint doodadId, DoodadFuncTemplate objectFunc)
         {
-            _log.Trace("World interaction SkillID: {0}", skillId);
+            _log.Debug("World interaction SkillID: {0}", skillId);
             if (target is Doodad doodad)
             {
                 doodad.Use(caster, skillId);

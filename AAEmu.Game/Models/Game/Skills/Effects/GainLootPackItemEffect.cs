@@ -43,7 +43,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 sourceItem = character.Inventory.Bag.GetItemByItemId(skillItem.ItemId);
 
 
-            _log.Debug("LootGroups {0}", string.Join(',', lootGroups.Select(x => x.Id)));
+            _log.Trace("LootGroups {0}", string.Join(',', lootGroups.Select(x => x.Id)));
 
             var rowG = lootGroups.Length;
             var rowP = lootPacks.Length;
@@ -169,7 +169,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             //if (sourceItem != null)
             //    character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, sourceItem.TemplateId, 1, sourceItem);   
 
-            _log.Debug("GainLootPackItemEffect {0}", LootPackId);
+            _log.Trace("GainLootPackItemEffect {0}", LootPackId);
         }
 
         private void AddGold(Unit caster, int goldMin, int goldMax)

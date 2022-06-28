@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Stream;
@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
-            _log.Debug("ImprintUccEffect");
+            _log.Trace("ImprintUccEffect");
             if (!(target is Character player))
                 return;
             if (!(casterObj is SkillItem skillItem))

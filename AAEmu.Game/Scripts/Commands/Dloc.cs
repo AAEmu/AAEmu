@@ -26,7 +26,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "(doodadID) <x> <y> <z>";
+            return "<doodad> <objectId> <x> <y> <z>";
         }
 
         public string GetCommandHelpText()
@@ -74,7 +74,7 @@ namespace AAEmu.Game.Scripts.Commands
                 }
                 else
                 {
-                    character.SendMessage("[dloc] doodad is null!");
+                    character.SendMessage("[npcloc] npc is null!");
                 }
             }
         }

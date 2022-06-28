@@ -1,5 +1,4 @@
-﻿
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -10,12 +9,23 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncFakeUse : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint SkillId { get; set; }
         public uint FakeSkillId { get; set; }
         public bool TargetParent { get; set; }
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
+            if (caster is Character)
+                _log.Debug("DoodadFuncFakeUse: skillId {0}, nextPhase {1},  SkillId {2}, FakeSkillId {3}, TargetParent {4}", skillId, nextPhase, SkillId, FakeSkillId, TargetParent);
+            else
+                _log.Trace("DoodadFuncFakeUse: skillId {0}, nextPhase {1},  SkillId {2}, FakeSkillId {3}, TargetParent {4}", skillId, nextPhase, SkillId, FakeSkillId, TargetParent);
+
+            if (caster == null)
+            {
+                return;
+            }
+
             if (SkillId != 0)
             {
                 var skillCaster = SkillCaster.GetByType(SkillCasterType.Doodad);
@@ -32,8 +42,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(SkillId));
                 skill.Use(caster, skillCaster, target);
+                owner.ToNextPhase = true;
             }
-            if (FakeSkillId != 0)
+            else if (FakeSkillId != 0)
             {
                 var transferTelescope = 20580;
                 var range = 1000f;
@@ -41,15 +52,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 {
                     owner.BroadcastPacket(new SCTransferTelescopeToggledPacket(true, range), true);
                     TransferTelescopeManager.Instance.TransferTelescopeStart(character);
+                    owner.ToNextPhase = true;
                 }
 
                 if (FakeSkillId == skillId && nextPhase > 0)
                 {
-                    owner.ToPhaseAndUse = true;
-                    return;
+                    owner.ToNextPhase = true;
+                    // удалил дублирующий вызов скила
                 }
             }
-            owner.ToPhaseAndUse = false;
         }
     }
 }

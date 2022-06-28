@@ -1,4 +1,6 @@
-﻿namespace AAEmu.Game.Models.Game.Quests
+﻿using AAEmu.Game.Models.Game.Quests.Static;
+
+namespace AAEmu.Game.Models.Game.Quests
 {
     public class QuestComponent
     {
@@ -16,5 +18,6 @@
         public uint AiCommandSetId { get; set; }
         public bool OrUnitReqs { get; set; }
         public uint CinemaId { get; set; }
+        public uint BuffId { get; set; }
     }
 }

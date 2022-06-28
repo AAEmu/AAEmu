@@ -5,10 +5,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncSkinOff : DoodadFuncTemplate
     {
+        // doodad_funcs
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncSkinOff");
-            owner.ToPhaseAndUse = false;
+            _log.Trace("DoodadFuncSkinOff");
+
         }
     }
 }

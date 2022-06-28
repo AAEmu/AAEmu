@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
@@ -17,6 +18,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
@@ -85,13 +87,15 @@ namespace AAEmu.Game.Core.Managers.World
                                 }
                                 
                                 spawner.Position.WorldId = world.Id;
-                                spawner.Position.ZoneId =
-                                    WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                                spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
                                 // Convert degrees from the file to radians for use
                                 spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
                                 spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
                                 spawner.Position.Roll = spawner.Position.Roll.DegToRad();
-                                npcSpawners.Add(spawner.Id, spawner);
+                                if (!npcSpawners.ContainsKey(spawner.Id))
+                                {
+                                    npcSpawners.Add(spawner.Id, spawner);
+                                }
                             }
                         else
                             throw new Exception($"SpawnManager: Parse {jsonFileName} file");
@@ -139,7 +143,10 @@ namespace AAEmu.Game.Core.Managers.World
                                 spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
                                 spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
                                 spawner.Position.Roll = spawner.Position.Roll.DegToRad();
-                                doodadSpawners.Add(spawner.Id, spawner);
+                                if (!doodadSpawners.ContainsKey(spawner.Id))
+                                {
+                                    doodadSpawners.Add(spawner.Id, spawner);
+                                }
                             }
                         }
                         else
@@ -183,7 +190,10 @@ namespace AAEmu.Game.Core.Managers.World
                                 spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
                                 spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
                                 spawner.Position.Roll = spawner.Position.Roll.DegToRad();
-                                transferSpawners.Add(spawner.Id, spawner);
+                                if (!transferSpawners.ContainsKey(spawner.Id))
+                                {
+                                    transferSpawners.Add(spawner.Id, spawner);
+                                }
                             }
                         }
                         else
@@ -194,7 +204,7 @@ namespace AAEmu.Game.Core.Managers.World
                 }
 
                 jsonFileName = Path.Combine(worldPath, "gimmick_spawns.json");
-                
+
                 if (!File.Exists(jsonFileName))
                 {
                     _log.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
@@ -223,9 +233,11 @@ namespace AAEmu.Game.Core.Managers.World
                                 }
                                 
                                 spawner.Position.WorldId = world.Id;
-                                spawner.Position.ZoneId =
-                                    WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
-                                gimmickSpawners.Add(spawner.Id, spawner);
+                                spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                                if (!gimmickSpawners.ContainsKey(spawner.Id))
+                                {
+                                    gimmickSpawners.Add(spawner.Id, spawner);
+                                }
                             }
                         }
                         else
@@ -273,7 +285,7 @@ namespace AAEmu.Game.Core.Managers.World
                             var doodad = DoodadManager.Instance.Create(0, templateId);
 
                             doodad.DbId = dbId;
-                            doodad.CurrentPhaseId = phaseId;
+                            doodad.FuncGroupId = phaseId;
                             doodad.OwnerId = ownerId;
                             doodad.OwnerType = ownerType;
                             doodad.AttachPoint = AttachPointKind.None;
@@ -286,7 +298,7 @@ namespace AAEmu.Game.Core.Managers.World
                             doodad.ItemTemplateId = sourceItem?.TemplateId ?? itemTemplateId;
                             // Grab Ucc from it's old source item
                             doodad.UccId = sourceItem?.UccId ?? 0;
-                                    
+
                             doodad.Transform.Local.SetPosition(x, y, z);
                             doodad.Transform.Local.SetRotation(reader.GetFloat("roll"), reader.GetFloat("pitch"), reader.GetFloat("yaw"));
 
@@ -334,23 +346,91 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void SpawnAll()
         {
-            foreach (var spawner in _npcSpawners.Values.SelectMany(worldSpawners => worldSpawners.Values))
-                spawner.SpawnAll();
+            _log.Info("Spawning NPCs...");
+            foreach (var (worldId, worldSpawners) in _npcSpawners)
+            {
+                Task.Run(() =>
+                {
+                    _log.Info("Spawning {0} NPC spawners in world {1}", worldSpawners.Count, worldId);
+                    var count = 0;
+                    foreach (var spawner in worldSpawners.Values)
+                    {
+                        spawner.SpawnAll();
+                        count++;
+                        if (count % 5000 == 0 && worldId == 0)
+                        {
+                            _log.Info("{0} NPC spawners spawned...", count);
+                        }
+                    }
+                    _log.Info("{0} NPC spawners spawned...", count);
+                });
+            }
 
-            foreach (var spawner in _doodadSpawners.Values.SelectMany(worldSpawners => worldSpawners.Values))
-                spawner.Spawn(0);
+            _log.Info("Spawning Doodads...");
+            foreach (var (worldId, worldSpawners) in _doodadSpawners)
+            {
+                Task.Run(() =>
+                {
+                    _log.Info("Spawning {0} Doodads in world {1}", worldSpawners.Count, worldId);
+                    var count = 0;
+                    foreach (var spawner in worldSpawners.Values)
+                    {
+                        spawner.Spawn(0);
+                        count++;
+                        if (count % 1000 == 0 && worldId == 0)
+                        {
+                            _log.Info("{0} Doodads spawned", count);
+                        }
+                    }
+                    _log.Info("{0} Doodads spawned", count);
+                });
+            }
 
-            foreach (var spawner in _transferSpawners.Values.SelectMany(worldSpawners => worldSpawners.Values))
-                spawner.SpawnAll();
+            _log.Info("Spawning Transfers...");
+            foreach (var (worldId, worldSpawners) in _transferSpawners)
+            {
+                Task.Run(() =>
+                {
+                    _log.Info("Spawning {0} Transfers in world {1}", worldSpawners.Count, worldId);
+                    var count = 0;
+                    foreach (var spawner in worldSpawners.Values)
+                    {
+                        spawner.SpawnAll();
+                        count++;
+                        if (count % 10 == 0 && worldId == 0)
+                        {
+                            _log.Info("{0} Transfers spawned...", count);
+                        }
+                    }
+                    _log.Info("{0} Transfers spawned...", count);
+                });
+            }
 
-            foreach (var spawner in _gimmickSpawners.Values.SelectMany(worldSpawners => worldSpawners.Values))
-                spawner.Spawn(0);
+            _log.Info("Spawning Gimmicks...");
+            foreach (var (worldId, worldSpawners) in _gimmickSpawners)
+            {
+                Task.Run(() =>
+                {
+                    _log.Info("Spawning {0} Gimmicks in world {1}", worldSpawners.Count, worldId);
+                    var count = 0;
+                    foreach (var spawner in worldSpawners.Values)
+                    {
+                        spawner.Spawn(0);
+                        count++;
+                        if (count % 5 == 0 && worldId == 0)
+                        {
+                            _log.Info("{0} Gimmicks spawned...", count);
+                        }
+                    }
+                    _log.Info("{0} Gimmicks spawned...", count);
+                });
+            }
 
+            _log.Info("Spawning Player Doodads asynchronously...");
             Task.Run(() =>
             {
                 foreach (var doodad in _playerDoodads)
                 {
-                    // doodad.DoPhase(null, 0);
                     doodad.Spawn();
                 }
             });

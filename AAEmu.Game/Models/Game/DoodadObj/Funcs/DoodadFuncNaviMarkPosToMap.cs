@@ -5,14 +5,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncNaviMarkPosToMap : DoodadFuncTemplate
     {
+        // doodad_funcs
         public int X { get; set; }
         public int Y { get; set; }
         public int Z { get; set; }
         
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncNaviMarkPosToMap");
-            owner.ToPhaseAndUse = false;
+            _log.Trace("DoodadFuncNaviMarkPosToMap");
+
         }
     }
 }

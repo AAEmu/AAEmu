@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Packets;
@@ -18,7 +18,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
-            _log.Debug("CleanupUccEffect");
+            _log.Trace("CleanupUccEffect");
             if (!(target is Character player))
                 return;
             if (!(casterObj is SkillItem skillItem))

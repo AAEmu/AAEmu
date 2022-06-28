@@ -5,13 +5,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncFeed : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint ItemId { get; set; }
         public int Count { get; set; }
         
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncFeed");
-            owner.ToPhaseAndUse = false;
+            _log.Trace("DoodadFuncFeed");
+
         }
     }
 }

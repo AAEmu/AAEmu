@@ -1,22 +1,17 @@
 ﻿using System;
 using System.Linq;
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Skills.Static;
+
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
+
 using static AAEmu.Game.Models.Game.Skills.SkillControllers.SkillController;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 {
     public abstract class BaseCombatBehavior : Behavior
     {
-        protected DateTime _delayEnd;
-        protected float _nextTimeToDelay;
         protected bool _strafeDuringDelay;
-        
+
         public void MoveInRange(BaseUnit target, TimeSpan delta)
         {
             if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e => e.Template.Stun || e.Template.Sleep))
@@ -31,11 +26,11 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             // var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
             if (distanceToTarget > range)
                 Ai.Owner.MoveTowards(target.Transform.World.Position, speed);
-            else 
+            else
                 Ai.Owner.StopMovement();
         }
 
-        protected bool CanStrafe 
+        protected bool CanStrafe
         {
             get
             {
@@ -50,7 +45,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 return Ai.Owner.SkillTask != null || Ai.Owner.ActivePlotState != null;
             }
         }
-        
+
         protected bool CanUseSkill
         {
             get
@@ -66,7 +61,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         }
 
         // TODO: Absolute return dist
-        protected bool ShouldReturn => MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.IdlePosition.Local.Position) > Ai.Owner.Template.ReturnDistance;
+        protected bool ShouldReturn =>
+            MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.IdlePosition.Local.Position) >
+            Ai.Owner.Template.ReturnDistance;
 
         public bool UpdateTarget()
         {
@@ -74,12 +71,16 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             var aggroList = Ai.Owner.AggroTable.Values;
             var abusers = aggroList.OrderByDescending(o => o.TotalAggro).Select(o => o.Owner).ToList();
 
-            foreach(var abuser in abusers)
+            foreach (var abuser in abusers)
             {
-                if(Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
+                if (Ai.AlreadyTargetted)
+                    return true;
+
+                if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead && !Ai.AlreadyTargetted)
                 {
                     Ai.Owner.CurrentAggroTarget = abuser.ObjId;
                     Ai.Owner.SetTarget(abuser);
+                    Ai.AlreadyTargetted = true;
                     return true;
                 }
                 else
@@ -88,56 +89,8 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 }
             }
             Ai.Owner.SetTarget(null);
+            Ai.AlreadyTargetted = false;
             return false;
         }
-        
-        // UseSkill (delay)
-        public void UseSkill(Skill skill, BaseUnit target, float delay = 0)
-        {
-            _nextTimeToDelay = delay;
-            var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);
-            skillCaster.ObjId = Ai.Owner.ObjId;
-
-            SkillCastTarget skillCastTarget;
-            switch (skill.Template.TargetType)
-            {
-                case SkillTargetType.Pos:
-                    var pos = Ai.Owner.Transform.World.Position;
-                    skillCastTarget = new SkillCastPositionTarget()
-                    {
-                        ObjId = Ai.Owner.ObjId,
-                        PosX = pos.X,
-                        PosY = pos.Y,
-                        PosZ = pos.Z,
-                        PosRot = Ai.Owner.Transform.World.ToRollPitchYawDegrees().Z // (float)MathUtil.ConvertDirectionToDegree(pos.RotationZ) //Is this rotation right?
-                    };
-                    break;
-                default:
-                    skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
-                    skillCastTarget.ObjId = target.ObjId;
-                    break;
-            }
-
-            var skillObject = SkillObject.GetByType(SkillObjectType.None);
-
-            skill.Callback = OnSkillEnded;
-            var result = skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject);
-            if (result == SkillResult.Success)
-                Ai.Owner.LookTowards(target.Transform.World.Position);
-        }
-
-        public virtual void OnSkillEnded()
-        {
-            try
-            {
-                _delayEnd = DateTime.UtcNow.AddSeconds(_nextTimeToDelay);
-            }
-            catch
-            {
-                
-            }
-        }
-        
-        // Check if can pick a new skill (delay, already casting)
     }
 }

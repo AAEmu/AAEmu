@@ -39,7 +39,7 @@ namespace AAEmu.Game.Models.Game.Skills.Utils
                 case SkillTargetRelation.Any:
                     return true;
                 case SkillTargetRelation.Friendly:
-                    return caster.GetRelationStateTo(target) == RelationState.Friendly && !caster.CanAttack(target);
+                    return caster?.GetRelationStateTo(target) == RelationState.Friendly && !caster.CanAttack(target);
                 case SkillTargetRelation.Hostile:
                     return caster.CanAttack(target);
                 case SkillTargetRelation.Party:
@@ -50,7 +50,7 @@ namespace AAEmu.Game.Models.Game.Skills.Utils
                     return team?.IsObjMember(target.ObjId) ?? false;
                 case SkillTargetRelation.Others:
                     // return caster.GetRelationStateTo(target) == RelationState.Neutral;
-                    return caster.ObjId != target.ObjId;
+                    return caster?.ObjId != target.ObjId;
                 default:
                     return true;
             }

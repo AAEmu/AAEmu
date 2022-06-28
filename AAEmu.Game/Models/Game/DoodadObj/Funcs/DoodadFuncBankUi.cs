@@ -5,10 +5,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncBankUi : DoodadFuncTemplate
     {
+        // doodad_funcs
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncBankUi");
-            owner.ToPhaseAndUse = false;
+            _log.Trace("DoodadFuncBankUi");
         }
     }
 }

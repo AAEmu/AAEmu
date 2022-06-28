@@ -133,7 +133,7 @@ namespace AAEmu.Game.Core.Managers
                 }
                 else
                 {
-                    _log.Warn("No such Effec Type[{0}] found.", type.Type);
+                    _log.Warn("No such Effect Type[{0}] found.", type.Type);
                     return null;
                 }
             }

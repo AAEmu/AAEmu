@@ -91,6 +91,9 @@ namespace AAEmu.Game
             GameDataManager.Instance.LoadGameData();
             QuestManager.Instance.Load();
 
+            SphereQuestManager.Instance.Load();
+            SphereQuestManager.Instance.Initialize();
+
             FormulaManager.Instance.Load();
             ExpirienceManager.Instance.Load();
 
@@ -107,6 +110,7 @@ namespace AAEmu.Game
             TeamManager.Instance.Load();
             AuctionManager.Instance.Load();
             MailManager.Instance.Load();
+            ExpressTextManager.Instance.Load();
 
             NameManager.Instance.Load();
             FactionManager.Instance.Load();

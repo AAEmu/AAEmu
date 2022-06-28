@@ -207,7 +207,7 @@ namespace AAEmu.Game.Core.Managers.World
         public Vector2 GetZoneOriginCell(uint zoneId)
         {
             var world = WorldManager.Instance.GetWorldByZone(zoneId);
-            if (world.XmlWorldZones.TryGetValue(zoneId, out var xmlZone))
+            if (world != null && world.XmlWorldZones.TryGetValue(zoneId, out var xmlZone))
             {
                 return new Vector2(xmlZone.OriginX, xmlZone.OriginY);
             }

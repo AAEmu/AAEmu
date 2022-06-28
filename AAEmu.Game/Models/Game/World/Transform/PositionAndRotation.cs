@@ -348,13 +348,14 @@ namespace AAEmu.Game.Models.Game.World.Transform
             return new WorldPos((long)(Position.X * 4096) << 32,(long)(Position.Y * 4096) << 32,Position.Z);
         }
 
-        public (float, float) AddDistanceToFront(float travelDist, float targetDist, Vector3 position, Vector3 other)
+        public (float, float, float) AddDistanceToFront(float travelDist, float targetDist, Vector3 position, Vector3 other)
         {
             var distRatio = travelDist / targetDist;
             var newX = (other.X - position.X) * distRatio + position.X;
             var newY = (other.Y - position.Y) * distRatio + position.Y;
+            var newZ = (other.Z - position.Z) * distRatio + position.Z;
 
-            return (newX, newY);
+            return (newX, newY, newZ);
         }
     }
 }
