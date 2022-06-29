@@ -51,7 +51,6 @@ namespace AAEmu.Game.Core.Managers.World
 
             var worlds = WorldManager.Instance.GetWorlds();
             _log.Info("Loading spawns...");
-            var jsonFileName = string.Empty;
             var idx = 1u; // for npc spawner.Id
             foreach (var world in worlds)
             {
