@@ -62,20 +62,18 @@ namespace AAEmu.Game.Core.Managers.World
                 var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name);
 
                 // Load NPC Spawns
-                jsonFileName = Path.Combine(worldPath, "npc_spawns.json");
-
-                var contents = string.Empty;
+                var jsonFileName = Path.Combine(worldPath, "npc_spawns.json");
 
                 if (!File.Exists(jsonFileName))
                 {
-                    _log.Info("World  {0}  is missing  {1}", world.Name, Path.GetFileName(jsonFileName));
+                    _log.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
                 }
                 else
                 {
-                    contents = FileManager.GetFileContents(jsonFileName);
+                    var contents = FileManager.GetFileContents(jsonFileName);
 
                     if (string.IsNullOrWhiteSpace(contents))
-                        _log.Warn("File {0} is empty.", jsonFileName);
+                        _log.Warn($"File {jsonFileName} is empty.");
                     else
                     {
                         if (JsonHelper.TryDeserializeObject(contents, out List<NpcSpawner> spawners, out _))
@@ -83,6 +81,13 @@ namespace AAEmu.Game.Core.Managers.World
                             {
                                 if (!NpcManager.Instance.Exist(spawner.UnitId))
                                     continue; // TODO ... so mb warn here?
+                                
+                                if (npcSpawners.ContainsKey(spawner.Id))
+                                {
+                                    _log.Warn($"Duplicate Npc Spawn Id: {spawner.Id}");
+                                    continue;
+                                }
+                                
                                 spawner.Position.WorldId = world.Id;
                                 spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
                                 // Convert degrees from the file to radians for use
@@ -105,7 +110,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 }
                             }
                         else
-                            throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
+                            throw new Exception($"SpawnManager: Parse {jsonFileName} file");
                     }
                 }
 
@@ -114,13 +119,14 @@ namespace AAEmu.Game.Core.Managers.World
 
                 if (!File.Exists(jsonFileName))
                 {
-                    _log.Info("World  {0}  is missing  {1}", world.Name, Path.GetFileName(jsonFileName));
+                    _log.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
                 }
                 else
                 {
-                    contents = FileManager.GetFileContents(jsonFileName);
+                    var contents = FileManager.GetFileContents(jsonFileName);
+                    
                     if (string.IsNullOrWhiteSpace(contents))
-                        _log.Warn("File {0} is empty.", jsonFileName);
+                        _log.Warn($"File {jsonFileName} is empty.");
                     else
                     {
                         if (JsonHelper.TryDeserializeObject(contents, out List<DoodadSpawner> spawners, out _))
@@ -131,11 +137,16 @@ namespace AAEmu.Game.Core.Managers.World
                                 C++;
                                 if (!DoodadManager.Instance.Exist(spawner.UnitId))
                                 {
-                                    _log.Warn("Doodad Template {0} (file entry {1}) doesn't exist - {2}",
-                                        spawner.UnitId, C, jsonFileName);
+                                    _log.Warn($"Doodad Template {spawner.UnitId} (file entry {C}) doesn't exist - {jsonFileName}");
                                     continue; // TODO ... so mb warn here?
                                 }
 
+                                if (doodadSpawners.ContainsKey(spawner.Id))
+                                {
+                                    _log.Warn($"Duplicate Doodad Spawn Id: {spawner.Id}");
+                                    continue;
+                                }
+                                
                                 spawner.Position.WorldId = world.Id;
                                 spawner.Position.ZoneId = WorldManager
                                     .Instance
@@ -152,7 +163,7 @@ namespace AAEmu.Game.Core.Managers.World
                             }
                         }
                         else
-                            throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
+                            throw new Exception($"SpawnManager: Parse {jsonFileName} file");
                     }
                 }
 
@@ -161,14 +172,15 @@ namespace AAEmu.Game.Core.Managers.World
 
                 if (!File.Exists(jsonFileName))
                 {
-                    _log.Info("World  {0}  is missing  {1}", world.Name, Path.GetFileName(jsonFileName));
+                    _log.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
                 }
                 else
                 {
-                    contents = FileManager.GetFileContents(jsonFileName);
+                    var contents = FileManager.GetFileContents(jsonFileName);
+                    
                     if (string.IsNullOrWhiteSpace(contents))
                     {
-                        _log.Warn("File {0} doesn't exists or is empty.", jsonFileName);
+                        _log.Warn($"File {jsonFileName} doesn't exists or is empty.");
                     }
                     else
                     {
@@ -178,6 +190,13 @@ namespace AAEmu.Game.Core.Managers.World
                             {
                                 if (!TransferManager.Instance.Exist(spawner.UnitId))
                                     continue;
+                                
+                                if (transferSpawners.ContainsKey(spawner.Id))
+                                {
+                                    _log.Warn($"Duplicate Transfer Spawn Id: {spawner.Id}");
+                                    continue;
+                                }
+                                
                                 spawner.Position.WorldId = world.Id;
                                 spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
                                 // Convert degrees from the file to radians for use
@@ -193,7 +212,7 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                         else
                         {
-                            throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
+                            throw new Exception($"SpawnManager: Parse {jsonFileName} file");
                         }
                     }
                 }
@@ -202,14 +221,15 @@ namespace AAEmu.Game.Core.Managers.World
 
                 if (!File.Exists(jsonFileName))
                 {
-                    _log.Info("World  {0}  is missing  {1}", world.Name, Path.GetFileName(jsonFileName));
+                    _log.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
                 }
                 else
                 {
-                    contents = FileManager.GetFileContents(jsonFileName);
+                    var contents = FileManager.GetFileContents(jsonFileName);
+                    
                     if (string.IsNullOrWhiteSpace(contents))
                     {
-                        _log.Warn("File {0} doesn't exists or is empty.", jsonFileName);
+                        _log.Warn($"File {jsonFileName} doesn't exists or is empty.");
                     }
                     else
                     {
@@ -219,6 +239,13 @@ namespace AAEmu.Game.Core.Managers.World
                             {
                                 if (!GimmickManager.Instance.Exist(spawner.UnitId))
                                     continue;
+                                
+                                if (gimmickSpawners.ContainsKey(spawner.Id))
+                                {
+                                    _log.Warn($"Duplicate Gimmick Spawn Id: {spawner.Id}");
+                                    continue;
+                                }
+                                
                                 spawner.Position.WorldId = world.Id;
                                 spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
                                 if (!gimmickSpawners.ContainsKey(idx))
@@ -230,7 +257,7 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                         else
                         {
-                            throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
+                            throw new Exception($"SpawnManager: Parse {jsonFileName} file");
                         }
                     }
 
@@ -262,7 +289,7 @@ namespace AAEmu.Game.Core.Managers.World
                             var z = reader.GetFloat("z");
                             var plantTime = reader.GetDateTime("plant_time");
                             var growthTime = reader.GetDateTime("growth_time");
-                            var phaseTime = reader.GetDateTime("phase_time");
+                            // var phaseTime = reader.GetDateTime("phase_time"); // Not used
                             var ownerId = reader.GetUInt32("owner_id");
                             var ownerType = (DoodadOwnerType)reader.GetByte("owner_type");
                             var itemId = reader.GetUInt64("item_id");
@@ -297,7 +324,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 var pDoodad = _playerDoodads.FirstOrDefault(d => d.DbId == parentDoodad);
                                 if (pDoodad == null)
                                 {
-                                    _log.Warn("Unable to place doodad {0} can't find it's parent doodad {1}", dbId, parentDoodad);
+                                    _log.Warn($"Unable to place doodad {dbId} can't find it's parent doodad {parentDoodad}");
                                 }
                                 else
                                 {
@@ -312,7 +339,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 var owningHouse = HousingManager.Instance.GetHouseById(doodad.DbHouseId);
                                 if (owningHouse == null)
                                 {
-                                    _log.Warn("Unable to place doodad {0} can't find it's owning house {1}", dbId, houseId);
+                                    _log.Warn($"Unable to place doodad {dbId} can't find it's owning house {houseId}");
                                 }
                                 else
                                 {

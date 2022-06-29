@@ -1,6 +1,7 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Utils;
@@ -30,26 +31,6 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 if (Owner.Inventory.GetItemsCount(craftMaterial.ItemId) < craftMaterial.Amount)
                     hasMaterials = false;
-                /*
-                var materialItem = Owner.Inventory.GetItemByTemplateId(craftMaterial.ItemId);
-                if (materialItem == null || materialItem.Count < craftMaterial.Amount)
-                {
-                    hasMaterials = false;
-                }
-                */
-            }
-
-            if (_craft.IsPack)
-            {
-                var item = Owner.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
-                var backpackTemplate = (BackpackTemplate)item?.Template;
-                if (backpackTemplate != null && backpackTemplate.BackpackType != BackpackType.Glider)
-                {
-                    // mb check to drop glider to inventory
-                    //if (!Owner.Inventory.TakeoffBackpack())
-                    CancelCraft();
-                    return;
-                }
             }
 
             if (hasMaterials)
@@ -73,14 +54,15 @@ namespace AAEmu.Game.Models.Game.Char
             IsCrafting = false;
 
             if (_craft == null)
+            {
+                CancelCraft();
                 return;
+            }
 
             if (Owner.Inventory.FreeSlotCount(SlotType.Inventory) < _craft.CraftProducts.Count)
-                return;
-
-            foreach (var material in _craft.CraftMaterials)
             {
-                Owner.Inventory.Bag.ConsumeItem(Items.Actions.ItemTaskType.CraftActSaved, material.ItemId, material.Amount,null);
+                CancelCraft();
+                return;
             }
 
             foreach (var product in _craft.CraftProducts)
@@ -98,20 +80,12 @@ namespace AAEmu.Game.Models.Game.Char
                         CancelCraft();
                         return;
                     }
-                    /*
-                    // Remove player backpack
-                    if (Owner.Inventory.TakeoffBackpack(Items.Actions.ItemTaskType.CraftPickupProduct,true))
-                    {
-                        // Put tradepack in their backpack slot
-                        Owner.Inventory.Equipment.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount);
-                    }
-                    else
-                    {
-                        CancelCraft();
-                        return;
-                    }
-                    */
                 }
+            }
+
+            foreach (var material in _craft.CraftMaterials)
+            {
+                Owner.Inventory.Bag.ConsumeItem(Items.Actions.ItemTaskType.CraftActSaved, material.ItemId, material.Amount,null);
             }
 
             if (_count > 0 && !_craft.IsPack)
@@ -122,13 +96,20 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        // Not called for now. Needs to be called when crafting is cancelled.
         public void CancelCraft()
         {
             IsCrafting = false;
             _craft = null;
             _count = 0;
             _doodadId = 0;
+            
+            // Also cancel the related skill ? I don't think this really does anything for crafts, but can't hurt I guess
+            if (Owner != null)
+            {
+                if (Owner.SkillTask != null)
+                    Owner.SkillTask.Skill.Cancelled = true;
+                Owner.InterruptSkills();
+            }
 
             // Might want to send a packet here, I think there is a packet when crafting fails. Not sure yet..
         }

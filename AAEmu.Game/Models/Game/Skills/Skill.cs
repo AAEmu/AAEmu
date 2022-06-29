@@ -533,7 +533,7 @@ namespace AAEmu.Game.Models.Game.Skills
                         return; // Item does not exists
                     }
 
-                    if (useItem._holdingContainer.Owner.Id != player.Id)
+                    if (useItem._holdingContainer.OwnerId != player.Id)
                     {
                         _log.Warn("SkillItem {0} (itemId:{1}) is not owned by player {2} ({3})", useItem.Template.Name, useItem.Id, player.Name, player.Id);
                         return; // Item is not in the player's possessions

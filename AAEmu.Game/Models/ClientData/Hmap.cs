@@ -58,7 +58,7 @@ namespace AAEmu.Game.Models.ClientData
                     node.Read(br, disabledReCalc);
                     nodesRead++;
                 }
-                catch(Exception ex) 
+                catch 
                 {
                     return -1;
                 }

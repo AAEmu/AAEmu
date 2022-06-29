@@ -23,7 +23,6 @@ namespace AAEmu.Game.Models.Game.World
         public List<uint> ZoneKeys { get; set; } = new List<uint>();
         public ConcurrentDictionary<uint, XmlWorldZone> XmlWorldZones;
 
-
         public float GetRawHeightMapHeight(int x, int y)
         {
             // This is the old GetHeight()

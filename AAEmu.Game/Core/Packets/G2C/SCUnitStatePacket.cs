@@ -340,13 +340,13 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.WritePisc(character.HonorGainedInCombat, character.HostileFactionKills); // очки чести полученные в PvP, кол-во убийств в PvP
                 stream.Write(flags.ToByteArray()); // flags(ushort)
                 /*
-                 * 0x01 - 8bit - режим боя
-                 * 0x04 - 6bit - невидимость?
-                 * 0x08 - 5bit - дуэль
-                 * 0x40 - 2bit - gmmode, дополнительно 7 байт
-                 * 0x80 - 1bit - дополнительно tl(ushort), tl(ushort), tl(ushort), tl(ushort)
-                 * 0x0100 - 16bit - дополнительно 3 байт (bc), firstHitterTeamId(uint)
-                 * 0x0400 - 14bit - надпись "Отсутсвует" под именем
+                 * 0x01 - 8bit - режим боя - combat mode
+                 * 0x04 - 6bit - невидимость? - invisibility?
+                 * 0x08 - 5bit - дуэль - duel
+                 * 0x40 - 2bit - gmmode, дополнительно 7 байт - gmmode, extra 7 bytes
+                 * 0x80 - 1bit - дополнительно - additionally - tl(ushort), tl(ushort), tl(ushort), tl(ushort)
+                 * 0x0100 - 16bit - дополнительно 3 байт - additional 3 bytes (bc), firstHitterTeamId(uint)
+                 * 0x0400 - 14bit - надпись "Отсутсвует" под именем - the inscription "Missing" under the name
                  */
             }
             else

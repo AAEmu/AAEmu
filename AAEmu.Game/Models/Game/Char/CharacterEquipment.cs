@@ -102,7 +102,7 @@ namespace AAEmu.Game.Models.Game.Char
             var appliedBuffs = new HashSet<uint>();
             foreach (var setCount in setNumPieces)
             {
-                var equipItemSet = ItemManager.Instance.GetEquiptItemSet(setCount.Key);
+                var equipItemSet = ItemManager.Instance.GetEquippedItemSet(setCount.Key);
                 foreach(var bonus in equipItemSet.Bonuses)
                 {
                     if (setCount.Value >= bonus.NumPieces)

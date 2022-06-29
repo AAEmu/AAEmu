@@ -7,13 +7,13 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCAttachmentTakenPacket : GamePacket
     {
-        public readonly long _mailId;
-        public readonly bool _money;
-        public readonly bool _aaPoint;
-        public readonly bool _takeSequentially;
+        private readonly long _mailId;
+        private readonly bool _money;
+        private readonly bool _aaPoint;
+        private readonly bool _takeSequentially;
         // public readonly ulong[] _itemId;
         // public readonly (SlotType slotType, byte slot)[] _itemSlots;
-        public readonly List<ItemIdAndLocation> _itemsList;
+        private readonly List<ItemIdAndLocation> _itemsList;
 
         // public SCAttachmentTakenPacket(long mailId, bool money, bool aaPoint, bool takeSequentially, ulong[] itemId, (SlotType slotType, byte slot)[] itemSlots) : base(SCOffsets.SCAttachmentTakenPacket, 1)
         public SCAttachmentTakenPacket(long mailId, bool money, bool aaPoint, bool takeSequentially, List<ItemIdAndLocation> itemsList) : base(SCOffsets.SCAttachmentTakenPacket, 1)

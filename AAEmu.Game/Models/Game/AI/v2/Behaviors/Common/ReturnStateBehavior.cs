@@ -27,13 +27,13 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 Ai.Owner.BroadcastPacket(new SCUnitPointsPacket(Ai.Owner.ObjId, Ai.Owner.Hp, Ai.Owner.Mp), true);
             }
 
-            var alwaysTeleportOnReturn = false; // get from params
+            var alwaysTeleportOnReturn = false; // TODO: get from params
             if (alwaysTeleportOnReturn)
             {
                 OnCompletedReturn();
             }
 
-            var goReturnState = true; // get from params
+            var goReturnState = true; // TODO: get from params
             if (!goReturnState)
             {
                 OnCompletedReturnNoTeleport();

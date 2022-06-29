@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Tasks;
@@ -39,11 +40,14 @@ namespace AAEmu.Game.Models.Game.Char
             Owner = owner;
             // Create all container types
             _itemContainers = new Dictionary<SlotType, ItemContainer>();
+            
+            // Override Unit's created equipment container with a persistent one
+            Owner.Equipment = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, SlotType.Equipment);
 
-            var SlotTypes = Enum.GetValues(typeof(SlotType));
-            foreach (var stv in SlotTypes)
+            var slotTypes = Enum.GetValues(typeof(SlotType));
+            foreach (var stv in slotTypes)
             {
-                SlotType st = (SlotType)stv;
+                var st = (SlotType)stv;
                 // Take Equipment Container from Parent Unit's Equipment
                 if (st == SlotType.Equipment)
                 {
@@ -53,7 +57,10 @@ namespace AAEmu.Game.Models.Game.Char
                     _itemContainers.Add(st,Equipment);
                     continue;
                 }
-                var newContainer = new ItemContainer(owner, st, true);
+
+                //var newContainer = new ItemContainer(owner.Id, st, true, false);
+                var newContainer = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, st);
+                newContainer.Owner = Owner; // override to be sure the object reference is set correctly
                 _itemContainers.Add(st, newContainer);
                 switch (st)
                 {
@@ -86,16 +93,24 @@ namespace AAEmu.Game.Models.Game.Char
 
         #region Database
 
+        /// <summary>
+        /// Loads items into this Inventory
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="slotType"></param>
+        [Obsolete("You can now use directly linked item containers, and no longer need to load them into the character object")]
         public void Load(MySqlConnection connection, SlotType? slotType = null)
         {
             // Get all items for this player
             var playeritems = ItemManager.Instance.LoadPlayerInventory(Owner);
+
             // Wipe inventory (don't use Wipe() here)
             foreach (var container in _itemContainers)
             {
                 container.Value.Items.Clear();
                 container.Value.UpdateFreeSlotCount();
             }
+
             // Place loaded items list in correct containers
             foreach (var item in playeritems)
             {
@@ -104,26 +119,24 @@ namespace AAEmu.Game.Models.Game.Char
                     if (!container.AddOrMoveExistingItem(ItemTaskType.Invalid, item, item.Slot))
                     {
                         item._holdingContainer?.RemoveItem(ItemTaskType.Invalid, item, true);
-                        _log.Error("LoadInventory found unused item type for item, Id {0} ({1}) at {2}:{3} for {1}", item.Id, item.TemplateId, item.SlotType, item.Slot, Owner?.Name ?? "Id:"+item.OwnerId.ToString());
-                        // throw new Exception(string.Format("Was unable to add item {0} to container {1} for player {2} using the defined slot.", item?.Template.Name ?? item.TemplateId.ToString(), item.Slot.ToString(), Owner?.Name ?? "???"));
+                        _log.Error("LoadInventory found unused item type for item, Id {0} ({1}) at {2}:{3} for {4}",
+                            item.Id, item.TemplateId, item.SlotType, item.Slot,
+                            Owner?.Name ?? "Id:" + item.OwnerId.ToString());
                     }
                 }
                 else
                 {
-                    _log.Warn("LoadInventory found unused itemId {0} ({1}) at {2}:{3} for {1}", item.Id, item.TemplateId, item.SlotType, item.Slot, Owner?.Name ?? "Id:" + item.OwnerId.ToString());
+                    _log.Warn("LoadInventory found unused itemId {0} ({1}) at {2}:{3} for {4}", item.Id,
+                        item.TemplateId, item.SlotType, item.Slot, Owner?.Name ?? "Id:" + item.OwnerId.ToString());
                 }
             }
-
         }
 
-
-        [Obsolete("Items are no longer saves individual player items. It is instead handled by the ItemManager instead, this function does nothing")]
-        public void Save(MySqlConnection connection, MySqlTransaction transaction)
-        {
-            // Nothing
-        }
         #endregion
 
+        /// <summary>
+        /// Sends initial player inventory and warehouse contents
+        /// </summary>
         public void Send()
         {
             Owner.SendPacket(new SCCharacterInvenInitPacket(Owner.NumInventorySlots, (uint)Owner.NumBankSlots));
@@ -162,6 +175,13 @@ namespace AAEmu.Game.Models.Game.Char
             return res;
         }
 
+        /// <summary>
+        /// Checks if Inventory contains at least count amount of a item type
+        /// </summary>
+        /// <param name="slotType">Which container to check</param>
+        /// <param name="templateId">Item Template Id</param>
+        /// <param name="count">Minimum amount required</param>
+        /// <returns></returns>
         public bool CheckItems(SlotType slotType, uint templateId, int count)
         {
             var totalCount = 0;
@@ -173,6 +193,12 @@ namespace AAEmu.Game.Models.Game.Char
             return (totalCount >= count);
         }
 
+        /// <summary>
+        /// Count the number of owned items in usable inventory space (Inventory, Equipment Slots and Warehouse)
+        /// </summary>
+        /// <param name="templateId">Item Template Id</param>
+        /// <param name="gradeToCount">Specifies which item grade to count, counts all grades if omitted or is -1</param>
+        /// <returns></returns>
         public int GetItemsCount(uint templateId, int gradeToCount = -1)
         {
             if (GetAllItemsByTemplate(null, templateId, gradeToCount, out var _, out var counted))
@@ -181,6 +207,13 @@ namespace AAEmu.Game.Models.Game.Char
                 return 0;
         }
 
+        /// <summary>
+        /// Count the number of owned items in usable inventory space
+        /// </summary>
+        /// <param name="slotType">Which container needs to be checked</param>
+        /// <param name="templateId">Item Template Id</param>
+        /// <param name="gradeToCount">Specifies which item grade to count, counts all grades if omitted or is -1</param>
+        /// <returns></returns>
         public int GetItemsCount(SlotType slotType, uint templateId, int gradeToCount = -1)
         {
             if (GetAllItemsByTemplate(new SlotType[1] { slotType }, templateId, gradeToCount, out var _, out var counted))
@@ -219,6 +252,9 @@ namespace AAEmu.Game.Models.Game.Char
             return res;
         }
 
+        /// <summary>
+        /// Internally used by SplitOrMoveItem()
+        /// </summary>
         private enum SwapAction
         {
             doNothing,
@@ -229,17 +265,27 @@ namespace AAEmu.Game.Models.Game.Char
             doEquipInEmptySlot,
         }
 
+        /// <summary>
+        /// All purpose function to move items from one slot to another
+        /// </summary>
+        /// <param name="taskType">Task type to report to the player</param>
+        /// <param name="fromItemId">Source Item TemplateId</param>
+        /// <param name="fromType">Source container</param>
+        /// <param name="fromSlot">Source Slot Number</param>
+        /// <param name="toItemId">Item TemplateId of the item in the target slot</param>
+        /// <param name="toType">Target Container</param>
+        /// <param name="toSlot">Target Slot Number</param>
+        /// <param name="count">Amount of units to move or split from the source item or all in the slot if omitted or 0</param>
+        /// <returns>False if action failed</returns>
         public bool SplitOrMoveItem(ItemTaskType taskType, ulong fromItemId, SlotType fromType, byte fromSlot,
             ulong toItemId, SlotType toType, byte toSlot, int count = 0)
         {
-            var info = string.Format("SplitOrMoveItem({0} {1}:{2} => {3} {4}:{5} - {6})", fromItemId, fromType,
-                fromSlot, toItemId, toType, toSlot, count);
+            var info = $"SplitOrMoveItem({fromItemId} {fromType}:{fromSlot} => {toItemId} {toType}:{toSlot} - {count})";
             _log.Trace(info);
             var fromItem = GetItemById(fromItemId);
             if ((fromItem == null) && (fromItemId != 0))
             {
-                _log.Error(string.Format("SplitOrMoveItem - ItemId {0} no longer exists, possibly a phantom item.",
-                    fromItemId));
+                _log.Error($"SplitOrMoveItem - ItemId {fromItemId} no longer exists, possibly a phantom item.");
                 return false;
             }
 
@@ -249,16 +295,31 @@ namespace AAEmu.Game.Models.Game.Char
                 count = fromItem.Count;
 
             // Grab target container for easy manipulation
-            ItemContainer targetContainer = Bag;
-            ItemContainer sourceContainer = fromItem?._holdingContainer ?? Bag;
-            if (_itemContainers.TryGetValue(toType, out targetContainer))
+            var sourceContainer = fromItem?._holdingContainer ?? Bag;
+            if (_itemContainers.TryGetValue(toType, out var targetContainer))
             {
                 itemInTargetSlot = targetContainer.GetItemBySlot(toSlot);
+            }
+            else
+            {
+                targetContainer = Bag;
             }
 
             if (itemInTargetSlot == null)
                 itemInTargetSlot = targetContainer.GetItemBySlot(toSlot);
 
+            // Check if containers can accept the items
+            if ((targetContainer != null) && !targetContainer.CanAccept(fromItem, toSlot))
+            {
+                _log.Error($"SplitOrMoveItem - fromItemId {fromItemId} is not welcome in this container {targetContainer?.ContainerType}.");
+                return false;
+            }
+            if ((sourceContainer != null) && !sourceContainer.CanAccept(itemInTargetSlot, fromSlot))
+            {
+                _log.Error($"SplitOrMoveItem - toItemId {toItemId} is not welcome in this container {sourceContainer?.ContainerType}.");
+                return false;
+            }
+            
             // Are we equipping into a empty slot ? For whatever reason the client will send FROM empty equipment slot => TO item to equip
             if ((fromItemId == 0) && (fromType == SlotType.Equipment) && (toType != SlotType.Equipment) &&
                 (itemInTargetSlot != null))
@@ -523,6 +584,12 @@ namespace AAEmu.Game.Models.Game.Char
                     _log.Error("SplitOrMoveItem swap action not implemented " + action.ToString());
                     break;
             }
+            
+            // Force-assign item owners for safety
+            if (fromItem != null)
+                fromItem.OwnerId = fromItem?._holdingContainer?.OwnerId ?? 0;
+            if (itemInTargetSlot != null)
+                itemInTargetSlot.OwnerId = itemInTargetSlot?._holdingContainer?.OwnerId ?? 0;
 
             // Handle Equipment Broadcasting
             if (fromType == SlotType.Equipment)
@@ -550,7 +617,30 @@ namespace AAEmu.Game.Models.Game.Char
             return (itemTasks.Count > 0);
         }
 
+        /// <summary>
+        /// Check if player should be able to un-equip their currently equipped glider
+        /// </summary>
+        /// <returns>Returns true if it should be possible, or if nothing is equipped in the backpack slot</returns>
+        public bool CanReplaceGliderInBackpackSlot()
+        {
+            var backpack = GetEquippedBySlot(EquipmentItemSlot.Backpack);
+            if (backpack == null) 
+                return true; // Nothing equipped, so we're good
 
+            // Check if a glider is equipped, and if we have at least 1 free space
+            if ((backpack.Template is BackpackTemplate bt) && (bt.BackpackType == BackpackType.Glider) && (Bag.FreeSlotCount > 0))
+                return true;
+
+            // Something other than a glider is equipped in the backpack slot, don't allow replacing check
+            return false;
+        }
+
+        /// <summary>
+        /// Moves equipped backpack into the inventory
+        /// </summary>
+        /// <param name="taskType"></param>
+        /// <param name="glidersOnly">When true, only allow for gliders</param>
+        /// <returns></returns>
         public bool TakeoffBackpack(ItemTaskType taskType,bool glidersOnly = false)
         {
             var backpack = GetEquippedBySlot(EquipmentItemSlot.Backpack);
@@ -564,8 +654,8 @@ namespace AAEmu.Game.Models.Game.Char
             if (Bag.FreeSlotCount <= 0) 
                 return false;
 
-            SplitOrMoveItem(taskType, backpack.Id, backpack.SlotType, (byte)backpack.Slot, 0, SlotType.Inventory, (byte)Bag.GetUnusedSlot(0));
-            //Bag.AddOrMoveExistingItem(taskType, backpack);
+            if (!SplitOrMoveItem(taskType, backpack.Id, backpack.SlotType, (byte)backpack.Slot, 0, SlotType.Inventory, (byte)Bag.GetUnusedSlot(-1)))
+                return false;
             
             if (glidersOnly)
                 PreviousBackPackItemId = backpack.Id ;
@@ -573,6 +663,15 @@ namespace AAEmu.Game.Models.Game.Char
             return true;
         }
 
+        /// <summary>
+        /// Try to create a new backpack item and immediately equip it into the backpack slot (used for crafting tradepacks)
+        /// </summary>
+        /// <param name="taskType"></param>
+        /// <param name="itemId">Item TemplateId</param>
+        /// <param name="itemCount"></param>
+        /// <param name="gradeToAdd"></param>
+        /// <param name="crafterId"></param>
+        /// <returns></returns>
         public bool TryEquipNewBackPack(ItemTaskType taskType, uint itemId, int itemCount, int gradeToAdd = -1, uint crafterId = 0)
         {
             // Remove player backpack
@@ -601,6 +700,11 @@ namespace AAEmu.Game.Models.Game.Char
             return Bag.AcquireDefaultItem(taskType, itemId, itemCount, gradeToAdd, crafterId);
         }
 
+        /// <summary>
+        /// Get Item from it's ItemId
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         public Item GetItemById(ulong id)
         {
             foreach(var c in _itemContainers)
@@ -617,12 +721,22 @@ namespace AAEmu.Game.Models.Game.Char
             return null;
         }
 
-
+        /// <summary>
+        /// Get Item from specified equipment slot
+        /// </summary>
+        /// <param name="slot"></param>
+        /// <returns></returns>
         public Item GetEquippedBySlot(EquipmentItemSlot slot)
         {
             return Equipment.GetItemBySlot((byte)slot);
         }
 
+        /// <summary>
+        /// Get Item from specified container and slot
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="slot"></param>
+        /// <returns></returns>
         public Item GetItem(SlotType type, byte slot)
         {
             Item item = null;
@@ -651,6 +765,11 @@ namespace AAEmu.Game.Models.Game.Char
             return item;
         }
 
+        /// <summary>
+        /// Get the number of free slots for target container
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
         public int FreeSlotCount(SlotType type)
         {
             if (_itemContainers.TryGetValue(type, out var c))
@@ -664,9 +783,9 @@ namespace AAEmu.Game.Models.Game.Char
             var tempItem = new Item[10];
 
             if ((numItems % 10) != 0)
-                _log.Warn("SendFragmentedInventory: Inventory Size not a multiple of 10 ({0})", numItems);
+                _log.Warn($"SendFragmentedInventory: Inventory Size not a multiple of 10 ({numItems})");
             if (bag.Length != numItems)
-                _log.Warn("SendFragmentedInventory: Inventory Size Mismatch; expected {0} got {1}", numItems, bag.Length);
+                _log.Warn($"SendFragmentedInventory: Inventory Size Mismatch; expected {numItems} got {bag.Length}");
 
             for (byte chunk = 0; chunk < (numItems / 10); chunk++)
             {
@@ -675,6 +794,10 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        /// <summary>
+        /// Try to increases the amount of total slots for specified container
+        /// </summary>
+        /// <param name="slotType"></param>
         public void ExpandSlot(SlotType slotType)
         {
             var isBank = slotType == SlotType.Bank;

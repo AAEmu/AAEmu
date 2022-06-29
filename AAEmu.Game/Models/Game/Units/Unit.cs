@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
@@ -212,8 +213,7 @@ namespace AAEmu.Game.Models.Game.Units
             GCDLock = new object();
             Bonuses = new Dictionary<uint, List<Bonus>>();
             IsInBattle = false;
-            Equipment = new ItemContainer(null, SlotType.Equipment, true);
-            Equipment.ContainerSize = 28;
+            Equipment = new EquipmentContainer(0, SlotType.Equipment, true, false);
             ChargeLock = new object();
             Cooldowns = new UnitCooldowns();
         }

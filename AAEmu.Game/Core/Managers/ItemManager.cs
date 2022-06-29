@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -70,13 +69,14 @@ namespace AAEmu.Game.Core.Managers
 
         private Dictionary<ulong, Item> _allItems;
         private List<ulong> _removedItems;
+        private Dictionary<uint, ItemContainer> _allPersistantContainers;
 
         public ItemTemplate GetTemplate(uint id)
         {
             return _templates.ContainsKey(id) ? _templates[id] : null;
         }
 
-        public EquipItemSet GetEquiptItemSet(uint id)
+        public EquipItemSet GetEquippedItemSet(uint id)
         {
             if (_equipItemSets.TryGetValue(id, out var value))
                 return value;
@@ -220,7 +220,7 @@ namespace AAEmu.Game.Core.Managers
             /*
              * Have full inventory 
              * -> Open Loot (G) 
-             * -> press (F) to lootall while open (fail, bag full) 
+             * -> press (F) to loot all while open (fail, bag full) 
              * -> free up bag space 
              * -> click for manual loot doesn't trigger a new packet. so it won't loot
              * Note: Re-opening the loot window lets you loot the remaining items
@@ -285,7 +285,7 @@ namespace AAEmu.Game.Core.Managers
             return _itemGradeDistributions.ContainsKey(id) ? _itemGradeDistributions[id] : null;
         }
 
-        // note: This does "+1" because when we have 0 socketted gems, we want to get the chance for the next slot
+        // note: This does "+1" because when we have 0 socket-ed gems, we want to get the chance for the next slot
         public uint GetSocketChance(uint numSockets)
         {
             return _socketChance.ContainsKey(numSockets + 1) ? _socketChance[numSockets + 1] : 0;
@@ -955,8 +955,10 @@ namespace AAEmu.Game.Core.Managers
                             var template = new BodyPartTemplate
                             {
                                 Id = reader.GetUInt32("item_id"),
+                                ItemId = reader.GetUInt32("item_id"),
                                 ModelId = reader.GetUInt32("model_id"),
                                 NpcOnly = reader.GetBoolean("npc_only", true),
+                                SlotTypeId = reader.GetUInt32("slot_type_id"),
                                 BeautyShopOnly = reader.GetBoolean("beautyshop_only", true)
                             };
                             _templates.Add(template.Id, template);
@@ -1011,7 +1013,7 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                // TODO: HACKFIX FOR CREST INK/STAMP/MUSIC
+                // TODO: HACK-FIX FOR CREST INK/STAMP/MUSIC
                 var crestInkItemTemplate = new UccTemplate { Id = Item.CrestInk };
                 _templates.Add(crestInkItemTemplate.Id, crestInkItemTemplate);
                 
@@ -1363,7 +1365,7 @@ namespace AAEmu.Game.Core.Managers
                     i.Value.searchString = (i.Value.Name + " " + LocalizationManager.Instance.Get("items", "name", i.Value.Id)).ToLower();
                 }
 
-                _log.Info("Loaded {0} item templates (with {1} unused) ...", _templates.Count(), invalidItemCount);
+                _log.Info($"Loaded {_templates.Count} item templates (with {invalidItemCount} unused) ...");
 
 
             }
@@ -1380,35 +1382,81 @@ namespace AAEmu.Game.Core.Managers
                 return null;
         }
 
-        public (int, int) Save(MySqlConnection connection, MySqlTransaction transaction)
+        public (int, int, int) Save(MySqlConnection connection, MySqlTransaction transaction)
         {
             var deleteCount = 0;
             var updateCount = 0;
+            var containerUpdateCount = 0;
             // _log.Info("Saving items data ...");
 
-            // Read configuration related to item durability and the likes
+            // Remove deleted items from DB
             using (var command = connection.CreateCommand())
             {
                 command.Connection = connection;
                 command.Transaction = transaction;
-                // Handle removed items in DB
                 lock (_removedItems)
                 {
                     if (_removedItems.Count > 0)
                     {
-                        using (var deletecommand = connection.CreateCommand())
+                        using (var deleteCommand = connection.CreateCommand())
                         {
-                            deletecommand.CommandText = "DELETE FROM items WHERE `id` IN(" + string.Join(",", _removedItems) + ")";
-                            deletecommand.Prepare();
-                            deletecommand.ExecuteNonQuery();
+                            deleteCommand.CommandText = "DELETE FROM items WHERE `id` IN(" + string.Join(",", _removedItems) + ")";
+                            deleteCommand.Prepare();
+                            deleteCount += deleteCommand.ExecuteNonQuery();
                         }
-                        deleteCount = _removedItems.Count();
+
+                        if (deleteCount != _removedItems.Count)
+                            _log.Error($"Some items could not be deleted, only {deleteCount}/{_removedItems.Count} items removed !");
                         _removedItems.Clear();
                     }
                 }
                 // Update items
             }
 
+            // Update Container Info
+            using (var command = connection.CreateCommand())
+            {
+                command.Connection = connection;
+                command.Transaction = transaction;
+                
+                lock (_allPersistantContainers)
+                {
+                    foreach (var (_, c) in _allPersistantContainers)
+                    {
+                        if (c.ContainerId <= 0)
+                            continue;
+                        
+                        if (c.IsDirty == false)
+                            continue;
+                        
+                        command.CommandText = "REPLACE INTO item_containers (" +
+                                              "`container_id`,`container_type`,`slot_type`,`container_size`,`owner_id`" +
+                                              ") VALUES ( " +
+                                              "@container_id, @container_type, @slot_type, @container_size, @owner_id" +
+                                              ")";
+
+                        command.Parameters.Clear();
+                        command.Parameters.AddWithValue("@container_id", c.ContainerId);
+                        command.Parameters.AddWithValue("@container_type", c.ContainerTypeName());
+                        command.Parameters.AddWithValue("@slot_type", c.ContainerType.ToString());
+                        command.Parameters.AddWithValue("@container_size", c.ContainerSize);
+                        command.Parameters.AddWithValue("@owner_id", c.OwnerId);
+                        try
+                        {
+                            var res = command.ExecuteNonQuery();
+                            containerUpdateCount += res;
+                            if (res > 0)
+                                c.IsDirty = false;
+                        }
+                        catch (Exception e)
+                        {
+                            _log.Error(e);
+                        }
+                    }
+                }
+            }
+            
+            // Update dirty items
             using (var command = connection.CreateCommand())
             {
                 command.Connection = connection;
@@ -1419,8 +1467,10 @@ namespace AAEmu.Game.Core.Managers
                     foreach (var entry in _allItems)
                     {
                         var item = entry.Value;
+                        
                         if (item == null)
                             continue;
+                        
                         if (item.SlotType == SlotType.None)
                         {
                             // Only give a error if it has no owner, otherwise it's likely a BuyBack item
@@ -1428,22 +1478,25 @@ namespace AAEmu.Game.Core.Managers
                                 _log.Warn(string.Format("Found SlotType.None in itemslist, skipping ID:{0} - Template:{1}", item.Id, item.TemplateId));
                             continue;
                         }
+                        
                         if (!item.IsDirty)
                             continue;
+                        
                         var details = new Commons.Network.PacketStream();
                         item.WriteDetails(details);
 
                         command.CommandText = "REPLACE INTO items (" +
-                            "`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`," +
+                            "`id`,`type`,`template_id`,`container_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`," +
                             "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`,`flags`,`ucc`" +
                             ") VALUES ( " +
-                            "@id, @type, @template_id, @slot_type, @slot, @count, @details, @lifespan_mins, @made_unit_id, " +
+                            "@id, @type, @template_id, @container_id, @slot_type, @slot, @count, @details, @lifespan_mins, @made_unit_id, " +
                             "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags,@ucc" +
                             ")";
 
                         command.Parameters.AddWithValue("@id", item.Id);
                         command.Parameters.AddWithValue("@type", item.GetType().ToString());
                         command.Parameters.AddWithValue("@template_id", item.TemplateId);
+                        command.Parameters.AddWithValue("@container_id", item._holdingContainer?.ContainerId ?? 0);
                         command.Parameters.AddWithValue("@slot_type", item.SlotType.ToString());
                         command.Parameters.AddWithValue("@slot", item.Slot);
                         command.Parameters.AddWithValue("@count", item.Count);
@@ -1457,28 +1510,74 @@ namespace AAEmu.Game.Core.Managers
                         command.Parameters.AddWithValue("@grade", item.Grade);
                         command.Parameters.AddWithValue("@flags", (byte)item.ItemFlags);
                         command.Parameters.AddWithValue("@ucc", item.UccId);
-                        command.ExecuteNonQuery();
+                        
+                        if (command.ExecuteNonQuery() < 1)
+                        {
+                            _log.Error($"Error updating items {item.Id} ({item.TemplateId}) !");                            
+                        }
+                        else
+                        {
+                            item.IsDirty = false;
+                            updateCount++;                            
+                        }
                         command.Parameters.Clear();
-                        item.IsDirty = false;
-                        updateCount++;
                     }
                 }
             }
 
-            return (updateCount, deleteCount);
+            return (updateCount, deleteCount, containerUpdateCount);
         }
 
 
+        public ItemContainer GetItemContainerForCharacter(uint characterId, SlotType slotType)
+        {
+            foreach (var c in _allPersistantContainers)
+            {
+                if ((c.Value.OwnerId == characterId) && (c.Value.ContainerType == slotType))
+                    return c.Value;
+            }
+
+            var newContainerType = "ItemContainer";
+            if (slotType == SlotType.Equipment)
+                newContainerType = "EquipmentContainer";
+            var newContainer = ItemContainer.CreateByTypeName(newContainerType, characterId, slotType, true, slotType != SlotType.None);
+            if (slotType != SlotType.None)
+                _allPersistantContainers.Add(newContainer.ContainerId, newContainer);
+            
+            return newContainer;
+        }
 
         public void LoadUserItems()
         {
             _log.Info("Loading user items ...");
             _allItems = new Dictionary<ulong, Item>();
-            _removedItems = new List<ulong>();
+            _allPersistantContainers = new Dictionary<uint, ItemContainer>();
+            //lock (_removedItems)
+                _removedItems = new List<ulong>();
 
             using (var connection = MySQL.CreateConnection())
             using (var command = connection.CreateCommand())
             {
+                command.CommandText = "SELECT * FROM item_containers ;";
+
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var containerId = reader.GetUInt32("container_id");
+                        var containerType = reader.GetString("container_type");
+                        var slotType = (SlotType)Enum.Parse(typeof(SlotType), reader.GetString("slot_type"), true);
+                        var containerSize = reader.GetInt32("container_size");
+                        var containerOwnerId = reader.GetUInt32("owner_id");
+                        var container = ItemContainer.CreateByTypeName(containerType, containerOwnerId, slotType, containerOwnerId != 0, false);
+                        container.ContainerId = containerId;
+                        container.ContainerSize = containerSize;
+
+                        _allPersistantContainers.Add(container.ContainerId, container);
+                        container.IsDirty = false;
+                    }
+                }
+                
                 command.CommandText = "SELECT * FROM items ;";
 
                 using (var reader = command.ExecuteReader())
@@ -1518,8 +1617,10 @@ namespace AAEmu.Game.Core.Managers
                         item.OwnerId = reader.GetUInt64("owner");
                         item.TemplateId = reader.GetUInt32("template_id");
                         item.Template = ItemManager.Instance.GetTemplate(item.TemplateId);
+                        var containerId = reader.GetUInt32("container_id");
                         item.SlotType = (SlotType)Enum.Parse(typeof(SlotType), reader.GetString("slot_type"), true);
-                        item.Slot = reader.GetInt32("slot");
+                        var thisItemSlot = reader.GetInt32("slot");
+                        item.Slot = thisItemSlot;
                         item.Count = reader.GetInt32("count");
                         item.LifespanMins = reader.GetInt32("lifespan_mins");
                         item.MadeUnitId = reader.GetUInt32("made_unit_id");
@@ -1543,7 +1644,44 @@ namespace AAEmu.Game.Core.Managers
                             ReleaseId(item.Id);
                             _log.Error("Failed to load item with ID {0}, possible duplicate entries!", item.Id);
                         }
-                        item.IsDirty = false;
+
+                        if ((containerId > 0) && _allPersistantContainers.TryGetValue(containerId, out var container))
+                        {
+                            // Move item to it's container (if defined)
+                            if (container.AddOrMoveExistingItem(ItemTaskType.Invalid, item, item.Slot))
+                                item.IsDirty = false;
+                            else
+                                _log.Fatal($"Failed to add item {item} to existing container {container.ContainerId} !");
+                        }
+                        else
+                        {
+                            _log.Trace(
+                                $"Can't find a container for Item {item.Id} ({item.Template.Name}), ContainerId: {containerId}");
+                            // This Item does not have a valid container it can fit in
+
+                            if (item.OwnerId > 0)
+                            {
+                                // Item does have a owner, let's try to create a valid container for it
+                                var cContainer = GetItemContainerForCharacter((uint)item.OwnerId, item.SlotType);
+                                if (cContainer.AddOrMoveExistingItem(ItemTaskType.Invalid, item, item.Slot))
+                                {
+                                    item.Slot = thisItemSlot;
+                                    item.IsDirty = true;
+                                }
+                                else
+                                {
+                                    _log.Fatal($"Failed to add owned item {item} to new container!");
+                                    item.Slot = thisItemSlot;
+                                    item.IsDirty = false;
+                                }
+                            }
+                            else
+                            {
+                                _log.Warn($"Could not find a new container for Orphaned item {item.Id} ({item.TemplateId}, ContainerId: {containerId}");
+                                item.Slot = thisItemSlot; // Override the slot number again in case things didn't go as planned
+                                item.IsDirty = false;
+                            }
+                        }
 
                     }
                 }
@@ -1587,6 +1725,7 @@ namespace AAEmu.Game.Core.Managers
         }
 
 
+        [Obsolete("You can now use directly linked item containers, and no longer need to load them into the character object")]
         public List<Item> LoadPlayerInventory(Character character)
         {
             var res = (from i in _allItems where i.Value.OwnerId == character.Id select i.Value).ToList();

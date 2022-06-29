@@ -32,7 +32,7 @@ namespace AAEmu.Game.Models.Game.World
 
         public int X { get; }
         public int Y { get; }
-        public int Id => Y + 1024 * X;
+        public int Id => Y + (1024 * X);
         public uint ZoneKey { get; set; }
 
         public Region(uint worldId, int x, int y, uint zoneKey) 

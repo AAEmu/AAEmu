@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using AAEmu.Commons.IO;
+using AAEmu.Commons.Utils.Updater;
 using AAEmu.Game.IO;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
@@ -13,6 +16,9 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
+using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
@@ -26,6 +32,17 @@ namespace AAEmu.Game
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             _log.Info("Starting daemon: AAEmu.Game");
+            
+            // Check for updates
+            using (var connection = MySQL.CreateConnection())
+            {
+                if (!MySqlDatabaseUpdater.Run(connection, "aaemu_game", AppConfiguration.Instance.Connections.MySQLProvider.Database))
+                {
+                    _log.Fatal("Failed up update database !");
+                    _log.Fatal("Press Ctrl+C to quit");
+                    return;
+                }
+            }
 
             var stopWatch = new Stopwatch();
 
@@ -47,8 +64,9 @@ namespace AAEmu.Game
             var heightmapTask = Task.Run(() =>
             {
                 WorldManager.Instance.LoadHeightmaps();
-            }, cancellationToken);
+            });
 
+            ContainerIdManager.Instance.Initialize();
             ItemIdManager.Instance.Initialize();
             DoodadIdManager.Instance.Initialize();
             ChatManager.Instance.Initialize();
@@ -137,7 +155,7 @@ namespace AAEmu.Game
             CashShopManager.Instance.Initialize();
             GameDataManager.Instance.PostLoadGameData();
 
-            if (!heightmapTask.IsCompleted)
+            if ((heightmapTask != null) && (!heightmapTask.IsCompleted))
             {
                 _log.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
                 await heightmapTask;
