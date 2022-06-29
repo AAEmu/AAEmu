@@ -71,6 +71,11 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                 if (channeled && buffEffect != null)
                     state.ChanneledBuffs.Add((target, buffEffect.BuffId));
 
+                if (template == null)
+                {
+                    return;
+                }
+
                 template.Apply(
                     source,
                     state.CasterCaster,

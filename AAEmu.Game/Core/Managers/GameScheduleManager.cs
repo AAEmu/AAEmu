@@ -108,7 +108,7 @@ namespace AAEmu.Game.Core.Managers
             return res;
         }
 
-        public TimeSpan GetRemainingTime(int spawnerId)
+        public TimeSpan GetRemainingTime(int spawnerId, bool start = true)
         {
             if (!_gameScheduleSpawnerIds.ContainsKey(spawnerId))
             {
@@ -116,16 +116,17 @@ namespace AAEmu.Game.Core.Managers
             }
 
             var remainingTime = TimeSpan.MaxValue;
+            var timeSpan = TimeSpan.Zero;
+
             foreach (var gameScheduleId in _gameScheduleSpawnerIds[spawnerId])
             {
-                if (_gameSchedules.ContainsKey(gameScheduleId))
+                if (!_gameSchedules.ContainsKey(gameScheduleId)) { continue; }
+
+                var gameSchedules = _gameSchedules[gameScheduleId];
+                timeSpan = start ? GetRemainingTimeStart(gameSchedules) : GetRemainingTimeEnd(gameSchedules);
+                if (timeSpan <= remainingTime)
                 {
-                    var gameSchedules = _gameSchedules[gameScheduleId];
-                    var timeSpan = GetRemainingTimeStart(gameSchedules);
-                    if (timeSpan <= remainingTime)
-                    {
-                        remainingTime = timeSpan;
-                    }
+                    remainingTime = timeSpan;
                 }
             }
 
@@ -250,63 +251,98 @@ namespace AAEmu.Game.Core.Managers
             return false;
         }
 
-        public TimeSpan GetRemainingTimeStart(GameSchedules value)
+        private TimeSpan GetRemainingTimeStart(GameSchedules value)
         {
-            var curHours = DateTime.UtcNow.TimeOfDay.Hours;
-            var curMinutes = DateTime.UtcNow.TimeOfDay.Minutes;
-            var curDayOfWeek = (DayOfWeek)DateTime.UtcNow.DayOfWeek + 1;
+            TimeSpan remainingDate;
+            DateTime otherDate;
+            var year = value.StYear;
+            var month = value.StMonth;
+            var day = value.StDay;
+            var hour = value.StHour;
+            var minute = value.StMin;
 
-            var curTime = TimeSpan.FromHours(curHours) + TimeSpan.FromMinutes(curMinutes);
-            var remainingTime = TimeSpan.FromHours(1);
-            TimeSpan otherTime;
-
-            if (value.DayOfWeekId == DayOfWeek.Invalid)
+            try
             {
-                if (value.StartTime > 0)
+                if (value.StartTime == 0)
                 {
-                    otherTime = TimeSpan.FromHours(value.StartTime) + TimeSpan.FromMinutes(value.StartTimeMin);
-                    remainingTime = curTime - otherTime;
-                    if (remainingTime < TimeSpan.Zero)
-                    {
-                        remainingTime = TimeSpan.FromHours(24) - curTime + otherTime;
-                    }
+                    if (value.StYear == 0) { year = DateTime.UtcNow.Year; }
+                    if (value.StMonth == 0) { month = DateTime.UtcNow.Month; }
+                    if (value.StDay == 0) { day = DateTime.UtcNow.Day; }
+                    if (value.StHour == 0) { hour = DateTime.UtcNow.Hour; }
                 }
-                if (value.StHour > 0)
+                else
                 {
-                    otherTime = TimeSpan.FromHours(value.StHour) + TimeSpan.FromMinutes(value.StMin);
-                    remainingTime = curTime - otherTime;
-                    if (remainingTime < TimeSpan.Zero)
-                    {
-                        remainingTime = TimeSpan.FromHours(24) - curTime + otherTime;
-                    }
+                    year = DateTime.UtcNow.Year;
+                    month = DateTime.UtcNow.Month;
+                    day = DateTime.UtcNow.Day;
+                    hour = value.StartTime;
+                    minute = value.StartTimeMin;
                 }
 
-                return remainingTime;
+                otherDate = new DateTime(year, month, day, hour, minute, 0);
 
-            }
-
-            if (curDayOfWeek == value.DayOfWeekId)
-            {
-                if (value.StartTime > 0)
+                remainingDate = otherDate - DateTime.UtcNow;
+                if (remainingDate.TotalHours < 0)
                 {
-                    otherTime = TimeSpan.FromHours(value.StartTime) + TimeSpan.FromMinutes(value.StartTimeMin);
-                    remainingTime = curTime - otherTime;
-                    if (remainingTime < TimeSpan.Zero)
-                    {
-                        remainingTime = TimeSpan.FromHours(24) - curTime + otherTime;
-                    }
+                    remainingDate += TimeSpan.FromHours(24);
                 }
-                if (value.StHour > 0)
+                if (remainingDate.Days < 0)
                 {
-                    otherTime = TimeSpan.FromHours(value.StHour) + TimeSpan.FromMinutes(value.StMin);
-                    remainingTime = curTime - otherTime;
-                    if (remainingTime < TimeSpan.Zero)
-                    {
-                        remainingTime = TimeSpan.FromHours(24) - curTime + otherTime;
-                    }
+                    remainingDate += TimeSpan.FromDays(365);
                 }
             }
-            return remainingTime;
+            catch (Exception)
+            {
+                remainingDate = TimeSpan.FromHours(24);
+            }
+
+            if (remainingDate == TimeSpan.Zero)
+            {
+                remainingDate = TimeSpan.FromHours(24);
+            }
+            return remainingDate;
+        }
+        
+        private TimeSpan GetRemainingTimeEnd(GameSchedules value)
+        {
+            TimeSpan remainingDate;
+            DateTime otherDate;
+            var year = value.EdYear;
+            var month = value.EdMonth;
+            var day = value.EdDay;
+            var hour = value.EdHour;
+            var minute = value.EdMin;
+
+            try
+            {
+                if (value.EndTime == 0)
+                {
+                    if (value.EdYear == 0) { year = DateTime.UtcNow.Year; }
+                    if (value.EdMonth == 0) { month = DateTime.UtcNow.Month; }
+                    if (value.EdDay == 0) { day = DateTime.UtcNow.Day; }
+                    if (value.EdHour == 0) { hour = DateTime.UtcNow.Hour; }
+                }
+                else
+                {
+                    year = DateTime.UtcNow.Year;
+                    month = DateTime.UtcNow.Month;
+                    day = DateTime.UtcNow.Day;
+                    hour = value.EndTime;
+                    minute = value.EndTimeMin;
+                }
+
+                otherDate = new DateTime(year, month, day, hour, minute, 0);
+                remainingDate = otherDate - DateTime.Now;
+                if (remainingDate.Hours < 0)
+                {
+                    remainingDate = TimeSpan.FromHours(24) - remainingDate;
+                }
+            }
+            catch (Exception)
+            {
+                remainingDate = TimeSpan.FromHours(1);
+            }
+            return remainingDate;
         }
 
         private TimeSpan GetRemainingTime(GameSchedules value)

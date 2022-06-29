@@ -44,8 +44,8 @@ namespace AAEmu.Game.Core.Managers
         {
             var curHours = DateTime.UtcNow.TimeOfDay.Hours;
             var curMinutes = DateTime.UtcNow.TimeOfDay.Minutes;
-            _time = 12 * 60 * 60;
-            //_time = curHours * 60f + curMinutes * 60f;
+            _time = 12 * 3600f;
+            //_time = curHours * 3600f + curMinutes;
             _work = true;
             new Thread(Tick) {Name = "TimeManagerThread"}.Start();
         }

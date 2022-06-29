@@ -1,33 +1,32 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Xml;
+
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.IO;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.ClientData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Utils.DB;
-using AAEmu.Game.Core.Packets.G2C;
-using NLog;
-using InstanceWorld = AAEmu.Game.Models.Game.World.World;
-using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.World.Transform;
-using System.Diagnostics;
-using System.Threading.Tasks;
-using System.Xml;
-using AAEmu.Game.IO;
-using AAEmu.Game.Models.ClientData;
-using AAEmu.Game.Models.Game.Gimmicks;
-using AAEmu.Game.Models.Game.Shipyard;
 using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Models.Game.World.Zones;
-using NLog.Internal;
+using AAEmu.Game.Utils.DB;
+
+using NLog;
+
+using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
 namespace AAEmu.Game.Core.Managers.World
 {
