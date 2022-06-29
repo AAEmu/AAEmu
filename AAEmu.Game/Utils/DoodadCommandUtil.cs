@@ -290,7 +290,7 @@ namespace AAEmu.Game.Utils
                                                 {
                                                     var spawn = new JsonDoodadSpawns();
 
-                                                    spawn.Position = new DoodadPos();
+                                                    spawn.Position = new JsonPosition();
 
                                                     spawn.Id = doodad.ObjId;
                                                     spawn.UnitId = doodad.TemplateId;

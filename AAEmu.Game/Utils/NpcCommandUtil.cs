@@ -268,6 +268,10 @@ namespace AAEmu.Game.Utils
                                                     {
                                                         continue; // No spawner attached
                                                     }
+                                                    if (npcs[i].Spawner.Position == null)
+                                                    {
+                                                        continue; // No spawner position attached
+                                                    }
                                                     if (npcs[i].Spawner.Position.WorldId != character.Transform.WorldId)
                                                     {
                                                         continue; // wrong world
