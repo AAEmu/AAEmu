@@ -158,6 +158,7 @@ namespace AAEmu.Game.GameData
         public void GetMemberAndSpawnerId()
         {
             _npcMemberAndSpawnerId = new Dictionary<uint, List<uint>>();
+            var npcMemberAndSpawnerId = new Dictionary<uint, List<uint>>();
 
             foreach (var (_, nsn) in _npcSpawnerNpc)
             {
@@ -172,34 +173,37 @@ namespace AAEmu.Game.GameData
                 }
             }
 
-            foreach (var (_, slist) in _npcMemberAndSpawnerId)
+            foreach (var (key, slist) in _npcMemberAndSpawnerId)
             {
-                if (slist.Count <= 1) { continue; }
-                var item = slist.Where(t => _npcSpawners[t].NpcSpawnerCategoryId == NpcSpawnerCategory.Normal).ToList();
-                var remove = slist.Where(t => !GameScheduleManager.Instance.GetGameScheduleSpawnersData(t)).ToList();
-                if (remove.Count == slist.Count)
+                if (slist.Count <= 1)
                 {
-                    // если вдруг все удалить надо, то оставим только Autocreated
-                    remove = null;
+                    npcMemberAndSpawnerId.Add(key, slist);
+                    continue;
                 }
+                var itemAutocreated = slist.Where(t => _npcSpawners[t].NpcSpawnerCategoryId == NpcSpawnerCategory.Autocreated).ToList();
+                //var itemNormal = slist.Where(t => _npcSpawners[t].NpcSpawnerCategoryId == NpcSpawnerCategory.Normal).ToList();
+                var itemSpawnerSchedule = slist.Where(t => _npcSpawners[t].StartTime != 0 && _npcSpawners[t].EndTime != 0).ToList();
+                var itemGameSchedule = slist.Where(t => GameScheduleManager.Instance.GetGameScheduleSpawnersData(t)).ToList();
 
-                if (remove != null)
+                if (itemSpawnerSchedule.Count == 0 && itemGameSchedule.Count == 0)
+                {
+                    // если нет в расписаниях, то оставим только Autocreated
+                    npcMemberAndSpawnerId.Add(key, itemAutocreated);
+                }
+                else if (itemSpawnerSchedule.Count > 0)
+                {
+                    // оставим только ту запись, которая есть в NpcSpawnrs
+                    npcMemberAndSpawnerId.Add(key,
+                        itemSpawnerSchedule.Count > 1 ? new List<uint> {itemSpawnerSchedule[0]} : itemSpawnerSchedule);
+                }
+                else if (itemGameSchedule.Count > 0)
                 {
                     // оставим только ту запись, которая есть в GameScheduleSpawnrs
-                    foreach (var i in remove)
-                    {
-                        slist.Remove(i);
-                    }
-                }
-                else
-                {
-                    // оставим только запись Autocreated
-                    foreach (var i in item)
-                    {
-                        slist.Remove(i);
-                    }
+                    npcMemberAndSpawnerId.Add(key,
+                        itemGameSchedule.Count > 1 ? new List<uint> {itemGameSchedule[0]} : itemGameSchedule);
                 }
             }
+            _npcMemberAndSpawnerId = npcMemberAndSpawnerId;
         }
 
         public List<uint> GetSpawnersId(uint memberId)

@@ -132,8 +132,38 @@
         "X": 2239.6,
         "Y": 214.6,
         "Z": 150.481,
-        "Yaw": 0.0,
+        "Yaw": 180.0,
         "SubZoneId": 1101
+    },
+    {
+        "Id": 622,
+        "Name": "instance_library_boss_2", // Frozen Study
+        "ZoneId": 304,
+        "X": 2850.0,
+        "Y": 1817.0,
+        "Z": 127.5,
+        "Yaw": 180.0,
+        "SubZoneId": 1102 //1106
+    },
+    {
+        "Id": 623,
+        "Name": "instance_library_boss_3", // Deranged Bookroom
+        "ZoneId": 305,
+        "X": 2628.85,
+        "Y": 2586.442,
+        "Z": 128.0,
+        "Yaw": 180.0,
+        "SubZoneId": 1103 //1107
+    },
+    {
+        "Id": 624,
+        "Name": "instance_library_boss_3", // 
+        "ZoneId": 295,
+        "X": 2564.5,
+        "Y": 26091.6,
+        "Z": 366.3,
+        "Yaw": 0.0,
+        "SubZoneId": 624
     },
     {
         "Id": 672,

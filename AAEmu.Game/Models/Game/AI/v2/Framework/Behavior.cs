@@ -146,6 +146,9 @@ namespace AAEmu.Game.Models.Game.AI.v2
         // UseSkill (delay)
         public void UseSkill(Skill skill, BaseUnit target, float delay = 0)
         {
+            if (target == null) { return; }
+            if (skill == null) { return; }
+
             _nextTimeToDelay = delay;
             var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);
             skillCaster.ObjId = Ai.Owner.ObjId;
