@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 namespace AAEmu.Game.Utils.Converters
 {
     //Convert an object to its minimalistic json representation
-    public class JsonDoodadPosConverter : BaseJsonConverter<JsonPosition>
+    public class JsonPositionConverter : BaseJsonConverter<JsonPosition>
     {
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {

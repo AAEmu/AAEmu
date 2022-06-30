@@ -83,7 +83,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 
                                 if (npcSpawners.ContainsKey(spawner.Id))
                                 {
-                                    _log.Warn($"Duplicate Npc Spawn Id: {spawner.Id}");
+                                    _log.Warn($"Ignoring Duplicate Npc Spawn Id: {spawner.Id}");
                                     continue;
                                 }
                                 
@@ -109,7 +109,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 }
                             }
                         else
-                            throw new Exception($"SpawnManager: Parse {jsonFileName} file");
+                            throw new Exception($"SpawnManager: Unable to parse {jsonFileName} file");
                     }
                 }
 
@@ -142,14 +142,13 @@ namespace AAEmu.Game.Core.Managers.World
 
                                 if (doodadSpawners.ContainsKey(spawner.Id))
                                 {
-                                    _log.Warn($"Duplicate Doodad Spawn Id: {spawner.Id}");
+                                    _log.Warn($"Ignoring Duplicate Doodad Spawn Id: {spawner.Id}");
                                     continue;
                                 }
                                 
                                 spawner.Position.WorldId = world.Id;
-                                spawner.Position.ZoneId = WorldManager
-                                    .Instance
-                                    .GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                                spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+
                                 // Convert degrees from the file to radians for use
                                 spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
                                 spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
@@ -162,7 +161,7 @@ namespace AAEmu.Game.Core.Managers.World
                             }
                         }
                         else
-                            throw new Exception($"SpawnManager: Parse {jsonFileName} file");
+                            throw new Exception($"SpawnManager: Unable to parse {jsonFileName} file");
                     }
                 }
 
@@ -192,7 +191,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 
                                 if (transferSpawners.ContainsKey(spawner.Id))
                                 {
-                                    _log.Warn($"Duplicate Transfer Spawn Id: {spawner.Id}");
+                                    _log.Warn($"Ignoring Duplicate Transfer Spawn Id: {spawner.Id}");
                                     continue;
                                 }
                                 
@@ -211,7 +210,7 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                         else
                         {
-                            throw new Exception($"SpawnManager: Parse {jsonFileName} file");
+                            throw new Exception($"SpawnManager: Unable to parse {jsonFileName} file");
                         }
                     }
                 }
@@ -241,7 +240,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 
                                 if (gimmickSpawners.ContainsKey(spawner.Id))
                                 {
-                                    _log.Warn($"Duplicate Gimmick Spawn Id: {spawner.Id}");
+                                    _log.Warn($"Ignoring Duplicate Gimmick Spawn Id: {spawner.Id}");
                                     continue;
                                 }
                                 
@@ -256,7 +255,7 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                         else
                         {
-                            throw new Exception($"SpawnManager: Parse {jsonFileName} file");
+                            throw new Exception($"SpawnManager: Unable to parse {jsonFileName} file");
                         }
                     }
 

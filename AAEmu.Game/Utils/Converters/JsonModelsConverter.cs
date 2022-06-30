@@ -4,17 +4,20 @@ using Newtonsoft.Json;
 
 namespace AAEmu.Game.Utils.Converters
 {
-    public class ModelJsonConverter : JsonConverter
+    public class JsonModelsConverter : JsonConverter
     {
         private Dictionary<Type, JsonConverter> _converters = new Dictionary<Type, JsonConverter>
         {
             {
-                typeof(JsonDoodadPosConverter), new JsonDoodadPosConverter()
+                typeof(JsonPositionConverter), new JsonPositionConverter()
             }
         };
-        public ModelJsonConverter()
+        public JsonModelsConverter()
         {
-            AddConverter<JsonDoodadPosConverter>();
+            AddConverter<JsonPositionConverter>();
+            AddConverter<JsonQuestSphereConverter>();
+            AddConverter<JsonDoodadSpawnsConverter>();
+            AddConverter<JsonNpcSpawnsConverter>();
         }
         public void AddConverter<T>() where T : JsonConverter 
         {

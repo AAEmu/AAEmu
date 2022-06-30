@@ -22,6 +22,13 @@ namespace AAEmu.Game.Utils
     public class NpcCommandUtil
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+
+
+        public static void SaveChoice(Character character, string[] args)
+        {
+
+        }
+
         public static void GetCommandChoice(Character character, string choice, string[] args)
         {
             uint templateId;
@@ -239,9 +246,9 @@ namespace AAEmu.Game.Utils
                         if (args[1] == "all")
                         {
                             // Save all NPCs in the current world
-                            var spawners = new List<JsonNpcSpawns>();
-                            var npcSpawners = new List<JsonNpcSpawns>();
-                            var npcs = WorldManager.Instance.GetAllNpcs();
+                            var npcSpawnersFromFile = new List<JsonNpcSpawns>();
+                            var npcSpawnersToFile = new List<JsonNpcSpawns>();
+                            var worldNpcSpawners = WorldManager.Instance.GetAllNpcs();
                             foreach (var world in worlds)
                             {
                                 try
@@ -256,65 +263,71 @@ namespace AAEmu.Game.Utils
                                         }
                                         else
                                         {
-                                            if (JsonHelper.TryDeserializeObject(contents, out spawners, out _))
+                                            if (JsonHelper.TryDeserializeObject(contents, out npcSpawnersFromFile, out _))
                                             {
-                                                foreach (var spawner in spawners)
+                                                foreach (var spawnerFromFile in npcSpawnersFromFile)
                                                 {
-                                                    npcSpawners.Add(spawner);
+                                                    npcSpawnersToFile.Add(spawnerFromFile);
                                                 }
-                                                for (var i = 0; i < npcs.Count; i++)
+
+                                                var npcsInCharactersWorld = worldNpcSpawners.Where(n => n.Spawner?.Position?.WorldId == character.Transform.WorldId);
+
+                                                foreach(var npcWorldSpawn in npcsInCharactersWorld)
                                                 {
-                                                    if (npcs[i].Spawner == null)
-                                                    {
-                                                        continue; // No spawner attached
-                                                    }
-                                                    if (npcs[i].Spawner.Position == null)
-                                                    {
-                                                        continue; // No spawner position attached
-                                                    }
-                                                    if (npcs[i].Spawner.Position.WorldId != character.Transform.WorldId)
-                                                    {
-                                                        continue; // wrong world
-                                                    }
-                                                    switch (npcs[i].Spawner.Id)
+                                                    switch (npcWorldSpawn.Spawner.Id)
                                                     {
                                                         // spawned into the game manually
                                                         case 0:
                                                             {
-                                                                var pos = npcs[i].Transform.World;
-                                                                var newEntry = new JsonNpcSpawns();
-                                                                newEntry.Position = new Pos();
-                                                                newEntry.Id = npcs[npcs.Count - 1].ObjId++; ;
-                                                                newEntry.UnitId = npcs[i].TemplateId;
-                                                                newEntry.Position.X = pos.Position.X;
-                                                                newEntry.Position.Y = pos.Position.Y;
-                                                                newEntry.Position.Z = pos.Position.Z;
-                                                                //newEntry.Position.Roll = pos.Rotation.X.RadToDeg();
-                                                                //newEntry.Position.Pitch = pos.Rotation.Y.RadToDeg();
-                                                                newEntry.Position.Yaw = pos.Rotation.Z.RadToDeg();
-                                                                npcSpawners.Add(newEntry);
+                                                                var pos = npcWorldSpawn.Transform.World;
+                                                                var newNpcSpawn = new JsonNpcSpawns
+                                                                {
+                                                                    Id = worldNpcSpawners.Last().ObjId++,
+                                                                    UnitId = npcWorldSpawn.TemplateId,
+                                                                    Position = new JsonPosition
+                                                                    {
+                                                                        X = pos.Position.X,
+                                                                        Y = pos.Position.Y,
+                                                                        Z = pos.Position.Z,
+                                                                        Roll = pos.Rotation.X.RadToDeg(),
+                                                                        Pitch = pos.Rotation.Y.RadToDeg(),
+                                                                        Yaw = pos.Rotation.Z.RadToDeg()
+                                                                    }
+                                                                };
+                                                                
+                                                                npcSpawnersToFile.Add(newNpcSpawn);
                                                                 break;
                                                             }
+
                                                         // removed from the game manually
-                                                        case 0xffffffff:
+                                                        case 0xffffffff: //(uint)-1
                                                             {
-                                                                // не добавляем в вывод удаленного вручную Npc
-                                                                for (var j = 0; j < npcSpawners.Count; j++)
+                                                                // Do not add to the output of a manually remote Npc
+                                                                var npcSpawnsToRemove = new List<JsonNpcSpawns>();
+
+                                                                foreach (var npcSpawnerToFile in npcSpawnersToFile
+                                                                    .Where(n => n.UnitId == npcWorldSpawn.TemplateId))
                                                                 {
-                                                                    if (npcs[i].TemplateId != npcSpawners[j].UnitId) { continue; }
+                                                                    if (!npcWorldSpawn.Transform.World.Position.Equals(npcSpawnerToFile.Position.AsVector3())) 
+                                                                    { 
+                                                                        continue; 
+                                                                    }
 
-                                                                    var other = new Vector3(npcSpawners[j].Position.X, npcSpawners[j].Position.Y, npcSpawners[j].Position.Z);
-                                                                    if (!npcs[i].Transform.World.Position.Equals(other)) { continue; }
-
-                                                                    npcSpawners.Remove(npcSpawners[j]);
+                                                                    npcSpawnsToRemove.Add(npcSpawnerToFile);
                                                                     break;
+                                                                }
+
+                                                                foreach (var npcSpawn in npcSpawnsToRemove)
+                                                                {
+                                                                    npcSpawnersToFile.Remove(npcSpawn);
                                                                 }
                                                                 break;
                                                             }
                                                     }
                                                 }
+
                                                 var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
-                                                var json = JsonConvert.SerializeObject(npcSpawners.ToArray(), Formatting.Indented);
+                                                var json = JsonConvert.SerializeObject(npcSpawnersToFile.ToArray(), Formatting.Indented);
                                                 File.WriteAllText(jsonPathOut, json);
                                                 character.SendMessage("[Npc] all npcs have been saved!");
                                             }
@@ -392,7 +405,7 @@ namespace AAEmu.Game.Utils
                                                 if (npc != null && npc is Npc)
                                                 {
                                                     var spawn = new JsonNpcSpawns();
-                                                    spawn.Position = new Pos();
+                                                    spawn.Position = new JsonPosition();
                                                     spawn.Id = npc.ObjId;
                                                     spawn.UnitId = npc.TemplateId;
                                                     spawn.Position.X = npc.Transform.Local.Position.X;

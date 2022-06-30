@@ -5,14 +5,14 @@ using Newtonsoft.Json;
 namespace AAEmu.Game.Utils.Converters
 {
     //Convert an object to its minimalistic json representation
-    public class JsonNpcSpawnsConverter : BaseJsonConverter<JsonNpcSpawns>
+    public class JsonDoodadSpawnsConverter : BaseJsonConverter<JsonDoodadSpawns>
     {
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             throw new NotImplementedException();
         }
 
-        public override void WriteJson(JsonWriter writer, JsonNpcSpawns value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, JsonDoodadSpawns value, JsonSerializer serializer)
         {
             writer.WriteStartObject();
             writer.WritePropertyName(nameof(value.Id));
