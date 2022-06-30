@@ -38,7 +38,7 @@ namespace AAEmu.Game.Core.Managers
 
         public void Initialize()
         {
-            _log.Warn("TransferTickStart: Started");
+            _log.Warn("TransferTickTask: Started");
 
             //TransferTickTask = new TransferTickStartTask();
             //TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMinutes(DelayInit), TimeSpan.FromMilliseconds(Delay));
