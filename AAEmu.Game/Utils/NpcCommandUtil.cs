@@ -11,6 +11,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Json;
 
 using Newtonsoft.Json;
@@ -29,471 +30,367 @@ namespace AAEmu.Game.Utils
 
         }
 
-        public static void GetCommandChoice(Character character, string choice, string[] args)
+        /// <summary>
+        /// Executes based in the main command and its remaining arguments
+        /// </summary>
+        /// <param name="character"></param>
+        /// <param name="mainCommand">main command</param>
+        /// <param name="args">main command arguments</param>
+        public static void GetCommandChoice(Character character, string mainCommand, string[] args)
         {
-            uint templateId;
-            uint npcObjId;
-            uint skillId = 0;
-            uint phase = 0;
-            var worlds = WorldManager.Instance.GetWorlds();
-            Npc npc = null;
-
-            switch (choice)
+            switch (mainCommand)
             {
                 case "pos":
-                    // NPC by targetting
-                    if (args.Length == 7 && character.CurrentTarget is Npc aNpc)
-                    {
-                        npc = aNpc;
-                        // 0   1 2 3 4  5  6
-                        // pos x y z rx ry rz
-                        float value = 0;
-                        var x = npc.Transform.Local.Position.X;
-                        var y = npc.Transform.Local.Position.Y;
-                        var z = npc.Transform.Local.Position.Z;
-                        var roll = npc.Transform.Local.Rotation.X;
-                        var pitch = npc.Transform.Local.Rotation.Y;
-                        var yaw = npc.Transform.Local.Rotation.Z;
-                        if (args[1] != "x" && float.TryParse(args[1], out value))
-                        {
-                            x = value;
-                        }
-                        if (args[2] != "y" && float.TryParse(args[2], out value))
-                        {
-                            y = value;
-                        }
-                        if (args[3] != "z" && float.TryParse(args[3], out value))
-                        {
-                            z = value;
-                        }
-                        if (args[4] != "rx" && float.TryParse(args[4], out value))
-                        {
-                            roll = value.DegToRad();
-                        }
-                        if (args[5] != "ry" && float.TryParse(args[5], out value))
-                        {
-                            pitch = value.DegToRad();
-                        }
-                        if (args[6] != "rz" && float.TryParse(args[6], out value))
-                        {
-                            yaw = value.DegToRad();
-                        }
-                        character.SendMessage("[Npc] Npc ObjId: {0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, rx:{5}, ry:{6}, rz:{7}", npc.ObjId, npc.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());
-                        npc.Transform.Local.SetPosition(x, y, z, roll, pitch, yaw);
-                        var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
-                        moveType.X = x;
-                        moveType.Y = y;
-                        moveType.Z = z;
-                        var characterRot = character.CurrentTarget.Transform.Local.ToRollPitchYawSBytes();
-                        moveType.RotationX = characterRot.Item1;
-                        moveType.RotationY = characterRot.Item2;
-                        moveType.RotationZ = characterRot.Item3;
-                        moveType.Flags = 5;
-                        moveType.DeltaMovement = new sbyte[3];
-                        moveType.DeltaMovement[0] = 0;
-                        moveType.DeltaMovement[1] = 0;
-                        moveType.DeltaMovement[2] = 0;
-                        moveType.Stance = 1;    // combat=0, idle=1
-                        moveType.Alertness = 0; // idle=0, combat=2
-                        moveType.Time += 50;    // has to change all the time for normal motion.
-                        character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
-                    }
-                    // NPC by objId
-                    else if (args.Length == 5)
-                    {
-                        if (uint.TryParse(args[1], out npcObjId))
-                        {
-                            npc = WorldManager.Instance.GetNpc(npcObjId);
-                            if (npc != null && npc is Npc)
-                            {
-                                // берем в таргет Npc
-                                character.BroadcastPacket(new SCTargetChangedPacket(character.ObjId, npcObjId), true);
-                                character.CurrentTarget = npc;
-                                // 0   1     2 3 4 5  6  7
-                                // pos objId x y z rx ry rz
-                                float value = 0;
-                                var x = npc.Transform.Local.Position.X;
-                                var y = npc.Transform.Local.Position.Y;
-                                var z = npc.Transform.Local.Position.Z;
-                                var roll = npc.Transform.Local.Rotation.X;
-                                var pitch = npc.Transform.Local.Rotation.Y;
-                                var yaw = npc.Transform.Local.Rotation.Z;
-                                if (args[2] != "x" && float.TryParse(args[2], out value))
-                                {
-                                    x = value;
-                                }
-                                if (args[3] != "y" && float.TryParse(args[3], out value))
-                                {
-                                    y = value;
-                                }
-                                if (args[4] != "z" && float.TryParse(args[4], out value))
-                                {
-                                    z = value;
-                                }
-                                character.SendMessage("[Npc] Npc ObjId: {0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, rx:{5}, ry:{6}, rz:{7}", npc.ObjId, npc.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());
-                                npc.Transform.Local.SetPosition(x, y, z, roll, pitch, yaw);
-                                var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
-                                moveType.X = x;
-                                moveType.Y = y;
-                                moveType.Z = z;
-                                var characterRot = character.CurrentTarget.Transform.Local.ToRollPitchYawSBytes();
-                                moveType.RotationX = characterRot.Item1;
-                                moveType.RotationY = characterRot.Item2;
-                                moveType.RotationZ = characterRot.Item3;
-                                moveType.Flags = 5;
-                                moveType.DeltaMovement = new sbyte[3];
-                                moveType.DeltaMovement[0] = 0;
-                                moveType.DeltaMovement[1] = 0;
-                                moveType.DeltaMovement[2] = 0;
-                                moveType.Stance = 1;    // combat=0, idle=1
-                                moveType.Alertness = 0; // idle=0, combat=2
-                                moveType.Time += 50;    // has to change all the time for normal motion.
-                                character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
-                            }
-                            else
-                            {
-                                character.SendMessage("|cFFFF0000[Npc] Npc with objId {0} Does not exist |r", npcObjId);
-                            }
-                        }
-                        else
-                        {
-                            character.SendMessage("[Npc] /npc pos <ObjId> <x> <y> <z> - Use x y z instead of a value to keep current position");
-                        }
-                    }
-                    else if (args.Length >= 8)
-                    {
-                        if (uint.TryParse(args[1], out npcObjId))
-                        {
-                            npc = WorldManager.Instance.GetNpc(npcObjId);
-                            if (npc != null && npc is Npc)
-                            {
-                                // берем в таргет Npc
-                                character.BroadcastPacket(new SCTargetChangedPacket(character.ObjId, npcObjId), true);
-                                character.CurrentTarget = npc;
-                                // 0   1     2 3 4 5  6  7
-                                // pos objId x y z rx ry rz
-                                float value = 0;
-                                var x = npc.Transform.Local.Position.X;
-                                var y = npc.Transform.Local.Position.Y;
-                                var z = npc.Transform.Local.Position.Z;
-                                var roll = npc.Transform.Local.Rotation.X;
-                                var pitch = npc.Transform.Local.Rotation.Y;
-                                var yaw = npc.Transform.Local.Rotation.Z;
-                                if (args[2] != "x" && float.TryParse(args[2], out value))
-                                {
-                                    x = value;
-                                }
-                                if (args[3] != "y" && float.TryParse(args[3], out value))
-                                {
-                                    y = value;
-                                }
-                                if (args[4] != "z" && float.TryParse(args[4], out value))
-                                {
-                                    z = value;
-                                }
-                                if (args[5] != "rx" && float.TryParse(args[5], out value))
-                                {
-                                    roll = value.DegToRad();
-                                }
-                                if (args[6] != "ry" && float.TryParse(args[6], out value))
-                                {
-                                    pitch = value.DegToRad();
-                                }
-                                if (args[7] != "rz" && float.TryParse(args[7], out value))
-                                {
-                                    yaw = value.DegToRad();
-                                }
-                                character.SendMessage("[Npc] Npc ObjId: {0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, rx:{5}, ry:{6}, rz:{7}", npc.ObjId, npc.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());
-                                npc.Transform.Local.SetPosition(x, y, z, roll, pitch, yaw);
-                                var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
-                                moveType.X = x;
-                                moveType.Y = y;
-                                moveType.Z = z;
-                                var characterRot = character.CurrentTarget.Transform.Local.ToRollPitchYawSBytes();
-                                moveType.RotationX = characterRot.Item1;
-                                moveType.RotationY = characterRot.Item2;
-                                moveType.RotationZ = characterRot.Item3;
-                                moveType.Flags = 5;
-                                moveType.DeltaMovement = new sbyte[3];
-                                moveType.DeltaMovement[0] = 0;
-                                moveType.DeltaMovement[1] = 0;
-                                moveType.DeltaMovement[2] = 0;
-                                moveType.Stance = 1;    // combat=0, idle=1
-                                moveType.Alertness = 0; // idle=0, combat=2
-                                moveType.Time += 50;    // has to change all the time for normal motion.
-                                character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
-                            }
-                            else
-                            {
-                                character.SendMessage("|cFFFF0000[Npc] Npc with objId {0} Does not exist |r", npcObjId);
-                            }
-                        }
-                        else
-                        {
-                            character.SendMessage("[Npc] /npc pos <ObjId> <x> <y> <z> <rx> <ry> <rz> - Use x y z roll pitch yaw instead of a value to keep current position");
-                        }
-                    }
-                    else
-                    {
-                        character.SendMessage("[Npc] /npc pos <ObjId> <x> <y> <z> <rx> <ry> <rz> - Use x y z roll pitch yaw instead of a value to keep current position");
-                    }
+                    RePosition(character, args);
                     break;
                 case "save":
-                    if (args.Length >= 2)
-                    {
-                        // 0    1
-                        // save all
-                        if (args[1] == "all")
-                        {
-                            // Save all NPCs in the current world
-                            var npcSpawnersFromFile = new List<JsonNpcSpawns>();
-                            var npcSpawnersToFile = new List<JsonNpcSpawns>();
-                            var worldNpcSpawners = WorldManager.Instance.GetAllNpcs();
-                            foreach (var world in worlds)
-                            {
-                                try
-                                {
-                                    if (character.Transform.WorldId == world.Id)
-                                    {
-                                        var jsonPathIn = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns.json");
-                                        var contents = FileManager.GetFileContents(jsonPathIn);
-                                        if (string.IsNullOrWhiteSpace(contents))
-                                        {
-                                            _log.Warn($"File {jsonPathIn} doesn't exists or is empty.");
-                                        }
-                                        else
-                                        {
-                                            if (JsonHelper.TryDeserializeObject(contents, out npcSpawnersFromFile, out _))
-                                            {
-                                                foreach (var spawnerFromFile in npcSpawnersFromFile)
-                                                {
-                                                    npcSpawnersToFile.Add(spawnerFromFile);
-                                                }
-
-                                                var npcsInCharactersWorld = worldNpcSpawners.Where(n => n.Spawner?.Position?.WorldId == character.Transform.WorldId);
-
-                                                foreach(var npcWorldSpawn in npcsInCharactersWorld)
-                                                {
-                                                    switch (npcWorldSpawn.Spawner.Id)
-                                                    {
-                                                        // spawned into the game manually
-                                                        case 0:
-                                                            {
-                                                                var pos = npcWorldSpawn.Transform.World;
-                                                                var newNpcSpawn = new JsonNpcSpawns
-                                                                {
-                                                                    Id = worldNpcSpawners.Last().ObjId++,
-                                                                    UnitId = npcWorldSpawn.TemplateId,
-                                                                    Position = new JsonPosition
-                                                                    {
-                                                                        X = pos.Position.X,
-                                                                        Y = pos.Position.Y,
-                                                                        Z = pos.Position.Z,
-                                                                        Roll = pos.Rotation.X.RadToDeg(),
-                                                                        Pitch = pos.Rotation.Y.RadToDeg(),
-                                                                        Yaw = pos.Rotation.Z.RadToDeg()
-                                                                    }
-                                                                };
-                                                                
-                                                                npcSpawnersToFile.Add(newNpcSpawn);
-                                                                break;
-                                                            }
-
-                                                        // removed from the game manually
-                                                        case 0xffffffff: //(uint)-1
-                                                            {
-                                                                // Do not add to the output of a manually remote Npc
-                                                                var npcSpawnsToRemove = new List<JsonNpcSpawns>();
-
-                                                                foreach (var npcSpawnerToFile in npcSpawnersToFile
-                                                                    .Where(n => n.UnitId == npcWorldSpawn.TemplateId))
-                                                                {
-                                                                    if (!npcWorldSpawn.Transform.World.Position.Equals(npcSpawnerToFile.Position.AsVector3())) 
-                                                                    { 
-                                                                        continue; 
-                                                                    }
-
-                                                                    npcSpawnsToRemove.Add(npcSpawnerToFile);
-                                                                    break;
-                                                                }
-
-                                                                foreach (var npcSpawn in npcSpawnsToRemove)
-                                                                {
-                                                                    npcSpawnersToFile.Remove(npcSpawn);
-                                                                }
-                                                                break;
-                                                            }
-                                                    }
-                                                }
-
-                                                var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
-                                                var json = JsonConvert.SerializeObject(npcSpawnersToFile.ToArray(), Formatting.Indented);
-                                                File.WriteAllText(jsonPathOut, json);
-                                                character.SendMessage("[Npc] all npcs have been saved!");
-                                            }
-                                        }
-                                    }
-                                }
-                                catch (Exception e)
-                                {
-                                    _log.Error(e);
-                                    character.SendMessage(e.Message);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            character.SendMessage("[Npc] /npc save all");
-                        }
-                    }
-                    else if (args.Length == 2)
-                    {
-                        // 0    1
-                        // save objId
-                        var spawners = new List<JsonNpcSpawns>();
-                        var npcSpawners = new Dictionary<uint, JsonNpcSpawns>();
-                        if (uint.TryParse(args[1], out npcObjId))
-                        {
-                            npc = WorldManager.Instance.GetNpc(npcObjId);
-                            if (npc != null && npc is Npc)
-                            {
-                                // Save Npc
-                                try
-                                {
-                                    foreach (var world in worlds)
-                                    {
-                                        // Load Npc spawns
-                                        _log.Info("Loading spawns...");
-                                        var contents = string.Empty;
-                                        var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name);
-                                        var jsonPathIn = string.Empty;
-                                        jsonPathIn = Path.Combine(worldPath, "npc_spawns.json");
-
-                                        if (!File.Exists(jsonPathIn))
-                                        {
-                                            _log.Info("World  {0}  is missing  {1}", world.Name, Path.GetFileName(jsonPathIn));
-                                        }
-                                        else
-                                        {
-                                            contents = FileManager.GetFileContents(jsonPathIn);
-                                            if (string.IsNullOrWhiteSpace(contents))
-                                                _log.Warn("File {0} is empty.", jsonPathIn);
-                                            else
-                                            {
-                                                if (JsonHelper.TryDeserializeObject(contents, out spawners, out _))
-                                                {
-                                                    foreach (var spawner in spawners)
-                                                    {
-                                                        npcSpawners.Add(spawner.Id, spawner);
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonPathIn));
-                                                }
-                                                // добавим измененный Npc
-                                                // NPC by targetting
-                                                if (args.Length <= 0 && character.CurrentTarget is Npc bNpc)
-                                                {
-                                                    npc = bNpc;
-                                                }
-                                                // NPC by objId
-                                                if (args.Length >= 2 && args[0].ToLower() == "npc" && uint.TryParse(args[1], out npcObjId))
-                                                {
-                                                    npc = WorldManager.Instance.GetNpc(npcObjId);
-                                                }
-                                                if (npc != null && npc is Npc)
-                                                {
-                                                    var spawn = new JsonNpcSpawns();
-                                                    spawn.Position = new JsonPosition();
-                                                    spawn.Id = npc.ObjId;
-                                                    spawn.UnitId = npc.TemplateId;
-                                                    spawn.Position.X = npc.Transform.Local.Position.X;
-                                                    spawn.Position.Y = npc.Transform.Local.Position.Y;
-                                                    spawn.Position.Z = npc.Transform.Local.Position.Z;
-                                                    //spawn.Position.Roll = npc.Transform.Local.Rotation.X.RadToDeg();
-                                                    //spawn.Position.Pitch = npc.Transform.Local.Rotation.Y.RadToDeg();
-                                                    spawn.Position.Yaw = npc.Transform.Local.Rotation.Z.RadToDeg();
-                                                    if (npcSpawners.ContainsKey(spawn.Id))
-                                                    {
-                                                        npcSpawners[spawn.Id] = spawn;
-                                                    }
-                                                    else
-                                                    {
-                                                        npcSpawners.Add(spawn.Id, spawn);
-                                                    }
-                                                }
-                                                var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
-                                                var json = JsonConvert.SerializeObject(npcSpawners.Values.ToArray(), Formatting.Indented);
-                                                File.WriteAllText(jsonPathOut, json);
-                                                character.SendMessage("[Npc] all npcs have been saved with added npc ObjId {0}, TemplateId {1}", npc.ObjId, npc.TemplateId);
-                                            }
-                                        }
-                                    }
-                                }
-                                catch (Exception e)
-                                {
-                                    character.SendMessage(e.Message);
-                                    _log.Warn(e);
-                                }
-                            }
-                            else
-                            {
-                                character.SendMessage("|cFFFF0000[Npc] Npc with objId {0} Does not exist |r", npcObjId);
-                            }
-                        }
-                        else
-                        {
-                            character.SendMessage("[Npc] /npc save <ObjId>");
-                        }
-                    }
-                    else
-                    {
-                        character.SendMessage("[Npc] /npc save <ObjId>");
-                    }
+                    Save(character, args);
                     break;
                 case "remove":
-                    if (args.Length >= 2)
+                    Remove(character, args);
+                    break;
+                default:
+                    character.SendMessage("[Npc] /npc save <ObjId> || /npc pos target x=<x> y=<y> z=<z> roll=<roll> pitch=<pitch> yaw=<yaw> - All positions are optional use all or only the ones you want to change");
+                    break;
+            }
+        }
+
+        private static void Remove(Character character, string[] args)
+        {
+            if (args.Length >= 1 && uint.TryParse(args.FirstOrDefault(), out var npcObjId))
+            {
+                var npc = WorldManager.Instance.GetNpc(npcObjId);
+                if (npc != null)
+                {
+                    // Remove Npc
+                    try
                     {
-                        // 0      1
-                        // remove objId
-                        if (uint.TryParse(args[1], out npcObjId))
+                        //npc.Spawner.Despawn(npc);
+                        npc.Spawner.Id = 0xffffffff; // removed from the game manually (укажем, что не надо сохранять в файл npc_spawns_new.json командой /save all)
+                        npc.Hide();
+                    }
+                    catch (Exception e)
+                    {
+                        character.SendMessage(e.Message);
+                        _log.Warn(e);
+                    }
+                }
+                else
+                {
+                    character.SendMessage("|cFFFF0000[Npc] Npc with objId {0} Does not exist |r", npcObjId);
+                }
+            }
+            else
+            {
+                character.SendMessage("[Npc] /npc remove <ObjId>");
+            }
+        }
+
+        private static void Save(Character character, string[] args)
+        {
+            var worlds = WorldManager.Instance.GetWorlds();
+            var firstArgument = args.FirstOrDefault();
+
+            
+            if (firstArgument == "all") //save all
+            {
+                // Save all NPCs in the current world
+                SaveAll(character, worlds);
+            }
+            else if (uint.TryParse(firstArgument, out var npcObjId)) //save <number>
+            {
+                SaveById(character, worlds, npcObjId);
+            }
+            else
+            {
+                character.SendMessage("[Npc] /npc save <ObjId>");
+            }
+        }
+
+        private static void SaveById(Character character, Models.Game.World.World[] worlds, uint npcObjId)
+        {
+            Npc npc;
+            var spawners = new List<JsonNpcSpawns>();
+            var npcSpawners = new Dictionary<uint, JsonNpcSpawns>();
+
+            npc = WorldManager.Instance.GetNpc(npcObjId);
+            if (npc is null)
+            {
+                character.SendMessage("|cFFFF0000[Npc] Npc with objId {0} Does not exist |r", npcObjId);
+                return; 
+            }
+            try
+            {
+                // Try Saving Npc
+                foreach (var world in worlds)
+                {
+                    // Load Npc spawns
+                    _log.Info("Loading spawns...");
+                    var contents = string.Empty;
+                    var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name);
+                    var jsonPathIn = string.Empty;
+                    jsonPathIn = Path.Combine(worldPath, "npc_spawns.json");
+
+                    if (!File.Exists(jsonPathIn))
+                    {
+                        _log.Info("World  {0}  is missing  {1}", world.Name, Path.GetFileName(jsonPathIn));
+                    }
+                    else
+                    {
+                        contents = FileManager.GetFileContents(jsonPathIn);
+                        if (string.IsNullOrWhiteSpace(contents))
+                            _log.Warn("File {0} is empty.", jsonPathIn);
+                        else
                         {
-                            npc = WorldManager.Instance.GetNpc(npcObjId);
-                            if (npc != null && npc is Npc)
+                            if (JsonHelper.TryDeserializeObject(contents, out spawners, out _))
                             {
-                                // Remove Npc
-                                try
+                                foreach (var spawner in spawners)
                                 {
-                                    //npc.Spawner.Despawn(npc);
-                                    npc.Spawner.Id = 0xffffffff; // removed from the game manually (укажем, что не надо сохранять в файл npc_spawns_new.json командой /save all)
-                                    npc.Hide();
-                                }
-                                catch (Exception e)
-                                {
-                                    character.SendMessage(e.Message);
-                                    _log.Warn(e);
+                                    npcSpawners.Add(spawner.Id, spawner);
                                 }
                             }
                             else
                             {
-                                character.SendMessage("|cFFFF0000[Npc] Npc with objId {0} Does not exist |r", npcObjId);
+                                throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonPathIn));
                             }
-                        }
-                        else
-                        {
-                            character.SendMessage("[Npc] /npc remove <ObjId>");
+                          
+
+                            // NPC by objId
+                            if (args.Length >= 2 && args[0].ToLower() == "npc" && uint.TryParse(args[1], out npcObjId))
+                            {
+                                npc = WorldManager.Instance.GetNpc(npcObjId);
+                            }
+                            if (npc != null && npc is Npc)
+                            {
+                                var spawn = new JsonNpcSpawns();
+                                spawn.Position = new JsonPosition();
+                                spawn.Id = npc.ObjId;
+                                spawn.UnitId = npc.TemplateId;
+                                spawn.Position.X = npc.Transform.Local.Position.X;
+                                spawn.Position.Y = npc.Transform.Local.Position.Y;
+                                spawn.Position.Z = npc.Transform.Local.Position.Z;
+                                //spawn.Position.Roll = npc.Transform.Local.Rotation.X.RadToDeg();
+                                //spawn.Position.Pitch = npc.Transform.Local.Rotation.Y.RadToDeg();
+                                spawn.Position.Yaw = npc.Transform.Local.Rotation.Z.RadToDeg();
+                                if (npcSpawners.ContainsKey(spawn.Id))
+                                {
+                                    npcSpawners[spawn.Id] = spawn;
+                                }
+                                else
+                                {
+                                    npcSpawners.Add(spawn.Id, spawn);
+                                }
+                            }
+                            var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
+                            var json = JsonConvert.SerializeObject(npcSpawners.Values.ToArray(), Formatting.Indented);
+                            File.WriteAllText(jsonPathOut, json);
+                            character.SendMessage("[Npc] all npcs have been saved with added npc ObjId {0}, TemplateId {1}", npc.ObjId, npc.TemplateId);
                         }
                     }
-                    else
-                    {
-                        character.SendMessage("[Npc] /npc remove <ObjId>");
-                    }
-                    break;
-                default:
-                    character.SendMessage("[Npc] /npc save <ObjId> || pos <ObjId> <x> <y> <z> <rx> <ry> <rz> - Use x y z roll pitch yaw instead of a value to keep current position");
-                    break;
+                }
             }
+            catch (Exception e)
+            {
+                character.SendMessage(e.Message);
+                _log.Warn(e);
+            }
+        }
+
+        private static List<JsonNpcSpawns> LoadNpcsFromFileByWorld(World world)
+        {
+            List<JsonNpcSpawns> npcSpawnersFromFile;
+            var jsonPathIn = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns.json");
+            var contents = FileManager.GetFileContents(jsonPathIn);
+            if (string.IsNullOrWhiteSpace(contents))
+            {
+                throw new ApplicationException($"File {jsonPathIn} doesn't exists or is empty.");
+            }
+            else
+            {
+                return JsonHelper.DeserializeObject<List<JsonNpcSpawns>>(contents);
+            }
+        }
+
+        private static void SaveAll(Character character, World[] worlds)
+        {
+            var npcSpawnersToFile = new List<JsonNpcSpawns>();
+            var worldNpcSpawners = WorldManager.Instance.GetAllNpcs();
+            foreach (var world in worlds)
+            {
+                try
+                {
+                    if (character.Transform.WorldId == world.Id)
+                    {
+                        var npcSpawnersFromFile = LoadNpcsFromFileByWorld(world);
+                        {
+                            foreach (var spawnerFromFile in npcSpawnersFromFile)
+                            {
+                                npcSpawnersToFile.Add(spawnerFromFile);
+                            }
+
+                            var npcsInCharactersWorld = worldNpcSpawners.Where(n => n.Spawner?.Position?.WorldId == character.Transform.WorldId);
+
+                            foreach (var npcWorldSpawn in npcsInCharactersWorld)
+                            {
+                                switch (npcWorldSpawn.Spawner.Id)
+                                {
+                                    // spawned into the game manually
+                                    case 0:
+                                        {
+                                            var pos = npcWorldSpawn.Transform.World;
+                                            var newNpcSpawn = new JsonNpcSpawns
+                                            {
+                                                Id = worldNpcSpawners.Last().ObjId++,
+                                                UnitId = npcWorldSpawn.TemplateId,
+                                                Position = new JsonPosition
+                                                {
+                                                    X = pos.Position.X,
+                                                    Y = pos.Position.Y,
+                                                    Z = pos.Position.Z,
+                                                    Roll = pos.Rotation.X.RadToDeg(),
+                                                    Pitch = pos.Rotation.Y.RadToDeg(),
+                                                    Yaw = pos.Rotation.Z.RadToDeg()
+                                                }
+                                            };
+
+                                            npcSpawnersToFile.Add(newNpcSpawn);
+                                            break;
+                                        }
+
+                                    // removed from the game manually
+                                    case 0xffffffff: //(uint)-1
+                                        {
+                                            // Do not add to the output of a manually remote Npc
+                                            var npcSpawnsToRemove = new List<JsonNpcSpawns>();
+
+                                            foreach (var npcSpawnerToFile in npcSpawnersToFile
+                                                .Where(n => n.UnitId == npcWorldSpawn.TemplateId))
+                                            {
+                                                if (!npcWorldSpawn.Transform.World.Position.Equals(npcSpawnerToFile.Position.AsVector3()))
+                                                {
+                                                    continue;
+                                                }
+
+                                                npcSpawnsToRemove.Add(npcSpawnerToFile);
+                                                break;
+                                            }
+
+                                            foreach (var npcSpawn in npcSpawnsToRemove)
+                                            {
+                                                npcSpawnersToFile.Remove(npcSpawn);
+                                            }
+                                            break;
+                                        }
+                                }
+                            }
+
+                            var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
+                            var json = JsonConvert.SerializeObject(npcSpawnersToFile.ToArray(), Formatting.Indented);
+                            File.WriteAllText(jsonPathOut, json);
+                            character.SendMessage("[Npc] all npcs have been saved!");
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    _log.Error(e);
+                    character.SendMessage(e.Message);
+                }
+            }
+        }
+
+        private static float GetPositionByArgument(Npc npc, string positionArgument, string[] args)
+        {
+            float newPosition;
+            var argumentValue = args.Where(a => a.StartsWith(positionArgument + "=")).FirstOrDefault();
+            if (argumentValue is null)
+            {
+                return GetCurrentNpcPositionByArgument(npc, positionArgument);
+            }
+
+            if (float.TryParse(argumentValue.Split('=')[1], out newPosition))
+            {
+                return newPosition;
+            }
+            else
+            {
+                throw new ArgumentException($"Invalid value for {argumentValue} position", nameof(positionArgument));
+            }
+        }
+
+        private static float GetCurrentNpcPositionByArgument(Npc npc, string positionArgument)
+        {
+            switch (positionArgument)
+            {
+                case "x": return npc.Transform.Local.Position.X;
+                case "y": return npc.Transform.Local.Position.Y;
+                case "z": return npc.Transform.Local.Position.Z;
+                case "yaw": 
+                case "rz": return npc.Transform.Local.Rotation.Z;
+                case "roll": 
+                case "rx": return npc.Transform.Local.Rotation.X;
+                case "pitch": 
+                case "ry": return npc.Transform.Local.Rotation.Y;
+                default: throw new ArgumentException("Invalid position",nameof(positionArgument));
+            }
+        }
+
+        private static void RePosition(Character character, string[] args)
+        {
+            Npc npc;
+            if (args.FirstOrDefault() == "target")
+            {
+                if (character.CurrentTarget is not null && character.CurrentTarget is Npc aNpc)
+                {
+                    npc = aNpc;
+                }
+                else 
+                {
+                    character.SendMessage("|cFFFF0000[Npc] Select a Npc target |r");
+                    return;
+                }
+            }
+            else if (uint.TryParse(args.FirstOrDefault(), out var npcObjId))
+            {
+                npc = WorldManager.Instance.GetNpc(npcObjId);
+                if (npc == null)
+                {
+                    character.SendMessage("|cFFFF0000[Npc] Npc with objId {0} Does not exist |r", npcObjId);
+                    return;
+                }
+            }
+            else
+            {
+                character.SendMessage("|cFFFF0000[Npc] Invalid objId {0} should be a number |r", args.FirstOrDefault());
+                return;
+            }
+
+            var x = GetPositionByArgument(npc, "x", args);
+            var y = GetPositionByArgument(npc, "y", args);
+            var z = GetPositionByArgument(npc, "z", args);
+            var roll = GetPositionByArgument(npc, "roll", args);
+            var pitch = GetPositionByArgument(npc, "pitch", args);
+            var yaw = GetPositionByArgument(npc, "yaw", args);
+
+            character.SendMessage("[Npc] Npc ObjId:{0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, roll:{5}, pitch:{6}, yaw:{7}", npc.ObjId, npc.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());
+            npc.Transform.Local.SetPosition(x, y, z, roll, pitch, yaw);
+            var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
+            moveType.X = x;
+            moveType.Y = y;
+            moveType.Z = z;
+            var characterRot = character.CurrentTarget.Transform.Local.ToRollPitchYawSBytes();
+            moveType.RotationX = characterRot.Item1;
+            moveType.RotationY = characterRot.Item2;
+            moveType.RotationZ = characterRot.Item3;
+            moveType.Flags = 5;
+            moveType.DeltaMovement = new sbyte[3];
+            moveType.DeltaMovement[0] = 0;
+            moveType.DeltaMovement[1] = 0;
+            moveType.DeltaMovement[2] = 0;
+            moveType.Stance = 1;    // combat=0, idle=1
+            moveType.Alertness = 0; // idle=0, combat=2
+            moveType.Time += 50;    // has to change all the time for normal motion.
+            character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
         }
     }
 }

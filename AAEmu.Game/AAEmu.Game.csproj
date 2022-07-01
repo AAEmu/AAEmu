@@ -48,7 +48,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Remove="Scripts\**\**" />
+      <!--Compile Remove="Scripts\**\**" /-->
       <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
       <None Include="Configs\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Configs\" />
       <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
