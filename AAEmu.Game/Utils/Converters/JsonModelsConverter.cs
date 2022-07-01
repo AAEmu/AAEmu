@@ -1,35 +1,34 @@
 ﻿using System;
 using System.Collections.Generic;
+using AAEmu.Game.Models.Json;
 using Newtonsoft.Json;
 
 namespace AAEmu.Game.Utils.Converters
 {
     public class JsonModelsConverter : JsonConverter
     {
-        private Dictionary<Type, JsonConverter> _converters = new Dictionary<Type, JsonConverter>
-        {
-            {
-                typeof(JsonPositionConverter), new JsonPositionConverter()
-            }
-        };
+        private Dictionary<Type, JsonConverter> _converters = new Dictionary<Type, JsonConverter>();
+
         public JsonModelsConverter()
         {
-            AddConverter<JsonPositionConverter>();
-            AddConverter<JsonQuestSphereConverter>();
-            AddConverter<JsonDoodadSpawnsConverter>();
-            AddConverter<JsonNpcSpawnsConverter>();
+            AddConverter<JsonPositionConverter, JsonPosition>();
+            AddConverter<JsonQuestSphereConverter, JsonQuestSphere>();
+            AddConverter<JsonDoodadSpawnsConverter, JsonDoodadSpawns>();
+            AddConverter<JsonNpcSpawnsConverter, JsonNpcSpawns>();
         }
-        public void AddConverter<T>() where T : JsonConverter 
+        public void AddConverter<T, Y>() where T : BaseJsonConverter<Y> where Y : class
         {
             if (!_converters.ContainsKey(typeof(T)))
             {
-                _converters.Add(typeof(T), (T)Activator.CreateInstance(typeof(T)));
+                _converters.Add(typeof(Y), (T)Activator.CreateInstance(typeof(T)));
             }
         }
 
         public override bool CanConvert(Type objectType)
         {
-            return _converters.ContainsKey(objectType);
+            var canConvert = _converters.ContainsKey(objectType);
+            //var canConvert = _converters.ContainsKey(objectType.IsArray ? objectType.GetElementType() : objectType);
+            return canConvert;
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)

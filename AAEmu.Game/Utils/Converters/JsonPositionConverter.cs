@@ -26,17 +26,17 @@ namespace AAEmu.Game.Utils.Converters
             if (value.Roll != default)
             {
                 writer.WritePropertyName(nameof(value.Roll));
-                writer.WriteValue(value.Roll);
+                writer.WriteRawValue(value.Roll.ToString("0.####"));
             }
             if (value.Yaw != default)
             {
                 writer.WritePropertyName(nameof(value.Yaw));
-                writer.WriteValue(value.Yaw);
+                writer.WriteRawValue(value.Yaw.ToString("0.####"));
             }
             if (value.Pitch != default)
             {
                 writer.WritePropertyName(nameof(value.Pitch));
-                writer.WriteValue(value.Pitch);
+                writer.WriteRawValue(value.Pitch.ToString("0.####"));
             }
             writer.WriteEndObject();
         }

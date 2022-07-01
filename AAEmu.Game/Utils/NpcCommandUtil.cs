@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Json;
+using AAEmu.Game.Utils.Converters;
 using Newtonsoft.Json;
 using NLog;
 
@@ -101,7 +102,6 @@ namespace AAEmu.Game.Utils
         {
             Npc npc;
             var spawners = new List<JsonNpcSpawns>();
-            var npcSpawners = new Dictionary<uint, JsonNpcSpawns>();
 
             npc = WorldManager.Instance.GetNpc(npcObjId);
             if (npc is null)
@@ -146,7 +146,7 @@ namespace AAEmu.Game.Utils
                 }
 
                 var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
-                var json = JsonConvert.SerializeObject(npcSpawners.Values.ToArray(), Formatting.Indented);
+                var json = JsonConvert.SerializeObject(spawnersFromFile.Values.ToArray(), Formatting.Indented, new JsonModelsConverter());
                 File.WriteAllText(jsonPathOut, json);
                 character.SendMessage("[Npc] all npcs have been saved with added npc ObjId {0}, TemplateId {1}", npc.ObjId, npc.TemplateId);
                 
@@ -340,8 +340,8 @@ namespace AAEmu.Game.Utils
             var pitch = GetPositionByArgument(npc, "pitch", args);
             var yaw = GetPositionByArgument(npc, "yaw", args);
 
-            character.SendMessage("[Npc] Npc ObjId:{0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, roll:{5}, pitch:{6}, yaw:{7}", npc.ObjId, npc.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());
-            npc.Transform.Local.SetPosition(x, y, z, roll, pitch, yaw);
+            character.SendMessage("[Npc] Npc ObjId:{0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, roll:{5}, pitch:{6}, yaw:{7}", npc.ObjId, npc.TemplateId, x, y, z, roll, pitch, yaw);
+            npc.Transform.Local.SetPosition(x, y, z, roll.DegToRad(), pitch.DegToRad(), yaw.DegToRad());
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
             moveType.X = x;
             moveType.Y = y;
@@ -350,6 +350,8 @@ namespace AAEmu.Game.Utils
             moveType.RotationX = characterRot.Item1;
             moveType.RotationY = characterRot.Item2;
             moveType.RotationZ = characterRot.Item3;
+            
+
             moveType.Flags = 5;
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
