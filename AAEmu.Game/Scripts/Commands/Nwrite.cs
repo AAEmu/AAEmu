@@ -98,7 +98,7 @@ namespace AAEmu.Game.Scripts.Commands
                                     if (doodad.Spawner.Id == 0) // spawned into the game manually
                                     {
                                         var newId = (uint)((spawners[spawners.Count - 1].Id) + 1);
-                                        var pos = new DoodadPos();
+                                        var pos = new JsonPosition();
                                         pos.X = doodad.Transform.World.Position.X;
                                         pos.Y = doodad.Transform.World.Position.Y;
                                         pos.Z = doodad.Transform.World.Position.Z;
@@ -182,7 +182,7 @@ namespace AAEmu.Game.Scripts.Commands
                                             var pos = npcs[i].Transform.World;
 
                                             var newEntry = new JsonNpcSpawns();
-                                            newEntry.Position = new Pos();
+                                            newEntry.Position = new JsonPosition();
                                             //newEntry.Count = 1;
                                             newEntry.Id = newId;
                                             newEntry.UnitId = npcs[i].TemplateId;

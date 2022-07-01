@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Numerics;
-
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
@@ -13,9 +11,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Json;
-
 using Newtonsoft.Json;
-
 using NLog;
 
 namespace AAEmu.Game.Utils
@@ -23,12 +19,6 @@ namespace AAEmu.Game.Utils
     public class NpcCommandUtil
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-
-
-        public static void SaveChoice(Character character, string[] args)
-        {
-
-        }
 
         /// <summary>
         /// Executes based in the main command and its remaining arguments
@@ -97,7 +87,7 @@ namespace AAEmu.Game.Utils
                 // Save all NPCs in the current world
                 SaveAll(character, worlds);
             }
-            else if (uint.TryParse(firstArgument, out var npcObjId)) //save <number>
+            else if (uint.TryParse(firstArgument, out var npcObjId)) //save <ObjId>
             {
                 SaveById(character, worlds, npcObjId);
             }
@@ -107,7 +97,7 @@ namespace AAEmu.Game.Utils
             }
         }
 
-        private static void SaveById(Character character, Models.Game.World.World[] worlds, uint npcObjId)
+        private static void SaveById(Character character, World[] worlds, uint npcObjId)
         {
             Npc npc;
             var spawners = new List<JsonNpcSpawns>();
@@ -119,75 +109,47 @@ namespace AAEmu.Game.Utils
                 character.SendMessage("|cFFFF0000[Npc] Npc with objId {0} Does not exist |r", npcObjId);
                 return; 
             }
+
+            var spawn = new JsonNpcSpawns
+            {
+                Id = npc.ObjId,
+                UnitId = npc.TemplateId,
+                Position = new JsonPosition
+                {
+                    X = npc.Transform.Local.Position.X,
+                    Y = npc.Transform.Local.Position.Y,
+                    Z = npc.Transform.Local.Position.Z,
+                    Roll = npc.Transform.Local.Rotation.X.RadToDeg(),
+                    Pitch = npc.Transform.Local.Rotation.Y.RadToDeg(),
+                    Yaw = npc.Transform.Local.Rotation.Z.RadToDeg()
+                }
+            };
+
+            var world = worlds.SingleOrDefault(w => w.Id == npc.Transform.WorldId);
+            if (world is null)
+            {
+                character.SendMessage("|cFFFF0000[Npc] Could not find the worldId {0} |r", npc.Transform.WorldId);
+                return;
+            }
+
             try
             {
-                // Try Saving Npc
-                foreach (var world in worlds)
+                var spawnersFromFile = LoadNpcsFromFileByWorld(world).ToDictionary(x => x.Id, x => x);
+
+                if (spawnersFromFile.ContainsKey(spawn.Id))
                 {
-                    // Load Npc spawns
-                    _log.Info("Loading spawns...");
-                    var contents = string.Empty;
-                    var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name);
-                    var jsonPathIn = string.Empty;
-                    jsonPathIn = Path.Combine(worldPath, "npc_spawns.json");
-
-                    if (!File.Exists(jsonPathIn))
-                    {
-                        _log.Info("World  {0}  is missing  {1}", world.Name, Path.GetFileName(jsonPathIn));
-                    }
-                    else
-                    {
-                        contents = FileManager.GetFileContents(jsonPathIn);
-                        if (string.IsNullOrWhiteSpace(contents))
-                            _log.Warn("File {0} is empty.", jsonPathIn);
-                        else
-                        {
-                            if (JsonHelper.TryDeserializeObject(contents, out spawners, out _))
-                            {
-                                foreach (var spawner in spawners)
-                                {
-                                    npcSpawners.Add(spawner.Id, spawner);
-                                }
-                            }
-                            else
-                            {
-                                throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonPathIn));
-                            }
-                          
-
-                            // NPC by objId
-                            if (args.Length >= 2 && args[0].ToLower() == "npc" && uint.TryParse(args[1], out npcObjId))
-                            {
-                                npc = WorldManager.Instance.GetNpc(npcObjId);
-                            }
-                            if (npc != null && npc is Npc)
-                            {
-                                var spawn = new JsonNpcSpawns();
-                                spawn.Position = new JsonPosition();
-                                spawn.Id = npc.ObjId;
-                                spawn.UnitId = npc.TemplateId;
-                                spawn.Position.X = npc.Transform.Local.Position.X;
-                                spawn.Position.Y = npc.Transform.Local.Position.Y;
-                                spawn.Position.Z = npc.Transform.Local.Position.Z;
-                                //spawn.Position.Roll = npc.Transform.Local.Rotation.X.RadToDeg();
-                                //spawn.Position.Pitch = npc.Transform.Local.Rotation.Y.RadToDeg();
-                                spawn.Position.Yaw = npc.Transform.Local.Rotation.Z.RadToDeg();
-                                if (npcSpawners.ContainsKey(spawn.Id))
-                                {
-                                    npcSpawners[spawn.Id] = spawn;
-                                }
-                                else
-                                {
-                                    npcSpawners.Add(spawn.Id, spawn);
-                                }
-                            }
-                            var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
-                            var json = JsonConvert.SerializeObject(npcSpawners.Values.ToArray(), Formatting.Indented);
-                            File.WriteAllText(jsonPathOut, json);
-                            character.SendMessage("[Npc] all npcs have been saved with added npc ObjId {0}, TemplateId {1}", npc.ObjId, npc.TemplateId);
-                        }
-                    }
+                    spawnersFromFile[spawn.Id] = spawn;
                 }
+                else
+                {
+                    spawnersFromFile.Add(spawn.Id, spawn);
+                }
+
+                var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
+                var json = JsonConvert.SerializeObject(npcSpawners.Values.ToArray(), Formatting.Indented);
+                File.WriteAllText(jsonPathOut, json);
+                character.SendMessage("[Npc] all npcs have been saved with added npc ObjId {0}, TemplateId {1}", npc.ObjId, npc.TemplateId);
+                
             }
             catch (Exception e)
             {
@@ -200,10 +162,16 @@ namespace AAEmu.Game.Utils
         {
             List<JsonNpcSpawns> npcSpawnersFromFile;
             var jsonPathIn = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns.json");
+            if (!File.Exists(jsonPathIn))
+            {
+                throw new ApplicationException($"File {jsonPathIn} doesn't exists.");
+            }
+
             var contents = FileManager.GetFileContents(jsonPathIn);
+            _log.Info($"Loading spawns from file {jsonPathIn} ...");
             if (string.IsNullOrWhiteSpace(contents))
             {
-                throw new ApplicationException($"File {jsonPathIn} doesn't exists or is empty.");
+                return new List<JsonNpcSpawns>();
             }
             else
             {
