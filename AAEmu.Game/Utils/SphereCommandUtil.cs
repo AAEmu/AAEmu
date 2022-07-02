@@ -157,7 +157,7 @@ namespace AAEmu.Game.Utils
                             uuid = (uint)(spheres.Count + 1);
 }
 
-                        var pos = new SpherePos()
+                        var pos = new JsonPosition()
                         {
                             X = character.Transform.Local.Position.X,
                             Y = character.Transform.Local.Position.Y,
