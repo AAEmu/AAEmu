@@ -97,6 +97,14 @@ namespace AAEmu.Game.Core.Managers
             if ((_commands.Count <= 0) && (words.Length == 2) && (thisCommand == "scripts") && (words[1] == "reload") && (character.AccessLevel >= 100))
             {
                 ForceScriptsReload(character);
+
+                return true;
+            }
+
+            if (thisCommand == "scripts" && words[1] == "reload" && words[2] == "force" && character.AccessLevel >= 100)
+            {
+                ForceScriptsReload(character);
+
                 return true;
             }
 
