@@ -15,7 +15,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             Prefix = "[Doodad Phase]";
             Description = "Change the phase of a given Doodad";
-            CallExample = "/doodad setphase|phase <ObjId> <PhaseId>";
+            CallExample = "/doodad setphase||phase <ObjId> <PhaseId>";
         }
         public override void Execute(ICharacter character, string triggerArgument, string[] args)
         {

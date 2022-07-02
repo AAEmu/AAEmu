@@ -20,7 +20,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         public DoodadSaveSubCommand()
         {
             Prefix = "[Doodad Save]";
-            Description = "Save current state of a given doodads to the doodads world file.";
+            Description = "Save current state of a doodad to the doodads world file.";
             CallExample = "/doodad save <ObjId>";
         }
 
