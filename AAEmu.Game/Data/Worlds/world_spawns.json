@@ -9,6 +9,15 @@
         }
     },
     {
+        "Name": "arche_mall",
+        "SpawnPosition": {
+            "ZoneId": 260,
+            "X": 3680.518,
+            "Y": 4572.221,
+            "Z": 156
+        }
+    },
+    {
         "Name": "instance_burntcastle_armory",
         "SpawnPosition": {
             "ZoneId": 236,

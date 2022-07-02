@@ -76,17 +76,17 @@ namespace AAEmu.Game.Core.Managers.World
                     else
                     {
                         if (JsonHelper.TryDeserializeObject(contents, out List<NpcSpawner> spawners, out _))
+                        {
+                            var entry = 0;
                             foreach (var spawner in spawners)
                             {
+                                entry++;
                                 if (!NpcManager.Instance.Exist(spawner.UnitId))
-                                    continue; // TODO ... so mb warn here?
-                                
-                                if (npcSpawners.ContainsKey(spawner.Id))
                                 {
-                                    _log.Warn($"Ignoring Duplicate Npc Spawn Id: {spawner.Id}");
-                                    continue;
+                                    _log.Warn($"Npc Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
+                                    continue; // TODO ... so mb warn here?
                                 }
-                                
+
                                 spawner.Position.WorldId = world.Id;
                                 spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
                                 // Convert degrees from the file to radians for use
@@ -99,6 +99,7 @@ namespace AAEmu.Game.Core.Managers.World
                                     foreach (var npcSpawnerId in npcSpawnersId)
                                     {
                                         spawner.NpcSpawnerId.Add(npcSpawnerId);
+                                        spawner.Id = idx;
                                         if (!spawner.Template.ContainsKey(npcSpawnerId))
                                         {
                                             spawner.Template.Add(npcSpawnerId, NpcGameData.Instance.GetNpcSpawnerTemplate(npcSpawnerId));
@@ -108,8 +109,9 @@ namespace AAEmu.Game.Core.Managers.World
                                     }
                                 }
                             }
+                        }
                         else
-                            throw new Exception($"SpawnManager: Unable to parse {jsonFileName} file");
+                            throw new Exception($"SpawnManager: Parse {jsonFileName} file");
                     }
                 }
 
@@ -130,25 +132,18 @@ namespace AAEmu.Game.Core.Managers.World
                     {
                         if (JsonHelper.TryDeserializeObject(contents, out List<DoodadSpawner> spawners, out _))
                         {
-                            var C = 0;
+                            var entry = 0;
                             foreach (var spawner in spawners)
                             {
-                                C++;
+                                entry++;
                                 if (!DoodadManager.Instance.Exist(spawner.UnitId))
                                 {
-                                    _log.Warn($"Doodad Template {spawner.UnitId} (file entry {C}) doesn't exist - {jsonFileName}");
+                                    _log.Warn($"Doodad Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
                                     continue; // TODO ... so mb warn here?
                                 }
-
-                                if (doodadSpawners.ContainsKey(spawner.Id))
-                                {
-                                    _log.Warn($"Ignoring Duplicate Doodad Spawn Id: {spawner.Id}");
-                                    continue;
-                                }
-                                
+                                spawner.Id = idx;
                                 spawner.Position.WorldId = world.Id;
                                 spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
-
                                 // Convert degrees from the file to radians for use
                                 spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
                                 spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
@@ -161,7 +156,7 @@ namespace AAEmu.Game.Core.Managers.World
                             }
                         }
                         else
-                            throw new Exception($"SpawnManager: Unable to parse {jsonFileName} file");
+                            throw new Exception($"SpawnManager: Parse {jsonFileName} file");
                     }
                 }
 
@@ -184,17 +179,16 @@ namespace AAEmu.Game.Core.Managers.World
                     {
                         if (JsonHelper.TryDeserializeObject(contents, out List<TransferSpawner> spawners, out _))
                         {
+                            var entry = 0;
                             foreach (var spawner in spawners)
                             {
+                                entry++;
                                 if (!TransferManager.Instance.Exist(spawner.UnitId))
-                                    continue;
-                                
-                                if (transferSpawners.ContainsKey(spawner.Id))
                                 {
-                                    _log.Warn($"Ignoring Duplicate Transfer Spawn Id: {spawner.Id}");
-                                    continue;
+                                    _log.Warn($"Transfer Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
+                                    continue; // TODO ... so mb warn here?
                                 }
-                                
+                                spawner.Id = idx;
                                 spawner.Position.WorldId = world.Id;
                                 spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
                                 // Convert degrees from the file to radians for use
@@ -210,7 +204,7 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                         else
                         {
-                            throw new Exception($"SpawnManager: Unable to parse {jsonFileName} file");
+                            throw new Exception($"SpawnManager: Parse {jsonFileName} file");
                         }
                     }
                 }
@@ -233,17 +227,16 @@ namespace AAEmu.Game.Core.Managers.World
                     {
                         if (JsonHelper.TryDeserializeObject(contents, out List<GimmickSpawner> spawners, out _))
                         {
+                            var entry = 0;
                             foreach (var spawner in spawners)
                             {
+                                entry++;
                                 if (!GimmickManager.Instance.Exist(spawner.UnitId))
-                                    continue;
-                                
-                                if (gimmickSpawners.ContainsKey(spawner.Id))
                                 {
-                                    _log.Warn($"Ignoring Duplicate Gimmick Spawn Id: {spawner.Id}");
-                                    continue;
+                                    _log.Warn($"Gimmick Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
+                                    continue; // TODO ... so mb warn here?
                                 }
-                                
+                                spawner.Id = idx;
                                 spawner.Position.WorldId = world.Id;
                                 spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
                                 if (!gimmickSpawners.ContainsKey(idx))
@@ -255,7 +248,7 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                         else
                         {
-                            throw new Exception($"SpawnManager: Unable to parse {jsonFileName} file");
+                            throw new Exception($"SpawnManager: Parse {jsonFileName} file");
                         }
                     }
 
