@@ -17,17 +17,20 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "(target) or self";
+            return "(target) or self <health percent>";
         }
 
         public string GetCommandHelpText()
         {
-            return "Damages self";
+            return "Damages self based on health percent";
         }
 
         public void Execute(Character character, string[] args)
         {
-            character.ReduceCurrentHp(character, 100);
+				int healthpercent = int.TryParse(args[0], out healthpercent) ? healthpercent : 1;
+				if(healthpercent > 0 && healthpercent < 100){
+					character.ReduceCurrentHp(character, (character.MaxHp*healthpercent/100));
+				}
         }
     }
 }
