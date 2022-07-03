@@ -93,7 +93,7 @@ namespace AAEmu.Tests.Commands
             mockCharacter.Verify(c => c.SendMessage(It.IsIn($"{testCommandPrefix} {testCommand.Description}")), Times.Once);
             mockCharacter.Verify(c => c.SendMessage(It.IsIn($"{testCommandPrefix} {testCommand.CallExample}")), Times.Once);
             mockCharacter.Verify(c => c.SendMessage(It.Is<string>(s => s.Contains($"{string.Join("||", expectedCommands)}"))), Times.Once);
-            mockCharacter.Verify(c => c.SendMessage(It.Is<string>(s => s.Contains("Type help"))), Times.Once);
+            mockCharacter.Verify(c => c.SendMessage(It.Is<string>(s => s.Contains("For more details use"))), Times.Once);
         }
 
 

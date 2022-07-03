@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -20,6 +21,7 @@ namespace AAEmu.Game.Scripts.Commands
             Register(new DoodadPhaseSubCommand(), "phase", "setphase");
             Register(new DoodadSaveSubCommand(), "save");
             Register(new DoodadPositionSubCommand(), "pos");
+            Register(new DoodadSpawnSubCommand(), "spawn");
         }
 
         public void OnLoad()
@@ -50,9 +52,8 @@ namespace AAEmu.Game.Scripts.Commands
             }
             catch (Exception e)
             {
-                character.SendMessage(e.Message);
+                SendColorMessage(character, Color.Red, e.Message);
             }
-            //DoodadCommandUtil.GetCommandChoice( character, args[0], args );
         }
     }
 }

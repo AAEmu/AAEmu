@@ -33,7 +33,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                 return;
             }
 
-            if (!uint.TryParse(args[1], out var doodadObjId))
+            if (!uint.TryParse(firstArgument, out var doodadObjId))
             {
                 SendColorMessage(character, Color.Red, "Invalid <ObjId>, must be numeric");
                 return;

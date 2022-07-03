@@ -54,7 +54,7 @@ namespace AAEmu.Tests.Converters
                     }
                 }
             };
-            var expected = "[{\"Id\":1,\"UnitId\":1,\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0,\"Roll\":20.0,\"Pitch\":10.0}}]";
+            var expected = "[{\"Id\":1,\"UnitId\":1,\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0,\"Roll\":20,\"Pitch\":10}}]";
 
             //Act
             var conversion = JsonConvert.SerializeObject(spawnsList, new JsonModelsConverter());

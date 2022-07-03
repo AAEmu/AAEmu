@@ -8,7 +8,7 @@ namespace AAEmu.Game.Utils.Scripts
 {
     public abstract class SubCommandBase : ISubCommand
     {
-        private readonly Dictionary<string, ISubCommand> _subCommands = new Dictionary<string, ISubCommand>();
+        private readonly Dictionary<string, ISubCommand> _subCommands = new();
         protected List<string> SupportedCommands => _subCommands.Keys.ToList();
         protected string Prefix { get; set; }
         public string Description { get; protected set; }
@@ -56,6 +56,10 @@ namespace AAEmu.Game.Utils.Scripts
                 {
                     _subCommands[firstArgument].PreExecute(character, firstArgument, args.Skip(1).ToArray());
                 }
+                else
+                {
+                    Execute(character, triggerArgument, args);
+                }
             }
             else
             {
@@ -69,8 +73,8 @@ namespace AAEmu.Game.Utils.Scripts
             SendMessage(character, CallExample);
             if (SupportedCommands.Count > 0) 
             {
-                SendMessage(character, $"Supported commands: <{string.Join("||", SupportedCommands)}>");
-                SendMessage(character, $"Type help after the command for more details");
+                SendMessage(character, $"Supported subcommands: <{string.Join("||", SupportedCommands)}>");
+                SendMessage(character, $"For more details use /<command> [<subcommand>] help.");
             }
         }
 
@@ -84,9 +88,7 @@ namespace AAEmu.Game.Utils.Scripts
         {
             if (_subCommands.Count > 0)
             {
-                SendMessage(character, Description);
-                SendMessage(character, CallExample);
-                SendMessage(character, $"Supported commands: {string.Join(",", _subCommands.Keys)} |r");
+                SendHelpMessage(character);
             }
         }
 
