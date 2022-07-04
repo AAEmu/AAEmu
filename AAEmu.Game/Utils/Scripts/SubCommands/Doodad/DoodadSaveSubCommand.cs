@@ -9,14 +9,11 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Json;
 using AAEmu.Game.Utils.Converters;
 using Newtonsoft.Json;
-using NLog;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands
 {
     public class DoodadSaveSubCommand : SubCommandBase
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-
         public DoodadSaveSubCommand()
         {
             Prefix = "[Doodad Save]";

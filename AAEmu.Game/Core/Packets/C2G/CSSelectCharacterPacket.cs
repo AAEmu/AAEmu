@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units.Route;
@@ -26,7 +27,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (Connection.Characters.ContainsKey(characterId))
             {
-                var character = Connection.Characters[characterId];
+                var character = (Character)Connection.Characters[characterId];
                 character.Load();
                 character.Connection = Connection;
                 var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id);

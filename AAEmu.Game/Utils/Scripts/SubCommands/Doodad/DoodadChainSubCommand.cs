@@ -9,7 +9,6 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
 {
     public class DoodadChainSubCommand : SubCommandBase
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
         public DoodadChainSubCommand()
         {
             Prefix = "[Doodad Chain]";

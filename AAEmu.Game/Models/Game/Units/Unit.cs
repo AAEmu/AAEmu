@@ -28,7 +28,7 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Units
 {
-    public class Unit : BaseUnit
+    public class Unit : BaseUnit, IUnit
     {
         public virtual UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.None;
 

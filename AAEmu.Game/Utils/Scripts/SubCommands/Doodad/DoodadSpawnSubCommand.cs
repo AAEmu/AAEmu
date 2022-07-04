@@ -3,14 +3,11 @@ using System.Linq;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
-using NLog;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands
 {
     public class DoodadSpawnSubCommand : SubCommandBase
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-
         public DoodadSpawnSubCommand()
         {
             Prefix = "[Doodad Spawn]";
