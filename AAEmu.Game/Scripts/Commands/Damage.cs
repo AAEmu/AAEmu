@@ -49,6 +49,5 @@ namespace AAEmu.Game.Scripts.Commands
                character.ReduceCurrentHp(character, (character.MaxHp * damage / 100));
             }
         }
-               
     }
 }
