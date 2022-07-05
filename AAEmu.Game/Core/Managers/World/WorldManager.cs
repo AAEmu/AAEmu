@@ -991,6 +991,10 @@ namespace AAEmu.Game.Core.Managers.World
         {
             return _npcs.Values.ToList();
         }
+        public List<Npc> GetAllNpcsFromWorld(uint worldId)
+        {
+            return _npcs.Values.Where(n => n.Transform.WorldId == worldId).ToList();
+        }
 
         public AreaShape GetAreaShapeById(uint id)
         {

@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using AAEmu.Game.Models.Game.Char;
+using NLog;
 
 namespace AAEmu.Game.Utils.Scripts
 {
     public abstract class SubCommandBase : ISubCommand
     {
+        protected Logger _log = LogManager.GetCurrentClassLogger();
         private readonly Dictionary<string, ISubCommand> _subCommands = new();
         protected List<string> SupportedCommands => _subCommands.Keys.ToList();
         protected string Prefix { get; set; }

@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using Newtonsoft.Json;
 
 namespace AAEmu.Commons.Utils
 {
     public class JsonHelper
     {
-        public static T DeserializeObject<T>(string json) => JsonConvert.DeserializeObject<T>(json);
+        public static T DeserializeObject<T>(string json, params JsonConverter[] converters) => JsonConvert.DeserializeObject<T>(json, converters);
 
         public static bool TryDeserializeObject<T>(string json, out T result, out Exception error)
         {
