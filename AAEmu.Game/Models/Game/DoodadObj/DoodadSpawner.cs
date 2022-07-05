@@ -22,6 +22,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public float Scale { get; set; }
         public Doodad Last { get; set; }
 
+        /// <summary>
+        /// Spawn a doodad in the world with a character as owner
+        /// </summary>
+        /// <param name="objId">instance id of the doodad</param>
+        /// <param name="itemId">template id of the doodad</param>
+        /// <param name="charId">instance id of the character</param>
+        /// <returns>Created doodad reference</returns>
+        public override Doodad Spawn(uint objId, ulong itemId, uint charId) //Mostly used for player created spawns
         //---
         private List<Doodad> _spawned;
         private int _scheduledCount;

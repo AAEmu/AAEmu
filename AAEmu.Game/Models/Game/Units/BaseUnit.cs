@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.Units
         TurretState = 8
     }
 
-    public class BaseUnit : GameObject
+    public class BaseUnit : GameObject, IBaseUnit
     {
         public uint Id { get; set; }
         public uint TemplateId { get; set; }

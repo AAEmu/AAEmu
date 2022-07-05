@@ -9,7 +9,7 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.World
 {
-    public class GameObject
+    public class GameObject : IGameObject
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
 

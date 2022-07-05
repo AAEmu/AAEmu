@@ -25,6 +25,7 @@ using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils.DB;
 using MySql.Data.MySqlClient;
 using NLog;
+using System.Drawing;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -47,7 +48,7 @@ namespace AAEmu.Game.Models.Game.Char
         Female = 2
     }
 
-    public partial class Character : Unit
+    public partial class Character : Unit, ICharacter
     {
         public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Character;
         public static Dictionary<uint, uint> _usedCharacterObjIds = new Dictionary<uint, uint>();
@@ -1607,6 +1608,11 @@ namespace AAEmu.Game.Models.Game.Char
             Connection.SendPacket(new SCResponseUIDataPacket(Id, key, GetOption(key)));
         }
 
+        public void SendMessage(Color color, string message, params object[] parameters)
+        {
+            message = $"|c{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}{message}";
+            SendMessage(message, parameters);
+        }
         public void SendMessage(string message, params object[] parameters)
         {
             SendMessage(ChatType.System, message, parameters);

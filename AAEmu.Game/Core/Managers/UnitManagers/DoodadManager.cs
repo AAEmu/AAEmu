@@ -2317,7 +2317,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
 
         /// <summary>
-        /// GetDoodadFuncGroups - Получить для заданного TemplateId группу функций
+        /// GetDoodadFuncGroups - Get a group of functions for a given TemplateId
         /// </summary>
         /// <param name="doodadTemplateId"></param>
         /// <returns>List<DoodadFuncGroups></returns>
@@ -2329,10 +2329,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             {
                 var doodaTemplates = _templates[doodadTemplateId];
                 listDoodadFuncGroups.AddRange(doodaTemplates.FuncGroups);
-                return listDoodadFuncGroups;
             }
-            return null;
+            return listDoodadFuncGroups;
         }
+
         public List<uint> GetDoodadFuncGroupsId(uint doodadTemplateId)
         {
             var listId = new List<uint>();
@@ -2347,12 +2347,12 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 {
                     listId.Add(item.Id);
                 }
-                return listId;
             }
-            return null;
+            return listId;
         }
+
         /// <summary>
-        /// GetDoodadFuncs - Получить все функции
+        /// GetDoodadFuncs - Get all features
         /// </summary>
         /// <param name="doodadFuncGroupId"></param>
         /// <returns>List<DoodadFunc></returns>
