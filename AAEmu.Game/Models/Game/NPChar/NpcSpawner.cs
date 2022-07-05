@@ -30,6 +30,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public uint Count { get; set; } = 1;
         public List<uint> NpcSpawnerId { get; set; }
         private bool _permanent { get; set; }
+        public Dictionary<uint, NpcSpawnerTemplate> Template { get; set; } // npcSpawnerId, template
 
         public NpcSpawner()
         {
@@ -139,13 +140,17 @@ namespace AAEmu.Game.Models.Game.NPChar
                     // if there is, we'll check the time for the spawning
                     if (GameScheduleManager.Instance.CheckSpawnerInGameSchedules((int)spawnerId))
                     {
-                        var delay = GameScheduleManager.Instance.GetRemainingTime((int)spawnerId, true);
+                        var delay = GameScheduleManager.Instance.GetRemainingTime((int)spawnerId, false);
                         _log.Debug("DoDespawn: Npc TemplateId {0}, NpcSpawnerId {1} despawn [2] reschedule next time...", UnitId, Id);
                         _log.Debug("DoDespawn: delay {0}", delay.ToString());
                         TaskManager.Instance.Schedule(new NpcSpawnerDoDespawnTask(npc), delay);
                         //Thread.Sleep(50);
                         continue; // Reschedule when OK
                     }
+                
+                    // couldn't find it on the schedule, but it should have been!
+                    // no entries found for this unit in Game_Schedule table
+                    continue;
                 }
                 #endregion Schedule
 
@@ -201,7 +206,7 @@ namespace AAEmu.Game.Models.Game.NPChar
                 else if (GameScheduleManager.Instance.CheckSpawnerInScheduleSpawners((int)spawnerId))
                 {
                     // if there is, we'll check the time for the spawning
-                    if (!GameScheduleManager.Instance.CheckSpawnerInGameSchedules((int)spawnerId))
+                    if (GameScheduleManager.Instance.CheckSpawnerInGameSchedules((int)spawnerId))
                     {
                         var delay = GameScheduleManager.Instance.GetRemainingTime((int)spawnerId, true);
                         _permanent = false; // Npc есть в расписании
@@ -211,6 +216,10 @@ namespace AAEmu.Game.Models.Game.NPChar
                         //Thread.Sleep(50);
                         continue; // Reschedule when OK
                     }
+
+                    // couldn't find it on the schedule, but it should have been!
+                    // no entries found for this unit in Game_Schedule table
+                    continue;
                 }
                 #endregion Schedule
 

@@ -116,14 +116,13 @@ namespace AAEmu.Game.Core.Managers
             }
 
             var remainingTime = TimeSpan.MaxValue;
-            var timeSpan = TimeSpan.Zero;
 
             foreach (var gameScheduleId in _gameScheduleSpawnerIds[spawnerId])
             {
                 if (!_gameSchedules.ContainsKey(gameScheduleId)) { continue; }
 
                 var gameSchedules = _gameSchedules[gameScheduleId];
-                timeSpan = start ? GetRemainingTimeStart(gameSchedules) : GetRemainingTimeEnd(gameSchedules);
+                var timeSpan = start ? GetRemainingTimeStart(gameSchedules) : GetRemainingTimeEnd(gameSchedules);
                 if (timeSpan <= remainingTime)
                 {
                     remainingTime = timeSpan;
@@ -174,6 +173,19 @@ namespace AAEmu.Game.Core.Managers
                     _gameScheduleSpawnerIds[gss.SpawnerId].Add(gss.GameScheduleId);
                 }
             }
+
+            foreach (var gsd in _gameScheduleDoodads.Values)
+            {
+                if (!_gameScheduleSpawnerIds.ContainsKey(gsd.DoodadId))
+                {
+                    _gameScheduleSpawnerIds.Add(gsd.DoodadId, new List<int> { gsd.GameScheduleId });
+                }
+                else
+                {
+                    _gameScheduleSpawnerIds[gsd.DoodadId].Add(gsd.GameScheduleId);
+                }
+            }
+            //TODO quests data
         }
 
         public bool GetGameScheduleDoodadsData(uint doodadId)

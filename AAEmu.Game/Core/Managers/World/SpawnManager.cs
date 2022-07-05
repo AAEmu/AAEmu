@@ -105,7 +105,7 @@ namespace AAEmu.Game.Core.Managers.World
                                             spawner.Template.Add(npcSpawnerId, NpcGameData.Instance.GetNpcSpawnerTemplate(npcSpawnerId));
                                         }
                                         npcSpawners.Add(idx, spawner);
-                                        idx++; // будем перенумеровывать
+                                        idx++; //we'll renumber
                                     }
                                 }
                             }
@@ -289,7 +289,9 @@ namespace AAEmu.Game.Core.Managers.World
                             var itemTemplateId = reader.GetUInt32("item_template_id");
 
                             var doodad = DoodadManager.Instance.Create(0, templateId);
-
+                            
+                            doodad.Spawner = new DoodadSpawner();
+                            doodad.Spawner.UnitId = templateId;
                             doodad.DbId = dbId;
                             doodad.FuncGroupId = phaseId;
                             doodad.OwnerId = ownerId;
@@ -444,7 +446,10 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 foreach (var doodad in _playerDoodads)
                 {
-                    doodad.Spawn();
+                    if(doodad.Spawner.Spawn(doodad.ObjId) == null)
+                    {
+                        doodad.Spawn();
+                    }
                 }
             });
         }
@@ -572,16 +577,6 @@ namespace AAEmu.Game.Core.Managers.World
 
                 Thread.Sleep(1000);
             }
-        }
-
-
-        public bool CheckSpawnerPosition(NpcSpawner spawner)
-        {
-            foreach (var spawner0 in _npcSpawners[(byte)spawner.Position.WorldId].Values)
-            {
-                spawner.Equals(spawner0.Position);
-            }
-            return true;
         }
     }
 }

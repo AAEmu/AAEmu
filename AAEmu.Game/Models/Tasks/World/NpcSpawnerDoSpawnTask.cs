@@ -4,7 +4,7 @@ namespace AAEmu.Game.Models.Tasks.World
 {
     public class NpcSpawnerDoSpawnTask : Task
     {
-        private NpcSpawner _npcSpawner;
+        private readonly NpcSpawner _npcSpawner;
 
         public NpcSpawnerDoSpawnTask(NpcSpawner npcSpawner)
         {

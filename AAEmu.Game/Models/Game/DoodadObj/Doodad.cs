@@ -13,6 +13,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Doodads;
 using AAEmu.Game.Utils.DB;
@@ -129,6 +130,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
          * 2. Ждем взаимодействия с Doodad;
          * 3. Непосредствено взаимодействие начинается с выполнения Func с учётом SkillId;
          * 4. Далее на следующей фазе начинаем выполнение с фазовых функций, а затем сами функции, если перед этим прошли проверки в фазовых функциях;
+         *
+         * 1. Creation (landing) Doodad launches on the PhaseFunc start phase;
+         * 2. Looking forward to interacting with Doodad;
+         * 3. Direct interaction starts with execution of a Func, taking into account the SkillId;
+         * 4. Then in the next phase we start execution with the phase functions and then the functions themselves, if the checks in the phase functions have been passed before;
          */
 
         public void Use(Unit caster, uint skillId)
@@ -142,7 +148,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 ToNextPhase = false;
                 if (!ListFuncGroupId.Contains(FuncGroupId))
                 {
-                    ListFuncGroupId.Add(FuncGroupId); // для проверки CheckPhase()
+                    ListFuncGroupId.Add(FuncGroupId); // to check CheckPhase()
                 }
                 else
                 {
@@ -150,12 +156,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     return;
                 }
 
-                //  сначала найдем функции, затем выполняем
-                var func = DoodadManager.Instance.GetFunc(FuncGroupId, skillId); // если skillId > 0
-                var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId); // если несколько функций с одним NextPhase
+                //  first we find the functions, then we execute
+                var func = DoodadManager.Instance.GetFunc(FuncGroupId, skillId); // if skillId > 0
+                var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId); // if several functions with one NextPhase
                 if (funcs.Count > 1)
                 {
-                    // проверка на то, что функции надо выполнить, если у них NextPhase одинаковые
+                    // check for functions to be executed if they have the same NextPhase
                     var res = true;
                     var prev = 0;
                     foreach (var a in funcs)
@@ -169,7 +175,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     }
                     if (res)
                     {
-                        // skillId может не подойти для перфой функции, а подойти для второй
+                        // skillId may not be appropriate for the first function, but it is appropriate for the second
                         if (funcs.All(fu => DoFunc(caster, skillId, fu))) { return; }
                     }
                     else
@@ -183,11 +189,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 {
                     if (DoFunc(caster, skillId, func)) { return; }
                 }
-                // затем выполняем фазовые функции (может произойти изменение FuncGroupId на другое, чем было ранее)
+                // then execute the phase functions (the FuncGroupId may change to a different one than it was before)
                 var stop = DoPhaseFuncs(caster, (int)FuncGroupId);
                 if (stop)
                 {
-                    // не прошли проверку условий для квестов или нет фазовой функции
+                    // did not pass the quest conditions check or there is no phase function
                     _log.Debug("Use:DoPhaseFuncs Did not pass the conditions check! TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
                     return;
                 }
@@ -196,21 +202,21 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         }
 
         /// <summary>
-        /// запуск функций
+        /// Launch of functions
         /// </summary>
         /// <param name="caster"></param>
         /// <param name="skillId"></param>
         /// <param name="func"></param>
-        /// <returns>если TRUE, то останавливаем дальнейшее выполнение функций, ждем взаимодействия</returns>
+        /// <returns>If TRUE, then we stop further execution of functions and wait for interaction</returns>
         private bool DoFunc(Unit caster, uint skillId, DoodadFunc func)
         {
-            // при отсутствии функции завершим цикл
+            // if there is no function, complete the cycle
             if (func == null)
             {
                 _log.Debug("Use:DoFunc Finished execution with func = null: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
                 return true;
             }
-            // далее выполняем функцию
+            // then perform the function
             func.Use(caster, this, skillId, func.NextPhase);
             if (func.SoundId > 0)
             {
@@ -232,11 +238,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         }
 
         /// <summary>
-        /// запуск фазовых функций
+        /// start-up for execution of phase functions
         /// </summary>
         /// <param name="caster"></param>
         /// <param name="nextPhase"></param>
-        /// <returns>если true, то это не прошли проверку для квеста (необходимо прервать выполнение)</returns>
+        /// <returns>if true, it did not pass the check for the quest (it must be aborted)</returns>
         private bool DoPhase(Unit caster, int nextPhase)
         {
             ListGroupId = new List<uint>();
@@ -255,24 +261,24 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             else
                 _log.Trace("DoPhase: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
 
-            // меняем фазу
+            // Changing the phase.
             FuncGroupId = (uint)nextPhase;
             var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(FuncGroupId);
             if (phaseFuncs.Length == 0)
             {
-                return false; // нет фазовых функций для FuncGroupId
+                return false; // no phase functions for FuncGroupId
             }
             PhaseRatio = Rand.Next(0, 10000);
             CumulativePhaseRatio = 0;
             var stop = false;
-            // по очереди выполняем фазовые функции
+            // perform the phase functions one after the other
             foreach (var phaseFunc in phaseFuncs)
             {
                 if (phaseFunc == null) { continue; }
                 stop = phaseFunc.Use(caster, this);
                 if (stop)
                 {
-                    break; // прерываем выполнение фазовых функций и переходим к OverridePhase
+                    break; // interrupt execution of phase functions and switch to OverridePha
                 }
             }
             if (OverridePhase != 0 && stop && FuncGroupId != OverridePhase)
@@ -282,17 +288,17 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
 
             if (!_deleted)
-                Save(); // сохраним doodad в базе данных
+                Save(); // let's save the doodad in the database
 
-            return stop; // если true, то это не прошли проверку для квеста (необходимо прервать выполнение)
+            return stop; // if true, it did not pass the check for the quest (it must be aborted)
         }
 
         /// <summary>
-        /// запуск фазовых функций и смена фазы
+        /// Start phase functions and phase change
         /// </summary>
         /// <param name="caster"></param>
         /// <param name="nextPhase"></param>
-        /// <returns>если TRUE, то это не прошли проверку для квеста (необходимо прервать выполнение)</returns>
+        /// <returns>if TRUE, it did not pass the check for the quest (it must be aborted)</returns>
         public bool DoPhaseFuncs(Unit caster, int nextPhase)
         {
             if (nextPhase <= 0) { return false; }
@@ -301,12 +307,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             else
                 _log.Trace("DoPhaseFuncs: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
 
-            // запускаем фазовые функции
+            // Start the phase functions
             var stop = DoPhase(caster, nextPhase);
-            // вызов пакета смены фазы должен быть после фазовых функций, что бы был правильный TimeLeft в пакете
+            // the phase change packet call must be after the phase functions to have the correct TimeLeft in the packet
             BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
 
-            return stop; // если true, то это не прошли проверку для квеста (необходимо прервать выполнение)
+            return stop; // if true, it did not pass the check for the quest (it must be aborted)
         }
 
         public uint GetFuncGroupId()
@@ -327,28 +333,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         }
 
         /// <summary>
-        /// Инициализация doodad начальной фазой
+        /// Initialization of doodad initial phase
         /// </summary>
         public override void Spawn()
         {
-            #region Schedule
-            // First, let's check if the schedule has such an spawnerId
-            if (GameScheduleManager.Instance.GetGameScheduleDoodadsData(TemplateId))
-            {
-                // if there is, we'll check the time for the spawning
-                if (!GameScheduleManager.Instance.CheckDoodadInGameSchedules(TemplateId))
-                {
-                    //_log.Debug("Spawn: Doodad TemplateId {1}, objId {2} FuncGroupId {0} not on the schedule ...", FuncGroupId, TemplateId, ObjId);
-                    return; // Reschedule when OK
-                }
-            }
-            #endregion Schedule
-
-            base.Spawn();
             FuncGroupId = GetFuncGroupId();  // Start phase
             var unit = WorldManager.Instance.GetUnit(OwnerObjId);
             _log.Trace("Doing phase {0} for WorldDoodad TemplateId {1}, objId {2}", FuncGroupId, TemplateId, ObjId);
             DoPhaseFuncs(unit, (int)FuncGroupId);
+            base.Spawn();
         }
 
         public override void BroadcastPacket(GamePacket packet, bool self)
@@ -474,6 +467,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     command.ExecuteNonQuery();
                 }
             }
+        }
+    
+        public void DoDespawn(Doodad doodad)
+        {
+            Spawner.DoDespawn(doodad);
         }
     }
 }

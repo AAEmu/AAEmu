@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 spawnPos.Local.SetHeight(WorldManager.Instance.GetHeight(spawnPos));
                 var doodad = new DoodadSpawner
                 {
-                    Id = 0,
+                    Id = owner.ObjId,
                     UnitId = owner.TemplateId,
                     Position = spawnPos.CloneAsSpawnPosition()
                 };
