@@ -1,7 +1,7 @@
 name: Sonar Build
 on:
   push:
-    branches: [develop, master] 
+    branches: [develop, master]
 jobs:
   build:
     name: Build
