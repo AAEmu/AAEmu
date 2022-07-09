@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -276,6 +277,11 @@ namespace AAEmu.Game.Core.Managers
             member.Role = owner;
             member.Title = title;
             return member;
+        }
+
+        public uint GetFamilyOfCharacter(uint ownerId)
+        {
+            return (from family in _families.Values from member in family.Members where member.Id == ownerId select family.Id).FirstOrDefault();
         }
     }
 }

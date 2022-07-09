@@ -26,6 +26,7 @@
         "revive": 50,
         "showinv": 50,
         "spawn": 50,
+        "coffer": 50,
         
         // Admin
         "addbuff": 100,

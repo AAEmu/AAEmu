@@ -10,9 +10,14 @@ namespace AAEmu.Game.Models.Game.World.Interactions
         public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
             uint skillId, uint doodadId, DoodadFuncTemplate objectFunc)
         {
-            if (target is Doodad doodad)
+            if ((target is Doodad doodad) && doodad.AllowRemoval())
             {
                 doodad.Use(caster, skillId);
+            }
+            else
+            {
+                caster.SendErrorMessage(ErrorMessageType.FailedToUseItem);
+                caster.InterruptSkills();
             }
         }
     }

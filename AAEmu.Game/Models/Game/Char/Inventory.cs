@@ -279,21 +279,42 @@ namespace AAEmu.Game.Models.Game.Char
         public bool SplitOrMoveItem(ItemTaskType taskType, ulong fromItemId, SlotType fromType, byte fromSlot,
             ulong toItemId, SlotType toType, byte toSlot, int count = 0)
         {
-            var info = $"SplitOrMoveItem({fromItemId} {fromType}:{fromSlot} => {toItemId} {toType}:{toSlot} - {count})";
-            _log.Trace(info);
-            var fromItem = GetItemById(fromItemId);
+            var fromItem = ItemManager.Instance.GetItemByItemId(fromItemId);
             if ((fromItem == null) && (fromItemId != 0))
             {
                 _log.Error($"SplitOrMoveItem - ItemId {fromItemId} no longer exists, possibly a phantom item.");
                 return false;
             }
 
-            var itemInTargetSlot = GetItemById(toItemId);
+            // Grab target container for easy manipulation
+            var sourceContainer = fromItem?._holdingContainer ?? Bag;
+            if (!_itemContainers.TryGetValue(toType, out var targetContainer))
+            {
+                targetContainer = Bag;
+            }
+
+            return SplitOrMoveItemEx(taskType, sourceContainer, targetContainer, fromItemId, fromType, fromSlot, toItemId, toType, toSlot, count);
+        }
+        
+        public bool SplitOrMoveItemEx(ItemTaskType taskType, ItemContainer sourceContainer, ItemContainer targetContainer,  ulong fromItemId, SlotType fromType, byte fromSlot,
+            ulong toItemId, SlotType toType, byte toSlot, int count = 0)
+        {
+            var info = $"SplitOrMoveItem({fromItemId} {fromType}:{fromSlot} => {toItemId} {toType}:{toSlot} - {count})";
+            _log.Trace(info);
+            var fromItem = ItemManager.Instance.GetItemByItemId(fromItemId);
+            if ((fromItem == null) && (fromItemId != 0))
+            {
+                _log.Error($"SplitOrMoveItem - ItemId {fromItemId} no longer exists, possibly a phantom item.");
+                return false;
+            }
+
+            var itemInTargetSlot = ItemManager.Instance.GetItemByItemId(toItemId);
             var action = SwapAction.doNothing;
             if ((count <= 0) && (fromItem != null))
                 count = fromItem.Count;
 
             // Grab target container for easy manipulation
+            /*
             var sourceContainer = fromItem?._holdingContainer ?? Bag;
             if (_itemContainers.TryGetValue(toType, out var targetContainer))
             {
@@ -303,6 +324,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 targetContainer = Bag;
             }
+            */
 
             if (itemInTargetSlot == null)
                 itemInTargetSlot = targetContainer.GetItemBySlot(toSlot);
@@ -334,7 +356,7 @@ namespace AAEmu.Game.Models.Game.Char
                 return false;
             }
 
-            if ((action != SwapAction.doEquipInEmptySlot) && (fromItem?._holdingContainer?.ContainerType != fromType))
+            if ((action != SwapAction.doEquipInEmptySlot) && (sourceContainer.ContainerType != fromType))
             {
                 _log.Error("SplitOrMoveItem Source Item Container did not match what the client asked");
                 return false;
@@ -545,16 +567,16 @@ namespace AAEmu.Game.Models.Game.Char
                         _log.Trace(string.Format("SplitOrMoveItem supplied more than target can take, changed {0} to {1}",count,toAddCount));
                     itemInTargetSlot.Count += toAddCount;
                     fromItem.Count -= toAddCount;
-                    itemTasks.Add(new ItemCountUpdate(itemInTargetSlot, toAddCount));
                     if (fromItem.Count > 0)
                     {
                         itemTasks.Add(new ItemCountUpdate(fromItem, -toAddCount));
                     }
                     else
                     {
-                        itemTasks.Add(new ItemRemoveSlot(fromItem));
-                        fromItem._holdingContainer.RemoveItem(ItemTaskType.Invalid, fromItem, true);
+                        itemTasks.Add(new ItemRemove(fromItem));
+                        sourceContainer.RemoveItem(ItemTaskType.Invalid, fromItem, true);
                     }
+                    itemTasks.Add(new ItemCountUpdate(itemInTargetSlot, toAddCount));
                     break;
                 case SwapAction.doSwap:
                     // Swap both item slots
@@ -586,9 +608,9 @@ namespace AAEmu.Game.Models.Game.Char
             
             // Force-assign item owners for safety
             if (fromItem != null)
-                fromItem.OwnerId = fromItem?._holdingContainer?.OwnerId ?? 0;
+                fromItem.OwnerId = sourceContainer?.OwnerId ?? 0;
             if (itemInTargetSlot != null)
-                itemInTargetSlot.OwnerId = itemInTargetSlot?._holdingContainer?.OwnerId ?? 0;
+                itemInTargetSlot.OwnerId = targetContainer?.OwnerId ?? 0;
 
             // Handle Equipment Broadcasting
             if (fromType == SlotType.Equipment)
@@ -877,5 +899,62 @@ namespace AAEmu.Game.Models.Game.Char
                 Owner?.Quests?.OnItemGather(item, -count);
         }
 
+        public bool SwapCofferItems(ulong fromItemId, ulong toItemId, SlotType fromSlotType, byte fromSlot, SlotType toSlotType, byte toSlot, ulong dbId)
+        {
+            // TODO: Verify if you have access to the coffer
+
+            var relatedCoffer = ItemManager.Instance.GetItemContainerByDbId(dbId);
+
+            ItemContainer sourceContainer = null;
+            ItemContainer targetContainer = null;
+            
+            if (fromSlotType == SlotType.Trade)
+                sourceContainer = relatedCoffer;
+            else if (_itemContainers.TryGetValue(fromSlotType, out var sC))
+                sourceContainer = sC;
+
+            if (toSlotType == SlotType.Trade)
+                targetContainer = relatedCoffer;
+            else if (_itemContainers.TryGetValue(toSlotType, out var tC))
+                targetContainer = tC;
+
+            if ((sourceContainer == null) || (targetContainer == null))
+            {
+                _log.Error("SwapCofferItems, not all of the targetted containers exist");
+                return false;
+            }
+            
+            return SplitOrMoveItemEx(ItemTaskType.SwapCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot,
+                toItemId, toSlotType, toSlot);
+        }
+
+        public bool SplitCofferItems(int count, ulong fromItemId, ulong toItemId, SlotType fromSlotType, byte fromSlot, SlotType toSlotType, byte toSlot, ulong dbId)
+        {
+            // TODO: Verify if you have access to the coffer
+
+            var relatedCoffer = ItemManager.Instance.GetItemContainerByDbId(dbId);
+
+            ItemContainer sourceContainer = null;
+            ItemContainer targetContainer = null;
+            
+            if (fromSlotType == SlotType.Trade)
+                sourceContainer = relatedCoffer;
+            else if (_itemContainers.TryGetValue(fromSlotType, out var sC))
+                sourceContainer = sC;
+
+            if (toSlotType == SlotType.Trade)
+                targetContainer = relatedCoffer;
+            else if (_itemContainers.TryGetValue(toSlotType, out var tC))
+                targetContainer = tC;
+
+            if ((sourceContainer == null) || (targetContainer == null))
+            {
+                _log.Error("SwapCofferItems, not all of the targetted containers exist");
+                return false;
+            }
+            
+            return SplitOrMoveItemEx(ItemTaskType.SplitCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot,
+                toItemId, toSlotType, toSlot, count);
+        }
     }
 }

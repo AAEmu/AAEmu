@@ -20,7 +20,16 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 // If it's on a house, need to check permissions
                 var house = HousingManager.Instance.GetHouseById(owner.DbHouseId);
-                if (house == null)
+                if (owner is DoodadCoffer coffer)
+                {
+                    // Coffers need their own permissions as they can override the house's settings
+                    if (!coffer.AllowedToInteract(player))
+                    {
+                        caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
+                        return;
+                    }
+                }
+                else if (house == null)
                 {
                     //caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
                     // Added fail-safe in case a doodad wasn't properly deleted from a house
@@ -30,8 +39,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     _log.Warn("Interaction failed because attached house does not exist for doodad {0}, resetting DbHouseId to public", owner.ObjId);
                     //return;
                 }
-                else
-                if (!house.AllowedToInteract(player))
+                else if (!house.AllowedToInteract(player))
                 {
                     caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
                     return;

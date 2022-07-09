@@ -24,6 +24,10 @@
         <Content Include="ExampleConfig.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+        <None Include="Scripts\Commands\CofferActions.cs">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+          <LinkBase>Scripts\</LinkBase>
+        </None>
         <None Include="Scripts\Commands\Nrot.cs">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
           <LinkBase>Scripts\</LinkBase>
