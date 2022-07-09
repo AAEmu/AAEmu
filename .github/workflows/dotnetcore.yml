@@ -1,11 +1,13 @@
-name: AAEmu Workflow
+name: Build & Unit Test
 
 on:
   push:
+    branches: [master, develop]
+  pull_request:
+    # The branches below must be a subset of the branches above
     branches:    
       - '*'         # matches every branch
       - '*/*'       # matches every branch containing a single '/'
-      - '!master'   # excludes master
 jobs:
   build:
 
