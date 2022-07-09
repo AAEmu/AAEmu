@@ -62,7 +62,7 @@ namespace AAEmu.Game.Core.Managers
             TaskManager.Instance.Schedule(transferTelescopeTickStartTask, TimeSpan.FromMilliseconds(Delay));
         }
 
-        public async System.Threading.Tasks.Task StopTransferTelescopeTick()
+        public async System.Threading.Tasks.Task StopTransferTelescopeTickAsync()
         {
             if (transferTelescopeTickStartTask == null) 
                 return;
