@@ -30,7 +30,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
 
             if (_owner.FuncTask != null)
             {
-                _ = _owner.FuncTask.Cancel();
+                _ = _owner.FuncTask.CancelAsync();
                 _owner.FuncTask = null;
                 if (_caster is Character)
                     _log.Debug("DoodadFuncTodTask: The current timer has been ended.");

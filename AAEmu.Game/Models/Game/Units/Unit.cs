@@ -358,7 +358,7 @@ namespace AAEmu.Game.Models.Game.Units
                 return;
             }
 
-            await character.AutoAttackTask.Cancel();
+            await character.AutoAttackTask.CancelAsync();
             character.AutoAttackTask = null;
             character.IsAutoAttack = false; // turned off auto attack
             character.BroadcastPacket(new SCSkillEndedPacket(character.TlId), true);
@@ -382,7 +382,7 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 return;
             }
-            await _regenTask.Cancel();
+            await _regenTask.CancelAsync();
             _regenTask = null;
         }
 

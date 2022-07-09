@@ -11,7 +11,6 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         private Unit _caster;
         private Doodad _owner;
         private uint _skillId;
-        private uint _nextPhase;
 
         protected DoodadFuncTask(Unit caster, Doodad owner, uint skillId)
         {

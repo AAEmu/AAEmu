@@ -72,7 +72,8 @@
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="2.2.0" />
         <PackageReference Include="NLog" Version="4.5.11" />
         <PackageReference Include="NLua" Version="1.5.6" />
-        <PackageReference Include="Quartz" Version="3.2.3" />        
+        <PackageReference Include="Quartz" Version="3.2.3" />
+        <PackageReference Include="Ionic.Zlib.Core" Version="1.0.0" />        
         <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
     </ItemGroup>
 

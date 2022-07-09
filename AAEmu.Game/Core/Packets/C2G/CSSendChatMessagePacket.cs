@@ -11,8 +11,6 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSendChatMessagePacket : GamePacket
     {
-        private ILogger _log = LogManager.GetCurrentClassLogger();
-            
         public CSSendChatMessagePacket() : base(CSOffsets.CSSendChatMessagePacket, 1)
         {
         }

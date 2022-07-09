@@ -244,7 +244,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
             if (FuncTask is DoodadFuncTimerTask)
             {
-                FuncTask?.Cancel();
+                FuncTask?.CancelAsync();
                 if (caster is Character)
                     _log.Debug("DoPhase:DoodadFuncTimer: The current timer has been canceled.");
                 else

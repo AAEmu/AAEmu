@@ -67,7 +67,7 @@ namespace AAEmu.Game.Core.Managers
             if (transferTelescopeTickStartTask == null) 
                 return;
 
-            await transferTelescopeTickStartTask.Cancel();
+            await transferTelescopeTickStartTask.CancelAsync();
             transferTelescopeTickStartTask = null;
             owner?.BroadcastPacket(new SCTransferTelescopeToggledPacket(false, 0), true);
             owner = null;
