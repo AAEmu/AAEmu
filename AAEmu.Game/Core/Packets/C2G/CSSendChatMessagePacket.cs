@@ -5,11 +5,14 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Chat;
+using NLog;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSendChatMessagePacket : GamePacket
     {
+        private ILogger _log = LogManager.GetCurrentClassLogger();
+            
         public CSSendChatMessagePacket() : base(CSOffsets.CSSendChatMessagePacket, 1)
         {
         }
@@ -24,6 +27,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             var message = stream.ReadString();
             var languageType = stream.ReadByte();
             var ability = stream.ReadInt32();
+
+            _log.Debug(message);
 
             if (message.StartsWith(CommandManager.CommandPrefix))
             {
