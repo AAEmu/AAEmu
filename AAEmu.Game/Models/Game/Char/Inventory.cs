@@ -491,7 +491,6 @@ namespace AAEmu.Game.Models.Game.Char
                     doUnEquipOffhand = true;
                 if (isMain2H && (targetContainer.ContainerType == SlotType.Equipment) && (toSlot == (int)EquipmentItemSlot.Offhand))
                     doUnEquipMainhand = true;
-                
             }
 
             if ((doUnEquipOffhand) && (offHandWeapon != null))

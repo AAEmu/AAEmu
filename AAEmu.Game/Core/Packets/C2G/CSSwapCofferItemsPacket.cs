@@ -30,7 +30,6 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 Connection.ActiveChar.SendErrorMessage(ErrorMessageType.CannotMoveSoulboundItemToCoffer); // Not sure what error to send here
             }
-
         }
     }
 }

@@ -109,8 +109,6 @@ namespace AAEmu.Game.Scripts.Commands
                     character.SendMessage($"|cFFFF0000[Coffer] Unknown sub-command {action}|r");
                     break;
             }
-
         }
-
     }
 }
