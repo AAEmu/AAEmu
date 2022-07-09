@@ -723,6 +723,5 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         {
             ItemManager.Instance.DeleteItemContainer(this);
         }
-
     }
 }
