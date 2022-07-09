@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     if (item._holdingContainer.ContainerType != SlotType.System)
                     {
                         owner.ToPhaseAndUse = false;
-                        // character.SendErrorMessage(ErrorMessageType.Backpack); // TODO: Not sure what error I need to put here
+                        character.SendErrorMessage(ErrorMessageType.InteractionRecoverParent); // TODO: Not sure what error I need to put here
                         return;
                     }
                     

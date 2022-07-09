@@ -29,7 +29,7 @@ namespace AAEmu.Tests
 
             mails = new CharacterMails(character);
 
-            NameManager.Instance.AddCharacterName(character.Id, character.Name);
+            NameManager.Instance.AddCharacterName(character.Id, character.Name, 1);
             MailIdManager.Instance.Initialize();
             MailManager.Instance._allPlayerMails = new Dictionary<long, BaseMail>();
         }

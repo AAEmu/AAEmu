@@ -9,8 +9,10 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
@@ -31,7 +33,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public DoodadTemplate Template { get; set; }
         public override float Scale => _scale;
         public uint FuncGroupId { get; set; }
-        public string FuncType { get; set; }
         public ulong ItemId { get; set; }
         public ulong UccId { get; set; }
         public uint ItemTemplateId { get; set; }
@@ -43,7 +44,21 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public DoodadOwnerType OwnerType { get; set; }
         public AttachPointKind AttachPoint { get; set; }
         public uint DbHouseId { get; set; }
-        public int Data { get; set; }
+
+        public int Data
+        {
+            get => _data;
+            set
+            {
+                if (value != _data)
+                {
+                    _data = value;
+                    if (DbId > 0)
+                        Save();
+                }
+            }
+        }
+
         public uint QuestGlow { get; set; } //0 off // 1 on
         public DoodadSpawner Spawner { get; set; }
         public DoodadFuncTask FuncTask { get; set; }
@@ -54,8 +69,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint CurrentPhaseId { get; set; }
         public uint OverridePhase { get; set; }
         private bool _deleted = false;
+        /// <summary>
+        /// Try to use Data instead
+        /// </summary>
+        public int _data;
         public VehicleSeat Seat { get; set; }
-
+        
         public Doodad()
         {
             _scale = 1f;
@@ -96,6 +115,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 foreach (var func in funcs)
                 {
                     if ((func.SkillId <= 0 || func.SkillId != skillId) && func.SkillId != 0)
+                        continue;
+                    
+                    // TODO: Hack!!
+                    if (func.FuncType == "DoodadFuncCoffer")
                         continue;
 
                     func.Use(unit, this, skillId, func.NextPhase);
@@ -296,7 +319,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
             return stream;
         }
-
+        
         public override void Delete()
         {
             base.Delete();
@@ -326,13 +349,18 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             {
                 using (var command = connection.CreateCommand())
                 {
+                    // Lookup Parent
                     var parentDoodadId = 0u;
                     if ((Transform?.Parent?.GameObject is Doodad pDoodad) && (pDoodad.DbId > 0))
                         parentDoodadId = pDoodad.DbId;
+                    // Check if coffer
+                    ulong itemContainerId = 0u;
+                    if (this is DoodadCoffer coffer)
+                        itemContainerId = coffer.ItemContainer.ContainerId;
                     
                     command.CommandText = 
-                        "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`) " +
-                        "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @item_id, @house_id, @parent_doodad, @item_template_id)";
+                        "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`) " +
+                        "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @item_id, @house_id, @parent_doodad, @item_template_id, @item_container_id, @data)";
                     command.Parameters.AddWithValue("@id", DbId);
                     command.Parameters.AddWithValue("@owner_id", OwnerId);
                     command.Parameters.AddWithValue("@owner_type", OwnerType);
@@ -342,20 +370,34 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     command.Parameters.AddWithValue("@growth_time", GrowthTime);
                     command.Parameters.AddWithValue("@phase_time", DateTime.MinValue);
                     // We save it's world position, and upon loading, we re-parent things depending on the data
-                    command.Parameters.AddWithValue("@x", Transform.World.Position.X);
-                    command.Parameters.AddWithValue("@y", Transform.World.Position.Y);
-                    command.Parameters.AddWithValue("@z", Transform.World.Position.Z);
-                    command.Parameters.AddWithValue("@roll", Transform.World.Rotation.X);
-                    command.Parameters.AddWithValue("@pitch", Transform.World.Rotation.Y);
-                    command.Parameters.AddWithValue("@yaw", Transform.World.Rotation.Z);
+                    command.Parameters.AddWithValue("@x", Transform?.World.Position.X ?? 0f);
+                    command.Parameters.AddWithValue("@y", Transform?.World.Position.Y ?? 0f);
+                    command.Parameters.AddWithValue("@z", Transform?.World.Position.Z ?? 0f);
+                    command.Parameters.AddWithValue("@roll", Transform?.World.Rotation.X ?? 0f);
+                    command.Parameters.AddWithValue("@pitch", Transform?.World.Rotation.Y ?? 0f);
+                    command.Parameters.AddWithValue("@yaw", Transform?.World.Rotation.Z ?? 0f);
                     command.Parameters.AddWithValue("@item_id", ItemId);
                     command.Parameters.AddWithValue("@house_id", DbHouseId);
                     command.Parameters.AddWithValue("@parent_doodad", parentDoodadId);
                     command.Parameters.AddWithValue("@item_template_id", ItemTemplateId);
+                    command.Parameters.AddWithValue("@item_container_id", itemContainerId);
+                    command.Parameters.AddWithValue("@data", Data);
                     command.Prepare();
                     command.ExecuteNonQuery();
                 }
             }
+        }
+
+        public override bool AllowRemoval()
+        {
+            // Only allow removal if there is no other persistent Doodads stacked on top of this
+            foreach (var child in Transform.Children)
+            {
+                if ((child.GameObject is Doodad dood) && (dood.DbId > 0))
+                    return false;
+            }
+            
+            return base.AllowRemoval();
         }
     }
 }
