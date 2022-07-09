@@ -550,7 +550,7 @@ namespace AAEmu.Game.Models.Game.Units
                 else if (template.RemoveOnMove && on == BuffRemoveOn.Move)
                 {
                     // stopping the TransferTelescopeTickStartTask if character moved
-                    TransferTelescopeManager.Instance.StopTransferTelescopeTick();
+                    TransferTelescopeManager.Instance.StopTransferTelescopeTick().GetAwaiter().GetResult();
                     
                     effect.Exit();
                 }                
