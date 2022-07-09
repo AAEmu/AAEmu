@@ -157,7 +157,7 @@ namespace AAEmu.Game.Core.Network.Connections
                 return;
 
             // stopping the TransferTelescopeTickStartTask if character disconnected
-            TransferTelescopeManager.Instance.StopTransferTelescopeTick();
+            TransferTelescopeManager.Instance.StopTransferTelescopeTick().GetAwaiter().GetResult();
 
             ActiveChar.Delete();
             // Removed ReleaseId here to try and fix party/raid disconnect and reconnect issues. Replaced with saving the data
