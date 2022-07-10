@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Utils.Scripts.SubCommands;
 using NLog;
 
 namespace AAEmu.Game.Utils.Scripts
@@ -11,6 +12,7 @@ namespace AAEmu.Game.Utils.Scripts
     {
         protected Logger _log = LogManager.GetCurrentClassLogger();
         private readonly Dictionary<string, ISubCommand> _subCommands = new();
+        protected SubCommandParameterConfig _parametersConfig = new();
         protected List<string> SupportedCommands => _subCommands.Keys.ToList();
         protected string Prefix { get; set; }
         public string Description { get; protected set; }

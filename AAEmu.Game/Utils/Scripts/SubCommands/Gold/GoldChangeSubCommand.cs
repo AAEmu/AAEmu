@@ -14,7 +14,8 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.Gold
         {
             Prefix = "[Gold Change]";
             Description = "Changes to self or a player name or a selected target an specific amount of gold, silver and copper.";
-            CallExample = "/item (add||change||remove) (<charactername>||target||self) <gold amount> [silver amount] [copper amount]";
+            CallExample = "/item (add||change||remove) (<charactername>||target||self) <gold amount> [<silver amount>] [<copper amount>]";
+            _parametersConfig.AddParameter(new StringSubCommandParameter(false, "self", "target", "self"));
         }
 
         public override void PreExecute(ICharacter character, string triggerArgument, string[] args)
@@ -27,6 +28,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.Gold
                 return;
             }
 
+            GetParameter(
             var firstArgument = args.First();
             if (firstArgument == "target")
             {

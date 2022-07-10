@@ -1,16 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands
 {
-    public class SubCommandParameterBuilder
+    public class SubCommandParameterConfig
     {
-        List<SubCommandParameterDefinition> _parameters;
+        List<SubCommandParameterDefinition<object>> _parameters;
 
-        public SubCommandParameterBuilder AddParameter(SubCommandParameterDefinition parameter)
+        public SubCommandParameterConfig AddParameter(SubCommandParameterDefinition<object> parameter)
         {
-            
+            if (!parameter.IsOptional && _parameters.Last().IsOptional)
+            {
+                throw new Exception("Cannot add required parameter after optional parameter");
+            }
+
+            _parameters.Add(parameter);
+            return this;
         }
     }
 }
