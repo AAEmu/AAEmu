@@ -27,6 +27,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private float _scale;
+        private int _data;
         public uint TemplateId { get; set; }
         public uint DbId { get; set; }
         public bool IsPersistent { get; set; } = false;
@@ -69,10 +70,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint CurrentPhaseId { get; set; }
         public uint OverridePhase { get; set; }
         private bool _deleted = false;
-        /// <summary>
-        /// Try to use Data instead
-        /// </summary>
-        public int _data;
         public VehicleSeat Seat { get; set; }
         
         public Doodad()
@@ -86,6 +83,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public void SetScale(float scale)
         {
             _scale = scale;
+        }
+
+        public void SetData(int data)
+        {
+            _data = data;
         }
 
         // public void DoFirstPhase(Unit unit)
@@ -353,11 +355,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     var parentDoodadId = 0u;
                     if ((Transform?.Parent?.GameObject is Doodad pDoodad) && (pDoodad.DbId > 0))
                         parentDoodadId = pDoodad.DbId;
-                    // Check if coffer
-                    ulong itemContainerId = 0u;
-                    if (this is DoodadCoffer coffer)
-                        itemContainerId = coffer.ItemContainer.ContainerId;
-                    
+
                     command.CommandText = 
                         "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`) " +
                         "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @item_id, @house_id, @parent_doodad, @item_template_id, @item_container_id, @data)";
@@ -380,7 +378,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     command.Parameters.AddWithValue("@house_id", DbHouseId);
                     command.Parameters.AddWithValue("@parent_doodad", parentDoodadId);
                     command.Parameters.AddWithValue("@item_template_id", ItemTemplateId);
-                    command.Parameters.AddWithValue("@item_container_id", itemContainerId);
+                    command.Parameters.AddWithValue("@item_container_id", GetItemContainerId());
                     command.Parameters.AddWithValue("@data", Data);
                     command.Prepare();
                     command.ExecuteNonQuery();
@@ -393,11 +391,21 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             // Only allow removal if there is no other persistent Doodads stacked on top of this
             foreach (var child in Transform.Children)
             {
-                if ((child.GameObject is Doodad dood) && (dood.DbId > 0))
+                if ((child.GameObject is Doodad doodad) && (doodad.DbId > 0))
                     return false;
             }
             
             return base.AllowRemoval();
         }
+
+        /// <summary>
+        /// Return the associated ItemContainerId for this Doodad
+        /// </summary>
+        /// <returns></returns>
+        public virtual ulong GetItemContainerId()
+        {
+            return 0;
+        }
+        
     }
 }

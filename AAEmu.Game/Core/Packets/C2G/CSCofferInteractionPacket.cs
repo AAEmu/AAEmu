@@ -21,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 if (!DoodadManager.Instance.OpenCofferDoodad(Connection.ActiveChar, cofferObjId))
                 {
-                    _log.Warn($"Failed {Connection.ActiveChar.Name} to Open coffer objId {cofferObjId}");
+                    _log.Warn($"{Connection.ActiveChar.Name} failed to Open coffer objId {cofferObjId}");
                     // If it failed, the coffer is likely in use by somebody else
                     Connection.ActiveChar.SendErrorMessage(ErrorMessageType.CofferInUse);
                 }
@@ -29,7 +29,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             else
             {
                 if (!DoodadManager.Instance.CloseCofferDoodad(Connection.ActiveChar, cofferObjId))
-                    _log.Warn($"Failed {Connection.ActiveChar.Name} to Close coffer objId {cofferObjId}");
+                    _log.Warn($"{Connection.ActiveChar.Name} failed to Close coffer objId {cofferObjId}");
             }
         }
     }
