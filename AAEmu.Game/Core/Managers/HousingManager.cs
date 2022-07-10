@@ -1028,6 +1028,23 @@ namespace AAEmu.Game.Core.Managers
                     if (item.ItemFlags.HasFlag(ItemFlag.SoulBound))
                         wantReturned = true;
                 }
+                
+                // If this doodad is a Coffer and has a ItemContainer attached, also return all item of that container
+                if ((f is DoodadCoffer coffer) && (f.GetItemContainerId() > 0))
+                {
+                    // TODO: Check if items should stay in the coffer when house is sold.
+                    // Move it to new owner's SystemContainer first so they don't get destroyed
+                    var ownerSystemContainer = ItemManager.Instance.GetItemContainerForCharacter(house.OwnerId, SlotType.System);
+                    for (var i = coffer.ItemContainer.Items.Count - 1; i >= 0; i--)
+                    {
+                        var cofferItem = coffer.ItemContainer.Items[i];
+                        //if (cofferItem.HasFlag(ItemFlag.SoulBound) || forceRestoreAllDecor)
+                        {
+                            ownerSystemContainer?.AddOrMoveExistingItem(ItemTaskType.Invalid, cofferItem);
+                            returnedItems.Add(cofferItem);
+                        }
+                    }
+                }
 
                 // If the decoration item isn't marked as Restore, then just delete it (and it's possibly attached item)
                 if (!wantReturned)
@@ -1059,13 +1076,6 @@ namespace AAEmu.Game.Core.Managers
                     }
 
                     continue;
-                }
-                
-                // If this doodad is a Coffer and has a ItemContainer attached, also return all item of that container
-                if ((f is DoodadCoffer coffer) && (f.GetItemContainerId() > 0))
-                {
-                    foreach (var item in coffer.ItemContainer.Items)
-                        returnedItems.Add(item);
                 }
                 
                 // Item needs to be actually returned, so let's do that

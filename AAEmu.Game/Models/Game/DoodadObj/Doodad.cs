@@ -98,7 +98,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <summary>
         /// This "uses" the doodad. Using a doodad means running its functions in doodad_funcs
         /// </summary>
-        public void Use(Unit unit, uint skillId, uint recursionDepth = 0)
+        public void Use(Unit unit, uint skillId, uint recursionDepth = 0, string restrictUseType = "")
         {
             recursionDepth++;
             if (recursionDepth % 10 == 0)
@@ -120,9 +120,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                         continue;
                     
                     // TODO: Hack!!
-                    if (func.FuncType == "DoodadFuncCoffer")
+                    if ((restrictUseType != "") && (func.FuncType != restrictUseType))
                         continue;
-
+                    
                     func.Use(unit, this, skillId, func.NextPhase);
 
                     if (ToPhaseAndUse)
