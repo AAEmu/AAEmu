@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
@@ -10,9 +9,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
     public class DoodadCoffer : Doodad
     {
         public int Capacity { get; set; }
-        public ulong CofferDbId { get { return ItemContainer?.ContainerId ?? 0; } }
         public CofferContainer ItemContainer { get; set; }
-        public Character OpenedBy;
+        public Character OpenedBy { get; set; }
 
         public void InitializeCoffer(uint playerId)
         {
@@ -27,10 +25,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         public override void Delete()
         {
-            if (ItemContainer != null)
-            {
-                ItemContainer.Delete();
-            }
+            ItemContainer?.Delete();
             base.Delete();
         }
 
@@ -63,6 +58,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 default:
                     return base.AllowedToInteract(character);
             }
+        }
+
+        public override ulong GetItemContainerId()
+        {
+            return ItemContainer?.ContainerId ?? 0;
         }
     }
 }

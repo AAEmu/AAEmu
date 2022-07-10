@@ -291,7 +291,7 @@ namespace AAEmu.Game.Core.Managers.World
                             doodad.ItemTemplateId = sourceItem?.TemplateId ?? itemTemplateId;
                             // Grab Ucc from it's old source item
                             doodad.UccId = sourceItem?.UccId ?? 0;
-                            doodad._data = data;
+                            doodad.SetData(data); // Directly assigning to Data property would trigger a .Save()
                                     
                             doodad.Transform.Local.SetPosition(x, y, z);
                             doodad.Transform.Local.SetRotation(reader.GetFloat("roll"), reader.GetFloat("pitch"), reader.GetFloat("yaw"));

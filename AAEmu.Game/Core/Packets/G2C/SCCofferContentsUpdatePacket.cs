@@ -1,15 +1,13 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Containers;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCCofferContentsUpdatePacket : GamePacket
     {
-        public static byte MaxSlotsToSend = 30;
-        private DoodadCoffer _cofferDoodad;
+        public const byte MaxSlotsToSend = 30;
+        private readonly DoodadCoffer _cofferDoodad;
         private readonly byte _firstSlot;
         private readonly byte _slotCount;
 
@@ -30,14 +28,15 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             if (_cofferDoodad?.ItemContainer == null)
                 _log.Warn($"No ItemContainer assigned to Coffer, objId: {_cofferDoodad?.ObjId} dbId: {_cofferDoodad?.DbId}");
-            stream.WriteBc(_cofferDoodad.ObjId);
-            stream.Write(_cofferDoodad.CofferDbId);
+            
+            stream.WriteBc(_cofferDoodad?.ObjId ?? 0);
+            stream.Write(_cofferDoodad?.GetItemContainerId() ?? 0);
             stream.Write(_slotCount);
             for (byte i = 0; i < _slotCount; i++)
             {
                 var slot = (byte)(_firstSlot + i);
                 stream.Write(slot);
-                var item = _cofferDoodad?.ItemContainer?.GetItemBySlot(slot) ?? null;
+                var item = _cofferDoodad?.ItemContainer?.GetItemBySlot(slot);
                 if (item == null)
                     stream.Write(0u); // uint
                 else

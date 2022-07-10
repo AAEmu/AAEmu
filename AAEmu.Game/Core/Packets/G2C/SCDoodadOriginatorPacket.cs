@@ -7,20 +7,20 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _objId;
         private readonly uint _newOwnerId;
-        private readonly uint _unknown;
+        private readonly uint _faction;
 
-        public SCDoodadOriginatorPacket(uint objId, uint newOwnerId, uint unknown) : base(SCOffsets.SCDoodadOriginatorPacket, 1)
+        public SCDoodadOriginatorPacket(uint objId, uint newOwnerId, uint faction) : base(SCOffsets.SCDoodadOriginatorPacket, 1)
         {
             _objId = objId;
             _newOwnerId = newOwnerId;
-            _unknown = unknown;
+            _faction = faction;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             stream.WriteBc(_objId);
             stream.Write(_newOwnerId);
-            stream.Write(_unknown); // UCC, Guild, Faction, something else ?
+            stream.Write(_faction);
 
             return stream;
         }

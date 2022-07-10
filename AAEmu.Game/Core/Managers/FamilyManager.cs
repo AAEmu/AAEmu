@@ -279,9 +279,9 @@ namespace AAEmu.Game.Core.Managers
             return member;
         }
 
-        public uint GetFamilyOfCharacter(uint ownerId)
+        public uint GetFamilyOfCharacter(uint characterId)
         {
-            return (from family in _families.Values from member in family.Members where member.Id == ownerId select family.Id).FirstOrDefault();
+            return (from family in _families.Values from member in family.Members where member.Id == characterId select family.Id).FirstOrDefault();
         }
     }
 }

@@ -547,9 +547,9 @@ namespace AAEmu.Game.Core.Managers
             character.SendPacket(new SCExpeditionRolePolicyListPacket(new List<ExpeditionRolePolicy>()));
         }
 
-        public uint GetExpeditionOfCharacter(uint ownerId)
+        public uint GetExpeditionOfCharacter(uint characterId)
         {
-            return (from guild in _expeditions.Values from member in guild.Members where member.CharacterId == ownerId select guild.Id).FirstOrDefault();
+            return (from guild in _expeditions.Values from member in guild.Members where member.CharacterId == characterId select guild.Id).FirstOrDefault();
         }
     }
 }
