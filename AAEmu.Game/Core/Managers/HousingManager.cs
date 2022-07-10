@@ -1061,6 +1061,13 @@ namespace AAEmu.Game.Core.Managers
                     continue;
                 }
                 
+                // If this doodad is a Coffer and has a ItemContainer attached, also return all item of that container
+                if ((f is DoodadCoffer coffer) && (f.GetItemContainerId() > 0))
+                {
+                    foreach (var item in coffer.ItemContainer.Items)
+                        returnedItems.Add(item);
+                }
+                
                 // Item needs to be actually returned, so let's do that
                 if (f.ItemId > 0)
                 {
