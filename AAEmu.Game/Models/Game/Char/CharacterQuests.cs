@@ -11,7 +11,6 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
-using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
@@ -70,13 +69,13 @@ namespace AAEmu.Game.Models.Game.Char
 
             var res = quest.Start();
             if (!res)
-                Drop(questId, true); // TODO может быть update = false?
+                Drop(questId, true);
             else
                 quest.Owner.SendMessage("[Quest] {0}, quest {1} added.", Owner.Name, questId);
         }
 
         /// <summary>
-        /// Метод предназначен для вызова из скрита QuestCmd, команда /quest add <questId>
+        /// Метод предназначен для вызова из скрита QuestCmd, команда /quest add (The method is intended to be called from the QuestCmd script, command /quest add) <questId>
         /// </summary>
         /// <param name="questId"></param>
         public void AddStart(uint questId)
@@ -121,7 +120,7 @@ namespace AAEmu.Game.Models.Game.Char
                     {
                         if (quest.Template.LetItDone)
                         {
-                            // Добавим|убавим за перевыполнение|недовыполнение плана, если позволено квестом
+                            // Добавим|убавим за перевыполнение|недовыполнение плана, если позволено квестом (Add [reduce] for overfulfilling [underperformance] of the plan, if allowed by the quest)
                             if (exps == 0)
                                 Owner.AddExp(supplies.Exp * quest.OverCompletionPercent / 100, true);
                             if (amount == 0)
@@ -130,7 +129,7 @@ namespace AAEmu.Game.Models.Game.Char
 
                             if (!quest.ExtraCompletion)
                             {
-                                // посылаем пакет, так как он был пропущен в методе Update()
+                                // посылаем пакет, так как он был пропущен в методе Update() (send a packet because it was skipped in the Update() method)
                                 quest.Status = QuestStatus.Progress;
                                 Owner.SendPacket(new SCQuestContextUpdatedPacket(quest, quest.ComponentId));
                                 quest.Status = QuestStatus.Completed;
@@ -178,8 +177,8 @@ namespace AAEmu.Game.Models.Game.Char
             Quests.Remove(questId);
             _removed.Add(questId);
 
-            quest.Owner.SendMessage("[Quest] Quest Npc is not selected! {0}, quest {1} removed.", Owner.Name, questId);
-            _log.Warn("[Quest] Quest Npc is not selected! {0}, quest {1} removed.", Owner.Name, questId);
+            quest.Owner.SendMessage("[Quest] for player: {0}, quest: {1} removed.", Owner.Name, questId);
+            _log.Warn("[Quest] for player: {0}, quest: {1} removed.", Owner.Name, questId);
 
             if (QuestManager.Instance.QuestTimeoutTask.ContainsKey(quest.Owner.Id))
             {
@@ -264,7 +263,7 @@ namespace AAEmu.Game.Models.Game.Char
         }
 
         /// <summary>
-        /// Взаимодействие с doodad, например сбор ресурсов
+        /// Взаимодействие с doodad, например сбор ресурсов (Interacting with doodad, such as resource collection)
         /// </summary>
         /// <param name="item"></param>
         /// <param name="count"></param>
@@ -278,7 +277,7 @@ namespace AAEmu.Game.Models.Game.Char
         }
 
         /// <summary>
-        /// Использование предмета в инвентаре
+        /// Использование предмета в инвентаре (Use of an item from your inventory)
         /// </summary>
         /// <param name="item"></param>
         public void OnItemUse(Item item)
@@ -288,7 +287,7 @@ namespace AAEmu.Game.Models.Game.Char
         }
 
         /// <summary>
-        /// Взаимодействие с doodad, например ломаем шахту по квесту
+        /// Взаимодействие с doodad, например ломаем шахту по квесту (Interaction with doodad, for example, breaking a mine on a quest)
         /// </summary>
         /// <param name="type"></param>
         /// <param name="target"></param>
