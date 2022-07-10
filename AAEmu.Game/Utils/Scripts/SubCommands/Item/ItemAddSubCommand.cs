@@ -18,7 +18,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             CallExample = "/item add (<charactername>||target||self) [amount=1] [grade=0]";
         }
 
-        public override void PreExecute(ICharacter character, string triggerArgument, string[] args)
+        public override void Execute(ICharacter character, string triggerArgument, string[] args)
         {
             Character addTarget;
             Character selfCharacter = (Character)character;

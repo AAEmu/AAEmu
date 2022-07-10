@@ -12,7 +12,18 @@ namespace AAEmu.Game.Utils.Scripts
     {
         protected Logger _log = LogManager.GetCurrentClassLogger();
         private readonly Dictionary<string, ISubCommand> _subCommands = new();
-        protected SubCommandParameterConfig _parametersConfig = new();
+        List<SubCommandParameterDefinition> _parameters = new();
+
+        protected void AddParameter(SubCommandParameterDefinition parameter)
+        {
+            if (parameter.IsRequired && !_parameters.Last().IsRequired)
+            {
+                throw new ApplicationException("Cannot add a required parameter after an optional parameter");
+            }
+
+            _parameters.Add(parameter);
+        }
+        
         protected List<string> SupportedCommands => _subCommands.Keys.ToList();
         protected string Prefix { get; set; }
         public string Description { get; protected set; }
@@ -46,7 +57,7 @@ namespace AAEmu.Game.Utils.Scripts
             }
         }
 
-        public virtual void PreExecute(ICharacter character, string triggerArgument, string[] args)
+        public void PreExecute(ICharacter character, string triggerArgument, string[] args)
         {
             //Verifies if the next firstargument has a subcommand to implement it
             var firstArgument = args.FirstOrDefault();
@@ -62,7 +73,11 @@ namespace AAEmu.Game.Utils.Scripts
                 }
                 else
                 {
-                    Execute(character, triggerArgument, args);
+                    var parametersValues = LoadParametersValues(args);
+                    if (PreValidate(character, parametersValues.Values))
+                    {
+                        Execute(character, triggerArgument, parametersValues);
+                    }
                 }
             }
             else
@@ -71,6 +86,64 @@ namespace AAEmu.Game.Utils.Scripts
             }
         }
 
+        protected IDictionary<string, ParameterValue> LoadParametersValues(string[] args)
+        {
+            Dictionary<string, ParameterValue> parametersValue = new();
+
+            var parameterCount = 0;
+            foreach(var parameter in _parameters.Where(p => p.Prefix is null))
+            {
+                ParameterValue parameterValue = null;
+                if (parameterCount < args.Length)
+                {
+                    // parameters provided
+                    parameterValue = parameter.Load(args[parameterCount]);
+                }
+                else if (parameter.IsRequired)
+                {
+                    //required parameters that were not provided
+                    parameterValue = new ParameterValue<object>(parameter.Name, null, $"Parameter {parameter.Name} is required");
+                }
+                
+                if (parametersValue is not null)
+                {
+                    parametersValue.Add(parameterValue.Name, parameterValue);
+                }
+                parameterCount++;
+            }
+
+            // Find prefixed parameters (could be anywhere in the list of parameters)
+            foreach(var parameterPrefix in _parameters.Where(p => p.Prefix is not null))
+            {
+                string foundPrefixArgument = null;
+                foreach (var argument in args)
+                {
+                    if (parameterPrefix.MatchPrefix(argument))
+                    {
+                        foundPrefixArgument = argument;
+                        break;
+                    }
+                }
+
+                if (foundPrefixArgument is not null)
+                {
+                    var parameterValue = parameterPrefix.Load(foundPrefixArgument);
+                    parametersValue.Add(parameterValue.Name, parameterValue);
+                }
+            }
+            return parametersValue;
+        }
+        
+        protected bool PreValidate(ICharacter character, ICollection<ParameterValue> parameters)
+        {
+            var invalid = false;
+            foreach (var parameter in parameters.Where(p => !p.IsValid)) 
+            {
+                invalid = true;
+                SendColorMessage(character, Color.Red, parameter.InvalidMessage);
+            }
+            return invalid;
+        }
         protected virtual void SendHelpMessage(ICharacter character)
         {
             SendMessage(character, Description);
@@ -96,6 +169,20 @@ namespace AAEmu.Game.Utils.Scripts
             }
         }
 
+        /// <summary>
+        /// Implementation related to this command level
+        /// </summary>
+        /// <param name="character">character reference</param>
+        /// <param name="triggerArgument">argument that triggered this subcommand</param>
+        /// <param name="args">additional arguments</param>
+        public virtual void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+        {
+            if (_subCommands.Count > 0)
+            {
+                SendHelpMessage(character);
+            }
+        }
+        
         /// <summary>
         /// Adds the subcommand prefix to the message
         /// </summary>
