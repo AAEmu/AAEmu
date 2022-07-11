@@ -12,11 +12,14 @@ namespace AAEmu.Game.Utils.Scripts
     {
         protected Logger _log = LogManager.GetCurrentClassLogger();
         private readonly Dictionary<string, ISubCommand> _subCommands = new();
-        List<SubCommandParameterDefinition> _parameters = new();
+        List<SubCommandParameterBase> _parameters = new();
 
-        protected void AddParameter(SubCommandParameterDefinition parameter)
+        protected void AddParameter(SubCommandParameterBase parameter)
         {
-            if (parameter.IsRequired && _parameters.Any() && !_parameters.Last().IsRequired)
+            if (parameter.Prefix is null && 
+                parameter.IsRequired && 
+                _parameters.Any() && 
+                _parameters.LastOrDefault(x => !x.IsRequired && x.Prefix is null) is not null)
             {
                 throw new ApplicationException("Cannot add a required parameter after an optional parameter");
             }
@@ -90,22 +93,23 @@ namespace AAEmu.Game.Utils.Scripts
         {
             Dictionary<string, ParameterValue> parametersValue = new();
 
+            var nonPrefixArguments = args.Where(a => a.IndexOf('=') == -1).ToArray();
             var parameterCount = 0;
             foreach(var parameter in _parameters.Where(p => p.Prefix is null))
             {
                 ParameterValue parameterValue = null;
-                if (parameterCount < args.Length)
+                if (parameterCount < nonPrefixArguments.Length)
                 {
                     // parameters provided
-                    parameterValue = parameter.Load(args[parameterCount]);
+                    parameterValue = parameter.Load(nonPrefixArguments[parameterCount]);
                 }
                 else if (parameter.IsRequired)
                 {
                     //required parameters that were not provided
                     parameterValue = new ParameterValue<object>(parameter.Name, null, $"Parameter {parameter.Name} is required");
                 }
-                
-                if (parametersValue is not null)
+
+                if (parameterValue is not null)
                 {
                     parametersValue.Add(parameterValue.Name, parameterValue);
                 }
@@ -113,21 +117,31 @@ namespace AAEmu.Game.Utils.Scripts
             }
 
             // Find prefixed parameters (could be anywhere in the list of parameters)
-            foreach(var parameterPrefix in _parameters.Where(p => p.Prefix is not null))
+            var prefixArguments = args.Where(a => a.IndexOf('=') > -1).ToArray();
+            foreach (var parameterPrefix in _parameters.Where(p => p.Prefix is not null))
             {
                 string foundPrefixArgument = null;
-                foreach (var argument in args)
+                bool duplicatedPrefixValue = false;
+                foreach (var argument in prefixArguments)
                 {
                     if (parameterPrefix.MatchPrefix(argument))
                     {
+                        duplicatedPrefixValue = foundPrefixArgument is not null;
                         foundPrefixArgument = argument;
-                        break;
                     }
                 }
 
                 if (foundPrefixArgument is not null)
                 {
-                    var parameterValue = parameterPrefix.Load(foundPrefixArgument);
+                    ParameterValue parameterValue = null;
+                    if (duplicatedPrefixValue)
+                    {
+                        parameterValue = new ParameterValue<object>(parameterPrefix.Name, null, $"Parameter prefix {parameterPrefix.Prefix} is duplicated");
+                    }
+                    else 
+                    {
+                        parameterValue = parameterPrefix.Load(foundPrefixArgument);
+                    }
                     parametersValue.Add(parameterValue.Name, parameterValue);
                 }
             }
