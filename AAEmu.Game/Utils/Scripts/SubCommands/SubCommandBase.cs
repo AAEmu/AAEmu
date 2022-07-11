@@ -16,7 +16,7 @@ namespace AAEmu.Game.Utils.Scripts
 
         protected void AddParameter(SubCommandParameterDefinition parameter)
         {
-            if (parameter.IsRequired && !_parameters.Last().IsRequired)
+            if (parameter.IsRequired && _parameters.Any() && !_parameters.Last().IsRequired)
             {
                 throw new ApplicationException("Cannot add a required parameter after an optional parameter");
             }
@@ -136,13 +136,13 @@ namespace AAEmu.Game.Utils.Scripts
         
         protected bool PreValidate(ICharacter character, ICollection<ParameterValue> parameters)
         {
-            var invalid = false;
+            var isValid = true;
             foreach (var parameter in parameters.Where(p => !p.IsValid)) 
             {
-                invalid = true;
+                isValid = false;
                 SendColorMessage(character, Color.Red, parameter.InvalidMessage);
             }
-            return invalid;
+            return isValid;
         }
         protected virtual void SendHelpMessage(ICharacter character)
         {

@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
+using System.Drawing;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
@@ -11,17 +10,31 @@ namespace AAEmu.Tests.Commands
 {
     public class SubCommandParametersTests
     {
-        [Fact]
-        public void Test_Parameter()
+        [Theory]
+        [InlineData("param1,param2", "test")]
+        [InlineData("param1,param2,param3,param4", "test")]
+        [InlineData("param1,param2,param3,param4", "test", "test2", "test3")]
+        public void PreValidate_WhenRequiredStringParametersAreNotMet_ShouldSendMessage(string requiredParameters, params string[] arguments)
         {
-            var parameter1 = new StringSubCommandParameter("param1", true);
-            var parameter2 = new StringSubCommandParameter("param2", true);
+            var parameters = new List<SubCommandParameterDefinition>();
+            foreach (var parameterName in requiredParameters.Split(','))
+            {
+                parameters.Add(new StringSubCommandParameter(parameterName, true));
+            }
 
-
-            var subCommand = new SubCommandTest(new List<SubCommandParameterDefinition>() { parameter1, parameter2 });
+            var subCommand = new SubCommandTest(parameters);
             var mockCharacter = new Mock<ICharacter>();
 
-            subCommand.PreExecute(mockCharacter.Object, "", new string[] { "test" });
+            subCommand.PreExecute(mockCharacter.Object, "", arguments);
+
+            if (parameters.Count > arguments.Length)
+            {
+                var missingParameters = parameters.Count - arguments.Length;
+                for (var i = arguments.Length; i < parameters.Count; i++)
+                {
+                    mockCharacter.Verify(c => c.SendMessage(It.IsIn(Color.Red), It.IsIn($"[Test] Parameter {parameters[i].Name} is required")), Times.Once);
+                }
+            }
         }
     }
 
@@ -30,13 +43,14 @@ namespace AAEmu.Tests.Commands
     {
         public SubCommandTest(IEnumerable<SubCommandParameterDefinition> parameterDefinitions)
         {
+            Prefix = "[Test]";
             foreach (var parameterDefinition in parameterDefinitions)
             {
                 AddParameter(parameterDefinition);
             }
         }
 
-        public override void Execute(ICharacter character, string triggerArgument, string[] args)
+        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
             
         }
