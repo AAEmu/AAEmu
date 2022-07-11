@@ -11,7 +11,7 @@ namespace AAEmu.Game.Scripts.Commands
     public class Teleport : ICommand
     {
         public List<TPloc> locations = new List<TPloc>();
-        public const bool AllowPingPos = true ; // Enable or Disable /teleport . (dot) command functionality
+        public bool AllowPingPos { get; set; } = true ; // Enable or Disable /teleport . (dot) command functionality
 
         public void OnLoad()
         {
@@ -32,7 +32,7 @@ namespace AAEmu.Game.Scripts.Commands
                     "Teleports you to target location. if no [location] is provided, you will get a list of available names. " +
                     "You can also use a period (.) as a location name to teleport to a location you marked on the map.";
             else
-                return
+                return 
                     "Teleports you to target location. if no [location] is provided, you will get a list of available names.";
         }
 

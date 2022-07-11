@@ -56,7 +56,7 @@ namespace AAEmu.Game.Scripts.Commands
                 {
                     if (doodad.FuncTask != null)
                     {
-                        doodad.FuncTask.Cancel();
+                        doodad.FuncTask.CancelAsync().GetAwaiter().GetResult();
                         doodad.FuncTask.Execute();
                         tickedCount++;
                     }

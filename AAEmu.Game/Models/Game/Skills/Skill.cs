@@ -562,7 +562,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public async void StopSkill(Unit caster)
         {
-            await caster.AutoAttackTask.Cancel();
+            await caster.AutoAttackTask.CancelAsync();
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
             caster.BroadcastPacket(new SCSkillStoppedPacket(caster.ObjId, Id), true);
             caster.AutoAttackTask = null;

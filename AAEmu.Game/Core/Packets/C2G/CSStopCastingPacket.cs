@@ -34,7 +34,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (Connection.ActiveChar.SkillTask == null || Connection.ActiveChar.SkillTask.Skill.TlId != tl)
                 return;
             
-            await Connection.ActiveChar.SkillTask.Cancel();
+            await Connection.ActiveChar.SkillTask.CancelAsync();
 
             if (Connection.ActiveChar.SkillTask is EndChannelingTask ect)
             {

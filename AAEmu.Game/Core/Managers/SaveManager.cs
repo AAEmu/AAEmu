@@ -44,7 +44,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 return;
             }
-            var result = await saveTask.Cancel();
+            var result = await saveTask.CancelAsync();
             if (result)
             {
                 saveTask = null;

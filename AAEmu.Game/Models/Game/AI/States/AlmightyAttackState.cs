@@ -41,6 +41,7 @@ namespace AAEmu.Game.Models.Game.AI.States
         public override void Tick(TimeSpan delta)
         {
             return;
+            /*
             if (OwnerTemplate == null)
                 return;
 
@@ -112,6 +113,7 @@ namespace AAEmu.Game.Models.Game.AI.States
             var skillObject = SkillObject.GetByType(SkillObjectType.None);
 
             skill.Use(Npc, skillCaster, skillCastTarget, skillObject, true);
+            */
         }
 
         private AiSkillList GetNextAiSkills()

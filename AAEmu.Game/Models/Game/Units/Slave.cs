@@ -178,6 +178,7 @@ namespace AAEmu.Game.Models.Game.Units
                 // For example a clipper would be correct is we added another 368.33 (= +341%) stamina boost
                 // TODO: for now just put a static 250k HP so spawned slaves don't show damaged
                 return 250000;
+                /*
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.MaxHealth);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
@@ -196,6 +197,7 @@ namespace AAEmu.Game.Models.Game.Units
                         res += bonus.Value;
                 }
                 return res;
+                */
             }
         }
 
