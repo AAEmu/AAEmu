@@ -238,10 +238,12 @@ namespace AAEmu.Tests.Commands
                 {
                     if (parameters.Any(p => p.Prefix is not null && p.Prefix == argument.Split('=')[0])) 
                     {
+                        // Any parameters configured as prefix where the argument matches should be present in the subcommand parameters
                         Assert.Contains(subCommand.Parameters, p => p.Value.Value.ToString() == argument.Split('=')[1]);
                     }
                     else
                     {
+                        // Any parameters that are not by prefix should not have prefixed argument values
                         Assert.DoesNotContain(subCommand.Parameters, p => p.Value.Value.ToString() == argument.Split('=')[1]);
                     }
                 }
@@ -249,6 +251,8 @@ namespace AAEmu.Tests.Commands
                 {
                     if (nonPrefixCounter < optionalParametersArray.Length + requiredParametersArray.Length)
                     {
+                        // Any argument that not match the prefix pattern should be matching the non prefix parameters in order
+                        // If the nonprefix arguments matched more the number of nonprefix parameters we don't expect the parameters to contains any of those values
                         Assert.Contains(subCommand.Parameters, p => p.Value.Value.ToString() == argument);
                         nonPrefixCounter++;
                     }
