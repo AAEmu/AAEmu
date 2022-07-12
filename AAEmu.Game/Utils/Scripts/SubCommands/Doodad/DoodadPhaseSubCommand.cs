@@ -5,9 +5,9 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
     {
         public DoodadPhaseSubCommand()
         {
-            Prefix = "[Doodad Phase]";
+            Title = "[Doodad Phase]";
             Description = "Allow phase operations on a doodad";
-            CallExample = "/doodad phase <list||change> <ObjId>";
+            CallPrefix = "/doodad phase <list||change> <ObjId>";
 
             Register(new DoodadPhaseListSubCommand(), "list");
             Register(new DoodadPhaseChangeSubCommand(), "change");

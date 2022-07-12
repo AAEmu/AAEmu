@@ -13,9 +13,9 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public DoodadCmd() 
         {
-            Prefix = "[Doodad]";
+            Title = "[Doodad]";
             Description = "Root command to manage Doodads";
-            CallExample = "/doodad [chain||setphase||save||pos]";
+            CallPrefix = "/doodad [chain||setphase||save||pos]";
 
             Register(new DoodadChainSubCommand(), "chain");
             Register(new DoodadPhaseSubCommand(), "phase", "setphase");
@@ -41,7 +41,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
 {
-            return CallExample;
+            return CallPrefix;
         }
 
         public void Execute( Character character, string[] args )

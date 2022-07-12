@@ -12,9 +12,9 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public ItemCmd()
         {
-            Prefix = "[Item]";
+            Title = "[Item]";
             Description = "Root command to manage Items";
-            CallExample = "/item [add]";
+            CallPrefix = "/item [add]";
 
             Register(new ItemAddSubCommand(), "add");
         }
@@ -30,7 +30,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return CallExample;
+            return CallPrefix;
         }
 
         public void Execute(Character character, string[] args)

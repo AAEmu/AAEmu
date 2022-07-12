@@ -91,7 +91,7 @@ namespace AAEmu.Tests.Commands
             testCommand.PreExecute(mockCharacter.Object, "test", new string[] { "help" });
 
             mockCharacter.Verify(c => c.SendMessage(It.IsIn($"{testCommandPrefix} {testCommand.Description}")), Times.Once);
-            mockCharacter.Verify(c => c.SendMessage(It.IsIn($"{testCommandPrefix} {testCommand.CallExample}")), Times.Once);
+            mockCharacter.Verify(c => c.SendMessage(It.IsIn($"{testCommandPrefix} {testCommand.CallPrefix}")), Times.Once);
             mockCharacter.Verify(c => c.SendMessage(It.Is<string>(s => s.Contains($"{string.Join("||", expectedCommands)}"))), Times.Once);
             mockCharacter.Verify(c => c.SendMessage(It.Is<string>(s => s.Contains("For more details use"))), Times.Once);
         }
@@ -101,9 +101,9 @@ namespace AAEmu.Tests.Commands
         {
             public TestCommand(Dictionary<ISubCommand, string[]> register) : base(register)
             {
-                Prefix = "Prefix";
+                Title = "Prefix";
                 Description = "Mock Command";
-                CallExample = "Help Message";
+                CallPrefix = "Help Message";
             }
         }
 

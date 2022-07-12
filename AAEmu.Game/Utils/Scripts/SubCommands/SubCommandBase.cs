@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Text;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using NLog;
@@ -21,16 +22,24 @@ namespace AAEmu.Game.Utils.Scripts
                 _parameters.Any() && 
                 _parameters.LastOrDefault(x => !x.IsRequired && x.Prefix is null) is not null)
             {
-                throw new ApplicationException("Cannot add a required parameter after an optional parameter");
+                throw new InvalidOperationException("Cannot add a required parameter after an optional parameter");
+            }
+
+            if (parameter.Prefix is not null &&
+                parameter.IsRequired &&
+                _parameters.Any() &&
+                _parameters.LastOrDefault(x => !x.IsRequired && x.Prefix is not null) is not null)
+            {
+                throw new InvalidOperationException("Cannot add a required prefix parameter after an optional prefix parameter");
             }
 
             _parameters.Add(parameter);
         }
         
         protected List<string> SupportedCommands => _subCommands.Keys.ToList();
-        protected string Prefix { get; set; }
+        protected string Title { get; set; }
         public string Description { get; protected set; }
-        public string CallExample { get; protected set; }
+        public string CallPrefix { get; protected set; }
 
         public SubCommandBase()
         {
@@ -76,10 +85,18 @@ namespace AAEmu.Game.Utils.Scripts
                 }
                 else
                 {
-                    var parametersValues = LoadParametersValues(args);
-                    if (PreValidate(character, parametersValues.Values))
+                    if (_parameters.Count > 0) 
                     {
-                        Execute(character, triggerArgument, parametersValues);
+                        var parametersValues = LoadParametersValues(args);
+                        if (PreValidate(character, parametersValues.Values))
+                        {
+                            Execute(character, triggerArgument, parametersValues);
+                        }
+                    }
+                    else
+                    {
+                        // Backwards compatibility with non parameter migrated subcommands
+                        Execute(character, triggerArgument, args);
                     }
                 }
             }
@@ -161,14 +178,29 @@ namespace AAEmu.Game.Utils.Scripts
         protected virtual void SendHelpMessage(ICharacter character)
         {
             SendMessage(character, Description);
-            SendMessage(character, CallExample);
+            SendMessage(character, GetCallExample());
             if (SupportedCommands.Count > 0) 
             {
                 SendMessage(character, $"Supported subcommands: <{string.Join("||", SupportedCommands)}>");
-                SendMessage(character, $"For more details use /<command> [<subcommand>] help.");
+                SendMessage(character, $"For more details use /<command> <subcommand> help.");
             }
         }
 
+        private string GetCallExample()
+        {
+            StringBuilder callExampleMessage = new(CallPrefix);
+            if (_parameters.Count > 0)
+            {
+                foreach (var parameter in _parameters.OrderBy(p => p.Prefix is not null).ThenBy(p => !p.IsRequired))
+                {
+                    callExampleMessage.Append(parameter.IsRequired 
+                        ? $" <{parameter.Name}>" 
+                        : $" [<{parameter.Name}>]");
+                }
+            }
+            return callExampleMessage.ToString();
+        }
+        
         /// <summary>
         /// Implementation related to this command level
         /// </summary>
@@ -177,10 +209,7 @@ namespace AAEmu.Game.Utils.Scripts
         /// <param name="args">additional arguments</param>
         public virtual void Execute(ICharacter character, string triggerArgument, string[] args)
         {
-            if (_subCommands.Count > 0)
-            {
-                SendHelpMessage(character);
-            }
+            SendHelpMessage(character);
         }
 
         /// <summary>
@@ -191,10 +220,7 @@ namespace AAEmu.Game.Utils.Scripts
         /// <param name="args">additional arguments</param>
         public virtual void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
-            if (_subCommands.Count > 0)
-            {
-                SendHelpMessage(character);
-            }
+            SendHelpMessage(character);
         }
         
         /// <summary>
@@ -205,7 +231,7 @@ namespace AAEmu.Game.Utils.Scripts
         /// <param name="parameters">Message parameters</param>
         protected void SendMessage(ICharacter character, string message, params object[] parameters)
         {
-            character.SendMessage($"{Prefix} {message}", parameters);
+            character.SendMessage($"{Title} {message}", parameters);
         }
 
         /// <summary>
@@ -217,7 +243,7 @@ namespace AAEmu.Game.Utils.Scripts
         /// <param name="parameters">Message parameters</param>
         protected void SendColorMessage(ICharacter character, Color color, string message, params object[] parameters)
         {
-            character.SendMessage(color, $"{Prefix} {message}", parameters);
+            character.SendMessage(color, $"{Title} {message}", parameters);
         }
 
         protected string GetOptionalArgumentValue(string[] args, string argumentName, string defaultArgumentValue)

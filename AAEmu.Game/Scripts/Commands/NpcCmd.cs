@@ -12,9 +12,9 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public NpcCmd()
         {
-            Prefix = "[Npc]";
+            Title = "[Npc]";
             Description = "Root command to manage Npcs";
-            CallExample = "/npc [info||save||remove||position]";
+            CallPrefix = "/npc [info||save||remove||position]";
 
             Register(new NpcInformationSubCommand(), "info");
             Register(new NpcPositionSubCommand(), "position");
@@ -33,7 +33,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return CallExample;
+            return CallPrefix;
         }
 
         public void Execute(Character character, string[] args)

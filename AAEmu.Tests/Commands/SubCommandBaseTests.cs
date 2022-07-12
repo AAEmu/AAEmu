@@ -2,7 +2,6 @@
 using System.Drawing;
 using System.Linq;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using Moq;
 using Xunit;
@@ -24,7 +23,7 @@ namespace AAEmu.Tests.Commands
                 parameters.Add(new StringSubCommandParameter(parameterName, true));
             }
 
-            var subCommand = new SubCommandTest(parameters);
+            var subCommand = new SubCommandFake(parameters);
             var mockCharacter = new Mock<ICharacter>();
 
             // Act
@@ -59,7 +58,7 @@ namespace AAEmu.Tests.Commands
                 parameters.Add(new StringSubCommandParameter(parameterName, required, prefix));
             }
 
-            var subCommand = new SubCommandTest(parameters);
+            var subCommand = new SubCommandFake(parameters);
             var mockCharacter = new Mock<ICharacter>();
 
             // Act
@@ -82,7 +81,7 @@ namespace AAEmu.Tests.Commands
                 parameters.Add(new StringSubCommandParameter(parameterName, true));
             }
 
-            var subCommand = new SubCommandTest(parameters);
+            var subCommand = new SubCommandFake(parameters);
             var mockCharacter = new Mock<ICharacter>();
 
             // Act
@@ -125,7 +124,7 @@ namespace AAEmu.Tests.Commands
                 parameters.Add(new StringSubCommandParameter(parameterName, false));
             }
 
-            var subCommand = new SubCommandTest(parameters);
+            var subCommand = new SubCommandFake(parameters);
             var mockCharacter = new Mock<ICharacter>();
             var parametersToIgnore = 0;
             if (arguments.Length > optionalParametersArray.Length + requiredParametersArray.Length)
@@ -158,9 +157,9 @@ namespace AAEmu.Tests.Commands
         [InlineData("test", "test1")]
         public void PreValidate_WhenRangedStringParameterAreNotMet_PreValidateShouldSendMessage(string argumentValue, params string[] validValues)
         {
-            //Arrange
+            // Arrange
             var parameter = new StringSubCommandParameter("param1", true, validValues);
-            var subCommand = new SubCommandTest(new[] { parameter });
+            var subCommand = new SubCommandFake(new[] { parameter });
             var mockCharacter = new Mock<ICharacter>();
 
             // Act
@@ -175,9 +174,9 @@ namespace AAEmu.Tests.Commands
         [InlineData("test", "test", "test2", "test3")]
         public void PreValidate_WhenRangedStringParameterAreMet_ShouldExecute(string argumentValue, params string[] validValues)
         {
-            //Arrange
+            // Arrange
             var parameter = new StringSubCommandParameter("param1", true, validValues);
-            var subCommand = new SubCommandTest(new[] { parameter });
+            var subCommand = new SubCommandFake(new[] { parameter });
             var mockCharacter = new Mock<ICharacter>();
 
             // Act
@@ -196,7 +195,7 @@ namespace AAEmu.Tests.Commands
         [InlineData("req1", "opt2", "required-prefix-x", "firstRequired", "x=test", "SecondOptional", "shouldIgnoreMe", "shouldIgnoreMe")]
         [InlineData("req1", "opt2", "required-prefix-x", "firstRequired", "SecondOptional", "x=test", "shouldIgnoreMe", "shouldIgnoreMe", "y=z")]
         [InlineData("req1", "opt2", "required-prefix-x", "firstRequired", "SecondOptional", "x=test", "shouldIgnoreMe", "shouldIgnoreMe", "y=z", "ignoreMe")]
-        public void LoadParametersValues_WhenPrefixArgumentsAnyOrder_ShouldExecute(string requiredParameters, string optionalParameters, string prefixParameters, params string[] arguments)
+        public void LoadParametersValues_WhenMixedNonPrefixAndAnyOrderPrefix_ShouldExecute(string requiredParameters, string optionalParameters, string prefixParameters, params string[] arguments)
         {
             // Arrange
             var parameters = new List<SubCommandParameterBase>();
@@ -219,7 +218,7 @@ namespace AAEmu.Tests.Commands
                 parameters.Add(new StringSubCommandParameter(parameterName, required, prefix));
             }
             
-            var subCommand = new SubCommandTest(parameters);
+            var subCommand = new SubCommandFake(parameters);
             var mockCharacter = new Mock<ICharacter>();
 
             // Act
@@ -234,9 +233,9 @@ namespace AAEmu.Tests.Commands
             var nonPrefixCounter = 0;
             foreach (var argument in arguments)
             {
-                if (argument.IndexOf('=') > -1)
+                if (IsPrefixed(argument))
                 {
-                    if (parameters.Any(p => p.Prefix is not null && p.Prefix == argument.Split('=')[0])) 
+                    if (AnyPrefixedParameterThatMatchesThePrefixedArgument(parameters, argument))
                     {
                         // Any parameters configured as prefix where the argument matches should be present in the subcommand parameters
                         Assert.Contains(subCommand.Parameters, p => p.Value.Value.ToString() == argument.Split('=')[1]);
@@ -249,7 +248,7 @@ namespace AAEmu.Tests.Commands
                 }
                 else
                 {
-                    if (nonPrefixCounter < optionalParametersArray.Length + requiredParametersArray.Length)
+                    if (AnyNonPrefixParameterMatchInOrder(requiredParametersArray, optionalParametersArray, nonPrefixCounter))
                     {
                         // Any argument that not match the prefix pattern should be matching the non prefix parameters in order
                         // If the nonprefix arguments matched more the number of nonprefix parameters we don't expect the parameters to contains any of those values
@@ -261,24 +260,95 @@ namespace AAEmu.Tests.Commands
             }
             mockCharacter.Verify(c => c.SendMessage(It.IsAny<Color>(), It.IsAny<string>()), Times.Never);
         }
-    }
-    public class SubCommandTest : SubCommandBase
-    {
-        public IDictionary<string, ParameterValue> Parameters { get; private set; }
-        public bool Executed { get; private set; }
-        public SubCommandTest(IEnumerable<SubCommandParameterBase> parameterDefinitions)
+
+        [Theory]
+        [InlineData("required-long-prefix-w,optional-int-prefix-x,required-float,required-string", "required-float", -13.23F, "x=12", "w=100", "-13.23", "requiredstring", "extrastring")]
+        [InlineData("required-long-prefix-w,optional-int-prefix-x,required-float,required-string", "required-float", 123.54F, "w=100", "123.54", "requiredstring", "extrastring")]
+        [InlineData("required-float-prefix-yaw,optional-int-prefix-x,required-byte,optional-string", "required-float-prefix-yaw", 185.4323F, "yaw=185.4323", "200")]
+        public void LoadParametersValues_MixedParameters_ShouldExecute(string parametersPattern, string expectedParameterName, object expectedParameterValue, params string[] arguments)
         {
-            Prefix = "[Test]";
-            foreach (var parameterDefinition in parameterDefinitions)
+            // Arrange
+            var parameters = new List<SubCommandParameterBase>();
+            var parametersArray = parametersPattern.Split(',');
+            foreach (var parameterPattern in parametersArray)
             {
-                AddParameter(parameterDefinition);
+                parameters.Add(GetParameter(parameterPattern));
             }
+
+            var subCommand = new SubCommandFake(parameters);
+            var mockCharacter = new Mock<ICharacter>();
+
+            // Act
+            subCommand.PreExecute(mockCharacter.Object, "", arguments);
+
+            // Assert
+            Assert.True(subCommand.Executed);
+            foreach (var parameterPattern in parametersArray.Where(x => x.StartsWith("required")))
+            {
+                Assert.True(subCommand.Parameters.ContainsKey(parameterPattern));
+            }
+            Assert.Equal(expectedParameterValue, subCommand.Parameters[expectedParameterName].Value);
         }
 
-        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+        [Theory]
+        [InlineData("required-long-prefix-w,optional-int-prefix-x,required-float,required-string", "[Test] /test <required-float> <required-string> <required-long-prefix-w> [<optional-int-prefix-x>]")]
+        [InlineData("required-float-prefix-yaw,optional-int-prefix-x,required-byte,optional-string", "[Test] /test <required-byte> [<optional-string>] <required-float-prefix-yaw> [<optional-int-prefix-x>]")]
+        public void SendHelpMessage_MixedParameters_ShouldSendMessage(string parametersPattern, string expectedCallExample)
         {
-            Executed = true;
-            Parameters = parameters;
+            // Arrange
+            var parameters = new List<SubCommandParameterBase>();
+            var parametersArray = parametersPattern.Split(',');
+            foreach (var parameterPattern in parametersArray)
+            {
+                parameters.Add(GetParameter(parameterPattern));
+            }
+
+            var subCommand = new SubCommandFake(parameters);
+            var mockCharacter = new Mock<ICharacter>();
+
+            // Act
+            subCommand.BaseSendHelpMessage(mockCharacter.Object);
+
+            // Assert
+            mockCharacter.Verify(c => c.SendMessage(It.IsIn(expectedCallExample)), Times.Once);
+        }
+
+
+        private SubCommandParameterBase GetParameter(string parameterPattern)
+        {
+            var parameterConfigArray = parameterPattern.Split('-');
+            var isRequired = parameterConfigArray.First() == "required";
+            var isPrefix = parameterConfigArray.Any(x => x == "prefix");
+            var type = parameterConfigArray[1].ToLower();
+            string prefixValue = null;
+            if (isPrefix)
+            {
+                prefixValue = parameterConfigArray.Last();
+            }
+
+            return type switch
+            {
+                "int" => new NumericSubCommandParameter<int>(parameterPattern, isRequired, prefixValue),
+                "uint" => new NumericSubCommandParameter<uint>(parameterPattern, isRequired, prefixValue),
+                "long" => new NumericSubCommandParameter<long>(parameterPattern, isRequired, prefixValue),
+                "float" => new NumericSubCommandParameter<float>(parameterPattern, isRequired, prefixValue),
+                "byte" => new NumericSubCommandParameter<byte>(parameterPattern, isRequired, prefixValue),
+                _ => new StringSubCommandParameter(parameterPattern, isRequired, prefixValue)
+            };
+        }
+        private static bool AnyNonPrefixParameterMatchInOrder(string[] requiredParametersArray, string[] optionalParametersArray, int nonPrefixCounter)
+        {
+            return nonPrefixCounter < optionalParametersArray.Length + requiredParametersArray.Length;
+        }
+
+        private static bool AnyPrefixedParameterThatMatchesThePrefixedArgument(List<SubCommandParameterBase> parameters, string argument)
+        {
+            return parameters.Any(p => p.Prefix is not null && p.Prefix == argument.Split('=')[0]);
+        }
+
+        private static bool IsPrefixed(string argument)
+        {
+            return argument.IndexOf('=') > -1;
         }
     }
 }

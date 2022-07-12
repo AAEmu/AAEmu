@@ -2,6 +2,14 @@
 {
     public abstract class SubCommandParameterBase
     {
+        protected string GetValueWithoutPrefix(string argumentValue)
+        {
+            if (Prefix is null)
+            {
+                return argumentValue;
+            }
+            return argumentValue.Substring(Prefix.Length + 1);
+        }
         public SubCommandParameterBase(string name, bool required)
         {
             Name = name;

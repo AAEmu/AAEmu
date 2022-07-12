@@ -6,7 +6,7 @@ namespace AAEmu.Game.Utils.Scripts
     public interface ISubCommand
     {
         string Description { get; }
-        string CallExample { get; }
+        string CallPrefix { get; }
         /// <summary>
         /// Validates if there is a subcommand that implements the first argument
         /// </summary>

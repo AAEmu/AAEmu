@@ -13,9 +13,9 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public GoldCmd()
         {
-            Prefix = "[Gold]";
+            Title = "[Gold]";
             Description = "Root command to manage gold";
-            CallExample = "/gold (add||change||remove) ...";
+            CallPrefix = "/gold (add||change||remove) ...";
 
             Register(new GoldChangeSubCommand(), "add");
             Register(new GoldChangeSubCommand(), "change");
@@ -33,7 +33,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return CallExample;
+            return CallPrefix;
         }
 
         public void Execute(Character character, string[] args)

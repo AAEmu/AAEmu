@@ -10,9 +10,9 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
     {
         public DoodadPhaseListSubCommand()
         {
-            Prefix = "[Doodad Phase List]";
+            Title = "[Doodad Phase List]";
             Description = "List all the phases of a given doodad";
-            CallExample = "/doodad phase list <ObjId>";
+            CallPrefix = "/doodad phase list <ObjId>";
         }
         public override void Execute(ICharacter character, string triggerArgument, string[] args)
         {
@@ -41,7 +41,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             var availablePhases = string.Join(", ", DoodadManager.Instance.GetDoodadFuncGroupsId(doodad.TemplateId));
 
             SendMessage(character, "TemplateId {0}: ObjId{1}, Available phase ids (func groups): {2}", doodad.TemplateId, doodad.ObjId, availablePhases);
-            _log.Warn($"{Prefix} Chain: TemplateId {doodad.TemplateId}, doodadObjId {doodad.ObjId},  Available phase ids (func groups): {availablePhases}");
+            _log.Warn($"{Title} Chain: TemplateId {doodad.TemplateId}, doodadObjId {doodad.ObjId},  Available phase ids (func groups): {availablePhases}");
         }
     }
 }

@@ -13,9 +13,10 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
     {
         public ItemAddSubCommand()
         {
-            Prefix = "[Item]";
+            Title = "[Item]";
             Description = "Adds to self or a player name or a selected target an amount of a specific item template of a specific [grade].";
-            CallExample = "/item add (<charactername>||target||self) [amount=1] [grade=0]";
+            CallPrefix = "/item add (<charactername>||target||self) [amount=1] [grade=0]";
+            AddParameter(new StringSubCommandParameter("target", true));
         }
 
         public override void Execute(ICharacter character, string triggerArgument, string[] args)

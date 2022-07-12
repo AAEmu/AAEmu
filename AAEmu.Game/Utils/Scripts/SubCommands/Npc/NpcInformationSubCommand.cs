@@ -10,9 +10,9 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
     {
         public NpcInformationSubCommand()
         {
-            Prefix = "[Npc Information]";
+            Title = "[Npc Information]";
             Description = "Get all npc information";
-            CallExample = "/npc info target||<ObjId>";
+            CallPrefix = "/npc info target||<ObjId>";
         }
 
         public override void Execute(ICharacter character, string triggerArgument, string[] args)
@@ -21,7 +21,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             var firstArgument = args.FirstOrDefault();
             if (firstArgument is null)
             {
-                SendMessage(character, CallExample);
+                SendMessage(character, CallPrefix);
                 return;
             }
             if (firstArgument == "target")

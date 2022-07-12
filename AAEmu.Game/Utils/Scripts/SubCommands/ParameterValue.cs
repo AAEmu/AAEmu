@@ -1,4 +1,6 @@
-﻿namespace AAEmu.Game.Utils.Scripts.SubCommands
+﻿using System;
+
+namespace AAEmu.Game.Utils.Scripts.SubCommands
 {
     public class ParameterValue
     {
@@ -12,5 +14,12 @@
         public string Name { get; }
         public object Value { get; }
         public string InvalidMessage { get; }
+
+        public T GetValue<T>()
+        {
+            if (Value is T)
+                return (T)Value;
+            throw new ArgumentException($"Invalid value type for parameter {Name}");
+        }
     }
 }

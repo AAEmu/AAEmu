@@ -11,9 +11,9 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
     {
         public NpcRemoveSubCommand()
         {
-            Prefix = "[Npc Remove]";
+            Title = "[Npc Remove]";
             Description = "Remove a targeted npc or using a <ObjId>";
-            CallExample = "/npc remove target || /npc remove <ObjId>";
+            CallPrefix = "/npc remove target || /npc remove <ObjId>";
         }
 
         public override void Execute(ICharacter character, string triggerArgument, string[] args)
@@ -22,7 +22,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             var firstArgument = args.FirstOrDefault();
             if (firstArgument is null)
             {
-                SendMessage(character, CallExample);
+                SendMessage(character, CallPrefix);
                 return;
             }
             if (firstArgument == "target")

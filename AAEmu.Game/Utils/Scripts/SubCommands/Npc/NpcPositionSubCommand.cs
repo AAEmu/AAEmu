@@ -12,9 +12,9 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
     {
         public NpcPositionSubCommand()
         {
-            Prefix = "[Npc Position]";
+            Title = "[Npc Position]";
             Description = "Change npc position and angle";
-            CallExample = "/npc target||<ObjId> x=<x> y=<y> z=<z> roll=<roll> pitch=<pitch> yaw=<yaw> - All positions are optional use all or only the ones you want to change (Use yaw to rotate npc)";
+            CallPrefix = "/npc target||<ObjId> x=<x> y=<y> z=<z> roll=<roll> pitch=<pitch> yaw=<yaw> - All positions are optional use all or only the ones you want to change (Use yaw to rotate npc)";
         }
 
         public override void Execute(ICharacter character, string triggerArgument, string[] args)
@@ -23,7 +23,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             var firstArgument = args.FirstOrDefault();
             if (firstArgument is null)
             {
-                SendMessage(character, CallExample);
+                SendMessage(character, CallPrefix);
                 return;
             }
             if (firstArgument == "target")

@@ -6,12 +6,27 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
     {
         private readonly T _minValue;
         private readonly T _maxValue;
-        public NumericSubCommandParameter(string name, bool required, T minValue, T maxValue) : base(name, required)
+        public NumericSubCommandParameter(string name, bool required, T minValue, T maxValue) 
+            : this(name, required, null, minValue, maxValue)
         {
+        }
+
+        public NumericSubCommandParameter(string name, bool required, string prefix, T minValue, T maxValue) 
+            : base(name, required)
+        {
+            EnsureValidRanges(minValue, maxValue);
             _minValue = minValue;
             _maxValue = maxValue;
+            Prefix = prefix;
         }
-        public NumericSubCommandParameter(string name, bool required) : base(name, required)
+        public NumericSubCommandParameter(string name, bool required, string prefix) 
+            : this(name, required)
+        {
+            Prefix = prefix;
+        }
+        
+        public NumericSubCommandParameter(string name, bool required) 
+            : base(name, required)
         {
             switch (typeof(T).Name)
             {
@@ -35,15 +50,42 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                     _minValue = (T)Convert.ChangeType(byte.MinValue, typeof(T));
                     _maxValue = (T)Convert.ChangeType(byte.MaxValue, typeof(T));
                     break;
-                default:
-                    throw new Exception($"Unsupported numeric type {typeof(T).Name}");
             }
         }
 
-        public override ParameterValue Load(string textValue)
+        private void EnsureValidRanges(T minValue, T maxValue)
+        {
+            bool isValidRange = false;
+            
+            switch (typeof(T).Name)
+            {
+                case "Int32":
+                    isValidRange = Convert.ToInt32(minValue) <= Convert.ToInt32(maxValue);
+                    break;
+                case "Int64":
+                    isValidRange = Convert.ToInt64(minValue) <= Convert.ToInt64(maxValue);
+                    break;
+                case "Single":
+                    isValidRange = Convert.ToSingle(minValue) <= Convert.ToSingle(maxValue);
+                    break;
+                case "UInt32":
+                    isValidRange = Convert.ToUInt32(minValue) <= Convert.ToUInt32(maxValue);
+                    break;
+                case "Byte":
+                    isValidRange = Convert.ToByte(minValue) <= Convert.ToByte(maxValue);
+                    break;
+            }
+
+            if (!isValidRange)
+            {
+                throw new ArgumentOutOfRangeException(nameof(_minValue), $"{nameof(_minValue)} must be less than or equal to {nameof(_maxValue)}");
+            }
+        }
+        public override ParameterValue Load(string argumentValue)
         {
             T result;
-            bool isValidNumber = false;
+            var textValue = GetValueWithoutPrefix(argumentValue);
+            bool isValidNumber;
             bool isValidRange = false;
             string invalidMessage = null;
 
@@ -98,7 +140,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                 default:
                     {
                         result = default(T);
-                        invalidMessage = $"Unsupported numeric type {typeof(T).Name}";
+                        invalidMessage = $"Unsupported numeric type {typeof(T).Name} for parameter: {Name}";
 
                         return new ParameterValue<T>(Name, result, invalidMessage);
                     }
@@ -110,7 +152,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             }
             else if (!isValidRange)
             {
-                invalidMessage = $"Invalid numeric range ({_minValue}-{_maxValue}) for parameter: {Name}";
+                invalidMessage = $"The number {result} should be between {_minValue} and {_maxValue} for parameter: {Name}";
             }
 
             return new ParameterValue<T>(Name, result, invalidMessage);

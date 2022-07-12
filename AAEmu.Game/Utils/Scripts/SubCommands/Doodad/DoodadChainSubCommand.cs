@@ -11,9 +11,9 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
     {
         public DoodadChainSubCommand()
         {
-            Prefix = "[Doodad Chain]";
+            Title = "[Doodad Chain]";
             Description = "Show all subrelated properties of a Doodad";
-            CallExample = "/doodad chain <templateId>";
+            CallPrefix = "/doodad chain <templateId>";
         }
 
         public override void Execute(ICharacter character, string triggerArgument, string[] args)
@@ -40,7 +40,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             }
 
             SendMessage(character, "Phase chain, see the log");
-            _log.Warn($"{Prefix} Chain: TemplateId {templateId}");
+            _log.Warn($"{Title} Chain: TemplateId {templateId}");
             try
             {
                 var doodadFuncGroups = DoodadManager.Instance.GetDoodadFuncGroups(templateId);
@@ -48,33 +48,33 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                 {
                     // Display all functions that are available
                     doodad.FuncGroupId = doodadFuncGroup.Id;
-                    _log.Info($"{Prefix} FuncGroupId: {doodad.FuncGroupId}");
+                    _log.Info($"{Title} FuncGroupId: {doodad.FuncGroupId}");
                     // Get all doodad_phase_funcs
                     var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(doodad.FuncGroupId);
                     if (phaseFuncs.Length == 0)
                     {
-                        _log.Info($"{Prefix} PhaseFunc: GroupId {0}, FuncId 0", doodad.FuncGroupId);
+                        _log.Info($"{Title} PhaseFunc: GroupId {0}, FuncId 0", doodad.FuncGroupId);
                     }
                     else
                     {
                         foreach (var phaseFunc in phaseFuncs)
                         {
                             // phaseFunc.Use
-                            _log.Info($"{Prefix} PhaseFunc: GroupId {0}, FuncId {1}, FuncType {2}", phaseFunc.GroupId, phaseFunc.FuncId, phaseFunc.FuncType);
+                            _log.Info($"{Title} PhaseFunc: GroupId {0}, FuncId {1}, FuncType {2}", phaseFunc.GroupId, phaseFunc.FuncId, phaseFunc.FuncType);
                         }
                     }
                     // Get all doodad_funcs
                     var doodadFuncs = DoodadManager.Instance.GetDoodadFuncs(doodad.FuncGroupId);
                     if (doodadFuncs.Count == 0)
                     {
-                        _log.Info($"{Prefix} Func: GroupId {0}, FuncId 0", doodad.FuncGroupId);
+                        _log.Info($"{Title} Func: GroupId {0}, FuncId 0", doodad.FuncGroupId);
                     }
                     else
                     {
                         foreach (var func in doodadFuncs)
                         {
                             // func.Use
-                            _log.Info($"{Prefix} Func: GroupId {0}, FuncId {1}, FuncType {2}, NextPhase {3}, Skill {4}", func.GroupId, func.FuncId, func.FuncType, func.NextPhase, func.SkillId);
+                            _log.Info($"{Title} Func: GroupId {0}, FuncId {1}, FuncType {2}, NextPhase {3}, Skill {4}", func.GroupId, func.FuncId, func.FuncType, func.NextPhase, func.SkillId);
                         }
                     }
                 }
@@ -82,7 +82,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             catch (Exception e)
             {
                 character.SendMessage(Color.Red, e.Message);
-                _log.Fatal(e, $"{Prefix} Doodad func crashed !");
+                _log.Fatal(e, $"{Title} Doodad func crashed !");
             }
         }
     }

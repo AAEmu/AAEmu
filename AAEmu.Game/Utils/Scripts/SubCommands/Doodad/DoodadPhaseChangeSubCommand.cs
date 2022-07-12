@@ -11,9 +11,9 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
     {
         public DoodadPhaseChangeSubCommand()
         {
-            Prefix = "[Doodad Phase Change]";
+            Title = "[Doodad Phase Change]";
             Description = "Change the phase of a given doodad";
-            CallExample = "/doodad phase change <ObjId>";
+            CallPrefix = "/doodad phase change <ObjId>";
         }
         public override void Execute(ICharacter character, string triggerArgument, string[] args)
         {
@@ -49,7 +49,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
 
             SendMessage(character, "SetPhase {0}", phase);
             SendMessage(character, "TemplateId {0}: ObjId:{1}, ChangedPhase:{2}, Available phase ids (func groups): {3}", doodad.TemplateId, doodad.ObjId, phase, availablePhases);
-            _log.Warn($"{Prefix} Chain: TemplateId {doodad.TemplateId}, doodadObjId {doodad.ObjId}, SetPhase {phase}, Available phase ids (func groups): {availablePhases}");
+            _log.Warn($"{Title} Chain: TemplateId {doodad.TemplateId}, doodadObjId {doodad.ObjId}, SetPhase {phase}, Available phase ids (func groups): {availablePhases}");
             doodad.DoPhaseFuncs((Unit)character, phase);
         }
     }

@@ -10,9 +10,9 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
     {
         public DoodadPositionSubCommand()
         {
-            Prefix = "[Doodad Position]";
+            Title = "[Doodad Position]";
             Description = "Manage Doodad positioning in the world.";
-            CallExample = "/doodad pos <ObjId> x=<x> y=<y> z=<z> roll=<roll> pitch=<pitch> yaw=<yaw> - All positions are optional use all or only the ones you want to change";
+            CallPrefix = "/doodad pos <ObjId> x=<x> y=<y> z=<z> roll=<roll> pitch=<pitch> yaw=<yaw> - All positions are optional use all or only the ones you want to change";
         }
 
         public override void Execute(ICharacter character, string triggerArgument, string[] args)

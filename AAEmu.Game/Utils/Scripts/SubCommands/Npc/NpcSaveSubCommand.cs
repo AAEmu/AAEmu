@@ -18,9 +18,9 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
     {
         public NpcSaveSubCommand()
         {
-            Prefix = "[Npc Save]";
+            Title = "[Npc Save]";
             Description = "Save one or all npc positions in the current character world to the world npc spawns file";
-            CallExample = "/npc save all||/npc save <ObjId>";
+            CallPrefix = "/npc save all||/npc save <ObjId>";
         }
 
         public override void Execute(ICharacter character, string triggerArgument, string[] args)
@@ -28,7 +28,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             var firstArgument = args.FirstOrDefault();
             if (firstArgument is null)
             {
-                character.SendMessage(CallExample);
+                character.SendMessage(CallPrefix);
                 return;
             }
 

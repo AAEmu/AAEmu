@@ -10,9 +10,9 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
     {
         public DoodadSpawnSubCommand()
         {
-            Prefix = "[Doodad Spawn]";
+            Title = "[Doodad Spawn]";
             Description = "Add a new doodad of a specific template 3 meters in front of the player.";
-            CallExample = "/doodad spawn <TemplateId> [yaw=<yaw>] - Optional yaw(rotation) angle. Default will use characters facing angle.";
+            CallPrefix = "/doodad spawn <TemplateId> [yaw=<yaw>] - Optional yaw(rotation) angle. Default will use characters facing angle.";
         }
 
         public override void Execute(ICharacter character, string triggerArgument, string[] args)
