@@ -62,7 +62,7 @@
     <ItemGroup>
         <PackageReference Include="Discord.Net" Version="2.2.0" />
         <PackageReference Include="Jace" Version="0.9.2" />
-        <PackageReference Include="JitterPhysics" Version="0.2.0.20" />
+        <PackageReference Include="Jitter.Core" Version="0.2.0" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="2.10.0" />
         <PackageReference Include="Microsoft.Data.Sqlite" Version="2.2.1" />
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.2.0" />
@@ -74,8 +74,8 @@
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="2.2.0" />
         <PackageReference Include="NLog" Version="4.5.11" />
         <PackageReference Include="NLua" Version="1.5.6" />
-        <PackageReference Include="Quartz" Version="3.2.3" />        
-        <PackageReference Include="Ionic.Zlib" Version="1.9.1.5" />        
+        <PackageReference Include="Quartz" Version="3.2.3" />
+        <PackageReference Include="Ionic.Zlib.Core" Version="1.0.0" />        
         <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
     </ItemGroup>
 
