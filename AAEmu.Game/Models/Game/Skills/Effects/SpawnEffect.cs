@@ -1,10 +1,13 @@
 ﻿using System;
+
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects
@@ -67,8 +70,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
                 if (LifeTime > 0)
                 {
-                    npc.Despawn = DateTime.UtcNow.AddSeconds(LifeTime);
-                    SpawnManager.Instance.AddDespawn(npc);
+                    var despawnTask = new DespawnTask(npc);
+                    TaskManager.Instance.Schedule(despawnTask, TimeSpan.FromSeconds(LifeTime));
                 }
             }
         }

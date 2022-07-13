@@ -7,12 +7,11 @@ namespace AAEmu.Game.Models.Game.World
 {
     public class Spawner<T> where T : GameObject
     {
-        public uint Id { get; set; }
+        public uint Id { get; set; }     // objId or index ?
         public uint UnitId { get; set; } // MemberId | TemplateId
         public WorldSpawnPosition Position { get; set; }
         public int RespawnTime { get; set; } = 15;
         public int DespawnTime { get; set; } = 20;
-        public Dictionary<uint, NpcSpawnerTemplate> Template { get; set; } // npcSpawnerId, template
 
         public virtual T Spawn(uint objId)
         {
