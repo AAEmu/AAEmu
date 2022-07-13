@@ -17,7 +17,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
 
         public override string CallExample => 
             _values.Count == 0 
-                ? Name 
+                ? DisplayName
                 : $"{string.Join("||", _values)}";
         
         public override ParameterResult Load(string argumentValue)
@@ -29,7 +29,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
 
             if (!_values.Contains(argumentValue.ToLower()))
             {
-                return new ParameterResult<string>(Name, null, $"Parameter {Name} only accepts those values: {string.Join("||", _values)}");
+                return new ParameterResult<string>(Name, null, $"Parameter [{DisplayName}] only accepts: {string.Join("||", _values)}");
             }
             return new ParameterResult<string>(Name, argumentValue);
         }

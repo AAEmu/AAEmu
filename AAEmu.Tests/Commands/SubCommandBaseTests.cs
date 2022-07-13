@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using Moq;
@@ -22,7 +23,7 @@ namespace AAEmu.Tests.Commands
             var parameters = new List<SubCommandParameterBase>();
             foreach (var parameterName in requiredParameters.Split(','))
             {
-                parameters.Add(new StringSubCommandParameter(parameterName, true));
+                parameters.Add(new StringSubCommandParameter(parameterName, null, true));
             }
 
             var subCommand = new SubCommandFake(parameters);
@@ -57,7 +58,7 @@ namespace AAEmu.Tests.Commands
                 var required = parameterName.Contains("required");
                 var prefix = parameterName.Split("prefix-").Last();
 
-                parameters.Add(new StringSubCommandParameter(parameterName, required, prefix));
+                parameters.Add(new StringSubCommandParameter(parameterName, null, required, prefix));
             }
 
             var subCommand = new SubCommandFake(parameters);
@@ -80,7 +81,7 @@ namespace AAEmu.Tests.Commands
             var parameters = new List<SubCommandParameterBase>();
             foreach (var parameterName in requiredParameters.Split(','))
             {
-                parameters.Add(new StringSubCommandParameter(parameterName, true));
+                parameters.Add(new StringSubCommandParameter(parameterName, null, true));
             }
 
             var subCommand = new SubCommandFake(parameters);
@@ -117,12 +118,12 @@ namespace AAEmu.Tests.Commands
             var requiredParametersArray = requiredParameters.Split(',');
             foreach (var parameterName in requiredParametersArray)
             {
-                parameters.Add(new StringSubCommandParameter(parameterName, true));
+                parameters.Add(new StringSubCommandParameter(parameterName, null, true));
             }
             var optionalParametersArray = optionalParameters.Split(',');
             foreach (var parameterName in optionalParametersArray)
             {
-                parameters.Add(new StringSubCommandParameter(parameterName, false));
+                parameters.Add(new StringSubCommandParameter(parameterName, null, false));
             }
 
             var subCommand = new SubCommandFake(parameters);
@@ -158,7 +159,7 @@ namespace AAEmu.Tests.Commands
         public void PreValidate_WhenRangedStringParameterAreNotMet_PreValidateShouldSendMessage(string argumentValue, params string[] validValues)
         {
             // Arrange
-            var parameter = new StringSubCommandParameter("param1", true, validValues);
+            var parameter = new StringSubCommandParameter("param1", "parameter 1", true, validValues);
             var subCommand = new SubCommandFake(new[] { parameter });
             var mockCharacter = new Mock<ICharacter>();
 
@@ -167,7 +168,7 @@ namespace AAEmu.Tests.Commands
 
             // Assert
             Assert.False(subCommand.Executed);
-            mockCharacter.Verify(c => c.SendMessage(It.IsIn(Color.Red), It.IsIn($"[Test] Parameter {parameter.Name} only accepts those values: {string.Join("||", validValues)}")), Times.Once);
+            mockCharacter.Verify(c => c.SendMessage(It.IsIn(Color.Red), It.IsIn($"[Test] Parameter [{parameter.DisplayName}] only accepts: {string.Join("||", validValues)}")), Times.Once);
         }
 
         [Theory]
@@ -175,7 +176,7 @@ namespace AAEmu.Tests.Commands
         public void PreValidate_WhenRangedStringParameterAreMet_ShouldExecute(string argumentValue, params string[] validValues)
         {
             // Arrange
-            var parameter = new StringSubCommandParameter("param1", true, validValues);
+            var parameter = new StringSubCommandParameter("param1", "parameter 1", true, validValues);
             var subCommand = new SubCommandFake(new[] { parameter });
             var mockCharacter = new Mock<ICharacter>();
 
@@ -202,12 +203,12 @@ namespace AAEmu.Tests.Commands
             var requiredParametersArray = requiredParameters.Split(',');
             foreach (var parameterName in requiredParametersArray)
             {
-                parameters.Add(new StringSubCommandParameter(parameterName, true));
+                parameters.Add(new StringSubCommandParameter(parameterName, null, true));
             }
             var optionalParametersArray = optionalParameters.Split(',');
             foreach (var parameterName in optionalParametersArray)
             {
-                parameters.Add(new StringSubCommandParameter(parameterName, false));
+                parameters.Add(new StringSubCommandParameter(parameterName, null, false));
             }
             var prefixParametersArray = prefixParameters.Split(',');
             foreach (var parameterName in prefixParametersArray)
@@ -215,7 +216,7 @@ namespace AAEmu.Tests.Commands
                 var required = parameterName.Contains("required");
                 var prefix = parameterName.Split("prefix-").Last();
 
-                parameters.Add(new StringSubCommandParameter(parameterName, required, prefix));
+                parameters.Add(new StringSubCommandParameter(parameterName, null, required, prefix));
             }
             
             var subCommand = new SubCommandFake(parameters);
@@ -291,8 +292,8 @@ namespace AAEmu.Tests.Commands
         }
 
         [Theory]
-        [InlineData("required-long-prefix-w,optional-int-prefix-x,required-float,required-string", "[Test] /test <required-float> <required-string> <required-long-prefix-w> [<optional-int-prefix-x>]")]
-        [InlineData("required-float-prefix-yaw,optional-int-prefix-x,required-byte,optional-string", "[Test] /test <required-byte> [<optional-string>] <required-float-prefix-yaw> [<optional-int-prefix-x>]")]
+        [InlineData("required-long-prefix-w,optional-int-prefix-x,required-float,required-string", "[Test] " + CommandManager.CommandPrefix + "test <required-float> <required-string> <required-long-prefix-w> [<optional-int-prefix-x>]")]
+        [InlineData("required-float-prefix-yaw,optional-int-prefix-x,required-byte,optional-string", "[Test] " + CommandManager.CommandPrefix + "test <required-byte> [<optional-string>] <required-float-prefix-yaw> [<optional-int-prefix-x>]")]
         public void SendHelpMessage_MixedParameters_ShouldSendMessage(string parametersPattern, string expectedCallExample)
         {
             // Arrange
@@ -310,18 +311,18 @@ namespace AAEmu.Tests.Commands
             subCommand.BaseSendHelpMessage(mockCharacter.Object);
 
             // Assert
-            mockCharacter.Verify(c => c.SendMessage(It.IsIn(expectedCallExample)), Times.Once);
+            mockCharacter.Verify(c => c.SendMessage(It.IsIn(Color.LawnGreen), It.IsIn(expectedCallExample)), Times.Once);
         }
 
         [Theory]
-        [InlineData("[Test] /test <a||b||c>", "a", "b", "c")]
-        [InlineData("[Test] /test <a||b>", "a", "b")]
-        [InlineData("[Test] /test <a>", "a")]
-        [InlineData("[Test] /test <test>")]
+        [InlineData("[Test] " + CommandManager.CommandPrefix + "test <a||b||c>", "a", "b", "c")]
+        [InlineData("[Test] " + CommandManager.CommandPrefix + "test <a||b>", "a", "b")]
+        [InlineData("[Test] " + CommandManager.CommandPrefix + "test <a>", "a")]
+        [InlineData("[Test] " + CommandManager.CommandPrefix + "test <test display name>")]
         public void SendHelpMessage_StringValidValuesHelpMessage_ShouldSendMessage(string expectedCallExample, params string[] validValues)
         {
             // Arrange
-            var parameters = new List<SubCommandParameterBase>() { new StringSubCommandParameter("test", true, validValues) };
+            var parameters = new List<SubCommandParameterBase>() { new StringSubCommandParameter("test", "test display name", true, validValues) };
 
             var subCommand = new SubCommandFake(parameters);
             var mockCharacter = new Mock<ICharacter>();
@@ -330,7 +331,7 @@ namespace AAEmu.Tests.Commands
             subCommand.BaseSendHelpMessage(mockCharacter.Object);
 
             // Assert
-            mockCharacter.Verify(c => c.SendMessage(It.IsIn(expectedCallExample)), Times.Once);
+            mockCharacter.Verify(c => c.SendMessage(It.IsIn(Color.LawnGreen), It.IsIn(expectedCallExample)), Times.Once);
         }
         
         [Theory]
@@ -405,12 +406,12 @@ namespace AAEmu.Tests.Commands
 
             return type switch
             {
-                "int" => new NumericSubCommandParameter<int>(parameterPattern, isRequired, prefixValue) { DefaultValue = defaultValue},
-                "uint" => new NumericSubCommandParameter<uint>(parameterPattern, isRequired, prefixValue) { DefaultValue = defaultValue },
-                "long" => new NumericSubCommandParameter<long>(parameterPattern, isRequired, prefixValue) { DefaultValue = defaultValue },
-                "float" => new NumericSubCommandParameter<float>(parameterPattern, isRequired, prefixValue) { DefaultValue = defaultValue },
-                "byte" => new NumericSubCommandParameter<byte>(parameterPattern, isRequired, prefixValue) { DefaultValue = defaultValue },
-                _ => new StringSubCommandParameter(parameterPattern, isRequired, prefixValue) { DefaultValue = defaultValue }
+                "int" => new NumericSubCommandParameter<int>(parameterPattern, null, isRequired, prefixValue) { DefaultValue = defaultValue},
+                "uint" => new NumericSubCommandParameter<uint>(parameterPattern, null, isRequired, prefixValue) { DefaultValue = defaultValue },
+                "long" => new NumericSubCommandParameter<long>(parameterPattern, null, isRequired, prefixValue) { DefaultValue = defaultValue },
+                "float" => new NumericSubCommandParameter<float>(parameterPattern, null, isRequired, prefixValue) { DefaultValue = defaultValue },
+                "byte" => new NumericSubCommandParameter<byte>(parameterPattern, null, isRequired, prefixValue) { DefaultValue = defaultValue },
+                _ => new StringSubCommandParameter(parameterPattern, null, isRequired, prefixValue) { DefaultValue = defaultValue }
             };
         }
         private static bool AnyNonPrefixParameterMatchInOrder(string[] requiredParametersArray, string[] optionalParametersArray, int nonPrefixCounter)

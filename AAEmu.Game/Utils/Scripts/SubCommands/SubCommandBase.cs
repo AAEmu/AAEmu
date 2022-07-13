@@ -9,10 +9,10 @@ using NLog;
 
 namespace AAEmu.Game.Utils.Scripts
 {
-    public abstract class SubCommandBase : ISubCommand
+    public abstract class SubCommandBase : ICommandV2
     {
         protected Logger _log = LogManager.GetCurrentClassLogger();
-        private readonly Dictionary<string, ISubCommand> _subCommands = new();
+        private readonly Dictionary<string, ICommandV2> _subCommands = new();
         List<SubCommandParameterBase> _parameters = new();
 
         protected void AddParameter(SubCommandParameterBase parameter)
@@ -45,7 +45,7 @@ namespace AAEmu.Game.Utils.Scripts
         {
         }
 
-        public SubCommandBase(Dictionary<ISubCommand, string[]> registerSubCommands)
+        public SubCommandBase(Dictionary<ICommandV2, string[]> registerSubCommands)
         {
             foreach (var subCommand in registerSubCommands)
             {
@@ -57,7 +57,7 @@ namespace AAEmu.Game.Utils.Scripts
         /// </summary>
         /// <param name="command">Command impl</param>
         /// <param name="aliases">All supported aliases for triggering the command</param>
-        protected void Register(ISubCommand command, params string[] aliases)
+        protected void Register(ICommandV2 command, params string[] aliases)
         {
             foreach (var alias in aliases.Select(a => a.ToLower()))
             {
@@ -193,12 +193,15 @@ namespace AAEmu.Game.Utils.Scripts
         }
         protected virtual void SendHelpMessage(ICharacter character)
         {
-            SendMessage(character, Description);
-            SendMessage(character, GetCallExample());
+            SendColorMessage(character, Color.LawnGreen, Description);
+            if (_parameters.Count > 0)
+            {
+                SendColorMessage(character, Color.LawnGreen, GetCallExample());
+            }
             if (SupportedCommands.Count > 0) 
             {
-                SendMessage(character, $"Supported subcommands: <{string.Join("||", SupportedCommands)}>");
-                SendMessage(character, $"For more details use /<command> <subcommand> help.");
+                SendColorMessage(character, Color.LawnGreen, $"Supported subcommands: <{string.Join("||", SupportedCommands)}>");
+                SendColorMessage(character, Color.LawnGreen, $"For more details use /<command> <subcommand> help.");
             }
         }
 

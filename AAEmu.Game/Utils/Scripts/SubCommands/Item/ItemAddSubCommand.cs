@@ -15,11 +15,11 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             Title = "[Item]";
             Description = "Adds to self or a player name or a selected target an amount of a specific item template of a specific [grade].";
-            CallPrefix = "/item add";
-            AddParameter(new StringSubCommandParameter("player name||target||self", true));
-            AddParameter(new NumericSubCommandParameter<uint>("templateId", true));
-            AddParameter(new NumericSubCommandParameter<int>("amount=1", false, 1, 1000) { DefaultValue = 1 });
-            AddParameter(new NumericSubCommandParameter<byte>("item grade=0", false, (byte)ItemGrade.Crude, (byte)ItemGrade.Mythic) { DefaultValue = (byte)ItemGrade.Crude });
+            CallPrefix = $"{CommandManager.CommandPrefix}item add";
+            AddParameter(new StringSubCommandParameter("target", "player name||target||self", true));
+            AddParameter(new NumericSubCommandParameter<uint>("templateId", "template id", true));
+            AddParameter(new NumericSubCommandParameter<int>("amount", "amount=1", false, 1, 1000) { DefaultValue = 1 });
+            AddParameter(new NumericSubCommandParameter<byte>("grade", "item grade=0", false, (byte)ItemGrade.Crude, (byte)ItemGrade.Mythic) { DefaultValue = (byte)ItemGrade.Crude });
         }
 
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
@@ -27,7 +27,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             Character addTarget;
             Character selfCharacter = (Character)character;
 
-            string firstArgument = parameters["player name||target||self"];
+            string firstArgument = parameters["target"];
             if (firstArgument == "target")
             {
                 if ((selfCharacter.CurrentTarget is  null) || !(selfCharacter.CurrentTarget is Character))
@@ -53,8 +53,8 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             }
 
             uint templateId = parameters["templateId"];
-            int itemAmount = parameters["amount=1"];
-            byte itemGrade = parameters["item grade=0"];
+            int itemAmount = parameters["amount"];
+            byte itemGrade = parameters["grade"];
 
             var itemTemplate = ItemManager.Instance.GetTemplate(templateId);
             if (itemTemplate is null)

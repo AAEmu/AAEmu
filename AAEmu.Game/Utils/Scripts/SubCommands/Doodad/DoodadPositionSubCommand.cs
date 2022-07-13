@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -12,7 +13,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             Title = "[Doodad Position]";
             Description = "Manage Doodad positioning in the world. All positions are optional use all or only the ones you want to change";
-            CallPrefix = "/doodad position||pos";
+            CallPrefix = $"{CommandManager.CommandPrefix}doodad position||pos";
             AddParameter(new NumericSubCommandParameter<uint>("ObjId", "Object Id", true));
             AddParameter(new NumericSubCommandParameter<float>("x", "x=<new x>", false, "x"));
             AddParameter(new NumericSubCommandParameter<float>("y", "y=<new y>", false, "y"));

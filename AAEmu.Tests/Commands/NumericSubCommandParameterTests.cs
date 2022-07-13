@@ -23,7 +23,7 @@ namespace AAEmu.Tests.Commands
             // Arrange
             Type classType = typeof(NumericSubCommandParameter<>);
             Type constructedType = classType.MakeGenericType(type);
-            var parameter = Activator.CreateInstance(constructedType, "numericParameter", true);
+            var parameter = Activator.CreateInstance(constructedType, "numericParameter", "numeric Parameter", true);
             var expectedParamClass = typeof(ParameterResult<>).MakeGenericType(type);
 
             // Act
@@ -46,7 +46,7 @@ namespace AAEmu.Tests.Commands
             // Arrange
             Type classType = typeof(NumericSubCommandParameter<>);
             Type constructedType = classType.MakeGenericType(type);
-            var parameter = Activator.CreateInstance(constructedType, "unsupportedParameter", true);
+            var parameter = Activator.CreateInstance(constructedType, "unsupportedParameter", "unsupported Parameter", true);
             var expectedParamClass = typeof(ParameterResult<>).MakeGenericType(type);
 
             // Act
@@ -55,7 +55,7 @@ namespace AAEmu.Tests.Commands
             // Assert
             Assert.IsAssignableFrom(expectedParamClass, parameterValue);
             Assert.False(parameterValue.IsValid);
-            Assert.Contains($"Unsupported numeric type {type.Name} for parameter: {((SubCommandParameterBase)parameter).Name}", parameterValue.InvalidMessage);
+            Assert.Contains($"Unsupported numeric type {type.Name} for parameter: {((SubCommandParameterBase)parameter).DisplayName}", parameterValue.InvalidMessage);
         }
 
         [Theory]
@@ -74,7 +74,7 @@ namespace AAEmu.Tests.Commands
             // Arrange
             Type classType = typeof(NumericSubCommandParameter<>);
             Type constructedType = classType.MakeGenericType(type);
-            var parameter = Activator.CreateInstance(constructedType, "invalidValueParameter", true);
+            var parameter = Activator.CreateInstance(constructedType, "invalidValueParameter", "invalid Value Parameter", true);
             var expectedParamClass = typeof(ParameterResult<>).MakeGenericType(type);
 
             // Act
@@ -83,7 +83,7 @@ namespace AAEmu.Tests.Commands
             // Assert
             Assert.IsAssignableFrom(expectedParamClass, parameterValue);
             Assert.False(parameterValue.IsValid);
-            Assert.Contains($"Invalid numeric value for parameter: {((SubCommandParameterBase)parameter).Name}", parameterValue.InvalidMessage);
+            Assert.Contains($"Invalid numeric value for parameter: {((SubCommandParameterBase)parameter).DisplayName}", parameterValue.InvalidMessage);
         }
 
         [Theory]
@@ -100,7 +100,7 @@ namespace AAEmu.Tests.Commands
             // Arrange
             Type classType = typeof(NumericSubCommandParameter<>);
             Type constructedType = classType.MakeGenericType(type);
-            var parameter = Activator.CreateInstance(constructedType, "validRangeParameter", true, minValue, maxValue);
+            var parameter = Activator.CreateInstance(constructedType, "validRangeParameter", "valid Range Parameter", true, minValue, maxValue);
             var expectedParamClass = typeof(ParameterResult<>).MakeGenericType(type);
 
             // Act
@@ -124,11 +124,11 @@ namespace AAEmu.Tests.Commands
             // Arrange
             Type classType = typeof(NumericSubCommandParameter<>);
             Type constructedType = classType.MakeGenericType(type);
-
+            var displayName = "invalid Config Range Parameter";
             // Act & Assert
-            var exception = Assert.Throws<TargetInvocationException>(() => Activator.CreateInstance(constructedType, "invalidConfigRangeParameter", true, minValue, maxValue));
+            var exception = Assert.Throws<TargetInvocationException>(() => Activator.CreateInstance(constructedType, "invalidConfigRangeParameter", displayName, true, minValue, maxValue));
             Assert.IsType<ArgumentOutOfRangeException>(exception.InnerException);
-            Assert.Contains("must be less than or equal to", exception.InnerException.Message);
+            Assert.Contains($"Parameter [{displayName}] minimum value {minValue} must be less than or equal to maximum value", exception.InnerException.Message);
         }
 
         [Theory]
@@ -148,7 +148,7 @@ namespace AAEmu.Tests.Commands
             // Arrange
             Type classType = typeof(NumericSubCommandParameter<>);
             Type constructedType = classType.MakeGenericType(type);
-            var parameter = Activator.CreateInstance(constructedType, "invalidRangeValueParameter", true, minValue, maxValue);
+            var parameter = Activator.CreateInstance(constructedType, "invalidRangeValueParameter", "invalid Range Value Parameter", true, minValue, maxValue);
             var expectedParamClass = typeof(ParameterResult<>).MakeGenericType(type);
 
             // Act
@@ -157,7 +157,7 @@ namespace AAEmu.Tests.Commands
             // Assert
             Assert.IsAssignableFrom(expectedParamClass, parameterValue);
             Assert.False(parameterValue.IsValid);
-            Assert.Contains($"should be between {minValue} and {maxValue} for parameter: {((SubCommandParameterBase)parameter).Name}", parameterValue.InvalidMessage);
+            Assert.Contains($"should be between {minValue} and {maxValue} for parameter: {((SubCommandParameterBase)parameter).DisplayName}", parameterValue.InvalidMessage);
         }
 
         [Theory]
@@ -175,7 +175,7 @@ namespace AAEmu.Tests.Commands
             // Arrange
             Type classType = typeof(NumericSubCommandParameter<>);
             Type constructedType = classType.MakeGenericType(type);
-            var parameter = Activator.CreateInstance(constructedType, "numericParameter", true, prefix);
+            var parameter = Activator.CreateInstance(constructedType, "numericParameter", null, true, prefix);
             var expectedParamClass = typeof(ParameterResult<>).MakeGenericType(type);
 
             // Act

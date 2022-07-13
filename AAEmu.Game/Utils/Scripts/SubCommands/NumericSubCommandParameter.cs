@@ -7,7 +7,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         private readonly T _minValue;
         private readonly T _maxValue;
 
-        public override string CallExample => Name;
+        public override string CallExample => DisplayName;
 
         public NumericSubCommandParameter(string name, string displayName, bool required, T minValue, T maxValue) 
             : this(name, displayName, required, null, minValue, maxValue)
@@ -81,7 +81,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
 
             if (!isValidRange)
             {
-                throw new ArgumentOutOfRangeException(nameof(_minValue), $"{nameof(_minValue)} must be less than or equal to {nameof(_maxValue)}");
+                throw new ArgumentOutOfRangeException(nameof(_minValue), $"Parameter [{DisplayName}] minimum value {minValue} must be less than or equal to maximum value");
             }
         }
         public override ParameterResult Load(string argumentValue)
@@ -143,7 +143,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                 default:
                     {
                         result = default(T);
-                        invalidMessage = $"Unsupported numeric type {typeof(T).Name} for parameter: {Name}";
+                        invalidMessage = $"Unsupported numeric type {typeof(T).Name} for parameter: {DisplayName}";
 
                         return new ParameterResult<T>(Name, result, invalidMessage);
                     }
@@ -151,11 +151,11 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
 
             if (!isValidNumber)
             {
-                invalidMessage = $"Invalid numeric value for parameter: {Name}";
+                invalidMessage = $"Invalid numeric value for parameter: {DisplayName}";
             }
             else if (!isValidRange)
             {
-                invalidMessage = $"The number {result} should be between {_minValue} and {_maxValue} for parameter: {Name}";
+                invalidMessage = $"The number {result} should be between {_minValue} and {_maxValue} for parameter: {DisplayName}";
             }
 
             return new ParameterResult<T>(Name, result, invalidMessage);

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -12,8 +13,8 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             Title = "[Doodad Spawn]";
             Description = "Add a new doodad of a specific template 3 meters in front of the player. Default yaw will use characters facing angle.";
-            CallPrefix = "/doodad spawn";
-            AddParameter(new NumericSubCommandParameter<uint>("templateId", "Template Id", true));
+            CallPrefix = $"{CommandManager.CommandPrefix}doodad spawn";
+            AddParameter(new NumericSubCommandParameter<uint>("templateId", "template id", true));
             AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<yaw facing degrees>", false, "yaw"));
         }
 

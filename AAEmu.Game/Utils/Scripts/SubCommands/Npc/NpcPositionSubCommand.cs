@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -15,15 +15,15 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             Title = "[Npc Position]";
             Description = "Change npc position and angle - All positions are optional use all or only the ones you want to change (Use yaw to rotate npc)";
-            CallPrefix = "/npc position||pos";
-            AddParameter(new StringSubCommandParameter("target", true, "target", "id"));
-            AddParameter(new NumericSubCommandParameter<uint>("ObjId", false));
-            AddParameter(new NumericSubCommandParameter<float>("x=<new x>", false, "x"));
-            AddParameter(new NumericSubCommandParameter<float>("y=<new y>", false, "y"));
-            AddParameter(new NumericSubCommandParameter<float>("z=<new z>", false, "z"));
-            AddParameter(new NumericSubCommandParameter<float>("roll=<new roll degrees>", false, "roll", 0, 360));
-            AddParameter(new NumericSubCommandParameter<float>("pitch=<new pitch degrees>", false, "pitch", 0, 360));
-            AddParameter(new NumericSubCommandParameter<float>("yaw=<new yaw degrees>", false, "yaw", 0, 360));
+            CallPrefix = $"{CommandManager.CommandPrefix}npc position||pos";
+            AddParameter(new StringSubCommandParameter("target", "target", true, "target", "id"));
+            AddParameter(new NumericSubCommandParameter<uint>("ObjId", "object id", false));
+            AddParameter(new NumericSubCommandParameter<float>("x", "x=<new x>", false, "x"));
+            AddParameter(new NumericSubCommandParameter<float>("y", "y=<new y>", false, "y"));
+            AddParameter(new NumericSubCommandParameter<float>("z", "z=<new z>", false, "z"));
+            AddParameter(new NumericSubCommandParameter<float>("roll", "roll=<new roll degrees>", false, "roll", 0, 360));
+            AddParameter(new NumericSubCommandParameter<float>("pitch", "pitch=<new pitch degrees>", false, "pitch", 0, 360));
+            AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<new yaw degrees>", false, "yaw", 0, 360));
         }
 
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
@@ -49,12 +49,12 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                 npc = (Npc)currentTarget;
             }
 
-            var x = GetOptionalParameterValue(parameters, "x=<new x>", npc.Transform.Local.Position.X);
-            var y = GetOptionalParameterValue(parameters, "y=<new y>", npc.Transform.Local.Position.Y);
-            var z = GetOptionalParameterValue(parameters, "z=<new z>", npc.Transform.Local.Position.Z);
-            var yaw = GetOptionalParameterValue(parameters, "yaw=<new yaw degrees>", npc.Transform.Local.Rotation.Z.RadToDeg()).DegToRad();
-            var pitch = GetOptionalParameterValue(parameters, "pitch=<new pitch degrees>", npc.Transform.Local.Rotation.Y.RadToDeg()).DegToRad();
-            var roll = GetOptionalParameterValue(parameters, "roll=<new roll degrees>", npc.Transform.Local.Rotation.X.RadToDeg()).DegToRad();
+            var x = GetOptionalParameterValue(parameters, "x", npc.Transform.Local.Position.X);
+            var y = GetOptionalParameterValue(parameters, "y", npc.Transform.Local.Position.Y);
+            var z = GetOptionalParameterValue(parameters, "z", npc.Transform.Local.Position.Z);
+            var yaw = GetOptionalParameterValue(parameters, "yaw", npc.Transform.Local.Rotation.Z.RadToDeg()).DegToRad();
+            var pitch = GetOptionalParameterValue(parameters, "pitch", npc.Transform.Local.Rotation.Y.RadToDeg()).DegToRad();
+            var roll = GetOptionalParameterValue(parameters, "roll", npc.Transform.Local.Rotation.X.RadToDeg()).DegToRad();
 
             SendMessage(character, "Npc ObjId:{0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, roll:{5:0.#}°, pitch:{6:0.#}°, yaw:{7:0.#}°", 
                 npc.ObjId, npc.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());

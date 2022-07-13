@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.World;
@@ -20,9 +21,9 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             Title = "[Npc Save]";
             Description = "Save one or all npc positions in the current character world to the world npc spawns file";
-            CallPrefix = "/npc save";
-            AddParameter(new StringSubCommandParameter("target", true, "all", "id"));
-            AddParameter(new NumericSubCommandParameter<uint>("ObjId", false));
+            CallPrefix = $"{CommandManager.CommandPrefix}npc save";
+            AddParameter(new StringSubCommandParameter("target", "target", true, "all", "id"));
+            AddParameter(new NumericSubCommandParameter<uint>("ObjId", "object Id", false));
         }
 
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)

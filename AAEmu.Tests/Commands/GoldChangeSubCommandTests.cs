@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts.SubCommands.Gold;
 using Moq;
@@ -19,7 +20,7 @@ namespace AAEmu.Tests.Commands
             subCommand.BaseSendHelpMessage(mockCharacter.Object);
 
             // Assert
-            mockCharacter.Verify(c => c.SendMessage(It.IsIn("[Gold Change] /gold <add||change||remove> <player name||target||self> <gold amount> [<silver amount>] [<copper amount>]")), Times.Once);
+            mockCharacter.Verify(c => c.SendMessage(It.IsIn(Color.LawnGreen), It.IsIn("[Gold Set] /gold <add||set||remove> <player name||target||self> <gold amount> [<silver amount>] [<copper amount>]")), Times.Once);
         }
 
 

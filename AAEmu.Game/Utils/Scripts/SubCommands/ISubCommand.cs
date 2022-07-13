@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Utils.Scripts
 {
-    public interface ISubCommand
+    public interface ICommandV2
     {
         string Description { get; }
         string CallPrefix { get; }

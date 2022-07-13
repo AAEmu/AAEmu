@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
@@ -12,9 +13,9 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             Title = "[Npc Remove]";
             Description = "Remove a targeted npc or using an npc <ObjId>";
-            CallPrefix = "/npc remove";
-            AddParameter(new StringSubCommandParameter("target", true, "target", "id"));
-            AddParameter(new NumericSubCommandParameter<uint>("ObjId", false));
+            CallPrefix = $"{CommandManager.CommandPrefix}npc remove";
+            AddParameter(new StringSubCommandParameter("target", "target", true, "target", "id"));
+            AddParameter(new NumericSubCommandParameter<uint>("ObjId", "object id", false));
         }
 
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)

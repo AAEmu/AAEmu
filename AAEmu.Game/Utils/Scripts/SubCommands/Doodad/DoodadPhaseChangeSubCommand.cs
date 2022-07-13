@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
@@ -14,7 +15,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             Title = "[Doodad Phase Change]";
             Description = "Change the phase of a given doodad";
-            CallPrefix = "/doodad phase change";
+            CallPrefix = $"{CommandManager.CommandPrefix}doodad phase change";
             AddParameter(new NumericSubCommandParameter<uint>("ObjId", "Object Id", true));
             AddParameter(new NumericSubCommandParameter<int>("PhaseId", "Phase Id", true));
         }

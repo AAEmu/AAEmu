@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
 
@@ -11,7 +12,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             Title = "[Doodad Chain]";
             Description = "Show all subrelated properties of a Doodad";
-            CallPrefix = "/doodad chain";
+            CallPrefix = $"{CommandManager.CommandPrefix}doodad chain";
             AddParameter(new NumericSubCommandParameter<uint>("templateId", "Template Id", true));
         }
 

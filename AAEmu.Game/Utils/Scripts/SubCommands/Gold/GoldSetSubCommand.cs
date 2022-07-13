@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -13,7 +14,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.Gold
         {
             Title = "[Gold Set]";
             Description = "Changes to self or a player name or a selected target an specific amount of gold, silver and copper.";
-            CallPrefix = "/gold <add||set||remove>";
+            CallPrefix = $"{CommandManager.CommandPrefix}gold <add||set||remove>";
             AddParameter(new StringSubCommandParameter("target", "player name||target||self", true));
             AddParameter(new NumericSubCommandParameter<int>("gold", "gold amount", true));
             AddParameter(new NumericSubCommandParameter<int>("silver", "silver amount", false));

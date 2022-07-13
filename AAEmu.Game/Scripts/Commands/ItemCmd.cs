@@ -8,13 +8,13 @@ using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.Commands
 {
-    public class ItemCmd : SubCommandBase, ICommand, ISubCommand
+    public class ItemCmd : SubCommandBase, ICommand, ICommandV2
     {
         public ItemCmd()
         {
             Title = "[Item]";
             Description = "Root command to manage Items";
-            CallPrefix = "/item [add]";
+            CallPrefix = $"{CommandManager.CommandPrefix}item";
 
             Register(new ItemAddSubCommand(), "add");
         }
@@ -32,19 +32,9 @@ namespace AAEmu.Game.Scripts.Commands
         {
             return CallPrefix;
         }
-
         public void Execute(Character character, string[] args)
         {
-            try
-            {
-                base.PreExecute(character, "item", args);
-            }
-            catch (Exception e)
-            {
-                SendColorMessage(character, Color.Red, e.Message);
-                _log.Error(e.Message);
-                _log.Error(e.StackTrace);
-            }
+            throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
         }
     }
 }

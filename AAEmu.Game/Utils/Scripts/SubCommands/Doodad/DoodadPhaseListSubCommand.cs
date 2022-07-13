@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
@@ -13,7 +14,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             Title = "[Doodad Phase List]";
             Description = "List all the phases of a given doodad";
-            CallPrefix = "/doodad phase list";
+            CallPrefix = $"{CommandManager.CommandPrefix}doodad phase list";
             AddParameter(new NumericSubCommandParameter<uint>("ObjId", "Object Id", true));
         }
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)

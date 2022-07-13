@@ -6,6 +6,7 @@
         {
             Name = name;
             IsRequired = required;
+            DisplayName = displayName ?? name;
         }
         public string Name { get; protected set; }
         public string DisplayName { get; protected set; }

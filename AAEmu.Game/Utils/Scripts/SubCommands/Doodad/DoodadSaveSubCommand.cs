@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Json;
@@ -18,7 +19,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             Title = "[Doodad Save]";
             Description = "Save current state of a doodad to the doodads world file.";
-            CallPrefix = "/doodad save";
+            CallPrefix = $"{CommandManager.CommandPrefix}doodad save";
             AddParameter(new NumericSubCommandParameter<uint>("ObjId", "Object Id", true));
         }
 
