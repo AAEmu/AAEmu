@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
@@ -11,36 +12,25 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         public DoodadSpawnSubCommand()
         {
             Title = "[Doodad Spawn]";
-            Description = "Add a new doodad of a specific template 3 meters in front of the player.";
-            CallPrefix = "/doodad spawn <TemplateId> [yaw=<yaw>] - Optional yaw(rotation) angle. Default will use characters facing angle.";
+            Description = "Add a new doodad of a specific template 3 meters in front of the player. Default yaw will use characters facing angle.";
+            CallPrefix = "/doodad spawn 3 ";
+            AddParameter(new NumericSubCommandParameter<uint>("TemplateId", true));
+            AddParameter(new NumericSubCommandParameter<float>("yaw=<yaw facing degrees>", false, "yaw"));
         }
 
-        public override void Execute(ICharacter character, string triggerArgument, string[] args)
+        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
-            var firstArgument = args.FirstOrDefault();
-            if (firstArgument is null)
-            {
-                SendMessage(character, "/doodad spawn <TemplateId> [yaw=<yaw>] - Optional yaw(rotation) angle. Default will use characters facing angle.");
-                return;
-            }
-
-            if (!uint.TryParse(firstArgument, out var unitTemplateId))
-            {
-                SendColorMessage(character, Color.Red, "Invalid <TemplateId>, must be numeric");
-                return;
-            }
-
-            var charPos = ((Character)character).Transform.CloneDetached();
-            charPos.Local.AddDistanceToFront(3f);
-            var defaultYaw = (float)MathUtil.CalculateAngleFrom(charPos, ((Character)character).Transform);
-            var newYaw = GetOptionalArgumentValue(args, "yaw", defaultYaw.RadToDeg()).DegToRad();
-
+            uint unitTemplateId = parameters["TemplateId"];
             if (!DoodadManager.Instance.Exist(unitTemplateId))
             {
                 SendColorMessage(character, Color.Red, "Doodad templateId:{0} don't exist|r", unitTemplateId);
                 return;
             }
 
+            var charPos = ((Character)character).Transform.CloneDetached();
+            charPos.Local.AddDistanceToFront(3f);
+            var defaultYaw = (float)MathUtil.CalculateAngleFrom(charPos, ((Character)character).Transform);
+            var newYaw = GetOptionalParameterValue(parameters, "yaw=<yaw facing degrees>", defaultYaw.RadToDeg()).DegToRad();
             var doodadSpawner = new DoodadSpawner
             {
                 Id = 0,
@@ -53,13 +43,13 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             doodadSpawner.Position.Roll = 0;
             var createdDoodad = doodadSpawner.Spawn(0, 0, ((Character)character).ObjId);
 
-            if (args.Length > 1)
+            if (parameters.ContainsKey("yaw=<yaw facing degrees>"))
             {
-                character.SendMessage("Doodad ObjId:{0}, Template:{0} spawned using yaw {1}° = {2} rad", createdDoodad.ObjId, unitTemplateId, newYaw.RadToDeg(), newYaw);
+                character.SendMessage("Doodad ObjId:{0}, Template:{0} spawned using yaw {1:0.#}° = {2} rad", createdDoodad.ObjId, unitTemplateId, newYaw.RadToDeg(), newYaw);
             }
             else
             {
-                character.SendMessage("Doodad ObjId:{0}, Template {0} spawned facing you, characters yaw {1}°", createdDoodad.ObjId, unitTemplateId, newYaw.RadToDeg());
+                character.SendMessage("Doodad ObjId:{0}, Template {0} spawned facing you, characters yaw {1:0.#}°", createdDoodad.ObjId, unitTemplateId, newYaw.RadToDeg());
             }
         }
     }

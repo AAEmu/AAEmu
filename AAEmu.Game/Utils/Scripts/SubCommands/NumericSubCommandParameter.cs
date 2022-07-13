@@ -7,6 +7,8 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         private readonly T _minValue;
         private readonly T _maxValue;
 
+        public override string CallExample => Name;
+
         public NumericSubCommandParameter(string name, bool required, T minValue, T maxValue) 
             : this(name, required, null, minValue, maxValue)
         {

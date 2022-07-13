@@ -314,6 +314,26 @@ namespace AAEmu.Tests.Commands
         }
 
         [Theory]
+        [InlineData("[Test] /test <a||b||c>", "a", "b", "c")]
+        [InlineData("[Test] /test <a||b>", "a", "b")]
+        [InlineData("[Test] /test <a>", "a")]
+        [InlineData("[Test] /test <test>")]
+        public void SendHelpMessage_StringValidValuesHelpMessage_ShouldSendMessage(string expectedCallExample, params string[] validValues)
+        {
+            // Arrange
+            var parameters = new List<SubCommandParameterBase>() { new StringSubCommandParameter("test", true, validValues) };
+
+            var subCommand = new SubCommandFake(parameters);
+            var mockCharacter = new Mock<ICharacter>();
+
+            // Act
+            subCommand.BaseSendHelpMessage(mockCharacter.Object);
+
+            // Assert
+            mockCharacter.Verify(c => c.SendMessage(It.IsIn(expectedCallExample)), Times.Once);
+        }
+        
+        [Theory]
         [InlineData("required-long-prefix-w,optional-int-prefix-x-default-(int)10,required-float,required-string", "optional-int-prefix-x-default-(int)10", 10, "w=100", "-13.23", "requiredstring", "extrastring")]
         [InlineData("optional-int-prefix-x-default-(float)50.93,required-string,optional-string-default-ok", "optional-string-default-ok", "ok", "anything")]
         [InlineData("optional-int-prefix-x-default-(float)50.93,required-string,optional-string-default-ok", "optional-int-prefix-x-default-(float)50.93", 50.93F, "anything")]

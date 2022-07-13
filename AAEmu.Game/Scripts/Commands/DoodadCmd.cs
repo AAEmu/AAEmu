@@ -20,7 +20,7 @@ namespace AAEmu.Game.Scripts.Commands
             Register(new DoodadChainSubCommand(), "chain");
             Register(new DoodadPhaseSubCommand(), "phase", "setphase");
             Register(new DoodadSaveSubCommand(), "save");
-            Register(new DoodadPositionSubCommand(), "pos");
+            Register(new DoodadPositionSubCommand(), "position", "pos");
             Register(new DoodadSpawnSubCommand(), "spawn");
         }
 

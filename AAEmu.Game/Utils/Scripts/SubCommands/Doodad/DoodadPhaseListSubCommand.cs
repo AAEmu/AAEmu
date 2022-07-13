@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.Collections.Generic;
+using System.Drawing;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
@@ -12,22 +13,12 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             Title = "[Doodad Phase List]";
             Description = "List all the phases of a given doodad";
-            CallPrefix = "/doodad phase list <ObjId>";
+            CallPrefix = "/doodad phase list";
+            AddParameter(new NumericSubCommandParameter<uint>("ObjId", true));
         }
-        public override void Execute(ICharacter character, string triggerArgument, string[] args)
+        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
-            if (args.Length < 1)
-            {
-                SendMessage(character, "Missing parameters use: /doodad phase list <ObjId>");
-                return;
-            }
-
-            if (!uint.TryParse(args[0], out var doodadObjId)) 
-            {
-                SendMessage(character, "Invalid ObjId, should be a number");
-                return;
-            }
-
+            uint doodadObjId = parameters["ObjId"];
             var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
             if (doodad is null)
             {

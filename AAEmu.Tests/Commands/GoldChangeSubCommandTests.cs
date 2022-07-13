@@ -19,7 +19,7 @@ namespace AAEmu.Tests.Commands
             subCommand.BaseSendHelpMessage(mockCharacter.Object);
 
             // Assert
-            mockCharacter.Verify(c => c.SendMessage(It.IsIn("[Gold Change] /item (add||change||remove) <player name||target||self> <gold amount> [<silver amount>] [<copper amount>]")), Times.Once);
+            mockCharacter.Verify(c => c.SendMessage(It.IsIn("[Gold Change] /gold <add||change||remove> <player name||target||self> <gold amount> [<silver amount>] [<copper amount>]")), Times.Once);
         }
 
 

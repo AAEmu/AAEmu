@@ -18,28 +18,17 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             Title = "[Doodad Save]";
             Description = "Save current state of a doodad to the doodads world file.";
-            CallPrefix = "/doodad save <ObjId>";
+            CallPrefix = "/doodad save";
+            AddParameter(new NumericSubCommandParameter<uint>("ObjId", true));
         }
 
-        public override void Execute(ICharacter character, string triggerArgument, string[] args)
+        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
-            var firstArgument = args.FirstOrDefault();
-            if (firstArgument is null)
-            {
-                SendMessage(character, "/doodad save <ObjId>");
-                return;
-            }
-
-            if (!uint.TryParse(firstArgument, out var doodadObjId))
-            {
-                SendColorMessage(character, Color.Red, "Invalid <ObjId>, must be numeric");
-                return;
-            }
-
+            uint doodadObjId = parameters["ObjId"];
             var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
             if (doodad is null)
             {
-                SendColorMessage(character, Color.Red, $"Doodad with objId {doodadObjId} Does not exist |r");
+                SendColorMessage(character, Color.Red, $"Doodad with objId {doodadObjId} does not exist |r");
                 return;
             }
 

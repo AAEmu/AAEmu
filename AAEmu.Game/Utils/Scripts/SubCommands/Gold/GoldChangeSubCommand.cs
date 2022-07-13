@@ -13,7 +13,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.Gold
         {
             Title = "[Gold Change]";
             Description = "Changes to self or a player name or a selected target an specific amount of gold, silver and copper.";
-            CallPrefix = "/item (add||change||remove)";
+            CallPrefix = "/gold <add||change||remove>";
             AddParameter(new StringSubCommandParameter("player name||target||self", true));
             AddParameter(new NumericSubCommandParameter<int>("gold amount", true));
             AddParameter(new NumericSubCommandParameter<int>("silver amount", false));

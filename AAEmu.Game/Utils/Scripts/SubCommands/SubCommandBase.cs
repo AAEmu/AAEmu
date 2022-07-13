@@ -71,38 +71,46 @@ namespace AAEmu.Game.Utils.Scripts
 
         public void PreExecute(ICharacter character, string triggerArgument, string[] args)
         {
-            //Verifies if the next firstargument has a subcommand to implement it
-            var firstArgument = args.FirstOrDefault();
-            if (firstArgument is not null) 
+            try
             {
-                if (firstArgument.ToLower() == "help") 
+                //Verifies if the next firstargument has a subcommand to implement it
+                var firstArgument = args.FirstOrDefault();
+                if (firstArgument is not null)
                 {
-                    SendHelpMessage(character);
-                }
-                else if (_subCommands.ContainsKey(firstArgument))
-                {
-                    _subCommands[firstArgument].PreExecute(character, firstArgument, args.Skip(1).ToArray());
-                }
-                else
-                {
-                    if (_parameters.Count > 0) 
+                    if (firstArgument.ToLower() == "help")
                     {
-                        var parameterResults = LoadParametersValues(args);
-                        if (PreValidate(character, parameterResults.Values))
-                        {
-                            Execute(character, triggerArgument, parameterResults.ToDictionary(x => x.Key, x => x.Value.Value));
-                        }
+                        SendHelpMessage(character);
+                    }
+                    else if (_subCommands.ContainsKey(firstArgument))
+                    {
+                        _subCommands[firstArgument].PreExecute(character, firstArgument, args.Skip(1).ToArray());
                     }
                     else
                     {
-                        // Backwards compatibility with non parameter migrated subcommands
-                        Execute(character, triggerArgument, args);
+                        if (_parameters.Count > 0)
+                        {
+                            var parameterResults = LoadParametersValues(args);
+                            if (PreValidate(character, parameterResults.Values))
+                            {
+                                Execute(character, triggerArgument, parameterResults.ToDictionary(x => x.Key, x => x.Value.Value));
+                            }
+                        }
+                        else
+                        {
+                            // Backwards compatibility with non parameter subcommands
+                            Execute(character, triggerArgument, args);
+                        }
                     }
                 }
+                else
+                {
+                    Execute(character, triggerArgument, args);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Execute(character, triggerArgument, args);
+                SendColorMessage(character, Color.Red, $"Unexpected error: {ex.Message}");
+                _log.Error(ex);
             }
         }
 
@@ -202,8 +210,8 @@ namespace AAEmu.Game.Utils.Scripts
                 foreach (var parameter in _parameters.OrderBy(p => p.Prefix is not null).ThenBy(p => !p.IsRequired))
                 {
                     callExampleMessage.Append(parameter.IsRequired 
-                        ? $" <{parameter.Name}>" 
-                        : $" [<{parameter.Name}>]");
+                        ? $" <{parameter.CallExample}>" 
+                        : $" [<{parameter.CallExample}>]");
                 }
             }
             return callExampleMessage.ToString();
@@ -281,6 +289,14 @@ namespace AAEmu.Game.Utils.Scripts
             {
                 throw new ArgumentException($"Invalid value [{argumentValueText}] for parameter {argumentName} ");
             }
+        }
+
+        protected T GetOptionalParameterValue<T>(IDictionary<string, ParameterValue> parameters, string parameterName, T defaultArgumentValue)
+        {
+            if (!parameters.ContainsKey(parameterName))
+                return defaultArgumentValue;
+            
+            return parameters[parameterName].As<T>();
         }
     }
 }

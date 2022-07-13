@@ -10,7 +10,7 @@
         public string Name { get; protected set; }
         public bool IsRequired { get; protected set; }
         public string Prefix { get; protected set; }
-
+        public abstract string CallExample { get; }
         /// <summary>
         /// This value will be used if the parameter is optional and no value was provided.
         /// </summary>

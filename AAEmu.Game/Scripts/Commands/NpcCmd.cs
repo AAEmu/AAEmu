@@ -17,7 +17,7 @@ namespace AAEmu.Game.Scripts.Commands
             CallPrefix = "/npc [info||save||remove||position]";
 
             Register(new NpcInformationSubCommand(), "info");
-            Register(new NpcPositionSubCommand(), "position");
+            Register(new NpcPositionSubCommand(), "position", "pos");
             Register(new NpcSaveSubCommand(), "save");
             Register(new NpcRemoveSubCommand(), "remove");
         }

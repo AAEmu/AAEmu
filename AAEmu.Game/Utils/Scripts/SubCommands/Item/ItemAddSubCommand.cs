@@ -15,7 +15,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             Title = "[Item]";
             Description = "Adds to self or a player name or a selected target an amount of a specific item template of a specific [grade].";
-            CallPrefix = "/item add (<charactername>||target||self) [amount=1] [grade=0]";
+            CallPrefix = "/item add";
             AddParameter(new StringSubCommandParameter("player name||target||self", true));
             AddParameter(new NumericSubCommandParameter<uint>("templateId", true));
             AddParameter(new NumericSubCommandParameter<int>("amount=1", false, 1, 1000) { DefaultValue = 1 });
