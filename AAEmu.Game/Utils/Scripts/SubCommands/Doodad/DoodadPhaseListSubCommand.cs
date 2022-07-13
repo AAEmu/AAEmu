@@ -14,7 +14,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             Title = "[Doodad Phase List]";
             Description = "List all the phases of a given doodad";
             CallPrefix = "/doodad phase list";
-            AddParameter(new NumericSubCommandParameter<uint>("ObjId", true));
+            AddParameter(new NumericSubCommandParameter<uint>("ObjId", "Object Id", true));
         }
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {

@@ -15,8 +15,8 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             Title = "[Doodad Phase Change]";
             Description = "Change the phase of a given doodad";
             CallPrefix = "/doodad phase change";
-            AddParameter(new NumericSubCommandParameter<uint>("ObjId", true));
-            AddParameter(new NumericSubCommandParameter<int>("PhaseId", true));
+            AddParameter(new NumericSubCommandParameter<uint>("ObjId", "Object Id", true));
+            AddParameter(new NumericSubCommandParameter<int>("PhaseId", "Phase Id", true));
         }
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {

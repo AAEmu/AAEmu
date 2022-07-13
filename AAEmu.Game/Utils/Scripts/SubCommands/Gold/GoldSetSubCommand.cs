@@ -7,17 +7,17 @@ using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.Gold
 {
-    public class GoldChangeSubCommand : SubCommandBase
+    public class GoldSetSubCommand : SubCommandBase
     {
-        public GoldChangeSubCommand()
+        public GoldSetSubCommand()
         {
-            Title = "[Gold Change]";
+            Title = "[Gold Set]";
             Description = "Changes to self or a player name or a selected target an specific amount of gold, silver and copper.";
-            CallPrefix = "/gold <add||change||remove>";
-            AddParameter(new StringSubCommandParameter("player name||target||self", true));
-            AddParameter(new NumericSubCommandParameter<int>("gold amount", true));
-            AddParameter(new NumericSubCommandParameter<int>("silver amount", false));
-            AddParameter(new NumericSubCommandParameter<int>("copper amount", false));
+            CallPrefix = "/gold <add||set||remove>";
+            AddParameter(new StringSubCommandParameter("target", "player name||target||self", true));
+            AddParameter(new NumericSubCommandParameter<int>("gold", "gold amount", true));
+            AddParameter(new NumericSubCommandParameter<int>("silver", "silver amount", false));
+            AddParameter(new NumericSubCommandParameter<int>("copper", "copper amount", false));
         }
 
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
@@ -25,7 +25,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.Gold
             Character targetCharacter;
             Character selfCharacter = (Character)character;
 
-            var firstParameter = parameters["player name||target||self"].ToString();
+            var firstParameter = parameters["target"].ToString();
             if (firstParameter == "target")
             {
                 if ((selfCharacter.CurrentTarget is null) || !(selfCharacter.CurrentTarget is Character))
@@ -53,14 +53,14 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.Gold
             int silverAmount = 0;
             int copperAmount = 0;
             var multiplier = (triggerArgument == "remove") ? -1 : 1;
-            int goldAmount = parameters["gold amount"];
-            if (parameters.ContainsKey("silver amount"))
+            int goldAmount = parameters["gold"];
+            if (parameters.ContainsKey("silver"))
             {
-                silverAmount = parameters["silver amount"];
+                silverAmount = parameters["silver"];
             }
-            if (parameters.ContainsKey("copper amount"))
+            if (parameters.ContainsKey("copper"))
             {
-                copperAmount = parameters["copper amount"];
+                copperAmount = parameters["copper"];
             }
 
             var totalAmount = (copperAmount * multiplier) + (silverAmount * 100 * multiplier) + (goldAmount * 10000 * multiplier);

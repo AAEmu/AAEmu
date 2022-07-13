@@ -9,27 +9,27 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
 
         public override string CallExample => Name;
 
-        public NumericSubCommandParameter(string name, bool required, T minValue, T maxValue) 
-            : this(name, required, null, minValue, maxValue)
+        public NumericSubCommandParameter(string name, string displayName, bool required, T minValue, T maxValue) 
+            : this(name, displayName, required, null, minValue, maxValue)
         {
         }
 
-        public NumericSubCommandParameter(string name, bool required, string prefix, T minValue, T maxValue) 
-            : base(name, required)
+        public NumericSubCommandParameter(string name, string displayName, bool required, string prefix, T minValue, T maxValue) 
+            : base(name, displayName, required)
         {
             EnsureValidRanges(minValue, maxValue);
             _minValue = minValue;
             _maxValue = maxValue;
             Prefix = prefix;
         }
-        public NumericSubCommandParameter(string name, bool required, string prefix) 
-            : this(name, required)
+        public NumericSubCommandParameter(string name, string displayName, bool required, string prefix) 
+            : this(name, displayName, required)
         {
             Prefix = prefix;
         }
         
-        public NumericSubCommandParameter(string name, bool required) 
-            : base(name, required)
+        public NumericSubCommandParameter(string name, string displayName, bool required) 
+            : base(name, displayName, required)
         {
             switch (typeof(T).Name)
             {

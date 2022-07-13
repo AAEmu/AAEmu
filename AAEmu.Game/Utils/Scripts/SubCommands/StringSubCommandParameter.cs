@@ -6,11 +6,11 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
     public class StringSubCommandParameter : SubCommandParameterBase
     {
         private List<string> _values = new List<string>();
-        public StringSubCommandParameter(string name, bool isRequired, params string[] validValues) : base(name, isRequired)
+        public StringSubCommandParameter(string name, string displayName, bool isRequired, params string[] validValues) : base(name, displayName, isRequired)
         {
             _values.AddRange(validValues.Select(s => s.ToLower()));
         }
-        public StringSubCommandParameter(string name, bool isRequired, string prefix) : base(name, isRequired)
+        public StringSubCommandParameter(string name, string displayName, bool isRequired, string prefix) : base(name, displayName, isRequired)
         {
             Prefix = prefix;
         }

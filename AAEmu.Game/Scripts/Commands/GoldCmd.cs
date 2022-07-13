@@ -17,9 +17,9 @@ namespace AAEmu.Game.Scripts.Commands
             Description = "Root command to manage gold";
             CallPrefix = "/gold (add||change||remove) ...";
 
-            Register(new GoldChangeSubCommand(), "add");
-            Register(new GoldChangeSubCommand(), "change");
-            Register(new GoldChangeSubCommand(), "remove");
+            Register(new GoldSetSubCommand(), "add");
+            Register(new GoldSetSubCommand(), "change");
+            Register(new GoldSetSubCommand(), "remove");
         }
         public void OnLoad()
         {

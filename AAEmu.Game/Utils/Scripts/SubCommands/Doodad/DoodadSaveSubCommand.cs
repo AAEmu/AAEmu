@@ -19,7 +19,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             Title = "[Doodad Save]";
             Description = "Save current state of a doodad to the doodads world file.";
             CallPrefix = "/doodad save";
-            AddParameter(new NumericSubCommandParameter<uint>("ObjId", true));
+            AddParameter(new NumericSubCommandParameter<uint>("ObjId", "Object Id", true));
         }
 
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)

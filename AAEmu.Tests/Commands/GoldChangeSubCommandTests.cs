@@ -23,7 +23,7 @@ namespace AAEmu.Tests.Commands
         }
 
 
-        private class GoldChangeSubCommandFake : GoldChangeSubCommand
+        private class GoldChangeSubCommandFake : GoldSetSubCommand
         {
             public void BaseSendHelpMessage(ICharacter character)
             {

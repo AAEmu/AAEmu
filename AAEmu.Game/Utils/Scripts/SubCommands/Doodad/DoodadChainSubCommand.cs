@@ -12,7 +12,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             Title = "[Doodad Chain]";
             Description = "Show all subrelated properties of a Doodad";
             CallPrefix = "/doodad chain";
-            AddParameter(new NumericSubCommandParameter<uint>("templateId", true));
+            AddParameter(new NumericSubCommandParameter<uint>("templateId", "Template Id", true));
         }
 
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)

@@ -2,19 +2,20 @@
 {
     public abstract class SubCommandParameterBase
     {
-        public SubCommandParameterBase(string name, bool required)
+        public SubCommandParameterBase(string name, string displayName, bool required)
         {
             Name = name;
             IsRequired = required;
         }
         public string Name { get; protected set; }
+        public string DisplayName { get; protected set; }
         public bool IsRequired { get; protected set; }
         public string Prefix { get; protected set; }
         public abstract string CallExample { get; }
         /// <summary>
         /// This value will be used if the parameter is optional and no value was provided.
         /// </summary>
-        public object DefaultValue { get; init; }
+        public object DefaultValue { get; set; }
         protected string GetValueWithoutPrefix(string argumentValue)
         {
             if (Prefix is null)

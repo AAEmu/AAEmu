@@ -13,13 +13,13 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             Title = "[Doodad Position]";
             Description = "Manage Doodad positioning in the world. All positions are optional use all or only the ones you want to change";
             CallPrefix = "/doodad position||pos";
-            AddParameter(new NumericSubCommandParameter<uint>("ObjId", true));
-            AddParameter(new NumericSubCommandParameter<float>("x=<new x>", false, "x"));
-            AddParameter(new NumericSubCommandParameter<float>("y=<new y>", false, "y"));
-            AddParameter(new NumericSubCommandParameter<float>("z=<new z>", false, "z"));
-            AddParameter(new NumericSubCommandParameter<float>("roll=<new roll degrees>", false, "roll", 0, 360));
-            AddParameter(new NumericSubCommandParameter<float>("pitch=<new pitch degrees>", false, "pitch", 0, 360));
-            AddParameter(new NumericSubCommandParameter<float>("yaw=<new yaw degrees>", false, "yaw", 0, 360));
+            AddParameter(new NumericSubCommandParameter<uint>("ObjId", "Object Id", true));
+            AddParameter(new NumericSubCommandParameter<float>("x", "x=<new x>", false, "x"));
+            AddParameter(new NumericSubCommandParameter<float>("y", "y=<new y>", false, "y"));
+            AddParameter(new NumericSubCommandParameter<float>("z", "z=<new z>", false, "z"));
+            AddParameter(new NumericSubCommandParameter<float>("roll", "roll=<new roll degrees>", false, "roll", 0, 360));
+            AddParameter(new NumericSubCommandParameter<float>("pitch", "pitch=<new pitch degrees>", false, "pitch", 0, 360));
+            AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<new yaw degrees>", false, "yaw", 0, 360));
         }
 
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
@@ -32,12 +32,12 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                 return;
             }
 
-            float x = GetOptionalParameterValue(parameters, "x=<new x>", doodad.Transform.Local.Position.X);
-            float y = GetOptionalParameterValue(parameters, "y=<new y>", doodad.Transform.Local.Position.Y);
-            float z = GetOptionalParameterValue(parameters, "z=<new z>", doodad.Transform.Local.Position.Z);
-            var roll = GetOptionalParameterValue(parameters, "roll=<new roll degrees>", doodad.Transform.Local.Rotation.X.RadToDeg()).DegToRad();
-            var pitch = GetOptionalParameterValue(parameters, "pitch=<new pitch degrees>", doodad.Transform.Local.Rotation.Y.RadToDeg()).DegToRad();
-            var yaw = GetOptionalParameterValue(parameters, "yaw=<new yaw degrees>", doodad.Transform.Local.Rotation.Z.RadToDeg()).DegToRad();
+            float x = GetOptionalParameterValue(parameters, "x", doodad.Transform.Local.Position.X);
+            float y = GetOptionalParameterValue(parameters, "y", doodad.Transform.Local.Position.Y);
+            float z = GetOptionalParameterValue(parameters, "z", doodad.Transform.Local.Position.Z);
+            var roll = GetOptionalParameterValue(parameters, "roll", doodad.Transform.Local.Rotation.X.RadToDeg()).DegToRad();
+            var pitch = GetOptionalParameterValue(parameters, "pitch", doodad.Transform.Local.Rotation.Y.RadToDeg()).DegToRad();
+            var yaw = GetOptionalParameterValue(parameters, "yaw", doodad.Transform.Local.Rotation.Z.RadToDeg()).DegToRad();
 
             SendMessage(character, "Doodad ObjId: {0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, roll:{5:0.#}°, pitch:{6:0.#}°, yaw:{7:0.#}°",
                 doodad.ObjId, doodad.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());
