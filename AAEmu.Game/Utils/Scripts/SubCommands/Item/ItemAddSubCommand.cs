@@ -1,5 +1,5 @@
-﻿using System.Drawing;
-using System.Linq;
+﻿using System.Collections.Generic;
+using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
@@ -16,20 +16,18 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             Title = "[Item]";
             Description = "Adds to self or a player name or a selected target an amount of a specific item template of a specific [grade].";
             CallPrefix = "/item add (<charactername>||target||self) [amount=1] [grade=0]";
-            AddParameter(new StringSubCommandParameter("target", true));
+            AddParameter(new StringSubCommandParameter("player name||target||self", true));
+            AddParameter(new NumericSubCommandParameter<uint>("templateId", true));
+            AddParameter(new NumericSubCommandParameter<int>("amount=1", false, 1, 1000) { DefaultValue = 1 });
+            AddParameter(new NumericSubCommandParameter<byte>("item grade=0", false, (byte)ItemGrade.Crude, (byte)ItemGrade.Mythic) { DefaultValue = (byte)ItemGrade.Crude });
         }
 
-        public override void Execute(ICharacter character, string triggerArgument, string[] args)
+        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
             Character addTarget;
             Character selfCharacter = (Character)character;
-            if (args.Length < 2)
-            {
-                SendHelpMessage(character);
-                return;
-            }
 
-            var firstArgument = args.First();
+            string firstArgument = parameters["player name||target||self"];
             if (firstArgument == "target")
             {
                 if ((selfCharacter.CurrentTarget is  null) || !(selfCharacter.CurrentTarget is Character))
@@ -48,46 +46,21 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                 Character player = WorldManager.Instance.GetCharacter(firstArgument);
                 if (player is null)
                 {
-                    SendColorMessage(character, Color.Red, $"Character player: {firstArgument} was not found.");
+                    SendColorMessage(character, Color.Red, $"Player: {firstArgument} was not found.");
                     return;
                 }
                 addTarget = player;
             }
 
-            if (!uint.TryParse(args[1], out uint templateId))
-            {
-                SendColorMessage(character, Color.Red, "Item template id should be numeric");
-                return;
-            }
+            uint templateId = parameters["templateId"];
+            int itemAmount = parameters["amount=1"];
+            byte itemGrade = parameters["item grade=0"];
 
             var itemTemplate = ItemManager.Instance.GetTemplate(templateId);
-            var itemAmount = 1; //Default amount 
             if (itemTemplate is null)
             {
                 SendColorMessage(character, Color.Red, $"Item template id {templateId} does not exist!|r");
                 return;
-            }
-
-            if (args.Length > 2 && (!int.TryParse(args[2], out itemAmount) || itemAmount <= 0))
-            {
-                SendColorMessage(character, Color.Red, "Item count id should be numeric and greater than 0");
-                return;
-            }
-
-            byte itemGrade = 0;
-            if (args.Length > 3) 
-            {
-                if (!byte.TryParse(args[3], out itemGrade))
-                {
-                    SendColorMessage(character, Color.Red, "Item grade should be numeric");
-                    return;
-                }
-
-                if (itemGrade > (byte)ItemGrade.Mythic || itemGrade < (byte)ItemGrade.Crude)
-                {
-                    SendColorMessage(character, Color.Red, "Item grade cannot be lower than {0} or exceed {1}!|r", (byte)ItemGrade.Crude, (byte)ItemGrade.Mythic);
-                    return;
-                }
             }
 
             if (ItemManager.Instance.IsAutoEquipTradePack(itemTemplate.Id))// .Category_Id == 133) || (itemTemplate.Category_Id == 122)) // Speciality Packs or Tradepacks

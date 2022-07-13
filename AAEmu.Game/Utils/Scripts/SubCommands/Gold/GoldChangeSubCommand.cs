@@ -25,7 +25,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.Gold
             Character targetCharacter;
             Character selfCharacter = (Character)character;
 
-            var firstParameter = parameters["player name||target||self"].GetValue<string>();
+            var firstParameter = parameters["player name||target||self"].ToString();
             if (firstParameter == "target")
             {
                 if ((selfCharacter.CurrentTarget is null) || !(selfCharacter.CurrentTarget is Character))
@@ -50,17 +50,17 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.Gold
                 targetCharacter = player;
             }
 
-            var silverAmount = 0;
-            var copperAmount = 0;
+            int silverAmount = 0;
+            int copperAmount = 0;
             var multiplier = (triggerArgument == "remove") ? -1 : 1;
-            var goldAmount = parameters["gold amount"].GetValue<int>();
+            int goldAmount = parameters["gold amount"];
             if (parameters.ContainsKey("silver amount"))
             {
-                silverAmount = parameters["silver amount"].GetValue<int>();
+                silverAmount = parameters["silver amount"];
             }
             if (parameters.ContainsKey("copper amount"))
             {
-                copperAmount = parameters["copper amount"].GetValue<int>();
+                copperAmount = parameters["copper amount"];
             }
 
             var totalAmount = (copperAmount * multiplier) + (silverAmount * 100 * multiplier) + (goldAmount * 10000 * multiplier);

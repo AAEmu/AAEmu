@@ -6,6 +6,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
     {
         private readonly T _minValue;
         private readonly T _maxValue;
+
         public NumericSubCommandParameter(string name, bool required, T minValue, T maxValue) 
             : this(name, required, null, minValue, maxValue)
         {
@@ -81,7 +82,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                 throw new ArgumentOutOfRangeException(nameof(_minValue), $"{nameof(_minValue)} must be less than or equal to {nameof(_maxValue)}");
             }
         }
-        public override ParameterValue Load(string argumentValue)
+        public override ParameterResult Load(string argumentValue)
         {
             T result;
             var textValue = GetValueWithoutPrefix(argumentValue);
@@ -142,7 +143,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                         result = default(T);
                         invalidMessage = $"Unsupported numeric type {typeof(T).Name} for parameter: {Name}";
 
-                        return new ParameterValue<T>(Name, result, invalidMessage);
+                        return new ParameterResult<T>(Name, result, invalidMessage);
                     }
             }
 
@@ -155,7 +156,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                 invalidMessage = $"The number {result} should be between {_minValue} and {_maxValue} for parameter: {Name}";
             }
 
-            return new ParameterValue<T>(Name, result, invalidMessage);
+            return new ParameterResult<T>(Name, result, invalidMessage);
         }
     }
 }

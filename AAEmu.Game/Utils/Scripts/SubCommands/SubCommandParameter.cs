@@ -2,14 +2,6 @@
 {
     public abstract class SubCommandParameterBase
     {
-        protected string GetValueWithoutPrefix(string argumentValue)
-        {
-            if (Prefix is null)
-            {
-                return argumentValue;
-            }
-            return argumentValue.Substring(Prefix.Length + 1);
-        }
         public SubCommandParameterBase(string name, bool required)
         {
             Name = name;
@@ -18,7 +10,19 @@
         public string Name { get; protected set; }
         public bool IsRequired { get; protected set; }
         public string Prefix { get; protected set; }
-        public abstract ParameterValue Load(string argument);
+
+        /// <summary>
+        /// This value will be used if the parameter is optional and no value was provided.
+        /// </summary>
+        public object DefaultValue { get; init; }
+        protected string GetValueWithoutPrefix(string argumentValue)
+        {
+            if (Prefix is null)
+            {
+                return argumentValue;
+            }
+            return argumentValue.Substring(Prefix.Length + 1);
+        }
         public bool MatchPrefix(string argument)
         {
             if (Prefix is null)
@@ -26,5 +30,7 @@
 
             return argument.StartsWith(Prefix + "=");
         }
+        public abstract ParameterResult Load(string argument);
+        
     }
 }

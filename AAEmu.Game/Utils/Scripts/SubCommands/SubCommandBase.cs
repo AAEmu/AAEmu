@@ -87,10 +87,10 @@ namespace AAEmu.Game.Utils.Scripts
                 {
                     if (_parameters.Count > 0) 
                     {
-                        var parametersValues = LoadParametersValues(args);
-                        if (PreValidate(character, parametersValues.Values))
+                        var parameterResults = LoadParametersValues(args);
+                        if (PreValidate(character, parameterResults.Values))
                         {
-                            Execute(character, triggerArgument, parametersValues);
+                            Execute(character, triggerArgument, parameterResults.ToDictionary(x => x.Key, x => x.Value.Value));
                         }
                     }
                     else
@@ -106,15 +106,15 @@ namespace AAEmu.Game.Utils.Scripts
             }
         }
 
-        protected IDictionary<string, ParameterValue> LoadParametersValues(string[] args)
+        protected IDictionary<string, ParameterResult> LoadParametersValues(string[] args)
         {
-            Dictionary<string, ParameterValue> parametersValue = new();
+            Dictionary<string, ParameterResult> parametersValue = new();
 
             var nonPrefixArguments = args.Where(a => a.IndexOf('=') == -1).ToArray();
             var parameterCount = 0;
             foreach(var parameter in _parameters.Where(p => p.Prefix is null))
             {
-                ParameterValue parameterValue = null;
+                ParameterResult parameterValue = null;
                 if (parameterCount < nonPrefixArguments.Length)
                 {
                     // parameters provided
@@ -123,7 +123,7 @@ namespace AAEmu.Game.Utils.Scripts
                 else if (parameter.IsRequired)
                 {
                     //required parameters that were not provided
-                    parameterValue = new ParameterValue<object>(parameter.Name, null, $"Parameter {parameter.Name} is required");
+                    parameterValue = new ParameterResult<object>(parameter.Name, null, $"Parameter {parameter.Name} is required");
                 }
 
                 if (parameterValue is not null)
@@ -150,10 +150,10 @@ namespace AAEmu.Game.Utils.Scripts
 
                 if (foundPrefixArgument is not null)
                 {
-                    ParameterValue parameterValue = null;
+                    ParameterResult parameterValue = null;
                     if (duplicatedPrefixValue)
                     {
-                        parameterValue = new ParameterValue<object>(parameterPrefix.Name, null, $"Parameter prefix {parameterPrefix.Prefix} is duplicated");
+                        parameterValue = new ParameterResult<object>(parameterPrefix.Name, null, $"Parameter prefix {parameterPrefix.Prefix} is duplicated");
                     }
                     else 
                     {
@@ -162,10 +162,18 @@ namespace AAEmu.Game.Utils.Scripts
                     parametersValue.Add(parameterValue.Name, parameterValue);
                 }
             }
+
+            //Find optional parameters to default values
+            foreach (var parameterDefaulted in _parameters.Where(p => !p.IsRequired && p.DefaultValue is not null && !parametersValue.ContainsKey(p.Name)))
+            {
+                var parameterValue = new ParameterResult<object>(parameterDefaulted.Name, parameterDefaulted.DefaultValue, null);
+                parametersValue.Add(parameterValue.Name, parameterValue);
+            }
+
             return parametersValue;
         }
         
-        protected bool PreValidate(ICharacter character, ICollection<ParameterValue> parameters)
+        protected bool PreValidate(ICharacter character, ICollection<ParameterResult> parameters)
         {
             var isValid = true;
             foreach (var parameter in parameters.Where(p => !p.IsValid)) 

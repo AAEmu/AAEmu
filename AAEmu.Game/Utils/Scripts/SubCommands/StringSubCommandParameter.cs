@@ -14,18 +14,18 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             Prefix = prefix;
         }
-        public override ParameterValue Load(string argumentValue)
+        public override ParameterResult Load(string argumentValue)
         {
             if (_values.Count == 0)
             {
-                return new ParameterValue<string>(Name, GetValueWithoutPrefix(argumentValue));
+                return new ParameterResult<string>(Name, GetValueWithoutPrefix(argumentValue));
             }
 
             if (!_values.Contains(argumentValue.ToLower()))
             {
-                return new ParameterValue<string>(Name, null, $"Parameter {Name} only accepts those values: {string.Join("||", _values)}");
+                return new ParameterResult<string>(Name, null, $"Parameter {Name} only accepts those values: {string.Join("||", _values)}");
             }
-            return new ParameterValue<string>(Name, argumentValue);
+            return new ParameterResult<string>(Name, argumentValue);
         }
     }
 }

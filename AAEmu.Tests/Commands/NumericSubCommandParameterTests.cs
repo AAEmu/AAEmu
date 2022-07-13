@@ -1,4 +1,5 @@
-﻿using System;
+﻿#pragma warning disable CS0618 // Type or member is obsolete
+using System;
 using System.Reflection;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using Xunit;
@@ -23,7 +24,7 @@ namespace AAEmu.Tests.Commands
             Type classType = typeof(NumericSubCommandParameter<>);
             Type constructedType = classType.MakeGenericType(type);
             var parameter = Activator.CreateInstance(constructedType, "numericParameter", true);
-            var expectedParamClass = typeof(ParameterValue<>).MakeGenericType(type);
+            var expectedParamClass = typeof(ParameterResult<>).MakeGenericType(type);
 
             // Act
             var parameterValue = ((SubCommandParameterBase)parameter).Load(argumentValue);
@@ -31,8 +32,8 @@ namespace AAEmu.Tests.Commands
             // Assert
             Assert.True(parameterValue.IsValid);
             Assert.IsAssignableFrom(expectedParamClass, parameterValue);
-            Assert.IsType(type, parameterValue.Value);
-            Assert.Equal(expectedReturn, parameterValue.Value);
+            Assert.IsType(type, parameterValue.Value.GetValue());
+            Assert.Equal(expectedReturn, parameterValue.Value.GetValue());
         }
 
         [Theory]
@@ -46,7 +47,7 @@ namespace AAEmu.Tests.Commands
             Type classType = typeof(NumericSubCommandParameter<>);
             Type constructedType = classType.MakeGenericType(type);
             var parameter = Activator.CreateInstance(constructedType, "unsupportedParameter", true);
-            var expectedParamClass = typeof(ParameterValue<>).MakeGenericType(type);
+            var expectedParamClass = typeof(ParameterResult<>).MakeGenericType(type);
 
             // Act
             var parameterValue = ((SubCommandParameterBase)parameter).Load("invalidType");
@@ -74,7 +75,7 @@ namespace AAEmu.Tests.Commands
             Type classType = typeof(NumericSubCommandParameter<>);
             Type constructedType = classType.MakeGenericType(type);
             var parameter = Activator.CreateInstance(constructedType, "invalidValueParameter", true);
-            var expectedParamClass = typeof(ParameterValue<>).MakeGenericType(type);
+            var expectedParamClass = typeof(ParameterResult<>).MakeGenericType(type);
 
             // Act
             var parameterValue = ((SubCommandParameterBase)parameter).Load(argumentValue);
@@ -100,7 +101,7 @@ namespace AAEmu.Tests.Commands
             Type classType = typeof(NumericSubCommandParameter<>);
             Type constructedType = classType.MakeGenericType(type);
             var parameter = Activator.CreateInstance(constructedType, "validRangeParameter", true, minValue, maxValue);
-            var expectedParamClass = typeof(ParameterValue<>).MakeGenericType(type);
+            var expectedParamClass = typeof(ParameterResult<>).MakeGenericType(type);
 
             // Act
             var parameterValue = ((SubCommandParameterBase)parameter).Load(argumentValue);
@@ -108,8 +109,8 @@ namespace AAEmu.Tests.Commands
             // Assert
             Assert.True(parameterValue.IsValid);
             Assert.IsAssignableFrom(expectedParamClass, parameterValue);
-            Assert.IsType(type, parameterValue.Value);
-            Assert.Equal(expectedReturn, parameterValue.Value);
+            Assert.IsType(type, parameterValue.Value.GetValue());
+            Assert.Equal(expectedReturn, parameterValue.Value.GetValue());
         }
 
         [Theory]
@@ -148,7 +149,7 @@ namespace AAEmu.Tests.Commands
             Type classType = typeof(NumericSubCommandParameter<>);
             Type constructedType = classType.MakeGenericType(type);
             var parameter = Activator.CreateInstance(constructedType, "invalidRangeValueParameter", true, minValue, maxValue);
-            var expectedParamClass = typeof(ParameterValue<>).MakeGenericType(type);
+            var expectedParamClass = typeof(ParameterResult<>).MakeGenericType(type);
 
             // Act
             var parameterValue = ((SubCommandParameterBase)parameter).Load(argumentValue);
@@ -175,16 +176,16 @@ namespace AAEmu.Tests.Commands
             Type classType = typeof(NumericSubCommandParameter<>);
             Type constructedType = classType.MakeGenericType(type);
             var parameter = Activator.CreateInstance(constructedType, "numericParameter", true, prefix);
-            var expectedParamClass = typeof(ParameterValue<>).MakeGenericType(type);
+            var expectedParamClass = typeof(ParameterResult<>).MakeGenericType(type);
 
             // Act
-            var parameterValue = ((SubCommandParameterBase)parameter).Load(argumentValue);
+            var parameterResult = ((SubCommandParameterBase)parameter).Load(argumentValue);
 
             // Assert
-            Assert.True(parameterValue.IsValid);
-            Assert.IsAssignableFrom(expectedParamClass, parameterValue);
-            Assert.IsType(type, parameterValue.Value);
-            Assert.Equal(expectedReturn, parameterValue.Value);
+            Assert.True(parameterResult.IsValid);
+            Assert.IsAssignableFrom(expectedParamClass, parameterResult);
+            Assert.IsType(type, parameterResult.Value.GetValue());
+            Assert.Equal(expectedReturn, parameterResult.Value.GetValue());
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿#pragma warning disable CS0618 // Type or member is obsolete
+
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using AAEmu.Game.Models.Game.Char;
@@ -94,8 +96,7 @@ namespace AAEmu.Tests.Commands
             foreach(var parameterKeyValue in subCommand.Parameters)
             {
                 Assert.Equal(parameters[counter].Name, parameterKeyValue.Key);
-                Assert.Equal(arguments[counter], parameterKeyValue.Value.Value);
-                Assert.True(parameterKeyValue.Value.IsValid);
+                Assert.Equal(arguments[counter], parameterKeyValue.Value);
                 counter++;
             }
             mockCharacter.Verify(c => c.SendMessage(It.IsAny<Color>(), It.IsAny<string>()), Times.Never);
@@ -145,8 +146,7 @@ namespace AAEmu.Tests.Commands
             foreach (var parameterKeyValue in subCommand.Parameters)
             {
                 Assert.Equal(parameters[counter].Name, parameterKeyValue.Key);
-                Assert.Equal(arguments[counter], parameterKeyValue.Value.Value);
-                Assert.True(parameterKeyValue.Value.IsValid);
+                Assert.Equal(arguments[counter], parameterKeyValue.Value);
                 counter++;
             }
             mockCharacter.Verify(c => c.SendMessage(It.IsAny<Color>(), It.IsAny<string>()), Times.Never);
@@ -185,7 +185,7 @@ namespace AAEmu.Tests.Commands
             // Assert
             Assert.True(subCommand.Executed);
             Assert.Single(subCommand.Parameters);
-            Assert.Equal(argumentValue, subCommand.Parameters["param1"].Value);
+            Assert.Equal(argumentValue, subCommand.Parameters["param1"]);
             
             mockCharacter.Verify(c => c.SendMessage(It.IsAny<Color>(), It.IsAny<string>()), Times.Never);
         }
@@ -238,12 +238,12 @@ namespace AAEmu.Tests.Commands
                     if (AnyPrefixedParameterThatMatchesThePrefixedArgument(parameters, argument))
                     {
                         // Any parameters configured as prefix where the argument matches should be present in the subcommand parameters
-                        Assert.Contains(subCommand.Parameters, p => p.Value.Value.ToString() == argument.Split('=')[1]);
+                        Assert.Contains(subCommand.Parameters, p => p.Value.ToString() == argument.Split('=')[1]);
                     }
                     else
                     {
                         // Any parameters that are not by prefix should not have prefixed argument values
-                        Assert.DoesNotContain(subCommand.Parameters, p => p.Value.Value.ToString() == argument.Split('=')[1]);
+                        Assert.DoesNotContain(subCommand.Parameters, p => p.Value.ToString() == argument.Split('=')[1]);
                     }
                 }
                 else
@@ -252,7 +252,7 @@ namespace AAEmu.Tests.Commands
                     {
                         // Any argument that not match the prefix pattern should be matching the non prefix parameters in order
                         // If the nonprefix arguments matched more the number of nonprefix parameters we don't expect the parameters to contains any of those values
-                        Assert.Contains(subCommand.Parameters, p => p.Value.Value.ToString() == argument);
+                        Assert.Contains(subCommand.Parameters, p => p.Value.ToString() == argument);
                         nonPrefixCounter++;
                     }
                 }
@@ -287,7 +287,7 @@ namespace AAEmu.Tests.Commands
             {
                 Assert.True(subCommand.Parameters.ContainsKey(parameterPattern));
             }
-            Assert.Equal(expectedParameterValue, subCommand.Parameters[expectedParameterName].Value);
+            Assert.Equal(expectedParameterValue, subCommand.Parameters[expectedParameterName].GetValue());
         }
 
         [Theory]
@@ -313,27 +313,84 @@ namespace AAEmu.Tests.Commands
             mockCharacter.Verify(c => c.SendMessage(It.IsIn(expectedCallExample)), Times.Once);
         }
 
+        [Theory]
+        [InlineData("required-long-prefix-w,optional-int-prefix-x-default-(int)10,required-float,required-string", "optional-int-prefix-x-default-(int)10", 10, "w=100", "-13.23", "requiredstring", "extrastring")]
+        [InlineData("optional-int-prefix-x-default-(float)50.93,required-string,optional-string-default-ok", "optional-string-default-ok", "ok", "anything")]
+        [InlineData("optional-int-prefix-x-default-(float)50.93,required-string,optional-string-default-ok", "optional-int-prefix-x-default-(float)50.93", 50.93F, "anything")]
+        [InlineData("optional-int-prefix-x-default-(uint)50,required-string,optional-string-default-ok", "optional-int-prefix-x-default-(uint)50", 50U, "anything")]
+        [InlineData("optional-int-prefix-x-default-(byte)250,required-string,optional-string-default-ok", "optional-int-prefix-x-default-(byte)250", (byte)250, "anything")]
+        [InlineData("optional-int-prefix-x-default-(long)1000000,required-string,optional-string-default-ok", "optional-int-prefix-x-default-(long)1000000", 1000000L, "anything")]
+        public void LoadParameter_WhenOptionalDefaultParametersAreNotProvided_ShouldDefaultTheValues(string parametersPattern, string expectedParameterName, object expectedParameterDefaultValue, params string[] arguments)
+        {
+            // Arrange
+            var parameters = new List<SubCommandParameterBase>();
+            var parametersArray = parametersPattern.Split(',');
+            foreach (var parameterPattern in parametersArray)
+            {
+                parameters.Add(GetParameter(parameterPattern));
+            }
+
+            var subCommand = new SubCommandFake(parameters);
+            var mockCharacter = new Mock<ICharacter>();
+
+            // Act
+            subCommand.PreExecute(mockCharacter.Object, "", arguments);
+
+            // Assert
+            Assert.True(subCommand.Executed);
+            Assert.Equal(expectedParameterDefaultValue, subCommand.Parameters[expectedParameterName].GetValue());
+        }
 
         private SubCommandParameterBase GetParameter(string parameterPattern)
         {
             var parameterConfigArray = parameterPattern.Split('-');
             var isRequired = parameterConfigArray.First() == "required";
             var isPrefix = parameterConfigArray.Any(x => x == "prefix");
+            var isDefault = parameterConfigArray.Any(x => x == "default");
             var type = parameterConfigArray[1].ToLower();
             string prefixValue = null;
+            object defaultValue = null;
             if (isPrefix)
             {
-                prefixValue = parameterConfigArray.Last();
+                prefixValue = parameterConfigArray.SkipWhile(s => s != "prefix").Skip(1).First();
+            }
+            if (isDefault)
+            {
+                var defaultValueText = parameterConfigArray.SkipWhile(s => s != "default").Skip(1).First();
+                if (defaultValueText.StartsWith("(int)"))
+                {
+                    defaultValue = int.Parse(defaultValueText.Replace("(int)", string.Empty));
+                }
+                else if (defaultValueText.StartsWith("(float)"))
+                {
+                    defaultValue = float.Parse(defaultValueText.Replace("(float)", string.Empty));
+                }
+                else if (defaultValueText.StartsWith("(uint)"))
+                {
+                    defaultValue = uint.Parse(defaultValueText.Replace("(uint)", string.Empty));
+                }
+                else if (defaultValueText.StartsWith("(long)"))
+                {
+                    defaultValue = long.Parse(defaultValueText.Replace("(long)", string.Empty));
+                }
+                else if (defaultValueText.StartsWith("(byte)"))
+                {
+                    defaultValue = byte.Parse(defaultValueText.Replace("(byte)", string.Empty));
+                }
+                else 
+                {
+                    defaultValue = defaultValueText;
+                }
             }
 
             return type switch
             {
-                "int" => new NumericSubCommandParameter<int>(parameterPattern, isRequired, prefixValue),
-                "uint" => new NumericSubCommandParameter<uint>(parameterPattern, isRequired, prefixValue),
-                "long" => new NumericSubCommandParameter<long>(parameterPattern, isRequired, prefixValue),
-                "float" => new NumericSubCommandParameter<float>(parameterPattern, isRequired, prefixValue),
-                "byte" => new NumericSubCommandParameter<byte>(parameterPattern, isRequired, prefixValue),
-                _ => new StringSubCommandParameter(parameterPattern, isRequired, prefixValue)
+                "int" => new NumericSubCommandParameter<int>(parameterPattern, isRequired, prefixValue) { DefaultValue = defaultValue},
+                "uint" => new NumericSubCommandParameter<uint>(parameterPattern, isRequired, prefixValue) { DefaultValue = defaultValue },
+                "long" => new NumericSubCommandParameter<long>(parameterPattern, isRequired, prefixValue) { DefaultValue = defaultValue },
+                "float" => new NumericSubCommandParameter<float>(parameterPattern, isRequired, prefixValue) { DefaultValue = defaultValue },
+                "byte" => new NumericSubCommandParameter<byte>(parameterPattern, isRequired, prefixValue) { DefaultValue = defaultValue },
+                _ => new StringSubCommandParameter(parameterPattern, isRequired, prefixValue) { DefaultValue = defaultValue }
             };
         }
         private static bool AnyNonPrefixParameterMatchInOrder(string[] requiredParametersArray, string[] optionalParametersArray, int nonPrefixCounter)
