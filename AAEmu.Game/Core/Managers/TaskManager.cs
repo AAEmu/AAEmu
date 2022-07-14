@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using ThreadTask = System.Threading.Tasks.Task;
@@ -39,7 +39,7 @@ namespace AAEmu.Game.Core.Managers
 
         public void Stop()
         {
-            _generalScheduler.Shutdown(true);
+            _generalScheduler?.Shutdown(true);
         }
 
         public async void Schedule(Task task, TimeSpan? startTime = null, TimeSpan? repeatInterval = null,

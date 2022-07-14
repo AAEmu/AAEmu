@@ -1,4 +1,4 @@
-version: '3.1'
+version: '6.0'
 
 services:
     db:
@@ -14,7 +14,7 @@ services:
         environment:
             MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
         ports:
-            - 3306:3306
+            - 3307:3306
 
     adminer:
         image: adminer
@@ -37,7 +37,7 @@ services:
                 - FRAMEWORK=${BUILD_FRAMEWORK}
                 - RUNTIME=${BUILD_RUNTIME}
                 - DB_HOST=db
-                - DB_PORT=3306
+                - DB_PORT=3307
                 - DB_USER=${DB_USER}
                 - DB_PASSWORD=${DB_PASSWORD}
         image: aaemu-login:${PROJECT_VERSION_PREFIX}-${PROJECT_VERSION_SUFFIX}
@@ -58,7 +58,7 @@ services:
                 - FRAMEWORK=${BUILD_FRAMEWORK}
                 - RUNTIME=${BUILD_RUNTIME}
                 - DB_HOST=db
-                - DB_PORT=3306
+                - DB_PORT=3307
                 - DB_USER=${DB_USER}
                 - DB_PASSWORD=${DB_PASSWORD}
                 - LOGIN_HOST=login

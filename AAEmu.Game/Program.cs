@@ -65,7 +65,14 @@ namespace AAEmu.Game
                     services.AddSingleton<IHostedService, DiscordBotService>();
                 });
             
-            await builder.RunConsoleAsync();
+            try 
+            { 
+                await builder.RunConsoleAsync();
+            }
+            catch (OperationCanceledException ocex)
+            {
+                _log.Warn(ocex.Message);
+            }
         }
         
         private static void Initialization()

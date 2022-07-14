@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:3.1.409-focal as builder
+FROM mcr.microsoft.com/dotnet/sdk:6.0.302-focal as builder
 ARG CONFIGURATION
 ARG RUNTIME
 ARG GAME_DB_URL
