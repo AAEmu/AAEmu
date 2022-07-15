@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Text;
 using AAEmu.Commons.Network;
@@ -37,6 +37,11 @@ namespace AAEmu.Login.Core.Network.Login
 
         public override void OnDisconnect(Session session)
         {
+            if (session is null)
+            {
+                _log.Error("Unexpected Session is null");
+                return;
+            }
             try
             {
                 var con = LoginConnectionTable.Instance.GetConnection(session.SessionId);

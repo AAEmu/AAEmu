@@ -22,6 +22,7 @@ using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
+using System.Linq;
 
 namespace AAEmu.Game
 {
@@ -60,24 +61,32 @@ namespace AAEmu.Game
                     return;
                 }
             }
+            
+            ClientFileManager.Initialize();
+            if (ClientFileManager.ListSources().Count == 0)
+            {
+                _log.Fatal($"Failed up load client files! ({string.Join(", ", AppConfiguration.Instance.ClientData.Sources)})");
+                _log.Fatal("Press Ctrl+C to quit");
+                return;
+            }
 
             var stopWatch = new Stopwatch();
 
             stopWatch.Start();
+            
             TickManager.Instance.Initialize();
             TaskIdManager.Instance.Initialize();
             TaskManager.Instance.Initialize();
 
+            WorldManager.Instance.Load();
             FeaturesManager.Instance.Initialize();
 
-            ClientFileManager.Initialize();
             
             LocalizationManager.Instance.Load();
             ObjectIdManager.Instance.Initialize();
             TradeIdManager.Instance.Initialize();
 
             ZoneManager.Instance.Load();
-            WorldManager.Instance.Load();
             var heightmapTask = Task.Run(() =>
             {
                 WorldManager.Instance.LoadHeightmaps();

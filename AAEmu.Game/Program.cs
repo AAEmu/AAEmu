@@ -71,7 +71,7 @@ namespace AAEmu.Game
             }
             catch (OperationCanceledException ocex)
             {
-                _log.Warn(ocex.Message);
+                _log.Fatal(ocex.Message);
             }
         }
         
