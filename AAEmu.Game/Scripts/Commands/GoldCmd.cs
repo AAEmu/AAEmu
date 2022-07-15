@@ -1,26 +1,27 @@
 ﻿using System;
-using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
-using AAEmu.Game.Utils.Scripts.SubCommands;
+using AAEmu.Game.Utils.Scripts.SubCommands.Gold;
 
 namespace AAEmu.Game.Scripts.Commands
 {
-    public class ItemCmd : SubCommandBase, ICommand, ICommandV2
+    public class GoldCmd : SubCommandBase, ICommand, ICommandV2
     {
-        public ItemCmd()
+        public GoldCmd()
         {
-            Title = "[Item]";
-            Description = "Root command to manage Items";
-            CallPrefix = $"{CommandManager.CommandPrefix}item";
+            Title = "[Gold]";
+            Description = "Root command to manage gold";
+            CallPrefix = $"{CommandManager.CommandPrefix}gold/";
 
-            Register(new ItemAddSubCommand(), "add");
+            Register(new GoldSetSubCommand(), "add");
+            Register(new GoldSetSubCommand(), "set");
+            Register(new GoldSetSubCommand(), "remove");
         }
         public void OnLoad()
         {
-            CommandManager.Instance.Register("item", this);
+            CommandManager.Instance.Register("gold", this);
         }
 
         public string GetCommandLineHelp()

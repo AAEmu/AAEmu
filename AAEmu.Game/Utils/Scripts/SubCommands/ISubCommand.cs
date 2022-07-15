@@ -3,10 +3,10 @@ using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Utils.Scripts
 {
-    public interface ISubCommand
+    public interface ICommandV2
     {
         string Description { get; }
-        string CallExample { get; }
+        string CallPrefix { get; }
         /// <summary>
         /// Validates if there is a subcommand that implements the first argument
         /// </summary>

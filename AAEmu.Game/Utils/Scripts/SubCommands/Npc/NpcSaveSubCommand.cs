@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.World;
@@ -18,33 +19,23 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
     {
         public NpcSaveSubCommand()
         {
-            Prefix = "[Npc Save]";
+            Title = "[Npc Save]";
             Description = "Save one or all npc positions in the current character world to the world npc spawns file";
-            CallExample = "/npc save all||/npc save <ObjId>";
+            CallPrefix = $"{CommandManager.CommandPrefix}npc save";
+            AddParameter(new StringSubCommandParameter("target", "target", true, "all", "id"));
+            AddParameter(new NumericSubCommandParameter<uint>("ObjId", "object Id", false));
         }
 
-        public override void Execute(ICharacter character, string triggerArgument, string[] args)
+        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
-            var firstArgument = args.FirstOrDefault();
-            if (firstArgument is null)
+            if (parameters.TryGetValue("ObjId", out ParameterValue npcObjId))
             {
-                character.SendMessage(CallExample);
-                return;
-            }
-
-            if (firstArgument == "all")
+                SaveById(character, npcObjId);
+            } 
+            else
             {
                 SaveAll(character);
-                return;
             }
-
-            if (!uint.TryParse(firstArgument, out var npcObjId))
-            {
-                SendMessage(character, "Invalid <ObjId> for Npc, please use a number");
-                return;
-            }
-            
-            SaveById(character, npcObjId);
         }
 
         private void SaveAll(ICharacter character)
@@ -148,30 +139,24 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                 }
             };
 
-            try
+            Dictionary<uint, JsonNpcSpawns> spawnersFromFile = new();
+            foreach (var spawnerFromFile in LoadNpcsFromFileByWorld(world))
             {
-                var spawnersFromFile = LoadNpcsFromFileByWorld(world).ToDictionary(x => x.Id, x => x);
-
-                if (spawnersFromFile.ContainsKey(spawn.Id))
-                {
-                    spawnersFromFile[spawn.Id] = spawn;
-                }
-                else
-                {
-                    spawnersFromFile.Add(spawn.Id, spawn);
-                }
-
-                var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
-                var json = JsonConvert.SerializeObject(spawnersFromFile.Values.ToArray(), Formatting.Indented, new JsonModelsConverter());
-                File.WriteAllText(jsonPathOut, json);
-                SendMessage(character, "All npcs have been saved with added npc ObjId:{0}, TemplateId:{1}", npc.ObjId, npc.TemplateId);
-
+                spawnersFromFile.TryAdd(spawnerFromFile.Id, spawnerFromFile);
             }
-            catch (Exception e)
+            if (spawnersFromFile.ContainsKey(spawn.Id))
             {
-                character.SendMessage(e.Message);
-                _log.Warn(e);
+                spawnersFromFile[spawn.Id] = spawn;
             }
+            else
+            {
+                spawnersFromFile.Add(spawn.Id, spawn);
+            }
+
+            var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
+            var json = JsonConvert.SerializeObject(spawnersFromFile.Values.ToArray(), Formatting.Indented, new JsonModelsConverter());
+            File.WriteAllText(jsonPathOut, json);
+            SendMessage(character, "All npcs have been saved with added npc ObjId:{0}, TemplateId:{1}", npc.ObjId, npc.TemplateId);
         }
 
         private List<JsonNpcSpawns> LoadNpcsFromFileByWorld(World world)
@@ -191,7 +176,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             }
             else
             {
-                return JsonHelper.DeserializeObject<List<JsonNpcSpawns>>(contents, new JsonModelsConverter());
+                return JsonHelper.DeserializeObject<List<JsonNpcSpawns>>(contents);
             }
         }
     }

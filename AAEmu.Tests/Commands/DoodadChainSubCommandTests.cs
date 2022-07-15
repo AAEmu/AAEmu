@@ -16,11 +16,11 @@ namespace AAEmu.Tests.Commands
         [Fact]
         public void PreExecute_WhenChain_ShouldCallChainSubCommand()
         {
-            var mockSubCommand = new Mock<ISubCommand>();
+            var mockSubCommand = new Mock<ICommandV2>();
             var mockUnitCustomModelParams = new Mock<UnitCustomModelParams>(UnitCustomModelType.None);
             var mockCharacter = new Mock<Character>(mockUnitCustomModelParams.Object);
 
-            var command = new TestCommand(new Dictionary<ISubCommand, string[]> 
+            var command = new TestCommand(new Dictionary<ICommandV2, string[]> 
             { 
                 { 
                     mockSubCommand.Object, new string[]{ "sdf"} 
@@ -35,18 +35,18 @@ namespace AAEmu.Tests.Commands
         [Fact]
         public void PreExecute_WhenChain_ShouldCallChainSubSubCommand()
         {
-            var mockSubSubCommand = new Mock<ISubCommand>();
+            var mockSubSubCommand = new Mock<ICommandV2>();
             var mockUnitCustomModelParams = new Mock<UnitCustomModelParams>(UnitCustomModelType.None);
             var mockCharacter = new Mock<Character>(mockUnitCustomModelParams.Object);
 
-            var subCommand = new SubTestCommand(new Dictionary<ISubCommand, string[]>
+            var subCommand = new SubTestCommand(new Dictionary<ICommandV2, string[]>
             {
                 {
                     mockSubSubCommand.Object, new string[]{ "second"}
                 }
             });
 
-            var command = new TestCommand(new Dictionary<ISubCommand, string[]>
+            var command = new TestCommand(new Dictionary<ICommandV2, string[]>
             {
                 {
                     subCommand, new string[]{ "first"}
@@ -64,7 +64,7 @@ namespace AAEmu.Tests.Commands
             var mockUnitCustomModelParams = new Mock<UnitCustomModelParams>(UnitCustomModelType.None);
             var mockCharacter = new Mock<Character>(mockUnitCustomModelParams.Object);
 
-            var testCommand = new TestCommand(new Dictionary<ISubCommand, string[]>());
+            var testCommand = new TestCommand(new Dictionary<ICommandV2, string[]>());
             testCommand.PreExecute(mockCharacter.Object, "doodad", new string[] { });
         }
 
@@ -74,12 +74,12 @@ namespace AAEmu.Tests.Commands
         public void Execute_WhenSendingHelp_ShouldReturnHelpText(int numberOfSupportedCommands)
         {
             var mockCharacter = new Mock<ICharacter>();
-            var supportedCommands = new Dictionary<ISubCommand, string[]>();
-            var mockSubCommands = new List<Mock<ISubCommand>>();
+            var supportedCommands = new Dictionary<ICommandV2, string[]>();
+            var mockSubCommands = new List<Mock<ICommandV2>>();
             var expectedCommands = new List<string>();
             for (int i = 0; i < numberOfSupportedCommands; i++)
             {
-                var mockSubCommand = new Mock<ISubCommand>();
+                var mockSubCommand = new Mock<ICommandV2>();
                 mockSubCommands.Add(mockSubCommand);
 
                 supportedCommands.Add(mockSubCommand.Object, new string[] { $"command{i}" });
@@ -90,26 +90,25 @@ namespace AAEmu.Tests.Commands
             var testCommandPrefix = "Prefix";
             testCommand.PreExecute(mockCharacter.Object, "test", new string[] { "help" });
 
-            mockCharacter.Verify(c => c.SendMessage(It.IsIn($"{testCommandPrefix} {testCommand.Description}")), Times.Once);
-            mockCharacter.Verify(c => c.SendMessage(It.IsIn($"{testCommandPrefix} {testCommand.CallExample}")), Times.Once);
-            mockCharacter.Verify(c => c.SendMessage(It.Is<string>(s => s.Contains($"{string.Join("||", expectedCommands)}"))), Times.Once);
-            mockCharacter.Verify(c => c.SendMessage(It.Is<string>(s => s.Contains("For more details use"))), Times.Once);
+            mockCharacter.Verify(c => c.SendMessage(It.IsIn(Color.LawnGreen), It.IsIn($"{testCommandPrefix} {testCommand.Description}")), Times.Once);
+            mockCharacter.Verify(c => c.SendMessage(It.IsIn(Color.LawnGreen), It.Is<string>(s => s.Contains($"{string.Join("||", expectedCommands)}"))), Times.Once);
+            mockCharacter.Verify(c => c.SendMessage(It.IsIn(Color.LawnGreen), It.Is<string>(s => s.Contains("For more details use"))), Times.Once);
         }
 
 
         public class TestCommand : SubCommandBase
         {
-            public TestCommand(Dictionary<ISubCommand, string[]> register) : base(register)
+            public TestCommand(Dictionary<ICommandV2, string[]> register) : base(register)
             {
-                Prefix = "Prefix";
+                Title = "Prefix";
                 Description = "Mock Command";
-                CallExample = "Help Message";
+                CallPrefix = "Help Message";
             }
         }
 
         public class SubTestCommand : SubCommandBase
         {
-            public SubTestCommand(Dictionary<ISubCommand, string[]> register) : base(register) { }
+            public SubTestCommand(Dictionary<ICommandV2, string[]> register) : base(register) { }
         }
     }
 }

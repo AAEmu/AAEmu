@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -9,18 +8,18 @@ using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.Commands
 {
-    public class DoodadCmd : SubCommandBase, ICommand, ISubCommand
+    public class DoodadCmd : SubCommandBase, ICommand
     {
         public DoodadCmd() 
         {
-            Prefix = "[Doodad]";
+            Title = "[Doodad]";
             Description = "Root command to manage Doodads";
-            CallExample = "/doodad [chain||setphase||save||pos]";
+            CallPrefix = $"{CommandManager.CommandPrefix}doodad";
 
             Register(new DoodadChainSubCommand(), "chain");
             Register(new DoodadPhaseSubCommand(), "phase", "setphase");
             Register(new DoodadSaveSubCommand(), "save");
-            Register(new DoodadPositionSubCommand(), "pos");
+            Register(new DoodadPositionSubCommand(), "position", "pos");
             Register(new DoodadSpawnSubCommand(), "spawn");
         }
 
@@ -29,7 +28,7 @@ namespace AAEmu.Game.Scripts.Commands
             CommandManager.Instance.Register("doodad", this);
         }
 
-        public DoodadCmd(Dictionary<ISubCommand, string[]> subcommands) : base(subcommands)
+        public DoodadCmd(Dictionary<ICommandV2, string[]> subcommands) : base(subcommands)
         {
 
         }
@@ -41,21 +40,12 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
 {
-            return CallExample;
+            return CallPrefix;
         }
 
-        public void Execute( Character character, string[] args )
+        public void Execute(Character character, string[] args)
         {
-            try
-            {
-                base.PreExecute(character, "doodad", args);
-            }
-            catch (Exception e)
-            {
-                SendColorMessage(character, Color.Red, e.Message);
-                _log.Error(e.Message);
-                _log.Error(e.StackTrace);
-            }
+            throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
         }
     }
 }

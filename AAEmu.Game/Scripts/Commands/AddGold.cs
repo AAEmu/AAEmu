@@ -12,7 +12,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            string[] name = { "addgold", "add_gold", "gold" };
+            string[] name = { "addgold", "add_gold" };
             CommandManager.Instance.Register(name, this);
         }
 

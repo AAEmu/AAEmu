@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -8,16 +7,16 @@ using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.Commands
 {
-    public class NpcCmd : SubCommandBase, ICommand, ISubCommand
+    public class NpcCmd : SubCommandBase, ICommand, ICommandV2
     {
         public NpcCmd()
         {
-            Prefix = "[Npc]";
+            Title = "[Npc]";
             Description = "Root command to manage Npcs";
-            CallExample = "/npc [info||save||remove||position]";
+            CallPrefix = $"{CommandManager.CommandPrefix}npc";
 
             Register(new NpcInformationSubCommand(), "info");
-            Register(new NpcPositionSubCommand(), "position");
+            Register(new NpcPositionSubCommand(), "position", "pos");
             Register(new NpcSaveSubCommand(), "save");
             Register(new NpcRemoveSubCommand(), "remove");
         }
@@ -33,21 +32,12 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return CallExample;
+            return CallPrefix;
         }
 
         public void Execute(Character character, string[] args)
         {
-            try
-            {
-                base.PreExecute(character, "npc", args);
-            }
-            catch (Exception e)
-            {
-                SendColorMessage(character, Color.Red, e.Message);
-                _log.Error(e.Message);
-                _log.Error(e.StackTrace);
-            }
+            throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
         }
     }
 }
