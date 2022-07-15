@@ -398,7 +398,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 }
                                 // компонент - выполнен, мы у нужного Npc (component - done, we're at the right Npc)
                                 Status = QuestStatus.Ready;
-                                _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
+                                //_log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                                 break;
                             case "QuestActConAutoComplete":
                                 // компонент - выполнен (component - ready)
@@ -447,7 +447,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     // TODO added for quest Id=882.
                                     // ничего не делаем (We're not doing anything)
-                                    _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, completes[componentIndex], act.DetailType);
+                                    //_log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, completes[componentIndex], act.DetailType);
                                     break;
                                 }
                             case "QuestActObjItemGather":
@@ -465,29 +465,32 @@ namespace AAEmu.Game.Models.Game.Quests
                                         selectives.Add(completes[componentIndex]);
                                         selective = true;
                                     }
-                                    _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, completes[componentIndex], act.DetailType);
-                                    break;
-                                }
-                            case "QuestActObjItemUse":
-                                {
-                                    complete = act.Use(Owner, this, Objectives[componentIndex]);
-                                    completes[componentIndex] = complete; // продублируем информацию
-                                    // проверка результатов на валидность (Validation of results)
-                                    _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
+                                    Status = complete ? QuestStatus.Ready : QuestStatus.Progress;
+                                    // если complete == false, также надо слать пакет SCQuestContextUpdatedPacket (if complete == false, we should also send SCQuestContextUpdatedPacket)
                                     break;
                                 }
                             default:
+                                //case "QuestActObjItemUse":
                                 //case "QuestActObjMonsterHunt":
                                 //case "QuestActObjMonsterGroupHunt":
                                 // эти акты могут быть парными: ItemGather & MonsterHunt & MonsterGroupHunt & Interaction
                                 {
                                     complete = act.Use(Owner, this, Objectives[componentIndex]);
                                     completes[componentIndex] = complete; // продублируем информацию
-                                    _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
+                                    // проверка результатов на валидность (Validation of results)
+                                    if (Template.Selective)
+                                    {
+                                        // Если Selective = true, то разрешается быть подходящим одному предмету из нескольких
+                                        selectives.Add(completes[componentIndex]);
+                                        selective = true;
+                                    }
+                                    Status = complete ? QuestStatus.Ready : QuestStatus.Progress;
+                                    // если complete == false, также надо слать пакет SCQuestContextUpdatedPacket (if complete == false, we should also send SCQuestContextUpdatedPacket)
                                     break;
                                 }
                         }
                         SupplyItem = 0;
+                        _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                     }
 
                     if (completes[componentIndex] || complete)
