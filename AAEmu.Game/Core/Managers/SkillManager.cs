@@ -272,16 +272,19 @@ namespace AAEmu.Game.Core.Managers
             _effects.Add("TrainCraftEffect", new Dictionary<uint, EffectTemplate>());
             _effects.Add("SkillController", new Dictionary<uint, EffectTemplate>());
             _effects.Add("ResetAoeDiminishingEffect", new Dictionary<uint, EffectTemplate>());
+
+
+
             _buffs = new Dictionary<uint, BuffTemplate>();
             // TODO 
             /*
-                "CinemaEffect"
-                "NpcControlEffect"
-                "NpcSpawnerDespawnEffect"
-                "NpcSpawnerSpawnEffect"
-                "SpawnFishEffect"
-                "PlayLogEffect"
-             */
+                _effects.Add("CinemaEffect", new Dictionary<uint, EffectTemplate>());
+                _effects.Add("NpcControlEffect", new Dictionary<uint, EffectTemplate>());
+                _effects.Add("NpcSpawnerSpawnEffect", new Dictionary<uint, EffectTemplate>());
+                _effects.Add("NpcSpawnerDespawnEffect", new Dictionary<uint, EffectTemplate>());
+                _effects.Add("SpawnFishEffect", new Dictionary<uint, EffectTemplate>());
+                _effects.Add("PlayLogEffect", new Dictionary<uint, EffectTemplate>());
+            */
 
             _buffTags = new Dictionary<uint, List<uint>>();
             _taggedBuffs = new Dictionary<uint, List<uint>>();

@@ -193,11 +193,11 @@ namespace AAEmu.Game.Models.Game.NPChar
                             delay = (24 - curTime + template.StartTime) * 60 * 10;
                         }
 
-                        //if (UnitId == 13126)
+                        /*if (UnitId == 13126)
                         {
                             _log.Debug("DoSpawn: Npc TemplateId {0}, NpcSpawnerId {1} spawn [1] reschedule next time...", UnitId, Id);
                             _log.Debug("DoSpawn: delay {0}", delay);
-                        }
+                        }*/
                         TaskManager.Instance.Schedule(new NpcSpawnerDoSpawnTask(this), TimeSpan.FromSeconds(delay));
                         continue; // Reschedule when OK
                     }
@@ -209,9 +209,14 @@ namespace AAEmu.Game.Models.Game.NPChar
                     if (GameScheduleManager.Instance.CheckSpawnerInGameSchedules((int)spawnerId))
                     {
                         var delay = GameScheduleManager.Instance.GetRemainingTime((int)spawnerId, true);
-                        _permanent = false; // Npc есть в расписании
-                        _log.Debug("DoSpawn: Npc TemplateId {0}, NpcSpawnerId {1} spawn [2] reschedule next time...", UnitId, Id);
-                        _log.Debug("DoSpawn: delay {0}", delay.ToString());
+                        _permanent = false; // Npc is on the schedule
+                        /*
+                        if (UnitId == 13126)
+                        {
+                            _log.Debug("DoSpawn: Npc TemplateId {0}, NpcSpawnerId {1} spawn [2] reschedule next time...", UnitId, Id);
+                            _log.Debug("DoSpawn: delay {0}", delay.ToString()); 
+                        }
+                        */
                         TaskManager.Instance.Schedule(new NpcSpawnerDoSpawnTask(this), delay);
                         //Thread.Sleep(50);
                         continue; // Reschedule when OK
@@ -247,8 +252,10 @@ namespace AAEmu.Game.Models.Game.NPChar
                         _spawned.Add(npc);
                         if (!_permanent)
                         {
+                            /*
                             if (UnitId == 13126)
                                 _log.Debug("DoSpawn: Npc TemplateId {0}, NpcSpawnerId {1} despawn [4] reschedule next time...", UnitId, Id);
+                            */
                             TaskManager.Instance.Schedule(new NpcSpawnerDoDespawnTask(npc), TimeSpan.FromSeconds(600));
                         }
                     }

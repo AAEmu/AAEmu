@@ -33,7 +33,10 @@ namespace AAEmu.Game
         {
             Initialization();
             _launchArgs = args;
-            LoadConfiguration();
+            if (!LoadConfiguration())
+            {
+                return;
+            }
 
             _log.Info("{0} version {1}", Name, Version);
 
@@ -74,16 +77,17 @@ namespace AAEmu.Game
             _startTime = DateTime.UtcNow;
         }
 
-        public static void LoadConfiguration()
+        public static bool LoadConfiguration()
         {
             var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
-            if (File.Exists(mainConfig))
-                Configuration(_launchArgs, mainConfig);
-            else
+            if (!File.Exists(mainConfig))
             {
-                _log.Error($"{mainConfig} doesn't exist!");
-                return;
+                _log.Fatal($"{mainConfig} doesn't exist!");
+                return false;
             }
+
+            Configuration(_launchArgs, mainConfig);
+            return true;            
         }
 
         private static void Configuration(string[] args, string mainConfigJson)
