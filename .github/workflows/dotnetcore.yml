@@ -14,11 +14,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup .NET Core
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 6.0
+      uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: '6.0.x'
     - name: Install dependencies
       run: dotnet restore
     - name: Build
@@ -26,7 +26,7 @@ jobs:
     - name: Test
       run: dotnet test /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov
     - name: Coveralls GitHub Action
-      uses: coverallsapp/github-action@v1.1.1
+      uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         path-to-lcov: ./AAEmu.Tests/TestResults/coverage.info
