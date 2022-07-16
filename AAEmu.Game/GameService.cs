@@ -80,7 +80,6 @@ namespace AAEmu.Game
 
             WorldManager.Instance.Load();
             FeaturesManager.Instance.Initialize();
-
             
             LocalizationManager.Instance.Load();
             ObjectIdManager.Instance.Initialize();
