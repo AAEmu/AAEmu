@@ -96,7 +96,8 @@ namespace AAEmu.Game
         private static void Configuration(string[] args, string mainConfigJson)
         {
             // Load NLog configuration
-            LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"), false);
+            LogManager.ThrowConfigExceptions = false;
+            LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"));
 
             // Load Game server configuration
             // Get files inside in the Configurations folder

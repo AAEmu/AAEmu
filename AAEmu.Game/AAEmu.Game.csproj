@@ -55,7 +55,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Remove="Scripts\**\**" />
+      <!--Compile Remove="Scripts\**\**" /-->
       <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
       <None Include="Configs\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Configs\" />
       <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
@@ -78,7 +78,8 @@
         <PackageReference Include="NLog" Version="5.0.1" />
         <PackageReference Include="NLua" Version="1.5.6" />
         <PackageReference Include="Quartz" Version="3.2.3" />
-        <PackageReference Include="Ionic.Zlib.Core" Version="1.0.0" />        
+        <PackageReference Include="Ionic.Zlib.Core" Version="1.0.0" />
+        <PackageReference Include="System.Drawing.Primitives" Version="4.3.0" />        
         <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
     </ItemGroup>
 

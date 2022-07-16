@@ -7,7 +7,6 @@ RUN apt update && apt install xz-utils -y
 WORKDIR app
 COPY ./AAEmu.Commons ./AAEmu.Commons
 COPY ./AAEmu.Game ./AAEmu.Game
-RUN test -f ./AAEmu.Game/Data/compact.sqlite3 || wget "$GAME_DB_URL" -qO - | tar -xJf - -C ./AAEmu.Game/Data
 RUN dotnet publish ./AAEmu.Game/AAEmu.Game.csproj -c $CONFIGURATION -r $RUNTIME --self-contained true
 
 FROM ubuntu:20.04
@@ -22,6 +21,7 @@ ARG DB_USER
 ARG DB_PASSWORD
 
 RUN apt update && apt install openssl -y
+
 WORKDIR app
 COPY --from=builder app/AAEmu.Game/bin/$CONFIGURATION/$FRAMEWORK/$RUNTIME/publish ./
 RUN cp ./ExampleConfig.json ./Config.json
