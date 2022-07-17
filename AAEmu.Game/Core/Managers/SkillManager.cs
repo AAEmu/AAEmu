@@ -39,11 +39,9 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, SkillProduct> _skillProducts;
         private HashSet<ushort> _skillIds = new HashSet<ushort>();
         private ushort _skillIdIndex = 1;
-        /**
-         * Events
-         */
+        
+        //Events
         public event EventHandler OnSkillsLoaded;
-
 
         public ushort NextId()
         {
@@ -272,8 +270,6 @@ namespace AAEmu.Game.Core.Managers
             _effects.Add("TrainCraftEffect", new Dictionary<uint, EffectTemplate>());
             _effects.Add("SkillController", new Dictionary<uint, EffectTemplate>());
             _effects.Add("ResetAoeDiminishingEffect", new Dictionary<uint, EffectTemplate>());
-
-
 
             _buffs = new Dictionary<uint, BuffTemplate>();
             // TODO 
