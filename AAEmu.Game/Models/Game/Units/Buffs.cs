@@ -38,19 +38,25 @@ namespace AAEmu.Game.Models.Game.Units
 
         public bool CheckBuffImmune(uint buffId)
         {
-            foreach (var effect in _effects.ToList())
+            IEnumerable<Buff> effects;
+            lock (_lock)
+            {
+                effects = _effects.ToArray();
+            }
+
+            foreach (var effect in effects)
             {
                 if (effect == null)
                     continue;
 
                 if (effect.Template.ImmuneBuffTagId == 0)
                     continue;
-                
+
                 var buffs = SkillManager.Instance.GetBuffsByTagId(effect.Template.ImmuneBuffTagId);
                 if (buffs != null && buffs.Contains(buffId))
                     return true;
             }
-
+            
             return false;
         }
 

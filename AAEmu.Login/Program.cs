@@ -33,7 +33,7 @@ namespace AAEmu.Login
                 Configuration(args, mainConfig);
             else
             {
-                _log.Error($"{mainConfig} doesn't exist!");
+                _log.Fatal($"{mainConfig} doesn't exist!");
                 return;
             }
 

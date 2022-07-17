@@ -635,17 +635,18 @@ namespace AAEmu.Game.Scripts.Commands
                     character.SendMessage(s+"\n");
             }
         }
-    }
 
-    public enum TeleportCommandRegions { East = 0, West = 1, Auroria = 2, Dungeons = 3, Other = 4 }
+        public enum TeleportCommandRegions { East = 0, West = 1, Auroria = 2, Dungeons = 3, Other = 4 }
 
-    public class TPloc{
-        public string Name {get; set;}
-        public string Info {get; set;}
-        public int X {get; set;}
-        public int Y {get; set;}
-        public int Z {get; set;}
-        public string[] AltNames { get; set; }
-        public TeleportCommandRegions Region { get; set; }
+        public class TPloc
+        {
+            public string Name { get; set; }
+            public string Info { get; set; }
+            public int X { get; set; }
+            public int Y { get; set; }
+            public int Z { get; set; }
+            public string[] AltNames { get; set; }
+            public TeleportCommandRegions Region { get; set; }
+        }
     }
 }
