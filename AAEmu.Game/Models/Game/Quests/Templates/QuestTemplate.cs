@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Quests.Static;
 
 namespace AAEmu.Game.Models.Game.Quests.Templates
 {
-    public class QuestTemplate
+    public class QuestTemplate : IQuestTemplate
     {
         public uint Id { get; set; }
         public bool Repeatable { get; set; }
@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Quests.Templates
         public bool UseAcceptMessage { get; set; }
         public bool UseCompleteMessage { get; set; }
         public uint GradeId { get; set; }
-        public Dictionary<uint, QuestComponent> Components { get; set; }
+        public IDictionary<uint, QuestComponent> Components { get; set; }
 
         public QuestTemplate()
         {

@@ -32,7 +32,7 @@ namespace AAEmu.Game.Models.Game.Quests
         
         public long Id { get; set; }
         public uint TemplateId { get; set; }
-        public QuestTemplate Template { get; set; }
+        public IQuestTemplate Template { get; set; }
         public QuestStatus Status { get; set; }
         public int[] Objectives { get; set; }
         public QuestComponentKind Step { get; set; }
