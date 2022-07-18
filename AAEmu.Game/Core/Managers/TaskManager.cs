@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using ThreadTask = System.Threading.Tasks.Task;
@@ -13,7 +13,7 @@ using Task = AAEmu.Game.Models.Tasks.Task;
 
 namespace AAEmu.Game.Core.Managers
 {
-    public class TaskManager : Singleton<TaskManager>
+    public class TaskManager : Singleton<TaskManager>, ITaskManager
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
@@ -50,14 +50,14 @@ namespace AAEmu.Game.Core.Managers
 
             if (task == null)
             {
-                _log.Error("Task.Schedule: Task is NULL !!! StartTime: {0}, repeatInterval: {1}, count: {2}", startTime,repeatInterval, count);
+                _log.Error("Task.Schedule: Task is NULL !!! StartTime: {0}, repeatInterval: {1}, count: {2}", startTime, repeatInterval, count);
                 return;
             }
 
             task.Id = TaskIdManager.Instance.GetNextId();
             while (await _generalScheduler.CheckExists(new JobKey(task.Name + task.Id, task.Name)))
                 task.Id = TaskIdManager.Instance.GetNextId();
-            
+
             var job = JobBuilder
                 .Create<TaskJob>()
                 .WithIdentity(task.Name + task.Id, task.Name)
@@ -73,7 +73,7 @@ namespace AAEmu.Game.Core.Managers
             if (startTime == null)
                 triggerBuild.StartNow();
             else
-                triggerBuild.StartAt(DateTime.UtcNow.Add((TimeSpan) startTime));
+                triggerBuild.StartAt(DateTime.UtcNow.Add((TimeSpan)startTime));
 
             if (task.Scheduler == null)
             {
@@ -82,7 +82,7 @@ namespace AAEmu.Game.Core.Managers
                     if (repeatInterval == null)
                         return;
 
-                    scheduler.WithInterval((TimeSpan) repeatInterval);
+                    scheduler.WithInterval((TimeSpan)repeatInterval);
 
                     if (count > 0)
                         scheduler.WithRepeatCount(count);

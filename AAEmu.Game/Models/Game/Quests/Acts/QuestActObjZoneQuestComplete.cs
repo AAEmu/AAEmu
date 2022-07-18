@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public bool UseAlias { get; set; }
         public uint QuestActObjAliasId { get; set; }
 
-        public override bool Use(Character character, Quest quest, int objective)
+        public override bool Use(ICharacter character, Quest quest, int objective)
         {
             _log.Warn("QuestActObjZoneQuestComplete");
             return quest.Template.Score > 0 ? objective * Count >= quest.Template.Score : objective >= Count;

@@ -1551,7 +1551,7 @@ namespace AAEmu.Game.Models.Game.Char
             return fallDamage;
         }
 
-        public void UseSkill(uint skillId, Unit target)
+        public void UseSkill(uint skillId, IUnit target)
         {
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate((uint)skillId));
 

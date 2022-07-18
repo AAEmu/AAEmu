@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public uint TimerNpcId { get; set; }
         public bool IsSkillPlayer { get; set; }
 
-        public override bool Use(Character character, Quest quest, int objective)
+        public override bool Use(ICharacter character, Quest quest, int objective)
         {
             _log.Warn("QuestActCheckTimer");
             // TODO add what to do with timer

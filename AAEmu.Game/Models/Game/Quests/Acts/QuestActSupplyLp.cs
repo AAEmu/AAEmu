@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
     {
         public int LaborPower { get; set; }
 
-        public override bool Use(Character character, Quest quest, int objective)
+        public override bool Use(ICharacter character, Quest quest, int objective)
         {
             _log.Debug("QuestActSupplyLp");
             

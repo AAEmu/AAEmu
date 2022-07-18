@@ -24,7 +24,12 @@ namespace AAEmu.Game.Models.Game.Quests
     public class Quest : PacketMarshaler
     {
         private const int ObjectiveCount = 5;
-
+        private readonly ISphereQuestManager _sphereQuestManager;
+        private readonly IQuestManager _questManager;
+        private readonly ITaskManager _taskManager;
+        private readonly ISkillManager _skillManager;
+        private readonly IExpressTextManager _expressTextManager;
+        
         public long Id { get; set; }
         public uint TemplateId { get; set; }
         public QuestTemplate Template { get; set; }
@@ -32,7 +37,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public int[] Objectives { get; set; }
         public QuestComponentKind Step { get; set; }
         public DateTime Time { get; set; }
-        public Character Owner { get; set; }
+        public ICharacter Owner { get; set; }
         public int LeftTime => Time > DateTime.UtcNow ? (int)(Time - DateTime.UtcNow).TotalMilliseconds : -1;
         public int SupplyItem = 0;
         public bool EarlyCompletion { get; set; }
@@ -44,13 +49,27 @@ namespace AAEmu.Game.Models.Game.Quests
         public QuestAcceptorType QuestAcceptorType { get; set; }
         public uint AcceptorType { get; set; }
         public QuestCompleteTask QuestTask { get; set; }
-
+        
         public uint GetActiveComponent()
         {
             return Template.GetComponent(Step).Id;
         }
 
-        public Quest()
+        public Quest(IQuestManager questManager, ISphereQuestManager sphereQuestManager, ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager)
+        {
+            _questManager = questManager;
+            _sphereQuestManager = sphereQuestManager;
+            _taskManager = taskManager;
+            _skillManager = skillManager;
+            _expressTextManager = expressTextManager;
+        }
+        
+        public Quest() : this(
+            QuestManager.Instance, 
+            SphereQuestManager.Instance,
+            TaskManager.Instance,
+            SkillManager.Instance,
+            ExpressTextManager.Instance)
         {
             Objectives = new int[ObjectiveCount];
             SupplyItem = 0;
@@ -59,7 +78,12 @@ namespace AAEmu.Game.Models.Game.Quests
             ObjId = 0;
         }
 
-        public Quest(QuestTemplate template)
+        public Quest(QuestTemplate template) : this(
+            QuestManager.Instance,
+            SphereQuestManager.Instance,
+            TaskManager.Instance,
+            SkillManager.Instance,
+            ExpressTextManager.Instance)
         {
             TemplateId = template.Id;
             Template = template;
@@ -78,7 +102,7 @@ namespace AAEmu.Game.Models.Game.Quests
             {
                 var (_, component2) = Template.Components.ElementAt(2); // возьмём компонент следующий за Supply (let's take the component following Supply)
                 // TODO added for quest Id=748 - получение того же предмета повторно (obtaining the same subject again)
-                var acts2 = QuestManager.Instance.GetActs(component2.Id);
+                var acts2 = _questManager.GetActs(component2.Id);
                 if (component2.KindId == QuestComponentKind.Progress && acts2.Any(qa => qa.DetailType == "QuestActSupplyItem"))
                 {
                     Status = QuestStatus.Ready;
@@ -87,7 +111,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 Status = component2.KindId == QuestComponentKind.Progress ? QuestStatus.Progress : QuestStatus.Ready;
                 return;
             }
-            var acts = QuestManager.Instance.GetActs(component.Id);
+            var acts = _questManager.GetActs(component.Id);
             if (acts.Length == 0)
             {
                 Status = QuestStatus.Ready;
@@ -111,7 +135,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {
-                    var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                    var acts = _questManager.GetActs(components[componentIndex].Id);
 
                     var questActConAcceptNpc = acts.All(a => a.DetailType == "QuestActConAcceptNpc");
                     if (acts.Length > 0 && questActConAcceptNpc)
@@ -228,7 +252,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {
-                    var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                    var acts = _questManager.GetActs(components[componentIndex].Id);
                     foreach (var act in acts)
                     {
                         switch (act.DetailType)
@@ -321,7 +345,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
                             var delay = 6;
                             QuestTask = new QuestCompleteTask(Owner, TemplateId);
-                            TaskManager.Instance.Schedule(QuestTask, TimeSpan.FromSeconds(delay));
+                            _taskManager.Schedule(QuestTask, TimeSpan.FromSeconds(delay));
                             return;
                         }
                     case 0: // пропустим пустые шаги (let's skip the empty steps)
@@ -344,7 +368,7 @@ namespace AAEmu.Game.Models.Game.Quests
                     if (Step == QuestComponentKind.Progress)
                         ComponentId = components[componentIndex].Id;
 
-                    var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                    var acts = _questManager.GetActs(components[componentIndex].Id);
                     foreach (var act in acts)
                     {
                         switch (act.DetailType)
@@ -361,11 +385,11 @@ namespace AAEmu.Game.Models.Game.Quests
                                     var componentnext = Template.GetComponent(next);
                                     if (componentnext == null)
                                         break;
-                                    var actsnext = QuestManager.Instance.GetActs(componentnext.Id);
+                                    var actsnext = _questManager.GetActs(componentnext.Id);
                                     foreach (var qa in actsnext)
                                     {
-                                        var questSupplyItem = (QuestActSupplyItem)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActSupplyItem");
-                                        var questItemGather = (QuestActObjItemGather)QuestManager.Instance.GetActTemplate(qa.DetailId, "QuestActObjItemGather");
+                                        var questSupplyItem = (QuestActSupplyItem)_questManager.GetActTemplate(act.DetailId, "QuestActSupplyItem");
+                                        var questItemGather = (QuestActObjItemGather)_questManager.GetActTemplate(qa.DetailId, "QuestActObjItemGather");
                                         switch (qa.DetailType)
                                         {
                                             case "QuestActObjItemGather" when questSupplyItem.ItemId == questItemGather.ItemId:
@@ -415,7 +439,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     Status = QuestStatus.Progress;
                                     ComponentId = components[componentIndex].Id;
 
-                                    foreach (var sphere in SphereQuestManager.Instance.GetQuestSpheres(components[componentIndex].Id))
+                                    foreach (var sphere in _sphereQuestManager.GetQuestSpheres(components[componentIndex].Id))
                                     {
                                         var sphereQuestTrigger = new SphereQuestTrigger();
                                         sphereQuestTrigger.Sphere = sphere;
@@ -431,7 +455,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                         sphereQuestTrigger.Quest = this;
                                         sphereQuestTrigger.TickRate = 500;
 
-                                        SphereQuestManager.Instance.AddSphereQuestTrigger(sphereQuestTrigger);
+                                        _sphereQuestManager.AddSphereQuestTrigger(sphereQuestTrigger);
                                     }
 
                                     const int Duration = 500;
@@ -559,7 +583,7 @@ namespace AAEmu.Game.Models.Game.Quests
             }
             if (components[componentIndex].BuffId > 0)
             {
-                Owner.Buffs.AddBuff(new Buff(Owner, Owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(components[componentIndex].BuffId), null, DateTime.UtcNow));
+                Owner.Buffs.AddBuff(new Buff(Owner, Owner, SkillCaster.GetByType(SkillCasterType.Unit), _skillManager.GetBuffTemplate(components[componentIndex].BuffId), null, DateTime.UtcNow));
             }
         }
 
@@ -588,7 +612,7 @@ namespace AAEmu.Game.Models.Game.Quests
             }
             if (component.BuffId > 0)
             {
-                Owner.Buffs.AddBuff(new Buff(Owner, Owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(component.BuffId), null, DateTime.UtcNow));
+                Owner.Buffs.AddBuff(new Buff(Owner, Owner, SkillCaster.GetByType(SkillCasterType.Unit), _skillManager.GetBuffTemplate(component.BuffId), null, DateTime.UtcNow));
             }
         }
 
@@ -610,7 +634,7 @@ namespace AAEmu.Game.Models.Game.Quests
                     if (step == QuestComponentKind.Ready)
                         ComponentId = components[componentIndex].Id;
 
-                    var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                    var acts = _questManager.GetActs(components[componentIndex].Id);
                     var selective = 0;
                     foreach (var act in acts)
                     {
@@ -684,7 +708,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 return 0;
             }
 
-            var acts = QuestManager.Instance.GetActs(component.Id);
+            var acts = _questManager.GetActs(component.Id);
             foreach (var act in acts)
             {
                 switch (act.DetailType)
@@ -723,7 +747,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {
-                    var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                    var acts = _questManager.GetActs(components[componentIndex].Id);
                     foreach (var act in acts)
                     {
                         switch (act.DetailType)
@@ -801,7 +825,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
-                var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                var acts = _questManager.GetActs(components[componentIndex].Id);
                 var selective = 0;
                 foreach (var act in acts)
                 {
@@ -848,7 +872,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
-                var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                var acts = _questManager.GetActs(components[componentIndex].Id);
                 foreach (var act in acts)
                 {
                     switch (act.DetailType)
@@ -880,7 +904,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
-                var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                var acts = _questManager.GetActs(components[componentIndex].Id);
                 foreach (var act in acts)
                 {
                     switch (act.DetailType)
@@ -912,7 +936,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
-                var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                var acts = _questManager.GetActs(components[componentIndex].Id);
                 foreach (var act in acts)
                 {
                     switch (act.DetailType)
@@ -931,7 +955,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         case "QuestActObjMonsterGroupHunt":
                             {
                                 var template = act.GetTemplate<QuestActObjMonsterGroupHunt>();
-                                if (QuestManager.Instance.CheckGroupNpc(template.QuestMonsterGroupId, npc.TemplateId))
+                                if (_questManager.CheckGroupNpc(template.QuestMonsterGroupId, npc.TemplateId))
                                 {
                                     checking = true;
                                     Objectives[componentIndex]++;
@@ -956,7 +980,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
-                var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                var acts = _questManager.GetActs(components[componentIndex].Id);
                 foreach (var act in acts)
                 {
                     switch (act.DetailType)
@@ -991,7 +1015,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         case "QuestActObjItemGroupGather":
                             {
                                 var template = act.GetTemplate<QuestActObjItemGroupGather>();
-                                if (QuestManager.Instance.CheckGroupItem(template.ItemGroupId, item.TemplateId))
+                                if (_questManager.CheckGroupItem(template.ItemGroupId, item.TemplateId))
                                 {
                                     checking = true;
                                     Objectives[componentIndex] += count;
@@ -1020,7 +1044,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
-                var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                var acts = _questManager.GetActs(components[componentIndex].Id);
                 foreach (var act in acts)
                 {
                     switch (act.DetailType)
@@ -1047,7 +1071,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         case "QuestActObjItemGroupUse":
                             {
                                 var template = act.GetTemplate<QuestActObjItemGroupUse>();
-                                if (QuestManager.Instance.CheckGroupItem(template.ItemGroupId, item.TemplateId))
+                                if (_questManager.CheckGroupItem(template.ItemGroupId, item.TemplateId))
                                 {
                                     checking = true;
                                     Objectives[componentIndex]++;
@@ -1073,7 +1097,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
-                var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                var acts = _questManager.GetActs(components[componentIndex].Id);
                 foreach (var act in acts)
                 {
                     switch (act.DetailType)
@@ -1111,14 +1135,14 @@ namespace AAEmu.Game.Models.Game.Quests
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
-                var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                var acts = _questManager.GetActs(components[componentIndex].Id);
                 foreach (var act in acts)
                 {
                     switch (act.DetailType)
                     {
                         case "QuestActObjExpressFire":
                             {
-                                var expressKeyId = ExpressTextManager.Instance.GetExpressAnimId(emotionId);
+                                var expressKeyId = _expressTextManager.GetExpressAnimId(emotionId);
                                 var template = act.GetTemplate<QuestActObjExpressFire>();
                                 if (template.ExpressKeyId == expressKeyId)
                                 {
@@ -1141,7 +1165,7 @@ namespace AAEmu.Game.Models.Game.Quests
             var component = Template.GetComponent(Step);
             if (component != null)
             {
-                var acts = QuestManager.Instance.GetActs(component.Id);
+                var acts = _questManager.GetActs(component.Id);
                 for (var i = 0; i < acts.Length; i++)
                 {
                     var act = acts[i];
@@ -1170,7 +1194,7 @@ namespace AAEmu.Game.Models.Game.Quests
             var component = Template.GetComponent(Step);
             if (component != null)
             {
-                var acts = QuestManager.Instance.GetActs(component.Id);
+                var acts = _questManager.GetActs(component.Id);
                 for (var i = 0; i < acts.Length; i++)
                 {
                     var act = acts[i];
@@ -1205,7 +1229,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
-                var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                var acts = _questManager.GetActs(components[componentIndex].Id);
                 foreach (var act in acts)
                 {
                     switch (act.DetailType)
@@ -1242,7 +1266,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 return;
             }
 
-            var acts = QuestManager.Instance.GetActs(component.Id);
+            var acts = _questManager.GetActs(component.Id);
             for (var i = 0; i < acts.Length; i++)
             {
                 var act = acts[i];
@@ -1275,7 +1299,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         {
                             var template = acts[i].GetTemplate<QuestActObjItemGroupGather>();
                             Objectives[i] = 0;
-                            foreach (var itemId in QuestManager.Instance.GetGroupItems(template.ItemGroupId))
+                            foreach (var itemId in _questManager.GetGroupItems(template.ItemGroupId))
                             {
                                 Objectives[i] += Owner.Inventory.GetItemsCount(itemId);
                             }

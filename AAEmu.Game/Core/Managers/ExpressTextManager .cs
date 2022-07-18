@@ -8,7 +8,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers
 {
-    public class ExpressTextManager : Singleton<ExpressTextManager>
+    public class ExpressTextManager : Singleton<ExpressTextManager>, IExpressTextManager
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 

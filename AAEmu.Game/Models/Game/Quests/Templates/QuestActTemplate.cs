@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Char;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Quests.Templates
@@ -8,6 +8,6 @@ namespace AAEmu.Game.Models.Game.Quests.Templates
         public static Logger _log = LogManager.GetCurrentClassLogger();
         public uint Id { get; set; }
 
-        public abstract bool Use(Character character, Quest quest, int objective);
+        public abstract bool Use(ICharacter character, Quest quest, int objective);
     }
 }

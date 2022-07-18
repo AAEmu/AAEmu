@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
 
         public static int ItemGroupUseStatus = 0;
 
-        public override bool Use(Character character, Quest quest, int objective)
+        public override bool Use(ICharacter character, Quest quest, int objective)
         {
             _log.Warn("QuestActObjItemGroupUse");
             if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count

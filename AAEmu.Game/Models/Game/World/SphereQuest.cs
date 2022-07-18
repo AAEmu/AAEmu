@@ -45,7 +45,7 @@ namespace AAEmu.Game.Models.Game.World
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         public SphereQuest Sphere { get; set; }
-        public Character Owner { get; set; }
+        public ICharacter Owner { get; set; }
         public Quest Quest { get; set; }
 
         private List<SphereQuestTrigger> Triggers { get; set; }

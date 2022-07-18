@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public int Count { get; set; }
         public byte GradeId { get; set; }
 
-        public override bool Use(Character character, Quest quest, int objective)
+        public override bool Use(ICharacter character, Quest quest, int objective)
         {
             _log.Warn("QuestActSupplySelectiveItem");
 

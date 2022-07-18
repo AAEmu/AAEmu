@@ -15,7 +15,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers
 {
-    public class QuestManager : Singleton<QuestManager>
+    public class QuestManager : Singleton<QuestManager>, IQuestManager
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
@@ -73,12 +73,12 @@ namespace AAEmu.Game.Core.Managers
             return _groupNpcs.ContainsKey(groupId) && (_groupNpcs[groupId].Contains(npcId));
         }
 
-        public void QuestCompleteTask(Character owner, uint questId)
+        public void QuestCompleteTask(ICharacter owner, uint questId)
         {
             owner.Quests.Complete(questId, 0);
         }
 
-        public void CancelQuest(Character owner, uint questId)
+        public void CancelQuest(ICharacter owner, uint questId)
         {
             owner.Quests.Drop(questId, true);
             owner.SendMessage("[Quest] {0}, quest {1} time is over, you didn't make it. Try again.", owner.Name, questId);

@@ -5,7 +5,16 @@ namespace AAEmu.Game.Models.Game.Char
 {
     public interface ICharacter : IUnit
     {
-        public void SendMessage(string message, params object[] parameters);
-        public void SendMessage(Color color, string message, params object[] parameters);
+        CharacterQuests Quests { get; set; }
+        Inventory Inventory { get; set; }
+        long Money { get; set; }
+        CharacterMates Mates { get; set; }
+        CharacterAppellations Appellations { get; set; }
+        void SendMessage(string message, params object[] parameters);
+        void SendMessage(Color color, string message, params object[] parameters);
+        void SendErrorMessage(ErrorMessageType errorMsgType, uint type = 0, bool isNotify = true);
+        void ChangeLabor(short change, int actabilityId);
+        void UseSkill(uint skillId, IUnit target);
+        void AddExp(int exp, bool shouldAddAbilityExp);
     }
 }
