@@ -295,7 +295,15 @@ namespace AAEmu.Commons.Utils.Updater
                     }
                 }
 
-                currentDir = new DirectoryInfo(currentDir).Parent?.FullName ?? string.Empty;
+                try
+                {
+                    currentDir = Directory.GetParent(currentDir).FullName;
+                }
+                catch (Exception ex)
+                {
+                    _log.Error(ex);
+                    currentDir = string.Empty;
+                }
             }
 
             res = new List<string>();
