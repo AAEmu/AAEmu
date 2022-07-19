@@ -98,12 +98,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <summary>
         /// This "uses" the doodad. Using a doodad means running its functions in doodad_funcs
         /// </summary>
-        public void Use(Unit unit, uint skillId, uint recursionDepth = 0, string restrictUseType = "")
+        public void Use(Unit unit, uint skillId, uint recursionDepth = 0)
         {
             recursionDepth++;
             if (recursionDepth % 10 == 0)
                 _log.Warn("Doodad {0} (TemplateId {1}) might be looping indefinitely. {2} recursionDepth.", ObjId, TemplateId, recursionDepth);
             _log.Trace("Using phase {0}", CurrentPhaseId);
+            
             // Get all doodad_funcs
             var funcs = DoodadManager.Instance.GetFuncsForGroup(CurrentPhaseId);
 
@@ -117,10 +118,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 foreach (var func in funcs)
                 {
                     if ((func.SkillId <= 0 || func.SkillId != skillId) && func.SkillId != 0)
-                        continue;
-                    
-                    // TODO: Hack!!
-                    if ((restrictUseType != "") && (func.FuncType != restrictUseType))
                         continue;
                     
                     func.Use(unit, this, skillId, func.NextPhase);
