@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
     {
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncRecoverItem");
+            _log.Debug($"DoodadFuncRecoverItem({Id}) - Caster:{caster.Name} - DoodadOwner Template:{owner?.TemplateId} - SkillId:{skillId} - Nextphase:{nextPhase}");
 
             var character = (Character)caster;
             var addedItem = false;
