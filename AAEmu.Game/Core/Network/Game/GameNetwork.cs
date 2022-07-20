@@ -337,7 +337,7 @@ namespace AAEmu.Game.Core.Network.Game
 
         public void Stop()
         {
-            if (_server.IsStarted)
+            if (_server?.IsStarted ?? false)
                 _server.Stop();
 
             _log.Info("Network stoped");

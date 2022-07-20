@@ -368,7 +368,7 @@ namespace AAEmu.Game.Core.Managers
             _log.Info("Loading transfer_path...");
 
             var worlds = WorldManager.Instance.GetWorlds();
-            Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
+            Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
             //                              worldId           key  transfer_path
             _transferRoads = new Dictionary<byte, Dictionary<uint, List<TransferRoads>>>();
