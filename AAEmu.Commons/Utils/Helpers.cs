@@ -42,9 +42,9 @@ namespace AAEmu.Commons.Utils
 
         public static readonly bool Is64Bit = Environment.Is64BitOperatingSystem;
 
-        public static IEnumerable<Type> GetTypesInNamespace(string nameSpace)
+        public static IEnumerable<Type> GetTypesInNamespace(Assembly sourceAssembly, string nameSpace)
         {
-            return Assembly.GetTypes().Where(t => string.Equals(t.Namespace, nameSpace, StringComparison.Ordinal)).ToArray();
+            return sourceAssembly.GetTypes().Where(t => string.Equals(t.Namespace, nameSpace, StringComparison.Ordinal)).ToArray();
         }
 
         public static long UnixTime(DateTime time)

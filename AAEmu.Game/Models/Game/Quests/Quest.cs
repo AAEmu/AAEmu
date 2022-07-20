@@ -55,22 +55,20 @@ namespace AAEmu.Game.Models.Game.Quests
             return Template.GetComponent(Step).Id;
         }
 
-        public Quest(IQuestManager questManager, ISphereQuestManager sphereQuestManager, ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager)
+        public Quest(IQuestTemplate questTemplate, IQuestManager questManager, ISphereQuestManager sphereQuestManager, ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager)
         {
             _questManager = questManager;
             _sphereQuestManager = sphereQuestManager;
             _taskManager = taskManager;
             _skillManager = skillManager;
             _expressTextManager = expressTextManager;
-        }
-        
-        public Quest() : this(
-            QuestManager.Instance, 
-            SphereQuestManager.Instance,
-            TaskManager.Instance,
-            SkillManager.Instance,
-            ExpressTextManager.Instance)
-        {
+
+            if (questTemplate is not null)
+            {
+                TemplateId = questTemplate.Id;
+                Template = questTemplate;
+            }
+            
             Objectives = new int[ObjectiveCount];
             SupplyItem = 0;
             EarlyCompletion = false;
@@ -78,20 +76,23 @@ namespace AAEmu.Game.Models.Game.Quests
             ObjId = 0;
         }
 
-        public Quest(QuestTemplate template) : this(
+        public Quest() : this(
+            null,
+            QuestManager.Instance, 
+            SphereQuestManager.Instance,
+            TaskManager.Instance,
+            SkillManager.Instance,
+            ExpressTextManager.Instance)
+        {
+        }
+
+        public Quest(IQuestTemplate template) : this(template,
             QuestManager.Instance,
             SphereQuestManager.Instance,
             TaskManager.Instance,
             SkillManager.Instance,
             ExpressTextManager.Instance)
         {
-            TemplateId = template.Id;
-            Template = template;
-            Objectives = new int[ObjectiveCount];
-            SupplyItem = 0;
-            EarlyCompletion = false;
-            ExtraCompletion = false;
-            ObjId = 0;
         }
 
         private void CheckStatus()
@@ -141,8 +142,8 @@ namespace AAEmu.Game.Models.Game.Quests
                     if (acts.Length > 0 && questActConAcceptNpc)
                     {
                         // оказывается может быть несколько Npc с которыми можно заключить квест! (It turns out that there may be several NPCs with which you can make a quest!)
-                        var accept = acts.Select(t => t.Use(Owner, this, Objectives[componentIndex])).ToList();
-                        if (accept.Contains(true))
+                        var targetNpcMatch = acts.Any(t => t.Use(Owner, this, Objectives[componentIndex]));
+                        if (targetNpcMatch)
                         {
                             res = true;
                             acceptNpc = true;

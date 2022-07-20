@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Reflection;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Char;
@@ -49,11 +49,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             _phaseFuncs = new Dictionary<uint, List<DoodadPhaseFunc>>();
             _funcTemplates = new Dictionary<string, Dictionary<uint, DoodadFuncTemplate>>();
             _phaseFuncTemplates = new Dictionary<string, Dictionary<uint, DoodadPhaseFuncTemplate>>();
-            foreach (var type in Helpers.GetTypesInNamespace("AAEmu.Game.Models.Game.DoodadObj.Funcs"))
+            foreach (var type in Helpers.GetTypesInNamespace(Assembly.GetAssembly(GetType()), "AAEmu.Game.Models.Game.DoodadObj.Funcs"))
                 if (type.BaseType == typeof(DoodadFuncTemplate))
                     _funcTemplates.Add(type.Name, new Dictionary<uint, DoodadFuncTemplate>());
-            foreach (var type in Helpers.GetTypesInNamespace("AAEmu.Game.Models.Game.DoodadObj.Funcs"))
-                if (type.BaseType == typeof(DoodadPhaseFuncTemplate))
+                else if (type.BaseType == typeof(DoodadPhaseFuncTemplate))
                     _phaseFuncTemplates.Add(type.Name, new Dictionary<uint, DoodadPhaseFuncTemplate>());
 
             using (var connection = SQLite.CreateConnection())

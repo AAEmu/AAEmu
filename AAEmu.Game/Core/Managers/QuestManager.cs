@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Reflection;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
@@ -97,7 +97,7 @@ namespace AAEmu.Game.Core.Managers
             _groupItems = new Dictionary<uint, List<uint>>();
             _groupNpcs = new Dictionary<uint, List<uint>>();
 
-            foreach (var type in Helpers.GetTypesInNamespace("AAEmu.Game.Models.Game.Quests.Acts"))
+            foreach (var type in Helpers.GetTypesInNamespace(Assembly.GetAssembly(GetType()), "AAEmu.Game.Models.Game.Quests.Acts"))
                 if (type.BaseType == typeof(QuestActTemplate))
                     _actTemplates.Add(type.Name, new Dictionary<uint, QuestActTemplate>());
 
