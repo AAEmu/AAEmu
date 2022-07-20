@@ -31,9 +31,8 @@ namespace AAEmu.Game.Scripts.Commands
                 return
                     "Teleports you to target location. if no [location] is provided, you will get a list of available names. " +
                     "You can also use a period (.) as a location name to teleport to a location you marked on the map.";
-            else
-                return
-                    "Teleports you to target location. if no [location] is provided, you will get a list of available names.";
+            /*else
+                return "Teleports you to target location. if no [location] is provided, you will get a list of available names."; */
         }
 
         public void loadLocations()
@@ -621,9 +620,10 @@ namespace AAEmu.Game.Scripts.Commands
                     character.SendMessage("Usage : " + CommandManager.CommandPrefix + "teleport <Location>\n" +
                                           "Use a period (.) to teleport to YOUR marked location on the map, " +
                                           "or use one of the following locations :");
-                else
+                /*else
                     character.SendMessage("Usage : " + CommandManager.CommandPrefix + "teleport <Location>\n" +
-                                          "Teleport to one of the following locations :");
+                                          "Teleport to one of the following locations :"); */
+                
                 List<string> sb = new List<string>();
                 foreach (TeleportCommandRegions r in System.Enum.GetValues(typeof(TeleportCommandRegions)) )
                     sb.Add("|cFFFFFFFF"+r.ToString() + "|r: ");

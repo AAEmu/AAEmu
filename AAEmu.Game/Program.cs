@@ -65,7 +65,14 @@ namespace AAEmu.Game
                     services.AddSingleton<IHostedService, DiscordBotService>();
                 });
             
-            await builder.RunConsoleAsync();
+            try 
+            { 
+                await builder.RunConsoleAsync();
+            }
+            catch (OperationCanceledException ocex)
+            {
+                _log.Fatal(ocex.Message);
+            }
         }
         
         private static void Initialization()
@@ -89,7 +96,8 @@ namespace AAEmu.Game
         private static void Configuration(string[] args, string mainConfigJson)
         {
             // Load NLog configuration
-            LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"), false);
+            LogManager.ThrowConfigExceptions = false;
+            LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"));
 
             // Load Game server configuration
             // Get files inside in the Configurations folder

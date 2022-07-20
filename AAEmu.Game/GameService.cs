@@ -22,6 +22,7 @@ using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
+using System.Linq;
 
 namespace AAEmu.Game
 {
@@ -36,6 +37,13 @@ namespace AAEmu.Game
             // Check for updates
             using (var connection = MySQL.CreateConnection())
             {
+                if (connection is null)
+                {
+                    _log.Fatal("Failed up connect to mysql database check version and credentials!");
+                    _log.Fatal("Press Ctrl+C to quit");
+                    return;
+                }
+                
                 if (!MySqlDatabaseUpdater.Run(connection, "aaemu_game", AppConfiguration.Instance.Connections.MySQLProvider.Database))
                 {
                     _log.Fatal("Failed up update database !");
@@ -44,23 +52,40 @@ namespace AAEmu.Game
                 }
             }
 
+            using (var connection = SQLite.CreateConnection())
+            {
+                if (connection is null)
+                {
+                    _log.Fatal("Failed up load compact.sqlite3 database check if it exists!");
+                    _log.Fatal("Press Ctrl+C to quit");
+                    return;
+                }
+            }
+            
+            ClientFileManager.Initialize();
+            if (ClientFileManager.ListSources().Count == 0)
+            {
+                _log.Fatal($"Failed up load client files! ({string.Join(", ", AppConfiguration.Instance.ClientData.Sources)})");
+                _log.Fatal("Press Ctrl+C to quit");
+                return;
+            }
+
             var stopWatch = new Stopwatch();
 
             stopWatch.Start();
+            
             TickManager.Instance.Initialize();
             TaskIdManager.Instance.Initialize();
             TaskManager.Instance.Initialize();
 
+            WorldManager.Instance.Load();
             FeaturesManager.Instance.Initialize();
-
-            ClientFileManager.Initialize();
             
             LocalizationManager.Instance.Load();
             ObjectIdManager.Instance.Initialize();
             TradeIdManager.Instance.Initialize();
 
             ZoneManager.Instance.Load();
-            WorldManager.Instance.Load();
             var heightmapTask = Task.Run(() =>
             {
                 WorldManager.Instance.LoadHeightmaps();

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -27,7 +27,7 @@ namespace AAEmu.Commons.IO
                 {
                     if (assembly.EntryPoint == null)
                         continue;
-                    _appPath = Path.GetDirectoryName(new Uri(assembly.CodeBase).LocalPath);
+                    _appPath = Path.GetDirectoryName(new Uri(assembly.Location).LocalPath);
                     break;
                 }
 

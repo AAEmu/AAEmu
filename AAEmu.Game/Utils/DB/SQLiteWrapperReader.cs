@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
 
@@ -83,7 +83,8 @@ namespace AAEmu.Game.Utils.DB
 
         public int GetInt32(string column)
         {
-            return _reader.GetInt32(GetOrdinal(column));
+            //Same impl of Sqlite.Core v2.2.1
+            return (int)_reader.GetInt64(GetOrdinal(column));
         }
 
         public int GetInt32(string column, int defaultValue)
@@ -91,7 +92,9 @@ namespace AAEmu.Game.Utils.DB
             var ordinal = GetOrdinal(column);
             if (_reader.IsDBNull(ordinal))
                 return defaultValue;
-            return _reader.GetInt32(ordinal);
+
+            //Same impl of Sqlite.Core v2.2.1
+            return (int)_reader.GetInt64(ordinal);
         }
 
         public uint GetUInt32(string column) => (uint) GetInt32(column);
