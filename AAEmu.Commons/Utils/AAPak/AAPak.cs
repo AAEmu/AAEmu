@@ -122,7 +122,7 @@ namespace AAEmu.Commons.Utils.AAPak
         {
             try
             {
-                Aes aes = new AesManaged();
+                Aes aes = Aes.Create();
                 aes.Key = key;
                 aes.IV = new byte[16];
                 aes.Mode = CipherMode.CBC;
@@ -148,7 +148,7 @@ namespace AAEmu.Commons.Utils.AAPak
         {
             try
             {
-                Aes aes = new AesManaged();
+                Aes aes = Aes.Create();
                 aes.Key = key;
                 aes.IV = new byte[16];
                 aes.Mode = CipherMode.CBC;
@@ -187,7 +187,7 @@ namespace AAEmu.Commons.Utils.AAPak
         {
             try
             {
-                Aes aes = new AesManaged();
+                Aes aes = Aes.Create();
                 aes.Key = key;
                 aes.IV = customIV;
                 aes.Mode = CipherMode.CBC;
@@ -226,7 +226,7 @@ namespace AAEmu.Commons.Utils.AAPak
         {
             try
             {
-                Aes aes = new AesManaged();
+                Aes aes = Aes.Create();
                 aes.Key = key;
                 aes.IV = customIV;
                 aes.Mode = CipherMode.CBC;

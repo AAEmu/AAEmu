@@ -299,8 +299,9 @@ namespace AAEmu.Commons.Utils.Updater
                 {
                     currentDir = Directory.GetParent(currentDir).FullName;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _log.Error(ex);
                     currentDir = string.Empty;
                 }
             }
