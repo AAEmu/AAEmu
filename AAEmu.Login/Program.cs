@@ -83,8 +83,8 @@ namespace AAEmu.Login
 
             configurationBuilder.Bind(AppConfiguration.Instance);
 
-            LogManager.Configuration =
-                new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"), false);
+            LogManager.ThrowConfigExceptions = false;
+            LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"));
         }
     }
 }

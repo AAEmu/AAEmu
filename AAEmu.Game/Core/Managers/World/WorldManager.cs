@@ -132,8 +132,7 @@ namespace AAEmu.Game.Core.Managers.World
 
             if (worldXmlPaths.Count <= 0)
             {
-                _log.Fatal("No client worlds data has been found, please check the readme.txt file inside the ClientData folder for more info.");
-                return;
+                throw new OperationCanceledException("No client worlds data has been found, please check the readme.txt file inside the ClientData folder for more info.");
             }
             var worldNames = new List<string>();
             worldNames.Add("main_world"); // Make sure main_world is the first even if it wouldn't exist

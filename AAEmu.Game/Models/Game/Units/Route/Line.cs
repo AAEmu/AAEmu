@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
         public override void Execute(Npc npc)
         {
-            if (Position == null)
+            if (Position == default)
             {
                 Stop(npc);
                 return;
