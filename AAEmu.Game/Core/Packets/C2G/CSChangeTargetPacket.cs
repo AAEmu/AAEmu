@@ -6,7 +6,6 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
-
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeTargetPacket : GamePacket
@@ -33,8 +32,10 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: not found in Db", targetId);
                 return;
             }
-            if (Connection.ActiveChar.CurrentTarget is Npc npc)
-                Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3} SpawnerId {4}", targetId, npc.TemplateId, npc.Ai?.GetType().Name.Replace("AiCharacter", ""), npc.Ai?.GetCurrentBehavior()?.GetType().Name.Replace("Behavior", ""), npc.Spawner.Id);
+            if (Connection.ActiveChar.CurrentTarget is Portal portal)
+                Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}\nPos: {2}", targetId, portal.TemplateId, portal.Transform.ToString());
+            else if (Connection.ActiveChar.CurrentTarget is Npc npc)
+                Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3} SpawnerId {4}\nPos: {5}", targetId, npc.TemplateId, npc.Ai?.GetType().Name.Replace("AiCharacter", ""), npc.Ai?.GetCurrentBehavior()?.GetType().Name.Replace("Behavior", ""), npc.Spawner?.Id, npc.Transform.ToString());
             else if (Connection.ActiveChar.CurrentTarget is House house)
                 Connection.ActiveChar.SendMessage("ObjId: {0}, HouseId: {1}, Pos: {2}", targetId, house.Id, house.Transform.ToString());
             else if (Connection.ActiveChar.CurrentTarget is Transfer transfer)

@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -1253,6 +1254,46 @@ namespace AAEmu.Game.Models.Game.Quests
                             // здесь еще есть компоненты, которые не проверили (there are still components here that haven't been tested)
                             _log.Warn("[Quest] OnEnterSphere: wants to do it - {0}, ComponentId {1}, Step {2}, Status {3}, act.DetailType {4}", TemplateId, ComponentId, Step, Status, act.DetailType);
                             break;
+                    }
+                }
+            }
+            Update(checking);
+        }
+
+        public void OnCraft(Craft craft)
+        {
+            // TODO added for quest Id=6024
+            var checking = false;
+            Step = QuestComponentKind.Progress;
+            var components = Template.GetComponents(Step);
+            if (components.Length == 0)
+                return;
+
+            for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
+            {
+                var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                foreach (var act in acts)
+                {
+                    switch (act.DetailType)
+                    {
+                        case "QuestActObjCraft":
+                            {
+                                var template = act.GetTemplate<QuestActObjCraft>();
+                                if (template.CraftId == craft.Id)
+                                {
+                                    if (Objectives[componentIndex] < template.Count)
+                                    {
+                                        checking = true;
+                                        Objectives[componentIndex]++;
+                                    }
+                                    else
+                                    {
+                                        checking = false;
+                                    }
+                                    _log.Warn("[Quest] QuestActObjCraft: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
+                                }
+                                break;
+                            }
                     }
                 }
             }

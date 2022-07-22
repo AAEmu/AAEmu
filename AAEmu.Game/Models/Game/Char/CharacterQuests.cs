@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.NPChar;
@@ -326,6 +327,13 @@ namespace AAEmu.Game.Models.Game.Char
         {
             foreach (var quest in Quests.Values.ToList())
                 quest.OnEnterSphere(sphereQuest);
+        }
+
+        public void OnCraft(Craft craft)
+        {
+            // TODO added for quest Id=6024
+            foreach (var quest in Quests.Values.ToList())
+                quest.OnCraft(craft);
         }
 
         public void AddCompletedQuest(CompletedQuest quest)
