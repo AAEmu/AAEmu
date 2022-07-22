@@ -1,10 +1,7 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -87,6 +84,8 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 Owner.Inventory.Bag.ConsumeItem(Items.Actions.ItemTaskType.CraftActSaved, material.ItemId, material.Amount,null);
             }
+
+            Owner.Quests.OnCraft(_craft); // TODO added for quest Id=6024
 
             if (_count > 0 && !_craft.IsPack)
                 Craft(_craft, _count, _doodadId);
