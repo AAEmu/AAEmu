@@ -96,7 +96,7 @@ namespace AAEmu.Game.Models.Game.Quests
         {
         }
 
-        private void CheckStatus()
+        private void UpdateStatus()
         {
             // проверим следующий компонент на QuestComponentKind.Ready (Check the following component for QuestComponentKind.Ready)
             var (_, component) = Template.Components.ElementAt(1); // возьмём компонент следующий за Start or None (let's take the component following Start or None)
@@ -144,19 +144,17 @@ namespace AAEmu.Game.Models.Game.Quests
                     {
                         // оказывается может быть несколько Npc с которыми можно заключить квест! (It turns out that there may be several NPCs with which you can make a quest!)
                         var targetNpcMatch = acts.Any(t => t.Use(Owner, this, Objectives[componentIndex]));
-                        if (targetNpcMatch)
-                        {
-                            res = true;
-                            acceptNpc = true;
-                            ComponentId = components[componentIndex].Id;
-                            CheckStatus();
-                            _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, acts[0].DetailType);
-                        }
-                        else
+                        if (!targetNpcMatch)
                         {
                             _log.Warn("[Quest] Start failed: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, acts[0].DetailType);
                             return false; // не тот Npc, что нужен по квесту, выход (Not the NPC that is needed by the quest, the exit)
                         }
+                        
+                        res = true;
+                        acceptNpc = true;
+                        ComponentId = components[componentIndex].Id;
+                        UpdateStatus();
+                        _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, acts[0].DetailType);
                         UseSkill(components, componentIndex);
                     }
 
@@ -184,7 +182,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     if (res)
                                     {
                                         ComponentId = components[componentIndex].Id;
-                                        CheckStatus();
+                                        UpdateStatus();
                                         _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     }
                                     else
@@ -268,7 +266,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 if (res)
                                 {
                                     ComponentId = components[componentIndex].Id;
-                                    CheckStatus();
+                                    UpdateStatus();
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                 }
                                 else
@@ -283,7 +281,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     // не проверяем Npc при взятии квеста (do not check the Npc when taking the quest)
                                     act.Use(Owner, this, 0);
                                     ComponentId = components[componentIndex].Id;
-                                    CheckStatus();
+                                    UpdateStatus();
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     UseSkill(components, componentIndex);
                                     break;

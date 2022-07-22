@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests
 {
-    public class QuestAct : IComparable<QuestAct>
+    public class QuestAct : IComparable<QuestAct>, IQuestAct
     {
         public uint Id { get; set; }
         public uint ComponentId { get; set; }

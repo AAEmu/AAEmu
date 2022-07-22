@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Managers
         void CancelQuest(ICharacter owner, uint questId);
         bool CheckGroupItem(uint groupId, uint itemId);
         bool CheckGroupNpc(uint groupId, uint npcId);
-        QuestAct[] GetActs(uint id);
+        IQuestAct[] GetActs(uint id);
         QuestActTemplate GetActTemplate(uint id, string type);
         T GetActTemplate<T>(uint id, string type) where T : QuestActTemplate;
         List<uint> GetGroupItems(uint groupId);

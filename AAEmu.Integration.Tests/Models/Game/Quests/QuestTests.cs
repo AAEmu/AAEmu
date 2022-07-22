@@ -26,6 +26,7 @@ namespace AAEmu.Tests.Models.Game.Quests
         {
             // Arrange
             var quest = SetupQuest(questId, QuestManager.Instance, out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _);
+            
             // Act
             var result = quest.Start();
 

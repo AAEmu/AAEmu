@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Managers
             return _supplies.ContainsKey(level) ? _supplies[level] : null;
         }
 
-        public QuestAct[] GetActs(uint id)
+        public IQuestAct[] GetActs(uint id)
         {
             var res = (_acts.ContainsKey(id) ? _acts[id] : new List<QuestAct>()).ToArray();
             Array.Sort(res);
