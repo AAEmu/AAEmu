@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -17,7 +19,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 using NLog;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
-using Microsoft.Data.Sqlite;
+using AAEmu.Game.Models.Game.Items.Containers;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
 {
@@ -26,6 +28,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         private Dictionary<uint, DoodadTemplate> _templates;
+        private Dictionary<uint, DoodadFuncGroups> _allFuncGroups;
         private Dictionary<uint, List<DoodadFunc>> _funcsByGroups;
         private Dictionary<uint, DoodadFunc> _funcsById;
         private Dictionary<uint, List<DoodadFunc>> _phaseFuncs;
@@ -44,6 +47,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         public void Load()
         {
             _templates = new Dictionary<uint, DoodadTemplate>();
+            _allFuncGroups = new Dictionary<uint, DoodadFuncGroups>();
             _funcsByGroups = new Dictionary<uint, List<DoodadFunc>>();
             _funcsById = new Dictionary<uint, DoodadFunc>();
             _phaseFuncs = new Dictionary<uint, List<DoodadFunc>>();
@@ -54,78 +58,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             using (var connection = SQLite.CreateConnection())
             {
-                _log.Info("Loading doodad templates...");
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * from doodad_almighties";
-                    command.Prepare();
-                    using (var sqliteDataReader = command.ExecuteReader())
-                    using (var reader = new SQLiteWrapperReader(sqliteDataReader))
-                    {
-                        while (reader.Read())
-                        {
-                            var template = new DoodadTemplate();
-                            template.Id = reader.GetUInt32("id");
-                            template.OnceOneMan = reader.GetBoolean("once_one_man", true);
-                            template.OnceOneInteraction = reader.GetBoolean("once_one_interaction", true);
-                            template.MgmtSpawn = reader.GetBoolean("mgmt_spawn", true);
-                            template.Percent = reader.GetInt32("percent", 0);
-                            template.MinTime = reader.GetInt32("min_time", 0);
-                            template.MaxTime = reader.GetInt32("max_time", 0);
-                            template.ModelKindId = reader.GetUInt32("model_kind_id");
-                            template.UseCreatorFaction = reader.GetBoolean("use_creator_faction", true);
-                            template.ForceTodTopPriority = reader.GetBoolean("force_tod_top_priority", true);
-                            template.MilestoneId = reader.GetUInt32("milestone_id", 0);
-                            template.GroupId = reader.GetUInt32("group_id");
-                            template.UseTargetDecal = reader.GetBoolean("use_target_decal", true);
-                            template.UseTargetSilhouette = reader.GetBoolean("use_target_silhouette", true);
-                            template.UseTargetHighlight = reader.GetBoolean("use_target_highlight", true);
-                            template.TargetDecalSize = reader.GetFloat("target_decal_size", 0);
-                            template.SimRadius = reader.GetInt32("sim_radius", 0);
-                            template.CollideShip = reader.GetBoolean("collide_ship", true);
-                            template.CollideVehicle = reader.GetBoolean("collide_vehicle", true);
-                            template.ClimateId = reader.GetUInt32("climate_id", 0);
-                            template.SaveIndun = reader.GetBoolean("save_indun", true);
-                            template.ForceUpAction = reader.GetBoolean("force_up_action", true);
-                            template.Parentable = reader.GetBoolean("parentable", true);
-                            template.Childable = reader.GetBoolean("childable", true);
-                            template.FactionId = reader.GetUInt32("faction_id");
-                            template.GrowthTime = reader.GetInt32("growth_time", 0);
-                            template.DespawnOnCollision = reader.GetBoolean("despawn_on_collision", true);
-                            template.NoCollision = reader.GetBoolean("no_collision", true);
-                            template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
-
-
-
-                            _templates.Add(template.Id, template);
-                        }
-                    }
-                }
-
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM doodad_func_groups";
-                    command.Prepare();
-                    using (var sqliteDataReaderChild = command.ExecuteReader())
-                    using (var reader = new SQLiteWrapperReader(sqliteDataReaderChild))
-                    {
-                        while (reader.Read())
-                        {
-                            var funcGroups = new DoodadFuncGroups();
-                            funcGroups.Id = reader.GetUInt32("id");
-                            funcGroups.Almighty = reader.GetUInt32("doodad_almighty_id");
-                            funcGroups.GroupKindId = (DoodadFuncGroups.DoodadFuncGroupKind)reader.GetUInt32("doodad_func_group_kind_id");
-                            funcGroups.SoundId = reader.GetUInt32("sound_id", 0);
-
-                            var template = GetTemplate(funcGroups.Almighty);
-                            if (template != null)
-                                template.FuncGroups.Add(funcGroups);
-                        }
-                    }
-                }
-
-                _log.Info("Loaded {0} doodad templates", _templates.Count);
-
+                #region doodad_funcs
+                _log.Info("Loading doodad functions ...");
+                
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_funcs";
@@ -2200,7 +2135,137 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
+
+                _log.Info("Finished loading doodad functions ...");
+               
+                #endregion
+                
+                #region doodads_and_func_groups
+                
+                _log.Info("Loading doodad templates...");
+
+                // First load all doodad_func_groups
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM doodad_func_groups";
+                    command.Prepare();
+                    using (var sqliteDataReaderChild = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteDataReaderChild))
+                    {
+                        while (reader.Read())
+                        {
+                            var funcGroups = new DoodadFuncGroups();
+                            funcGroups.Id = reader.GetUInt32("id");
+                            funcGroups.Almighty = reader.GetUInt32("doodad_almighty_id");
+                            funcGroups.GroupKindId = (DoodadFuncGroups.DoodadFuncGroupKind)reader.GetUInt32("doodad_func_group_kind_id");
+                            funcGroups.SoundId = reader.GetUInt32("sound_id", 0);
+                            
+                            if (!_allFuncGroups.TryAdd(funcGroups.Id, funcGroups))
+                                _log.Fatal($"Failed to add FuncGroups: {funcGroups.Id}");
+                        }
+                    }
+                }
+                
+                // Then Load actual doodads
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * from doodad_almighties";
+                    command.Prepare();
+                    using (var sqliteDataReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteDataReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var templateId = reader.GetUInt32("id");
+                            
+                            var cofferCapacity = IsCofferTemplate(templateId);
+                            
+                            DoodadTemplate template;
+                            if (cofferCapacity > 0)
+                                template = new DoodadCofferTemplate() { Capacity = cofferCapacity };
+                            else
+                                template = new DoodadTemplate();
+                            
+                            template.Id = templateId;
+                            template.OnceOneMan = reader.GetBoolean("once_one_man", true);
+                            template.OnceOneInteraction = reader.GetBoolean("once_one_interaction", true);
+                            template.MgmtSpawn = reader.GetBoolean("mgmt_spawn", true);
+                            template.Percent = reader.GetInt32("percent", 0);
+                            template.MinTime = reader.GetInt32("min_time", 0);
+                            template.MaxTime = reader.GetInt32("max_time", 0);
+                            template.ModelKindId = reader.GetUInt32("model_kind_id");
+                            template.UseCreatorFaction = reader.GetBoolean("use_creator_faction", true);
+                            template.ForceTodTopPriority = reader.GetBoolean("force_tod_top_priority", true);
+                            template.MilestoneId = reader.GetUInt32("milestone_id", 0);
+                            template.GroupId = reader.GetUInt32("group_id");
+                            template.UseTargetDecal = reader.GetBoolean("use_target_decal", true);
+                            template.UseTargetSilhouette = reader.GetBoolean("use_target_silhouette", true);
+                            template.UseTargetHighlight = reader.GetBoolean("use_target_highlight", true);
+                            template.TargetDecalSize = reader.GetFloat("target_decal_size", 0);
+                            template.SimRadius = reader.GetInt32("sim_radius", 0);
+                            template.CollideShip = reader.GetBoolean("collide_ship", true);
+                            template.CollideVehicle = reader.GetBoolean("collide_vehicle", true);
+                            template.ClimateId = reader.GetUInt32("climate_id", 0);
+                            template.SaveIndun = reader.GetBoolean("save_indun", true);
+                            template.ForceUpAction = reader.GetBoolean("force_up_action", true);
+                            template.Parentable = reader.GetBoolean("parentable", true);
+                            template.Childable = reader.GetBoolean("childable", true);
+                            template.FactionId = reader.GetUInt32("faction_id");
+                            template.GrowthTime = reader.GetInt32("growth_time", 0);
+                            template.DespawnOnCollision = reader.GetBoolean("despawn_on_collision", true);
+                            template.NoCollision = reader.GetBoolean("no_collision", true);
+                            template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
+
+                            _templates.Add(template.Id, template);
+                        }
+                    }
+                }                
+                
+                // Bind FuncGroups to Template
+                foreach (var (_, funcGroups) in _allFuncGroups)
+                {
+                    var template = GetTemplate(funcGroups.Almighty);
+                    if (template != null)
+                        template.FuncGroups.Add(funcGroups);
+                }
+                
+                
+
+                _log.Info("Loaded {0} doodad templates", _templates.Count);
+                #endregion
             }
+        }
+
+        /// <summary>
+        /// Checks if a DoodadTemplateId has a doodad_func_coffer attached to it
+        /// </summary>
+        /// <param name="templateId"></param>
+        /// <returns>Returns the Coffer Capacity if true, otherwise returns -1</returns>
+        public int IsCofferTemplate(uint templateId)
+        {
+            if (templateId == 0)
+                return -1;
+            
+            // Check if template is a Coffer
+            foreach (var (_, funcGroup) in _allFuncGroups)
+            {
+                if (funcGroup.Almighty != templateId)
+                    continue;
+                if (_funcsByGroups.TryGetValue(funcGroup.Id, out var funcList))
+                {
+                    foreach (var func in funcList)
+                    {
+                        if (_funcTemplates.TryGetValue(func.FuncType, out var funcTemplates))
+                            if (funcTemplates.TryGetValue(func.FuncId, out var funcTemplate))
+                                if (funcTemplate is DoodadFuncCoffer funcCoffer)
+                                {
+                                    return funcCoffer.Capacity;
+                                }
+                    }
+                }
+            }
+
+            return -1;
         }
 
         public Doodad Create(uint bcId, uint id, GameObject obj = null)
@@ -2208,22 +2273,24 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             if (!_templates.ContainsKey(id))
                 return null;
             var template = _templates[id];
-            var doodad = new Doodad
-            {
-                ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId(),
-                TemplateId = template.Id,
-                Template = template,
-                OwnerObjId = obj?.ObjId ?? 0,
+            Doodad doodad = null;
 
-                // TODO for test
-                PlantTime = DateTime.UtcNow,
-                //GrowthTime = DateTime.UtcNow.AddMilliseconds(template.MinTime),
-                //GrowthTime = DateTime.UtcNow.AddMilliseconds(10000),
-               
-                OwnerType = DoodadOwnerType.System
-            };
+            // Check if template is a Coffer
+            if (template is DoodadCofferTemplate doodadCofferTemplate)
+                doodad = new DoodadCoffer() { Capacity = doodadCofferTemplate.Capacity };
+
+            if (doodad == null)
+                doodad = new Doodad();
+            
+            doodad.ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
+            doodad.TemplateId = template.Id;
+            doodad.Template = template;
+            doodad.OwnerObjId = obj?.ObjId ?? 0; // TODO for test
+            doodad.PlantTime = DateTime.UtcNow; //GrowthTime = DateTime.UtcNow.AddMilliseconds(template.MinTime),
+            //GrowthTime = DateTime.UtcNow.AddMilliseconds(10000),
+            doodad.OwnerType = DoodadOwnerType.System;
             doodad.CurrentPhaseId = doodad.GetFuncGroupId();
-
+            
             switch (obj)
             {
                 case Character character:
@@ -2339,12 +2406,66 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             doodad.ItemTemplateId = preferredItem.TemplateId;
 
+            if (doodad is DoodadCoffer coffer)
+            {
+                coffer.InitializeCoffer(character.Id);
+            }
+
             foreach (var item in items)
                 character.Inventory.ConsumeItem(new [] {SlotType.Inventory}, ItemTaskType.DoodadCreate, item, 1, preferredItem);
             
             doodad.Spawn();
             doodad.Save();
             return doodad;
+        }
+
+        public bool OpenCofferDoodad(Character character, uint objId)
+        {
+            var doodad = WorldManager.Instance.GetDoodad(objId);
+            if (!(doodad is DoodadCoffer coffer))
+                return false;
+            
+            // Somebody already using this ?
+            if (coffer.OpenedBy != null)
+                return false;
+            
+            // TODO: Check permissions
+
+            coffer.OpenedBy = character;
+
+            if (character != null)
+            {
+                byte firstSlot = 0;
+                while (firstSlot < coffer.Capacity)
+                {
+                    character.SendPacket(new SCCofferContentsUpdatePacket(coffer, firstSlot));
+                    firstSlot += SCCofferContentsUpdatePacket.MaxSlotsToSend;
+                }
+            }
+
+            return true;
+        }
+
+        public bool CloseCofferDoodad(Character character, uint objId)
+        {
+            var doodad = WorldManager.Instance.GetDoodad(objId);
+            if (!(doodad is DoodadCoffer coffer))
+                return false;
+
+            // Used for GM commands
+            if (character == null)
+            {
+                coffer.OpenedBy = null;
+                return true;
+            }
+
+            // Only the person who opened it, can close it
+            if ((coffer.OpenedBy != null) && (coffer.OpenedBy?.Id != character?.Id))
+                return false;
+
+            coffer.OpenedBy = null;
+
+            return true;
         }
 
         // public void TriggerFunc(string className, Unit caster, Doodad doodad, uint skillId, uint nextPhase = 0)
@@ -2386,5 +2507,32 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         //     doodad.cancelPhasing = false;
         // }
 
+        public bool ChangeDoodadData(Character player, Doodad doodad, int data)
+        {
+            // TODO: Can non-coffer doodads that use this packet only be changed by their owner ?
+            if (doodad.OwnerId != player.Id)
+                return false;
+            
+            // For Coffers validate if select option is applicable
+            if (doodad is DoodadCoffer coffer)
+            {
+                if ((data == (int)HousingPermission.Family) && (player.Family <= 0))
+                {
+                    player.SendErrorMessage(ErrorMessageType.FamilyNotExist); // Not sure 
+                    return false;
+                }
+                if ((data == (int)HousingPermission.Guild) && ((player.Expedition == null) || (player.Expedition?.Id <= 0)))
+                {
+                    player.SendErrorMessage(ErrorMessageType.OnlyExpeditionMember); // Not sure
+                    return false;
+                }
+            }
+            
+            doodad.Data = data;
+
+            doodad.BroadcastPacket(new SCDoodadChangedPacket(doodad.ObjId, doodad.Data), false);
+            
+            return true;
+        }
     }
 }

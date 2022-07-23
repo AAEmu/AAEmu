@@ -14,6 +14,7 @@ namespace AAEmu.Game.Core.Managers
 
         private Regex _characterNameRegex;
         private Dictionary<uint, string> _characterNames;
+        private Dictionary<uint, uint> _characterAccounts;
 
         public string GetCharacterName(uint characterId)
         {
@@ -28,9 +29,17 @@ namespace AAEmu.Game.Core.Managers
             return res ;
         }
 
+        public uint GetCharaterAccount(uint characterId)
+        {
+            if (_characterAccounts.TryGetValue(characterId, out var accountId))
+                return accountId;
+            return 0;
+        }
+
         public NameManager()
         {
             _characterNames = new Dictionary<uint, string>();
+            _characterAccounts = new Dictionary<uint, uint>();
         }
 
         public void Load()
@@ -40,12 +49,18 @@ namespace AAEmu.Game.Core.Managers
             {
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT id, name FROM characters";
+                    command.CommandText = "SELECT id, name, account_id FROM characters";
                     command.Prepare();
                     using (var reader = command.ExecuteReader())
                     {
                         while (reader.Read())
-                            _characterNames.Add(reader.GetUInt32("id"), reader.GetString("name").ToLower());
+                        {
+                            var id = reader.GetUInt32("id");
+                            var name = reader.GetString("name").ToLower();
+                            var account = reader.GetUInt32("account_id");
+                            _characterNames.Add(id, name);
+                            _characterAccounts.Add(id, account);
+                        }
                     }
                 }
             }
@@ -62,14 +77,16 @@ namespace AAEmu.Game.Core.Managers
             return 0;
         }
 
-        public void AddCharacterName(uint characterId, string name)
+        public void AddCharacterName(uint characterId, string name, uint accountId)
         {
             _characterNames.Add(characterId, name);
+            _characterAccounts.Add(characterId, accountId);
         }
 
         public void RemoveCharacterName(uint characterId)
         {
             _characterNames.Remove(characterId);
+            _characterAccounts.Remove(characterId);
         }
     }
 }

@@ -12,6 +12,8 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Gimmicks;
+using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
@@ -243,6 +245,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
 
             _log.Info("Loading persistent doodads...");
+            List<Doodad> newCoffers = new List<Doodad>();  
             using (var connection = MySQL.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
@@ -269,9 +272,11 @@ namespace AAEmu.Game.Core.Managers.World
                             var houseId = reader.GetUInt32("house_id");
                             var parentDoodad = reader.GetUInt32("parent_doodad");
                             var itemTemplateId = reader.GetUInt32("item_template_id");
+                            var itemContainerId = reader.GetUInt64("item_container_id");
+                            var data = reader.GetInt32("data");
 
                             var doodad = DoodadManager.Instance.Create(0, templateId);
-
+                            
                             doodad.DbId = dbId;
                             doodad.CurrentPhaseId = phaseId;
                             doodad.OwnerId = ownerId;
@@ -286,6 +291,7 @@ namespace AAEmu.Game.Core.Managers.World
                             doodad.ItemTemplateId = sourceItem?.TemplateId ?? itemTemplateId;
                             // Grab Ucc from it's old source item
                             doodad.UccId = sourceItem?.UccId ?? 0;
+                            doodad.SetData(data); // Directly assigning to Data property would trigger a .Save()
                                     
                             doodad.Transform.Local.SetPosition(x, y, z);
                             doodad.Transform.Local.SetRotation(reader.GetFloat("roll"), reader.GetFloat("pitch"), reader.GetFloat("yaw"));
@@ -322,6 +328,25 @@ namespace AAEmu.Game.Core.Managers.World
                                 }
                             }
 
+                            // Attach ItemContainer to coffer if needed
+                            if (doodad is DoodadCoffer coffer)
+                            {
+                                if (itemContainerId > 0)
+                                {
+                                    var itemContainer = ItemManager.Instance.GetItemContainerByDbId(itemContainerId);
+                                    if (itemContainer is CofferContainer cofferContainer)
+                                        coffer.ItemContainer = cofferContainer;
+                                    else
+                                        _log.Error($"Unable to attach ItemContainer {itemContainerId} to DoodadCoffer, objId: {doodad.ObjId}, DbId: {doodad.DbId}");
+                                }
+                                else
+                                {
+                                    _log.Warn($"DoodadCoffer has no persistent ItemContainer assigned to it, creating new one, objId: {doodad.ObjId}, DbId: {doodad.DbId}");
+                                    coffer.InitializeCoffer(ownerId);
+                                    newCoffers.Add(coffer); // Mark for saving again later when we're done with this loop
+                                }
+                            }
+
                             _playerDoodads.Add(doodad);
                         }
                     }
@@ -330,6 +355,10 @@ namespace AAEmu.Game.Core.Managers.World
 
             var respawnThread = new Thread(CheckRespawns) { Name = "RespawnThread" };
             respawnThread.Start();
+
+            // Save Coffer Doodads that had a new ItemContainer created for them (should only happen on first run if there were already coffers placed)
+            foreach (var coffer in newCoffers)
+                coffer.Save();
         }
 
         public void SpawnAll()

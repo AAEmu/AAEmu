@@ -71,7 +71,7 @@ namespace AAEmu.Game.Core.Managers
 
         private Dictionary<ulong, Item> _allItems;
         private List<ulong> _removedItems;
-        private Dictionary<uint, ItemContainer> _allPersistantContainers;
+        private Dictionary<ulong, ItemContainer> _allPersistantContainers;
 
         public ItemTemplate GetTemplate(uint id)
         {
@@ -1530,7 +1530,6 @@ namespace AAEmu.Game.Core.Managers
             return (updateCount, deleteCount, containerUpdateCount);
         }
 
-
         public ItemContainer GetItemContainerForCharacter(uint characterId, SlotType slotType)
         {
             foreach (var c in _allPersistantContainers)
@@ -1549,11 +1548,66 @@ namespace AAEmu.Game.Core.Managers
             return newContainer;
         }
 
+        public CofferContainer NewCofferContainer(uint characterId)
+        {
+            var coffer = new CofferContainer(characterId, false, true);
+            _allPersistantContainers.Add(coffer.ContainerId, coffer);
+            return coffer;
+        }
+
+        public ItemContainer GetItemContainerByDbId(ulong dbId)
+        {
+            return _allPersistantContainers.TryGetValue(dbId, out var container) ? container : null;
+        }
+
+        /// <summary>
+        /// Deletes a ItemContainer from DB if it's empty
+        /// </summary>
+        /// <param name="container"></param>
+        /// <returns></returns>
+        public bool DeleteItemContainer(ItemContainer container)
+        {
+            if (container == null)
+                return true;
+
+            if (container.Items.Count > 0)
+                return false;
+            
+            var idToRemove = (uint)container.ContainerId;
+            container.ContainerId = 0;
+            
+            var res = false;
+            lock (_allPersistantContainers)
+            {
+                res = _allPersistantContainers.Remove(idToRemove);
+                ContainerIdManager.Instance.ReleaseId(idToRemove);
+            }
+            
+            // Remove deleted container from DB
+            using (var connection = MySQL.CreateConnection())
+            using (var command = connection.CreateCommand())
+            {
+                command.Connection = connection;
+                using (var deleteCommand = connection.CreateCommand())
+                {
+                    deleteCommand.CommandText =
+                        "DELETE FROM item_containers WHERE `container_id` = @id";
+                    deleteCommand.Parameters.Clear();
+                    deleteCommand.Parameters.AddWithValue("@id", idToRemove);
+                    deleteCommand.Prepare();
+                    if (deleteCommand.ExecuteNonQuery() <= 0)
+                        _log.Error($"Failed to delete ItemContainer from DB container_id: {idToRemove}");
+                }
+            }
+
+            return res;
+        }
+        
         public void LoadUserItems()
         {
             _log.Info("Loading user items ...");
             _allItems = new Dictionary<ulong, Item>();
-            _allPersistantContainers = new Dictionary<uint, ItemContainer>();
+            _allPersistantContainers = new Dictionary<ulong, ItemContainer>();
             //lock (_removedItems)
                 _removedItems = new List<ulong>();
 
@@ -1619,7 +1673,7 @@ namespace AAEmu.Game.Core.Managers
                         item.OwnerId = reader.GetUInt64("owner");
                         item.TemplateId = reader.GetUInt32("template_id");
                         item.Template = ItemManager.Instance.GetTemplate(item.TemplateId);
-                        var containerId = reader.GetUInt32("container_id");
+                        var containerId = reader.GetUInt64("container_id");
                         item.SlotType = (SlotType)Enum.Parse(typeof(SlotType), reader.GetString("slot_type"), true);
                         var thisItemSlot = reader.GetInt32("slot");
                         item.Slot = thisItemSlot;
