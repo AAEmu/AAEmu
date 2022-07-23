@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.GameData;
@@ -20,8 +21,6 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
-using AAEmu.Game.Utils.DB;
-
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World

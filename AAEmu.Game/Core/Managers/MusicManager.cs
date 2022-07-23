@@ -1,21 +1,13 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Network.Connections;
-using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.Music;
-using AAEmu.Game.Utils.DB;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.Data.Sqlite;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -27,7 +19,6 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, SongData> _uploadQueue; // playerId, song
         private Dictionary<uint, SongData> _allSongs; // songId, song
         private Dictionary<uint, byte[]> _midiCache; // playerId, midi data
-        
 
         public void Load()
         {

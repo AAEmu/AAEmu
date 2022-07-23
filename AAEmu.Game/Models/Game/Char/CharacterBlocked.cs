@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Utils.DB;
 using MySql.Data.MySqlClient;
 using NLog;
 

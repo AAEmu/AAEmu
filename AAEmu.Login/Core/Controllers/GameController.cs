@@ -1,14 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Packets.L2C;
 using AAEmu.Login.Core.Packets.L2G;
 using AAEmu.Login.Models;
-using AAEmu.Login.Utils;
 using NLog;
 
 namespace AAEmu.Login.Core.Controllers
@@ -32,16 +31,16 @@ namespace AAEmu.Login.Core.Controllers
             _gameServers = new Dictionary<byte, GameServer>();
             _mirrorsId = new Dictionary<byte, byte>();
         }
-        
+
         async Task SendPacketWithDelay(InternalConnection connection, int delay, InternalPacket message)
         {
             await Task.Delay(delay);
             connection.SendPacket(message);
-        }        
+        }
 
         public void Load()
         {
-            using (var connection = MySQL.Create())
+            using (var connection = MySQL.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
                 {
@@ -75,9 +74,10 @@ namespace AAEmu.Login.Core.Controllers
         {
             if (!_gameServers.ContainsKey(gsId))
             {
-                _log.Error("GameServer connection from {0} is requesting a invalid WorldId {1}",connection.Ip, gsId);
+                _log.Error("GameServer connection from {0} is requesting a invalid WorldId {1}", connection.Ip, gsId);
 
-                Task.Run(() => SendPacketWithDelay(connection, 5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)));
+                Task.Run(() =>
+                    SendPacketWithDelay(connection, 5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)));
                 // connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
                 return;
             }
@@ -122,7 +122,8 @@ namespace AAEmu.Login.Core.Controllers
             if (_gameServers.Values.Any(x => x.Active))
             {
                 var gameServers = _gameServers.Values.ToList();
-                var (requestIds, task) = RequestController.Instance.Create(gameServers.Count, 20000); // TODO Request 20s
+                var (requestIds, task) =
+                    RequestController.Instance.Create(gameServers.Count, 20000); // TODO Request 20s
                 for (var i = 0; i < gameServers.Count; i++)
                 {
                     var value = gameServers[i];

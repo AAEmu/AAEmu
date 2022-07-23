@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using AAEmu.Commons.Models;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game;
@@ -6,7 +7,7 @@ using AAEmu.Game.Models.Game.Expeditions;
 
 namespace AAEmu.Game.Models
 {
-    public class AppConfiguration : Singleton<AppConfiguration>
+    public partial class AppConfiguration : Singleton<AppConfiguration>
     {
         public byte Id { get; set; }
         public byte[] AdditionalesId { get; set; } = new byte[0];
@@ -35,15 +36,6 @@ namespace AAEmu.Game.Models
         public class DBConnections
         {
             public MySqlConnectionSettings MySQLProvider { get; set; }
-        }
-
-        public class MySqlConnectionSettings
-        {
-            public string Host { get; set; }
-            public ushort Port { get; set; }
-            public string User { get; set; }
-            public string Password { get; set; }
-            public string Database { get; set; }
         }
     }
 }

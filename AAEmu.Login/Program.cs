@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Commons.IO;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Login.Models;
 using AAEmu.Login.Utils;
 using Microsoft.Extensions.Configuration;
@@ -37,15 +38,18 @@ namespace AAEmu.Login
                 return;
             }
 
-            _log.Info("{0} version {1}", Name, Version);
+            _log.Info($"{Name} version {Version}");
 
-            var connection = MySQL.Create();
+            // Apply MySQL Configuration
+            MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
+            
+            // Test the DB connection
+            var connection = MySQL.CreateConnection();
             if (connection == null)
             {
                 LogManager.Flush();
                 return;
             }
-
             connection.Close();
 
             var builder = new HostBuilder()

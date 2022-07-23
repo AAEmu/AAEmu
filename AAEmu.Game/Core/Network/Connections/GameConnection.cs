@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Game;
@@ -10,7 +11,6 @@ using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Tasks;
-using AAEmu.Game.Utils.DB;
 
 namespace AAEmu.Game.Core.Network.Connections
 {
@@ -101,8 +101,6 @@ namespace AAEmu.Game.Core.Network.Connections
         {
             Subscribers.Add(disposable);
         }
-
-        
 
         public void LoadAccount()
         {

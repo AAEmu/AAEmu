@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Packets.L2C;
 using AAEmu.Login.Core.Packets.L2G;
 using AAEmu.Login.Models;
-using AAEmu.Login.Utils;
 using MySql.Data.MySqlClient;
 using NLog;
 
@@ -17,6 +17,7 @@ namespace AAEmu.Login.Core.Controllers
         private Dictionary<byte, Dictionary<uint, uint>> _tokens; // gsId, [token, accountId]
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private static bool _autoAccount = AppConfiguration.Instance.AutoAccount;
+
         protected LoginController()
         {
             _tokens = new Dictionary<byte, Dictionary<uint, uint>>();
@@ -29,7 +30,7 @@ namespace AAEmu.Login.Core.Controllers
         /// <param name="username"></param>
         public static void Login(LoginConnection connection, string username)
         {
-            using (var connect = MySQL.Create())
+            using (var connect = MySQL.CreateConnection())
             {
                 using (var command = connect.CreateCommand())
                 {
@@ -66,7 +67,7 @@ namespace AAEmu.Login.Core.Controllers
         /// <param name="password"></param>
         public static void Login(LoginConnection connection, string username, IEnumerable<byte> password)
         {
-            using (var connect = MySQL.Create())
+            using (var connect = MySQL.CreateConnection())
             {
                 using (var command = connect.CreateCommand())
                 {
@@ -86,7 +87,7 @@ namespace AAEmu.Login.Core.Controllers
                             {
                                 connection.SendPacket(new ACLoginDeniedPacket(2));
                             }
-                            
+
                             return;
                         }
 
@@ -116,7 +117,8 @@ namespace AAEmu.Login.Core.Controllers
 
             using (var command = connect.CreateCommand())
             {
-                command.CommandText = "INSERT into users (username, password, email, last_ip) VALUES (@username, @password, \"\", \"\")";
+                command.CommandText =
+                    "INSERT into users (username, password, email, last_ip) VALUES (@username, @password, \"\", \"\")";
                 command.Parameters.AddWithValue("@username", username);
                 command.Parameters.AddWithValue("@password", pass);
                 command.Prepare();
