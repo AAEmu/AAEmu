@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.DB;
 using NLog;
 
 namespace AAEmu.Login.Utils
@@ -24,8 +25,7 @@ namespace AAEmu.Login.Utils
         private readonly bool _distinct;
         private readonly object _lock = new object();
 
-        public IdManager(string name, uint firstId, uint lastId, string[,] objTables, uint[] exclude,
-            bool distinct = false)
+        public IdManager(string name, uint firstId, uint lastId, string[,] objTables, uint[] exclude, bool distinct = false)
         {
             _name = name;
             _firstId = firstId;
@@ -33,7 +33,7 @@ namespace AAEmu.Login.Utils
             _objTables = objTables;
             _exclude = exclude;
             _distinct = distinct;
-            _freeIdSize = (int) (_lastId - _firstId);
+            _freeIdSize = (int)(_lastId - _firstId);
             PrimeFinder.Init();
         }
 
@@ -49,7 +49,7 @@ namespace AAEmu.Login.Utils
                 {
                     if (_exclude.Contains(usedObjectId))
                         continue;
-                    var objectId = (int) (usedObjectId - _firstId);
+                    var objectId = (int)(usedObjectId - _firstId);
                     if (usedObjectId < _firstId)
                     {
                         _log.Warn("{0}: Object ID {1} in DB is less than {2}", _name, usedObjectId, _firstId);
@@ -80,7 +80,7 @@ namespace AAEmu.Login.Utils
             if (_objTables.Length < 2)
                 return new uint[0];
 
-            using (var connection = MySQL.Create())
+            using (var connection = MySQL.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
                 {
@@ -130,7 +130,7 @@ namespace AAEmu.Login.Utils
 
         public virtual void ReleaseId(uint usedObjectId)
         {
-            var objectId = (int) (usedObjectId - _firstId);
+            var objectId = (int)(usedObjectId - _firstId);
             if (objectId > -1)
             {
                 _freeIds.Clear(objectId);
@@ -171,7 +171,7 @@ namespace AAEmu.Login.Utils
                 }
 
                 _nextFreeId = nextFree;
-                return (uint) newId + _firstId;
+                return (uint)newId + _firstId;
             }
         }
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Utils.DB;
+using AAEmu.Commons.Utils.DB;
 using NLog;
 
 namespace AAEmu.Game.Utils

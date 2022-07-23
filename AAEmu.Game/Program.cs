@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Commons.IO;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Genesis;
 using AAEmu.Game.Models;
-using AAEmu.Game.Utils.DB;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -27,7 +26,7 @@ namespace AAEmu.Game
         public static AutoResetEvent ShutdownSignal = new AutoResetEvent(false); // TODO save to shutdown server?
 
         public static int UpTime => (int)(DateTime.UtcNow - _startTime).TotalSeconds;
-        private static string[] _launchArgs; 
+        private static string[] _launchArgs;
 
         public static async Task Main(string[] args)
         {
@@ -35,8 +34,12 @@ namespace AAEmu.Game
             _launchArgs = args;
             LoadConfiguration();
 
-            _log.Info("{0} version {1}", Name, Version);
-
+            _log.Info($"{Name} version {Version}");
+            
+            // Apply MySQL Configuration
+            MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
+            
+            // Test the DB connection
             var connection = MySQL.CreateConnection();
             if (connection == null)
             {
@@ -45,7 +48,7 @@ namespace AAEmu.Game
             }
 
             connection.Close();
-            
+
             AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
 
             var builder = new HostBuilder()
@@ -64,9 +67,9 @@ namespace AAEmu.Game
                     services.AddSingleton<IHostedService, GameService>();
                     services.AddSingleton<IHostedService, DiscordBotService>();
                 });
-            
-            try 
-            { 
+
+            try
+            {
                 await builder.RunConsoleAsync();
             }
             catch (OperationCanceledException ocex)
@@ -74,7 +77,7 @@ namespace AAEmu.Game
                 _log.Fatal(ocex.Message);
             }
         }
-        
+
         private static void Initialization()
         {
             _thread.Name = "AA.Game Base Thread";
@@ -101,7 +104,7 @@ namespace AAEmu.Game
 
             // Load Game server configuration
             // Get files inside in the Configurations folder
-            var configFiles = Directory.GetFiles(Path.Combine(FileManager.AppPath,"Configurations"), "*.json", SearchOption.AllDirectories).ToList();
+            var configFiles = Directory.GetFiles(Path.Combine(FileManager.AppPath, "Configurations"), "*.json", SearchOption.AllDirectories).ToList();
             configFiles.Sort();
             // Add the old main Config.json file
             configFiles.Insert(0, mainConfigJson);
@@ -113,18 +116,17 @@ namespace AAEmu.Game
                 _log.Info($"Config: {file}");
                 configurationBuilder.AddJsonFile(file);
             }
+
             // Add command-line arguments
             configurationBuilder.AddCommandLine(args);
 
             var configurationBuilderResult = configurationBuilder.Build();
             configurationBuilderResult.Bind(AppConfiguration.Instance);
         }
-        
-        private static void OnUnhandledException(
-            object sender, UnhandledExceptionEventArgs e)
+
+        private static void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             var exceptionStr = e.ExceptionObject.ToString();
-            //_log.Error(exceptionStr);
             _log.Fatal(exceptionStr);
         }
     }

@@ -2,16 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Managers.World;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Models.Game.Items;
 using NLog;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.Items.Templates;
 using MySql.Data.MySqlClient;
 using AAEmu.Game.Models.Game.Mails;
 

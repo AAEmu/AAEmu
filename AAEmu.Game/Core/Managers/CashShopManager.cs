@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.CashShop;
-using AAEmu.Game.Utils.DB;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -118,11 +118,8 @@ namespace AAEmu.Game.Core.Managers
 
         public void Load()
         {
-
             _cashShopItem = new List<CashShopItem>();
             _cashShopItemDetail = new Dictionary<uint, CashShopItemDetail>();
-
-
 
             using (var connection = MySQL.CreateConnection())
             {
