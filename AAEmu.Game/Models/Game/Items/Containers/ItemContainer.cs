@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         private uint _ownerId;
         public bool IsDirty { get; set; }
         private SlotType _containerType;
-        private uint _containerId;
+        private ulong _containerId;
 
         public ICharacter Owner
         {
@@ -75,7 +75,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             }
         }
 
-        public uint ContainerId
+        public ulong ContainerId
         {
             get => _containerId;
             set
@@ -724,6 +724,11 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             if (cName.Contains("."))
                 cName = cName.Substring(cName.LastIndexOf(".",StringComparison.InvariantCulture)+1);
             return cName;
+        }
+        
+        public virtual void Delete()
+        {
+            ItemManager.Instance.DeleteItemContainer(this);
         }
     }
 }

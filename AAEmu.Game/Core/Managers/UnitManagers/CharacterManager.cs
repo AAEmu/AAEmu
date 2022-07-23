@@ -467,7 +467,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             if (nameValidationCode == 0)
             {
                 var characterId = CharacterIdManager.Instance.GetNextId();
-                NameManager.Instance.AddCharacterName(characterId, name);
+                NameManager.Instance.AddCharacterName(characterId, name, connection.AccountId);
                 var template = GetTemplate(race, gender);
 
                 var character = new Character(customModel);
@@ -670,7 +670,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     {
                         deletedName = "!" + character.Name;
                         NameManager.Instance.RemoveCharacterName(character.Id);
-                        NameManager.Instance.AddCharacterName(character.Id,deletedName);
+                        NameManager.Instance.AddCharacterName(character.Id,deletedName, character.AccountId);
                     }
                     
                     command.Connection = dbConnection;

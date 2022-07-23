@@ -124,5 +124,24 @@ namespace AAEmu.Game.Models.Game.World
         {
             return "(" + ObjId.ToString() + ") - " + ToString();
         }
+
+        /// <summary>
+        /// Returns if this GameObject is allowed to be removed, override this in inherited classes if needed
+        /// </summary>
+        /// <returns>Returns false if it cannot be removed due to dependencies</returns>
+        public virtual bool AllowRemoval()
+        {
+            return true;
+        }
+
+        /// <summary>
+        /// Returns if character is allowed to interact with this object, override this in inherited classes to implement permissions
+        /// </summary>
+        /// <param name="character"></param>
+        /// <returns>Returns false if it cannot be used based on permissions</returns>
+        public virtual bool AllowedToInteract(Character character)
+        {
+            return true;
+        }
     }
 }

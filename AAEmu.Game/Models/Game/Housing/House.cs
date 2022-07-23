@@ -322,20 +322,25 @@ namespace AAEmu.Game.Models.Game.Housing
             HousingManager.Instance.RemoveDeadHouse(this);
         }
 
-        public bool AllowedToInteract(Character player)
+        public override bool AllowedToInteract(Character player)
         {
             if (Template.AlwaysPublic)
-                return true;
-            if (CurrentStep != -1) // unfinished houses can't be used to private store
-                return true;
+                return base.AllowedToInteract(player);
+            if (CurrentStep != -1) // unfinished houses can't be used to private store, so always true
+                return base.AllowedToInteract(player);
             switch (Permission)
             {
-                case HousingPermission.Private when (player.Id != OwnerId):
+                case HousingPermission.Private:
+                    if (player.Id != OwnerId)
+                        return base.AllowedToInteract(player);
+                    var ownerAccount = NameManager.Instance.GetCharaterAccount(OwnerId);
+                    return (player.AccountId == ownerAccount) && base.AllowedToInteract(player);
                 case HousingPermission.Family when (player.Family != CoOwnerId):
                 case HousingPermission.Guild when (player.Expedition.Id != CoOwnerId):
                     return false;
+                case HousingPermission.Public:
                 default:
-                    return true;
+                    return base.AllowedToInteract(player);
             }
         }
 

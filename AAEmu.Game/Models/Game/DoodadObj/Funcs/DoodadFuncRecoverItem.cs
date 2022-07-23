@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         // doodad_funcs
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Trace("DoodadFuncRecoverItem");
+            _log.Debug($"DoodadFuncRecoverItem({Id}) - Caster:{caster.Name} - DoodadOwner Template:{owner?.TemplateId} - SkillId:{skillId} - Nextphase:{nextPhase}");
 
             var character = (Character)caster;
             var addedItem = false;
@@ -26,7 +26,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     // that means that it was already picked up by somebody else
                     if (item._holdingContainer?.ContainerType != SlotType.System)
                     {
-                        // character.SendErrorMessage(ErrorMessageType.Backpack); // TODO: Not sure what error I need to put here
+                        owner.ToPhaseAndUse = false;
+                        character.SendErrorMessage(ErrorMessageType.InteractionRecoverParent); // TODO: Not sure what error I need to put here
                         return;
                     }
                     
