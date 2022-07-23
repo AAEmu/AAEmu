@@ -17,12 +17,13 @@ using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models;
-using AAEmu.Game.Models.Game;
-using AAEmu.Game.Utils.DB;
+using AAEmu.Commons.Models;
 using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
 using System.Linq;
+using AAEmu.Game.Utils.DB;
+using MySQL = AAEmu.Commons.Utils.DB.MySQL;
 
 namespace AAEmu.Game
 {
@@ -33,7 +34,7 @@ namespace AAEmu.Game
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             _log.Info("Starting daemon: AAEmu.Game");
-            
+
             // Check for updates
             using (var connection = MySQL.CreateConnection())
             {

@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Models;
+using AAEmu.Commons.Utils;
 
 namespace AAEmu.Login.Models
 {
@@ -20,15 +21,6 @@ namespace AAEmu.Login.Models
         public class DBConnections
         {
             public MySqlConnectionSettings MySQLProvider { get; set; }
-        }
-
-        public class MySqlConnectionSettings
-        {
-            public string Host { get; set; }
-            public ushort Port { get; set; }
-            public string User { get; set; }
-            public string Password { get; set; }
-            public string Database { get; set; }
         }
     }
 }
