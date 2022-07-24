@@ -37,7 +37,15 @@ namespace AAEmu.Game
             _log.Info($"{Name} version {Version}");
             
             // Apply MySQL Configuration
-            MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
+            try
+            {
+                MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
+            }
+            catch (Exception e)
+            {
+                _log.Fatal("MySQL configuration could not be loaded !");
+                return;
+            }
             
             // Test the DB connection
             var connection = MySQL.CreateConnection();
