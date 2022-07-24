@@ -12,29 +12,32 @@ namespace AAEmu.Game.Core.Managers
 {
     public class AccessLevelManager : Singleton<AccessLevelManager>
     {
-        public static List<Command> CMD = AccessLevel.CMD;
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-        
+        private List<Command> CMD = new List<Command>();
+        private Logger _log = LogManager.GetCurrentClassLogger();
+
         public void Load()
         {
-            // Dictionary<string, int> dic = readSettings();
-
             _log.Info("Loading CommandAccessLevels...");
 
-            foreach(var (cmdName, cmdLevel) in AppConfiguration.Instance.AccessLevel)
-                CMD.Add(new Command{ command = cmdName, level = cmdLevel });
+            foreach (var (cmdName, cmdLevel) in AppConfiguration.Instance.AccessLevel)
+                CMD.Add(new Command { CommandName = cmdName, CommandLevel = cmdLevel });
 
-            _log.Info("Loaded {0} CommandAccessLevels", CMD.Count);
+            _log.Info($"Loaded {CMD.Count} CommandAccessLevels");
         }
 
-        public static Dictionary<string, int> readSettings(){
-            Dictionary<string, int> d = new Dictionary<string, int>();
-            try{
-                string data = File.ReadAllText("AccessLevels.json");
-                d = JsonConvert.DeserializeObject<Dictionary<string, int>>(data);
-            }
-            catch{}
-            return d;
+        public int GetLevel(string commandStr)
+        {
+            var result = CMD.Find(o => o.CommandName == commandStr);
+            if (result != null)
+                return result.CommandLevel;
+
+            return 100;
         }
+    }
+
+    public class Command
+    {
+        public string CommandName { get; set; }
+        public int CommandLevel { get; set; }
     }
 }

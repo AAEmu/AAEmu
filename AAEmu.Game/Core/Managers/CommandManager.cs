@@ -137,7 +137,7 @@ namespace AAEmu.Game.Core.Managers
             if (command == null)
                 return false;
 
-            if (AccessLevel.getLevel(thisCommand) > character.AccessLevel)
+            if (AccessLevelManager.Instance.GetLevel(thisCommand) > character.AccessLevel)
             {
                 character.SendMessage("|cFFFF0000Insufficient privileges.|r");
                 return true;
