@@ -573,6 +573,16 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 var prefSlot = preferredSlot;
                 if ((newItem.Template is BackpackTemplate) && (ContainerType == SlotType.Equipment))
                     prefSlot = (int)EquipmentItemSlot.Backpack;
+
+                // Timers
+                if (newItem.Template.ExpAbsLifetime > 0)
+                    newItem.ExpirationTime = DateTime.UtcNow.AddMinutes(newItem.Template.ExpAbsLifetime);
+                if (newItem.Template.ExpOnlineLifetime > 0)
+                    newItem.ExpirationOnlineMinutesLeft = newItem.Template.ExpOnlineLifetime;
+                if (newItem.Template.ExpDate > DateTime.MinValue)
+                    newItem.ExpirationTime = newItem.Template.ExpDate;
+                
+                
                 
                 if (AddOrMoveExistingItem(ItemTaskType.Invalid, newItem, prefSlot)) // Task set to invalid as we send our own packets inside this function
                 {

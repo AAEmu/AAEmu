@@ -1055,7 +1055,7 @@ namespace AAEmu.Game.Core.Managers
                             template.HonorPrice = reader.GetInt32("honor_price");
                             template.ExpAbsLifetime = reader.GetInt32("exp_abs_lifetime");
                             template.ExpOnlineLifetime = reader.GetInt32("exp_online_lifetime");
-                            template.ExpDate = reader.IsDBNull("exp_online_lifetime") ? reader.GetInt32("exp_date") : 0;
+                            template.ExpDate = !reader.IsDBNull("exp_date") ? reader.GetDateTime("exp_date") : DateTime.MinValue;
                             template.LevelRequirement = reader.GetInt32("level_requirement");
                             template.AuctionCategoryA = reader.IsDBNull("auction_a_category_id") ? 0 : reader.GetInt32("auction_a_category_id");
                             template.AuctionCategoryB = reader.IsDBNull("auction_b_category_id") ? 0 : reader.GetInt32("auction_b_category_id");
@@ -1801,6 +1801,11 @@ namespace AAEmu.Game.Core.Managers
             var template = GetTemplate(itemTemplateId);
             // Is a valid item, is a backpack item, doesn't bind on equip (it can bind on pickup)
             return (template != null) && (template is BackpackTemplate bt) && (!template.BindType.HasFlag(ItemBindType.BindOnEquip));
+        }
+
+        public void UpdateItemTimers()
+        {
+            throw new NotImplementedException();
         }
     }
 }
