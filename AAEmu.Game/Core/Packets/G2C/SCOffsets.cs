@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace AAEmu.Game.Core.Packets.G2C
+﻿namespace AAEmu.Game.Core.Packets.G2C
 {
     public static class SCOffsets
     {
@@ -20,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public const ushort SCExpeditionRoleChangedPacket = 0x0d;
         public const ushort SCExpeditionOwnerChangedPacket = 0x0e;
         public const ushort SCExpeditionShowRenameUIPacket = 0x0f;
-        public const ushort SCUnkPacket1 = 0x10;
+        public const ushort SCNationShowRenameUIPacket = 0x10;
         public const ushort SCFactionRenamedPacket = 0x11;
         public const ushort SCFactionRetryRenamePacket = 0x12;
         public const ushort SCFactionCreatedPacket = 0x13;

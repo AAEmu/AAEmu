@@ -16,6 +16,15 @@ namespace AAEmu.Game.Models.Game.NPChar
         public string MemberType { get; set; }
         public float Weight { get; set; }
 
+        public NpcSpawnerNpc()
+        {
+        }
+
+        public NpcSpawnerNpc(uint spawnerId)
+        {
+            NpcSpawnerId = spawnerId;
+        }
+
         public List<Npc> Spawn(NpcSpawner npcSpawner, uint maxPopulation = 1)
         {
             switch (MemberType)
@@ -55,8 +64,9 @@ namespace AAEmu.Game.Models.Game.NPChar
 
             npc.Spawner = new NpcSpawner();
             npc.Spawner.Position = npcSpawner.Position;
-            npc.Spawner.Id = NpcSpawnerId;
+            npc.Spawner.Id = npcSpawner.Id;
             npc.Spawner.UnitId = MemberId;
+            npc.Spawner.NpcSpawnerId.Add(NpcSpawnerId);
             npc.Spawner.Template = npcSpawner.Template;
             npc.Spawner.RespawnTime = (int)Rand.Next(npc.Spawner.Template[NpcSpawnerId].SpawnDelayMin, npc.Spawner.Template[NpcSpawnerId].SpawnDelayMax);
             npc.Spawn();

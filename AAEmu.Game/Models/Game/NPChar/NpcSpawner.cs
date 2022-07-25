@@ -163,13 +163,13 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         public void DoSpawn()
         {
-            foreach (var (spawnerId, template) in Template)
+            foreach (var (id, template) in Template)
             {
                 // TODO Check if delay is OK
                 if (template == null)
                 {
                     // no spawner for TemplateId
-                    _log.Error("Can't spawn npc {1} from spawn {0}, spawner {2}", Id, UnitId, spawnerId);
+                    _log.Error("Can't spawn npc {1} from spawn {0}, spawner {2}", Id, UnitId, template.Id);
                     continue;
                 }
 
@@ -203,17 +203,17 @@ namespace AAEmu.Game.Models.Game.NPChar
                     }
                 }
                 // First, let's check if the schedule has such an spawnerId
-                else if (GameScheduleManager.Instance.CheckSpawnerInScheduleSpawners((int)spawnerId))
+                else if (GameScheduleManager.Instance.CheckSpawnerInScheduleSpawners((int)template.Id))
                 {
                     // if there is, we'll check the time for the spawning
-                    if (GameScheduleManager.Instance.CheckSpawnerInGameSchedules((int)spawnerId))
+                    if (GameScheduleManager.Instance.CheckSpawnerInGameSchedules((int)template.Id))
                     {
-                        var delay = GameScheduleManager.Instance.GetRemainingTime((int)spawnerId, true);
+                        var delay = GameScheduleManager.Instance.GetRemainingTime((int)template.Id, true);
                         _permanent = false; // Npc is on the schedule
                         /*
                         if (UnitId == 13126)
                         {
-                            _log.Debug("DoSpawn: Npc TemplateId {0}, NpcSpawnerId {1} spawn [2] reschedule next time...", UnitId, Id);
+                            _log.Debug("DoSpawn: Npc TemplateId {0}, NpcSpawnerId {1} spawn [2] reschedule next time...", UnitId, template.Id);
                             _log.Debug("DoSpawn: delay {0}", delay.ToString()); 
                         }
                         */
@@ -231,7 +231,7 @@ namespace AAEmu.Game.Models.Game.NPChar
                 // Check if we did not go over Suspend Spawn Count
                 if (template.SuspendSpawnCount > 0 && _spawnCount > template.SuspendSpawnCount)
                 {
-                    //_log.Debug("DoSpawn: Npc TemplateId {0}, NpcSpawnerId {1} spawn [3] reschedule next time...", UnitId, Id);
+                    //_log.Debug("DoSpawn: Npc TemplateId {0}, NpcSpawnerId {1} spawn [3] reschedule next time...", UnitId, template.Id);
                     //TaskManager.Instance.Schedule(new NpcSpawnerDoSpawnTask(this), TimeSpan.FromSeconds(60));
                     continue;
                 }
@@ -262,12 +262,12 @@ namespace AAEmu.Game.Models.Game.NPChar
                 }
                 catch (Exception)
                 {
-                    _log.Error("Can't spawn npc {1} from spawn {0}, spawner {2}", Id, UnitId, spawnerId);
+                    _log.Error("Can't spawn npc {1} from spawn {0}, spawner {2}", Id, UnitId, template.Id);
                 }
 
                 if (n.Count == 0)
                 {
-                    _log.Error("Can't spawn npc {1} from spawn {0}, spawner {2}", Id, UnitId, spawnerId);
+                    _log.Error("Can't spawn npc {1} from spawn {0}, spawner {2}", Id, UnitId, template.Id);
                     continue;
                 }
                 _lastSpawn = n[^1];
@@ -285,6 +285,71 @@ namespace AAEmu.Game.Models.Game.NPChar
                 if (_spawnCount < template.MaxPopulation)
                 {
                     TaskManager.Instance.Schedule(new NpcSpawnerDoSpawnTask(this), TimeSpan.FromSeconds(Rand.Next(template.SpawnDelayMin, template.SpawnDelayMax)));
+                }
+            }
+        }
+        
+        public void DoEventSpawn()
+        {
+            foreach (var (spawnerId, template) in Template)
+            {
+                // TODO Check if delay is OK
+                if (template == null)
+                {
+                    // no spawner for TemplateId
+                    _log.Error("Can't spawn npc {1} from spawn {0}, spawner {2}", Id, UnitId, spawnerId);
+                    continue;
+                }
+
+                // Check if population is within bounds
+                if (_spawnCount >= template.MaxPopulation)
+                {
+                    continue;
+                }
+
+                // Check if we did not go over Suspend Spawn Count
+                if (template.SuspendSpawnCount > 0 && _spawnCount > template.SuspendSpawnCount)
+                {
+                    //_log.Debug("DoSpawn: Npc TemplateId {0}, NpcSpawnerId {1} spawn [3] reschedule next time...", UnitId, Id);
+                    //TaskManager.Instance.Schedule(new NpcSpawnerDoSpawnTask(this), TimeSpan.FromSeconds(60));
+                    continue;
+                }
+
+                // Select an NPC to spawn based on the spawnerId in npc_spawner_npcs
+                var n = new List<Npc>();
+                foreach (var nsn in template.Npcs)
+                {
+                    if (nsn.MemberId != UnitId) { continue; }
+                    n = nsn.Spawn(this);
+                    break;
+                }
+
+                try
+                {
+                    foreach (var npc in n)
+                    {
+                        _spawned.Add(npc);
+                    }
+                }
+                catch (Exception)
+                {
+                    _log.Error("Can't spawn npc {1} from spawn {0}, spawner {2}", Id, UnitId, spawnerId);
+                }
+
+                if (n.Count == 0)
+                {
+                    _log.Error("Can't spawn npc {1} from spawn {0}, spawner {2}", Id, UnitId, spawnerId);
+                    continue;
+                }
+                _lastSpawn = n[^1];
+                if (_scheduledCount > 0)
+                {
+                    _scheduledCount -= n.Count;
+                }
+                _spawnCount = _spawned.Count;
+                if (_spawnCount < 0)
+                {
+                    _spawnCount = 0;
                 }
             }
         }
