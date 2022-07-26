@@ -188,17 +188,20 @@ namespace AAEmu.Game.GameData
                 if (itemSpawnerSchedule.Count == 0 && itemGameSchedule.Count == 0)
                 {
                     // если нет в расписаниях, то оставим только Autocreated
+                    // if it's not on the schedules, then we'll just leave Autocreated
                     npcMemberAndSpawnerId.Add(key, itemAutocreated);
                 }
                 else if (itemSpawnerSchedule.Count > 0)
                 {
-                    // оставим только ту запись, которая есть в NpcSpawnrs
+                    // оставим только ту запись, которая есть в NpcSpawners
+                    // leave only the entry that is in NpcSpawners
                     npcMemberAndSpawnerId.Add(key,
                         itemSpawnerSchedule.Count > 1 ? new List<uint> {itemSpawnerSchedule[0]} : itemSpawnerSchedule);
                 }
                 else if (itemGameSchedule.Count > 0)
                 {
-                    // оставим только ту запись, которая есть в GameScheduleSpawnrs
+                    // оставим только ту запись, которая есть в GameScheduleSpawners
+                    // we'll leave only the entry that is in GameScheduleSpawners
                     npcMemberAndSpawnerId.Add(key,
                         itemGameSchedule.Count > 1 ? new List<uint> {itemGameSchedule[0]} : itemGameSchedule);
                 }
