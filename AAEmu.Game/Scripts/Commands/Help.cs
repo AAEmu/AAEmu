@@ -54,7 +54,7 @@ namespace AAEmu.Game.Scripts.Commands
             {
                 if (command == "help")
                     continue;
-                if (AccessLevel.getLevel(command) > character.AccessLevel)
+                if (AccessLevelManager.Instance.GetLevel(command) > character.AccessLevel)
                     continue;
 
                 var cmd = CommandManager.Instance.GetCommandInterfaceByName(command);
