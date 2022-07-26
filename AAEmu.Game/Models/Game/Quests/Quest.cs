@@ -155,7 +155,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         ComponentId = components[componentIndex].Id;
                         UpdateStatus();
                         _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, acts[0].DetailType);
-                        UseSkill(components, componentIndex);
+                        UseSkill(components[componentIndex]);
                     }
 
                     foreach (var act in acts)
@@ -190,7 +190,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                         _log.Warn("[Quest] Start failed: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                         return false; // не тот Npc, что нужен по квесту, выход (Not the NPC that is needed by the quest, the exit)
                                     }
-                                    UseSkill(components, componentIndex);
+                                    UseSkill(components[componentIndex]);
                                     break;
                                 }
                             case "QuestActSupplyItem":
@@ -274,7 +274,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     _log.Warn("[Quest] Start failed: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     return; // не тот Npc, что нужен по квесту, выход (not the Npc that is needed on the quest, exit)
                                 }
-                                UseSkill(components, componentIndex);
+                                UseSkill(components[componentIndex]);
                                 break;
                             case "QuestActConAcceptNpc":
                                 {
@@ -283,7 +283,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     ComponentId = components[componentIndex].Id;
                                     UpdateStatus();
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
-                                    UseSkill(components, componentIndex);
+                                    UseSkill(components[componentIndex]);
                                     break;
                                 }
                             case "QuestActSupplyItem" when Step == QuestComponentKind.Supply:
@@ -519,7 +519,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
                     if (completes[componentIndex] || complete)
                     {
-                        UseSkill(components, componentIndex);
+                        UseSkill(components[componentIndex]);
                     }
                 }
 
@@ -558,35 +558,7 @@ namespace AAEmu.Game.Models.Game.Quests
         /// </summary>
         /// <param name="components"></param>
         /// <param name="componentIndex"></param>
-        private void UseSkill(QuestComponent[] components, int componentIndex)
-        {
-            if (components.Length == 0) { return; }
-            if (components[componentIndex].SkillId > 0)
-            {
-                if (components[componentIndex].SkillSelf)
-                {
-                    Owner.UseSkill(components[componentIndex].SkillId, Owner);
-                }
-                else
-                {
-                    if (components[componentIndex].NpcId > 0)
-                    {
-                        if (Owner.CurrentTarget is Npc npc)
-                        {
-                            if (npc.TemplateId == components[componentIndex].NpcId)
-                            {
-                                Owner.UseSkill(components[componentIndex].SkillId, npc);
-                            }
-                        }
-                    }
-                }
-            }
-            if (components[componentIndex].BuffId > 0)
-            {
-                Owner.Buffs.AddBuff(new Buff(Owner, Owner, SkillCaster.GetByType(SkillCasterType.Unit), _skillManager.GetBuffTemplate(components[componentIndex].BuffId), null, DateTime.UtcNow));
-            }
-        }
-
+       
         private void UseSkill(QuestComponent component)
         {
             if (component == null) { return; }

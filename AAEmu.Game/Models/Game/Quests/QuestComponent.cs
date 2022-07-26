@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Models.Game.Quests.Static;
+﻿using System.Collections.Generic;
+using AAEmu.Game.Models.Game.Quests.Static;
+using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests
 {
@@ -6,6 +8,7 @@ namespace AAEmu.Game.Models.Game.Quests
     {
         public uint Id { get; set; }
         public QuestComponentKind KindId { get; set; }
+        public List<QuestActTemplate> ActTemplates { get; set; } = new List<QuestActTemplate>();
         public uint NextComponent { get; set; }
         public uint NpcAiId { get; set; }
         public uint NpcId { get; set; }

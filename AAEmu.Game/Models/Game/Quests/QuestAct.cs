@@ -11,7 +11,8 @@ namespace AAEmu.Game.Models.Game.Quests
         public uint ComponentId { get; set; }
         public uint DetailId { get; set; }
         public string DetailType { get; set; }
-
+        public QuestActTemplate Template { get; set; }
+    
         public QuestActTemplate GetTemplate()
         {
             return QuestManager.Instance.GetActTemplate(DetailId, DetailType);

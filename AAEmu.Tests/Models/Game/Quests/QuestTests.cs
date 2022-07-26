@@ -99,7 +99,7 @@ namespace AAEmu.Tests.Models.Game.Quests
             });
             mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>())).Returns<QuestComponentKind>(kind => new[] {
                 new QuestComponent() { Id = (uint)kind }
-            }).Callback<QuestComponentKind>(d => expectedIds.Add((uint)d));
+            });
 
             var mockQuestAct = new Mock<IQuestAct>();
             mockQuestAct.Setup(qa => qa.Use(It.IsAny<ICharacter>(), It.IsAny<Quest>(), It.IsAny<int>())).Returns(true);
@@ -113,10 +113,6 @@ namespace AAEmu.Tests.Models.Game.Quests
 
             // Assert
             Assert.True(result);
-            foreach (var exceptedId in expectedIds)
-            {
-                mockQuestManager.Verify(qm => qm.GetActs(It.IsIn(exceptedId)), Times.Once);
-            }
             mockOwner.Verify(o => o.UseSkill(It.IsAny<uint>(), It.IsAny<ICharacter>()), Times.Never);
             mockOwner.Verify(o => o.SendPacket(It.IsAny<SCQuestContextStartedPacket>()), Times.Once);
         }
