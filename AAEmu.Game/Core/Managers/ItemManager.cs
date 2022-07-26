@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
@@ -18,6 +19,7 @@ using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Tasks.Item;
 using AAEmu.Game.Utils.DB;
 
 using MySql.Data.MySqlClient;
@@ -68,10 +70,13 @@ namespace AAEmu.Game.Core.Managers
 
         // Events
         public event EventHandler OnItemsLoaded;
+        private DateTime LastTimerCheck { get; set; }
+        private object ItemTimerLock { get; set; }
 
         private Dictionary<ulong, Item> _allItems;
         private List<ulong> _removedItems;
         private Dictionary<ulong, ItemContainer> _allPersistantContainers;
+        // private Dictionary<ulong, Item> _timerSubscriptionsItems;
 
         public ItemTemplate GetTemplate(uint id)
         {
@@ -508,6 +513,8 @@ namespace AAEmu.Game.Core.Managers
             _itemUnitModifiers = new Dictionary<uint, List<BonusTemplate>>();
             _equipItemSets = new Dictionary<uint, EquipItemSet>();
             _config = new ItemConfig();
+            ItemTimerLock = new();
+            LastTimerCheck = DateTime.UtcNow;
 
             SkillManager.Instance.OnSkillsLoaded += OnSkillsLoaded;
             using (var connection = SQLite.CreateConnection())
@@ -1608,8 +1615,9 @@ namespace AAEmu.Game.Core.Managers
             _log.Info("Loading user items ...");
             _allItems = new Dictionary<ulong, Item>();
             _allPersistantContainers = new Dictionary<ulong, ItemContainer>();
+            // _timerSubscriptionsItems = new Dictionary<ulong, Item>();
             //lock (_removedItems)
-                _removedItems = new List<ulong>();
+            _removedItems = new List<ulong>();
 
             using (var connection = MySQL.CreateConnection())
             using (var command = connection.CreateCommand())
@@ -1742,7 +1750,9 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
             }
-
+            
+            var itemTimerTask = new ItemTimerTask();
+            TaskManager.Instance.Schedule(itemTimerTask, null, TimeSpan.FromSeconds(1));
         }
 
         /// <summary>
@@ -1803,9 +1813,59 @@ namespace AAEmu.Game.Core.Managers
             return (template != null) && (template is BackpackTemplate bt) && (!template.BindType.HasFlag(ItemBindType.BindOnEquip));
         }
 
+        private void UpdateItemContainerTimers(TimeSpan delta, ItemContainer itemContainer, Character character)
+        {
+            if (itemContainer == null)
+            {
+                _log.Error("Invalid itemContainer when processing item timers");
+                return;
+            }
+
+            for (var i = itemContainer.Items.Count - 1; i >= 0; i--)
+            {
+                var item = itemContainer.Items[i];
+                var doExpire = false;
+                
+                if ((item.ExpirationTime > DateTime.MinValue) && (item.ExpirationTime <= DateTime.UtcNow))
+                    doExpire = true; // Item expired by predefined end time
+                else if (item.ExpirationOnlineMinutesLeft > 0.0)
+                {
+                    item.ExpirationOnlineMinutesLeft -= delta.TotalMinutes; // reduce lifespan of this item
+                    if (item.ExpirationOnlineMinutesLeft <= 0.0)
+                        doExpire = true; // online timed lifespan is done
+                }
+
+                if (doExpire)
+                {
+                    itemContainer.RemoveItem(ItemTaskType.LifespanExpiration, item, true);
+                }
+            }
+        }
+
         public void UpdateItemTimers()
         {
-            throw new NotImplementedException();
+            var delta = TimeSpan.Zero;
+            lock (ItemTimerLock)
+            {
+                var now = DateTime.UtcNow;
+                delta = now - LastTimerCheck;
+                LastTimerCheck = now;
+            }
+            
+            _log.Info($"UpdateItemTimers - Tick, Delta: {delta.TotalMilliseconds}ms");
+
+            // Timers are actually only checked when it's owner is actually online, so we loop the online characters for this.
+            // You can clearly see this on retail after event items expired when you were offline, they will expire immediately
+            // even before you get the welcome message when logging in. (you can see it in the logs)
+            // It only does this for items in your inventory, equipment and warehouse,
+            // it is for example possible to have one in your mailbox, and it will immediately expire when you take it out.
+            var onlinePlayers = WorldManager.Instance.GetAllCharacters();
+            foreach (var character in onlinePlayers)
+            {
+                UpdateItemContainerTimers(delta, character?.Inventory?.Equipment, character);
+                UpdateItemContainerTimers(delta, character?.Inventory?.Bag, character);
+                UpdateItemContainerTimers(delta, character?.Inventory?.Warehouse, character);
+            }
         }
     }
 }

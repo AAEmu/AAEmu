@@ -1,5 +1,7 @@
 ﻿using System;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -60,7 +62,7 @@ namespace AAEmu.Game.Models.Game.Items
         private bool _isDirty;
         private ulong _uccId;
         private DateTime _expirationTime;
-        private float _expirationOnlineMinutesLeft;
+        private double _expirationOnlineMinutesLeft;
 
         public bool IsDirty { get => _isDirty; set => _isDirty = value; }
         public byte WorldId { get => _worldId; set { _worldId = value; _isDirty = true; } }
@@ -79,15 +81,42 @@ namespace AAEmu.Game.Models.Game.Items
         public DateTime UnsecureTime { get => _unsecureTime; set { _unsecureTime = value; _isDirty = true; } }
         public DateTime UnpackTime { get => _unpackTime; set { _unpackTime = value; _isDirty = true; } }
         public uint ImageItemTemplateId { get => _imageItemTemplateId; set { _imageItemTemplateId = value; _isDirty = true; } }
+
         /// <summary>
         /// Internal representation of the exact time a item will expire (UTC)
         /// </summary>
-        public DateTime ExpirationTime { get => _expirationTime; set { _expirationTime = value; _isDirty = true; } }
+        public DateTime ExpirationTime
+        {
+            get => _expirationTime;
+            set
+            {
+                if (_expirationTime != value)
+                {
+                    WorldManager.Instance.GetCharacterById((uint)OwnerId)?.SendPacket(new SCSyncItemLifespanPacket(value > DateTime.MinValue, Id, TemplateId, value));
+                    _expirationTime = value;
+                    _isDirty = true;
+                }
+            }
+        }
+
         /// <summary>
         /// Internal representation of the time this item has left before expiring, only counting down if the owning character is online
         /// </summary>
-        public float ExpirationOnlineMinutesLeft { get => _expirationOnlineMinutesLeft; set { _expirationOnlineMinutesLeft = value; _isDirty = true; } }
-        
+        public double ExpirationOnlineMinutesLeft
+        {
+            get => _expirationOnlineMinutesLeft;
+            set
+            {
+                if (value > _expirationOnlineMinutesLeft)
+                {
+                    var newEndTime = DateTime.UtcNow.AddMinutes(value);
+                    WorldManager.Instance.GetCharacterById((uint)OwnerId)?.SendPacket(new SCSyncItemLifespanPacket(true, Id, TemplateId, newEndTime));
+                }
+                _expirationOnlineMinutesLeft = value;
+                _isDirty = true;
+            }
+        }
+
 
         public ulong UccId
         {

@@ -582,8 +582,6 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 if (newItem.Template.ExpDate > DateTime.MinValue)
                     newItem.ExpirationTime = newItem.Template.ExpDate;
                 
-                
-                
                 if (AddOrMoveExistingItem(ItemTaskType.Invalid, newItem, prefSlot)) // Task set to invalid as we send our own packets inside this function
                 {
                     itemTasks.Add(new ItemAdd(newItem));
