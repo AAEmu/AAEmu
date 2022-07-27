@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
@@ -11,6 +12,7 @@ using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Extensions.Configuration;
 using Moq;
@@ -20,7 +22,6 @@ namespace AAEmu.Tests.Models.Game.Quests
 {
     public class QuestTests
     {
-        private QuestManager _questManager = new QuestManager();
         public QuestTests()
         {
             //Loads all quests from DB
@@ -33,7 +34,9 @@ namespace AAEmu.Tests.Models.Game.Quests
             configurationBuilder.AddJsonFile(mainConfig);
             var configurationBuilderResult = configurationBuilder.Build();
             configurationBuilderResult.Bind(AppConfiguration.Instance);
-            
+
+            ContainerIdManager.Instance.Initialize();
+            ItemIdManager.Instance.Initialize();
             ItemManager.Instance.LoadUserItems();
 
         }
@@ -67,8 +70,11 @@ namespace AAEmu.Tests.Models.Game.Quests
             {
                 var quest = SetupQuest(questId, QuestManager.Instance, out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _);
 
+                mockOwner.SetupAllProperties();
+                mockOwner.SetupGet(o => o.Id).Returns(100);
+                mockOwner.SetupGet(o => o.NumInventorySlots).Returns(10);
+                mockOwner.SetupGet(o => o.NumBankSlots).Returns(10);
                 mockOwner.SetupGet(o => o.Inventory).Returns(new Inventory(mockOwner.Object));
-                mockOwner.SetupGet(o => o.Id).Returns(1);
                 // Act
                 var result = quest.Start();
 
