@@ -53,7 +53,7 @@ namespace AAEmu.Game.Models.Game.Quests
         
         public uint GetActiveComponent()
         {
-            return Template.GetComponent(Step).Id;
+            return Template.GetFirstComponent(Step).Id;
         }
 
         public Quest(IQuestTemplate questTemplate, IQuestManager questManager, ISphereQuestManager sphereQuestManager, ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager)
@@ -160,9 +160,10 @@ namespace AAEmu.Game.Models.Game.Quests
 
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {
-                    var acts = _questManager.GetActs(components[componentIndex].Id);
-
+                    var currentComponent = components[componentIndex];
+                    var acts = _questManager.GetActs(currentComponent.Id);
                     var questActConAcceptNpc = acts.All(a => a.DetailType == "QuestActConAcceptNpc");
+                    
                     if (acts.Length > 0 && questActConAcceptNpc)
                     {
                         // оказывается может быть несколько Npc с которыми можно заключить квест! (It turns out that there may be several NPCs with which you can make a quest!)
@@ -175,11 +176,11 @@ namespace AAEmu.Game.Models.Game.Quests
                         
                         res = true;
                         acceptNpc = true;
-                        ComponentId = components[componentIndex].Id;
-                        Status = CalculateQuestStatus(components[componentIndex]);
+                        ComponentId = currentComponent.Id;
+                        Status = CalculateQuestStatus(currentComponent);
                         
                         _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, acts[0].DetailType);
-                        UseSkill(components[componentIndex]);
+                        UseSkill(currentComponent);
                     }
 
                     foreach (var act in acts)
@@ -205,25 +206,22 @@ namespace AAEmu.Game.Models.Game.Quests
                                     res = act.Use(Owner, this, Objectives[componentIndex]);
                                     if (res)
                                     {
-                                        ComponentId = components[componentIndex].Id;
-                                        Status = CalculateQuestStatus(components[componentIndex]);
-                                        _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
+                                        ComponentId = currentComponent.Id;
+                                        Status = CalculateQuestStatus(currentComponent);
+                                        _log.Info($"[Quest] Start: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
                                     }
                                     else
                                     {
-                                        _log.Warn("[Quest] Start failed: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
-                                        return false; // не тот Npc, что нужен по квесту, выход (Not the NPC that is needed by the quest, the exit)
+                                        _log.Warn($"[Quest] Start failed: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
+                                        return false; 
+                                        //Not the NPC that is needed by the quest, the exit)
                                     }
-                                    UseSkill(components[componentIndex]);
+                                    UseSkill(currentComponent);
                                     break;
                                 }
                             case "QuestActSupplyItem":
                                 {
                                     res = act.Use(Owner, this, SupplyItem); // if SupplyItem = 0, we get the item
-                                    if (!res)
-                                    {
-                                        Owner.SendErrorMessage(ErrorMessageType.BagFull);
-                                    }
                                     Step = QuestComponentKind.Supply; // в процессе работы метода ItemGather  переключается на Progress (in the process of ItemGather method operation switches to Progress)
                                     supply = res; // если было пополнение предметом, то на метод Update() не переходить (If there was a replenishment of an object, then do not go to the Update() method)
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
@@ -314,10 +312,6 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActSupplyItem" when Step == QuestComponentKind.Supply:
                                 {
                                     res = act.Use(Owner, this, 0); // получим предмет (get the item)
-                                    if (!res)
-                                    {
-                                        Owner.SendErrorMessage(ErrorMessageType.BagFull);
-                                    }
                                     Step = QuestComponentKind.Supply; // в процессе работы метода ItemGather  переключается на Progress (in the process of ItemGather method operation switches to Progress)
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     break;
@@ -401,13 +395,9 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActSupplyItem" when Step == QuestComponentKind.Supply:
                                 {
                                     complete = act.Use(Owner, this, SupplyItem);
-                                    if (!complete)
-                                    {
-                                        Owner.SendErrorMessage(ErrorMessageType.BagFull);
-                                    }
                                     _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                                     var next = QuestComponentKind.Progress;
-                                    var componentnext = Template.GetComponent(next);
+                                    var componentnext = Template.GetFirstComponent(next);
                                     if (componentnext == null)
                                         break;
                                     var actsnext = _questManager.GetActs(componentnext.Id);
@@ -657,10 +647,6 @@ namespace AAEmu.Game.Models.Game.Quests
                                 }
                             case "QuestActSupplyItem":
                                 res = act.Use(Owner, this, SupplyItem);
-                                if (!res)
-                                {
-                                    Owner.SendErrorMessage(ErrorMessageType.BagFull);
-                                }
                                 if (ComponentId == 0)
                                     ComponentId = components[componentIndex].Id;
                                 _log.Warn("[Quest] Complete: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, step, Status, res, act.DetailType);
@@ -699,7 +685,7 @@ namespace AAEmu.Game.Models.Game.Quests
         private int GetCustomSupplies(string supply)
         {
             var value = 0;
-            var component = Template.GetComponent(QuestComponentKind.Reward);
+            var component = Template.GetFirstComponent(QuestComponentKind.Reward);
             if (component == null)
             {
                 return 0;
@@ -800,7 +786,7 @@ namespace AAEmu.Game.Models.Game.Quests
             Status = QuestStatus.Dropped;
             Step = QuestComponentKind.Drop;
 
-            var component = Template.GetComponent(Step);
+            var component = Template.GetFirstComponent(Step);
 
             UseSkill(component);
 
@@ -1159,7 +1145,7 @@ namespace AAEmu.Game.Models.Game.Quests
         {
             var checking = false;
             Step = QuestComponentKind.Progress;
-            var component = Template.GetComponent(Step);
+            var component = Template.GetFirstComponent(Step);
             if (component != null)
             {
                 var acts = _questManager.GetActs(component.Id);
@@ -1188,7 +1174,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public void OnQuestComplete(uint questId)
         {
             var checking = false;
-            var component = Template.GetComponent(Step);
+            var component = Template.GetFirstComponent(Step);
             if (component != null)
             {
                 var acts = _questManager.GetActs(component.Id);
@@ -1297,7 +1283,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
         public void RecalcObjectives(bool send = true)
         {
-            var component = Template.GetComponent(Step);
+            var component = Template.GetFirstComponent(Step);
             if (component == null)
             {
                 return;

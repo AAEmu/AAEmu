@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Quests.Templates
         int Score { get; set; }
         byte Level { get; set; }
         IDictionary<uint, QuestComponent> Components { get; set; }
-        QuestComponent GetComponent(QuestComponentKind step);
+        QuestComponent GetFirstComponent(QuestComponentKind step);
         QuestComponent[] GetComponents(QuestComponentKind step);
     }
 }

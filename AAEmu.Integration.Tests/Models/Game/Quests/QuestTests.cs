@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
-using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -25,9 +22,8 @@ namespace AAEmu.Tests.Models.Game.Quests
             QuestManager.Instance.Load();
         }
         
-        [Theory]
-        [InlineData(871)]
-        public void Start_WhenQuestStart_AllActsAreQuestActConAcceptNpc_And_TargetNpcIsNotValid_ShouldEndQuick(uint questId2)
+        [Fact]
+        public void Start_WhenQuestStart_AllActsAreQuestActConAcceptNpc_And_TargetNpcIsNotValid_ShouldEndQuick()
         {
             // Arrange
             var questIds = GetAllQuests_Where_ComponentKindStart_HasAllActsAs_QuestActConAcceptNpc();
@@ -46,6 +42,31 @@ namespace AAEmu.Tests.Models.Game.Quests
             }
         }
 
+        [Fact]
+        public void Test_SpecificQuest()
+        {
+            // Arrange
+            var questIds = GetQuestIdsWithActContainingActDetailType("QuestActConAcceptDoodad");
+            foreach (var questId in questIds)
+            {
+                var quest = SetupQuest(questId, QuestManager.Instance, out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _);
+
+                // Act
+                var result = quest.Start();
+
+                // Assert
+                var questTemplate = QuestManager.Instance.GetTemplate(questId);
+                var startComponents = questTemplate.GetFirstComponent(QuestComponentKind.Start);
+                var hasSupplyComponent = questTemplate.GetComponents(QuestComponentKind.Supply).Length > 0;
+                if (!hasSupplyComponent)
+                {
+                    Assert.Equal(QuestStatus.Progress, quest.Status);
+                }
+                Assert.False(result);
+            }
+        }
+
+        
         private Quest SetupQuest(
             uint questId,
             IQuestManager questManager,

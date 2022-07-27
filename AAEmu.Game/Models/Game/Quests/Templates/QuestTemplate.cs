@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-
+using System.Linq;
 using AAEmu.Game.Models.Game.Quests.Static;
 
 namespace AAEmu.Game.Models.Game.Quests.Templates
@@ -31,24 +31,16 @@ namespace AAEmu.Game.Models.Game.Quests.Templates
             Components = new Dictionary<uint, QuestComponent>();
         }
 
-        public QuestComponent GetComponent(QuestComponentKind step)
+        public QuestComponent GetFirstComponent(QuestComponentKind step)
         {
-            foreach (var component in Components.Values)
-                if (component.KindId == step)
-                    return component;
-            return null;
+            return Components.Values
+                    .FirstOrDefault(cp => cp.KindId == step);
         }
         public QuestComponent[] GetComponents(QuestComponentKind step)
         {
-            QuestComponent[] qcl = new QuestComponent[0];
-            foreach (var component in Components.Values)
-                if (component.KindId == step)
-                {
-                    System.Array.Resize(ref qcl, qcl.Length + 1);
-                    qcl[qcl.Length - 1] = component;
-                    // return component;
-                }
-            return qcl;
+            return Components.Values
+                    .Where(cp => cp.KindId == step)
+                    .ToArray();
         }
     }
 }
