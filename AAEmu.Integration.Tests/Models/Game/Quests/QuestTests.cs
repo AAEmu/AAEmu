@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 using Moq;
 using Xunit;
@@ -18,31 +19,31 @@ namespace AAEmu.Tests.Models.Game.Quests
     public class QuestTests
     {
         private QuestManager _questManager = new QuestManager();
-        private QuestManagerFake _questManagerFake = new QuestManagerFake();
         public QuestTests()
         {
             //Loads all quests from DB
             QuestManager.Instance.Load();
-            _questManagerFake.Load();
         }
         
         [Theory]
         [InlineData(871)]
-        public void Start_WhenQuestStart_AllActsAreQuestActConAcceptNpc_And_TargetNpcIsNotValid_ShouldEndQuick(uint questId)
+        public void Start_WhenQuestStart_AllActsAreQuestActConAcceptNpc_And_TargetNpcIsNotValid_ShouldEndQuick(uint questId2)
         {
             // Arrange
-            var questsWithAcceptNpcs = _questManagerFake.GetQuestIdsWithActContainingActDetailType("QuestActConAcceptNpc");
+            var questIds = GetAllQuests_Where_ComponentKindStart_HasAllActsAs_QuestActConAcceptNpc();
 
+            foreach(var questId in questIds)
+            {
+                var quest = SetupQuest(questId, QuestManager.Instance, out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _);
 
-
-            var quest = SetupQuest(questId, QuestManager.Instance, out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _);
-            
-            // Act
-            var result = quest.Start();
-
-            // Assert
-            Assert.False(result);
-            mockOwner.Verify(o => o.SendPacket(It.IsAny<SCQuestContextStartedPacket>()), Times.Never);
+                // Act
+                var result = quest.Start();
+                
+                // Assert
+                Assert.False(result);
+                mockOwner.Verify(o => o.SendPacket(It.IsAny<SCQuestContextStartedPacket>()), Times.Never);
+                mockOwner.Verify(o => o.UseSkill(It.IsAny<uint>(), It.IsAny<IUnit>()), Times.Never);
+            }
         }
 
         private Quest SetupQuest(
@@ -73,15 +74,11 @@ namespace AAEmu.Tests.Models.Game.Quests
             quest.Owner = mockCharacter.Object;
             return quest;
         }
-    }
-
-    public class QuestManagerFake : QuestManager {
-        public IEnumerable<QuestTemplate> Templates => _templates.Values;
 
         public IEnumerable<uint> GetQuestIdsWithActContainingActDetailType(string detailType)
         {
             List<uint> questIds = new();
-            
+
             using (var connection = SQLite.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
@@ -94,6 +91,44 @@ namespace AAEmu.Tests.Models.Game.Quests
                                                     on qc.id = qa.quest_component_id
                                             where 
                                                 qa.act_detail_type = '{detailType}'
+                                            order by 
+                                                quest_context_id";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            questIds.Add(reader.GetUInt32("quest_context_id"));
+                        }
+                    }
+                }
+            }
+
+            return questIds;
+        }
+        
+        public IEnumerable<uint> GetAllQuests_Where_ComponentKindStart_HasAllActsAs_QuestActConAcceptNpc()
+        {
+            List<uint> questIds = new();
+
+            using (var connection = SQLite.CreateConnection())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = $@"select 
+                                                qc.quest_context_id, qa.act_detail_type, qaNot.act_detail_type
+                                            from 
+	                                            quest_contexts qcx
+	                                            inner join quest_components qc
+		                                            on qcx.id = qc.quest_context_id 
+                                                inner join quest_acts qa 
+                                                    on qc.id = qa.quest_component_id and qa.act_detail_type = 'QuestActConAcceptNpc'
+                                                left join quest_acts qaNot
+    	                                            on qc.id = qaNot.quest_component_id and qaNot.act_detail_type <> 'QuestActConAcceptNpc'
+                                            where 
+	                                            qc.component_kind_id = 2 and qaNot.act_detail_type is null
+                                            group by
+	                                            qc.quest_context_id, qa.act_detail_type
                                             order by 
                                                 quest_context_id";
                     command.Prepare();

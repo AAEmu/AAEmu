@@ -96,32 +96,55 @@ namespace AAEmu.Game.Models.Game.Quests
         {
         }
 
-        private void UpdateStatus()
+        private QuestStatus CalculateQuestStatus(QuestComponent currentComponent)
         {
-            // проверим следующий компонент на QuestComponentKind.Ready (Check the following component for QuestComponentKind.Ready)
-            var (_, component) = Template.Components.ElementAt(1); // возьмём компонент следующий за Start or None (let's take the component following Start or None)
-            if (component.KindId == QuestComponentKind.Supply)
+            var questComponents = Template.Components.Values.ToList();
+            var currentComponentIndex = questComponents.IndexOf(currentComponent);
+            
+            if (currentComponent.KindId is not QuestComponentKind.None and not QuestComponentKind.Start) 
             {
-                var (_, component2) = Template.Components.ElementAt(2); // возьмём компонент следующий за Supply (let's take the component following Supply)
-                // TODO added for quest Id=748 - получение того же предмета повторно (obtaining the same subject again)
-                var acts2 = _questManager.GetActs(component2.Id);
-                if (component2.KindId == QuestComponentKind.Progress && acts2.Any(qa => qa.DetailType == "QuestActSupplyItem"))
+                return Status;
+            }
+            
+            // Let's take next component following Start or None
+            var nextComponent = questComponents.ElementAt(currentComponentIndex + 1);
+
+            if (nextComponent.KindId != QuestComponentKind.Supply)
+            {
+                var acts = nextComponent.ActTemplates;
+                if (acts.Count == 0)
                 {
-                    Status = QuestStatus.Ready;
-                    return;
+                    return QuestStatus.Ready;
                 }
-                Status = component2.KindId == QuestComponentKind.Progress ? QuestStatus.Progress : QuestStatus.Ready;
-                return;
+
+                return nextComponent.KindId == QuestComponentKind.Progress
+                    ? QuestStatus.Progress
+                    : QuestStatus.Ready;
             }
-            var acts = _questManager.GetActs(component.Id);
-            if (acts.Length == 0)
+
+            // This is a rare case scenario where a quest component supply kind is followed by a progress kind both with ActSupplyItem
+            // Quest ids: 748, 1478, 2479, 5458
+
+            var supplyComponent = nextComponent;
+            // Component following Supply
+            var componentAfterSupply = questComponents.ElementAt(currentComponentIndex + 2);
+
+            if (componentAfterSupply.KindId == QuestComponentKind.Progress && componentAfterSupply.ActTemplates.OfType<QuestActSupplyItem>().Any())
             {
-                Status = QuestStatus.Ready;
+                // The specific quest 5458 fall in this category but the item supplied is different
+                var componentAfterSupplySupplyItens = componentAfterSupply.ActTemplates.OfType<QuestActSupplyItem>().Select(i => i.ItemId).ToArray();
+                var supplyComponentSupplyItens = supplyComponent.ActTemplates.OfType<QuestActSupplyItem>().Select(i => i.ItemId).ToArray();
+
+                // Checks if the Itens provided in the Supply component act is the same for Progress component act
+                if (!componentAfterSupplySupplyItens.Except(supplyComponentSupplyItens).Any()) 
+                { 
+                    return QuestStatus.Ready;
+                }
             }
-            else
-            {
-                Status = component.KindId == QuestComponentKind.Progress ? QuestStatus.Progress : QuestStatus.Ready;
-            }
+                
+            return componentAfterSupply.KindId == QuestComponentKind.Progress 
+                ? QuestStatus.Progress 
+                : QuestStatus.Ready;          
         }
 
         public bool Start()
@@ -153,7 +176,8 @@ namespace AAEmu.Game.Models.Game.Quests
                         res = true;
                         acceptNpc = true;
                         ComponentId = components[componentIndex].Id;
-                        UpdateStatus();
+                        Status = CalculateQuestStatus(components[componentIndex]);
+                        
                         _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, acts[0].DetailType);
                         UseSkill(components[componentIndex]);
                     }
@@ -182,7 +206,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     if (res)
                                     {
                                         ComponentId = components[componentIndex].Id;
-                                        UpdateStatus();
+                                        Status = CalculateQuestStatus(components[componentIndex]);
                                         _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     }
                                     else
@@ -238,7 +262,8 @@ namespace AAEmu.Game.Models.Game.Quests
         }
 
         /// <summary>
-        /// Метод предназначен для вызова из скрипта QuestCmd, команда /quest add <questId> (The method is used to call from the QuestCmd script, the command /quest add <questId>)
+        /// Метод предназначен для вызова из скрипта QuestCmd, команда /quest add <questId>
+        /// The method is used to call from the QuestCmd script, the command /quest add <questId>)
         /// </summary>
         /// <returns></returns>
         public void StartFirstOnly()
@@ -266,7 +291,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 if (res)
                                 {
                                     ComponentId = components[componentIndex].Id;
-                                    UpdateStatus();
+                                    Status = CalculateQuestStatus(components[componentIndex]);
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                 }
                                 else
@@ -281,7 +306,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     // не проверяем Npc при взятии квеста (do not check the Npc when taking the quest)
                                     act.Use(Owner, this, 0);
                                     ComponentId = components[componentIndex].Id;
-                                    UpdateStatus();
+                                    Status = CalculateQuestStatus(components[componentIndex]);
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     UseSkill(components[componentIndex]);
                                     break;
