@@ -7,6 +7,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Auction.Templates;
@@ -1751,6 +1752,7 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
             
+            _log.Info("Starting Timed Items Task ...");
             var itemTimerTask = new ItemTimerTask();
             TaskManager.Instance.Schedule(itemTimerTask, null, TimeSpan.FromSeconds(1));
         }
@@ -1813,12 +1815,13 @@ namespace AAEmu.Game.Core.Managers
             return (template != null) && (template is BackpackTemplate bt) && (!template.BindType.HasFlag(ItemBindType.BindOnEquip));
         }
 
-        private void UpdateItemContainerTimers(TimeSpan delta, ItemContainer itemContainer, Character character)
+        private int UpdateItemContainerTimers(TimeSpan delta, ItemContainer itemContainer, Character character)
         {
+            var res = 0;
             if (itemContainer == null)
             {
                 _log.Error("Invalid itemContainer when processing item timers");
-                return;
+                return res;
             }
 
             for (var i = itemContainer.Items.Count - 1; i >= 0; i--)
@@ -1837,9 +1840,15 @@ namespace AAEmu.Game.Core.Managers
 
                 if (doExpire)
                 {
-                    itemContainer.RemoveItem(ItemTaskType.LifespanExpiration, item, true);
+                    res++;
+                    var sync = ExpireItemPacket(item);
+                    if (sync != null)
+                        character?.SendPacket(sync);
+                    itemContainer.RemoveItem(ItemTaskType.LifespanExpiration, item, true);            
                 }
             }
+
+            return res;
         }
 
         public void UpdateItemTimers()
@@ -1852,7 +1861,7 @@ namespace AAEmu.Game.Core.Managers
                 LastTimerCheck = now;
             }
             
-            _log.Info($"UpdateItemTimers - Tick, Delta: {delta.TotalMilliseconds}ms");
+            // _log.Trace($"UpdateItemTimers - Tick, Delta: {delta.TotalMilliseconds}ms");
 
             // Timers are actually only checked when it's owner is actually online, so we loop the online characters for this.
             // You can clearly see this on retail after event items expired when you were offline, they will expire immediately
@@ -1860,12 +1869,48 @@ namespace AAEmu.Game.Core.Managers
             // It only does this for items in your inventory, equipment and warehouse,
             // it is for example possible to have one in your mailbox, and it will immediately expire when you take it out.
             var onlinePlayers = WorldManager.Instance.GetAllCharacters();
+            var res = 0;
             foreach (var character in onlinePlayers)
             {
-                UpdateItemContainerTimers(delta, character?.Inventory?.Equipment, character);
-                UpdateItemContainerTimers(delta, character?.Inventory?.Bag, character);
-                UpdateItemContainerTimers(delta, character?.Inventory?.Warehouse, character);
+                res += UpdateItemContainerTimers(delta, character?.Inventory?.Equipment, character);
+                res += UpdateItemContainerTimers(delta, character?.Inventory?.Bag, character);
+                res += UpdateItemContainerTimers(delta, character?.Inventory?.Warehouse, character);
             }
+
+            if (res > 0)
+                _log.Warn($"{res} item(s) expired and have been removed.");
+        }
+        
+        public GamePacket SetItemExpirationTime(Item item, DateTime newTime)
+        {
+            if (item.ExpirationTime != newTime)
+            {
+                item.ExpirationTime = newTime;
+                _log.Warn($"Set ExpirationTime for item {item.Id}, {item.Template.Name} set to {newTime}");
+                return new SCSyncItemLifespanPacket(newTime > item.CreateTime, item.Id, item.TemplateId, newTime);
+            }
+
+            return null;
+        }
+        
+        public GamePacket SetItemOnlineExpirationTime(Item item, double newMinutes)
+        {
+            if (item.ExpirationOnlineMinutesLeft != newMinutes)
+            {
+                var newTime = DateTime.UtcNow.AddMinutes(newMinutes);
+                item.ExpirationOnlineMinutesLeft = newMinutes;
+                _log.Warn($"Set ExpirationOnlineMinutesLeft for item {item.Id}, {item.Template.Name} set to {newTime}");
+                return new SCSyncItemLifespanPacket(newMinutes >= 0.0, item.Id, item.TemplateId, newTime);
+            }
+
+            return null;
+        }
+
+        public GamePacket ExpireItemPacket(Item item)
+        {
+            item.ExpirationTime = DateTime.MinValue;
+            item.ExpirationOnlineMinutesLeft = 0.0;
+            return new SCSyncItemLifespanPacket(false, item.Id, item.TemplateId, DateTime.MinValue);
         }
     }
 }

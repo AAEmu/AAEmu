@@ -92,7 +92,6 @@ namespace AAEmu.Game.Models.Game.Items
             {
                 if (_expirationTime != value)
                 {
-                    WorldManager.Instance.GetCharacterById((uint)OwnerId)?.SendPacket(new SCSyncItemLifespanPacket(value > DateTime.MinValue, Id, TemplateId, value));
                     _expirationTime = value;
                     _isDirty = true;
                 }
@@ -107,11 +106,6 @@ namespace AAEmu.Game.Models.Game.Items
             get => _expirationOnlineMinutesLeft;
             set
             {
-                if (value > _expirationOnlineMinutesLeft)
-                {
-                    var newEndTime = DateTime.UtcNow.AddMinutes(value);
-                    WorldManager.Instance.GetCharacterById((uint)OwnerId)?.SendPacket(new SCSyncItemLifespanPacket(true, Id, TemplateId, newEndTime));
-                }
                 _expirationOnlineMinutesLeft = value;
                 _isDirty = true;
             }
@@ -247,5 +241,6 @@ namespace AAEmu.Game.Models.Game.Items
         {
             ItemFlags &= ~flag;
         }
+        
     }
 }

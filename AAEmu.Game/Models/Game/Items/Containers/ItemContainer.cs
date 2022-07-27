@@ -4,6 +4,7 @@ using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -391,6 +392,14 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         public bool RemoveItem(ItemTaskType task, Item item, bool releaseIdAsWell)
         {
             Owner?.Inventory.OnConsumedItem(item, item.Count);
+
+            // Handle items that can expire
+            GamePacket sync = null;
+            if ((item.ExpirationOnlineMinutesLeft > 0.0) || (item.ExpirationTime > DateTime.UtcNow))
+                sync = ItemManager.Instance.ExpireItemPacket(item);
+            if (sync != null)
+                this.Owner?.SendPacket(sync);
+            
             var res = item._holdingContainer.Items.Remove(item);
             if (res && task != ItemTaskType.Invalid)
                 item._holdingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, new List<ItemTask> { new ItemRemoveSlot(item) }, new List<ulong>()));
@@ -559,6 +568,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 }
             }
 
+            var syncPackets = new List<GamePacket>();
             while (amountToAdd > 0)
             {
                 var addAmount = Math.Min(amountToAdd, template.MaxCount);
@@ -576,11 +586,11 @@ namespace AAEmu.Game.Models.Game.Items.Containers
 
                 // Timers
                 if (newItem.Template.ExpAbsLifetime > 0)
-                    newItem.ExpirationTime = DateTime.UtcNow.AddMinutes(newItem.Template.ExpAbsLifetime);
+                    syncPackets.Add(ItemManager.Instance.SetItemExpirationTime(newItem,DateTime.UtcNow.AddMinutes(newItem.Template.ExpAbsLifetime)));
                 if (newItem.Template.ExpOnlineLifetime > 0)
-                    newItem.ExpirationOnlineMinutesLeft = newItem.Template.ExpOnlineLifetime;
+                    syncPackets.Add(ItemManager.Instance.SetItemOnlineExpirationTime(newItem, newItem.Template.ExpOnlineLifetime));
                 if (newItem.Template.ExpDate > DateTime.MinValue)
-                    newItem.ExpirationTime = newItem.Template.ExpDate;
+                    syncPackets.Add(ItemManager.Instance.SetItemExpirationTime(newItem, newItem.Template.ExpDate));
                 
                 if (AddOrMoveExistingItem(ItemTaskType.Invalid, newItem, prefSlot)) // Task set to invalid as we send our own packets inside this function
                 {
@@ -593,6 +603,12 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             if (taskType != ItemTaskType.Invalid)
                 Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
             UpdateFreeSlotCount();
+            
+            // Send item expire packets if needed
+            foreach (var sync in syncPackets)
+                if (sync != null)
+                    Owner?.SendPacket(sync);
+            
             return (itemTasks.Count > 0);
         }
 

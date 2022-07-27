@@ -141,6 +141,7 @@ namespace AAEmu.Game.Models.Game.Char
             Owner.SendPacket(new SCCharacterInvenInitPacket(Owner.NumInventorySlots, (uint)Owner.NumBankSlots));
             SendFragmentedInventory(SlotType.Inventory, Owner.NumInventorySlots, Bag.GetSlottedItemsList().ToArray());
             SendFragmentedInventory(SlotType.Bank, (byte)Owner.NumBankSlots, Warehouse.GetSlottedItemsList().ToArray());
+            SetInitialItemExpirationTimers(Owner.Equipment.Items.ToArray());
         }
 
         /// <summary>
@@ -798,6 +799,18 @@ namespace AAEmu.Game.Models.Game.Char
                 return 0;
         }
 
+        private void SetInitialItemExpirationTimers(Item[] bag)
+        {
+            // Send Item Expire Times if needed
+            foreach (var item in bag)
+            {
+                if (item?.ExpirationTime > DateTime.MinValue)
+                    Owner.SendPacket(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, item.ExpirationTime));
+                if (item?.ExpirationOnlineMinutesLeft > 0.0)
+                    Owner.SendPacket(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, DateTime.UtcNow.AddMinutes(item.ExpirationOnlineMinutesLeft)));
+            }
+        }
+
         private void SendFragmentedInventory(SlotType slotType, byte numItems, Item[] bag)
         {
             var tempItem = new Item[10];
@@ -812,6 +825,8 @@ namespace AAEmu.Game.Models.Game.Char
                 Array.Copy(bag, chunk * 10, tempItem, 0, 10);
                 Owner.SendPacket(new SCCharacterInvenContentsPacket(slotType, 1, chunk, tempItem));
             }
+
+            SetInitialItemExpirationTimers(bag);
         }
 
         /// <summary>
