@@ -1,13 +1,18 @@
 ﻿using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
+using Microsoft.Extensions.Configuration;
 using Moq;
 using Xunit;
 
@@ -20,8 +25,19 @@ namespace AAEmu.Tests.Models.Game.Quests
         {
             //Loads all quests from DB
             QuestManager.Instance.Load();
+            FormulaManager.Instance.Load();
+            ItemManager.Instance.Load();
+
+            var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
+            var configurationBuilder = new ConfigurationBuilder();
+            configurationBuilder.AddJsonFile(mainConfig);
+            var configurationBuilderResult = configurationBuilder.Build();
+            configurationBuilderResult.Bind(AppConfiguration.Instance);
+            
+            ItemManager.Instance.LoadUserItems();
+
         }
-        
+
         [Fact]
         public void Start_WhenQuestStart_AllActsAreQuestActConAcceptNpc_And_TargetNpcIsNotValid_ShouldEndQuick()
         {
@@ -51,18 +67,25 @@ namespace AAEmu.Tests.Models.Game.Quests
             {
                 var quest = SetupQuest(questId, QuestManager.Instance, out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _);
 
+                mockOwner.SetupGet(o => o.Inventory).Returns(new Inventory(mockOwner.Object));
+                mockOwner.SetupGet(o => o.Id).Returns(1);
                 // Act
                 var result = quest.Start();
 
                 // Assert
                 var questTemplate = QuestManager.Instance.GetTemplate(questId);
-                var startComponents = questTemplate.GetFirstComponent(QuestComponentKind.Start);
+                var templateComponent = questTemplate.GetFirstComponent(QuestComponentKind.Start);
+                mockOwner.Verify(o => o.UseSkill(It.IsIn(templateComponent.SkillId), It.IsIn(mockOwner.Object)), 
+                    templateComponent.SkillId > 0 
+                    ? Times.Once 
+                    : Times.Never);
+                
                 var hasSupplyComponent = questTemplate.GetComponents(QuestComponentKind.Supply).Length > 0;
                 if (!hasSupplyComponent)
                 {
                     Assert.Equal(QuestStatus.Progress, quest.Status);
                 }
-                Assert.False(result);
+                Assert.True(result);
             }
         }
 

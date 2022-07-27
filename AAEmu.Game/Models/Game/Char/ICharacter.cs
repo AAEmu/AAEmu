@@ -1,4 +1,5 @@
 ﻿using System.Drawing;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -10,11 +11,14 @@ namespace AAEmu.Game.Models.Game.Char
         long Money { get; set; }
         CharacterMates Mates { get; set; }
         CharacterAppellations Appellations { get; set; }
+        byte NumInventorySlots { get; set; }
+        short NumBankSlots { get; set; }
         void SendMessage(string message, params object[] parameters);
         void SendMessage(Color color, string message, params object[] parameters);
         void SendErrorMessage(ErrorMessageType errorMsgType, uint type = 0, bool isNotify = true);
         void ChangeLabor(short change, int actabilityId);
         void UseSkill(uint skillId, IUnit target);
         void AddExp(int exp, bool shouldAddAbilityExp);
+        void UpdateGearBonuses(Item itemAdded, Item itemRemoved);
     }
 }

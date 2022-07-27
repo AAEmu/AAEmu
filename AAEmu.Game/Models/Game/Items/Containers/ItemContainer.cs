@@ -18,13 +18,13 @@ namespace AAEmu.Game.Models.Game.Items.Containers
 
         private int _containerSize;
         private int _freeSlotCount;
-        private Character _owner;
+        private ICharacter _owner;
         private uint _ownerId;
         public bool IsDirty { get; set; }
         private SlotType _containerType;
         private uint _containerId;
 
-        public Character Owner
+        public ICharacter Owner
         {
             get
             {

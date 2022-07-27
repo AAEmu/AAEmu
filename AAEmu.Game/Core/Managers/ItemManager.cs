@@ -1726,7 +1726,7 @@ namespace AAEmu.Game.Core.Managers
 
 
         [Obsolete("You can now use directly linked item containers, and no longer need to load them into the character object")]
-        public List<Item> LoadPlayerInventory(Character character)
+        public List<Item> LoadPlayerInventory(ICharacter character)
         {
             var res = (from i in _allItems where i.Value.OwnerId == character.Id select i.Value).ToList();
             return res;

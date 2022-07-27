@@ -187,13 +187,7 @@ namespace AAEmu.Game.Models.Game.Quests
                     {
                         switch (act.DetailType)
                         {
-                            default:
-                                //case "QuestActObjTalk":
-                                //case "QuestActObjTalkNpcGroup":
-                                supply = true; // прерываем цикл и на метод Update() не переходим (interrupt the cycle and do not go to the update() method)
-                                _log.Warn("[Quest] Start: character {0}, default don't do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
-                                // TODO added for quest Id=4402
-                                goto exit;
+                            
                             case "QuestActConAcceptDoodad": // старт ежедневного квеста (The start of the daily quest)
                             case "QuestActConAcceptNpcKill":
                             case "QuestActConAcceptNpc":
@@ -243,11 +237,19 @@ namespace AAEmu.Game.Models.Game.Quests
                                     Update();
                                     break;
                                 }
+                            default:
+                                //case "QuestActObjTalk":
+                                //case "QuestActObjTalkNpcGroup":
+                                supply = true; // прерываем цикл и на метод Update() не переходим (interrupt the cycle and do not go to the update() method)
+                                _log.Warn("[Quest] Start: character {0}, default don't do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
+                                // TODO added for quest Id=4402
+                                goto EndLoop;
                         }
                     }
                 }
             }
-            exit:
+
+            EndLoop:
             Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
 
             if (Status == QuestStatus.Progress && !supply)
