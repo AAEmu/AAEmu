@@ -581,6 +581,10 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 }
                 else
                     throw new Exception("AcquireDefaultItem(); Unable to add new items"); // Inventory should have enough space, something went wrong
+            
+                // TODO добавил для проверки работы - не работает, все равно "expired"
+                // TODO added to check operation - doesn't work, still "expired"
+                Owner?.SendPacket(new SCSyncItemLifespanPacket(true, newItem.Id, newItem.TemplateId, newItem.CreateTime + TimeSpan.FromMinutes(2)));
             }
             if (taskType != ItemTaskType.Invalid)
                 Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));

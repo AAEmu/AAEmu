@@ -1,13 +1,10 @@
-﻿using System.Collections.Generic;
-
-using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.World.Transform;
+﻿using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.World
 {
     public class Spawner<T> where T : GameObject
     {
-        public uint Id { get; set; }     // objId or index ?
+        public uint Id { get; set; }     // index
         public uint UnitId { get; set; } // MemberId | TemplateId
         public WorldSpawnPosition Position { get; set; }
         public int RespawnTime { get; set; } = 15;

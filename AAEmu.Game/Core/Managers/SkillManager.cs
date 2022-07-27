@@ -270,14 +270,14 @@ namespace AAEmu.Game.Core.Managers
             _effects.Add("TrainCraftEffect", new Dictionary<uint, EffectTemplate>());
             _effects.Add("SkillController", new Dictionary<uint, EffectTemplate>());
             _effects.Add("ResetAoeDiminishingEffect", new Dictionary<uint, EffectTemplate>());
+            _effects.Add("NpcSpawnerSpawnEffect", new Dictionary<uint, EffectTemplate>());
+            _effects.Add("NpcSpawnerDespawnEffect", new Dictionary<uint, EffectTemplate>());
 
             _buffs = new Dictionary<uint, BuffTemplate>();
             // TODO 
             /*
                 _effects.Add("CinemaEffect", new Dictionary<uint, EffectTemplate>());
                 _effects.Add("NpcControlEffect", new Dictionary<uint, EffectTemplate>());
-                _effects.Add("NpcSpawnerSpawnEffect", new Dictionary<uint, EffectTemplate>());
-                _effects.Add("NpcSpawnerDespawnEffect", new Dictionary<uint, EffectTemplate>());
                 _effects.Add("SpawnFishEffect", new Dictionary<uint, EffectTemplate>());
                 _effects.Add("PlayLogEffect", new Dictionary<uint, EffectTemplate>());
             */
@@ -1278,12 +1278,47 @@ namespace AAEmu.Game.Core.Managers
                             template.UseSummonerFaction = reader.GetBoolean("use_summoner_faction", true);
                             template.LifeTime = reader.GetFloat("life_time");
                             template.DespawnOnCreatorDeath = reader.GetBoolean("despawn_on_creator_death", true);
-                            template.UseSummoneerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true);
+                            template.UseSummonerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true);
                             // TODO 1.2 // template.MateStateId = reader.GetUInt32("mate_state_id", 0);
                             _effects["SpawnEffect"].Add(template.Id, template);
                         }
                     }
                 }
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM npc_spawner_spawn_effects";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new NpcSpawnerSpawnEffect();
+                            template.Id = reader.GetUInt32("id");
+                            template.SpawnerId = reader.GetUInt32("spawner_id", 0);
+                            template.LifeTime = reader.GetFloat("life_time");
+                            template.DespawnOnCreatorDeath = reader.GetBoolean("despawn_on_creator_death", true);
+                            template.UseSummonerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true);
+                            template.ActivationState = reader.GetBoolean("activation_state", true);
+                            _effects["NpcSpawnerSpawnEffect"].Add(template.Id, template);
+                        }
+                    }
+                }
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM npc_spawner_despawn_effects";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new NpcSpawnerDespawnEffect();
+                            template.Id = reader.GetUInt32("id");
+                            template.SpawnerId = reader.GetUInt32("spawner_id");
+                            _effects["NpcSpawnerDespawnEffect"].Add(template.Id, template);
+                        }
+                    }
+                }
+
                 // TODO spawn_fish_effects
                 using (var command = connection.CreateCommand())
                 {

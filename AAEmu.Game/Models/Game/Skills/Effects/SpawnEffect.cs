@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public float LifeTime { get; set; }
         public bool DespawnOnCreatorDeath { get; set; }
 
-        public bool UseSummoneerAggroTarget { get; set; }
+        public bool UseSummonerAggroTarget { get; set; }
         // TODO 1.2 // public uint MateStateId { get; set; }
 
         public override bool OnActionTime => false;
@@ -38,7 +38,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (OwnerTypeId == 1) // NPC
             {
                 var npc = NpcManager.Instance.Create(0, SubType);
-                npc.Spawner = new NPChar.NpcSpawner();
+                npc.Spawner = new NpcSpawner();
                 npc.Spawner.RespawnTime = 0; // don't respawn
                 npc.Transform = caster.Transform.CloneDetached(npc);
                 var rpy = target.Transform.World.ToRollPitchYawDegrees();
@@ -58,7 +58,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
                 npc.Spawn();
 
-                if (UseSummoneerAggroTarget)
+                if (UseSummonerAggroTarget)
                 {
                     // TODO : Pick random target off of Aggro table ?
 
