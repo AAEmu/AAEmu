@@ -1497,10 +1497,12 @@ namespace AAEmu.Game.Core.Managers
 
                         command.CommandText = "REPLACE INTO items (" +
                             "`id`,`type`,`template_id`,`container_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`," +
-                            "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`,`flags`,`ucc`" +
+                            "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`,`flags`,`ucc`," +
+                            "`expire_time`,`expire_online_minutes`,`charge_time`,`charge_count`" +
                             ") VALUES ( " +
                             "@id, @type, @template_id, @container_id, @slot_type, @slot, @count, @details, @lifespan_mins, @made_unit_id, " +
-                            "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags,@ucc" +
+                            "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags,@ucc," +
+                            "@expire_time,@expire_online_minutes,@charge_time,@charge_count" +
                             ")";
 
                         command.Parameters.AddWithValue("@id", item.Id);
@@ -1520,6 +1522,10 @@ namespace AAEmu.Game.Core.Managers
                         command.Parameters.AddWithValue("@grade", item.Grade);
                         command.Parameters.AddWithValue("@flags", (byte)item.ItemFlags);
                         command.Parameters.AddWithValue("@ucc", item.UccId);
+                        command.Parameters.AddWithValue("@expire_time", item.ExpirationTime);
+                        command.Parameters.AddWithValue("@expire_online_minutes", item.ExpirationOnlineMinutesLeft);
+                        command.Parameters.AddWithValue("@charge_time", item.ChargeTime);
+                        command.Parameters.AddWithValue("@charge_count", item.ChargeCount); 
                         
                         if (command.ExecuteNonQuery() < 1)
                         {
@@ -1703,6 +1709,12 @@ namespace AAEmu.Game.Core.Managers
                         else if (item.Template.Gradable)
                             item.Grade = reader.GetByte("grade"); // Load from our DB if the item is gradable
 
+                        item.ExpirationTime = reader.IsDBNull("expire_time") ? DateTime.MinValue : reader.GetDateTime("expire_time");
+                        item.ExpirationOnlineMinutesLeft = reader.GetDouble("expire_online_minutes");
+                        item.ChargeTime = reader.IsDBNull("charge_time") ? DateTime.MinValue : reader.GetDateTime("charge_time");
+                        item.ChargeCount = reader.GetInt32("charge_count");
+
+                        
                         // Add it to the global pool
                         if (!_allItems.TryAdd(item.Id, item))
                         {

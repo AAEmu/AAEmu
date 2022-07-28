@@ -111,7 +111,6 @@ namespace AAEmu.Game.Models.Game.Items
             }
         }
 
-
         public ulong UccId
         {
             get => _uccId;
@@ -125,11 +124,15 @@ namespace AAEmu.Game.Models.Game.Items
                 _isDirty = true;
             }
         }
+        
+        public DateTime ChargeTime { get; set; }
+        public int ChargeCount { get; set; }
 
         public virtual ItemDetailType DetailType => 0; // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
 
         // Helper
         public ItemContainer _holdingContainer { get; set; }
+
         public static uint Coins = 500;
         public static uint TaxCertificate = 31891;
         public static uint BoundTaxCertificate = 31892;
