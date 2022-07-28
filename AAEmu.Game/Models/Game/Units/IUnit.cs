@@ -9,5 +9,6 @@ namespace AAEmu.Game.Models.Game.Units
         BaseUnit CurrentTarget { get; }
         ItemContainer Equipment { get; set; }
         void SendPacket(GamePacket packet);
+        void UseSkill(uint skillId, IUnit target);
     }
 }

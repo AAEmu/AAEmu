@@ -29,9 +29,11 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
             {
                 acquireSuccessful = character.Inventory.TryEquipNewBackPack(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
             }
+            else
+            {
+                acquireSuccessful = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
+            }
 
-            acquireSuccessful = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
-            
             if (!acquireSuccessful)
             {
                 var amountFree = character.Inventory.Bag.SpaceLeftForItem(ItemId);

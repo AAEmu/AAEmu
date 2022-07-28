@@ -1551,19 +1551,6 @@ namespace AAEmu.Game.Models.Game.Char
             return fallDamage;
         }
 
-        public void UseSkill(uint skillId, IUnit target)
-        {
-            var skill = new Skill(SkillManager.Instance.GetSkillTemplate((uint)skillId));
-
-            var caster = SkillCaster.GetByType(SkillCasterType.Unit);
-            caster.ObjId = ObjId;
-
-            var sct = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
-            sct.ObjId = target.ObjId;
-
-            skill.Use(this, caster, sct, null, true);
-        }
-
         /// <summary>
         /// ItemUse - is used to work the quests
         /// </summary>

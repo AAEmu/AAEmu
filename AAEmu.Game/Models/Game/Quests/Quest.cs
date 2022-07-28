@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -180,7 +181,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         Status = CalculateQuestStatus(currentComponent);
                         
                         _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, acts[0].DetailType);
-                        UseSkill(currentComponent);
+                        UseSkillAndBuff(currentComponent);
                     }
 
                     foreach (var act in acts)
@@ -210,7 +211,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                         return false; 
                                         //Not the NPC that is needed by the quest, the exit)
                                     }
-                                    UseSkill(currentComponent);
+                                    UseSkillAndBuff(currentComponent);
                                     break;
                                 }
                             case "QuestActSupplyItem":
@@ -299,7 +300,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     _log.Warn("[Quest] Start failed: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     return; // не тот Npc, что нужен по квесту, выход (not the Npc that is needed on the quest, exit)
                                 }
-                                UseSkill(components[componentIndex]);
+                                UseSkillAndBuff(components[componentIndex]);
                                 break;
                             case "QuestActConAcceptNpc":
                                 {
@@ -308,7 +309,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     ComponentId = components[componentIndex].Id;
                                     Status = CalculateQuestStatus(components[componentIndex]);
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
-                                    UseSkill(components[componentIndex]);
+                                    UseSkillAndBuff(components[componentIndex]);
                                     break;
                                 }
                             case "QuestActSupplyItem" when Step == QuestComponentKind.Supply:
@@ -536,7 +537,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
                     if (completes[componentIndex] || complete)
                     {
-                        UseSkill(components[componentIndex]);
+                        UseSkillAndBuff(components[componentIndex]);
                     }
                 }
 
@@ -576,32 +577,34 @@ namespace AAEmu.Game.Models.Game.Quests
         /// <param name="components"></param>
         /// <param name="componentIndex"></param>
        
-        private void UseSkill(QuestComponent component)
+        private void UseSkillAndBuff(QuestComponent component)
         {
             if (component == null) { return; }
+            UseSkill(component);
+            UseBuff(component);
+        }
+
+        private void UseBuff(QuestComponent component)
+        {
+            if (component.BuffId > 0)
+            {
+                Owner.Buffs.AddBuff(new Buff(Owner, Owner, SkillCaster.GetByType(SkillCasterType.Unit), _skillManager.GetBuffTemplate(component.BuffId), null, DateTime.UtcNow));
+            }
+        }
+
+        private void UseSkill(QuestComponent component)
+        {
             if (component.SkillId > 0)
             {
                 if (component.SkillSelf)
                 {
                     Owner.UseSkill(component.SkillId, Owner);
                 }
-                else
+                else if (component.NpcId > 0)
                 {
-                    if (component.NpcId > 0)
-                    {
-                        if (Owner.CurrentTarget is Npc npc)
-                        {
-                            if (npc.TemplateId == component.NpcId)
-                            {
-                                Owner.UseSkill(component.SkillId, npc);
-                            }
-                        }
-                    }
+                    var npc = WorldManager.Instance.GetNpc(component.NpcId);
+                    npc?.UseSkill(component.SkillId, npc);
                 }
-            }
-            if (component.BuffId > 0)
-            {
-                Owner.Buffs.AddBuff(new Buff(Owner, Owner, SkillCaster.GetByType(SkillCasterType.Unit), _skillManager.GetBuffTemplate(component.BuffId), null, DateTime.UtcNow));
             }
         }
 
@@ -790,7 +793,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
             var component = Template.GetFirstComponent(Step);
 
-            UseSkill(component);
+            UseSkillAndBuff(component);
 
             if (update)
                 Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
