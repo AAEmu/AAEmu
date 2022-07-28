@@ -602,7 +602,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
                 else if (component.NpcId > 0)
                 {
-                    var npc = WorldManager.Instance.GetNpc(component.NpcId);
+                    var npc = WorldManager.Instance.GetNpcByTemplateId(component.NpcId);
                     npc?.UseSkill(component.SkillId, npc);
                 }
             }

@@ -605,6 +605,11 @@ namespace AAEmu.Game.Core.Managers.World
             return ret;
         }
 
+        public Npc GetNpcByTemplateId(uint templateId)
+        {
+            return _npcs.Values.FirstOrDefault(x => x.TemplateId == templateId);
+        }
+
         public Character GetCharacter(string name)
         {
             foreach (var player in _characters.Values)
