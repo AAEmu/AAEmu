@@ -31,7 +31,7 @@ namespace AAEmu.Game.Models.Game.Quests
         private readonly ITaskManager _taskManager;
         private readonly ISkillManager _skillManager;
         private readonly IExpressTextManager _expressTextManager;
-        
+        private readonly IWorldManager _worldManager;
         public long Id { get; set; }
         public uint TemplateId { get; set; }
         public IQuestTemplate Template { get; set; }
@@ -57,13 +57,14 @@ namespace AAEmu.Game.Models.Game.Quests
             return Template.GetFirstComponent(Step).Id;
         }
 
-        public Quest(IQuestTemplate questTemplate, IQuestManager questManager, ISphereQuestManager sphereQuestManager, ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager)
+        public Quest(IQuestTemplate questTemplate, IQuestManager questManager, ISphereQuestManager sphereQuestManager, ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager, IWorldManager worldManager)
         {
             _questManager = questManager;
             _sphereQuestManager = sphereQuestManager;
             _taskManager = taskManager;
             _skillManager = skillManager;
             _expressTextManager = expressTextManager;
+            _worldManager = worldManager;
 
             if (questTemplate is not null)
             {
@@ -84,7 +85,8 @@ namespace AAEmu.Game.Models.Game.Quests
             SphereQuestManager.Instance,
             TaskManager.Instance,
             SkillManager.Instance,
-            ExpressTextManager.Instance)
+            ExpressTextManager.Instance,
+            WorldManager.Instance)
         {
         }
 
@@ -93,7 +95,8 @@ namespace AAEmu.Game.Models.Game.Quests
             SphereQuestManager.Instance,
             TaskManager.Instance,
             SkillManager.Instance,
-            ExpressTextManager.Instance)
+            ExpressTextManager.Instance,
+            WorldManager.Instance)
         {
         }
 
@@ -602,7 +605,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
                 else if (component.NpcId > 0)
                 {
-                    var npc = WorldManager.Instance.GetNpcByTemplateId(component.NpcId);
+                    var npc = _worldManager.GetNpcByTemplateId(component.NpcId);
                     npc?.UseSkill(component.SkillId, npc);
                 }
             }
@@ -1257,7 +1260,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
-                var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                var acts = _questManager.GetActs(components[componentIndex].Id);
                 foreach (var act in acts)
                 {
                     switch (act.DetailType)

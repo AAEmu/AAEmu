@@ -49,7 +49,7 @@ namespace AAEmu.Game.GameData.Framework
         
         private void CreateLoaders()
         {
-            foreach(var type in Assembly.GetExecutingAssembly().GetTypes())
+            foreach(var type in Assembly.GetAssembly(typeof(GameDataManager)).GetTypes())
             {
                 if (type.GetCustomAttributes(typeof(GameDataAttribute), true).Length <= 0)
                     continue;

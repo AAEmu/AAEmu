@@ -7,7 +7,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using Xunit;
 
-namespace AAEmu.Tests
+namespace AAEmu.Tests.Unit
 {
     public class UnitTests
     {

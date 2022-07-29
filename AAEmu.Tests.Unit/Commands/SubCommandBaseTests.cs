@@ -9,7 +9,7 @@ using AAEmu.Game.Utils.Scripts.SubCommands;
 using Moq;
 using Xunit;
 
-namespace AAEmu.Tests.Commands
+namespace AAEmu.Tests.Unit.Commands
 {
     public class SubCommandBaseTests
     {

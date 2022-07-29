@@ -1,15 +1,12 @@
-using System.Linq;
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
+﻿using System.Linq;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
-using AAEmu.Game.Utils;
-using AAEmu.Tests.Utils;
-using AAEmu.Tests.Utils.Mocks;
+using AAEmu.Tests.Unit.Utils;
+using AAEmu.Tests.Unit.Utils.Mocks;
 using Xunit;
 
-namespace AAEmu.Tests
+namespace AAEmu.Tests.Unit
 {
     public class InventoryTests
     {

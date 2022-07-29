@@ -3,7 +3,7 @@ using AAEmu.Game.Utils.Converters;
 using Newtonsoft.Json;
 using Xunit;
 
-namespace AAEmu.Tests.Converters
+namespace AAEmu.Tests.Unit.Converters
 {
     public class ModelsJsonConverterTests
     {

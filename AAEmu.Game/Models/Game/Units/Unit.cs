@@ -676,7 +676,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
-        public void UseSkill(uint skillId, IUnit target)
+        public virtual void UseSkill(uint skillId, IUnit target)
         {
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate((uint)skillId));
 

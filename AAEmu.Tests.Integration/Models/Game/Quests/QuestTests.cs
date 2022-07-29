@@ -5,9 +5,13 @@ using System.Linq;
 using System.Text;
 using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.IO;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
@@ -15,34 +19,57 @@ using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using Xunit;
 
-namespace AAEmu.Tests.Models.Game.Quests
+namespace AAEmu.Tests.Integration.Models.Game.Quests
 {
     public class QuestTests
     {
         public QuestTests()
         {
-            //Loads all quests from DB
-            QuestManager.Instance.Load();
-            FormulaManager.Instance.Load();
-            ItemManager.Instance.Load();
             var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
             var configurationBuilder = new ConfigurationBuilder();
             configurationBuilder.AddJsonFile(mainConfig);
             var configurationBuilderResult = configurationBuilder.Build();
             configurationBuilderResult.Bind(AppConfiguration.Instance);
+            
+            //Loads all quests from DB
+            QuestManager.Instance.Load();
+            FormulaManager.Instance.Load();
+            ItemManager.Instance.Load();
+            PlotManager.Instance.Load();
+            SkillManager.Instance.Load();
+            
 
+
+            ClientFileManager.Initialize();
+            TlIdManager.Instance.Initialize();
+            ObjectIdManager.Instance.Initialize();
             TaskIdManager.Instance.Initialize();
             TaskManager.Instance.Initialize();
             ContainerIdManager.Instance.Initialize();
             ItemIdManager.Instance.Initialize();
             ItemManager.Instance.LoadUserItems();
+            WorldManager.Instance.Load();
+            FactionManager.Instance.Load();
+            ModelManager.Instance.Load();
 
+            AIManager.Instance.Initialize();
+            GameDataManager.Instance.LoadGameData();
+            GameScheduleManager.Instance.Load();
+            NpcManager.Instance.Load();
+            DoodadManager.Instance.Load();
+            TransferManager.Instance.Load();
+            GimmickManager.Instance.Load();
+            SpawnManager.Instance.Load();
+
+            GameDataManager.Instance.PostLoadGameData();
+            SpawnManager.Instance.SpawnAll();
         }
 
         [Fact]
@@ -53,7 +80,7 @@ namespace AAEmu.Tests.Models.Game.Quests
 
             foreach(var questId in questIds)
             {
-                var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _);
+                var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _, out _);
 
                 // Act
                 var result = quest.Start();
@@ -79,7 +106,7 @@ namespace AAEmu.Tests.Models.Game.Quests
 
             foreach (var questId in targetQuestIds)
             {
-                var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _);
+                var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _, out _);
                 SetupCharacter(mockCharacter);
                 
                 // Act
@@ -116,7 +143,7 @@ namespace AAEmu.Tests.Models.Game.Quests
             {
                 // Arrange
                 
-                var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _);
+                var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _, out _);
                 SetupCharacter(mockCharacter);
 
                 // Simulates the character to be targeting an expected npc for the quest
@@ -192,7 +219,7 @@ namespace AAEmu.Tests.Models.Game.Quests
 
 
         [Fact]
-        public void UseSkillAndBuff_WhenQuestUseSkill_ShouldUseOnSelfOrTargetNpc()
+        public void UseSkillAndBuff_MockedWorldManager_WhenQuestUseSkill_ShouldUseOnSelfOrTargetNpc()
         {
             // Arrange
             var questIds = GetQuestIdsWithComponentKindContainingActDetailType(
@@ -206,7 +233,7 @@ namespace AAEmu.Tests.Models.Game.Quests
             {
                 // Arrange
 
-                var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _);
+                var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _, out var mockWorldManager);
                 SetupCharacter(mockCharacter);
 
                 // Simulates the character to be targeting an expected npc for the quest
@@ -215,6 +242,8 @@ namespace AAEmu.Tests.Models.Game.Quests
 
 
                 var targetNpc = new Npc { TemplateId = npcAcceptAct.NpcId };
+                var mockSkillNpc = new Mock<Npc>();
+                mockSkillNpc.SetupAllProperties();
                 if (npcAcceptAct is not null)
                 {
                     mockCharacter.SetupGet(o => o.CurrentTarget).Returns(targetNpc);
@@ -233,11 +262,75 @@ namespace AAEmu.Tests.Models.Game.Quests
 
                     if (npcComponentStart.SkillSelf)
                         mockCharacter.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(mockCharacter.Object)), Times.Once);
+                    else {
+                        mockWorldManager.Verify(o => o.GetNpcByTemplateId(It.IsIn(npcComponentStart.NpcId)), Times.Once);
+                        mockSkillNpc.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(mockSkillNpc.Object)), Times.Once);
+                    }
                 }
                 Assert.True(result);
             }
         }
 
+        [Fact]
+        public void UseSkillAndBuff_WhenQuestUseSkill_ShouldUseOnSelfOrTargetNpc()
+        {
+            // Arrange
+            var questIds = GetQuestIdsWithComponentKindContainingActDetailType(
+                new QuestCondition(QuestComponentKind.Start, "QuestActConAcceptNpc", HasSkill: true)
+            );
+            var targetQuestIds = RemoveSphereAndNotImplementedQuests(questIds);
+
+            //targetQuestIds = new uint[] { 1966 };
+
+            foreach (var questId in targetQuestIds)
+            {
+                // Arrange
+
+                var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _, WorldManager.Instance);
+                SetupCharacter(mockCharacter);
+
+                // Simulates the character to be targeting an expected npc for the quest
+                var npcAcceptAct = QuestManager.Instance.GetTemplate(questId).GetFirstComponent(QuestComponentKind.Start).ActTemplates.OfType<QuestActConAcceptNpc>().FirstOrDefault();
+
+
+
+                var targetNpc = new Npc { TemplateId = npcAcceptAct.NpcId };
+                var mockSkillNpc = new Mock<Npc>();
+                mockSkillNpc.SetupAllProperties();
+                if (npcAcceptAct is not null)
+                {
+                    mockCharacter.SetupGet(o => o.CurrentTarget).Returns(targetNpc);
+                }
+
+                // Act
+                var result = quest.Start();
+
+                // Assert
+                var npcAcceptActQuest = quest.Template.GetFirstComponent(QuestComponentKind.Start).ActTemplates.OfType<QuestActConAcceptNpc>().FirstOrDefault();
+                var npcComponentStart = quest.Template.GetFirstComponent(QuestComponentKind.Start);
+                if (npcAcceptActQuest is not null)
+                {
+                    Assert.Equal(QuestAcceptorType.Npc, quest.QuestAcceptorType);
+                    Assert.Equal(npcAcceptActQuest.NpcId, quest.AcceptorType);
+
+                    if (npcComponentStart.SkillSelf)
+                        mockCharacter.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(mockCharacter.Object)), Times.Once);
+                    else
+                    {
+                        var npc = WorldManager.Instance.GetNpcByTemplateId(npcComponentStart.NpcId);
+                        if (npc is not null)
+                        {
+                            mockSkillNpc.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(npc)), Times.Once);
+                        }
+                        else
+                        {
+                            mockSkillNpc.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsAny<IUnit>()), Times.Never);
+                        }
+                    }
+                }
+                Assert.True(result);
+            }
+        }
         private IEnumerable<uint> RemoveSphereAndNotImplementedQuests(IEnumerable<uint> questIds)
         {
             // Excluding sphere and acceptcomponent to avoid early exit or Update();
@@ -272,7 +365,42 @@ namespace AAEmu.Tests.Models.Game.Quests
             out Mock<ISphereQuestManager> mockSphereQuestManager,
             out Mock<ITaskManager> mockTaskManager,
             out Mock<ISkillManager> mockSkillManager,
-            out Mock<IExpressTextManager> mockExpressTextManager)
+            out Mock<IExpressTextManager> mockExpressTextManager,
+            out Mock<IWorldManager> mockWorldManager)
+        {
+            mockCharacter = new Mock<ICharacter>();
+            mockQuestTemplate = new Mock<IQuestTemplate>();
+            mockSphereQuestManager = new Mock<ISphereQuestManager>();
+            mockExpressTextManager = new Mock<IExpressTextManager>();
+            mockSkillManager = new Mock<ISkillManager>();
+            mockTaskManager = new Mock<ITaskManager>();
+            mockWorldManager = new Mock<IWorldManager>();
+
+            var quest = new Quest(
+                questManager.GetTemplate(questId),
+                questManager,
+                mockSphereQuestManager.Object,
+                mockTaskManager.Object,
+                mockSkillManager.Object,
+                mockExpressTextManager.Object,
+                mockWorldManager.Object);
+
+            quest.Owner = mockCharacter.Object;
+
+            SetupCharacter(mockCharacter);
+            return quest;
+        }
+
+        private Quest SetupQuest(
+            uint questId,
+            IQuestManager questManager,
+            out Mock<ICharacter> mockCharacter,
+            out Mock<IQuestTemplate> mockQuestTemplate,
+            out Mock<ISphereQuestManager> mockSphereQuestManager,
+            out Mock<ITaskManager> mockTaskManager,
+            out Mock<ISkillManager> mockSkillManager,
+            out Mock<IExpressTextManager> mockExpressTextManager,
+            IWorldManager worldManager)
         {
             mockCharacter = new Mock<ICharacter>();
             mockQuestTemplate = new Mock<IQuestTemplate>();
@@ -287,14 +415,15 @@ namespace AAEmu.Tests.Models.Game.Quests
                 mockSphereQuestManager.Object,
                 mockTaskManager.Object,
                 mockSkillManager.Object,
-                mockExpressTextManager.Object);
+                mockExpressTextManager.Object,
+                worldManager);
 
             quest.Owner = mockCharacter.Object;
 
             SetupCharacter(mockCharacter);
             return quest;
         }
-
+        
         public IEnumerable<uint> GetQuestIdsWithComponentKindContainingActDetailType(params QuestCondition[] detailTypes)
         {
             List<uint> questIds = new();

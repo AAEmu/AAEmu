@@ -5,13 +5,12 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
-using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using Moq;
 using Xunit;
 
-namespace AAEmu.Tests.Models.Game.Quests
+namespace AAEmu.Tests.Unit.Models.Game.Quests
 {
     public class QuestTests
     {

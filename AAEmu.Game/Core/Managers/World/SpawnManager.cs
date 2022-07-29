@@ -40,6 +40,7 @@ namespace AAEmu.Game.Core.Managers.World
         private Dictionary<byte, Dictionary<uint, GimmickSpawner>> _gimmickSpawners;
         private List<Doodad> _playerDoodads;
 
+        
         public void Load()
         {
             _respawns = new HashSet<GameObject>();

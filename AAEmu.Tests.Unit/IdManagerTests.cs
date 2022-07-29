@@ -2,7 +2,7 @@
 using AAEmu.Game.Utils;
 using Xunit;
 
-namespace AAEmu.Tests
+namespace AAEmu.Tests.Unit
 {
     public class IdManagerTests
     {
