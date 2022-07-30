@@ -44,7 +44,7 @@ namespace AAEmu.Game
             {
                 MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
             }
-            catch (Exception e)
+            catch
             {
                 _log.Fatal("MySQL configuration could not be loaded !");
                 return;

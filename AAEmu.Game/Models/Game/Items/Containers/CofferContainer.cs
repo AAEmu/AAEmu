@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -27,7 +28,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             // All Chests will not accept timed items 
             if ((itemTemplate.ExpAbsLifetime > 0) || 
                 (itemTemplate.ExpOnlineLifetime > 0) ||
-                (itemTemplate.ExpDate > 0))
+                (itemTemplate.ExpDate > DateTime.MinValue))
                 return false;
 
             // Otherwordly Storage Chest will accept pretty much any other item
