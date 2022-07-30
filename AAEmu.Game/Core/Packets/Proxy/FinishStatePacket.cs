@@ -29,7 +29,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
                     Connection.SendPacket(new SCChatSpamConfigPacket());
                     Connection.SendPacket(new SCAccountAttributeConfigPacket(new[] { false, true, false, false })); // TODO
                     Connection.SendPacket(new SCLevelRestrictionConfigPacket(0, 10, 0, 0, 0, new byte[] { 0, 15, 15, 15, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 15, 0, 0, 0 })); // TODO - config files 7533
-                    Connection.SendPacket(new SCTaxItemConfigPacket(0));
+                    //Connection.SendPacket(new SCTaxItemConfigPacket(0));
                     Connection.SendPacket(new SCInGameShopConfigPacket(1, 2, 0));
                     Connection.SendPacket(new SCGameRuleConfigPacket(0, 0));
                     Connection.SendPacket(new SCTaxItemConfig2Packet(0));
