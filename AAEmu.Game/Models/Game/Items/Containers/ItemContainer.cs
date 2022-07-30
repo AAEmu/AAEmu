@@ -354,11 +354,18 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 item.OwnerId = OwnerId;
 
                 Items.Insert(0, item); // insert at front for easy buyback handling
-                                       //Items.Add(item);
+
                 UpdateFreeSlotCount();
+                
                 // Note we use SlotType.None for things like the Item BuyBack Container. Make sure to manually handle the remove for these
                 if (this.ContainerType != SlotType.None)
                     itemTasks.Add(new ItemAdd(item));
+                
+                if ((sourceContainer != null) && (sourceContainer != this))
+                {
+                    sourceContainer?.OnLeaveContainer(item, this);
+                    OnEnterContainer(item, sourceContainer);
+                }
             }
 
             // Item Tasks
@@ -379,6 +386,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             }
 
             ApplyBindRules(taskType);
+
             return ((itemTasks.Count + sourceItemTasks.Count) > 0);
         }
 
@@ -392,6 +400,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         public bool RemoveItem(ItemTaskType task, Item item, bool releaseIdAsWell)
         {
             Owner?.Inventory.OnConsumedItem(item, item.Count);
+            OnLeaveContainer(item, null);
 
             // Handle items that can expire
             GamePacket sync = null;
@@ -591,6 +600,13 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                     syncPackets.Add(ItemManager.Instance.SetItemOnlineExpirationTime(newItem, newItem.Template.ExpOnlineLifetime));
                 if (newItem.Template.ExpDate > DateTime.MinValue)
                     syncPackets.Add(ItemManager.Instance.SetItemExpirationTime(newItem, newItem.Template.ExpDate));
+
+                if ((newItem is EquipItem equipItem) && (newItem.Template is EquipItemTemplate equipItemTemplate))
+                {
+                    equipItem.ChargeCount = equipItemTemplate.ChargeCount;
+                    if (equipItemTemplate.ChargeLifetime > 0)
+                        equipItem.ChargeStartTime = DateTime.UtcNow;
+                }
                 
                 if (AddOrMoveExistingItem(ItemTaskType.Invalid, newItem, prefSlot)) // Task set to invalid as we send our own packets inside this function
                 {
@@ -746,6 +762,16 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         public virtual void Delete()
         {
             ItemManager.Instance.DeleteItemContainer(this);
+        }
+
+        public virtual void OnEnterContainer(Item item, ItemContainer lastContainer)
+        {
+            // Do nothing
+        }
+        
+        public virtual void OnLeaveContainer(Item item, ItemContainer newContainer)
+        {
+            // Do Nothing
         }
     }
 }

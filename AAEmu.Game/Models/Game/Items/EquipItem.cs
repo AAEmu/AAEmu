@@ -55,7 +55,8 @@ namespace AAEmu.Game.Models.Game.Items
             stream.ReadInt16();
             RuneId = stream.ReadUInt32();
 
-            stream.ReadBytes(12);
+            ChargeStartTime = stream.ReadDateTime();
+            stream.ReadBytes(4);
 
             for (var i = 0; i < GemIds.Length; i++)
                 GemIds[i] = stream.ReadUInt32();
@@ -71,9 +72,9 @@ namespace AAEmu.Game.Models.Game.Items
             stream.Write((short)0);
             stream.Write(RuneId);
 
-            stream.Write((uint)0);
-            stream.Write((uint)0);
-            stream.Write((uint)0);
+
+            stream.Write(ChargeStartTime);
+            stream.Write((uint)0); 
 
             foreach (var gemId in GemIds)
                 stream.Write(gemId);

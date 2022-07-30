@@ -842,8 +842,8 @@ namespace AAEmu.Game.Core.Managers
                                 DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
                                 BaseEquipment = reader.GetBoolean("base_equipment", true),
                                 RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
-                                ChargeLifetime = reader.GetInt32("charge_lifetime"),
-                                ChargeCount = reader.GetInt32("charge_count"),
+                                ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
+                                ChargeCount = reader.GetInt32("charge_count", 0),
                                 ItemLookConvert = GetWearableItemLookConvert(slotTypeId),
                                 EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                             };
@@ -872,8 +872,8 @@ namespace AAEmu.Game.Core.Managers
                                 DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
                                 BaseEquipment = reader.GetBoolean("base_equipment", true),
                                 RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
-                                ChargeLifetime = reader.GetInt32("charge_lifetime"),
-                                ChargeCount = reader.GetInt32("charge_count"),
+                                ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
+                                ChargeCount = reader.GetInt32("charge_count", 0),
                                 ItemLookConvert = GetHoldableItemLookConvert(holdableId),
                                 EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                             };
@@ -904,8 +904,8 @@ namespace AAEmu.Game.Core.Managers
                                 Repairable = reader.GetBoolean("repairable", true),
                                 DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
                                 RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
-                                ChargeLifetime = reader.GetInt32("charge_lifetime"),
-                                ChargeCount = reader.GetInt32("charge_count"),
+                                ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
+                                ChargeCount = reader.GetInt32("charge_count", 0),
                                 EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                             };
                             _templates.Add(template.Id, template);
@@ -1524,7 +1524,7 @@ namespace AAEmu.Game.Core.Managers
                         command.Parameters.AddWithValue("@ucc", item.UccId);
                         command.Parameters.AddWithValue("@expire_time", item.ExpirationTime);
                         command.Parameters.AddWithValue("@expire_online_minutes", item.ExpirationOnlineMinutesLeft);
-                        command.Parameters.AddWithValue("@charge_time", item.ChargeTime);
+                        command.Parameters.AddWithValue("@charge_time", item.ChargeStartTime);
                         command.Parameters.AddWithValue("@charge_count", item.ChargeCount); 
                         
                         if (command.ExecuteNonQuery() < 1)
@@ -1711,9 +1711,8 @@ namespace AAEmu.Game.Core.Managers
 
                         item.ExpirationTime = reader.IsDBNull("expire_time") ? DateTime.MinValue : reader.GetDateTime("expire_time");
                         item.ExpirationOnlineMinutesLeft = reader.GetDouble("expire_online_minutes");
-                        item.ChargeTime = reader.IsDBNull("charge_time") ? DateTime.MinValue : reader.GetDateTime("charge_time");
+                        item.ChargeStartTime = reader.IsDBNull("charge_time") ? DateTime.MinValue : reader.GetDateTime("charge_time");
                         item.ChargeCount = reader.GetInt32("charge_count");
-
                         
                         // Add it to the global pool
                         if (!_allItems.TryAdd(item.Id, item))
@@ -1836,10 +1835,25 @@ namespace AAEmu.Game.Core.Managers
                 return res;
             }
 
+            var isEquipmentContainer = (itemContainer is EquipmentContainer);
+
             for (var i = itemContainer.Items.Count - 1; i >= 0; i--)
             {
                 var item = itemContainer.Items[i];
                 var doExpire = false;
+                var buffExpire = false;
+
+                if (isEquipmentContainer && (item is EquipItem equipItem) && (equipItem.Template is EquipItemTemplate equipItemTemplate) &&
+                    (equipItemTemplate.RechargeBuffId > 0) &&
+                    (
+                        ((equipItemTemplate.ChargeLifetime > 0) && (equipItem.ChargeStartTime.AddMinutes(equipItemTemplate.ChargeLifetime) <= DateTime.UtcNow))
+                        ||
+                        ((equipItemTemplate.ChargeCount > 0) && (equipItem.ChargeCount <= 0))
+                    )
+                   )
+                {
+                    character?.Buffs.RemoveBuff(equipItemTemplate.RechargeBuffId);
+                }
                 
                 if ((item.ExpirationTime > DateTime.MinValue) && (item.ExpirationTime <= DateTime.UtcNow))
                     doExpire = true; // Item expired by predefined end time

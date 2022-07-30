@@ -1,8 +1,5 @@
 ﻿using System;
 using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
 
@@ -124,10 +121,10 @@ namespace AAEmu.Game.Models.Game.Items
                 _isDirty = true;
             }
         }
-        
-        public DateTime ChargeTime { get; set; }
-        public int ChargeCount { get; set; }
 
+        public DateTime ChargeStartTime { get; set; } = DateTime.MinValue;
+        public int ChargeCount { get; set; }
+        
         public virtual ItemDetailType DetailType => 0; // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
 
         // Helper

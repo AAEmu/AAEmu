@@ -198,5 +198,17 @@ namespace AAEmu.Game.Models.Game.Items.Containers
 
             return true;
         }
+
+        public override void OnEnterContainer(Item item, ItemContainer lastContainer)
+        {
+            base.OnEnterContainer(item, lastContainer);
+            Owner?.UpdateGearBonuses(item, null);
+        }
+
+        public override void OnLeaveContainer(Item item, ItemContainer newContainer)
+        {
+            base.OnLeaveContainer(item, newContainer);
+            Owner?.UpdateGearBonuses(null, item);
+        }
     }
 }
