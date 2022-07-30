@@ -79,7 +79,8 @@ namespace AAEmu.Commons.Cryptography
             //head = (head ^ 0x15A0246F) * head ^ 0x70F1F23 & 0xffffffff; // 1.8.6.2 AA 06 august 2015
             //head = (head ^ 0x15A02442) * head ^ 0x70F1F23 & 0xffffffff; // 2.0.1.7 AA 14 september 2015
             //head = (head ^ 0x15A0240B) * head ^ 0x70F1F23 & 0xffffffff; // 7.5.2.1 r531493 29.03.2021 ArcheAge Gamigo live
-            head = (head ^ 0x15A02415) * head ^ 0x70F1F23 & 0xffffffff;   // 8.0.3.12 r558734 14.12.2021 ArcheAge Kakao
+            //head = (head ^ 0x15A02415) * head ^ 0x70F1F23 & 0xffffffff;   // 8.0.3.12 r558734 14.12.2021 ArcheAge Kakao
+            head = (head ^ 0x15A023DB) * head ^ 0x70F1F23 & 0xffffffff; // 0.1.1.7 r583563 28.07.2022 ArcheWorld XLGames
             _log.Warn("key XOR: {0}", head); // настоящий ключ XOR
             keys.XorKey = head * head & 0xffffffff;
             keys.AesKey = keys.RsaKeyPair.Decrypt(aesKeyEncrypted, false);
@@ -233,7 +234,8 @@ namespace AAEmu.Commons.Cryptography
             //var cry = mul ^ ((uint)MakeSeq(keys) + 0x75A02485) ^ 0x0FB3A21E; // 1.8.6.2 AA 06 august 2015
             //var cry = mul ^ ((uint)MakeSeq(keys) + 0x75A02458) ^ 0x3458B610; // 2.0.1.7 AA 14 september 2015
             //var cry = mul ^ ((uint)MakeSeq(keys) + 0x75A0243F) ^ 0xFD968A17; // 7.5.2.1 r531493 29.03.2021 ArcheAge Gamigo live
-            var cry = mul ^ ((uint)MakeSeq(keys) + 0x75A0242B) ^ 0xF046CE3E; // 8.0.3.12 r558734 14.12.2021 ArcheAge Kakao
+            //var cry = mul ^ ((uint)MakeSeq(keys) + 0x75A0242B) ^ 0xF046CE3E; // 8.0.3.12 r558734 14.12.2021 ArcheAge Kakao
+            var cry = mul ^ ((uint)MakeSeq(keys) + 0x75A023F1) ^ 0x489DC1; // 0.1.1.7 r583563 28.07.2022 ArcheWorld XLGames
             var offset = 4;
             if (seq != 0)
             {
