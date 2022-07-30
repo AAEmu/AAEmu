@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Auction.Templates;
@@ -18,6 +20,7 @@ using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Tasks.Item;
 using AAEmu.Game.Utils.DB;
 
 using MySql.Data.MySqlClient;
@@ -68,10 +71,13 @@ namespace AAEmu.Game.Core.Managers
 
         // Events
         public event EventHandler OnItemsLoaded;
+        private DateTime LastTimerCheck { get; set; }
+        private object ItemTimerLock { get; set; }
 
         private Dictionary<ulong, Item> _allItems;
         private List<ulong> _removedItems;
         private Dictionary<ulong, ItemContainer> _allPersistantContainers;
+        // private Dictionary<ulong, Item> _timerSubscriptionsItems;
 
         public ItemTemplate GetTemplate(uint id)
         {
@@ -508,6 +514,8 @@ namespace AAEmu.Game.Core.Managers
             _itemUnitModifiers = new Dictionary<uint, List<BonusTemplate>>();
             _equipItemSets = new Dictionary<uint, EquipItemSet>();
             _config = new ItemConfig();
+            ItemTimerLock = new();
+            LastTimerCheck = DateTime.UtcNow;
 
             SkillManager.Instance.OnSkillsLoaded += OnSkillsLoaded;
             using (var connection = SQLite.CreateConnection())
@@ -834,8 +842,8 @@ namespace AAEmu.Game.Core.Managers
                                 DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
                                 BaseEquipment = reader.GetBoolean("base_equipment", true),
                                 RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
-                                ChargeLifetime = reader.GetInt32("charge_lifetime"),
-                                ChargeCount = reader.GetInt32("charge_count"),
+                                ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
+                                ChargeCount = reader.GetInt32("charge_count", 0),
                                 ItemLookConvert = GetWearableItemLookConvert(slotTypeId),
                                 EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                             };
@@ -864,8 +872,8 @@ namespace AAEmu.Game.Core.Managers
                                 DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
                                 BaseEquipment = reader.GetBoolean("base_equipment", true),
                                 RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
-                                ChargeLifetime = reader.GetInt32("charge_lifetime"),
-                                ChargeCount = reader.GetInt32("charge_count"),
+                                ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
+                                ChargeCount = reader.GetInt32("charge_count", 0),
                                 ItemLookConvert = GetHoldableItemLookConvert(holdableId),
                                 EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                             };
@@ -896,8 +904,8 @@ namespace AAEmu.Game.Core.Managers
                                 Repairable = reader.GetBoolean("repairable", true),
                                 DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
                                 RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
-                                ChargeLifetime = reader.GetInt32("charge_lifetime"),
-                                ChargeCount = reader.GetInt32("charge_count"),
+                                ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
+                                ChargeCount = reader.GetInt32("charge_count", 0),
                                 EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                             };
                             _templates.Add(template.Id, template);
@@ -1055,7 +1063,7 @@ namespace AAEmu.Game.Core.Managers
                             template.HonorPrice = reader.GetInt32("honor_price");
                             template.ExpAbsLifetime = reader.GetInt32("exp_abs_lifetime");
                             template.ExpOnlineLifetime = reader.GetInt32("exp_online_lifetime");
-                            template.ExpDate = reader.IsDBNull("exp_online_lifetime") ? reader.GetInt32("exp_date") : 0;
+                            template.ExpDate = !reader.IsDBNull("exp_date") ? reader.GetDateTime("exp_date") : DateTime.MinValue;
                             template.LevelRequirement = reader.GetInt32("level_requirement");
                             template.AuctionCategoryA = reader.IsDBNull("auction_a_category_id") ? 0 : reader.GetInt32("auction_a_category_id");
                             template.AuctionCategoryB = reader.IsDBNull("auction_b_category_id") ? 0 : reader.GetInt32("auction_b_category_id");
@@ -1489,10 +1497,12 @@ namespace AAEmu.Game.Core.Managers
 
                         command.CommandText = "REPLACE INTO items (" +
                             "`id`,`type`,`template_id`,`container_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`," +
-                            "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`,`flags`,`ucc`" +
+                            "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`,`flags`,`ucc`," +
+                            "`expire_time`,`expire_online_minutes`,`charge_time`,`charge_count`" +
                             ") VALUES ( " +
                             "@id, @type, @template_id, @container_id, @slot_type, @slot, @count, @details, @lifespan_mins, @made_unit_id, " +
-                            "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags,@ucc" +
+                            "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags,@ucc," +
+                            "@expire_time,@expire_online_minutes,@charge_time,@charge_count" +
                             ")";
 
                         command.Parameters.AddWithValue("@id", item.Id);
@@ -1512,6 +1522,10 @@ namespace AAEmu.Game.Core.Managers
                         command.Parameters.AddWithValue("@grade", item.Grade);
                         command.Parameters.AddWithValue("@flags", (byte)item.ItemFlags);
                         command.Parameters.AddWithValue("@ucc", item.UccId);
+                        command.Parameters.AddWithValue("@expire_time", item.ExpirationTime);
+                        command.Parameters.AddWithValue("@expire_online_minutes", item.ExpirationOnlineMinutesLeft);
+                        command.Parameters.AddWithValue("@charge_time", item.ChargeStartTime);
+                        command.Parameters.AddWithValue("@charge_count", item.ChargeCount); 
                         
                         if (command.ExecuteNonQuery() < 1)
                         {
@@ -1608,8 +1622,9 @@ namespace AAEmu.Game.Core.Managers
             _log.Info("Loading user items ...");
             _allItems = new Dictionary<ulong, Item>();
             _allPersistantContainers = new Dictionary<ulong, ItemContainer>();
+            // _timerSubscriptionsItems = new Dictionary<ulong, Item>();
             //lock (_removedItems)
-                _removedItems = new List<ulong>();
+            _removedItems = new List<ulong>();
 
             using (var connection = MySQL.CreateConnection())
             using (var command = connection.CreateCommand())
@@ -1694,6 +1709,11 @@ namespace AAEmu.Game.Core.Managers
                         else if (item.Template.Gradable)
                             item.Grade = reader.GetByte("grade"); // Load from our DB if the item is gradable
 
+                        item.ExpirationTime = reader.IsDBNull("expire_time") ? DateTime.MinValue : reader.GetDateTime("expire_time");
+                        item.ExpirationOnlineMinutesLeft = reader.GetDouble("expire_online_minutes");
+                        item.ChargeStartTime = reader.IsDBNull("charge_time") ? DateTime.MinValue : reader.GetDateTime("charge_time");
+                        item.ChargeCount = reader.GetInt32("charge_count");
+                        
                         // Add it to the global pool
                         if (!_allItems.TryAdd(item.Id, item))
                         {
@@ -1742,7 +1762,10 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
             }
-
+            
+            _log.Info("Starting Timed Items Task ...");
+            var itemTimerTask = new ItemTimerTask();
+            TaskManager.Instance.Schedule(itemTimerTask, null, TimeSpan.FromSeconds(1));
         }
 
         /// <summary>
@@ -1801,6 +1824,118 @@ namespace AAEmu.Game.Core.Managers
             var template = GetTemplate(itemTemplateId);
             // Is a valid item, is a backpack item, doesn't bind on equip (it can bind on pickup)
             return (template != null) && (template is BackpackTemplate bt) && (!template.BindType.HasFlag(ItemBindType.BindOnEquip));
+        }
+
+        private int UpdateItemContainerTimers(TimeSpan delta, ItemContainer itemContainer, Character character)
+        {
+            var res = 0;
+            if (itemContainer == null)
+            {
+                _log.Error("Invalid itemContainer when processing item timers");
+                return res;
+            }
+
+            var isEquipmentContainer = (itemContainer is EquipmentContainer);
+
+            for (var i = itemContainer.Items.Count - 1; i >= 0; i--)
+            {
+                var item = itemContainer.Items[i];
+                var doExpire = false;
+
+                if (isEquipmentContainer && (item is EquipItem equipItem) && (equipItem.Template is EquipItemTemplate equipItemTemplate) &&
+                    (equipItemTemplate.RechargeBuffId > 0) &&
+                    (
+                        ((equipItemTemplate.ChargeLifetime > 0) && (equipItem.ChargeStartTime.AddMinutes(equipItemTemplate.ChargeLifetime) <= DateTime.UtcNow))
+                        ||
+                        ((equipItemTemplate.ChargeCount > 0) && (equipItem.ChargeCount <= 0))
+                    )
+                   )
+                {
+                    character?.Buffs.RemoveBuff(equipItemTemplate.RechargeBuffId);
+                }
+                
+                if ((item.ExpirationTime > DateTime.MinValue) && (item.ExpirationTime <= DateTime.UtcNow))
+                    doExpire = true; // Item expired by predefined end time
+                else if (item.ExpirationOnlineMinutesLeft > 0.0)
+                {
+                    item.ExpirationOnlineMinutesLeft -= delta.TotalMinutes; // reduce lifespan of this item
+                    if (item.ExpirationOnlineMinutesLeft <= 0.0)
+                        doExpire = true; // online timed lifespan is done
+                }
+
+                if (doExpire)
+                {
+                    res++;
+                    var sync = ExpireItemPacket(item);
+                    if (sync != null)
+                        character?.SendPacket(sync);
+                    itemContainer.RemoveItem(ItemTaskType.LifespanExpiration, item, true);            
+                }
+            }
+
+            return res;
+        }
+
+        public void UpdateItemTimers()
+        {
+            var delta = TimeSpan.Zero;
+            lock (ItemTimerLock)
+            {
+                var now = DateTime.UtcNow;
+                delta = now - LastTimerCheck;
+                LastTimerCheck = now;
+            }
+            
+            // _log.Trace($"UpdateItemTimers - Tick, Delta: {delta.TotalMilliseconds}ms");
+
+            // Timers are actually only checked when it's owner is actually online, so we loop the online characters for this.
+            // You can clearly see this on retail after event items expired when you were offline, they will expire immediately
+            // even before you get the welcome message when logging in. (you can see it in the logs)
+            // It only does this for items in your inventory, equipment and warehouse,
+            // it is for example possible to have one in your mailbox, and it will immediately expire when you take it out.
+            var onlinePlayers = WorldManager.Instance.GetAllCharacters();
+            var res = 0;
+            foreach (var character in onlinePlayers)
+            {
+                res += UpdateItemContainerTimers(delta, character?.Inventory?.Equipment, character);
+                res += UpdateItemContainerTimers(delta, character?.Inventory?.Bag, character);
+                res += UpdateItemContainerTimers(delta, character?.Inventory?.Warehouse, character);
+            }
+
+            if (res > 0)
+                _log.Warn($"{res} item(s) expired and have been removed.");
+        }
+        
+        public GamePacket SetItemExpirationTime(Item item, DateTime newTime)
+        {
+            if (item.ExpirationTime != newTime)
+            {
+                item.ExpirationTime = newTime;
+                _log.Warn($"Set ExpirationTime for item {item.Id}, {item.Template.Name} set to {newTime}");
+                return new SCSyncItemLifespanPacket(newTime > item.CreateTime, item.Id, item.TemplateId, newTime);
+            }
+
+            return null;
+        }
+        
+        public GamePacket SetItemOnlineExpirationTime(Item item, double newMinutes)
+        {
+            if (item.ExpirationOnlineMinutesLeft != newMinutes)
+            {
+                var newTime = DateTime.UtcNow.AddMinutes(newMinutes);
+                item.ExpirationOnlineMinutesLeft = newMinutes;
+                _log.Warn($"Set ExpirationOnlineMinutesLeft for item {item.Id}, {item.Template.Name} set to {newTime}");
+                return new SCSyncItemLifespanPacket(newMinutes >= 0.0, item.Id, item.TemplateId, newTime);
+            }
+
+            return null;
+        }
+
+        public GamePacket ExpireItemPacket(Item item)
+        {
+            item.ExpirationTime = DateTime.MinValue;
+            item.ExpirationOnlineMinutesLeft = 0.0;
+            return new SCSyncItemLifespanPacket(false, item.Id, item.TemplateId, DateTime.MinValue);
         }
     }
 }

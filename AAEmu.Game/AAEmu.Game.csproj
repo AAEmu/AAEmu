@@ -56,6 +56,7 @@
 
     <ItemGroup>
       <Compile Remove="Scripts\**\**" />
+      <Compile Include="Scripts\Commands\ExpireItem.cs" />
       <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
       <None Include="Configs\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Configs\" />
       <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />

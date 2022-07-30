@@ -1,6 +1,5 @@
 ﻿using System;
 using AAEmu.Commons.Network;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
 
@@ -59,6 +58,8 @@ namespace AAEmu.Game.Models.Game.Items
         private uint _imageItemTemplateId;
         private bool _isDirty;
         private ulong _uccId;
+        private DateTime _expirationTime;
+        private double _expirationOnlineMinutesLeft;
 
         public bool IsDirty { get => _isDirty; set => _isDirty = value; }
         public byte WorldId { get => _worldId; set { _worldId = value; _isDirty = true; } }
@@ -78,6 +79,35 @@ namespace AAEmu.Game.Models.Game.Items
         public DateTime UnpackTime { get => _unpackTime; set { _unpackTime = value; _isDirty = true; } }
         public uint ImageItemTemplateId { get => _imageItemTemplateId; set { _imageItemTemplateId = value; _isDirty = true; } }
 
+        /// <summary>
+        /// Internal representation of the exact time a item will expire (UTC)
+        /// </summary>
+        public DateTime ExpirationTime
+        {
+            get => _expirationTime;
+            set
+            {
+                if (_expirationTime != value)
+                {
+                    _expirationTime = value;
+                    _isDirty = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Internal representation of the time this item has left before expiring, only counting down if the owning character is online
+        /// </summary>
+        public double ExpirationOnlineMinutesLeft
+        {
+            get => _expirationOnlineMinutesLeft;
+            set
+            {
+                _expirationOnlineMinutesLeft = value;
+                _isDirty = true;
+            }
+        }
+
         public ulong UccId
         {
             get => _uccId;
@@ -92,10 +122,14 @@ namespace AAEmu.Game.Models.Game.Items
             }
         }
 
+        public DateTime ChargeStartTime { get; set; } = DateTime.MinValue;
+        public int ChargeCount { get; set; }
+        
         public virtual ItemDetailType DetailType => 0; // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
 
         // Helper
         public ItemContainer _holdingContainer { get; set; }
+
         public static uint Coins = 500;
         public static uint TaxCertificate = 31891;
         public static uint BoundTaxCertificate = 31892;
