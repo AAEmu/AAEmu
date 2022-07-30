@@ -625,16 +625,29 @@ namespace AAEmu.Game.Models.Game.Char
                     new SCUnitEquipmentsChangedPacket(Owner.ObjId, toSlot, Equipment.GetItemBySlot(toSlot)), false);
             }
             
-            if (fromType == SlotType.Equipment || toType == SlotType.Equipment) // Used for gear bonuses and gear buffs
-                Owner.UpdateGearBonuses(itemInTargetSlot, fromItem);
+            // Send ItemContainer events
+            if (sourceContainer != targetContainer)
+            {
+                if (fromItem != null)
+                {
+                    sourceContainer?.OnLeaveContainer(fromItem, targetContainer);
+                    targetContainer?.OnEnterContainer(fromItem, sourceContainer);
+                }
 
+                if (itemInTargetSlot != null)
+                {
+                    targetContainer?.OnLeaveContainer(itemInTargetSlot, sourceContainer);
+                    sourceContainer?.OnEnterContainer(itemInTargetSlot, targetContainer);
+                }
+            }            
+            
             if (itemTasks.Count > 0)
                 Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
 
             sourceContainer.ApplyBindRules(taskType);
             if (targetContainer != sourceContainer)
                 targetContainer.ApplyBindRules(taskType);
-
+            
             return (itemTasks.Count > 0);
         }
 
