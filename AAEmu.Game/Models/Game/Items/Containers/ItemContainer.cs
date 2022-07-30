@@ -604,7 +604,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 if ((newItem is EquipItem equipItem) && (newItem.Template is EquipItemTemplate equipItemTemplate))
                 {
                     equipItem.ChargeCount = equipItemTemplate.ChargeCount;
-                    if (equipItemTemplate.ChargeLifetime > 0)
+                    if ((equipItemTemplate.ChargeLifetime > 0) && (equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack) == false))
                         equipItem.ChargeStartTime = DateTime.UtcNow;
                 }
                 
