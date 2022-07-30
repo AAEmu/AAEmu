@@ -241,6 +241,5 @@ namespace AAEmu.Game.Models.Game.Items
         {
             ItemFlags &= ~flag;
         }
-        
     }
 }

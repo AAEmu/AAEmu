@@ -72,10 +72,9 @@ namespace AAEmu.Game.Models.Game.Items
             stream.Write((short)0);
             stream.Write(RuneId);
 
-
             stream.Write(ChargeStartTime);
-            stream.Write((uint)0); 
-
+            stream.Write((uint)0);
+            
             foreach (var gemId in GemIds)
                 stream.Write(gemId);
 

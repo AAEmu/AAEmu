@@ -1841,7 +1841,6 @@ namespace AAEmu.Game.Core.Managers
             {
                 var item = itemContainer.Items[i];
                 var doExpire = false;
-                var buffExpire = false;
 
                 if (isEquipmentContainer && (item is EquipItem equipItem) && (equipItem.Template is EquipItemTemplate equipItemTemplate) &&
                     (equipItemTemplate.RechargeBuffId > 0) &&
