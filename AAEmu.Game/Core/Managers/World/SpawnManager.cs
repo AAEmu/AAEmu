@@ -147,7 +147,6 @@ namespace AAEmu.Game.Core.Managers.World
                     }
                 }
 
-                #region A
                 // Load Doodad spawns
                 jsonFileName = Path.Combine(worldPath, "doodad_spawns.json");
 
@@ -286,7 +285,6 @@ namespace AAEmu.Game.Core.Managers.World
                     }
 
                 }
-                #endregion
                 _doodadSpawners[(byte)world.Id] = doodadSpawners;
                 _transferSpawners[(byte)world.Id] = transferSpawners;
                 _gimmickSpawners[(byte)world.Id] = gimmickSpawners;
