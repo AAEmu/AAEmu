@@ -44,8 +44,6 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
             ItemManager.Instance.Load();
             PlotManager.Instance.Load();
             SkillManager.Instance.Load();
-            
-
 
             ClientFileManager.Initialize();
             TlIdManager.Instance.Initialize();

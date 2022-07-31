@@ -64,10 +64,10 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             moveType.X = x;
             moveType.Y = y;
             moveType.Z = z;
-            var characterRot = ((Character)character).CurrentTarget.Transform.Local.ToRollPitchYawSBytes();
-            moveType.RotationX = characterRot.Item1;
-            moveType.RotationY = characterRot.Item2;
-            moveType.RotationZ = characterRot.Item3;
+            var npcRot = npc.Transform.Local.ToRollPitchYawSBytes();
+            moveType.RotationX = npcRot.Item1;
+            moveType.RotationY = npcRot.Item2;
+            moveType.RotationZ = npcRot.Item3;
 
             moveType.Flags = 5;
             moveType.DeltaMovement = new sbyte[3];
@@ -77,7 +77,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             moveType.Stance = 1;    // combat=0, idle=1
             moveType.Alertness = 0; // idle=0, combat=2
             moveType.Time += 50;    // has to change all the time for normal motion.
-            character.BroadcastPacket(new SCOneUnitMovementPacket(((Character)character).CurrentTarget.ObjId, moveType), true);
+            character.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
         }
     }
 }
