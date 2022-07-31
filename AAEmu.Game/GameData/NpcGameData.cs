@@ -18,17 +18,17 @@ namespace AAEmu.Game.GameData
     {
         private Dictionary<uint, List<NpcSkill>> _skillsForNpc;
         private Dictionary<uint, List<NpcPassiveBuff>> _passivesForNpc;
-        public Dictionary<uint, NpcSpawnerNpc> _npcSpawnerNpc;    // npcSpawnerId, nsn
-        public Dictionary<uint, NpcSpawnerTemplate> _npcSpawners; // npcSpawnerId, template
-        public Dictionary<uint, List<uint>> _npcMemberAndSpawnerId; // memberId, List<npcSpawnerId>
+        public Dictionary<uint, NpcSpawnerNpc> _npcSpawnerTemplateNpcs;    // npcSpawnerId, nsn
+        public Dictionary<uint, NpcSpawnerTemplate> _npcSpawnerTemplates; // npcSpawnerId, template
+        public Dictionary<uint, List<uint>> _npcMemberAndSpawnerTemplateIds; // memberId, List<npcSpawnerId>
 
         public void Load(SqliteConnection connection)
         {
             _skillsForNpc = new Dictionary<uint, List<NpcSkill>>();
             _passivesForNpc = new Dictionary<uint, List<NpcPassiveBuff>>();
-            _npcSpawnerNpc = new Dictionary<uint, NpcSpawnerNpc>();
-            _npcSpawners = new Dictionary<uint, NpcSpawnerTemplate>();
-            _npcMemberAndSpawnerId = new Dictionary<uint, List<uint>>();
+            _npcSpawnerTemplateNpcs = new Dictionary<uint, NpcSpawnerNpc>();
+            _npcSpawnerTemplates = new Dictionary<uint, NpcSpawnerTemplate>();
+            _npcMemberAndSpawnerTemplateIds = new Dictionary<uint, List<uint>>();
 
             using (var command = connection.CreateCommand())
             {
@@ -105,7 +105,7 @@ namespace AAEmu.Game.GameData
                     template.SuspendSpawnCount = reader.GetUInt32("suspend_spawn_count");
                     template.SpawnDelayMax = reader.GetFloat("spawn_delay_max");
                     template.Npcs = new List<NpcSpawnerNpc>();
-                    _npcSpawners.Add(template.Id, template);
+                    _npcSpawnerTemplates.Add(template.Id, template);
                 }
             }
 
@@ -119,17 +119,17 @@ namespace AAEmu.Game.GameData
                 {
                     var nsn = new NpcSpawnerNpc();
                     nsn.Id = reader.GetUInt32("id");
-                    nsn.NpcSpawnerId = reader.GetUInt32("npc_spawner_id");
+                    nsn.NpcSpawnerTemplateId = reader.GetUInt32("npc_spawner_id");
                     nsn.MemberId = reader.GetUInt32("member_id");
                     nsn.MemberType = reader.GetString("member_type");
                     nsn.Weight = reader.GetFloat("weight");
 
-                    if (_npcSpawners.ContainsKey(nsn.NpcSpawnerId))
+                    if (_npcSpawnerTemplates.ContainsKey(nsn.NpcSpawnerTemplateId))
                     {
-                        _npcSpawners[nsn.NpcSpawnerId].Npcs.Add(nsn);
+                        _npcSpawnerTemplates[nsn.NpcSpawnerTemplateId].Npcs.Add(nsn);
                     }
 
-                    _npcSpawnerNpc.Add(nsn.Id, nsn);
+                    _npcSpawnerTemplateNpcs.Add(nsn.Id, nsn);
                 }
             }
         }
@@ -155,68 +155,75 @@ namespace AAEmu.Game.GameData
             }
         }
 
-        public void GetMemberAndSpawnerId()
+        public void LoadMemberAndSpawnerTemplateIds()
         {
-            _npcMemberAndSpawnerId = new Dictionary<uint, List<uint>>();
+            _npcMemberAndSpawnerTemplateIds = new Dictionary<uint, List<uint>>();
             var npcMemberAndSpawnerId = new Dictionary<uint, List<uint>>();
 
-            foreach (var (_, nsn) in _npcSpawnerNpc)
+            foreach (var nsn in _npcSpawnerTemplateNpcs.Values)
             {
-
-                if (!_npcMemberAndSpawnerId.ContainsKey(nsn.MemberId))
+                if (!_npcMemberAndSpawnerTemplateIds.ContainsKey(nsn.MemberId))
                 {
-                    _npcMemberAndSpawnerId.Add(nsn.MemberId, new List<uint> { nsn.NpcSpawnerId });
+                    _npcMemberAndSpawnerTemplateIds.Add(nsn.MemberId, new List<uint> { nsn.NpcSpawnerTemplateId });
                 }
                 else
                 {
-                    _npcMemberAndSpawnerId[nsn.MemberId].Add(nsn.NpcSpawnerId);
+                    _npcMemberAndSpawnerTemplateIds[nsn.MemberId].Add(nsn.NpcSpawnerTemplateId);
                 }
             }
 
-            foreach (var (key, slist) in _npcMemberAndSpawnerId)
+            foreach (var (memberId, spawnerTemplateIds) in _npcMemberAndSpawnerTemplateIds)
             {
-                if (slist.Count <= 1)
+                if (spawnerTemplateIds.Count <= 1)
                 {
-                    npcMemberAndSpawnerId.Add(key, slist);
+                    npcMemberAndSpawnerId.Add(memberId, spawnerTemplateIds);
                     continue;
                 }
-                var itemAutocreated = slist.Where(t => _npcSpawners[t].NpcSpawnerCategoryId == NpcSpawnerCategory.Autocreated).ToList();
+                var itemAutocreated = spawnerTemplateIds.Where(spawnerTemplateId => 
+                    _npcSpawnerTemplates[spawnerTemplateId].NpcSpawnerCategoryId == NpcSpawnerCategory.Autocreated)
+                        .ToList();
+                
                 //var itemNormal = slist.Where(t => _npcSpawners[t].NpcSpawnerCategoryId == NpcSpawnerCategory.Normal).ToList();
-                var itemSpawnerSchedule = slist.Where(t => _npcSpawners[t].StartTime != 0 && _npcSpawners[t].EndTime != 0).ToList();
-                var itemGameSchedule = slist.Where(t => GameScheduleManager.Instance.GetGameScheduleSpawnersData(t)).ToList();
+                
+                var itemSpawnerSchedule = spawnerTemplateIds.Where(spawnerTemplateId => 
+                    _npcSpawnerTemplates[spawnerTemplateId].StartTime != 0 
+                    && _npcSpawnerTemplates[spawnerTemplateId].EndTime != 0)
+                        .ToList();
+                
+                var itemGameSchedule = spawnerTemplateIds.Where(t => GameScheduleManager.Instance.HasGameScheduleSpawnersData(t)).ToList();
 
                 if (itemSpawnerSchedule.Count == 0 && itemGameSchedule.Count == 0)
                 {
                     // если нет в расписаниях, то оставим только Autocreated
                     // if it's not on the schedules, then we'll just leave Autocreated
-                    npcMemberAndSpawnerId.Add(key, itemAutocreated);
+                    npcMemberAndSpawnerId.Add(memberId, itemAutocreated);
                 }
                 else if (itemSpawnerSchedule.Count > 0)
                 {
                     // оставим только ту запись, которая есть в NpcSpawners
                     // leave only the entry that is in NpcSpawners
-                    npcMemberAndSpawnerId.Add(key,
+                    npcMemberAndSpawnerId.Add(memberId,
                         itemSpawnerSchedule.Count > 1 ? new List<uint> {itemSpawnerSchedule[0]} : itemSpawnerSchedule);
                 }
                 else if (itemGameSchedule.Count > 0)
                 {
                     // оставим только ту запись, которая есть в GameScheduleSpawners
                     // we'll leave only the entry that is in GameScheduleSpawners
-                    npcMemberAndSpawnerId.Add(key,
+                    npcMemberAndSpawnerId.Add(memberId,
                         itemGameSchedule.Count > 1 ? new List<uint> {itemGameSchedule[0]} : itemGameSchedule);
                 }
             }
-            _npcMemberAndSpawnerId = npcMemberAndSpawnerId;
+            _npcMemberAndSpawnerTemplateIds = npcMemberAndSpawnerId;
         }
 
-        public List<uint> GetSpawnersId(uint memberId)
+        public List<uint> GetSpawnerIds(uint memberId)
         {
-            return _npcMemberAndSpawnerId.ContainsKey(memberId) ? _npcMemberAndSpawnerId[memberId] : null;
+            return _npcMemberAndSpawnerTemplateIds.ContainsKey(memberId) ? _npcMemberAndSpawnerTemplateIds[memberId] : null;
         }
 
-        public NpcSpawnerTemplate GetNpcSpawnerTemplate(uint npcSpawnerId)
+        public NpcSpawnerTemplate GetNpcSpawnerTemplate(uint npcSpawnerTemplateId)
         {
-            return _npcSpawners.ContainsKey(npcSpawnerId) ? _npcSpawners[npcSpawnerId] : null;
+            return _npcSpawnerTemplates.ContainsKey(npcSpawnerTemplateId) ? _npcSpawnerTemplates[npcSpawnerTemplateId] : null;
         }
     }
 }

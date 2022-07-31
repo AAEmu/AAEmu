@@ -28,7 +28,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [DefaultValue(1f)]
         public uint Count { get; set; } = 1;
-        public List<uint> NpcSpawnerId { get; set; }
+        public List<uint> NpcSpawnerIds { get; set; }
         private bool _permanent { get; set; }
         public Dictionary<uint, NpcSpawnerTemplate> Template { get; set; } // npcSpawnerId, template
 
@@ -37,7 +37,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             _permanent = true; // Npc нет в расписании
             _spawned = new List<Npc>();
             Count = 1;
-            NpcSpawnerId = new List<uint>();
+            NpcSpawnerIds = new List<uint>();
             Template = new Dictionary<uint, NpcSpawnerTemplate>();
             _lastSpawn = new Npc();
         }

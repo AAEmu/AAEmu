@@ -778,7 +778,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 _log.Info("Loaded {0} merchant packs", _goods.Count);
             }
 
-            NpcGameData.Instance.GetMemberAndSpawnerId();
+            NpcGameData.Instance.LoadMemberAndSpawnerTemplateIds();
         }
 
         public void LoadAiParams()
