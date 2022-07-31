@@ -610,6 +610,11 @@ namespace AAEmu.Game.Core.Managers.World
             return _npcs.Values.FirstOrDefault(x => x.TemplateId == templateId);
         }
 
+        internal void SetNpc(uint objId, Npc npc)
+        {
+            _npcs[objId] = npc;
+        }
+        
         public Character GetCharacter(string name)
         {
             foreach (var player in _characters.Values)

@@ -19,7 +19,6 @@ using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
-using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Extensions.Configuration;
@@ -67,7 +66,7 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
             SpawnManager.Instance.Load();
 
             GameDataManager.Instance.PostLoadGameData();
-            SpawnManager.Instance.SpawnAll();
+            SpawnManager.Instance.SpawnAllNpcs(0);
         }
 
         [Fact]
@@ -288,16 +287,23 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
                 SetupCharacter(mockCharacter);
 
                 // Simulates the character to be targeting an expected npc for the quest
-                var npcAcceptAct = QuestManager.Instance.GetTemplate(questId).GetFirstComponent(QuestComponentKind.Start).ActTemplates.OfType<QuestActConAcceptNpc>().FirstOrDefault();
+                var npcComponent = QuestManager.Instance.GetTemplate(questId).GetFirstComponent(QuestComponentKind.Start);
+                var npcAcceptAct = npcComponent.ActTemplates.OfType<QuestActConAcceptNpc>().FirstOrDefault();
+                var npc = WorldManager.Instance.GetNpcByTemplateId(npcComponent.NpcId);
 
 
-
+                
                 var targetNpc = new Npc { TemplateId = npcAcceptAct.NpcId };
-                var mockSkillNpc = new Mock<Npc>();
+                var mockSkillNpc = new Mock<NpcFake>(npc);
                 mockSkillNpc.SetupAllProperties();
+                
                 if (npcAcceptAct is not null)
                 {
                     mockCharacter.SetupGet(o => o.CurrentTarget).Returns(targetNpc);
+                }
+                if (npc is not null)
+                {
+                    WorldManager.Instance.SetNpc(npc.ObjId, mockSkillNpc.Object);
                 }
 
                 // Act
@@ -315,10 +321,9 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
                         mockCharacter.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(mockCharacter.Object)), Times.Once);
                     else
                     {
-                        var npc = WorldManager.Instance.GetNpcByTemplateId(npcComponentStart.NpcId);
                         if (npc is not null)
                         {
-                            mockSkillNpc.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(npc)), Times.Once);
+                            mockSkillNpc.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(mockSkillNpc.Object)), Times.Once);
                         }
                         else
                         {
@@ -531,5 +536,16 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
         }
 
         public record QuestCondition(QuestComponentKind ComponentKind, string DetailType, bool? HasSkill = null, bool? HasBuff = null, bool? HasSkillSelf = null);
+        public class NpcFake : Npc
+        {
+            public NpcFake(Npc wrapped)
+            {
+                this.Name = wrapped.Name;
+                this.Id = wrapped.Id;
+                this.ObjId = wrapped.ObjId;
+                this.Template = wrapped.Template;
+                this.TemplateId = wrapped.TemplateId;
+            }
+        }
     }
 }

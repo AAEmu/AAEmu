@@ -11,6 +11,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\AAEmu.Commons\AAEmu.Commons.csproj" />
+        <InternalsVisibleTo Include="AAEmu.Tests.Integration" />
     </ItemGroup>
 
     <ItemGroup>
