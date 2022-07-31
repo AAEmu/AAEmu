@@ -18,6 +18,7 @@ namespace AAEmu.Game.Scripts.Commands
             Register(new NpcInformationSubCommand(), "info");
             Register(new NpcPositionSubCommand(), "position", "pos");
             Register(new NpcSaveSubCommand(), "save");
+            Register(new NpcSpawnSubCommand(), "spawn");
             Register(new NpcRemoveSubCommand(), "remove");
         }
         public void OnLoad()
