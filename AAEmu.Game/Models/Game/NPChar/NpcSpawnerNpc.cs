@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.NPChar
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        public uint NpcSpawnerId { get; set; }
+        public uint NpcSpawnerTemplateId { get; set; }
         public uint MemberId { get; set; }
         public string MemberType { get; set; }
         public float Weight { get; set; }
@@ -20,9 +20,13 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
         }
 
-        public NpcSpawnerNpc(uint spawnerId)
+        /// <summary>
+        /// Creates a new instance of NpcSpawnerNpcs with a Spawner template id (npc_spanwers)
+        /// </summary>
+        /// <param name="spawnerTemplateId"></param>
+        public NpcSpawnerNpc(uint spawnerTemplateId)
         {
-            NpcSpawnerId = spawnerId;
+            NpcSpawnerTemplateId = spawnerTemplateId;
         }
 
         public List<Npc> Spawn(NpcSpawner npcSpawner, uint maxPopulation = 1)
@@ -47,12 +51,12 @@ namespace AAEmu.Game.Models.Game.NPChar
                 return null;
             }
 
-            _log.Trace("Spawn npc templateId {1} objId {3} from spawn {0}, nps spawner Id {2}", Id, MemberId, NpcSpawnerId, npc.ObjId);
+            _log.Trace("Spawn npc templateId {1} objId {3} from spawn {0}, nps spawner Id {2}", Id, MemberId, NpcSpawnerTemplateId, npc.ObjId);
 
             npc.Transform.ApplyWorldSpawnPosition(npcSpawner.Position);
             if (npc.Transform == null)
             {
-                _log.Error("Can't spawn npc {1} from spawn {0}, spawner {2}", Id, MemberId, NpcSpawnerId);
+                _log.Error("Can't spawn npc {1} from spawn {0}, spawner {2}", Id, MemberId, NpcSpawnerTemplateId);
                 return null;
             }
 
@@ -66,9 +70,9 @@ namespace AAEmu.Game.Models.Game.NPChar
             npc.Spawner.Position = npcSpawner.Position;
             npc.Spawner.Id = npcSpawner.Id;
             npc.Spawner.UnitId = MemberId;
-            npc.Spawner.NpcSpawnerId.Add(NpcSpawnerId);
+            npc.Spawner.NpcSpawnerIds.Add(NpcSpawnerTemplateId);
             npc.Spawner.Template = npcSpawner.Template;
-            npc.Spawner.RespawnTime = (int)Rand.Next(npc.Spawner.Template[NpcSpawnerId].SpawnDelayMin, npc.Spawner.Template[NpcSpawnerId].SpawnDelayMax);
+            npc.Spawner.RespawnTime = (int)Rand.Next(npc.Spawner.Template[NpcSpawnerTemplateId].SpawnDelayMin, npc.Spawner.Template[NpcSpawnerTemplateId].SpawnDelayMax);
             npc.Spawn();
 
             return npc;

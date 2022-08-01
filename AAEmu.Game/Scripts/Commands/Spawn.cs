@@ -13,6 +13,7 @@ using AAEmu.Game.Utils;
 using NLog;
 using System;
 using System.Globalization;
+using AAEmu.Game.GameData;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -77,11 +78,8 @@ namespace AAEmu.Game.Scripts.Commands
                         charPos.Local.AddDistanceToFront(3f);
                         angle = (float)MathUtil.CalculateAngleFrom(charPos, character.Transform);
                         npcSpawner.Position = charPos.CloneAsSpawnPosition();
-                        //(newX, newY) = MathUtil.AddDistanceToFront(3f, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Rotation.Z);
-                        //npcSpawner.Position.Y = newY;
-                        //npcSpawner.Position.X = newX;
-                        // angle = (float)MathUtil.CalculateAngleFrom(npcSpawner.Position.X, npcSpawner.Position.Y, character.Transform.World.Position.X, character.Transform.World.Position.Y);
-                        if ((args.Length > 2) && (float.TryParse(args[2], NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out newRotZ)))
+                        
+                        if ((args.Length > 2) && (float.TryParse(args[2], NumberStyles.Float, CultureInfo.InvariantCulture, out newRotZ)))
                         {
                             angle = newRotZ.DegToRad();
                             character.SendMessage("[Spawn] NPC {0} using angle {1}° = {2} rad", unitId, newRotZ, angle);
@@ -94,6 +92,9 @@ namespace AAEmu.Game.Scripts.Commands
                         npcSpawner.Position.Yaw = angle;
                         npcSpawner.Position.Pitch = 0;
                         npcSpawner.Position.Roll = 0;
+
+                        SpawnManager.Instance.AddNpcSpawner(npcSpawner);
+                        
                         npcSpawner.SpawnAll();
                         // character.SendMessage("[Spawn] NPC {0} spawned with angle {1}", unitId, angle);
                         break;

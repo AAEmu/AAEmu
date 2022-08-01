@@ -29,7 +29,7 @@ namespace AAEmu.Game.Core.Managers
 
             SchedulesGameData.Instance.PostLoad();
 
-            GetGameScheduleSpawnersData();
+            LoadGameScheduleSpawnersData();
 
             _log.Info("Loaded shchedules");
         }
@@ -132,36 +132,16 @@ namespace AAEmu.Game.Core.Managers
             return remainingTime;
         }
 
-        public bool GetGameScheduleSpawnersData(uint spawnerId)
+        public bool HasGameScheduleSpawnersData(uint spawnerTemplateId)
         {
-            try
-            {
-                GameScheduleId = new List<int>();
-                foreach (var gss in _gameScheduleSpawners.Values)
-                {
-                    if (gss.SpawnerId != spawnerId) { continue; }
-                    try
-                    {
-                        GameScheduleId.Add(gss.GameScheduleId);
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
-
-            return GameScheduleId.Count != 0;
+            return _gameScheduleSpawners.Values.Any(gss => gss.SpawnerId == spawnerTemplateId);
         }
 
-        private void GetGameScheduleSpawnersData()
+        private void LoadGameScheduleSpawnersData()
         {
             _gameScheduleSpawnerIds = new Dictionary<int, List<int>>();
 
+            // Spawners
             foreach (var gss in _gameScheduleSpawners.Values)
             {
                 if (!_gameScheduleSpawnerIds.ContainsKey(gss.SpawnerId))
@@ -174,6 +154,7 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
 
+            // Doodads
             foreach (var gsd in _gameScheduleDoodads.Values)
             {
                 if (!_gameScheduleSpawnerIds.ContainsKey(gsd.DoodadId))
@@ -185,7 +166,7 @@ namespace AAEmu.Game.Core.Managers
                     _gameScheduleSpawnerIds[gsd.DoodadId].Add(gsd.GameScheduleId);
                 }
             }
-            //TODO quests data
+            //TODO: quests data
         }
 
         public bool GetGameScheduleDoodadsData(uint doodadId)
