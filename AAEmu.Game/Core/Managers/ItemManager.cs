@@ -1853,18 +1853,39 @@ namespace AAEmu.Game.Core.Managers
                 var item = itemContainer.Items[i];
                 var doExpire = false;
 
-                if (isEquipmentContainer && (item is EquipItem equipItem) && (equipItem.Template is EquipItemTemplate equipItemTemplate) &&
-                    (equipItemTemplate.RechargeBuffId > 0) &&
-                    (
-                        ((equipItemTemplate.ChargeLifetime > 0) && (equipItem.ChargeStartTime.AddMinutes(equipItemTemplate.ChargeLifetime) <= DateTime.UtcNow))
-                        ||
-                        ((equipItemTemplate.ChargeCount > 0) && (equipItem.ChargeCount <= 0))
-                    )
-                   )
+                // Check if buffs need to expire
+                if (isEquipmentContainer && (item is EquipItem equipItem) &&
+                    (equipItem.Template is EquipItemTemplate equipItemTemplate) &&
+                    (equipItemTemplate.RechargeBuffId > 0))
                 {
-                    character?.Buffs.RemoveBuff(equipItemTemplate.RechargeBuffId);
+                    var expireBuff = false;
+                    
+                    // Expire Time
+                    var expireCheckTime = (equipItemTemplate.BindType == ItemBindType.BindOnUnpack)
+                        ? equipItem.UnpackTime
+                        : equipItem.ChargeStartTime;
+                    expireCheckTime = expireCheckTime.AddMinutes(equipItemTemplate.ChargeLifetime);
+                    
+                    // Do we need to check if charges expired ?
+                    var checkCharges = (equipItemTemplate.ChargeCount > 0);
+                    if ((equipItemTemplate.BindType == ItemBindType.BindOnUnpack) && (equipItem.HasFlag(ItemFlag.Unpacked) == false))
+                        checkCharges = false;
+                    
+                    // Timed Charged items
+                    if ((equipItemTemplate.ChargeLifetime > 0) && (expireCheckTime <= DateTime.UtcNow))
+                        expireBuff = true;
+
+                    // Count Charged Items
+                    if (checkCharges && (equipItemTemplate.ChargeCount > 0) && (equipItem.ChargeCount <= 0))
+                        expireBuff = true;
+
+                    // Apply expire buff if needed
+                    if (expireBuff && (character != null) &&
+                        character.Buffs.CheckBuff(equipItemTemplate.RechargeBuffId))
+                        character.Buffs.RemoveBuff(equipItemTemplate.RechargeBuffId);
                 }
-                
+
+                // Check if item itself needs to be expired
                 if ((item.ExpirationTime > DateTime.MinValue) && (item.ExpirationTime <= DateTime.UtcNow))
                     doExpire = true; // Item expired by predefined end time
                 else if (item.ExpirationOnlineMinutesLeft > 0.0)
@@ -1947,6 +1968,27 @@ namespace AAEmu.Game.Core.Managers
             item.ExpirationTime = DateTime.MinValue;
             item.ExpirationOnlineMinutesLeft = 0.0;
             return new SCSyncItemLifespanPacket(false, item.Id, item.TemplateId, DateTime.MinValue);
+        }
+
+        public bool UnwrapItem(Character character, SlotType slotType, byte slot, ulong itemId)
+        {
+            var item = GetItemByItemId(itemId);
+            if (item == null)
+                return false;
+            if ((item.SlotType != slotType) || (item.Slot != slot))
+            {
+                _log.Warn($"UnwrapItem: Requested item position does not match up for {itemId} of user {character.Name}");
+                return false;
+            }
+            item.UnpackTime = DateTime.UtcNow;//.AddDays(-30).AddSeconds(15);
+            item.SetFlag(ItemFlag.Unpacked);
+            if (item.Template.BindType == ItemBindType.BindOnUnpack)
+                item.SetFlag(ItemFlag.SoulBound);
+            var updateItemTask = new ItemUpdateSecurity(item, (byte)item.ItemFlags,  item.HasFlag(ItemFlag.Secure), item.HasFlag(ItemFlag.Secure), item.ItemFlags.HasFlag(ItemFlag.Unpacked));
+            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ItemTaskThistimeUnpack, updateItemTask, new List<ulong>()));
+            if ((item.Template is EquipItemTemplate equipItemTemplate) && (equipItemTemplate.ChargeLifetime > 0))
+                character.SendPacket(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, item.UnpackTime));
+            return true;
         }
     }
 }

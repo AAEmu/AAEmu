@@ -1,5 +1,7 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -16,7 +18,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             var slotType = (SlotType)stream.ReadByte();
             var slot = stream.ReadByte();
             var itemId = stream.ReadUInt64();
-            _log.Warn("CSThisTimeUnpackItemPacket, slotType: {0}, slot: {1}, itemId: {2}", slotType, slot, itemId);
+
+            _log.Debug("CSThisTimeUnpackItemPacket, slotType: {0}, slot: {1}, itemId: {2}", slotType, slot, itemId);
+            if (!ItemManager.Instance.UnwrapItem(Connection.ActiveChar, slotType, slot, itemId))
+                Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ItemUpdateFail);
         }
     }
 }
