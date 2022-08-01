@@ -404,7 +404,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
 
             // Handle items that can expire
             GamePacket sync = null;
-            if ((item.ExpirationOnlineMinutesLeft > 0.0) || (item.ExpirationTime > DateTime.UtcNow))
+            if ((item.ExpirationOnlineMinutesLeft > 0.0) || (item.ExpirationTime > DateTime.UtcNow) || (item.UnpackTime > DateTime.UtcNow))
                 sync = ItemManager.Instance.ExpireItemPacket(item);
             if (sync != null)
                 this.Owner?.SendPacket(sync);
@@ -604,7 +604,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 if ((newItem is EquipItem equipItem) && (newItem.Template is EquipItemTemplate equipItemTemplate))
                 {
                     equipItem.ChargeCount = equipItemTemplate.ChargeCount;
-                    if (equipItemTemplate.ChargeLifetime > 0)
+                    if ((equipItemTemplate.ChargeLifetime > 0) && (equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack) == false))
                         equipItem.ChargeStartTime = DateTime.UtcNow;
                 }
                 
