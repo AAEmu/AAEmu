@@ -16,8 +16,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             var character = (Character)caster;
             var addedItem = false;
-            var item = ItemManager.Instance.GetItemByItemId(owner.ItemId);
-            if (owner.ItemId > 0)
+            var item = ItemManager.Instance.GetItemByItemId(owner?.ItemId ?? 0);
+            if (owner?.ItemId > 0)
             {
                 if (item != null)
                 {
@@ -58,20 +58,21 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     }
                 }
             }
-            else if (owner.ItemTemplateId > 0)
+            else if (owner?.ItemTemplateId > 0)
             {
                 addedItem = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.RecoverDoodadItem, owner.ItemTemplateId, 1);
             }
             else
             {
                 // No itemId was provided with the doodad, need to check what needs to be done with this
-                _log.Warn("DoodadFuncRecoverItem: Doodad {0} has no item information attached to it", owner.InstanceId);
+                _log.Warn($"DoodadFuncRecoverItem: Doodad {owner?.ObjId} has no item information attached to it");
             }
 
             if ((addedItem) && (item != null) && (item._holdingContainer.ContainerType == SlotType.Equipment))
                 character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId,(byte)item.Slot,item), false);
 
-            owner.ToPhaseAndUse = addedItem;
+            if (owner != null)
+                owner.ToPhaseAndUse = addedItem;
         }
     }
 }
