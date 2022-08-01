@@ -357,19 +357,19 @@ namespace AAEmu.Game.Models.Game.Char
                 return false;
             }
 
-            if ((action != SwapAction.doEquipInEmptySlot) && (sourceContainer.ContainerType != fromType))
+            if ((action != SwapAction.doEquipInEmptySlot) && (sourceContainer?.ContainerType != fromType))
             {
                 _log.Error("SplitOrMoveItem Source Item Container did not match what the client asked");
                 return false;
             }
 
-            if ((action != SwapAction.doEquipInEmptySlot) && (fromItem.Slot != fromSlot))
+            if ((action != SwapAction.doEquipInEmptySlot) && (fromItem?.Slot != fromSlot))
             {
                 _log.Error("SplitOrMoveItem Source Item slot did not match what the client asked");
                 return false;
             }
 
-            if ((action != SwapAction.doEquipInEmptySlot) && (count > fromItem.Count))
+            if ((action != SwapAction.doEquipInEmptySlot) && (count > fromItem?.Count))
             {
                 _log.Error("SplitOrMoveItem Source Item has less item count than is requested to be moved");
                 return false;
@@ -401,18 +401,18 @@ namespace AAEmu.Game.Models.Game.Char
             // Decide what type of thing we need to do
             if (action != SwapAction.doEquipInEmptySlot)
             {
-                if ((itemInTargetSlot == null) && (fromItem.Count > count))
+                if ((itemInTargetSlot == null) && (fromItem?.Count > count))
                     action = SwapAction.doSplit;
-                else if ((itemInTargetSlot == null) && (fromItem.Count == count))
+                else if ((itemInTargetSlot == null) && (fromItem?.Count == count))
                     action = SwapAction.doMoveAllToEmpty;
-                else if ((itemInTargetSlot != null) && (itemInTargetSlot.TemplateId == fromItem.TemplateId) && (itemInTargetSlot.Template.MaxCount > 1))
+                else if ((itemInTargetSlot != null) && (itemInTargetSlot.TemplateId == fromItem?.TemplateId) && (itemInTargetSlot.Template.MaxCount > 1))
                     action = SwapAction.doMerge;
                 else
                     action = SwapAction.doSwap;
             }
 
             var doUnEquipOffhand = false;
-            var doUnEquipMainhand = false;
+            var doUnEquipMainHand = false;
             Item mainHandWeapon = null;
             Item offHandWeapon = null;
 
@@ -482,19 +482,19 @@ namespace AAEmu.Game.Models.Game.Char
                     }
                 }
                 
-                if (isTo2H && (sourceContainer.ContainerType == SlotType.Equipment) && (fromSlot == (int)EquipmentItemSlot.Mainhand))
+                if (isTo2H && (sourceContainer?.ContainerType == SlotType.Equipment) && (fromSlot == (int)EquipmentItemSlot.Mainhand))
                     doUnEquipOffhand = true;
-                if (isMain2H && (sourceContainer.ContainerType == SlotType.Equipment) && (fromSlot == (int)EquipmentItemSlot.Offhand))
-                    doUnEquipMainhand = true;
+                if (isMain2H && (sourceContainer?.ContainerType == SlotType.Equipment) && (fromSlot == (int)EquipmentItemSlot.Offhand))
+                    doUnEquipMainHand = true;
 
                 // Client actually always sends from equipment => inventory no matter how you click it, this is just a safety if it ever changes
-                if (isFrom2H && (targetContainer.ContainerType == SlotType.Equipment) && (toSlot == (int)EquipmentItemSlot.Mainhand))
+                if (isFrom2H && (targetContainer?.ContainerType == SlotType.Equipment) && (toSlot == (int)EquipmentItemSlot.Mainhand))
                     doUnEquipOffhand = true;
-                if (isMain2H && (targetContainer.ContainerType == SlotType.Equipment) && (toSlot == (int)EquipmentItemSlot.Offhand))
-                    doUnEquipMainhand = true;
+                if (isMain2H && (targetContainer?.ContainerType == SlotType.Equipment) && (toSlot == (int)EquipmentItemSlot.Offhand))
+                    doUnEquipMainHand = true;
             }
 
-            if ((doUnEquipOffhand) && (offHandWeapon != null))
+            if (doUnEquipOffhand)
             {
                 //_log.Trace("SplitOrMoveItem - UnEquip OffHand required!");
                 // Check if we have enough space to unequip the offhand
@@ -505,7 +505,7 @@ namespace AAEmu.Game.Models.Game.Char
                     return false;
             }
 
-            if ((doUnEquipMainhand) && (mainHandWeapon != null))
+            if (doUnEquipMainHand)
             {
                 //_log.Trace("SplitOrMoveItem - UnEquip MainHand required!");
                 // Check if we have enough space to unequip the mainhand
