@@ -42,7 +42,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public virtual float Scale { get; set; } = 1f;
         
-        public Buffs Buffs { get; set; }
+        public IBuffs Buffs { get; set; }
         public SkillModifiers SkillModifiersCache { get; set; }
         public BuffModifiers BuffModifiersCache { get; set; }
         public CombatBuffs CombatBuffs { get; set; }

@@ -6,6 +6,6 @@ namespace AAEmu.Game.Models.Game.Units
     {
         uint Id { get; set; }
         string Name { get; set; }
-        Buffs Buffs { get; set; }
+        IBuffs Buffs { get; set; }
     }
 }

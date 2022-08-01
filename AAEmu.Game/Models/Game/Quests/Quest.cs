@@ -219,9 +219,14 @@ namespace AAEmu.Game.Models.Game.Quests
                                 }
                             case "QuestActSupplyItem":
                                 {
-                                    res = act.Use(Owner, this, SupplyItem); // if SupplyItem = 0, we get the item
-                                    Step = QuestComponentKind.Supply; // в процессе работы метода ItemGather  переключается на Progress (in the process of ItemGather method operation switches to Progress)
-                                    supply = res; // если было пополнение предметом, то на метод Update() не переходить (If there was a replenishment of an object, then do not go to the Update() method)
+                                    // if SupplyItem = 0, we get the item
+                                    res = act.Use(Owner, this, SupplyItem); 
+                                    Step = QuestComponentKind.Supply; 
+                                    // в процессе работы метода ItemGather  переключается на Progress (
+                                    // In the process of ItemGather method operation switches to Progress)
+                                    supply = res; 
+                                    // если было пополнение предметом, то на метод Update() не переходить (
+                                    // If there was a replenishment of an object, then do not go to the Update() method)
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     break;
                                 }
