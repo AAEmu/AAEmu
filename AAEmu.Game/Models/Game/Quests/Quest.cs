@@ -45,6 +45,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public QuestAcceptorType QuestAcceptorType { get; set; }
         public uint AcceptorType { get; set; }
         public QuestCompleteTask QuestTask { get; set; }
+        public List<ItemCreationDefinition> QuestActItemsPool { get; set; }
 
         public uint GetActiveComponent()
         {
@@ -58,6 +59,7 @@ namespace AAEmu.Game.Models.Game.Quests
             EarlyCompletion = false;
             ExtraCompletion = false;
             ObjId = 0;
+            QuestActItemsPool = new List<ItemCreationDefinition>();
         }
 
         public Quest(QuestTemplate template)
@@ -69,6 +71,7 @@ namespace AAEmu.Game.Models.Game.Quests
             EarlyCompletion = false;
             ExtraCompletion = false;
             ObjId = 0;
+            QuestActItemsPool = new List<ItemCreationDefinition>();
         }
 
         private void CheckStatus()
@@ -613,6 +616,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
                     var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
                     var selective = 0;
+                    QuestActItemsPool.Clear();
                     foreach (var act in acts)
                     {
                         switch (act.DetailType)
@@ -661,6 +665,39 @@ namespace AAEmu.Game.Models.Game.Quests
                         SupplyItem = 0;
                         //_log.Warn("[Quest] Complete: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                     }
+
+                    // Distribute Items if needed
+                    if ((res) && (QuestActItemsPool.Count > 0))
+                    {
+                        // TODO: Check if enough space
+                        // TODO: Create mail if not enough space
+
+                        if (Owner.Inventory.Bag.FreeSlotCount < QuestActItemsPool.Count)
+                        {
+                            var mails = MailManager.Instance.CreateQuestRewardMails(Owner, this, QuestActItemsPool);
+                            foreach (var mail in mails)
+                                if (!mail.Send())
+                                    Owner.SendErrorMessage(ErrorMessageType.MailUnknownFailure);
+                            
+                            // Owner.SendErrorMessage(ErrorMessageType.BagFull);
+                            Owner.SendErrorMessage(ErrorMessageType.QuestRewardedByMail); // this does not display correctly as it's missing the quest Id, and uses "$$" instead
+                        }
+                        else
+                        {
+                            foreach (var item in QuestActItemsPool)
+                            {
+                                if (ItemManager.Instance.IsAutoEquipTradePack(item.TemplateId))
+                                {
+                                    res &= Owner.Inventory.TryEquipNewBackPack(ItemTaskType.QuestSupplyItems,
+                                        item.TemplateId, item.Count, item.GradeId);
+                                }
+
+                                res &= Owner.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems,
+                                    item.TemplateId, item.Count, item.GradeId);
+                            }
+                        }
+                    }
+                    
                     if (!res)
                     {
                         break;

@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
@@ -23,28 +24,9 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
             {
                 return true;
             }
-
-            if (ItemManager.Instance.IsAutoEquipTradePack(ItemId))
-            {
-                return character.Inventory.TryEquipNewBackPack(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
-            }
-            return character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
-            //    /*
-            //    var template = ItemManager.Instance.GetTemplate(ItemId);
-            //    if (template is BackpackTemplate backpackTemplate)
-            //    {
-            //        if (character.Inventory.TakeoffBackpack(ItemTaskType.QuestSupplyItems, true))
-            //            return character.Inventory.Equipment.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
-            //        else
-            //            return false;
-            //    }
-            //    else
-            //    {
-            //        return character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
-            //    }
-            //    */
-
-            //}
+            
+            quest.QuestActItemsPool.Add(new ItemCreationDefinition(ItemId, Count, GradeId));
+            return true;
         }
     }
 }

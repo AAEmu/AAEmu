@@ -20,6 +20,7 @@ using System.ComponentModel.DataAnnotations;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Tasks.Mails;
 using AAEmu.Game.Models.Game.Features;
+using AAEmu.Game.Models.Game.Quests;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -499,6 +500,37 @@ namespace AAEmu.Game.Core.Managers
             }
             return resultList;
         }
-        
+
+        public List<BaseMail> CreateQuestRewardMails(Character character, Quest quest, List<ItemCreationDefinition> itemCreationDefinitions)
+        {
+            // TODO: Verify mail structure
+            var resultList = new List<BaseMail>();
+
+            MailPlayerToPlayer mail = null;
+            foreach (var item in itemCreationDefinitions)
+            {
+                if ((mail == null) || (mail.Body.Attachments.Count >= 10))
+                {
+                    mail = new MailPlayerToPlayer(character, character.Name);
+                    mail.Title = $"Quest Reward, Id: {quest.TemplateId}";
+                    mail.Body.Text = "Check attachments.";
+                    resultList.Add(mail);
+                }
+                var itemTemplate = ItemManager.Instance.GetTemplate(item.TemplateId);
+                var itemGrade = itemTemplate.FixedGrade;
+                if (itemGrade <= 0)
+                    itemGrade = 0;
+                if (item.GradeId > 0)
+                    itemGrade = item.GradeId;
+                mail.Body.Attachments.Add(ItemManager.Instance.Create(item.TemplateId, item.Count, (byte)itemGrade, true));
+            }
+
+            foreach (var baseMail in resultList)
+            {
+                (baseMail as MailPlayerToPlayer)?.FinalizeAttachments();
+            }
+            
+            return resultList;
+        }
     }
 }
