@@ -19,6 +19,7 @@ namespace AAEmu.Game.Core.Managers
     public class SkillManager : Singleton<SkillManager>, ISkillManager
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        private bool _loaded = false;
 
         private Dictionary<uint, SkillTemplate> _skills;
         private Dictionary<uint, DefaultSkill> _defaultSkills;
@@ -230,6 +231,9 @@ namespace AAEmu.Game.Core.Managers
 
         public void Load()
         {
+            if (_loaded)
+                return;
+
             _skills = new Dictionary<uint, SkillTemplate>();
             _defaultSkills = new Dictionary<uint, DefaultSkill>();
             _commonSkills = new List<uint>();
@@ -1647,6 +1651,8 @@ namespace AAEmu.Game.Core.Managers
                     _startAbilitySkills.Add(ability, new List<SkillTemplate>());
                 _startAbilitySkills[ability].Add(skillTemplate);
             }
+
+            _loaded = true;
         }
     }
 }

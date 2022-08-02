@@ -23,6 +23,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
     public class DoodadManager : Singleton<DoodadManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        private bool _loaded = false;
 
         private Dictionary<uint, DoodadTemplate> _templates;
         private Dictionary<uint, List<DoodadFunc>> _funcsByGroups;
@@ -43,6 +44,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
         public void Load()
         {
+            if (_loaded)
+                return;
+
             _templates = new Dictionary<uint, DoodadTemplate>();
             _funcsByGroups = new Dictionary<uint, List<DoodadFunc>>();
             _funcsById = new Dictionary<uint, DoodadFunc>();
@@ -2203,6 +2207,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     }
                 }
             }
+
+            _loaded = true;
         }
 
         public Doodad Create(uint bcId, uint id, GameObject obj = null)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -31,14 +32,18 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
 {
     public class QuestTests
     {
-        public QuestTests()
+        private static bool _managersLoaded = false;
+        private void LoadManagers()
         {
+            if (_managersLoaded)
+                return;
+
             var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
             var configurationBuilder = new ConfigurationBuilder();
             configurationBuilder.AddJsonFile(mainConfig);
             var configurationBuilderResult = configurationBuilder.Build();
             configurationBuilderResult.Bind(AppConfiguration.Instance);
-            
+
             //Loads all quests from DB
             QuestManager.Instance.Load();
             FormulaManager.Instance.Load();
@@ -69,17 +74,28 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
 
             GameDataManager.Instance.PostLoadGameData();
             SpawnManager.Instance.SpawnAllNpcs(0);
+
+            _managersLoaded = true;
+        }
+        public QuestTests()
+        {
+            LoadManagers();
         }
 
         [Fact]
         public void Start_WhenQuestStart_AllActsAreQuestActConAcceptNpc_And_TargetNpcIsNotValid_ShouldNotStartQuest()
         {
             // Arrange
-            var questIds = GetAllQuests_Where_ComponentKindStart_HasAllActsAs_QuestActConAcceptNpc();
+            var questIds = GetAllQuests_Where_ComponentKindStart_HasAllActsAs_QuestActConAcceptNpc().ToArray();
+            var count = 0;
+            Random rnd = new Random();
 
-            foreach(var questId in questIds)
+            // Randomizing first 500 due to performance impact... 
+            foreach (var questId in questIds.OrderBy(x => rnd.Next()).Take(500))
             {
+                count++;
                 var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _, out _);
+                
 
                 // Act
                 var result = quest.Start();
@@ -88,6 +104,10 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
                 Assert.False(result); // Quest not started
                 mockCharacter.Verify(o => o.SendPacket(It.IsAny<SCQuestContextStartedPacket>()), Times.Never);
                 mockCharacter.Verify(o => o.UseSkill(It.IsAny<uint>(), It.IsAny<IUnit>()), Times.Never);
+
+                Trace.WriteLine($"{questId} - {count}/{questIds.Length}");
+                mockCharacter.Invocations.Clear();
+                mockCharacter.Reset();
             }
         }
 
@@ -123,7 +143,7 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
         }
 
         [Fact]
-        public void Start_DoodadQuestsSupplyingItem_WhenBagIsFull_ShouldAddToCharacterBag()
+        public void Start_DoodadQuestsSupplyingItem_WhenBagAndBackIsFull_ShouldAddToCharacterBag()
         {
             // Arrange
             var questIds = GetQuestIdsWithComponentKindContainingActDetailType(
@@ -137,23 +157,24 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
             foreach (var questId in targetQuestIds)
             {
                 var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _, out _);
-                SetupCharacter(mockCharacter, inventorySlots: 0);
+
+                // Add a backpack item to occupy the backpack slot (Gweonid Dyed Feathers Pack)
+                SetupCharacter(mockCharacter, inventorySlots: 0, equippedBackPackItem: 31831);
 
                 // Act
                 var result = quest.Start();
 
                 // Assert
                 
-                // Did not start bag is full
+                // Do not start when bag and back is full
                 Assert.False(result);
 
-                mockCharacter.Verify(c => c.SendErrorMessage(It.IsIn(ErrorMessageType.BagFull), It.IsAny<uint>(), It.IsAny<bool>()), Times.Once);
+                mockCharacter.Verify(c => c.SendErrorMessage(It.IsIn(ErrorMessageType.BagFull), It.IsAny<uint>(), It.IsAny<bool>()), Times.AtLeastOnce);
                 var supplyItemAct = quest.Template.GetFirstComponent(QuestComponentKind.Supply).ActTemplates.OfType<QuestActSupplyItem>().FirstOrDefault();
                 if (supplyItemAct is not null)
                 {
                     Assert.Equal(0, mockCharacter.Object.Inventory.GetItemsCount(supplyItemAct.ItemId));
                 }
-
             }
         }
         
@@ -255,7 +276,7 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
             );
             var targetQuestIds = RemoveSphereAndNotImplementedQuests(questIds);
 
-            targetQuestIds = new uint[] { 1966 };
+            //targetQuestIds = new uint[] { 1966 };
             
             foreach (var questId in targetQuestIds)
             {
@@ -263,20 +284,22 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
 
                 var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _, out var mockWorldManager);
                 SetupCharacter(mockCharacter);
-
                 // Simulates the character to be targeting an expected npc for the quest
-                var npcAcceptAct = QuestManager.Instance.GetTemplate(questId).GetFirstComponent(QuestComponentKind.Start).ActTemplates.OfType<QuestActConAcceptNpc>().FirstOrDefault();
-
+                var npcComponent = QuestManager.Instance.GetTemplate(questId).GetFirstComponent(QuestComponentKind.Start);
+                var npcAcceptAct = npcComponent.ActTemplates.OfType<QuestActConAcceptNpc>().FirstOrDefault();
 
 
                 var targetNpc = new Npc { TemplateId = npcAcceptAct.NpcId };
                 var mockSkillNpc = new Mock<Npc>();
+                var mockComponentNpc = new Mock<Npc>();
                 mockSkillNpc.SetupAllProperties();
+                mockComponentNpc.SetupAllProperties();
+
                 if (npcAcceptAct is not null)
                 {
                     mockCharacter.SetupGet(o => o.CurrentTarget).Returns(targetNpc);
                 }
-
+                mockWorldManager.Setup(wm => wm.GetNpcByTemplateId(It.IsIn(npcComponent.NpcId))).Returns(mockComponentNpc.Object);
                 // Act
                 var result = quest.Start();
 
@@ -290,9 +313,10 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
 
                     if (npcComponentStart.SkillSelf)
                         mockCharacter.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(mockCharacter.Object)), Times.Once);
-                    else {
+                    else if (npcComponentStart.NpcId > 0) 
+                    {
                         mockWorldManager.Verify(o => o.GetNpcByTemplateId(It.IsIn(npcComponentStart.NpcId)), Times.Once);
-                        mockSkillNpc.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(mockSkillNpc.Object)), Times.Once);
+                        mockComponentNpc.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(mockComponentNpc.Object)), Times.Once);
                     }
                 }
                 Assert.True(result);
@@ -384,7 +408,7 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
 
 
                 var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out var mockSkillManager, out _, WorldManager.Instance);
-                SetupCharacter(mockCharacter, 10, mockCharacterBuffs);
+                SetupCharacter(mockCharacter, 10, 0, mockCharacterBuffs);
 
                 // Simulates the character to be targeting an expected npc for the quest
                 var npcComponent = QuestManager.Instance.GetTemplate(questId).GetFirstComponent(QuestComponentKind.Start);
@@ -418,7 +442,7 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
             )));
         }
 
-        private void SetupCharacter(Mock<ICharacter> mockCharacter, byte inventorySlots = 10, Mock<IBuffs> mockCharacterBuffs = null)
+        private void SetupCharacter(Mock<ICharacter> mockCharacter, byte inventorySlots = 10, uint equippedBackPackItem = 0,  Mock<IBuffs> mockCharacterBuffs = null)
         {
             int randomCharacterId = Random.Shared.Next(1, int.MaxValue);
             string randomCharacterName = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
@@ -430,7 +454,13 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
             mockCharacter.SetupGet(o => o.Name).Returns(randomCharacterName);
             mockCharacter.SetupGet(o => o.Id).Returns((uint)randomCharacterId);
             mockCharacter.SetupGet(o => o.NumInventorySlots).Returns(inventorySlots);
-            mockCharacter.SetupGet(o => o.Inventory).Returns(new Inventory(mockCharacter.Object));
+
+            var inventory = new Inventory(mockCharacter.Object);
+            mockCharacter.SetupGet(o => o.Inventory).Returns(inventory);
+            if (equippedBackPackItem > 0)
+            {
+                inventory.TryEquipNewBackPack(AAEmu.Game.Models.Game.Items.Actions.ItemTaskType.Gm, equippedBackPackItem, 1);
+            }
         }
 
         private Quest SetupQuest(

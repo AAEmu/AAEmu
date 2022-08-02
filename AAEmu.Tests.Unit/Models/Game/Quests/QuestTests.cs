@@ -18,7 +18,7 @@ namespace AAEmu.Tests.Unit.Models.Game.Quests
         public void Start_WhenQuestStepIsNoneAndComponentIsEmpty_ShouldDoNothing()
         {
             // Arrange
-            var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
+            var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _, out _);
             mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>())).Returns(Array.Empty<QuestComponent>());
             
             // Act
@@ -34,7 +34,7 @@ namespace AAEmu.Tests.Unit.Models.Game.Quests
         public void Start_WhenQuestActsIsEmpty_ShouldDoNothing()
         {
             // Arrange
-            var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out var mockQuestManager, out _, out _, out _, out _);
+            var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out var mockQuestManager, out _, out _, out _, out _, out _);
             var expectedIds = new List<uint>();
 
             mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>())).Returns<QuestComponentKind>(kind => new[] {
@@ -58,7 +58,7 @@ namespace AAEmu.Tests.Unit.Models.Game.Quests
         public void Start_WhenComponentActsAreAllQuestActConAcceptNpc_AndTargetNotMatch_ShouldAbort()
         {
             // Arrange
-            var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out var mockQuestManager, out _, out _, out _, out _);
+            var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out var mockQuestManager, out _, out _, out _, out _, out _);
             var expectedIds = new List<uint>();
 
             mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>())).Returns<QuestComponentKind>(kind => new[] {
@@ -89,7 +89,7 @@ namespace AAEmu.Tests.Unit.Models.Game.Quests
         public void Start_WhenComponentActsAreAllQuestActConAcceptNpc_AndTargetMatch_ButComponentSkillIdIsZero_ShouldNotOwnerUseSkill()
         {
             // Arrange
-            var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out var mockQuestManager, out _, out _, out _, out _);
+            var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out var mockQuestManager, out _, out _, out _, out _, out _);
             var expectedIds = new List<uint>();
             mockQuestTemplate.SetupGet(qt => qt.Components).Returns(new Dictionary<uint, QuestComponent>()
             {
@@ -123,7 +123,8 @@ namespace AAEmu.Tests.Unit.Models.Game.Quests
             out Mock<ISphereQuestManager> mockSphereQuestManager,
             out Mock<ITaskManager> mockTaskManager,
             out Mock<ISkillManager> mockSkillManager,
-            out Mock<IExpressTextManager> mockExpressTextManager)
+            out Mock<IExpressTextManager> mockExpressTextManager,
+            out Mock<IWorldManager> mockWorldManager)
         {
             mockCharacter = new Mock<ICharacter>();
             mockQuestManager = new Mock<IQuestManager>();
@@ -132,14 +133,16 @@ namespace AAEmu.Tests.Unit.Models.Game.Quests
             mockExpressTextManager = new Mock<IExpressTextManager>();
             mockSkillManager = new Mock<ISkillManager>();
             mockTaskManager = new Mock<ITaskManager>();
-
+            mockWorldManager = new Mock<IWorldManager>();
+            
             var quest = new Quest(
                 mockQuestTemplate.Object,
                 mockQuestManager.Object,
                 mockSphereQuestManager.Object,
                 mockTaskManager.Object,
                 mockSkillManager.Object,
-                mockExpressTextManager.Object);
+                mockExpressTextManager.Object,
+                mockWorldManager.Object);
 
             quest.Owner = mockCharacter.Object;
             quest.Template = mockQuestTemplate.Object;

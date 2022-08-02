@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Utils.DB;
@@ -12,6 +12,7 @@ namespace AAEmu.Game.Core.Managers
 
         private Dictionary<string, Dictionary<uint, Model>> _models;
         private Dictionary<uint, ModelType> _modelTypes;
+        private bool _loaded = false;
 
         // Getters
         public ModelType GetModelType(uint modelId)
@@ -55,6 +56,9 @@ namespace AAEmu.Game.Core.Managers
         
         public void Load()
         {
+            if (_loaded)
+                return;
+            
             _models = new Dictionary<string, Dictionary<uint, Model>>
             {
                 {"ActorModel", new Dictionary<uint, Model>()},
@@ -140,6 +144,8 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
             }
+
+            _loaded = true;
         }
     }
 }

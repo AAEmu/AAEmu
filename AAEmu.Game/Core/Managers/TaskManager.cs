@@ -16,12 +16,16 @@ namespace AAEmu.Game.Core.Managers
     public class TaskManager : Singleton<TaskManager>, ITaskManager
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        private bool _initialized = false;
 
         private DefaultThreadPool _generalPool;
         private IScheduler _generalScheduler;
 
         public async void Initialize()
         {
+            if (_initialized)
+                return;
+            
             _generalPool = new DefaultThreadPool();
             _generalPool.MaxConcurrency = AppConfiguration.Instance.MaxConcurencyThreadPool;
             _generalPool.Initialize();
@@ -30,6 +34,7 @@ namespace AAEmu.Game.Core.Managers
                 .Instance
                 .CreateScheduler("General Scheduler", "GeneralScheduler", _generalPool, new RAMJobStore());
             _generalScheduler = await DirectSchedulerFactory.Instance.GetScheduler("General Scheduler");
+            _initialized = true;
         }
 
         public void Start()

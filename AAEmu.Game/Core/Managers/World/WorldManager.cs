@@ -36,6 +36,7 @@ namespace AAEmu.Game.Core.Managers.World
         public static uint DefaultWorldId = 0; // This will get reset to it's proper value when loading world data (which is usually 0)
         public static uint DefaultInstanceId = 0;
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        private bool _loaded = false;
 
         private Dictionary<uint, InstanceWorld> _worlds;
         private Dictionary<uint, uint> _worldIdByZoneId;
@@ -120,6 +121,9 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void Load()
         {
+            if (_loaded)
+                return;
+
             _worlds = new Dictionary<uint, InstanceWorld>();
             _worldIdByZoneId = new Dictionary<uint, uint>();
             _worldInteractionGroups = new Dictionary<uint, WorldInteractionGroup>();
@@ -279,6 +283,7 @@ namespace AAEmu.Game.Core.Managers.World
             #endregion
 
             //TickManager.Instance.OnLowFrequencyTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(5));
+            _loaded = true;
         }
 
         public bool LoadHeightMapFromDatFile(InstanceWorld world)

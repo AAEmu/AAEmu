@@ -25,7 +25,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
     public class NpcManager : Singleton<NpcManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-
+        private bool _loaded = false;
+        
         private Dictionary<uint, NpcTemplate> _templates;
         private Dictionary<uint, MerchantGoods> _goods;
         private Dictionary<uint, TotalCharacterCustom> _totalCharacterCustoms;
@@ -319,6 +320,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
         public void Load()
         {
+            if (_loaded)
+                return;
+
             _templates = new Dictionary<uint, NpcTemplate>();
             _goods = new Dictionary<uint, MerchantGoods>();
             _tccLookup = new Dictionary<uint, List<uint>>();
@@ -779,6 +783,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
 
             NpcGameData.Instance.LoadMemberAndSpawnerTemplateIds();
+
+            _loaded = true;
         }
 
         public void LoadAiParams()

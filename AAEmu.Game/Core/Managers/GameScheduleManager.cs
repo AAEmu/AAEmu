@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Managers
     public class GameScheduleManager : Singleton<GameScheduleManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-
+        private bool _loaded = false;
         private Dictionary<int, GameSchedules> _gameSchedules; // GameScheduleId, GameSchedules
         private Dictionary<int, GameScheduleSpawners> _gameScheduleSpawners;
         private Dictionary<int, List<int>> _gameScheduleSpawnerIds;
@@ -25,13 +25,18 @@ namespace AAEmu.Game.Core.Managers
 
         public void Load()
         {
-            _log.Info("Loading shchedules...");
+            if (_loaded)
+                return;
+            
+            _log.Info("Loading schedules...");
 
             SchedulesGameData.Instance.PostLoad();
 
             LoadGameScheduleSpawnersData();
 
-            _log.Info("Loaded shchedules");
+            _log.Info("Loaded schedules");
+
+            _loaded = true;
         }
 
         public void LoadGameSchedules(Dictionary<int, GameSchedules> gameSchedules)

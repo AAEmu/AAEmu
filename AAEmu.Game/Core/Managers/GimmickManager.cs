@@ -19,7 +19,8 @@ namespace AAEmu.Game.Core.Managers
     public class GimmickManager : Singleton<GimmickManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-
+        private bool _loaded = false;
+        
         private Dictionary<uint, GimmickTemplate> _templates;
         private Dictionary<uint, Gimmick> _activeGimmicks;
         private const double Delay = 50;
@@ -69,6 +70,9 @@ namespace AAEmu.Game.Core.Managers
 
         public void Load()
         {
+            if (_loaded)
+                return;
+            
             _templates = new Dictionary<uint, GimmickTemplate>();
             _activeGimmicks = new Dictionary<uint, Gimmick>();
 
@@ -125,6 +129,8 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
             #endregion
+
+            _loaded = true;
         }
 
         public void Initialize()

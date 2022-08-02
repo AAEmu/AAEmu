@@ -19,7 +19,7 @@ namespace AAEmu.Game.Core.Managers
     public class QuestManager : Singleton<QuestManager>, IQuestManager
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-
+        private bool _loaded = false;
         protected Dictionary<uint, QuestTemplate> _templates;
         protected Dictionary<byte, QuestSupplies> _supplies;
         protected Dictionary<uint, List<QuestAct>> _acts;
@@ -100,6 +100,8 @@ namespace AAEmu.Game.Core.Managers
         }
         public void Load()
         {
+            if (_loaded)
+                return;
             //                              charId          questId  Task
             QuestTimeoutTask = new Dictionary<uint, Dictionary<uint, QuestTimeoutTask>>();
 
@@ -129,6 +131,7 @@ namespace AAEmu.Game.Core.Managers
 
                 UpdateQuestComponentActs();
             }
+            _loaded = true;
         }
 
         private void LoadQuestMonsterNpcs(SqliteConnection connection)
