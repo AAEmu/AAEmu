@@ -14,7 +14,8 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public override bool Use(Character character, Quest quest, int objective)
         {
             _log.Debug("QuestActSupplyCopper");
-            return character.ChangeMoney(SlotType.None, SlotType.Inventory, Amount, ItemTaskType.QuestComplete);;
+            quest.AddCurrencyToQuestActCoinsPool(ShopCurrencyType.Money, Amount);
+            return true;
         }
     }
 }

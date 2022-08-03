@@ -1386,7 +1386,6 @@ namespace AAEmu.Game.Models.Game.Char
             switch (kind)
             {
                 case GamePointKind.Honor:
-                    VocationPoint += change;
                     HonorPoint += change;
                     break;
                 case GamePointKind.Vocation:

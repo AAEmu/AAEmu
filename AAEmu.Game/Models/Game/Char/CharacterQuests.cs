@@ -109,6 +109,8 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             var quest = Quests[questId];
+            quest.QuestActItemsPool.Clear();
+            quest.QuestActCoinsPool.Clear();
             var res = quest.Complete(selected);
             if (res != 0)
             {
@@ -126,7 +128,9 @@ namespace AAEmu.Game.Models.Game.Char
                                 Owner.AddExp(supplies.Exp * quest.OverCompletionPercent / 100, true);
                             if (amount == 0)
                                 amount = supplies.Copper * quest.OverCompletionPercent / 100;
-                            Owner.Money += amount;
+                            
+                            quest.AddCurrencyToQuestActCoinsPool(ShopCurrencyType.Money, amount);
+                            // Owner.AddMoney(SlotType.Inventory, amount, ItemTaskType.QuestComplete);
 
                             if (!quest.ExtraCompletion)
                             {
@@ -142,20 +146,14 @@ namespace AAEmu.Game.Models.Game.Char
                                 Owner.AddExp(supplies.Exp, true);
                             if (amount == 0)
                                 amount = supplies.Copper;
-                            Owner.Money += amount;
+                            
+                            quest.AddCurrencyToQuestActCoinsPool(ShopCurrencyType.Money, amount);
+                            // Owner.AddMoney(SlotType.Inventory, amount, ItemTaskType.QuestComplete);
                         }
-
-                        Owner.SendPacket(
-                            new SCItemTaskSuccessPacket(
-                                ItemTaskType.QuestComplete,
-                                new List<ItemTask>
-                                {
-                                    new MoneyChange(amount)
-                                },
-                                new List<ulong>())
-                        );
                     }
                 }
+                quest.DistributeRewards();
+                
                 var completeId = (ushort)(quest.TemplateId / 64);
                 if (!CompletedQuests.ContainsKey(completeId))
                     CompletedQuests.Add(completeId, new CompletedQuest(completeId));

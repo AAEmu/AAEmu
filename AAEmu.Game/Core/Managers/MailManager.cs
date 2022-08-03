@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
-using System.IO;
 using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game;
@@ -13,10 +11,6 @@ using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Commons.Network;
-using AAEmu.Game.Utils;
-using NLog.Targets;
-using System.ComponentModel.DataAnnotations;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Tasks.Mails;
 using AAEmu.Game.Models.Game.Features;
@@ -501,19 +495,36 @@ namespace AAEmu.Game.Core.Managers
             return resultList;
         }
 
-        public List<BaseMail> CreateQuestRewardMails(Character character, Quest quest, List<ItemCreationDefinition> itemCreationDefinitions)
+        public List<BaseMail> CreateQuestRewardMails(Character character, Quest quest, List<ItemCreationDefinition> itemCreationDefinitions, Dictionary<ShopCurrencyType,int> moneyRewards)
         {
             // TODO: Verify mail structure
             var resultList = new List<BaseMail>();
+            
+            // Handle copper coins rewards
+            if ((moneyRewards == null) || (!moneyRewards.TryGetValue(ShopCurrencyType.Money, out var mailCopper)))
+                mailCopper = 0;
+            // remove copper Coins from the rewards queue
+            moneyRewards?.Remove(ShopCurrencyType.Money);
+            
+            // TODO: handle honor/vocation rewards
 
             MailPlayerToPlayer mail = null;
+            var questName = LocalizationManager.Instance.Get("quest_contexts", "name", quest.TemplateId, quest.TemplateId.ToString());
             foreach (var item in itemCreationDefinitions)
             {
                 if ((mail == null) || (mail.Body.Attachments.Count >= 10))
                 {
                     mail = new MailPlayerToPlayer(character, character.Name);
-                    mail.Title = $"Quest Reward, Id: {quest.TemplateId}";
-                    mail.Body.Text = "Check attachments.";
+                    mail.Header.SenderId = 0;
+                    mail.Header.SenderName = ".questReward";
+                    mail.MailType = MailType.SysExpress;
+                    // NOTE: On newer versions, this uses the .title / .body format, but this doesn't seem to work on 1.2
+                    // mail.Title = $".title('{questName}')";
+                    // mail.Body.Text = $".body('{questName}')";
+                    mail.Title = questName ;
+                    mail.Body.Text = $"Reward for quest {questName}.";
+                    mail.Body.CopperCoins = mailCopper;
+                    mailCopper = 0;
                     resultList.Add(mail);
                 }
                 var itemTemplate = ItemManager.Instance.GetTemplate(item.TemplateId);
