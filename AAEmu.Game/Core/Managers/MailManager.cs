@@ -495,7 +495,7 @@ namespace AAEmu.Game.Core.Managers
             return resultList;
         }
 
-        public List<BaseMail> CreateQuestRewardMails(Character character, Quest quest, List<ItemCreationDefinition> itemCreationDefinitions, int mailCopper)
+        public List<BaseMail> CreateQuestRewardMails(ICharacter character, Quest quest, List<ItemCreationDefinition> itemCreationDefinitions, int mailCopper)
         {
             var resultList = new List<BaseMail>();
             

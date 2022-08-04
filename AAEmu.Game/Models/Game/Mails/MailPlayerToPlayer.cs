@@ -12,9 +12,9 @@ namespace AAEmu.Game.Models.Game.Mails
 
     public class MailPlayerToPlayer : BaseMail
     {
-        private Character _sender;
+        private ICharacter _sender;
 
-        public MailPlayerToPlayer(Character sender, string receiverPlayerName) : base()
+        public MailPlayerToPlayer(ICharacter sender, string receiverPlayerName) : base()
         {
             _sender = sender;
             Header.SenderId = sender.Id;

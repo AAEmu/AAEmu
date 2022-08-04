@@ -1,6 +1,8 @@
 ﻿using System.Drawing;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -19,5 +21,7 @@ namespace AAEmu.Game.Models.Game.Char
         void ChangeLabor(short change, int actabilityId);
         void AddExp(int exp, bool shouldAddAbilityExp);
         void UpdateGearBonuses(Item itemAdded, Item itemRemoved);
+        public bool ChangeMoney(SlotType typeFrom, SlotType typeTo, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney);
+        public void ChangeGamePoints(GamePointKind kind, int change);
     }
 }
