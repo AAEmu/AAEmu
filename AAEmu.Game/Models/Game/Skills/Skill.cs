@@ -874,12 +874,14 @@ namespace AAEmu.Game.Models.Game.Skills
             if (!Cancelled)
             {
                 // Actually consume the to be consumed items
+                // Specific Items
                 foreach (var (item, amount) in consumedItems)
                     if (item._holdingContainer != null)
                     {
                         item._holdingContainer.ConsumeItem(ItemTaskType.SkillReagents, item.TemplateId, amount, item);
                     }
 
+                // Doesn't matter, but by Template
                 if (caster is Character playerToConsumeFrom)
                     foreach (var (templateId, amount) in consumedItemTemplates)
                         playerToConsumeFrom.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectConsumption, templateId, amount, null);
