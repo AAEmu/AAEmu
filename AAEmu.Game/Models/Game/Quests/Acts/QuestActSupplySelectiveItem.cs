@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         {
             _log.Warn("QuestActSupplySelectiveItem");
 
-            quest.QuestActItemsPool.Add(new ItemCreationDefinition(ItemId, Count, GradeId));
+            quest.QuestRewardItemsPool.Add(new ItemCreationDefinition(ItemId, Count, GradeId));
             //character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId, 0);
 
             return quest.Template.Score > 0 ? objective * Count >= quest.Template.Score : objective >= Count;

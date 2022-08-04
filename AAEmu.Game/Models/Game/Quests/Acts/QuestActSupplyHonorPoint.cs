@@ -1,6 +1,7 @@
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts
 {
@@ -11,7 +12,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public override bool Use(Character character, Quest quest, int objective)
         {
             _log.Warn("QuestActSupplyHonorPoint");
-            quest.AddCurrencyToQuestActCoinsPool(ShopCurrencyType.Honor, Point);
+            character.ChangeGamePoints(GamePointKind.Honor, Point);
             return true;
         }
     }

@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
                 return true;
             }
             
-            quest.QuestActItemsPool.Add(new ItemCreationDefinition(ItemId, Count, GradeId));
+            quest.QuestRewardItemsPool.Add(new ItemCreationDefinition(ItemId, Count, GradeId));
             return true;
         }
     }

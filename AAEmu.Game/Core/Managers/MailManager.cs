@@ -495,19 +495,10 @@ namespace AAEmu.Game.Core.Managers
             return resultList;
         }
 
-        public List<BaseMail> CreateQuestRewardMails(Character character, Quest quest, List<ItemCreationDefinition> itemCreationDefinitions, Dictionary<ShopCurrencyType,int> moneyRewards)
+        public List<BaseMail> CreateQuestRewardMails(Character character, Quest quest, List<ItemCreationDefinition> itemCreationDefinitions, int mailCopper)
         {
-            // TODO: Verify mail structure
             var resultList = new List<BaseMail>();
             
-            // Handle copper coins rewards
-            if ((moneyRewards == null) || (!moneyRewards.TryGetValue(ShopCurrencyType.Money, out var mailCopper)))
-                mailCopper = 0;
-            // remove copper Coins from the rewards queue
-            moneyRewards?.Remove(ShopCurrencyType.Money);
-            
-            // TODO: handle honor/vocation rewards
-
             MailPlayerToPlayer mail = null;
             var questName = LocalizationManager.Instance.Get("quest_contexts", "name", quest.TemplateId, quest.TemplateId.ToString());
             foreach (var item in itemCreationDefinitions)

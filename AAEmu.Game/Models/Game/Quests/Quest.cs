@@ -45,8 +45,9 @@ namespace AAEmu.Game.Models.Game.Quests
         public QuestAcceptorType QuestAcceptorType { get; set; }
         public uint AcceptorType { get; set; }
         public QuestCompleteTask QuestTask { get; set; }
-        public List<ItemCreationDefinition> QuestActItemsPool { get; set; }
-        public Dictionary<ShopCurrencyType,int> QuestActCoinsPool { get; set; }
+        public List<ItemCreationDefinition> QuestRewardItemsPool { get; set; }
+        public int QuestRewardCoinsPool { get; set; }
+        public int QuestRewardExpPool { get; set; }
 
         public uint GetActiveComponent()
         {
@@ -60,8 +61,7 @@ namespace AAEmu.Game.Models.Game.Quests
             EarlyCompletion = false;
             ExtraCompletion = false;
             ObjId = 0;
-            QuestActItemsPool = new List<ItemCreationDefinition>();
-            QuestActCoinsPool = new Dictionary<ShopCurrencyType, int>();
+            QuestRewardItemsPool = new List<ItemCreationDefinition>();
         }
 
         public Quest(QuestTemplate template)
@@ -73,8 +73,7 @@ namespace AAEmu.Game.Models.Game.Quests
             EarlyCompletion = false;
             ExtraCompletion = false;
             ObjId = 0;
-            QuestActItemsPool = new List<ItemCreationDefinition>();
-            QuestActCoinsPool = new Dictionary<ShopCurrencyType, int>();
+            QuestRewardItemsPool = new List<ItemCreationDefinition>();
         }
 
         private void CheckStatus()
@@ -603,13 +602,14 @@ namespace AAEmu.Game.Models.Game.Quests
         public void DistributeRewards()
         {
             // Distribute Items if needed
-            if ((QuestActItemsPool.Count > 0) || (QuestActCoinsPool.Count > 0))
+            if (QuestRewardItemsPool.Count > 0)
             {
                 // TODO: Add a way to distribute honor or vocation badges in mail as well 
 
-                if (Owner.Inventory.Bag.FreeSlotCount < QuestActItemsPool.Count)
+                if (Owner.Inventory.Bag.FreeSlotCount < QuestRewardItemsPool.Count)
                 {
-                    var mails = MailManager.Instance.CreateQuestRewardMails(Owner, this, QuestActItemsPool, QuestActCoinsPool);
+                    var mails = MailManager.Instance.CreateQuestRewardMails(Owner, this, QuestRewardItemsPool, QuestRewardCoinsPool);
+                    QuestRewardCoinsPool = 0; // Coins will be distributed in mail if any mail needed to be send, so set to zero again
                     foreach (var mail in mails)
                         if (!mail.Send())
                             Owner.SendErrorMessage(ErrorMessageType.MailUnknownFailure);
@@ -618,7 +618,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
                 else
                 {
-                    foreach (var item in QuestActItemsPool)
+                    foreach (var item in QuestRewardItemsPool)
                     {
                         if (ItemManager.Instance.IsAutoEquipTradePack(item.TemplateId))
                         {
@@ -630,28 +630,22 @@ namespace AAEmu.Game.Models.Game.Quests
                         }
                     }
                 }
+                
+                QuestRewardItemsPool.Clear();
+            }
+            
+            // Add XP
+            if (QuestRewardExpPool > 0)
+            {
+                Owner.AddExp(QuestRewardExpPool, true);
+                QuestRewardExpPool = 0;
             }
 
-            foreach (var (currency, value) in QuestActCoinsPool)
+            // Add copper coins
+            if (QuestRewardCoinsPool > 0)
             {
-                if (value == 0)
-                    continue;
-                switch (currency)
-                {
-                    case ShopCurrencyType.Money:
-                        Owner.ChangeMoney(SlotType.None, SlotType.Inventory, value);
-                        break;
-                    case ShopCurrencyType.Honor:
-                        Owner.ChangeGamePoints(GamePointKind.Honor, value);
-                        break;
-                    case ShopCurrencyType.VocationBadges:
-                        Owner.ChangeGamePoints(GamePointKind.Vocation, value);
-                        break;
-                    // case ShopCurrencyType.SiegeShop:
-                    default:
-                        // TODO: What currency is this actually ?
-                        break;
-                }
+                Owner.ChangeMoney(SlotType.None, SlotType.Inventory, QuestRewardCoinsPool);
+                QuestRewardCoinsPool = 0;
             }
         }
 
@@ -733,56 +727,6 @@ namespace AAEmu.Game.Models.Game.Quests
                     return ComponentId;
             }
             return res ? ComponentId : 0;
-        }
-
-        public void AddCurrencyToQuestActCoinsPool(ShopCurrencyType shopCurrencyType, int amount)
-        {
-            if (QuestActCoinsPool.TryGetValue(shopCurrencyType, out var oldValue))
-                QuestActCoinsPool.Remove(shopCurrencyType);
-            amount += oldValue;
-            QuestActCoinsPool.Add(shopCurrencyType, amount);
-        }
-
-        public int GetCustomExp() { return GetCustomSupplies("exp"); }
-
-        public int GetCustomCopper() { return GetCustomSupplies("copper"); }
-
-        private int GetCustomSupplies(string supply)
-        {
-            var value = 0;
-            var component = Template.GetComponent(QuestComponentKind.Reward);
-            if (component == null)
-            {
-                return 0;
-            }
-
-            var acts = QuestManager.Instance.GetActs(component.Id);
-            foreach (var act in acts)
-            {
-                switch (act.DetailType)
-                {
-                    case "QuestActSupplyExp" when supply == "exp":
-                        {
-                            var template = act.GetTemplate<QuestActSupplyExp>();
-                            value = template.Exp;
-                            _log.Warn("[Quest] GetCustomSupplies Exp: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
-                            break;
-                        }
-                    case "QuestActSupplyCoppers" when supply == "copper":
-                        {
-                            var template = act.GetTemplate<QuestActSupplyCopper>();
-                            value = template.Amount;
-                            _log.Warn("[Quest] GetCustomSupplies Coppers: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
-                            break;
-                        }
-                    default:
-                        value = 0;
-                        _log.Warn("[Quest] GetCustomSupplies: character {0}, wants to do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
-                        break;
-                }
-                //_log.Warn("[Quest] GetCustomSupplies: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
-            }
-            return value;
         }
 
         private void RemoveQuestItems()
