@@ -109,7 +109,6 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 CancelCraft();
             }
-            
         }
 
         public void CancelCraft()
