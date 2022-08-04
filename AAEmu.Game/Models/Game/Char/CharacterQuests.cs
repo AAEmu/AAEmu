@@ -109,24 +109,23 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             var quest = Quests[questId];
+            quest.QuestRewardItemsPool.Clear();
+            quest.QuestRewardCoinsPool = 0;
+            quest.QuestRewardExpPool = 0;
             var res = quest.Complete(selected);
             if (res != 0)
             {
                 if (supply)
                 {
-                    var exps = quest.GetCustomExp();
-                    var amount = quest.GetCustomCopper();
-                    var supplies = QuestManager.Instance.GetSupplies(quest.Template.Level);
-                    if (supplies != null)
+                    var levelBasedRewards = QuestManager.Instance.GetSupplies(quest.Template.Level);
+                    if (levelBasedRewards != null)
                     {
                         if (quest.Template.LetItDone)
                         {
                             // Добавим|убавим за перевыполнение|недовыполнение плана, если позволено квестом (Add [reduce] for overfulfilling [underperformance] of the plan, if allowed by the quest)
-                            if (exps == 0)
-                                Owner.AddExp(supplies.Exp * quest.OverCompletionPercent / 100, true);
-                            if (amount == 0)
-                                amount = supplies.Copper * quest.OverCompletionPercent / 100;
-                            Owner.Money += amount;
+                            // TODO: Verify if the bonus only applies to the level-based XP/Gold, or if it also applies to the rewards parts in quest_act_supply_xxx
+                            quest.QuestRewardExpPool += (levelBasedRewards.Exp * quest.OverCompletionPercent / 100); 
+                            quest.QuestRewardCoinsPool += (levelBasedRewards.Copper * quest.OverCompletionPercent / 100);
 
                             if (!quest.ExtraCompletion)
                             {
@@ -138,24 +137,13 @@ namespace AAEmu.Game.Models.Game.Char
                         }
                         else
                         {
-                            if (exps == 0)
-                                Owner.AddExp(supplies.Exp, true);
-                            if (amount == 0)
-                                amount = supplies.Copper;
-                            Owner.Money += amount;
+                            quest.QuestRewardExpPool += levelBasedRewards.Exp;
+                            quest.QuestRewardCoinsPool += levelBasedRewards.Copper;
                         }
-
-                        Owner.SendPacket(
-                            new SCItemTaskSuccessPacket(
-                                ItemTaskType.QuestComplete,
-                                new List<ItemTask>
-                                {
-                                    new MoneyChange(amount)
-                                },
-                                new List<ulong>())
-                        );
                     }
                 }
+                quest.DistributeRewards();
+                
                 var completeId = (ushort)(quest.TemplateId / 64);
                 if (!CompletedQuests.ContainsKey(completeId))
                     CompletedQuests.Add(completeId, new CompletedQuest(completeId));
