@@ -1,10 +1,15 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System;
+using System.Threading.Tasks;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Tasks.Characters;
+using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
+using SQLitePCL;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -15,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Char
         private uint _doodadId { get; set; }
 
         public Character Owner { get; set; }
-        public bool IsCrafting = false;
+        public bool IsCrafting { get; set; }
 
         public CharacterCraft(Character owner) => Owner = owner;
 
@@ -70,12 +75,12 @@ namespace AAEmu.Game.Models.Game.Char
                 // Check if we're crafting a tradepack, if so, try to remove currently equipped backpack slot
                 if (ItemManager.Instance.IsAutoEquipTradePack(product.ItemId) == false)
                 {
-                    Owner.Inventory.Bag.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct,
-                        product.ItemId, product.Amount, -1, Owner.Id);
+                    Owner.Inventory.Bag.AcquireDefaultItem(ItemTaskType.CraftActSaved, product.ItemId, product.Amount, -1, Owner.Id);
+                    // Owner.Inventory.Bag.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount, -1, Owner.Id);
                 }
                 else
                 {
-                    if (!Owner.Inventory.TryEquipNewBackPack(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount,-1,Owner.Id))
+                    if (!Owner.Inventory.TryEquipNewBackPack(ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount,-1,Owner.Id))
                     {
                         CancelCraft();
                         return;
@@ -85,15 +90,26 @@ namespace AAEmu.Game.Models.Game.Char
 
             foreach (var material in _craft.CraftMaterials)
             {
-                Owner.Inventory.Bag.ConsumeItem(Items.Actions.ItemTaskType.CraftActSaved, material.ItemId, material.Amount,null);
+                Owner.Inventory.Bag.ConsumeItem(ItemTaskType.CraftActSaved, material.ItemId, material.Amount,null);
             }
 
-            if (_count > 0 && !_craft.IsPack)
-                Craft(_craft, _count, _doodadId);
+            if (_count > 0)
+            {
+                var newCraft = new CraftTask(Owner, _craft.Id, _doodadId, _count);
+                var skillTemplate = SkillManager.Instance.GetSkillTemplate(_craft.SkillId);
+                var timeToGlobalCooldown = Owner.GlobalCooldown - DateTime.UtcNow;
+                var nextCraftDelay = timeToGlobalCooldown.TotalMilliseconds > skillTemplate.CooldownTime
+                    ? timeToGlobalCooldown
+                    : TimeSpan.FromMilliseconds(skillTemplate.CooldownTime);
+                TaskManager.Instance.Schedule(newCraft, nextCraftDelay, null, 1);
+                // Owner.SendMessage($"Continue craft: {_craft.Id} for {_count} more times TaskId: {newCraft.Id}, cooldown: {nextCraftDelay.TotalMilliseconds}ms");
+                // Craft(_craft, _count, _doodadId);
+            }
             else
             {
                 CancelCraft();
             }
+            
         }
 
         public void CancelCraft()
