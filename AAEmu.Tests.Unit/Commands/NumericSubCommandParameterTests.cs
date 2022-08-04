@@ -4,7 +4,7 @@ using System.Reflection;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using Xunit;
 
-namespace AAEmu.Tests.Commands
+namespace AAEmu.Tests.Unit.Commands
 {
     public class NumericSubCommandParameterTests
     {

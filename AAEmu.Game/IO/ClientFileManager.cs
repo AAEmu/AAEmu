@@ -13,7 +13,8 @@ namespace AAEmu.Game.IO
     public static class ClientFileManager
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-        
+        private static bool _initialized = false;
+
         static List<ClientSource> Sources = new List<ClientSource>();
 
         /// <summary>
@@ -140,6 +141,9 @@ namespace AAEmu.Game.IO
 
         public static void Initialize()
         {
+            if (_initialized)
+                return;
+            
             ClearSources();
             foreach (var source in AppConfiguration.Instance.ClientData.Sources)
             {
@@ -148,6 +152,8 @@ namespace AAEmu.Game.IO
             }
             if (ListSources().Count <= 0)
                 _log.Error("No valid client sources have been defined or found, some features will not work !");
+
+            _initialized = true;
         }
 
         /// <summary>

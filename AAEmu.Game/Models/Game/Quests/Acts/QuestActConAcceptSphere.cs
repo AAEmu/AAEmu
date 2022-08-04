@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
     {
         public uint SphereId { get; set; }
 
-        public override bool Use(Character character, Quest quest, int objective)
+        public override bool Use(ICharacter character, Quest quest, int objective)
         {
             _log.Warn("QuestActConAcceptSphere: SphereId {0}", SphereId);
 

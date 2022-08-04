@@ -12,6 +12,7 @@ namespace AAEmu.Game.Core.Managers
     public class PlotManager : Singleton<PlotManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        private bool _loaded = false;
 
         private Dictionary<uint, Plot> _plots;
         private Dictionary<uint, PlotEventTemplate> _eventTemplates;
@@ -34,6 +35,9 @@ namespace AAEmu.Game.Core.Managers
 
         public void Load()
         {
+            if (_loaded)
+                return;
+            
             _plots = new Dictionary<uint, Plot>();
             _eventTemplates = new Dictionary<uint, PlotEventTemplate>();
             _conditions = new Dictionary<uint, PlotCondition>();
@@ -276,6 +280,8 @@ namespace AAEmu.Game.Core.Managers
                 }
                 // Task.Run(() => flameboltTree.Execute(new PlotState()));
             }
+            
+            _loaded = true;
         }
     }
 }

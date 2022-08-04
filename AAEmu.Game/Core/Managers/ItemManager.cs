@@ -27,6 +27,7 @@ namespace AAEmu.Game.Core.Managers
     public class ItemManager : Singleton<ItemManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        private bool _loaded = false;
 
         private Dictionary<int, GradeTemplate> _grades;
         private Dictionary<uint, Holdable> _holdables;
@@ -70,6 +71,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<ulong, Item> _allItems;
         private List<ulong> _removedItems;
         private Dictionary<uint, ItemContainer> _allPersistantContainers;
+        private bool _loadedUserItems;
 
         public ItemTemplate GetTemplate(uint id)
         {
@@ -480,6 +482,9 @@ namespace AAEmu.Game.Core.Managers
 
         public void Load()
         {
+            if (_loaded)
+                return;
+            
             _grades = new Dictionary<int, GradeTemplate>();
             _holdables = new Dictionary<uint, Holdable>();
             _wearables = new Dictionary<uint, Wearable>();
@@ -1371,6 +1376,7 @@ namespace AAEmu.Game.Core.Managers
             }
 
             OnItemsLoaded?.Invoke(this, new EventArgs());
+            _loaded = true;
         }
 
 
@@ -1549,6 +1555,9 @@ namespace AAEmu.Game.Core.Managers
 
         public void LoadUserItems()
         {
+            if (_loadedUserItems)
+                return;
+            
             _log.Info("Loading user items ...");
             _allItems = new Dictionary<ulong, Item>();
             _allPersistantContainers = new Dictionary<uint, ItemContainer>();
@@ -1687,6 +1696,7 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
 
+            _loadedUserItems = true;
         }
 
         /// <summary>
@@ -1726,7 +1736,7 @@ namespace AAEmu.Game.Core.Managers
 
 
         [Obsolete("You can now use directly linked item containers, and no longer need to load them into the character object")]
-        public List<Item> LoadPlayerInventory(Character character)
+        public List<Item> LoadPlayerInventory(ICharacter character)
         {
             var res = (from i in _allItems where i.Value.OwnerId == character.Id select i.Value).ToList();
             return res;

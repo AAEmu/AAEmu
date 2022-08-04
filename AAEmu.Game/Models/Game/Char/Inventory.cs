@@ -1,23 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
-using AAEmu.Game.Models.Game.Quests;
-using AAEmu.Game.Models.Tasks;
-using AAEmu.Game.Utils.DB;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using MySql.Data.MySqlClient;
 using NLog;
-using NLog.Targets;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -25,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Char
     public class Inventory
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-        public readonly Character Owner;
+        public readonly ICharacter Owner;
 
         public Dictionary<SlotType, ItemContainer> _itemContainers { get; private set; }
         public ItemContainer Equipment { get; private set; }
@@ -35,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Char
         public ItemContainer SystemContainer { get; private set; }
         public ulong PreviousBackPackItemId { get; set; } // used to re-equip glider when putting backpacks down
 
-        public Inventory(Character owner)
+        public Inventory(ICharacter owner)
         {
             Owner = owner;
             // Create all container types

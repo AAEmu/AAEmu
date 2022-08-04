@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <RuntimeIdentifiers>win7-x64;win7-x86;win8-x64;win8-x86;win81-x64;win81-x86;win10-x64;win10-x86;centos.7-x64;debian.9-x64;ubuntu.18.04-x64;sles-x64;sles.12-x64;sles.12.1-x64;sles.12.2-x64;sles.12.3-x64;alpine-x64;alpine.3.7-x64</RuntimeIdentifiers>
+    <VersionPrefix>0.0.2.0</VersionPrefix>
+    <VersionSuffix>alpha</VersionSuffix>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AAEmu.Commons\AAEmu.Commons.csproj" />
+    <ProjectReference Include="..\AAEmu.Game\AAEmu.Game.csproj" />
+  </ItemGroup>
+
+   <ItemGroup>
+     <PackageReference Include="coverlet.collector" Version="3.1.2">
+       <PrivateAssets>all</PrivateAssets>
+       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+     </PackageReference>
+     <PackageReference Include="coverlet.msbuild" Version="3.1.2">
+       <PrivateAssets>all</PrivateAssets>
+       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+     </PackageReference>
+     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.2.0" />
+     <PackageReference Include="Moq" Version="4.18.1" />
+     <PackageReference Include="xunit" Version="2.4.1" />
+     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
+       <PrivateAssets>all</PrivateAssets>
+       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+     </PackageReference>
+   </ItemGroup>
+
+   <ItemGroup>
+     <Folder Include="Data\" />
+   </ItemGroup>
+
+   <ItemGroup>
+     <None Update="Config.json">
+       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+     </None>
+   </ItemGroup>
+</Project>

@@ -1,17 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Tests.Utils;
-using AAEmu.Tests.Utils.Mocks;
+using AAEmu.Tests.Unit.Utils.Mocks;
 using Xunit;
 
-namespace AAEmu.Tests
+namespace AAEmu.Tests.Unit
 {
     public class MailTests : IDisposable
     {

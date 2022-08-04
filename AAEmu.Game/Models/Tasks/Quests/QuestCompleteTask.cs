@@ -5,10 +5,10 @@ namespace AAEmu.Game.Models.Tasks.Quests
 {
     public class QuestCompleteTask : Task
     {
-        private Character _owner;
+        private ICharacter _owner;
         private uint _questId;
 
-        public QuestCompleteTask(Character owner, uint questId)
+        public QuestCompleteTask(ICharacter owner, uint questId)
         {
             _owner = owner;
             _questId = questId;

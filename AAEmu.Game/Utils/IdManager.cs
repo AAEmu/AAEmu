@@ -15,6 +15,7 @@ namespace AAEmu.Game.Utils
         private BitSet _freeIds;
         private int _freeIdCount;
         private int _nextFreeId;
+        private bool _initialized = false;
 
         private readonly string _name;
         private readonly uint _firstId = 0x00000001;
@@ -40,6 +41,9 @@ namespace AAEmu.Game.Utils
 
         public bool Initialize()
         {
+            if (_initialized)
+                return true;
+            
             try
             {
                 _freeIds = new BitSet(PrimeFinder.NextPrime(100000));
@@ -83,6 +87,7 @@ namespace AAEmu.Game.Utils
                 return false;
             }
 
+            _initialized = true;
             return true;
         }
 

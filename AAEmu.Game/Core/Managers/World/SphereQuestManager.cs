@@ -15,7 +15,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
 {
-    public class SphereQuestManager : Singleton<SphereQuestManager>
+    public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestManager
     {
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 

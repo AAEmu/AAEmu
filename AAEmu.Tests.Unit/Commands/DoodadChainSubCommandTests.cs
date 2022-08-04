@@ -9,7 +9,7 @@ using AAEmu.Game.Utils.Scripts;
 using Moq;
 using Xunit;
 
-namespace AAEmu.Tests.Commands
+namespace AAEmu.Tests.Unit.Commands
 {
     public class DoodadChainSubCommandTests
     {

@@ -16,9 +16,10 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers
 {
-    public class SkillManager : Singleton<SkillManager>
+    public class SkillManager : Singleton<SkillManager>, ISkillManager
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        private bool _loaded = false;
 
         private Dictionary<uint, SkillTemplate> _skills;
         private Dictionary<uint, DefaultSkill> _defaultSkills;
@@ -39,7 +40,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, SkillProduct> _skillProducts;
         private HashSet<ushort> _skillIds = new HashSet<ushort>();
         private ushort _skillIdIndex = 1;
-        
+
         //Events
         public event EventHandler OnSkillsLoaded;
 
@@ -77,7 +78,7 @@ namespace AAEmu.Game.Core.Managers
                 return _skills[id];
             return null;
         }
-        
+
         public bool IsDefaultSkill(uint id)
         {
             return _defaultSkills.ContainsKey(id);
@@ -119,10 +120,10 @@ namespace AAEmu.Game.Core.Managers
 
         public EffectTemplate GetEffectTemplate(uint id)
         {
-            if(_types.ContainsKey(id))
+            if (_types.ContainsKey(id))
             {
                 var type = _types[id];
- 
+
                 _log.Trace("Get Effect Template: type = {0}, id = {1}", type.Type, type.ActualId);
 
                 if (_effects.TryGetValue(type.Type, out var effect))
@@ -141,10 +142,10 @@ namespace AAEmu.Game.Core.Managers
         public EffectTemplate GetEffectTemplate(uint id, string type)
         {
             _log.Trace("Get Effect Template: type = {0}, id = {1}", type, id);
-            
+
             if (_effects.TryGetValue(type, out var value))
             {
-                if(value.TryGetValue(id, out var res))
+                if (value.TryGetValue(id, out var res))
                 {
                     return res;
                 }
@@ -161,14 +162,14 @@ namespace AAEmu.Game.Core.Managers
 
         public List<uint> GetBuffsByTagId(uint tagId)
         {
-            if(_taggedBuffs.ContainsKey(tagId))
+            if (_taggedBuffs.ContainsKey(tagId))
                 return _taggedBuffs[tagId];
             return null;
         }
 
         public List<uint> GetSkillTags(uint skillId)
         {
-            if(_skillTags.ContainsKey(skillId))
+            if (_skillTags.ContainsKey(skillId))
                 return _skillTags[skillId];
             return new List<uint>();
         }
@@ -182,14 +183,14 @@ namespace AAEmu.Game.Core.Managers
 
         public PassiveBuffTemplate GetPassiveBuffTemplate(uint id)
         {
-            if(_passiveBuffs.ContainsKey(id))
+            if (_passiveBuffs.ContainsKey(id))
                 return _passiveBuffs[id];
             return null;
         }
-        
+
         public List<SkillModifier> GetModifiersByOwnerId(uint id)
         {
-            if(_skillModifiers.ContainsKey(id))
+            if (_skillModifiers.ContainsKey(id))
                 return _skillModifiers[id];
             return new List<SkillModifier>();
         }
@@ -230,6 +231,9 @@ namespace AAEmu.Game.Core.Managers
 
         public void Load()
         {
+            if (_loaded)
+                return;
+
             _skills = new Dictionary<uint, SkillTemplate>();
             _defaultSkills = new Dictionary<uint, DefaultSkill>();
             _commonSkills = new List<uint>();
@@ -1415,7 +1419,7 @@ namespace AAEmu.Game.Core.Managers
 
                             var template = new SkillEffect();
                             var effectId = reader.GetUInt32("effect_id");
-                            
+
                             //for easier debugging
                             template.EffectId = effectId;
 
@@ -1541,14 +1545,14 @@ namespace AAEmu.Game.Core.Managers
                                 ReqBuffId = reader.GetUInt32("req_buff_id"),
                                 IsHealSpell = reader.GetBoolean("is_heal_spell", true)
                             };
-                            
+
                             if (!_combatBuffs.ContainsKey(combatBuffTemplate.ReqBuffId))
                                 _combatBuffs.Add(combatBuffTemplate.ReqBuffId, new List<CombatBuffTemplate>());
                             _combatBuffs[combatBuffTemplate.ReqBuffId].Add(combatBuffTemplate);
                         }
                     }
                 }
-                
+
                 _log.Info("Skill effects loaded");
 
                 _buffTriggers = new Dictionary<uint, List<BuffTriggerTemplate>>();
@@ -1577,7 +1581,7 @@ namespace AAEmu.Game.Core.Managers
                             trigger.Synergy = reader.GetBoolean("synergy", true);
 
                             //Apparently this is possible..
-                            if(trigger.Effect != null)
+                            if (trigger.Effect != null)
                             {
                                 _buffTriggers[buffId].Add(trigger);
                             }
@@ -1642,11 +1646,13 @@ namespace AAEmu.Game.Core.Managers
                 if (!skillTemplate.NeedLearn || skillTemplate.AbilityId == 0 || skillTemplate.AbilityLevel > 1 ||
                     !skillTemplate.Show)
                     continue;
-                var ability = (AbilityType) skillTemplate.AbilityId;
+                var ability = (AbilityType)skillTemplate.AbilityId;
                 if (!_startAbilitySkills.ContainsKey(ability))
                     _startAbilitySkills.Add(ability, new List<SkillTemplate>());
                 _startAbilitySkills[ability].Add(skillTemplate);
             }
+
+            _loaded = true;
         }
     }
 }

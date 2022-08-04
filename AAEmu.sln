@@ -1,15 +1,21 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28010.0
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32616.157
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AAEmu.Login", "AAEmu.Login\AAEmu.Login.csproj", "{B96F704A-47C7-4FB0-A207-5ECF7A1039CC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AAEmu.Login", "AAEmu.Login\AAEmu.Login.csproj", "{B96F704A-47C7-4FB0-A207-5ECF7A1039CC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AAEmu.Commons", "AAEmu.Commons\AAEmu.Commons.csproj", "{BE6EC60B-7C7E-4458-B427-4BC546517A6A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AAEmu.Commons", "AAEmu.Commons\AAEmu.Commons.csproj", "{BE6EC60B-7C7E-4458-B427-4BC546517A6A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AAEmu.Game", "AAEmu.Game\AAEmu.Game.csproj", "{B17DD122-1843-4176-A0CB-8A4A8B434044}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AAEmu.Game", "AAEmu.Game\AAEmu.Game.csproj", "{B17DD122-1843-4176-A0CB-8A4A8B434044}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AAEmu.Tests", "AAEmu.Tests\AAEmu.Tests.csproj", "{0E614BCF-6BA2-4986-85DA-8A0AA9C57C6B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AAEmu.Tests.Unit", "AAEmu.Tests.Unit\AAEmu.Tests.Unit.csproj", "{0E614BCF-6BA2-4986-85DA-8A0AA9C57C6B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AAEmu.Tests.Integration", "AAEmu.Tests.Integration\AAEmu.Tests.Integration.csproj", "{9D26DA94-2E47-45D5-9A23-14C52FA2638A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{37933EC9-EBED-4B75-B7E9-796BEE2CA3D3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Applications", "Applications", "{B20B2996-83AC-4BAB-9A7C-638DBEEDF47A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,9 +39,20 @@ Global
 		{0E614BCF-6BA2-4986-85DA-8A0AA9C57C6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0E614BCF-6BA2-4986-85DA-8A0AA9C57C6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0E614BCF-6BA2-4986-85DA-8A0AA9C57C6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9D26DA94-2E47-45D5-9A23-14C52FA2638A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9D26DA94-2E47-45D5-9A23-14C52FA2638A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9D26DA94-2E47-45D5-9A23-14C52FA2638A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9D26DA94-2E47-45D5-9A23-14C52FA2638A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B96F704A-47C7-4FB0-A207-5ECF7A1039CC} = {B20B2996-83AC-4BAB-9A7C-638DBEEDF47A}
+		{BE6EC60B-7C7E-4458-B427-4BC546517A6A} = {B20B2996-83AC-4BAB-9A7C-638DBEEDF47A}
+		{B17DD122-1843-4176-A0CB-8A4A8B434044} = {B20B2996-83AC-4BAB-9A7C-638DBEEDF47A}
+		{0E614BCF-6BA2-4986-85DA-8A0AA9C57C6B} = {37933EC9-EBED-4B75-B7E9-796BEE2CA3D3}
+		{9D26DA94-2E47-45D5-9A23-14C52FA2638A} = {37933EC9-EBED-4B75-B7E9-796BEE2CA3D3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {63FD3F6D-B455-40CC-8555-5F97A1068D2B}

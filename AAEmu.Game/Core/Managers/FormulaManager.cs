@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using AAEmu.Commons.Utils;
@@ -13,6 +13,7 @@ namespace AAEmu.Game.Core.Managers
     public class FormulaManager : Singleton<FormulaManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        private static bool _loaded = false;
 
         private Dictionary<FormulaOwnerType, Dictionary<UnitFormulaKind, UnitFormula>> _unitFormulas;
         private Dictionary<WearableFormulaType, WearableFormula> _wearableFormulas;
@@ -49,6 +50,8 @@ namespace AAEmu.Game.Core.Managers
 
         public void Load()
         {
+            if (_loaded)
+                return;
             // TODO Funcs: min, max, clamp, if_zero, if_positive, if_negative, floor, log, sqrt
             CalculationEngine = new CalculationEngine(CultureInfo.InvariantCulture, ExecutionMode.Compiled, true, true, false);
             CalculationEngine.AddFunction("clamp", (a, b, c) => a < b ? b : (a > c ? c : a));
@@ -159,6 +162,7 @@ namespace AAEmu.Game.Core.Managers
 
                 _log.Info("Formulas loaded");
             }
+            _loaded = true;
         }
     }
 }

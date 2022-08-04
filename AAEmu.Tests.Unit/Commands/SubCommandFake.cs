@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
-namespace AAEmu.Tests.Commands
+namespace AAEmu.Tests.Unit.Commands
 {
     public class SubCommandFake : SubCommandBase
     {

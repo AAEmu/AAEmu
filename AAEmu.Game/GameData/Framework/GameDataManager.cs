@@ -12,7 +12,8 @@ namespace AAEmu.Game.GameData.Framework
     {
         private Logger _logger = LogManager.GetCurrentClassLogger();
         private List<IGameDataLoader> _loaders;
-
+        private bool _loadedGameData = false;
+        private bool _postLoadedGameData = false;
         public GameDataManager()
         {
             _loaders = new List<IGameDataLoader>();
@@ -20,6 +21,9 @@ namespace AAEmu.Game.GameData.Framework
         
         public void LoadGameData()
         {
+            if (_loadedGameData)
+                return;
+            
             _logger.Info("Loading game data");
             CreateLoaders();
             using (var connection = SQLite.CreateConnection())
@@ -33,10 +37,15 @@ namespace AAEmu.Game.GameData.Framework
             }
 
             _logger.Info("Game data loaded");
+
+            _loadedGameData = true;
         }
 
         public void PostLoadGameData()
         {
+            if (_postLoadedGameData)
+                return;
+            
             _logger.Info("Post loading game data");
             foreach (var loader in _loaders)
             {
@@ -45,11 +54,13 @@ namespace AAEmu.Game.GameData.Framework
                 _logger.Info("Post loaded {0}", loader.GetType().Name);
             }
             _logger.Info("Game data post loaded");
+
+            _postLoadedGameData = true;
         }
         
         private void CreateLoaders()
         {
-            foreach(var type in Assembly.GetExecutingAssembly().GetTypes())
+            foreach(var type in Assembly.GetAssembly(typeof(GameDataManager)).GetTypes())
             {
                 if (type.GetCustomAttributes(typeof(GameDataAttribute), true).Length <= 0)
                     continue;

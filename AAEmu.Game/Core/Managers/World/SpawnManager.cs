@@ -27,7 +27,8 @@ namespace AAEmu.Game.Core.Managers.World
     public class SpawnManager : Singleton<SpawnManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-
+        private bool _loaded = false;
+        
         private bool _work = true;
         private object _lock = new object();
         private HashSet<GameObject> _respawns;
@@ -75,8 +76,35 @@ namespace AAEmu.Game.Core.Managers.World
                 _nextId++; //we'll renumber
             }
         }
+
+        internal void SpawnAllNpcs(byte worldId)
+        {
+            _log.Info("Spawning {0} NPC spawners in world {1}", _npcSpawners[worldId].Count, worldId);
+            var count = 0;
+            foreach (var spawner in _npcSpawners[worldId].Values)
+            {
+                if (spawner.Template == null)
+                {
+                    _log.Warn("Templates not found for Npc templateId {0} in world {1}", spawner.UnitId, worldId);
+                }
+                else
+                {
+                    spawner.SpawnAll();
+                    count++;
+                    if (count % 5000 == 0 && worldId == 0)
+                    {
+                        _log.Info("{0} NPC spawners spawned...", count);
+                    }
+                }
+            }
+            _log.Info("{0} NPC spawners spawned...", count);
+        }
+
         public void Load()
         {
+            if (_loaded)
+                return;
+            
             _respawns = new HashSet<GameObject>();
             _despawns = new HashSet<GameObject>();
             _npcSpawners = new Dictionary<byte, Dictionary<uint, NpcSpawner>>();
@@ -380,6 +408,8 @@ namespace AAEmu.Game.Core.Managers.World
 
             var respawnThread = new Thread(CheckRespawns) { Name = "RespawnThread" };
             respawnThread.Start();
+
+            _loaded = true;
         }
 
         public void SpawnAll()
@@ -389,25 +419,7 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 Task.Run(() =>
                 {
-                    _log.Info("Spawning {0} NPC spawners in world {1}", worldSpawners.Count, worldId);
-                    var count = 0;
-                    foreach (var spawner in worldSpawners.Values)
-                    {
-                        if (spawner.Template == null)
-                        {
-                            _log.Warn("Templates not found for Npc templateId {0} in world {1}", spawner.UnitId, worldId);
-                        }
-                        else
-                        {
-                            spawner.SpawnAll();
-                            count++;
-                            if (count % 5000 == 0 && worldId == 0)
-                            {
-                                _log.Info("{0} NPC spawners spawned...", count);
-                            }
-                        }
-                    }
-                    _log.Info("{0} NPC spawners spawned...", count);
+                    SpawnAllNpcs(worldId);
                 });
             }
 

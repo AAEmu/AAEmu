@@ -9,17 +9,18 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
     {
         public uint NpcId { get; set; }
 
-        public override bool Use(Character character, Quest quest, int objective)
+        public override bool Use(ICharacter character, Quest quest, int objective)
         {
             _log.Debug("QuestActConAcceptNpc");
 
-            if (!(character.CurrentTarget is Npc))
+            if (character.CurrentTarget is null or not Npc)
                 return false;
 
             quest.QuestAcceptorType = QuestAcceptorType.Npc;
             quest.AcceptorType = NpcId;
 
-            return ((Npc)character.CurrentTarget).TemplateId == NpcId;
+            //CUrrent target is the expected?
+            return character.CurrentTarget.TemplateId == NpcId;
         }
     }
 }

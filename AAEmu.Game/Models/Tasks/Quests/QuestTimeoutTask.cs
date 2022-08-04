@@ -5,10 +5,10 @@ namespace AAEmu.Game.Models.Tasks.Quests
 {
     public class QuestTimeoutTask : Task
     {
-        private Character _owner;
+        private ICharacter _owner;
         private uint _questId;
 
-        public QuestTimeoutTask(Character owner, uint questId)
+        public QuestTimeoutTask(ICharacter owner, uint questId)
         {
             _owner = owner;
             _questId = questId;

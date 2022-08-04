@@ -13,6 +13,7 @@ namespace AAEmu.Game.Core.Managers.World
     public class FactionManager : Singleton<FactionManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        private bool _loaded = false;
 
         private Dictionary<uint, SystemFaction> _systemFactions;
         private List<FactionRelation> _relations;
@@ -32,6 +33,9 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void Load()
         {
+            if (_loaded)
+                return;
+            
             _systemFactions = new Dictionary<uint, SystemFaction>();
             _relations = new List<FactionRelation>();
             using (var connection = SQLite.CreateConnection())
@@ -93,6 +97,8 @@ namespace AAEmu.Game.Core.Managers.World
 
                 _log.Info("Loaded {0} faction relations", _relations.Count);
             }
+            
+            _loaded = true;
         }
 
         public void SendFactions(Character character)

@@ -1,7 +1,7 @@
-using AAEmu.Game.Core.Managers.World;
+﻿using AAEmu.Game.Core.Managers.World;
 using Xunit;
 
-namespace AAEmu.Tests
+namespace AAEmu.Tests.Unit
 {
     public class ExampleTests
     {

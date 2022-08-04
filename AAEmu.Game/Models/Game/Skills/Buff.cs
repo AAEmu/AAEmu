@@ -41,10 +41,10 @@ namespace AAEmu.Game.Models.Game.Skills
         public BuffTriggersHandler Triggers { get; }
         public Dictionary<uint, uint> saveFactions { get; set; }
 
-        public Buff(BaseUnit owner, Unit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
+        public Buff(IBaseUnit owner, IUnit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
         {
-            Owner = owner;
-            Caster = caster;
+            Owner = (BaseUnit)owner;
+            Caster = (Unit)caster;
             SkillCaster = skillCaster;
             Template = template;
             Skill = skill;

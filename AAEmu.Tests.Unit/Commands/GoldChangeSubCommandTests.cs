@@ -5,7 +5,7 @@ using AAEmu.Game.Utils.Scripts.SubCommands.Gold;
 using Moq;
 using Xunit;
 
-namespace AAEmu.Tests.Commands
+namespace AAEmu.Tests.Unit.Commands
 {
     public class GoldChangeSubCommandTests
     {

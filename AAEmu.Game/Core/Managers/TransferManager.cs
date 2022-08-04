@@ -28,6 +28,7 @@ namespace AAEmu.Game.Core.Managers
     public class TransferManager : Singleton<TransferManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        private bool _initialized = false;
 
         private Dictionary<uint, TransferTemplate> _templates;
         private Dictionary<uint, Transfer> _activeTransfers;
@@ -38,12 +39,17 @@ namespace AAEmu.Game.Core.Managers
 
         public void Initialize()
         {
+            if (_initialized)
+                return;
+            
             _log.Warn("TransferTickTask: Started");
 
             //TransferTickTask = new TransferTickStartTask();
             //TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMinutes(DelayInit), TimeSpan.FromMilliseconds(Delay));
             
             TickManager.Instance.OnTick.Subscribe(TransferTick, TimeSpan.FromMilliseconds(Delay), true);
+
+            _initialized = true;
         }
 
         internal void TransferTick(TimeSpan delta)

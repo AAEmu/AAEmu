@@ -675,5 +675,18 @@ namespace AAEmu.Game.Models.Game.Units
                 npc.Ai.GoToCombat();
             }
         }
+
+        public virtual void UseSkill(uint skillId, IUnit target)
+        {
+            var skill = new Skill(SkillManager.Instance.GetSkillTemplate((uint)skillId));
+
+            var caster = SkillCaster.GetByType(SkillCasterType.Unit);
+            caster.ObjId = ObjId;
+
+            var sct = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+            sct.ObjId = target.ObjId;
+
+            skill.Use(this, caster, sct, null, true);
+        }
     }
 }

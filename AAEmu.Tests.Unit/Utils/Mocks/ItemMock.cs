@@ -1,7 +1,7 @@
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 
-namespace AAEmu.Tests.Utils.Mocks
+namespace AAEmu.Tests.Unit.Utils.Mocks
 {
     public class ItemMock : Item
     {

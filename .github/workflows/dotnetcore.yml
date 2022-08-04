@@ -24,9 +24,9 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Test
-      run: dotnet test /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov
+      run: dotnet test --filter FullyQualifiedName!~AAEmu.Tests.Integration /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov
     - name: Coveralls GitHub Action
       uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: ./AAEmu.Tests/TestResults/coverage.info
+        path-to-lcov: ./AAEmu.Tests.Unit/TestResults/coverage.info

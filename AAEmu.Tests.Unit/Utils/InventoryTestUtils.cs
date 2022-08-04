@@ -1,8 +1,8 @@
-using AAEmu.Game.Core.Managers.Id;
+﻿using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Items.Templates;
-using AAEmu.Tests.Utils.Mocks;
+using AAEmu.Tests.Unit.Utils.Mocks;
 
-namespace AAEmu.Tests.Utils
+namespace AAEmu.Tests.Unit.Utils
 {
     public class InventoryTestUtils
     {

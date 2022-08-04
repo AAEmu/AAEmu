@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using Xunit;
 
-namespace AAEmu.Tests
+namespace AAEmu.Tests.Unit
 {
     public class UnitTests
     {
@@ -15,7 +14,7 @@ namespace AAEmu.Tests
         public void NoDuplicateAttributes()
         {
             //This tests to make sure no Attribute is attached to more than one property
-            var unit = new Unit();
+            var unit = new Game.Models.Game.Units.Unit();
 
             foreach(var attr in Enum.GetValues(typeof(UnitAttribute)))
             {
