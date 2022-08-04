@@ -10,8 +10,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public override bool Use(ICharacter character, Quest quest, int objective)
         {
             _log.Debug("QuestActSupplyExp");
-            
-            character.AddExp(Exp, true);
+            quest.QuestRewardExpPool += Exp;
             return true;
         }
     }

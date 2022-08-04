@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts
@@ -13,9 +14,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public override bool Use(ICharacter character, Quest quest, int objective)
         {
             _log.Debug("QuestActSupplyCopper");
-            character.Money += Amount;
-            character.SendPacket(
-                new SCItemTaskSuccessPacket(ItemTaskType.QuestComplete, new List<ItemTask> {new MoneyChange(Amount)}, new List<ulong>()));
+            quest.QuestRewardCoinsPool += Amount;
             return true;
         }
     }
