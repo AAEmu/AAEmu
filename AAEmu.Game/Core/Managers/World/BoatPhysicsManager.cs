@@ -208,16 +208,18 @@ namespace AAEmu.Game.Core.Managers.World
             var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
             var slaveRotRad = rpy.Item1 + (90 * (MathF.PI/ 180.0f));
 
-            var forceThrottle = (float)slave.Speed * 17.25f * slave.MoveSpeedMul ; // don't know what this number is, but it's perfect for all ships
+            var forceThrottle = (float)slave.Speed * 17.25f; // don't know what this number is, but it's perfect for all ships
             rigidBody.AddForce(new JVector(forceThrottle * rigidBody.Mass * MathF.Cos(slaveRotRad), 0.0f, forceThrottle * rigidBody.Mass * MathF.Sin(slaveRotRad)));
             
             // Make sure the steering is reversed when going backwards.
-            var steer = (float)slave.Steering * shipModel.SteerVel * ((100f + slave.TurnSpeed) / 100f);
+            float steer = slave.Steering * shipModel.SteerVel;
             if (forceThrottle < 0)
                 steer *= -1;
             
             // Calculate Steering Force based on bounding box 
-            var steerForce = -steer * (solidVolume * boxSize.X * boxSize.Y / 172.5f * 2f); // Totally random value, but it feels right
+            var boxSize = rigidBody.Shape.BoundingBox.Max - rigidBody.Shape.BoundingBox.Min;
+            var steerForce = -steer * (rigidBody.Mass * boxSize.X * boxSize.Y / 172.5f); // Totally random value, but it feels right
+            //var steerForce = -steer * (rigidBody.Mass * 2f);
             rigidBody.AddTorque(new JVector(0, steerForce, 0));
             
             /*
