@@ -15,14 +15,14 @@ using Jitter.Collision;
 using Jitter.Collision.Shapes;
 using Jitter.Dynamics;
 using Jitter.LinearMath;
-// using NLog;
+using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
 {
     public class BoatPhysicsManager : Singleton<BoatPhysicsManager>
     {
         private Thread _thread;
-        // private static Logger _log = LogManager.GetCurrentClassLogger();
+        private static Logger _log = LogManager.GetCurrentClassLogger();
 
         private CollisionSystem _collisionSystem;
         private Jitter.World _physWorld;
@@ -127,8 +127,8 @@ namespace AAEmu.Game.Core.Managers.World
                 slave.SteeringRequest = 0;
             }
 
-            ComputeThrottle(slave);
-            ComputeSteering(slave);
+            ComputeThrottle(slave, (int)Math.Ceiling(shipModel.Velocity / shipModel.Accel));
+            ComputeSteering(slave);//, (int)Math.Ceiling(shipModel.Velocity / shipModel.TurnAccel));
             slave.RigidBody.IsActive = true;
             
             // Provide minimum speed of 1 when Throttle is used
@@ -139,11 +139,11 @@ namespace AAEmu.Game.Core.Managers.World
             
             // Convert sbyte throttle value to use as speed
             slave.Speed += (slave.Throttle * 0.00787401575f) * (velAccel / 10f);
-                
+            
             // Clamp speed between min and max Velocity
             slave.Speed = Math.Min(slave.Speed, maxVelForward);
             slave.Speed = Math.Max(slave.Speed, maxVelBackward);
-
+            
             slave.RotSpeed += (slave.Steering * 0.00787401575f) * (rotAccel / 100f);
             slave.RotSpeed = Math.Min(slave.RotSpeed, 1f);
             slave.RotSpeed = Math.Max(slave.RotSpeed, -1f);
@@ -163,6 +163,11 @@ namespace AAEmu.Game.Core.Managers.World
             }
 
             // _log.Debug("Slave: {0}, speed: {1}, rotSpeed: {2}", slave.ObjId, slave.Speed, slave.RotSpeed);
+            
+            // Calculate some stuff for later
+            var boxSize = rigidBody.Shape.BoundingBox.Max - rigidBody.Shape.BoundingBox.Min;
+            var tubeVolume = shipModel.TubeLength * shipModel.TubeRadius * MathF.PI;
+            var solidVolume = MathF.Abs(rigidBody.Mass - tubeVolume);
 
             var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
             var slaveRotRad = rpy.Item1 + (90 * (MathF.PI/ 180.0f));
@@ -171,20 +176,17 @@ namespace AAEmu.Game.Core.Managers.World
             rigidBody.AddForce(new JVector(forceThrottle * rigidBody.Mass * MathF.Cos(slaveRotRad), 0.0f, forceThrottle * rigidBody.Mass * MathF.Sin(slaveRotRad)));
             
             // Make sure the steering is reversed when going backwards.
-            float steer = slave.Steering * shipModel.SteerVel;
+            var steer = (float)slave.Steering * shipModel.SteerVel;
             if (forceThrottle < 0)
                 steer *= -1;
             
             // Calculate Steering Force based on bounding box 
-            var boxSize = rigidBody.Shape.BoundingBox.Max - rigidBody.Shape.BoundingBox.Min;
-            var steerForce = -steer * (rigidBody.Mass * boxSize.X * boxSize.Y / 172.5f); // Totally random value, but it feels right
-            //var steerForce = -steer * (rigidBody.Mass * 2f);
+            var steerForce = -steer * (solidVolume * boxSize.X * boxSize.Y / 172.5f * 2f); // Totally random value, but it feels right
             rigidBody.AddTorque(new JVector(0, steerForce, 0));
             
             /*
-            if (slave.Steering != 0)
-                _log.Debug("Steering: {0}, steer: {1}, force: {2}, mass: {3}, box: {4}, torque: {5}", slave.Steering,
-                    steer, steerForce, rigidBody.Mass, boxSize, rigidBody.Torque);
+            if ((slave.Steering != 0) || (slave.Throttle != 0))
+                _log.Debug($"Request: {slave.SteeringRequest}, Steering: {slave.Steering}, steer: {steer}, vol: {solidVolume} mass: {rigidBody.Mass}, force: {steerForce}, torque: {rigidBody.Torque}");
             */
             
             // Insert new Rotation data into MoveType
@@ -203,6 +205,18 @@ namespace AAEmu.Game.Core.Managers.World
             moveType.VelX = (short)(rigidBody.LinearVelocity.X * 1024);
             moveType.VelY = (short)(rigidBody.LinearVelocity.Z * 1024);
             moveType.VelZ = (short)(rigidBody.LinearVelocity.Y * 1024);
+            
+            // Create virtual offset, this is not a good solution, but it'll have to do for now.
+            // This will likely create issues with skill that generate position specified plots likely not having this offset when on the ship
+            
+            // Don't know how to handle X/Y for this, if we even should ...
+            // moveType.X += shipModel.MassCenterX; 
+            // moveType.Y += shipModel.MassCenterY;
+            
+            // We can more or less us the model Mass Center Z value to get how much it needs to sink
+            // It doesn't actually do this server-side, as wel only modify the packet sent to the players
+            // If center of mass is positive rather than negative, we need to ignore it here to prevent the boat from floating
+            moveType.Z += (shipModel.MassCenterZ < 0f ? (shipModel.MassCenterZ / 2f) : 0f) - shipModel.KeelHeight;
 
             // Apply new Location/Rotation to GameObject
             slave.Transform.Local.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y);
@@ -222,9 +236,8 @@ namespace AAEmu.Game.Core.Managers.World
             ThreadRunning = false;
         }
 
-        public void ComputeThrottle(Slave slave)
+        public void ComputeThrottle(Slave slave, int throttleAccel = 6)
         {
-            int throttleAccel = 6;
             if (slave.ThrottleRequest > slave.Throttle)
             {
                 slave.Throttle = (sbyte)Math.Min(sbyte.MaxValue, slave.Throttle + throttleAccel);
@@ -247,13 +260,11 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        public void ComputeSteering(Slave slave)
+        public void ComputeSteering(Slave slave, int steeringAccel = 6)
         {
-            int steeringAccel = 6;
             if (slave.SteeringRequest > slave.Steering)
             {
                 slave.Steering = (sbyte)Math.Min(sbyte.MaxValue, slave.Steering + steeringAccel);
-
             }
             else if (slave.SteeringRequest < slave.Steering && slave.SteeringRequest != 0)
             {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
+using System.Numerics;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
@@ -182,6 +182,7 @@ namespace AAEmu.Game.Core.Managers
             var objId = ObjectIdManager.Instance.GetNextId();
             
             var spawnPos = owner.Transform.CloneDetached();
+            var spawnOffsetPos = new Vector3();
             
             // Replacing the position with the new coordinates from the method call parameters
             
@@ -208,6 +209,10 @@ namespace AAEmu.Game.Core.Managers
                     // temporary grab ship information so that we can use it to find a suitable spot in front to summon it
                     var tempShipModel = ModelManager.Instance.GetShipModel(slaveTemplate.ModelId);
                     var minDepth = tempShipModel.MassBoxSizeZ - tempShipModel.MassCenterZ + 1f;
+                    
+                    // Somehow take into account where the ship will end up related to it's mass center (also check boat physics)
+                    spawnOffsetPos.Z += (tempShipModel.MassCenterZ < 0f ? (tempShipModel.MassCenterZ / 2f) : 0f) - tempShipModel.KeelHeight;
+                    
                     for (var inFront = 0f; inFront < (50f + tempShipModel.MassBoxSizeX); inFront += 1f)
                     {
                         var depthCheckPos = spawnPos.CloneDetached();
@@ -224,6 +229,7 @@ namespace AAEmu.Game.Core.Managers
                             }
                         }
                     }
+                    spawnPos.Local.Position += spawnOffsetPos;
                 }
                 else
                 {
@@ -398,8 +404,10 @@ namespace AAEmu.Game.Core.Managers
 
             owner.SendPacket(new SCMySlavePacket(template.ObjId, template.TlId, template.Name, template.TemplateId,
                 template.Hp, template.Mp,
-                template.Transform.World.Position.X, template.Transform.World.Position.Y,
-                template.Transform.World.Position.Z));
+                template.Transform.World.Position.X,
+                template.Transform.World.Position.Y,
+                template.Transform.World.Position.Z
+                ));
         }
 
         public void LoadSlaveAttachmentPointLocations()
