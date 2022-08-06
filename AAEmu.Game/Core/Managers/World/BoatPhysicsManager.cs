@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Numerics;
 using System.Threading;
 using AAEmu.Commons.Utils;
@@ -172,11 +172,11 @@ namespace AAEmu.Game.Core.Managers.World
             var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
             var slaveRotRad = rpy.Item1 + (90 * (MathF.PI/ 180.0f));
 
-            var forceThrottle = (float)slave.Speed * 17.25f; // don't know what this number is, but it's perfect for all ships
+            var forceThrottle = (float)slave.Speed * 17.25f * slave.MoveSpeedMul ; // don't know what this number is, but it's perfect for all ships
             rigidBody.AddForce(new JVector(forceThrottle * rigidBody.Mass * MathF.Cos(slaveRotRad), 0.0f, forceThrottle * rigidBody.Mass * MathF.Sin(slaveRotRad)));
             
             // Make sure the steering is reversed when going backwards.
-            var steer = (float)slave.Steering * shipModel.SteerVel;
+            var steer = (float)slave.Steering * shipModel.SteerVel * ((100f + slave.TurnSpeed) / 100f);
             if (forceThrottle < 0)
                 steer *= -1;
             
