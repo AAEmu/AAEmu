@@ -15,12 +15,12 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var unitObjId = stream.ReadBc();
             var targetObjId = stream.ReadBc();
-            
-            _log.Trace("Hang, unitObjId: {0}, targetObjId: {1}", unitObjId, targetObjId);
+
+            _log.Trace($"Hang, unitObjId: {unitObjId}, targetObjId: {targetObjId}");
             var character = WorldManager.Instance.GetBaseUnit(unitObjId);
             var target = WorldManager.Instance.GetGameObject(targetObjId);
             if ((character != null) && (target != null))
-                character.Transform.StickyParent = target.Transform;
+                character.Transform.StickyParent = target?.Transform;
             Connection.ActiveChar.BroadcastPacket(new SCHungPacket(unitObjId,targetObjId),false);
         }
     }
