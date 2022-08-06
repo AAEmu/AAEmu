@@ -236,12 +236,11 @@ namespace AAEmu.Game.Core.Managers.World
             ThreadRunning = false;
         }
 
-        public void ComputeThrottle(Slave slave, int throttleAccel = 6)
+        private static void ComputeThrottle(Slave slave, int throttleAccel = 6)
         {
             if (slave.ThrottleRequest > slave.Throttle)
             {
                 slave.Throttle = (sbyte)Math.Min(sbyte.MaxValue, slave.Throttle + throttleAccel);
-
             }
             else if (slave.ThrottleRequest < slave.Throttle && slave.ThrottleRequest != 0)
             {
@@ -260,7 +259,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        public void ComputeSteering(Slave slave, int steeringAccel = 6)
+        private static void ComputeSteering(Slave slave, int steeringAccel = 6)
         {
             if (slave.SteeringRequest > slave.Steering)
             {

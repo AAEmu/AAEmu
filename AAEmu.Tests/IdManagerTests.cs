@@ -29,7 +29,7 @@ namespace AAEmu.Tests
             id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId+1, id);
             
-            ObjectIdManager.Instance.ReleaseId(id);;
+            ObjectIdManager.Instance.ReleaseId(id);
             
             id = ObjectIdManager.Instance.GetNextId();
             // We get the next ID and THEN release
