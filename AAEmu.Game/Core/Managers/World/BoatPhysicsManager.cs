@@ -212,14 +212,12 @@ namespace AAEmu.Game.Core.Managers.World
             rigidBody.AddForce(new JVector(forceThrottle * rigidBody.Mass * MathF.Cos(slaveRotRad), 0.0f, forceThrottle * rigidBody.Mass * MathF.Sin(slaveRotRad)));
             
             // Make sure the steering is reversed when going backwards.
-            float steer = slave.Steering * shipModel.SteerVel;
+            var steer = (float)slave.Steering * shipModel.SteerVel;
             if (forceThrottle < 0)
                 steer *= -1;
             
             // Calculate Steering Force based on bounding box 
-            var boxSize = rigidBody.Shape.BoundingBox.Max - rigidBody.Shape.BoundingBox.Min;
-            var steerForce = -steer * (rigidBody.Mass * boxSize.X * boxSize.Y / 172.5f); // Totally random value, but it feels right
-            //var steerForce = -steer * (rigidBody.Mass * 2f);
+            var steerForce = -steer * (solidVolume * boxSize.X * boxSize.Y / 172.5f * 2f); // Totally random value, but it feels right
             rigidBody.AddTorque(new JVector(0, steerForce, 0));
             
             /*
