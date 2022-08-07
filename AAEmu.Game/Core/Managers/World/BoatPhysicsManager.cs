@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Threading;
 using AAEmu.Commons.Utils;
@@ -16,10 +18,12 @@ using Jitter.Collision.Shapes;
 using Jitter.Dynamics;
 using Jitter.LinearMath;
 using NLog;
+using NLog.Config;
+using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
 namespace AAEmu.Game.Core.Managers.World
 {
-    public class BoatPhysicsManager : Singleton<BoatPhysicsManager>
+    public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
     {
         private Thread _thread;
         private static Logger _log = LogManager.GetCurrentClassLogger();
@@ -28,56 +32,86 @@ namespace AAEmu.Game.Core.Managers.World
         private Jitter.World _physWorld;
         private Buoyancy _buoyancy;
         private uint _tickCount ;
-        private bool ThreadRunning { get; set; } = true;
+        private bool ThreadRunning { get; set; }
+        public InstanceWorld SimulationWorld { get; set; }
 
+        private bool CustomWater (ref JVector area)
+        {
+            // Query world if it's water and treat everything below 100 as water as a fallback
+            return SimulationWorld?.IsWater(new Vector3(area.X, area.Z, area.Y)) ?? area.Y <= 100f;
+        }
+        
         public void Initialize()
         {
             _collisionSystem = new CollisionSystemSAP();
             _physWorld = new Jitter.World(_collisionSystem);
             _buoyancy = new Buoyancy(_physWorld);
-            // _buoyancy.UseOwnFluidArea(DefineFluidArea());
-            _buoyancy.FluidBox = new JBBox(new JVector(0, 0, 0), new JVector(100000, 100, 100000));
+            _buoyancy.UseOwnFluidArea(CustomWater);
+            // _buoyancy.FluidBox = new JBBox(new JVector(0, 0, 0), new JVector(100000, 100, 100000));
+        }
 
+        public void StartPhysics()
+        {
+            ThreadRunning = true;
             _thread = new Thread(PhysicsThread);
+            _thread.Name = "Physics-" + (SimulationWorld?.Name ?? "???"); 
             _thread.Start();
         }
 
-        public void PhysicsThread()
+        private void PhysicsThread()
         {
+            _log.Debug($"PhysicsThread Start: {Thread.CurrentThread.Name} ({Thread.CurrentThread.ManagedThreadId})");
+            var simulatedSlaveTypeList = new[]
+            {
+                SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.SmallSailingShip,
+                SlaveKind.MerchantShip, SlaveKind.Speedboat
+            }; 
             while (ThreadRunning && Thread.CurrentThread.IsAlive)
             {
                 Thread.Sleep(1000 / 60);
                 _physWorld.Step(1 / 60.0f, false);
                 _tickCount++;
 
-                foreach (var slave in SlaveManager.Instance.GetActiveSlavesByKinds(new[] { SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.SmallSailingShip, SlaveKind.MerchantShip, SlaveKind.Speedboat }))
+                // Not sure if it's better to query it each tick, or track them locally
+                var slaveList = SlaveManager.Instance.GetActiveSlavesByKinds(simulatedSlaveTypeList, SimulationWorld.Id);
+                if (slaveList == null)
+                    continue;
+
+                foreach (var slave in slaveList)
                 {
+                    if (slave.Transform.WorldId != SimulationWorld.Id)
+                    {
+                        _log.Debug($"Skip {slave.Name}");
+                        continue;
+                    }
+
+                    // Skip simulation if still summoning
                     if (slave.SpawnTime.AddSeconds(slave.Template.PortalTime) > DateTime.UtcNow)
                         continue;
 
+                    // Skip simulation if no rigidbody applied to slave
                     var slaveRigidBody = slave.RigidBody;
                     if (slaveRigidBody == null)
                         continue;
                     
-                    var xDelt = slaveRigidBody.Position.X - slave.Transform.World.Position.X;
-                    var yDelt = slaveRigidBody.Position.Z - slave.Transform.World.Position.Y;
-                    var zDelt = slaveRigidBody.Position.Y - slave.Transform.World.Position.Z;
+                    // Note: Y, Z swapped
+                    var xDelta = slaveRigidBody.Position.X - slave.Transform.World.Position.X;
+                    var yDelta = slaveRigidBody.Position.Z - slave.Transform.World.Position.Y;
+                    var zDelta = slaveRigidBody.Position.Y - slave.Transform.World.Position.Z;
                     
-                    slave.Transform.Local.Translate(xDelt,yDelt,zDelt); 
+                    slave.Transform.Local.Translate(xDelta,yDelta,zDelta); 
                     var rot = JQuaternion.CreateFromMatrix(slaveRigidBody.Orientation);
                     slave.Transform.Local.ApplyFromQuaternion(rot.X, rot.Z, rot.Y, rot.W);
-                    // slave.Transform.Local.Rotation = new Quaternion(rot.X, rot.Y, rot.Z, rot.W);
                     
                     if (_tickCount % 6 == 0)
                     {
-                        //var rpy = slave.Transform.Local.ToRollPitchYaw();
-                        //slave.SetPosition(slaveRigidBody.Position.X, slaveRigidBody.Position.Z, slaveRigidBody.Position.Y, rpy.X, rpy.Y, rpy.Z);
-                        //slave.Move(slaveRigidBody.Position.X, slaveRigidBody.Position.Z, slaveRigidBody.Position.Y);
                         _physWorld.CollisionSystem.Detect(true);
                         BoatPhysicsTick(slave, slaveRigidBody);
+                        // _log.Trace($"{_thread.Name}, slave: {slave.Name} collision check tick");
                     }
                 }
             }
+            _log.Debug($"PhysicsThread End: {Thread.CurrentThread.Name} ({Thread.CurrentThread.ManagedThreadId})");
         }
 
         public void AddShip(Slave slave)
@@ -100,6 +134,7 @@ namespace AAEmu.Game.Core.Managers.World
             _buoyancy.Add(rigidBody, 3);
             _physWorld.AddBody(rigidBody);
             slave.RigidBody = rigidBody;
+            _log.Debug($"AddShip {slave.Name} -> {SimulationWorld.Name}");
         }
 
         public void RemoveShip(Slave slave)
@@ -107,9 +142,10 @@ namespace AAEmu.Game.Core.Managers.World
             if (slave.RigidBody == null) return;
             _buoyancy.Remove(slave.RigidBody);
             _physWorld.RemoveBody(slave.RigidBody);
+            _log.Debug($"RemoveShip {slave.Name} <- {SimulationWorld.Name}");
         }
 
-        public void BoatPhysicsTick(Slave slave, RigidBody rigidBody)
+        private void BoatPhysicsTick(Slave slave, RigidBody rigidBody)
         {
             var moveType = (ShipMoveType)MoveType.GetType(MoveTypeEnum.Ship);
             moveType.UseSlaveBase(slave);

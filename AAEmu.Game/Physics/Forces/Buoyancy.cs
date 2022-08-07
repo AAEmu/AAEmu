@@ -181,7 +181,7 @@ namespace AAEmu.Game.Physics.Forces
             foreach (RigidBody body in bodies)
             {
 
-                if (FluidBox.Contains(body.BoundingBox) != JBBox.ContainmentType.Disjoint)
+                if ((FluidBox.Contains(body.BoundingBox) != JBBox.ContainmentType.Disjoint) || (fluidArea != null)) 
                 {
                     JVector[] positions = samples[body.Shape];
 
