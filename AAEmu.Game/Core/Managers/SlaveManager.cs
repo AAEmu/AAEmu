@@ -223,7 +223,14 @@ namespace AAEmu.Game.Core.Managers
                 {
                     // If we're spawning a boat, put it at the water level regardless of our own height
                     // TODO: if not at ocean level, get actual target location water body height (for example rivers)
-                    var worldWaterLevel = WorldManager.Instance.GetWorld(spawnPos.WorldId)?.OceanLevel ?? 100f;
+                    var world = WorldManager.Instance.GetWorld(spawnPos.WorldId);
+                    if (world == null)
+                    {
+                        _log.Fatal($"Unable to find world to spawn in {spawnPos.WorldId}");
+                        return;
+                    }
+                    
+                    var worldWaterLevel = world.Water.GetWaterSurface(spawnPos.World.Position);
                     spawnPos.Local.SetHeight(worldWaterLevel);
 
                     // temporary grab ship information so that we can use it to find a suitable spot in front to summon it
@@ -237,11 +244,12 @@ namespace AAEmu.Game.Core.Managers
                     {
                         var depthCheckPos = spawnPos.CloneDetached();
                         depthCheckPos.Local.AddDistanceToFront(inFront);
-                        var h = WorldManager.Instance.GetHeight(depthCheckPos);
-                        if (h > 0f)
+                        var floorHeight = WorldManager.Instance.GetHeight(depthCheckPos);
+                        if (floorHeight > 0f)
                         {
-                            var d = worldWaterLevel - h;
-                            if (d > minDepth)
+                            var surfaceHeight = world.Water.GetWaterSurface(depthCheckPos.World.Position); 
+                            var delta = surfaceHeight - floorHeight;
+                            if (delta > minDepth)
                             {
                                 //owner.SendMessage("Extra inFront = {0}, required Depth = {1}", inFront, minDepth);
                                 spawnPos = depthCheckPos.CloneDetached();

@@ -19,8 +19,10 @@ using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.World.Transform;
 using System.Diagnostics;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml;
+using AAEmu.Commons.Utils.XML;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.ClientData;
 using AAEmu.Game.Models.Game.Gimmicks;
@@ -179,6 +181,8 @@ namespace AAEmu.Game.Core.Managers.World
                     // cache zone keys to world reference
                     foreach (var zoneKey in world.ZoneKeys)
                         _worldIdByZoneId.Add(zoneKey,world.Id);
+
+                    world.Water = new WaterBodies();
                 }
             }
             
@@ -442,6 +446,12 @@ namespace AAEmu.Game.Core.Managers.World
 
                 _log.Info($"Loaded {loaded}/{_worlds.Count} heightmaps");
             }
+        }
+
+        public void LoadWaterBodies()
+        {
+            foreach (var world in _worlds.Values)
+                LoadWaterBodiesFromClientData(world);
         }
 
         public InstanceWorld GetWorld(uint worldId)
@@ -1003,6 +1013,99 @@ namespace AAEmu.Game.Core.Managers.World
                 world.Physics.Initialize();
                 world.Physics.StartPhysics();
             }
+        }
+        
+        public bool LoadWaterBodiesFromClientData(InstanceWorld world)
+        {
+            // Use world.xml to check if we have client data enabled
+            var worldXmlTest = Path.Combine("game", "worlds", world.Name, "world.xml");
+            if (!ClientFileManager.FileExists(worldXmlTest))
+                return false;
+
+            var bodiesLoaded = 0;
+            
+            // TODO: The data loaded here is incorrect !!!
+
+            for (var cellY = 0; cellY < world.CellY; cellY++)
+            for (var cellX = 0; cellX < world.CellX; cellX++)
+            {
+                var cellFileName = $"{cellX:000}_{cellY:000}";
+                var entityFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client", "entities.xml");
+                if (ClientFileManager.FileExists(entityFile))
+                {
+                    var xmlString = ClientFileManager.GetFileAsString(entityFile);
+                    var xmlDoc = new XmlDocument();
+                    xmlDoc.LoadXml(xmlString);
+
+                    var _allEntityBlocks = xmlDoc.SelectNodes("/Mission/Objects/Entity");
+                    var cellPos = new Vector3(cellX * 1024, cellY * 1024, 0);
+
+                    for (var i = 0; i < _allEntityBlocks?.Count; i++)
+                    {
+                        var block = _allEntityBlocks[i];
+                        var attribs = XmlHelper.ReadNodeAttributes(block);
+                        
+                        if (!attribs.TryGetValue("Name", out var entityName))
+                            continue;
+
+                        // Is this Entity named like a water body ?
+                        // TODO: More sophisticated way of determining if it's water
+                        var isWaterBody = entityName.Contains("_water") || entityName.Contains("_pond") || entityName.Contains("_lake");
+                        if (isWaterBody == false)
+                            continue;
+                        
+                        if (attribs.TryGetValue("EntityClass", out var entityClass))
+                        {
+                            // Is it a AreaShape ?
+                            if (entityClass == "AreaShape")
+                            {
+                                var areaBlock = block.SelectSingleNode("Area");
+                                if (areaBlock == null)
+                                    continue; // this shape has no area defined
+
+                                // Create WaterBody here
+                                var newWaterBodyArea = new WaterBodyArea(entityName);
+                                newWaterBodyArea.Id = XmlHelper.ReadAttribute<uint>(attribs, "EntityId", 0u);
+                                newWaterBodyArea.Guid = XmlHelper.ReadAttribute<string>(attribs, "Guid", "");
+
+                                var entityPosString = XmlHelper.ReadAttribute<string>(attribs, "Pos", "0,0,0");
+                                var areaPos = XmlHelper.StringToVector3(entityPosString);
+                                
+                                // Read Area Data (height)
+                                var areaAttribs = XmlHelper.ReadNodeAttributes(areaBlock);
+                                newWaterBodyArea.Height = XmlHelper.ReadAttribute<float>(areaAttribs, "Height", 0f);
+
+                                // Get Points within the Area
+                                var pointBlocks = areaBlock.SelectNodes("Points/Point");
+
+                                var firstPos = Vector3.Zero;
+                                for (var p = 0; p < pointBlocks.Count; p++)
+                                {
+                                    var pointAttribs = XmlHelper.ReadNodeAttributes(pointBlocks[p]);
+                                    var pointPosString = XmlHelper.ReadAttribute<string>(pointAttribs, "Pos", "0,0,0");
+                                    var pointPos = XmlHelper.StringToVector3(pointPosString);
+                                    var pos = cellPos + areaPos + pointPos;
+                                    newWaterBodyArea.Points.Add(pos);
+                                    if (p == 0)
+                                        firstPos = pos;
+                                }
+
+                                if (pointBlocks.Count > 2)
+                                    newWaterBodyArea.Points.Add(firstPos);
+
+                                newWaterBodyArea.UpdateBounds();
+                                world.Water.Areas.Add(newWaterBodyArea);
+                                bodiesLoaded++;
+                            }
+                        }
+                    }
+
+                }
+            }
+
+            if (bodiesLoaded > 0)
+                _log.Info($"{bodiesLoaded} waters bodies loaded for {world.Name}");
+            return true;
         }
     }
 }

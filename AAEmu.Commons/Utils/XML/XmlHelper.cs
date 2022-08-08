@@ -45,6 +45,5 @@ namespace AAEmu.Commons.Utils.XML
                 return defaultValue;
             }
         }
-
     }
 }
