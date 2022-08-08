@@ -92,6 +92,11 @@ namespace AAEmu.Game
                 WorldManager.Instance.LoadHeightmaps();
             });
 
+            var waterBodyTask = Task.Run(() =>
+            {
+                WorldManager.Instance.LoadWaterBodies();
+            });
+            
             ContainerIdManager.Instance.Initialize();
             ItemIdManager.Instance.Initialize();
             DoodadIdManager.Instance.Initialize();
@@ -173,6 +178,12 @@ namespace AAEmu.Game
             CashShopManager.Instance.Initialize();
             GameDataManager.Instance.PostLoadGameData();
 
+            if ((waterBodyTask != null) && (!waterBodyTask.IsCompleted))
+            {
+                _log.Info("Waiting on water to be loaded before proceeding, please wait ...");
+                await waterBodyTask;
+            }
+            
             if ((heightmapTask != null) && (!heightmapTask.IsCompleted))
             {
                 _log.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
