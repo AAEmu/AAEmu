@@ -1030,5 +1030,24 @@ namespace AAEmu.Game.Core.Managers.World
                 return res;
             return null;
         }
+
+        public void Stop()
+        {
+            foreach (var world in _worlds)
+            {
+                world.Value?.Physics?.Stop();
+            }
+        }
+
+        public void StartPhysics()
+        {
+            foreach (var (key,world) in _worlds)
+            {
+                world.Physics = new BoatPhysicsManager();
+                world.Physics.SimulationWorld = world;
+                world.Physics.Initialize();
+                world.Physics.StartPhysics();
+            }
+        }
     }
 }

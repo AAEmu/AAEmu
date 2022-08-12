@@ -116,7 +116,13 @@ namespace AAEmu.Game.Core.Managers
                                 Accel = reader.GetFloat("accel"),
                                 ReverseAccel = reader.GetFloat("reverse_accel"),
                                 ReverseVelocity = reader.GetFloat("reverse_velocity"),
-                                TurnAccel = reader.GetFloat("turn_accel")
+                                TurnAccel = reader.GetFloat("turn_accel"),
+                                TubeLength = reader.GetFloat("tube_length"),
+                                TubeRadius = reader.GetFloat("tube_radius"),
+                                TubeOffsetZ = reader.GetFloat("tube_offset_z"),
+                                KeelLength = reader.GetFloat("keel_length"),
+                                KeelHeight = reader.GetFloat("keel_height"),
+                                KeelOffsetZ = reader.GetFloat("keel_offset_z")
                             };
 
                             _models["ShipModel"].TryAdd(model.Id, model);

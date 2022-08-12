@@ -132,6 +132,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                         var isSticky =
                             ((MoveTypeActorFlags)dmt.ActorFlags).HasFlag(MoveTypeActorFlags.HangingFromObject);
 
+                        // Don't know why, but we need to Ignore Id 1, it probably has some special meaning like "current parent"
+                        if (dmt.GcId == 1)
+                        {
+                            // _log.Warn($"Flags: {dmt.Flags}, GcId: {dmt.GcId}, ClimbData: {dmt.ClimbData}, PartId: {dmt.GcPartId} ?");
+                            parentObject = null;
+                        }
 
                         // We moved
                         RemoveEffects(targetUnit, _moveType);

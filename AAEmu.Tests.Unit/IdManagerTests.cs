@@ -7,13 +7,11 @@ namespace AAEmu.Tests.Unit
     public class IdManagerTests
     {
         [Fact]
-        public void ItemIdManagerGetsNextId()
+        public void ObjectIdManagerGetsNextId()
         {
-            var objIdManager = new ObjectIdManager();
-            objIdManager.Initialize();
-            
-            var firstId = 0x00000001u;
-            var id = objIdManager.GetNextId();
+            ObjectIdManager.Instance.Initialize();
+            var firstId = 0x00000100u;
+            var id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId, id);
             id = objIdManager.GetNextId();
             Assert.Equal(firstId+1, id);
@@ -22,17 +20,16 @@ namespace AAEmu.Tests.Unit
         }
         
         [Fact]
-        public void ItemIdManagerReleasesId()
+        public void ObjectIdManagerReleasesId()
         {
-            var objIdManager = new ObjectIdManager();
-            objIdManager.Initialize();
-            var firstId = 0x00000001u;
-            var id = objIdManager.GetNextId();
+            ObjectIdManager.Instance.Initialize();
+            var firstId = 0x00000100u;
+            var id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId, id);
             id = objIdManager.GetNextId();
             Assert.Equal(firstId+1, id);
-
-            objIdManager.ReleaseId(id);;
+            
+            ObjectIdManager.Instance.ReleaseId(id);
             
             id = objIdManager.GetNextId();
             // We get the next ID and THEN release
@@ -40,13 +37,13 @@ namespace AAEmu.Tests.Unit
         }
 
         [Fact]
-        public void ItemIdManagerGetMultipleIds()
+        public void ObjectIdManagerGetMultipleIds()
         {
             var objIdManager = new ObjectIdManager();
             objIdManager.Initialize();
             
-            var firstId = 0x00000001u;
-            var ids = objIdManager.GetNextId(10);
+            var firstId = 0x00000100u;
+            var ids = ObjectIdManager.Instance.GetNextId(10);
             Assert.Equal(new uint[]{firstId, firstId+1, firstId+2, firstId+3, firstId+4, firstId+5, firstId+6, firstId+7, firstId+8, firstId+9}, ids);
         }
     }

@@ -254,7 +254,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 {
                     if (_parentTransform != null)
                         _parentTransform.InternalDetachChild(this);
-
+                    /*
                     if (_owningObject != null)
                     {
                         var oldS = "<null>";
@@ -277,17 +277,16 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
                         if ((_owningObject is Character player) &&
                             (_parentTransform?._owningObject != parent?._owningObject))
-                            player.SendMessage("|cFF88FF88Changing parent - {0} => {1}|r", oldS, newS);
+                            player.SendMessage($"|cFF88FF88Changing parent - {oldS} => {newS}|r");
                         // Console.WriteLine("Transform {0} - Changing parent - {1} => {2}", GameObject?.ObjId.ToString() ?? "<null>", oldS, newS);
                     }
+                    */
 
                     _parentTransform = parent;
-
-                    if (_parentTransform != null)
-                        _parentTransform.InternalAttachChild(this);
+                    _parentTransform?.InternalAttachChild(this);
 
                     if ((_owningObject is Character aPlayer))
-                        aPlayer.SendMessage("NewPos: {0}", this.ToFullString(true, true));
+                        aPlayer.SendMessage($"NewPos: {ToFullString(true, true)}");
                 }
             }
         }
@@ -508,7 +507,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
             if (_stickyParentTransform != null)
             {
-                res += "\n sticking to ( ";
+                res += "\n=> sticking to ( ";
                 if (_stickyParentTransform._owningObject is BaseUnit bu)
                 {
                     if (bu.Name != string.Empty)
@@ -529,7 +528,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// <returns>Returns true if successfully attached, or false if already attached or other errors</returns>
         public bool AttachStickyTransform(Transform stickyChild)
         {
-            // NUll-check
+            // Null-check
             if ((stickyChild == null) || (stickyChild.GameObject == null))
                 return false;
             // Check if already there
@@ -557,20 +556,23 @@ namespace AAEmu.Game.Models.Game.World.Transform
         protected void SetStickyParent(Transform stickyParent)
         {
             if (_stickyParentTransform == stickyParent) return;
+
+            Parent = null; // detach from parent if on any
             
             lock (_lock)
             {
 
-                var oldParent = _stickyParentTransform;
+                // var oldStickyParent = _stickyParentTransform;
                 // Detach from previous sticky parent if needed 
                 if ((_stickyParentTransform != null) && (!_stickyParentTransform.Equals(stickyParent)))
                     _stickyParentTransform.DetachStickyTransform(this);
 
-                if (oldParent != stickyParent)
+                /*
+                if (oldStickyParent != stickyParent)
                 {
                     var oldS = "<null>";
                     var newS = "<null>";
-                    if ((oldParent != null) && (oldParent._owningObject is BaseUnit oldParentUnit))
+                    if ((oldStickyParent != null) && (oldStickyParent._owningObject is BaseUnit oldParentUnit))
                     {
                         oldS = oldParentUnit.Name;
                         if (oldS == string.Empty)
@@ -587,15 +589,18 @@ namespace AAEmu.Game.Models.Game.World.Transform
                     }
 
                     if (GameObject is Character player)
-                        player.SendMessage("|cFFFF88FFChanging Sticky - {0} => {1}|r", oldS, newS);
+                        player.SendMessage($"|cFFFF88FFChanging Sticky - {oldS} => {newS}|r");
                     //Console.WriteLine("Transform {0} - Changing Sticky - {1} => {2}", GameObject?.ObjId.ToString() ?? "<null>", oldS, newS);
                 }
-
-
+                */
+                
                 // Attach to new parent if needed
                 if (stickyParent != null)
                     stickyParent.AttachStickyTransform(this);
             }
+            
+            // Attach to Stick target's parent if it has one
+            Parent = stickyParent?.Parent;
         }
 
         public bool ToggleDebugTracker(Character player)

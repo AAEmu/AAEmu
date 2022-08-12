@@ -20,14 +20,14 @@ namespace AAEmu.Game.Core.Packets.C2G
             // 0 climbed off from bottom
             // 2 climbed off on top
             // 7 jumped off
-            
-            _log.Trace("Unhang, unitObjId: {0}, targetObjId: {1}, Reason: {2}", unitObjId, targetObjId,reason);
+
+            _log.Trace($"Unhang, unitObjId: {unitObjId}, targetObjId: {targetObjId}, Reason: {reason}");
             // For 1.2 the targetObjId is not sent, so we will need to grab our saved value from Transform
             // Later this can also be used to verify if it's the correct object
             var character = WorldManager.Instance.GetBaseUnit(unitObjId);
             if (character != null)
             {
-                targetObjId = character.Transform.StickyParent.GameObject.ObjId;
+                targetObjId = character.Transform.StickyParent?.GameObject?.ObjId ?? 0;
                 character.Transform.StickyParent = null;
             }
 

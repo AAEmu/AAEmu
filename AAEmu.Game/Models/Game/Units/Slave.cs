@@ -568,6 +568,9 @@ namespace AAEmu.Game.Models.Game.Units
                 return res;
             }
         }
+        
+        [UnitAttribute(UnitAttribute.TurnSpeed)]
+        public virtual float TurnSpeed { get => (float)CalculateWithBonuses(0, UnitAttribute.TurnSpeed); }
 
         #endregion
         
