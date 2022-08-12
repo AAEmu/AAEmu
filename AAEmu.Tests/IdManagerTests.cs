@@ -7,10 +7,10 @@ namespace AAEmu.Tests
     public class IdManagerTests
     {
         [Fact]
-        public void ItemIdManagerGetsNextId()
+        public void ObjectIdManagerGetsNextId()
         {
             ObjectIdManager.Instance.Initialize();
-            var firstId = 0x00000001u;
+            var firstId = 0x00000100u;
             var id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId, id);
             id = ObjectIdManager.Instance.GetNextId();
@@ -20,16 +20,16 @@ namespace AAEmu.Tests
         }
         
         [Fact]
-        public void ItemIdManagerReleasesId()
+        public void ObjectIdManagerReleasesId()
         {
             ObjectIdManager.Instance.Initialize();
-            var firstId = 0x00000001u;
+            var firstId = 0x00000100u;
             var id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId, id);
             id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId+1, id);
             
-            ObjectIdManager.Instance.ReleaseId(id);;
+            ObjectIdManager.Instance.ReleaseId(id);
             
             id = ObjectIdManager.Instance.GetNextId();
             // We get the next ID and THEN release
@@ -37,11 +37,11 @@ namespace AAEmu.Tests
         }
 
         [Fact]
-        public void ItemIdManagerGetMultipleIds()
+        public void ObjectIdManagerGetMultipleIds()
         {
             ObjectIdManager.Instance.Initialize();
             
-            var firstId = 0x00000001u;
+            var firstId = 0x00000100u;
             var ids = ObjectIdManager.Instance.GetNextId(10);
             Assert.Equal(new uint[]{firstId, firstId+1, firstId+2, firstId+3, firstId+4, firstId+5, firstId+6, firstId+7, firstId+8, firstId+9}, ids);
         }

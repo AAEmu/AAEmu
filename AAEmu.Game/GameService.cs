@@ -167,7 +167,6 @@ namespace AAEmu.Game
             SaveManager.Instance.Initialize();
             AreaTriggerManager.Instance.Initialize();
             SpecialtyManager.Instance.Initialize();
-            BoatPhysicsManager.Instance.Initialize();
             TransferManager.Instance.Initialize();
             GimmickManager.Instance.Initialize();
             SlaveManager.Instance.Initialize();
@@ -188,6 +187,9 @@ namespace AAEmu.Game
             TransferManager.Instance.SpawnAll();
             spawnSw.Stop();
             _log.Info("Units spawned in {0}", spawnSw.Elapsed);
+
+            // Start running Physics when everything is loaded
+            WorldManager.Instance.StartPhysics();
             
             CharacterManager.Instance.CheckForDeletedCharacters();
             
@@ -216,7 +218,7 @@ namespace AAEmu.Game
             MailManager.Instance.Save();
             ItemManager.Instance.Save();
             */
-            BoatPhysicsManager.Instance.Stop();
+            WorldManager.Instance.Stop();
 
             TickManager.Instance.Stop();
             TimeManager.Instance.Stop();

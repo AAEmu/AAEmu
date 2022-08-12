@@ -12,11 +12,16 @@ namespace AAEmu.Game.Models.Game.Models
         public float MassBoxSizeZ { get; set; }
         public float WaterDensity { get; set; }
         public float WaterResistance { get; set; }
-        // ...
         public float SteerVel { get; set; }
         public float Accel { get; set; }
         public float ReverseAccel { get; set; }
         public float ReverseVelocity { get; set; }
         public float TurnAccel { get; set; }
+        public float TubeLength { get; set; }
+        public float TubeRadius { get; set; }
+        public float TubeOffsetZ { get; set; }
+        public float KeelLength { get; set; }
+        public float KeelHeight { get; set; }
+        public float KeelOffsetZ { get; set; }
     }
 }

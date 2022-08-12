@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
+using System.Numerics;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
@@ -49,14 +49,33 @@ namespace AAEmu.Game.Core.Managers
             return _activeSlaves.ContainsKey(objId) ? _activeSlaves[objId] : null;
         }
 
-        public IEnumerable<Slave> GetActiveSlavesByKind(SlaveKind kind)
+        /// <summary>
+        /// Returns a list of all Slaves of specific SlaveKind
+        /// </summary>
+        /// <param name="kind"></param>
+        /// <param name="worldId">When set, only return from specific world</param>
+        /// <returns></returns>
+        public IEnumerable<Slave> GetActiveSlavesByKind(SlaveKind kind, uint worldId = uint.MaxValue)
         {
-            return _activeSlaves.Select(i => i.Value).Where(s => s.Template.SlaveKind == kind);
+            if (worldId >= uint.MaxValue)
+                return _activeSlaves.Select(i => i.Value).Where(s => s.Template.SlaveKind == kind);
+            return _activeSlaves.Select(i => i.Value).Where(s => (s.Template.SlaveKind == kind) && (s.Transform.WorldId == worldId));
         }
 
-        public IEnumerable<Slave> GetActiveSlavesByKinds(SlaveKind[] kinds)
+        /// <summary>
+        /// Returns a list of all Slaves of specific SlaveKind
+        /// </summary>
+        /// <param name="kinds"></param>
+        /// <param name="worldId">When set, only return from specific world</param>
+        /// <returns></returns>
+        public IEnumerable<Slave> GetActiveSlavesByKinds(SlaveKind[] kinds, uint worldId = uint.MaxValue)
         {
-            return _activeSlaves.Where(s => kinds.Contains(s.Value.Template.SlaveKind)).Select(s => s.Value);
+            if (worldId >= uint.MaxValue)
+                return _activeSlaves.Where(s => kinds.Contains(s.Value.Template.SlaveKind))
+                    .Select(s => s.Value);
+            return _activeSlaves.Where(s => kinds.Contains(s.Value.Template.SlaveKind))
+                .Where(s => s.Value.Transform.WorldId == worldId)
+                .Select(s => s.Value);
         }
 
         public Slave GetActiveSlaveByObjId(uint objId)
@@ -69,7 +88,7 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
-        private Slave GetActiveSlaveBytlId(uint tlId)
+        private Slave GetActiveSlaveByTlId(uint tlId)
         {
             foreach (var slave in _activeSlaves.Values)
             {
@@ -150,7 +169,8 @@ namespace AAEmu.Game.Core.Managers
                 //attachedSlave.Delete();
             }
 
-            BoatPhysicsManager.Instance.RemoveShip(activeSlaveInfo);
+            var world = WorldManager.Instance.GetWorld(activeSlaveInfo.Transform.WorldId);
+            world.Physics.RemoveShip(activeSlaveInfo);
             owner.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
             owner.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);
             _activeSlaves.Remove(owner.ObjId);
@@ -182,6 +202,7 @@ namespace AAEmu.Game.Core.Managers
             var objId = ObjectIdManager.Instance.GetNextId();
             
             var spawnPos = owner.Transform.CloneDetached();
+            var spawnOffsetPos = new Vector3();
             
             // Replacing the position with the new coordinates from the method call parameters
             
@@ -208,6 +229,10 @@ namespace AAEmu.Game.Core.Managers
                     // temporary grab ship information so that we can use it to find a suitable spot in front to summon it
                     var tempShipModel = ModelManager.Instance.GetShipModel(slaveTemplate.ModelId);
                     var minDepth = tempShipModel.MassBoxSizeZ - tempShipModel.MassCenterZ + 1f;
+                    
+                    // Somehow take into account where the ship will end up related to it's mass center (also check boat physics)
+                    spawnOffsetPos.Z += (tempShipModel.MassCenterZ < 0f ? (tempShipModel.MassCenterZ / 2f) : 0f) - tempShipModel.KeelHeight;
+                    
                     for (var inFront = 0f; inFront < (50f + tempShipModel.MassBoxSizeX); inFront += 1f)
                     {
                         var depthCheckPos = spawnPos.CloneDetached();
@@ -224,6 +249,7 @@ namespace AAEmu.Game.Core.Managers
                             }
                         }
                     }
+                    spawnPos.Local.Position += spawnOffsetPos;
                 }
                 else
                 {
@@ -393,13 +419,18 @@ namespace AAEmu.Game.Core.Managers
             _tlSlaves.Add(template.TlId, template);
             _activeSlaves.Add(owner.ObjId, template);
 
-            if (slaveTemplate.IsABoat())
-                BoatPhysicsManager.Instance.AddShip(template);
+            if (template.Template.IsABoat())
+            {
+                var world = WorldManager.Instance.GetWorld(owner.Transform.WorldId);
+                world.Physics.AddShip(template);
+            }
 
             owner.SendPacket(new SCMySlavePacket(template.ObjId, template.TlId, template.Name, template.TemplateId,
                 template.Hp, template.Mp,
-                template.Transform.World.Position.X, template.Transform.World.Position.Y,
-                template.Transform.World.Position.Z));
+                template.Transform.World.Position.X,
+                template.Transform.World.Position.Y,
+                template.Transform.World.Position.Z
+                ));
         }
 
         public void LoadSlaveAttachmentPointLocations()
