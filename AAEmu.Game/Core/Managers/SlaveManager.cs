@@ -39,6 +39,11 @@ namespace AAEmu.Game.Core.Managers
         public Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> _attachPoints;
         public Dictionary<uint, List<SlaveInitialItems>> _slaveInitialItems; // PackId and List<Slot/ItemData>
 
+        public bool Exist(uint templateId)
+        {
+            return _slaveTemplates.ContainsKey(templateId);
+        }
+        
         public SlaveTemplate GetSlaveTemplate(uint id)
         {
             return _slaveTemplates.ContainsKey(id) ? _slaveTemplates[id] : null;
@@ -175,7 +180,13 @@ namespace AAEmu.Game.Core.Managers
             var itemTemplate = (SummonSlaveTemplate)ItemManager.Instance.GetTemplate(item.TemplateId);
             if (itemTemplate == null) return;
 
-            var slaveTemplate = GetSlaveTemplate(itemTemplate.SlaveId);
+            Create(owner, itemTemplate.SlaveId, item, hideSpawnEffect, positionOverride); // TODO replace the underlying code with this call
+        }
+
+        // added "/slave spawn <templateId>" to be called from the script command
+        public void Create(Character owner, uint templateId, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
+        {
+            var slaveTemplate = GetSlaveTemplate(templateId);
             if (slaveTemplate == null) return;
 
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
@@ -300,10 +311,10 @@ namespace AAEmu.Game.Core.Managers
                 doodad.FuncGroupId = doodad.GetFuncGroupId();
                 doodad.Transform = template.Transform.CloneAttached(doodad);
                 doodad.Transform.Parent = template.Transform;
-                
+
                 // NOTE: In 1.2 we can't replace slave parts like sail, so just apply it to all of the doodads on spawn)
                 // Should probably have a check somewhere if a doodad can have the UCC applied or not
-                if (item.HasFlag(ItemFlag.HasUCC) && (item.UccId > 0))
+                if (item != null && item.HasFlag(ItemFlag.HasUCC) && (item.UccId > 0))
                     doodad.UccId = item.UccId;
 
                 if (_attachPoints.ContainsKey(template.ModelId))

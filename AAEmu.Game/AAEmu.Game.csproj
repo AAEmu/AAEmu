@@ -60,6 +60,10 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Compile Remove="Scripts\Commands\SlaveCmd.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Discord.Net" Version="3.7.2" />
         <PackageReference Include="Jace" Version="0.9.2" />
         <PackageReference Include="Jitter.Core" Version="0.2.0" />
@@ -88,6 +92,9 @@
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
       <None Update="Scripts\Commands\ItemCmd.cs">
+        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      </None>
+      <None Update="Scripts\Commands\SlaveCmd.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
       <None Update="Scripts\Commands\NpcCmd.cs">
