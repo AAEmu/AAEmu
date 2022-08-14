@@ -451,7 +451,24 @@ namespace AAEmu.Game.Core.Managers.World
         public void LoadWaterBodies()
         {
             foreach (var world in _worlds.Values)
-                LoadWaterBodiesFromClientData(world);
+            {
+                var loadFromClient = true;
+                
+                // Try to load from saved json data
+                var customFile = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "water_bodies.json");
+                if (File.Exists(customFile))
+                {
+                    if (WaterBodies.Load(customFile, out var newWater))
+                    {
+                        world.Water = newWater;
+                        loadFromClient = false;
+                    }
+                }
+
+                // If no custom data could be found or loaded, then load from client's cell data
+                if (loadFromClient)
+                    LoadWaterBodiesFromClientData(world);
+            }
         }
 
         public InstanceWorld GetWorld(uint worldId)

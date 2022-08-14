@@ -41,17 +41,30 @@ namespace AAEmu.Game.Utils.Scripts
 
         private static void OnLoad()
         {
+            var hasErrors = false;
             _scriptsObjects.Clear();
             var types = _assembly.GetTypes();
             foreach (var type in types)
             {
                 if (type.IsNested)
                     continue;
-                var obj = Activator.CreateInstance(type);
-                var script = new ScriptObject(type, obj);
-                _scriptsObjects.Add(script.Name, script);
-                script.Invoke("OnLoad");
+                try
+                {
+                    var obj = Activator.CreateInstance(type);
+                    var script = new ScriptObject(type, obj);
+                    _scriptsObjects.Add(script.Name, script);
+                    script.Invoke("OnLoad");
+                }
+                catch (Exception e)
+                {
+                    hasErrors = true;
+                    _log.Error($"Error in {type}");
+                    _log.Error(e);
+                }
             }
+            if (hasErrors)
+                _log.Warn($"There were some errors when compiling the user scripts !");
+                // throw new Exception("There were errors in the user scripts !");
         }
 
         public static bool CompileScripts(out Assembly assembly)

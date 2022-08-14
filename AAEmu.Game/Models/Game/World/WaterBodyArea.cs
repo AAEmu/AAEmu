@@ -1,22 +1,44 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
-using AAEmu.Game.Models.Game.World.Transform;
-using Jitter.LinearMath;
+using Newtonsoft.Json;
 
 namespace AAEmu.Game.Models.Game.World;
 
 public class WaterBodyArea
 {
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public uint Id { get; set; }
-    public List<Vector3> Points { get; set; }
+    
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public float Height { get; set; }
+    
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public string Name { get; set; }
+    
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public string Guid { get; set; }
+
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+    public int WaterType { get; set; }
+    
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public Vector3 Direction { get; set; } = Vector3.Zero;
-    private RectangleF _boundingBox = RectangleF.Empty;
-    private float _lowest;
-    private float _heighest;
+    
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+    public List<Vector3> Points { get; set; }
+    
+    [JsonIgnore]
+    public RectangleF _boundingBox = RectangleF.Empty;
+    [JsonIgnore]
+    public float _lowest;
+    [JsonIgnore]
+    public float _heighest;
+
+    public WaterBodyArea()
+    {
+        Points = new List<Vector3>();
+    }
 
     public WaterBodyArea(string name)
     {
@@ -60,59 +82,44 @@ public class WaterBodyArea
         _heighest = 0f;
         _lowest = 0f;
         var first = true;
+
+        var xMin = 0f;
+        var yMin = 0f;
+        var xMax = 0f;
+        var yMax = 0f;
+        
         foreach (var point in Points)
         {
             // Just take the first point
             if (first)
             {
                 first = false;
-                _boundingBox.X = point.X;
-                _boundingBox.Y = point.Y;
-                _boundingBox.Width = 0f;
-                _boundingBox.Height = 0f;
+                xMin = point.X;
+                yMin = point.Y;
+                xMax = point.X;
+                yMax = point.Y;
                 _lowest = point.Z;
                 _heighest = _lowest;
             }
             else
             {
-                // Expand as needed
-                // X
-                if (point.X < _boundingBox.X)
-                {
-                    var off = _boundingBox.X - point.X;
-                    _boundingBox.X = point.X;
-                    _boundingBox.Width += off;
-                }
-                
-                if (point.X > _boundingBox.Right)
-                {
-                    var off = point.X - _boundingBox.Right;
-                    _boundingBox.Width += off;
-                }
-
-                // Y
-                if (point.Y < _boundingBox.Y)
-                {
-                    var off = _boundingBox.Y - point.Y;
-                    _boundingBox.Y = point.Y;
-                    _boundingBox.Height += off;
-                }
-                
-                if (point.Y > _boundingBox.Top)
-                {
-                    var off = point.Y - _boundingBox.Top;
-                    _boundingBox.Height += off;
-                }
+                if (point.X < xMin)
+                    xMin = point.X;
+                if (point.X > xMax)
+                    xMax = point.X;
+                if (point.Y < yMin)
+                    yMin = point.Y;
+                if (point.Y > yMax)
+                    yMax = point.Y;
                 
                 // Z
                 if (point.Z > _heighest)
                     _heighest = point.Z;
-                
                 if (point.Z < _lowest)
                     _lowest = point.Z;
             }
         }
-        
+        _boundingBox = new RectangleF(xMin, yMin, xMax - xMin, yMax - yMin);
     }
     
     private bool AreLinesIntersecting(Vector2 v1Start, Vector2 v1End, Vector2 v2Start, Vector2 v2End)
@@ -194,5 +201,11 @@ public class WaterBodyArea
         }
 
         return ((intersections & 1) == 1);
+    }
+
+    public Vector3 GetCenter(bool atSurface)
+    {
+        var h = atSurface ? _heighest + Height : _lowest;
+        return new Vector3(_boundingBox.Left + (_boundingBox.Width / 2f), _boundingBox.Top + (_boundingBox.Height / 2f), h);
     }
 }
