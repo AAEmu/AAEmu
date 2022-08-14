@@ -92,7 +92,6 @@ namespace AAEmu.Game.Scripts.Commands
 
             lock (SelectedWorld.Water._lock)
             {
-
                 SelectedWater.UpdateBounds();
 
                 var centerDoodad = DoodadManager.Instance.Create(0, centerSurfaceDoodadId);

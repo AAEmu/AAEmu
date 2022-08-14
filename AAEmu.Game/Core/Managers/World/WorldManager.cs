@@ -1116,7 +1116,6 @@ namespace AAEmu.Game.Core.Managers.World
                             }
                         }
                     }
-
                 }
             }
 
