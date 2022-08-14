@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
@@ -17,7 +16,6 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
-using AAEmu.Game.Models.Game.Shipyard;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
@@ -411,6 +409,242 @@ namespace AAEmu.Game.Core.Managers
                 template.Hp, template.Mp,
                 template.Transform.World.Position.X, template.Transform.World.Position.Y,
                 template.Transform.World.Position.Z));
+        }
+
+        public Slave Create(SlaveSpawner spawner, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
+        {
+            var slaveTemplate = GetSlaveTemplate(spawner.UnitId);
+            if (slaveTemplate == null) return null;
+
+            var tlId = (ushort)TlIdManager.Instance.GetNextId();
+            var objId = ObjectIdManager.Instance.GetNextId();
+            
+            var slave = new Slave();
+            slave.TlId = tlId;
+            slave.ObjId = objId;
+            slave.TemplateId = slaveTemplate.Id;
+            slave.Name = slaveTemplate.Name;
+            slave.Level = (byte)slaveTemplate.Level;
+            slave.ModelId = slaveTemplate.ModelId;
+            slave.Template = slaveTemplate;
+            slave.Hp = 1;
+            slave.Mp = 1;
+            slave.ModelParams = new UnitCustomModelParams();
+            slave.Faction = FactionManager.Instance.GetFaction(slaveTemplate.FactionId);
+            slave.Id = 0; // TODO (previously set to 10 which prevented the use of the slave doodads 
+            slave.Summoner = new Character(new UnitCustomModelParams()); // ?
+            slave.SpawnTime = DateTime.UtcNow;
+
+            slave.Transform.ApplyWorldSpawnPosition(spawner.Position);
+            if (slave.Transform == null)
+            {
+                _log.Error($"Can't spawn slave {spawner.UnitId}");
+                return null;
+            }
+
+            var spawnPos = slave.Transform;
+            
+            // Replacing the position with the new coordinates from the method call parameters
+            
+            if (positionOverride != null)
+            {
+                // If manually defined a spawn location (i.e. created from ShipYard), use that location instead
+                spawnPos = positionOverride.CloneDetached();
+            }
+            else
+            {
+                // If no spawn position override has been provided, then handle normal spawning algorithm
+
+                // owner.SendMessage("SlaveSpawnOffset: x:{0} y:{1}", slaveTemplate.SpawnXOffset, slaveTemplate.SpawnYOffset);
+                //spawnPos.Local.AddDistanceToFront(Math.Clamp(slaveTemplate.SpawnYOffset, 5f, 50f));
+                // INFO: Seems like X offset is defined as the size of the vehicle summoned, but visually it's nicer if we just ignore this 
+                // spawnPos.Local.AddDistanceToRight(slaveTemplate.SpawnXOffset);
+                if (slaveTemplate.IsABoat())
+                {
+                    // If we're spawning a boat, put it at the water level regardless of our own height
+                    // TODO: if not at ocean level, get actual target location water body height (for example rivers)
+                    var worldWaterLevel = WorldManager.Instance.GetWorld(spawnPos.WorldId)?.OceanLevel ?? 100f;
+                    spawnPos.Local.SetHeight(worldWaterLevel);
+
+                    // temporary grab ship information so that we can use it to find a suitable spot in front to summon it
+                    var tempShipModel = ModelManager.Instance.GetShipModel(slaveTemplate.ModelId);
+                    var minDepth = tempShipModel.MassBoxSizeZ - tempShipModel.MassCenterZ + 1f;
+                    for (var inFront = 0f; inFront < (50f + tempShipModel.MassBoxSizeX); inFront += 1f)
+                    {
+                        var depthCheckPos = spawnPos.CloneDetached();
+                        depthCheckPos.Local.AddDistanceToFront(inFront);
+                        var h = WorldManager.Instance.GetHeight(depthCheckPos);
+                        if (h > 0f)
+                        {
+                            var d = worldWaterLevel - h;
+                            if (d > minDepth)
+                            {
+                                //owner.SendMessage("Extra inFront = {0}, required Depth = {1}", inFront, minDepth);
+                                spawnPos = depthCheckPos.CloneDetached();
+                                break;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // If a land vehicle, put it a the ground level of it's target spawn location
+                    // TODO: check for maximum height difference for summoning
+                    var h = WorldManager.Instance.GetHeight(spawnPos);
+                    if (h > 0f)
+                        spawnPos.Local.SetHeight(h);
+                }
+
+                // Always spawn horizontal(level) and 90° CCW of the player
+                //spawnPos.Local.SetRotation(0f, 0f, slave.Transform.World.Rotation.Z + (MathF.PI / 2)); 
+            }
+
+            // TODO
+            slave.BroadcastPacket(new SCSlaveCreatedPacket(slave.ObjId, tlId, objId, hideSpawnEffect, 0, slave.Name), true);
+
+            if (_slaveInitialItems.TryGetValue(slave.Template.SlaveInitialItemPackId, out var itemPack))
+            {
+                foreach (var initialItem in itemPack)
+                {
+                    // var newItem = new Item(WorldManager.DefaultWorldId,ItemManager.Instance.GetTemplate(initialItem.itemId),1);
+                    var newItem = ItemManager.Instance.Create(initialItem.itemId, 1, 0, false);
+                    slave.Equipment.AddOrMoveExistingItem(ItemTaskType.Invalid, newItem, initialItem.equipSlotId);
+                }
+            }
+
+            foreach (var buff in slave.Template.InitialBuffs)
+            {
+                slave.Buffs.AddBuff(buff.BuffId, slave);
+            }
+
+            slave.Hp = slave.MaxHp;
+            slave.Mp = slave.MaxMp;
+
+            slave.Transform = spawnPos.CloneDetached(slave);
+            slave.Spawn();
+
+            // TODO - DOODAD SERVER SIDE
+            foreach (var doodadBinding in slave.Template.DoodadBindings)
+            {
+                var doodad = new Doodad();
+                doodad.ObjId = ObjectIdManager.Instance.GetNextId();
+                doodad.TemplateId = doodadBinding.DoodadId;
+                doodad.OwnerObjId = slave.ObjId;
+                doodad.ParentObjId = slave.ObjId;
+                doodad.AttachPoint = doodadBinding.AttachPointId;
+                doodad.OwnerId = slave.Id;
+                doodad.PlantTime = DateTime.UtcNow;
+                doodad.OwnerType = DoodadOwnerType.Slave;
+                doodad.DbHouseId = slave.Id;
+                doodad.Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId);
+                doodad.Data = (byte)doodadBinding.AttachPointId;
+                doodad.ParentObj = slave;
+
+                doodad.SetScale(doodadBinding.Scale);
+
+                doodad.FuncGroupId = doodad.GetFuncGroupId();
+                doodad.Transform = slave.Transform.CloneAttached(doodad);
+                doodad.Transform.Parent = slave.Transform;
+
+                // NOTE: In 1.2 we can't replace slave parts like sail, so just apply it to all of the doodads on spawn)
+                // Should probably have a check somewhere if a doodad can have the UCC applied or not
+                if (item != null && item.HasFlag(ItemFlag.HasUCC) && (item.UccId > 0))
+                    doodad.UccId = item.UccId;
+
+                if (_attachPoints.ContainsKey(slave.ModelId))
+                {
+                    if (_attachPoints[slave.ModelId].ContainsKey(doodadBinding.AttachPointId))
+                    {
+                        doodad.Transform = slave.Transform.CloneAttached(doodad);
+                        doodad.Transform.Parent = slave.Transform;
+                        doodad.Transform.Local.Translate(_attachPoints[slave.ModelId][doodadBinding.AttachPointId]
+                            .AsPositionVector());
+                        doodad.Transform.Local.SetRotation(
+                            _attachPoints[slave.ModelId][doodadBinding.AttachPointId].Roll,
+                            _attachPoints[slave.ModelId][doodadBinding.AttachPointId].Pitch,
+                            _attachPoints[slave.ModelId][doodadBinding.AttachPointId].Yaw);
+                        _log.Debug("Model id: {0} attachment {1} => pos {2} = {3}", slave.ModelId,
+                            doodadBinding.AttachPointId, _attachPoints[slave.ModelId][doodadBinding.AttachPointId],
+                            doodad.Transform);
+                    }
+                    else
+                    {
+                        _log.Warn("Model id: {0} incomplete attach point information", slave.ModelId);
+                    }
+                }
+                else
+                {
+                    doodad.Transform = new Transform(doodad);
+                    _log.Warn("Model id: {0} has no attach point information", slave.ModelId);
+                }
+
+                slave.AttachedDoodads.Add(doodad);
+
+                doodad.Spawn();
+            }
+
+            foreach (var slaveBinding in slave.Template.SlaveBindings)
+            {
+                var childSlaveTemplate = GetSlaveTemplate(slaveBinding.SlaveId);
+                var ctlId = (ushort)TlIdManager.Instance.GetNextId();
+                var cobjId = ObjectIdManager.Instance.GetNextId();
+                var childSlave = new Slave();
+                childSlave.TlId = ctlId;
+                childSlave.ObjId = cobjId;
+                childSlave.ParentObj = slave;
+                childSlave.TemplateId = childSlaveTemplate.Id;
+                childSlave.Name = childSlaveTemplate.Name;
+                childSlave.Level = (byte)childSlaveTemplate.Level;
+                childSlave.ModelId = childSlaveTemplate.ModelId;
+                childSlave.Template = childSlaveTemplate;
+                childSlave.Hp = 1;
+                childSlave.Mp = 1;
+                childSlave.ModelParams = new UnitCustomModelParams();
+                childSlave.Faction = slave.Faction;
+                childSlave.Id = 11; // TODO
+                childSlave.Summoner = slave.Summoner;
+                childSlave.SpawnTime = DateTime.UtcNow;
+                childSlave.AttachPointId = (sbyte)slaveBinding.AttachPointId;
+                childSlave.OwnerObjId = slave.ObjId;
+                childSlave.Hp = childSlave.MaxHp;
+                childSlave.Mp = childSlave.MaxMp;
+                childSlave.Transform = spawnPos.CloneDetached(childSlave);
+                childSlave.Transform.Parent = slave.Transform;
+
+                if (_attachPoints.ContainsKey(slave.ModelId))
+                {
+                    if (_attachPoints[slave.ModelId].ContainsKey(slaveBinding.AttachPointId))
+                    {
+                        var attachPoint = _attachPoints[slave.ModelId][slaveBinding.AttachPointId];
+                        // childSlave.AttachPosition = _attachPoints[template.ModelId][(int) slaveBinding.AttachPointId];
+                        childSlave.Transform = slave.Transform.CloneAttached(childSlave);
+                        childSlave.Transform.Parent = slave.Transform;
+                        childSlave.Transform.Local.Translate(attachPoint.AsPositionVector());
+                        childSlave.Transform.Local.Rotate(attachPoint.Roll, attachPoint.Pitch, attachPoint.Yaw);
+                    }
+                    else
+                    {
+                        _log.Warn("Model id: {0} incomplete attach point information");
+                    }
+                }
+
+                slave.AttachedSlaves.Add(childSlave);
+                _tlSlaves.Add(childSlave.TlId, childSlave);
+                childSlave.Spawn();
+            }
+
+            _tlSlaves.Add(slave.TlId, slave);
+            _activeSlaves.Add(slave.ObjId, slave);
+
+            if (slaveTemplate.IsABoat())
+                BoatPhysicsManager.Instance.AddShip(slave);
+
+            slave.SendPacket(new SCMySlavePacket(slave.ObjId, slave.TlId, slave.Name, slave.TemplateId,
+                slave.Hp, slave.Mp,
+                slave.Transform.World.Position.X, slave.Transform.World.Position.Y,
+                slave.Transform.World.Position.Z));
+
+            return slave;
         }
 
         public void LoadSlaveAttachmentPointLocations()

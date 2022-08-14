@@ -37,6 +37,7 @@ namespace AAEmu.Game.Models.Game.Units
         public sbyte AttachPointId { get; set; } = -1;
         public uint OwnerObjId { get; set; }
         public RigidBody RigidBody { get; set; }
+        public SlaveSpawner Spawner { get; set; }
 
         public Slave()
         {
