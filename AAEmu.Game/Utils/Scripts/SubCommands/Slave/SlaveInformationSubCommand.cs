@@ -3,7 +3,6 @@ using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.NPChar;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.Slave
 {
@@ -20,36 +19,36 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.Slave
 
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
-            Npc npc;
-            if (parameters.TryGetValue("ObjId", out ParameterValue npcObjId))
+            Models.Game.Units.Slave slave;
+            if (parameters.TryGetValue("ObjId", out ParameterValue objId))
             {
-                npc = WorldManager.Instance.GetNpc(npcObjId);
-                if (npc is null)
+                slave = (Models.Game.Units.Slave)WorldManager.Instance.GetGameObject(objId);
+                if (slave is null)
                 {
-                    SendColorMessage(character, Color.Red, "Slave with objId {0} does not exist |r", npcObjId);
+                    SendColorMessage(character, Color.Red, "Slave with objId {0} does not exist |r", objId);
                     return;
                 }
             }
             else
             {
                 var currentTarget = ((Character)character).CurrentTarget;
-                if (currentTarget is null || !(currentTarget is Npc))
+                if (currentTarget is null || !(currentTarget is Models.Game.Units.Slave))
                 {
                     SendColorMessage(character, Color.Red, "You need to target a Slave first");
                     return;
                 }
-                npc = (Npc)currentTarget;
+                slave = (Models.Game.Units.Slave) currentTarget;
             }
 
-            var x = npc.Transform.Local.Position.X;
-            var y = npc.Transform.Local.Position.Y;
-            var z = npc.Transform.Local.Position.Z;
-            var yaw = npc.Transform.Local.Rotation.Z.RadToDeg();
-            var pitch = npc.Transform.Local.Rotation.Y.RadToDeg();
-            var roll = npc.Transform.Local.Rotation.X.RadToDeg();
+            var x = slave.Transform.Local.Position.X;
+            var y = slave.Transform.Local.Position.Y;
+            var z = slave.Transform.Local.Position.Z;
+            var yaw = slave.Transform.Local.Rotation.Z.RadToDeg();
+            var pitch = slave.Transform.Local.Rotation.Y.RadToDeg();
+            var roll = slave.Transform.Local.Rotation.X.RadToDeg();
 
             //TODO: There is much more potential information to show on this command.
-            SendMessage(character, $"Name:@NPC_NAME({npc.TemplateId}) ObjId:{npc.ObjId} TemplateId:{npc.TemplateId}, x:{x}, y:{y}, z:{z}, roll:{roll:0.#}°, pitch:{pitch:0.#}°, yaw:{yaw:0.#}°");
+            SendMessage(character, $"Name:@NPC_NAME({slave.TemplateId}) ObjId:{slave.ObjId} TemplateId:{slave.TemplateId}, x:{x}, y:{y}, z:{z}, roll:{roll:0.#}°, pitch:{pitch:0.#}°, yaw:{yaw:0.#}°");
         }
     }
 }

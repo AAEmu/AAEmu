@@ -2,10 +2,7 @@
 using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.Slave
 {
@@ -28,56 +25,40 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.Slave
 
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
-            Npc npc;
-            if (parameters.TryGetValue("ObjId", out ParameterValue npcObjId))
+            Models.Game.Units.Slave slave;
+            if (parameters.TryGetValue("ObjId", out ParameterValue objId))
             {
-                npc = WorldManager.Instance.GetNpc(npcObjId);
-                if (npc is null)
+                slave = (Models.Game.Units.Slave)WorldManager.Instance.GetGameObject(objId);
+                if (slave is null)
                 {
-                    SendColorMessage(character, Color.Red, "Slave with objId {0} does not exist |r", npcObjId);
+                    SendColorMessage(character, Color.Red, "Slave with objId {0} does not exist |r", objId);
                     return;
                 }
             }
             else
             {
                 var currentTarget = ((Character)character).CurrentTarget;
-                if (currentTarget is null || !(currentTarget is Npc))
+                if (currentTarget is null || !(currentTarget is Models.Game.Units.Slave))
                 {
                     SendColorMessage(character, Color.Red, "You need to target a Slave first");
                     return;
                 }
-                npc = (Npc)currentTarget;
+                slave = (Models.Game.Units.Slave) currentTarget;
             }
 
-            var x = GetOptionalParameterValue(parameters, "x", npc.Transform.Local.Position.X);
-            var y = GetOptionalParameterValue(parameters, "y", npc.Transform.Local.Position.Y);
-            var z = GetOptionalParameterValue(parameters, "z", npc.Transform.Local.Position.Z);
-            var yaw = GetOptionalParameterValue(parameters, "yaw", npc.Transform.Local.Rotation.Z.RadToDeg()).DegToRad();
-            var pitch = GetOptionalParameterValue(parameters, "pitch", npc.Transform.Local.Rotation.Y.RadToDeg()).DegToRad();
-            var roll = GetOptionalParameterValue(parameters, "roll", npc.Transform.Local.Rotation.X.RadToDeg()).DegToRad();
+            var x = GetOptionalParameterValue(parameters, "x", slave.Transform.Local.Position.X);
+            var y = GetOptionalParameterValue(parameters, "y", slave.Transform.Local.Position.Y);
+            var z = GetOptionalParameterValue(parameters, "z", slave.Transform.Local.Position.Z);
+            var yaw = GetOptionalParameterValue(parameters, "yaw", slave.Transform.Local.Rotation.Z.RadToDeg()).DegToRad();
+            var pitch = GetOptionalParameterValue(parameters, "pitch", slave.Transform.Local.Rotation.Y.RadToDeg()).DegToRad();
+            var roll = GetOptionalParameterValue(parameters, "roll", slave.Transform.Local.Rotation.X.RadToDeg()).DegToRad();
 
-            SendMessage(character, "Npc ObjId:{0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, roll:{5:0.#}°, pitch:{6:0.#}°, yaw:{7:0.#}°", 
-                npc.ObjId, npc.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());
+            SendMessage(character, "Slave ObjId:{0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, roll:{5:0.#}°, pitch:{6:0.#}°, yaw:{7:0.#}°", 
+                slave.ObjId, slave.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());
             
-            npc.Transform.Local.SetPosition(x, y, z, roll, pitch, yaw);
-            var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
-            moveType.X = x;
-            moveType.Y = y;
-            moveType.Z = z;
-            var npcRot = npc.Transform.Local.ToRollPitchYawSBytes();
-            moveType.RotationX = npcRot.Item1;
-            moveType.RotationY = npcRot.Item2;
-            moveType.RotationZ = npcRot.Item3;
-
-            moveType.Flags = 5;
-            moveType.DeltaMovement = new sbyte[3];
-            moveType.DeltaMovement[0] = 0;
-            moveType.DeltaMovement[1] = 0;
-            moveType.DeltaMovement[2] = 0;
-            moveType.Stance = 1;    // combat=0, idle=1
-            moveType.Alertness = 0; // idle=0, combat=2
-            moveType.Time += 50;    // has to change all the time for normal motion.
-            character.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
+            slave.Transform.Local.SetPosition(x, y, z, roll, pitch, yaw);
+            slave.Hide();
+            slave.Show();
         }
     }
 }

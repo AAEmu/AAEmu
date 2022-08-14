@@ -11,22 +11,22 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.Slave
     {
         public SlaveRemoveSubCommand()
         {
-            Title = "[Npc Remove]";
-            Description = "Remove a targeted npc or using an npc <ObjId>";
-            CallPrefix = $"{CommandManager.CommandPrefix}npc remove";
+            Title = "[Slave Remove]";
+            Description = "Remove a targeted slave or using an slave <ObjId>";
+            CallPrefix = $"{CommandManager.CommandPrefix}slave remove";
             AddParameter(new StringSubCommandParameter("target", "target", true, "target", "id"));
             AddParameter(new NumericSubCommandParameter<uint>("ObjId", "object id", false));
         }
 
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
-            Npc npc;
-            if (parameters.TryGetValue("ObjId", out ParameterValue npcObjId)) 
+            Models.Game.Units.Slave slave;
+            if (parameters.TryGetValue("ObjId", out ParameterValue objId)) 
             { 
-                npc = WorldManager.Instance.GetNpc(npcObjId);
-                if (npc is null)
+                slave = (Models.Game.Units.Slave)WorldManager.Instance.GetGameObject(objId);
+                if (slave is null)
                 {
-                    SendColorMessage(character, Color.Red, "Npc with objId {0} does not exist |r", npcObjId);
+                    SendColorMessage(character, Color.Red, "Slave with objId {0} does not exist |r", objId);
                     return;
                 }
             }
@@ -35,17 +35,16 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.Slave
                 var currentTarget = ((Character)character).CurrentTarget;
                 if (currentTarget is null || !(currentTarget is Npc))
                 {
-                    SendColorMessage(character, Color.Red, "You need to target a Npc first");
+                    SendColorMessage(character, Color.Red, "You need to target a Slave first");
                     return;
                 }
-                npc = (Npc)currentTarget;
+                slave = (Models.Game.Units.Slave) currentTarget;
             }
 
-            // Remove Npc
-            //npc.Spawner.Despawn(npc);
-            npc.Spawner.Id = 0xffffffff; // removed from the game manually (укажем, что не надо сохранять в файл npc_spawns_new.json командой /save all)
-            npc.Hide();
-            SendMessage(character, $"Npc @NPC_NAME({npc.TemplateId}), ObjId: {npc.ObjId}, TemplateId:{npc.TemplateId} removed successfuly");
+            // Remove Slave
+            slave.Spawner.Id = 0xffffffff; // removed from the game manually (укажем, что не надо сохранять в файл npc_spawns_new.json командой /save all)
+            slave.Hide();
+            SendMessage(character, $"Slave @NPC_NAME({slave.TemplateId}), ObjId: {slave.ObjId}, TemplateId:{slave.TemplateId} removed successfuly");
         }
     }
 }

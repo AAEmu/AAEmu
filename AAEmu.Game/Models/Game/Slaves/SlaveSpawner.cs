@@ -32,17 +32,17 @@ namespace AAEmu.Game.Models.Game.Slaves
             return _lastSpawn;
         }
 
-        public override void Despawn(Slave npc)
+        public override void Despawn(Slave slave)
         {
-            npc.Delete();
-            if (npc.Respawn == DateTime.MinValue)
+            slave.Delete();
+            if (slave.Respawn == DateTime.MinValue)
             {
-                _spawned.Remove(npc);
-                ObjectIdManager.Instance.ReleaseId(npc.ObjId);
+                _spawned.Remove(slave);
+                ObjectIdManager.Instance.ReleaseId(slave.ObjId);
                 _spawnCount--;
             }
 
-            if (_lastSpawn == null || _lastSpawn.ObjId == npc.ObjId)
+            if (_lastSpawn == null || _lastSpawn.ObjId == slave.ObjId)
             {
                 _lastSpawn = _spawned.Count != 0 ? _spawned[^1] : null;
             }
