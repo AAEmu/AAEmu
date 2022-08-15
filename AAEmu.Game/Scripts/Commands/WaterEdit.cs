@@ -22,6 +22,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public static WaterBodyArea SelectedWater { get; set; }
         public static World SelectedWorld { get; set; }
+		public static int NextPoint { get; set; }
         public List<(WaterBodyArea, float)> NearbyList = new List<(WaterBodyArea, float)>();
         public List<BaseUnit> Markers = new List<BaseUnit>();
         
@@ -223,6 +224,7 @@ namespace AAEmu.Game.Scripts.Commands
                     if ((area.Name.ToLower() == selectName) || (area.Id.ToString() == selectName))
                     {
                         SelectedWater = area;
+						NextPoint = 0;
                         break;
                     }
                 }
@@ -236,6 +238,7 @@ namespace AAEmu.Game.Scripts.Commands
                         if (area.Name.ToLower().Contains(selectName))
                         {
                             SelectedWater = area;
+							NextPoint = 0;
                             break;
                         }
                     }
@@ -340,6 +343,7 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         SelectedWater = area;
                         SelectedWorld = world;
+						NextPoint = 0;
                         break;
                     }
 
@@ -362,17 +366,15 @@ namespace AAEmu.Game.Scripts.Commands
                     return;
                 }
 
-                if (args.Length <= 1)
-                {
-                    character.SendMessage($"|cFFFF0000[WaterEdit] No point index provided!|r");
-                    return;
-                }
-
-                if (!int.TryParse(args[1], out var pointIndex))
-                {
-                    character.SendMessage($"|cFFFFFFFF[WaterEdit] Error parsing point index!|r");
-                    return;
-                }
+				var pointIndex = NextPoint ;
+                if (args.Length > 1)
+				{
+					if (!int.TryParse(args[1], out pointIndex))
+					{
+						character.SendMessage($"|cFFFFFFFF[WaterEdit] Error parsing point index!|r");
+						return;
+					}
+				}
 
                 if ((pointIndex >= SelectedWater.Points.Count - 1) || (pointIndex < 0))
                 {
@@ -387,6 +389,7 @@ namespace AAEmu.Game.Scripts.Commands
                     if (pointIndex == 0)
                         SelectedWater.Points[^1] = newPos;
                 }
+				NextPoint = pointIndex + 1;
 
                 ShowSelectedArea(character);
                 character.SendMessage($"[WaterEdit] |cFFFFFFFF{SelectedWater.Name} #{pointIndex}|r moved to set to |cFF00FF00{newPos}|r");
@@ -529,6 +532,7 @@ namespace AAEmu.Game.Scripts.Commands
                 }
                 SelectedWater = newBody;
                 SelectedWorld = world;
+				NextPoint = 0;
                 
                 ShowSelectedArea(character);
                 
