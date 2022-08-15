@@ -25,12 +25,17 @@ namespace AAEmu.Game.Models.Game.World
         public List<uint> ZoneKeys { get; set; } = new List<uint>();
         public ConcurrentDictionary<uint, XmlWorldZone> XmlWorldZones;
 
-        public BoatPhysicsManager Physics;
+        public BoatPhysicsManager Physics { get; set; }
+        public WaterBodies Water { get; set; }
 
         public bool IsWater(Vector3 point)
         {
+            if (Water != null)
+                return Water.IsWater(point);
+            
             if (point.Z <= OceanLevel)
                 return true;
+            
             // TODO: Check shapes
             return false;
         }

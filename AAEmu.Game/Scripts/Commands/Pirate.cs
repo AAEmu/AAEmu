@@ -28,7 +28,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Faction] " + CommandManager.CommandPrefix + "faction <nuian||haranyan||elf||firran||pirate>");
+                character.SendMessage("[Faction] " + CommandManager.CommandPrefix + "faction <nuian||haranyan||elf||firran||pirate||friendly>");
                 return;
             }
 
@@ -49,6 +49,8 @@ namespace AAEmu.Game.Scripts.Commands
                 newFactionId = 159u;
             else if (factionString == "blue")
                 newFactionId = 160u;
+            else if (factionString == "friendly")
+                newFactionId = 1u;
             else
             {
                 character.SendMessage("Invalid faction");
