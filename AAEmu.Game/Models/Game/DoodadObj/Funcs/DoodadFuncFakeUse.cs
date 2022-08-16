@@ -56,16 +56,16 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 }
 
                 //if (FakeSkillId == skillId && nextPhase > 0)
-                if (nextPhase > 0) // TODO не работал квест ID=3357, Harvest the Cotton
+                if (nextPhase > 0) // TODO quest ID=3357, Harvest the Cotton didn't work
                 {
                     owner.ToNextPhase = true;
-                    // удалил дублирующий вызов скила
+                    // Removed the duplicate skill call
                 }
             }
 
             if (FakeSkillId == 0 && SkillId == 0)
             {
-                owner.ToNextPhase = true; // TODO иначе не работал квест ID=1970, Stolen Glory
+                owner.ToNextPhase = true; // TODO otherwise quest ID=1970, Stolen Glory didn't work
             }
         }
     }
