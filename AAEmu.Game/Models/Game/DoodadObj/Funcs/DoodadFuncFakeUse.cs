@@ -62,6 +62,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     // удалил дублирующий вызов скила
                 }
             }
+
+            if (FakeSkillId == 0 && SkillId == 0)
+            {
+                owner.ToNextPhase = true; // TODO иначе не работал квест ID=1970, Stolen Glory
+            }
         }
     }
 }
