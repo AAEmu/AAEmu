@@ -51,6 +51,7 @@ namespace AAEmu.Game.Core.Managers.World
         private readonly ConcurrentDictionary<uint, AreaShape> _areaShapes;
         private readonly ConcurrentDictionary<uint, Transfer> _transfers;
         private readonly ConcurrentDictionary<uint, Gimmick> _gimmicks;
+        private readonly ConcurrentDictionary<uint, Slave> _slaves;
         private readonly ConcurrentDictionary<uint, IndunZone> _indunZones;
 
         public const int CELL_SIZE = 1024;
@@ -80,6 +81,7 @@ namespace AAEmu.Game.Core.Managers.World
             _areaShapes = new ConcurrentDictionary<uint, AreaShape>();
             _transfers = new ConcurrentDictionary<uint, Transfer>();
             _gimmicks = new ConcurrentDictionary<uint, Gimmick>();
+            _slaves = new ConcurrentDictionary<uint, Slave>();
             _indunZones = new ConcurrentDictionary<uint, IndunZone>();
         }
 
@@ -688,6 +690,8 @@ namespace AAEmu.Game.Core.Managers.World
                 _transfers.TryAdd(transfer.ObjId, transfer);
             if (obj is Gimmick gimmick)
                 _gimmicks.TryAdd(gimmick.ObjId, gimmick);
+            if (obj is Slave slave)
+                _slaves.TryAdd(slave.ObjId, slave);
         }
 
         public void RemoveObject(GameObject obj)
@@ -711,6 +715,8 @@ namespace AAEmu.Game.Core.Managers.World
                 _transfers.TryRemove(obj.ObjId, out _);
             if (obj is Gimmick)
                 _gimmicks.TryRemove(obj.ObjId, out _);
+            if (obj is Slave)
+                _slaves.TryRemove(obj.ObjId, out _);
         }
 
         public void AddVisibleObject(GameObject obj)
@@ -1008,6 +1014,14 @@ namespace AAEmu.Game.Core.Managers.World
         public List<Npc> GetAllNpcsFromWorld(uint worldId)
         {
             return _npcs.Values.Where(n => n.Transform.WorldId == worldId).ToList();
+        }
+        public List<Slave> GetAllSlaves()
+        {
+            return _slaves.Values.ToList();
+        }
+        public List<Slave> GetAllSlavesFromWorld(uint worldId)
+        {
+            return _slaves.Values.Where(n => n.Transform.WorldId == worldId).ToList();
         }
 
         public AreaShape GetAreaShapeById(uint id)

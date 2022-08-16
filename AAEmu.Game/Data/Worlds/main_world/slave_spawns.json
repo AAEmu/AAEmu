@@ -1,0 +1,47 @@
+[
+    {
+        "UnitId": 73, // Cotton Wagon
+        "Position": {
+            "X": 10535.5,
+            "Y": 9991.8,
+            "Z": 153.7,
+            "Yaw": 33.8
+        }
+     },
+	     {
+        "UnitId": 73, // Cotton Wagon
+        "Position": {
+            "X": 10506.0,
+            "Y": 9927.2,
+            "Z": 161.5,
+            "Yaw": -112.5
+        }
+     },
+	     {
+        "UnitId": 68, // Blueglass Human Cannon
+        "Position": {
+            "X": 8855.7,
+            "Y": 8219.2,
+            "Z": 154.1,
+            "Yaw": 157.5
+        }
+     },
+	     {
+        "UnitId": 68, // Blueglass Human Cannon
+        "Position": {
+            "X": 8853.3,
+            "Y": 8219.6,
+            "Z": 154.2,
+            "Yaw":157.5
+        }
+     },
+	     {
+        "UnitId": 68, // Blueglass Human Cannon
+        "Position": {
+            "X": 8851.2,
+            "Y": 8220.1,
+            "Z": 154.5,
+            "Yaw": 157.5
+        }
+     }
+]

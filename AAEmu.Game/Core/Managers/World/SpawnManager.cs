@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -39,6 +40,7 @@ namespace AAEmu.Game.Core.Managers.World
         private Dictionary<byte, Dictionary<uint, DoodadSpawner>> _doodadSpawners;
         private Dictionary<byte, Dictionary<uint, TransferSpawner>> _transferSpawners;
         private Dictionary<byte, Dictionary<uint, GimmickSpawner>> _gimmickSpawners;
+        private Dictionary<byte, Dictionary<uint, SlaveSpawner>> _slaveSpawners;
         private List<Doodad> _playerDoodads;
 
         private uint _nextId = 1u; // for spawner.Id
@@ -112,6 +114,7 @@ namespace AAEmu.Game.Core.Managers.World
             _doodadSpawners = new Dictionary<byte, Dictionary<uint, DoodadSpawner>>();
             _transferSpawners = new Dictionary<byte, Dictionary<uint, TransferSpawner>>();
             _gimmickSpawners = new Dictionary<byte, Dictionary<uint, GimmickSpawner>>();
+            _slaveSpawners = new Dictionary<byte, Dictionary<uint, SlaveSpawner>>();
             _playerDoodads = new List<Doodad>();
 
             var worlds = WorldManager.Instance.GetWorlds();
@@ -122,6 +125,7 @@ namespace AAEmu.Game.Core.Managers.World
                 _doodadSpawners.Add((byte)world.Id, new Dictionary<uint, DoodadSpawner>());
                 _transferSpawners.Add((byte)world.Id, new Dictionary<uint, TransferSpawner>());
                 _gimmickSpawners.Add((byte)world.Id, new Dictionary<uint, GimmickSpawner>());
+                _slaveSpawners.Add((byte)world.Id, new Dictionary<uint, SlaveSpawner>());
             }
             
             _log.Info("Loading spawns...");
@@ -130,6 +134,7 @@ namespace AAEmu.Game.Core.Managers.World
                 var doodadSpawners = new Dictionary<uint, DoodadSpawner>();
                 var transferSpawners = new Dictionary<uint, TransferSpawner>();
                 var gimmickSpawners = new Dictionary<uint, GimmickSpawner>();
+                var slaveSpawners = new Dictionary<uint, SlaveSpawner>();
                 var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name);
 
                 // Load NPC Spawns
@@ -269,6 +274,7 @@ namespace AAEmu.Game.Core.Managers.World
                     }
                 }
 
+                // Load Gimmicks
                 jsonFileName = Path.Combine(worldPath, "gimmick_spawns.json");
 
                 if (!File.Exists(jsonFileName))
@@ -313,9 +319,56 @@ namespace AAEmu.Game.Core.Managers.World
                     }
 
                 }
+
+                // Load Slaves
+                jsonFileName = Path.Combine(worldPath, "slave_spawns.json");
+
+                if (!File.Exists(jsonFileName))
+                {
+                    _log.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
+                }
+                else
+                {
+                    var contents = FileManager.GetFileContents(jsonFileName);
+                    
+                    if (string.IsNullOrWhiteSpace(contents))
+                    {
+                        _log.Warn($"File {jsonFileName} doesn't exists or is empty.");
+                    }
+                    else
+                    {
+                        if (JsonHelper.TryDeserializeObject(contents, out List<SlaveSpawner> spawners, out _))
+                        {
+                            var entry = 0;
+                            foreach (var spawner in spawners)
+                            {
+                                entry++;
+                                if (!SlaveManager.Instance.Exist(spawner.UnitId))
+                                {
+                                    _log.Warn($"Slave Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
+                                    continue; // TODO ... so mb warn here?
+                                }
+                                spawner.Id = _nextId;
+                                spawner.Position.WorldId = world.Id;
+                                spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                                if (!slaveSpawners.ContainsKey(_nextId))
+                                {
+                                    slaveSpawners.Add(_nextId, spawner);
+                                    _nextId++;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            throw new Exception($"SpawnManager: Parse {jsonFileName} file");
+                        }
+                    }
+
+                }
                 _doodadSpawners[(byte)world.Id] = doodadSpawners;
                 _transferSpawners[(byte)world.Id] = transferSpawners;
                 _gimmickSpawners[(byte)world.Id] = gimmickSpawners;
+                _slaveSpawners[(byte)world.Id] = slaveSpawners;
             }
 
             _log.Info("Loading persistent doodads...");
@@ -480,6 +533,26 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                     }
                     _log.Info("{0} Gimmicks spawned...", count);
+                });
+            }
+            
+            _log.Info("Spawning Slaves...");
+            foreach (var (worldId, worldSpawners) in _slaveSpawners)
+            {
+                Task.Run(() =>
+                {
+                    _log.Info("Spawning {0} Slaves in world {1}", worldSpawners.Count, worldId);
+                    var count = 0;
+                    foreach (var spawner in worldSpawners.Values)
+                    {
+                        spawner.Spawn(0);
+                        count++;
+                        if (count % 5 == 0 && worldId == 0)
+                        {
+                            _log.Info("{0} Slaves spawned...", count);
+                        }
+                    }
+                    _log.Info("{0} Slaves spawned...", count);
                 });
             }
 

@@ -4,7 +4,6 @@
 bin/
 obj/
 publish/
-**/compact.sqlite3
 **/hmap.dat
 **/Config.json
 *.old
@@ -15,3 +14,4 @@ publish/
 *.aelcf
 **/TestResults/
 /AAEmu.Game/Properties/PublishProfiles
+*.sqlite3

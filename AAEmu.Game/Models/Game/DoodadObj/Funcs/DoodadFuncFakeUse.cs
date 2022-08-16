@@ -55,7 +55,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     owner.ToNextPhase = true;
                 }
 
-                if (FakeSkillId == skillId && nextPhase > 0)
+                //if (FakeSkillId == skillId && nextPhase > 0)
+                if (nextPhase > 0) // TODO не работал квест ID=3357, Harvest the Cotton
                 {
                     owner.ToNextPhase = true;
                     // удалил дублирующий вызов скила

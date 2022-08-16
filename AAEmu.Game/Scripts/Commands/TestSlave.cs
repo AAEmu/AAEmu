@@ -29,8 +29,8 @@ namespace AAEmu.Game.Scripts.Commands
         {
             var slave = new Slave();
             slave.Summoner = character;
-            slave.TemplateId = 6;
-            slave.ModelId = 654;
+            slave.TemplateId = 73;
+            slave.ModelId = 1008;
             slave.ObjId = ObjectIdManager.Instance.GetNextId();
             slave.TlId = (ushort)TlIdManager.Instance.GetNextId();
             slave.Faction = FactionManager.Instance.GetFaction(143);
