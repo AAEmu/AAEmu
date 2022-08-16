@@ -226,7 +226,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (ToNextPhase)
             {
                 if (func.NextPhase == -1) { Delete(); } // Delete doodad
-                FuncGroupId = (uint)func.NextPhase;
+                if (OverridePhase > 0)
+                {
+                    FuncGroupId = (uint)OverridePhase;
+                    OverridePhase = 0;
+                }
+                else
+                {
+                    FuncGroupId = (uint)func.NextPhase;
+                }
             }
             else
             {
