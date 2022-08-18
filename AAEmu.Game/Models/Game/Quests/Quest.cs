@@ -95,7 +95,7 @@ namespace AAEmu.Game.Models.Game.Quests
         }
 
         public Quest(IQuestTemplate template) : this(
-		    template,
+            template,
             QuestManager.Instance,
             SphereQuestManager.Instance,
             TaskManager.Instance,
@@ -407,6 +407,12 @@ namespace AAEmu.Game.Models.Game.Quests
                     {
                         switch (act.DetailType)
                         {
+                            case "QuestActSupplyItem" when Step == QuestComponentKind.Progress:
+                                {
+                                    // if SupplyItem = 0, we get the item
+                                    complete = act.Use(Owner, this, SupplyItem); 
+                                    break;
+                                }
                             case "QuestActSupplyItem" when Step == QuestComponentKind.Supply:
                                 {
                                     complete = act.Use(Owner, this, SupplyItem);
@@ -450,9 +456,8 @@ namespace AAEmu.Game.Models.Game.Quests
                                     Owner.Quests.Complete(TemplateId, 0);
                                     return;
                                 }
-                                // компонент - выполнен, мы у нужного Npc (component - done, we're at the right Npc)
+                                // компонент - выполнен (component - done)
                                 Status = QuestStatus.Ready;
-                                //_log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                                 break;
                             case "QuestActConAutoComplete":
                                 // компонент - выполнен (component - ready)
@@ -501,7 +506,6 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     // TODO: added for quest Id=882.
                                     // ничего не делаем (We're not doing anything)
-                                    //_log.Warn($"[Quest] Update: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {completes[componentIndex]}, act.DetailType {act.DetailType}");
                                     break;
                                 }
                             case "QuestActObjItemGather":
@@ -866,6 +870,8 @@ namespace AAEmu.Game.Models.Game.Quests
                 Objectives[i] = 0;
         }
 
+        #region Events
+        
         public void OnReportToNpc(Npc npc, int selected)
         {
             var checking = false;
@@ -907,7 +913,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 break;
                             }
                     }
-                    _log.Warn("[Quest] OnReportToNpc: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
+                    _log.Warn($"[Quest] OnReportToNpc: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                 }
             }
             Update(checking);
@@ -939,7 +945,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 break;
                             }
                     }
-                    _log.Warn("[Quest] OnReportToDoodad: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
+                    _log.Warn($"[Quest] OnReportToDoodad: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                 }
             }
             Update(checking);
@@ -967,11 +973,11 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     checking = true;
                                     Objectives[componentIndex]++;
-                                    _log.Warn("[Quest] OnTalkMade: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
                                 }
                                 break;
                             }
                     }
+                    _log.Warn($"[Quest] OnTalkMade: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                 }
             }
             Update(checking);
@@ -999,7 +1005,6 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     checking = true;
                                     Objectives[componentIndex]++;
-                                    _log.Warn("[Quest] OnKill: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
                                 }
                                 break;
                             }
@@ -1010,11 +1015,11 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     checking = true;
                                     Objectives[componentIndex]++;
-                                    _log.Warn("[Quest] OnKill: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
                                 }
                                 break;
                             }
                     }
+                    _log.Warn($"[Quest] OnKill: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                 }
             }
             Update(checking);
@@ -1043,14 +1048,14 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     checking = true;
                                     SupplyItem += count; // the same as Objectives, but for QuestActSupplyItem
-                                    _log.Warn("[Quest] OnItemGather: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
                                     if (tmpStep == QuestComponentKind.Supply)
                                     {
+                                        _log.Warn($"[Quest] OnItemGather: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                                         Step = tmpStep;
                                         return; // возврат в метод Start() (return to Start() method)
                                     }
                                 }
-                                break;
+                                return; // возврат в метод Update() (return to Update() method)
                             }
                         case "QuestActObjItemGather":
                             {
@@ -1059,7 +1064,6 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     checking = true;
                                     Objectives[componentIndex] += count;
-                                    _log.Warn("[Quest] OnItemGather: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
                                 }
                                 break;
                             }
@@ -1070,17 +1074,20 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     checking = true;
                                     Objectives[componentIndex] += count;
-                                    _log.Warn("[Quest] OnItemGather: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
                                 }
                                 break;
                             }
-                        // TODO added for quest Id=4402
-                        // TODO added for quest Id=266
-                        default:
-                            goto exit;
+                        // TODO не работал из-за этого квест ID=3327, "Goblin Treasure", 39, "Sanddeep", "Sanddeep"
+                        //// TODO added for quest Id=4402
+                        //// TODO added for quest Id=266
+                        //default:
+                        //    {
+                        //        goto exit;
+                        //    }
                     }
+                    _log.Warn($"[Quest] OnItemGather: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                 }
-                exit:;
+                //exit:;
             }
             Update(checking);
         }
@@ -1115,7 +1122,6 @@ namespace AAEmu.Game.Models.Game.Quests
                                     {
                                         checking = false; // cancel the rerun of the quest check Id=97
                                     }
-                                    _log.Warn("[Quest] OnItemUse: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
                                 }
                                 break;
                             }
@@ -1126,11 +1132,11 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     checking = true;
                                     Objectives[componentIndex]++;
-                                    _log.Warn("[Quest] OnItemUse: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
                                 }
                                 break;
                             }
                     }
+                    _log.Warn($"[Quest] OnItemUse: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                 }
             }
             Update(checking);
@@ -1162,13 +1168,13 @@ namespace AAEmu.Game.Models.Game.Quests
                                     {
                                         checking = true;
                                         Objectives[componentIndex]++;
-                                        _log.Warn("[Quest] OnInteraction: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
+                                        _log.Warn($"[Quest] OnInteraction: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                                     }
                                 }
                                 break;
                             }
                         default:
-                            _log.Warn("[Quest] OnInteraction: character {0}, wants to do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
+                            _log.Warn($"[Quest] OnInteraction: character {Owner.Name}, wants to do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                             break;
                     }
                 }
@@ -1199,11 +1205,11 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     checking = true;
                                     Objectives[componentIndex]++;
-                                    _log.Warn("[Quest] OnExpressEmotion: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
                                 }
                                 break;
                             }
                     }
+                    _log.Warn($"[Quest] OnExpressEmotion: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                 }
             }
             Update(checking);
@@ -1233,7 +1239,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
                     checking = true;
                     Objectives[i]++;
-                    _log.Warn("[Quest] OnLevelUp: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
+                    _log.Warn($"[Quest] OnLevelUp: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                 }
             }
             Update(checking);
@@ -1263,7 +1269,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 break;
                             }
                     }
-                    _log.Warn("[Quest] OnQuestComplete: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
+                    _log.Warn($"[Quest] OnQuestComplete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                 }
             }
 
@@ -1294,14 +1300,14 @@ namespace AAEmu.Game.Models.Game.Quests
                                     Status = QuestStatus.Ready;
                                     ComponentId = components[componentIndex].Id;
                                     //Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
-                                    _log.Warn("[Quest] OnEnterSphere: do it - {0}, ComponentId {1}, Step {2}, Status {3}, act.DetailType {4}", TemplateId, ComponentId, Step, Status, act.DetailType);
+                                    _log.Warn($"[Quest] OnEnterSphere: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                                     Step++;
                                 }
                                 break;
                             }
                         default:
                             // здесь еще есть компоненты, которые не проверили (there are still components here that haven't been tested)
-                            _log.Warn("[Quest] OnEnterSphere: wants to do it - {0}, ComponentId {1}, Step {2}, Status {3}, act.DetailType {4}", TemplateId, ComponentId, Step, Status, act.DetailType);
+                            _log.Warn($"[Quest] OnEnterSphere: character {Owner.Name}, wants to do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                             break;
                     }
                 }
@@ -1339,15 +1345,17 @@ namespace AAEmu.Game.Models.Game.Quests
                                     {
                                         checking = false;
                                     }
-                                    _log.Warn("[Quest] QuestActObjCraft: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
                                 }
                                 break;
                             }
                     }
+                    _log.Warn($"[Quest] QuestActObjCraft: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                 }
             }
             Update(checking);
         }
+
+        #endregion
 
         public void RecalcObjectives(bool send = true)
         {
@@ -1403,7 +1411,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             break;
                         }
                 }
-                _log.Warn("[Quest] RecalcObjectives: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
+                _log.Warn($"[Quest] RecalcObjectives: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, act.DetailType {act.DetailType}");
             }
 
             Update(send);

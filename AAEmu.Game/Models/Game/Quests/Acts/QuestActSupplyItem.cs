@@ -20,7 +20,8 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public override bool Use(ICharacter character, Quest quest, int objective)
         {
             _log.Warn("QuestActSupplyItem");
-            if (objective >= Count) // checking for call recursion
+
+            if (character.Inventory.GetItemsCount(ItemId) >= Count || objective >= Count) // checking for call recursion
             {
                 return true;
             }
@@ -45,23 +46,6 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
             }
 
             return acquireSuccessful;
-
-            //    /*
-            //    var template = ItemManager.Instance.GetTemplate(ItemId);
-            //    if (template is BackpackTemplate backpackTemplate)
-            //    {
-            //        if (character.Inventory.TakeoffBackpack(ItemTaskType.QuestSupplyItems, true))
-            //            return character.Inventory.Equipment.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
-            //        else
-            //            return false;
-            //    }
-            //    else
-            //    {
-            //        return character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
-            //    }
-            //    */
-
-            //}
         }
     }
 }
