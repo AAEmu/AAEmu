@@ -321,24 +321,6 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             var itemTasks = new List<ItemTask>();
             var sourceItemTasks = new List<ItemTask>();
 
-            // Only trigger when moving between container with different owners with the exception of this being move to Mail container
-            if ((sourceContainer != this) && (item.OwnerId != OwnerId) && (this.ContainerType != SlotType.Mail))
-            {
-                Owner?.Inventory.OnAcquiredItem(item, item.Count);
-            }
-            else
-            // Got attachment from Mail
-            if ((item.SlotType == SlotType.Mail) && (this.ContainerType != SlotType.Mail))
-            {
-                Owner?.Inventory.OnAcquiredItem(item, item.Count);
-            }
-            else
-            // Adding mail attachment
-            if ((item.SlotType != SlotType.Mail) && (this.ContainerType == SlotType.Mail))
-            {
-                Owner?.Inventory.OnConsumedItem(item, item.Count);
-            }
-
             if (canAddToSameSlot)
             {
                 currentPreferredSlotItem.Count += item.Count;
@@ -353,7 +335,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 item.OwnerId = OwnerId;
 
                 Items.Insert(0, item); // insert at front for easy buyback handling
-                                       //Items.Add(item);
+                //Items.Add(item);
                 UpdateFreeSlotCount();
                 // Note we use SlotType.None for things like the Item BuyBack Container. Make sure to manually handle the remove for these
                 if (this.ContainerType != SlotType.None)
@@ -378,6 +360,27 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             }
 
             ApplyBindRules(taskType);
+            
+            // Moved to the end of the method so that the item is already in the inventory
+            // Only trigger when moving between container with different owners with the exception of this being move to Mail container
+            //if ((sourceContainer != this) && (item.OwnerId != OwnerId) && (this.ContainerType != SlotType.Mail))
+            if ((sourceContainer != this) && (this.ContainerType != SlotType.Mail))
+            {
+                Owner?.Inventory.OnAcquiredItem(item, item.Count);
+            }
+            else
+                // Got attachment from Mail
+            if ((item.SlotType == SlotType.Mail) && (this.ContainerType != SlotType.Mail))
+            {
+                Owner?.Inventory.OnAcquiredItem(item, item.Count);
+            }
+            else
+                // Adding mail attachment
+            if ((item.SlotType != SlotType.Mail) && (this.ContainerType == SlotType.Mail))
+            {
+                Owner?.Inventory.OnConsumedItem(item, item.Count);
+            }
+            
             return ((itemTasks.Count + sourceItemTasks.Count) > 0);
         }
 
