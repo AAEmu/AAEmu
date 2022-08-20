@@ -1067,7 +1067,7 @@ namespace AAEmu.Game.Core.Managers.World
 
                         // Is this Entity named like a water body ?
                         // TODO: More sophisticated way of determining if it's water
-                        var isWaterBody = entityName.Contains("_water") || entityName.Contains("_pond") || entityName.Contains("_lake");
+                        var isWaterBody = entityName.Contains("_water") || entityName.Contains("_pond") || entityName.Contains("_lake") || entityName.Contains("_river");
                         if (isWaterBody == false)
                             continue;
                         
