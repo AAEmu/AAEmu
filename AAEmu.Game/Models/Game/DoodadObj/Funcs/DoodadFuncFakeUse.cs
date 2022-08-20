@@ -52,14 +52,17 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 {
                     owner.BroadcastPacket(new SCTransferTelescopeToggledPacket(true, range), true);
                     TransferTelescopeManager.Instance.TransferTelescopeStart(character);
-                    owner.ToNextPhase = true;
+                    owner.ToNextPhase = false;
                 }
 
-                //if (FakeSkillId == skillId && nextPhase > 0)
-                if (nextPhase > 0) // TODO quest ID=3357, Harvest the Cotton didn't work
+                if (FakeSkillId == skillId && nextPhase > 0)
                 {
                     owner.ToNextPhase = true;
                     // Removed the duplicate skill call
+                }
+                if (skillId > 0 && nextPhase > 0) // TODO quest ID=3357, Harvest the Cotton didn't work
+                {
+                    owner.ToNextPhase = true;
                 }
             }
 

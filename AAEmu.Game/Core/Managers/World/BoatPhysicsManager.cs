@@ -46,39 +46,50 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void PhysicsThread()
         {
-            while (ThreadRunning && Thread.CurrentThread.IsAlive)
+            try
             {
-                Thread.Sleep(1000 / 60);
-                _physWorld.Step(1 / 60.0f, false);
-                _tickCount++;
-
-                foreach (var slave in SlaveManager.Instance.GetActiveSlavesByKinds(new[] { SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.SmallSailingShip, SlaveKind.MerchantShip, SlaveKind.Speedboat }))
+                while (ThreadRunning && Thread.CurrentThread.IsAlive)
                 {
-                    if (slave.SpawnTime.AddSeconds(slave.Template.PortalTime) > DateTime.UtcNow)
-                        continue;
+                    Thread.Sleep(1000 / 60);
+                    _physWorld.Step(1 / 60.0f, false);
+                    _tickCount++;
 
-                    var slaveRigidBody = slave.RigidBody;
-                    if (slaveRigidBody == null)
-                        continue;
-                    
-                    var xDelt = slaveRigidBody.Position.X - slave.Transform.World.Position.X;
-                    var yDelt = slaveRigidBody.Position.Z - slave.Transform.World.Position.Y;
-                    var zDelt = slaveRigidBody.Position.Y - slave.Transform.World.Position.Z;
-                    
-                    slave.Transform.Local.Translate(xDelt,yDelt,zDelt); 
-                    var rot = JQuaternion.CreateFromMatrix(slaveRigidBody.Orientation);
-                    slave.Transform.Local.ApplyFromQuaternion(rot.X, rot.Z, rot.Y, rot.W);
-                    // slave.Transform.Local.Rotation = new Quaternion(rot.X, rot.Y, rot.Z, rot.W);
-                    
-                    if (_tickCount % 6 == 0)
+                    foreach (var slave in SlaveManager.Instance.GetActiveSlavesByKinds(new[]
+                             {
+                                 SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat,
+                                 SlaveKind.SmallSailingShip, SlaveKind.MerchantShip, SlaveKind.Speedboat
+                             }))
                     {
-                        //var rpy = slave.Transform.Local.ToRollPitchYaw();
-                        //slave.SetPosition(slaveRigidBody.Position.X, slaveRigidBody.Position.Z, slaveRigidBody.Position.Y, rpy.X, rpy.Y, rpy.Z);
-                        //slave.Move(slaveRigidBody.Position.X, slaveRigidBody.Position.Z, slaveRigidBody.Position.Y);
-                        _physWorld.CollisionSystem.Detect(true);
-                        BoatPhysicsTick(slave, slaveRigidBody);
+                        if (slave.SpawnTime.AddSeconds(slave.Template.PortalTime) > DateTime.UtcNow)
+                            continue;
+
+                        var slaveRigidBody = slave.RigidBody;
+                        if (slaveRigidBody == null)
+                            continue;
+
+                        var xDelt = slaveRigidBody.Position.X - slave.Transform.World.Position.X;
+                        var yDelt = slaveRigidBody.Position.Z - slave.Transform.World.Position.Y;
+                        var zDelt = slaveRigidBody.Position.Y - slave.Transform.World.Position.Z;
+
+                        slave.Transform.Local.Translate(xDelt, yDelt, zDelt);
+                        var rot = JQuaternion.CreateFromMatrix(slaveRigidBody.Orientation);
+                        slave.Transform.Local.ApplyFromQuaternion(rot.X, rot.Z, rot.Y, rot.W);
+                        // slave.Transform.Local.Rotation = new Quaternion(rot.X, rot.Y, rot.Z, rot.W);
+
+                        if (_tickCount % 6 == 0)
+                        {
+                            //var rpy = slave.Transform.Local.ToRollPitchYaw();
+                            //slave.SetPosition(slaveRigidBody.Position.X, slaveRigidBody.Position.Z, slaveRigidBody.Position.Y, rpy.X, rpy.Y, rpy.Z);
+                            //slave.Move(slaveRigidBody.Position.X, slaveRigidBody.Position.Z, slaveRigidBody.Position.Y);
+                            _physWorld.CollisionSystem.Detect(true);
+                            BoatPhysicsTick(slave, slaveRigidBody);
+                        }
                     }
                 }
+            }
+            catch (Exception e)
+            {
+                _log.Error($"PhysicsThread: {e}");
             }
         }
 
