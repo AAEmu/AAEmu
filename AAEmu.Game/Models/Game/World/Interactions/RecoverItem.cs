@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
             if ((target is Doodad doodad) && doodad.AllowRemoval())
             {
                 // Get Funcs for current doodad phase
-                var funcs = DoodadManager.Instance.GetFuncsForGroup(doodad.CurrentPhaseId);
+                var funcs = DoodadManager.Instance.GetFuncsForGroup(doodad.FuncGroupId);
                 // Check if it contains a DoodadRecoverItem func
                 foreach (var func in funcs)
                 {
@@ -25,12 +25,12 @@ namespace AAEmu.Game.Models.Game.World.Interactions
                         // Execute DoodadFuncRecoverItem
                         doodadFuncRecoverItemTemplate.Use(caster, doodad, skillId);
                         // Move to next phase to remove the doodad
-                        doodad.GoToPhase(caster,-1);
+                        doodad.DoPhaseFuncs(caster, -1);
                         return;
                     }
                 }
             }
-            
+
             // Something wasn't found or is invalid, so cancel whatever we're doing
             caster.SendErrorMessage(ErrorMessageType.FailedToUseItem);
             caster.InterruptSkills();

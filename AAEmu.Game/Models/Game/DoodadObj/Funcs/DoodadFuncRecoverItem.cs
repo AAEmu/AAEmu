@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     // that means that it was already picked up by somebody else
                     if (item._holdingContainer?.ContainerType != SlotType.System)
                     {
-                        owner.ToPhaseAndUse = false;
+                        owner.ToNextPhase = false;
                         character.SendErrorMessage(ErrorMessageType.InteractionRecoverParent); // TODO: Not sure what error I need to put here
                         return;
                     }

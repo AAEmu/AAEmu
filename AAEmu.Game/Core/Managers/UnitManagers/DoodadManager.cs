@@ -4,7 +4,6 @@ using System.Reflection;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.World;
@@ -18,12 +17,9 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
-using AAEmu.Game.Models.Game.DoodadObj.Static;
-using AAEmu.Game.Models.Game.Items.Containers;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
 {
@@ -70,9 +66,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             using (var connection = SQLite.CreateConnection())
             {
-                #region doodad_funcs
-                _log.Info("Loading doodad functions ...");
-                
                 _log.Info("Loading doodad templates...");
                 using (var command = connection.CreateCommand())
                 {
@@ -118,10 +111,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-
-                }
-
-                    command.CommandText = "SELECT * FROM doodad_funcs";
+                #region doodad_funcs
+                _log.Info("Loading doodad functions ...");
+                using (var command = connection.CreateCommand())
+                {
                     command.CommandText = "SELECT * FROM doodad_func_groups ORDER BY doodad_almighty_id ASC, doodad_func_group_kind_id ASC";
                     command.Prepare();
                     using (var sqliteDataReaderChild = command.ExecuteReader())
@@ -146,8 +139,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 _log.Info("Loaded {0} doodad templates", _templates.Count);
 
                 using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM doodad_funcs ORDER BY doodad_func_group_id ASC, actual_func_id ASC";
                 {
                     command.CommandText = "SELECT * FROM doodad_funcs ORDER BY doodad_func_group_id ASC, actual_func_id ASC";
                     command.Prepare();
@@ -2320,6 +2311,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 _log.Info("Loaded {0} doodad templates", _templates.Count);
                 #endregion
             }
+                
+            _loaded = true;
         }
 
         /// <summary>
@@ -2341,9 +2334,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 {
                     foreach (var func in funcList)
                     {
-                        if (_funcTemplates.TryGetValue(func.FuncType, out var funcTemplates))
-                            if (funcTemplates.TryGetValue(func.FuncId, out var funcTemplate))
-                                if (funcTemplate is DoodadFuncCoffer funcCoffer)
+                        if (_phaseFuncTemplates.TryGetValue(func.FuncType, out var phaseFuncTemplates))
+                            if (phaseFuncTemplates.TryGetValue(func.FuncId, out var phaseFuncTemplate))
+                                if (phaseFuncTemplate is DoodadFuncCoffer funcCoffer)
                                 {
                                     return funcCoffer.Capacity;
                                 }
@@ -2352,32 +2345,31 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
 
             return -1;
-
-            _loaded = true;
         }
 
         public Doodad Create(uint bcId, uint id, GameObject obj = null)
         {
             if (!_templates.ContainsKey(id))
+                return null;
+            var template = _templates[id];
             Doodad doodad = null;
 
             // Check if template is a Coffer
             if (template is DoodadCofferTemplate doodadCofferTemplate)
-                doodad = new DoodadCoffer() { Capacity = doodadCofferTemplate.Capacity };
+                doodad = new DoodadCoffer { Capacity = doodadCofferTemplate.Capacity };
 
             if (doodad == null)
                 doodad = new Doodad();
             
             doodad.ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
-            doodad.TemplateId = template.Id;
+            doodad.TemplateId = template.Id; // duplicate Id
             doodad.Template = template;
-            doodad.OwnerObjId = obj?.ObjId ?? 0; // TODO for test
-            doodad.PlantTime = DateTime.UtcNow; //GrowthTime = DateTime.UtcNow.AddMilliseconds(template.MinTime),
-            //GrowthTime = DateTime.UtcNow.AddMilliseconds(10000),
+            doodad.OwnerObjId = obj?.ObjId ?? 0;
+            doodad.PlantTime = DateTime.UtcNow;
             doodad.OwnerType = DoodadOwnerType.System;
             doodad.FuncGroupId = doodad.GetFuncGroupId();
             
-            doodad.CurrentPhaseId = doodad.GetFuncGroupId();
+            doodad.FuncGroupId = doodad.GetFuncGroupId();
 
             switch (obj)
             {

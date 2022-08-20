@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public override bool Use(Unit caster, Doodad owner)
         {
             _log.Debug("DoodadFuncCoffer");
-            owner.ToPhaseAndUse = false;
+            owner.ToNextPhase = false;
             if ((caster is Character character) && (owner is DoodadCoffer coffer))
                 if (coffer.OpenedBy?.Id == character.Id)
                     DoodadManager.Instance.CloseCofferDoodad(character, owner.ObjId);

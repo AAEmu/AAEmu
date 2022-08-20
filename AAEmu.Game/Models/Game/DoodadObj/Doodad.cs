@@ -5,18 +5,14 @@ using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
-using AAEmu.Game.Models.Game.Housing;
-using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Doodads;
 
@@ -72,7 +68,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
     public class Doodad : BaseUnit
     {
         private float _scale;
+
         private int _data;
+
         //public uint TemplateId { get; set; } // moved to BaseUnit
         public uint DbId { get; set; }
         public bool IsPersistent { get; set; } = false;
@@ -109,7 +107,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint QuestGlow { get; set; } //0 off // 1 on
         public DoodadSpawner Spawner { get; set; }
         public DoodadFuncTask FuncTask { get; set; }
-        public uint TimeLeft => GrowthTime > DateTime.UtcNow ? (uint)(GrowthTime - DateTime.UtcNow).TotalMilliseconds : 0; // TODO formula time of phase
+
+        public uint TimeLeft =>
+            GrowthTime > DateTime.UtcNow
+                ? (uint)(GrowthTime - DateTime.UtcNow).TotalMilliseconds
+                : 0; // TODO formula time of phase
+
         public bool ToNextPhase { get; set; }
         public int PhaseRatio { get; set; }
         public int CumulativePhaseRatio { get; set; }
@@ -133,10 +136,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             _scale = scale;
         }
+
         private bool CheckPhase(uint anotherPhase)
         {
             return ListGroupId.Any(phase => phase == anotherPhase);
         }
+
         private bool CheckFunc(uint anotherPhase)
         {
             return ListFuncGroupId.Any(phase => phase == anotherPhase);
@@ -166,6 +171,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public void Use(Unit caster, uint skillId)
         {
             if (caster == null) { return; }
+
             ListFuncGroupId = new List<uint>();
 
             while (true)
@@ -178,13 +184,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 }
                 else
                 {
-                    _log.Debug("Use: Finished execution with recurse: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                    _log.Debug("Use: Finished execution with recurse: TemplateId {0}, Using phase {1} with SkillId {2}",
+                        TemplateId, FuncGroupId, skillId);
                     return;
                 }
 
                 //  first we find the functions, then we execute
                 var func = DoodadManager.Instance.GetFunc(FuncGroupId, skillId); // if skillId > 0
-                var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId); // if several functions with one NextPhase
+                var funcs = DoodadManager.Instance
+                    .GetFuncsForGroup(FuncGroupId); // if several functions with one NextPhase
                 if (funcs.Count > 1)
                 {
                     // check for functions to be executed if they have the same NextPhase
@@ -197,8 +205,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                             prev = a.NextPhase;
                             continue;
                         }
+
                         res = a.NextPhase != prev;
                     }
+
                     if (res)
                     {
                         // skillId may not be appropriate for the first function, but it is appropriate for the second
@@ -215,14 +225,18 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 {
                     if (DoFunc(caster, skillId, func)) { return; }
                 }
+
                 // then execute the phase functions (the FuncGroupId may change to a different one than it was before)
                 var stop = DoPhaseFuncs(caster, (int)FuncGroupId);
                 if (stop)
                 {
                     // did not pass the quest conditions check or there is no phase function
-                    _log.Debug("Use:DoPhaseFuncs Did not pass the conditions check! TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                    _log.Debug(
+                        "Use:DoPhaseFuncs Did not pass the conditions check! TemplateId {0}, Using phase {1} with SkillId {2}",
+                        TemplateId, FuncGroupId, skillId);
                     return;
                 }
+
                 skillId = 0; // надо ли обнулять?
             }
         }
@@ -239,9 +253,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             // if there is no function, complete the cycle
             if (func == null)
             {
-                _log.Debug("Use:DoFunc Finished execution with func = null: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                _log.Debug(
+                    "Use:DoFunc Finished execution with func = null: TemplateId {0}, Using phase {1} with SkillId {2}",
+                    TemplateId, FuncGroupId, skillId);
                 return true;
             }
+
             // then perform the function
             func.Use(caster, this, skillId, func.NextPhase);
             if (func.SoundId > 0)
@@ -252,6 +269,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (ToNextPhase)
             {
                 if (func.NextPhase == -1) { Delete(); } // Delete doodad
+
                 if (OverridePhase > 0)
                 {
                     FuncGroupId = (uint)OverridePhase;
@@ -264,7 +282,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
             else
             {
-                _log.Debug("Use:DoFunc Finished execution with ToNextPhase = {3}: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId, ToNextPhase);
+                _log.Debug(
+                    "Use:DoFunc Finished execution with ToNextPhase = {3}: TemplateId {0}, Using phase {1} with SkillId {2}",
+                    TemplateId, FuncGroupId, skillId, ToNextPhase);
                 return true;
             }
 
@@ -290,6 +310,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 else
                     _log.Trace("DoPhase:DoodadFuncTimer: The current timer has been canceled.");
             }
+
             if (caster is Character)
                 _log.Debug("DoPhase: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
             else
@@ -302,6 +323,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             {
                 return false; // no phase functions for FuncGroupId
             }
+
             PhaseRatio = Rand.Next(0, 10000);
             CumulativePhaseRatio = 0;
             var stop = false;
@@ -309,12 +331,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             foreach (var phaseFunc in phaseFuncs)
             {
                 if (phaseFunc == null) { continue; }
+
                 stop = phaseFunc.Use(caster, this);
                 if (stop)
                 {
                     break; // interrupt execution of phase functions and switch to OverridePha
                 }
             }
+
             if (OverridePhase != 0 && stop && FuncGroupId != OverridePhase)
             {
                 nextPhase = OverridePhase;
@@ -336,6 +360,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public bool DoPhaseFuncs(Unit caster, int nextPhase)
         {
             if (nextPhase <= 0) { return false; }
+
             if (caster is Character)
                 _log.Debug("DoPhaseFuncs: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
             else
@@ -360,6 +385,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
             if (funcs == null) { return; }
+
             foreach (var func in funcs.Where(func => func.FuncType == "DoodadFuncSkillHit"))
             {
                 Use(caster, skillId);
@@ -394,21 +420,23 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                             case "DoodadFuncRatioChange":
                                 DoPhaseFuncs(null, (int)FuncGroupId);
                                 break;
-                            //case "DoodadFuncClimateReact":
-                            //case "DoodadFuncCraftDirect":
-                            //case "DoodadFuncHunger": // ?
-                            //case "DoodadFuncPulseTrigger":
-                            //case "DoodadFuncPuzzleOut": // ?
-                            //case "DoodadFuncSiegePeriod":
-                            //case "DoodadFuncSpawnGimmick":
-                            //case "DoodadFuncZoneReact":
-                            //    DoPhaseFuncs(null, (int)FuncGroupId);
-                            //    break;
+                                //case "DoodadFuncClimateReact":
+                                //case "DoodadFuncCraftDirect":
+                                //case "DoodadFuncHunger": // ?
+                                //case "DoodadFuncPulseTrigger":
+                                //case "DoodadFuncPuzzleOut": // ?
+                                //case "DoodadFuncSiegePeriod":
+                                //case "DoodadFuncSpawnGimmick":
+                                //case "DoodadFuncZoneReact":
+                                //    DoPhaseFuncs(null, (int)FuncGroupId);
+                                //    break;
                         }
                     }
                 }
 
-                if (funcs.Count <= 0 && phaseFuncs.Length > 0) // Initialize anything that does not require interaction immediately after spawning
+                if (funcs.Count <= 0 &&
+                    phaseFuncs.Length >
+                    0) // Initialize anything that does not require interaction immediately after spawning
                 {
                     DoPhaseFuncs(null, (int)FuncGroupId);
                 }
@@ -438,13 +466,16 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public PacketStream Write(PacketStream stream)
         {
             stream.WriteBc(ObjId); //The object # in the list
-            stream.Write(TemplateId); //The template id needed for that object, the client then uses the template configurations, not the server
+            stream.Write(
+                TemplateId); //The template id needed for that object, the client then uses the template configurations, not the server
             stream.WriteBc(OwnerObjId); //The creator of the object
             stream.WriteBc(ParentObjId); //Things like boats or cars,
-            stream.Write((byte)AttachPoint); // attachPoint, relative to the parentObj (Door or window on a house, seats on carriage, etc.)
+            stream.Write(
+                (byte)AttachPoint); // attachPoint, relative to the parentObj (Door or window on a house, seats on carriage, etc.)
             if ((AttachPoint > 0) || (ParentObjId > 0))
             {
-                stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y, Transform.Local.Position.Z);
+                stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y,
+                    Transform.Local.Position.Z);
                 var (roll, pitch, yaw) = Transform.Local.ToRollPitchYawShorts();
                 stream.Write(roll);
                 stream.Write(pitch);
@@ -452,7 +483,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
             else
             {
-                stream.WritePosition(Transform.World.Position.X, Transform.World.Position.Y, Transform.World.Position.Z);
+                stream.WritePosition(Transform.World.Position.X, Transform.World.Position.Y,
+                    Transform.World.Position.Z);
                 var (roll, pitch, yaw) = Transform.World.ToRollPitchYawShorts();
                 stream.Write(roll);
                 stream.Write(pitch);
@@ -477,7 +509,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
             return stream;
         }
-        
+
         public override void Delete()
         {
             base.Delete();
@@ -512,7 +544,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     if ((Transform?.Parent?.GameObject is Doodad pDoodad) && (pDoodad.DbId > 0))
                         parentDoodadId = pDoodad.DbId;
 
-                    command.CommandText = 
+                    command.CommandText =
                         "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`) " +
                         "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @item_id, @house_id, @parent_doodad, @item_template_id, @item_container_id, @data)";
                     command.Parameters.AddWithValue("@id", DbId);
@@ -541,11 +573,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 }
             }
         }
-    
+
         public void DoDespawn(Doodad doodad)
         {
             Spawner.DoDespawn(doodad);
-            }
         }
 
         public override bool AllowRemoval()
@@ -556,7 +587,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 if ((child.GameObject is Doodad doodad) && (doodad.DbId > 0))
                     return false;
             }
-            
+
             return base.AllowRemoval();
         }
 
@@ -568,6 +599,5 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             return 0;
         }
-        
     }
 }
