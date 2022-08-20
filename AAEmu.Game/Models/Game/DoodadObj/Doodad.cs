@@ -11,6 +11,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.NPChar;
@@ -341,14 +342,53 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         }
 
         /// <summary>
-        /// Initialization of doodad initial phase
+        /// initialization of the current doodad phase
         /// </summary>
         public override void Spawn()
         {
-            FuncGroupId = GetFuncGroupId();  // Start phase
-            var unit = WorldManager.Instance.GetUnit(OwnerObjId);
+            // TODO has already been called in Create() - this eliminates re-initialization of plants/trees/animals
+            //FuncGroupId = GetFuncGroupId();  // Start phase
             _log.Trace("Doing phase {0} for WorldDoodad TemplateId {1}, objId {2}", FuncGroupId, TemplateId, ObjId);
-            DoPhaseFuncs(unit, (int)FuncGroupId);
+            var unit = WorldManager.Instance.GetUnit(OwnerObjId);
+            if (unit is not null) // Initialize the seats on the vehicle
+            {
+                DoPhaseFuncs(unit, (int)FuncGroupId);
+            }
+            else // anything that sets up the environment
+            {
+                var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
+                var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(FuncGroupId);
+
+                if (phaseFuncs.Length > 0)
+                {
+                    foreach (var doodadPhaseFunc in phaseFuncs)
+                    {
+                        switch (doodadPhaseFunc.FuncType)
+                        {
+                            case "DoodadFuncTod":
+                            case "DoodadFuncRatioChange":
+                                DoPhaseFuncs(null, (int)FuncGroupId);
+                                break;
+                            //case "DoodadFuncClimateReact":
+                            //case "DoodadFuncCraftDirect":
+                            //case "DoodadFuncHunger": // ?
+                            //case "DoodadFuncPulseTrigger":
+                            //case "DoodadFuncPuzzleOut": // ?
+                            //case "DoodadFuncSiegePeriod":
+                            //case "DoodadFuncSpawnGimmick":
+                            //case "DoodadFuncZoneReact":
+                            //    DoPhaseFuncs(null, (int)FuncGroupId);
+                            //    break;
+                        }
+                    }
+                }
+
+                if (funcs.Count <= 0 && phaseFuncs.Length > 0) // Initialize anything that does not require interaction immediately after spawning
+                {
+                    DoPhaseFuncs(null, (int)FuncGroupId);
+                }
+            }
+
             base.Spawn();
         }
 

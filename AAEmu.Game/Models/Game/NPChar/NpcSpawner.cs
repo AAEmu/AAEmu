@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Threading;
+using System.Linq;
+
 using AAEmu.Commons.Utils;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.World;
 
@@ -30,7 +34,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public uint Count { get; set; } = 1;
         public List<uint> NpcSpawnerIds { get; set; }
         private bool _permanent { get; set; }
-        public Dictionary<uint, NpcSpawnerTemplate> Template { get; set; } // npcSpawnerId, template
+        public Dictionary<uint, NpcSpawnerTemplate> Template { get; set; } // npcSpawnerId(NpcSpawnerTemplateId), template
 
         public NpcSpawner()
         {
@@ -147,7 +151,7 @@ namespace AAEmu.Game.Models.Game.NPChar
                         //Thread.Sleep(50);
                         continue; // Reschedule when OK
                     }
-                
+
                     // couldn't find it on the schedule, but it should have been!
                     // no entries found for this unit in Game_Schedule table
                     continue;
@@ -288,7 +292,7 @@ namespace AAEmu.Game.Models.Game.NPChar
                 }
             }
         }
-        
+
         public void DoEventSpawn()
         {
             foreach (var (spawnerId, template) in Template)
@@ -351,6 +355,83 @@ namespace AAEmu.Game.Models.Game.NPChar
                 {
                     _spawnCount = 0;
                 }
+            }
+        }
+
+        public void DoSpawnEffect(uint spawnerId, SpawnEffect effect, Unit caster, BaseUnit target)
+        {
+            var template = NpcGameData.Instance.GetNpcSpawnerTemplate(spawnerId);
+            if (template.Npcs == null)
+            {
+                return;
+            }
+
+            var n = new List<Npc>();
+            foreach (var nsn in template.Npcs.Where(nsn => nsn.MemberId == UnitId))
+            {
+                n = nsn.Spawn(this, template.MaxPopulation);
+                break;
+            }
+
+            try
+            {
+                foreach (var npc in n)
+                {
+                    _spawned.Add(npc);
+                    npc.Spawner.RespawnTime = 0; // don't respawn
+
+                    if (effect.UseSummonerFaction)
+                    {
+                        npc.Faction = target is Npc ? target.Faction : caster.Faction;
+                    }
+
+                    if (effect.UseSummonerAggroTarget)
+                    {
+                        // TODO : Pick random target off of Aggro table ?
+
+                        // Npc attacks the character
+                        if (target is Npc)
+                        {
+                            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, (Unit)target, 1);
+                        }
+                        else
+                        {
+                            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, caster, 1);
+                        }
+                        npc.Ai.OnAggroTargetChanged();
+                        npc.Ai.GoToCombat();
+                    }
+
+                    if (effect.LifeTime > 0)
+                    {
+                        TaskManager.Instance.Schedule(new NpcSpawnerDoDespawnTask(npc), TimeSpan.FromSeconds(effect.LifeTime));
+                    }
+
+                    //if (effect.LifeTime > 0)
+                    //{
+                    //    TaskManager.Instance.Schedule(new DespawnTask(npc), TimeSpan.FromSeconds(effect.LifeTime));
+                    //}
+                }
+            }
+            catch (Exception)
+            {
+                _log.Error("Can't spawn npc {1} from spawn {0}, spawner {2}", Id, UnitId, template.Id);
+            }
+
+            if (n.Count == 0)
+            {
+                _log.Error("Can't spawn npc {1} from spawn {0}, spawner {2}", Id, UnitId, template.Id);
+                return;
+            }
+            _lastSpawn = n[^1];
+            if (_scheduledCount > 0)
+            {
+                _scheduledCount -= n.Count;
+            }
+            _spawnCount = _spawned.Count;
+            if (_spawnCount < 0)
+            {
+                _spawnCount = 0;
             }
         }
     }

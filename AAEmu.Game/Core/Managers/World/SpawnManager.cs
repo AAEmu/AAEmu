@@ -18,6 +18,7 @@ using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 
@@ -32,6 +33,7 @@ namespace AAEmu.Game.Core.Managers.World
         
         private bool _work = true;
         private object _lock = new object();
+        private object _lockSpawner = new object();
         private HashSet<GameObject> _respawns;
         private HashSet<GameObject> _despawns;
 
@@ -714,5 +716,64 @@ namespace AAEmu.Game.Core.Managers.World
             return ret;
         }
 
+        public NpcSpawner GetNpcSpawner(uint unitId, BaseUnit unit)
+        {
+            lock (_lockSpawner)
+            {
+                var spawner = new NpcSpawner();
+                var npcSpawnersIds = NpcGameData.Instance.GetSpawnerIds(unitId);
+                if (npcSpawnersIds == null)
+                {
+                    spawner.UnitId = unitId;
+                    spawner.Id = ObjectIdManager.Instance.GetNextId();
+                    spawner.NpcSpawnerIds = new List<uint> {spawner.Id};
+                    spawner.Template = new Dictionary<uint, NpcSpawnerTemplate>();
+                    spawner.Template.Add(spawner.Id, new NpcSpawnerTemplate(spawner.Id));
+                    spawner.Template[spawner.Id].Npcs[0].MemberId = spawner.UnitId;
+                    spawner.Template[spawner.Id].Npcs[0].UnitId = spawner.UnitId;
+                    spawner.Template[spawner.Id].Npcs[0].MemberType = "Npc";
+                }
+                else
+                {
+                    spawner.UnitId = unitId;
+                    spawner.Id = npcSpawnersIds[0];
+                    spawner.NpcSpawnerIds = new List<uint> {spawner.Id};
+                    spawner.Template = new Dictionary<uint, NpcSpawnerTemplate>();
+                    spawner.Template.Add(spawner.Id, NpcGameData.Instance.GetNpcSpawnerTemplate(spawner.Id));
+                    if (spawner.Template.Count == 0 || spawner.Template == null)
+                    {
+                        return null;
+                    }
+
+                    spawner.Template[spawner.Id].Npcs = new List<NpcSpawnerNpc>();
+                    var nsn = NpcGameData.Instance.GetNpcSpawnerNpc(spawner.Id);
+                    if (nsn == null)
+                    {
+                        return null;
+                    }
+
+                    spawner.Template[spawner.Id].Npcs.Add(nsn);
+                    if (spawner.Template[spawner.Id].Npcs == null)
+                    {
+                        return null;
+                    }
+
+                    spawner.Template[spawner.Id].Npcs[0].MemberId = spawner.UnitId;
+                    spawner.Template[spawner.Id].Npcs[0].UnitId = spawner.UnitId;
+                }
+
+                spawner.Position = new WorldSpawnPosition();
+                spawner.Position.WorldId = unit.Transform.WorldId;
+                spawner.Position.ZoneId = unit.Transform.ZoneId;
+                spawner.Position.X = unit.Transform.World.Position.X;
+                spawner.Position.Y = unit.Transform.World.Position.Y;
+                spawner.Position.Z = unit.Transform.World.Position.Z;
+                spawner.Position.Yaw = 0;
+                spawner.Position.Pitch = 0;
+                spawner.Position.Roll = 0;
+
+                return spawner;
+            }
+        }
     }
 }
