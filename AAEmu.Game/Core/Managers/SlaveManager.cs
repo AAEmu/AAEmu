@@ -668,8 +668,11 @@ namespace AAEmu.Game.Core.Managers
             _tlSlaves.Add(slave.TlId, slave);
             _activeSlaves.Add(slave.ObjId, slave);
 
-            if (slaveTemplate.IsABoat())
-                BoatPhysicsManager.Instance.AddShip(slave);
+            if (slave.Template.IsABoat())
+            {
+                var world = WorldManager.Instance.GetWorld(slave.Summoner.Transform.WorldId);
+                world.Physics.AddShip(slave);
+            }
 
             slave.SendPacket(new SCMySlavePacket(slave.ObjId, slave.TlId, slave.Name, slave.TemplateId,
                 slave.Hp, slave.Mp,

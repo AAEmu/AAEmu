@@ -2,7 +2,7 @@
 using AAEmu.Game.Utils;
 using Xunit;
 
-namespace AAEmu.Tests.Unit
+namespace AAEmu.Tests
 {
     public class IdManagerTests
     {
@@ -13,9 +13,9 @@ namespace AAEmu.Tests.Unit
             var firstId = 0x00000100u;
             var id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId, id);
-            id = objIdManager.GetNextId();
+            id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId+1, id);
-            id = objIdManager.GetNextId();
+            id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId+2, id);
         }
         
@@ -26,12 +26,12 @@ namespace AAEmu.Tests.Unit
             var firstId = 0x00000100u;
             var id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId, id);
-            id = objIdManager.GetNextId();
+            id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId+1, id);
             
             ObjectIdManager.Instance.ReleaseId(id);
             
-            id = objIdManager.GetNextId();
+            id = ObjectIdManager.Instance.GetNextId();
             // We get the next ID and THEN release
             Assert.Equal(firstId+1, id);
         }
@@ -39,8 +39,7 @@ namespace AAEmu.Tests.Unit
         [Fact]
         public void ObjectIdManagerGetMultipleIds()
         {
-            var objIdManager = new ObjectIdManager();
-            objIdManager.Initialize();
+            ObjectIdManager.Instance.Initialize();
             
             var firstId = 0x00000100u;
             var ids = ObjectIdManager.Instance.GetNextId(10);
