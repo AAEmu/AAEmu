@@ -793,20 +793,18 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void RemoveVisibleObject(GameObject obj)
         {
-            if (obj == null) { return; }
+            if (obj?.Region == null)
+                return;
 
-            if (obj.Region == null) { return; }
-            
             obj.Region.RemoveObject(obj);
-
 
             foreach (var neighbor in obj.Region.GetNeighbors())
                 neighbor.RemoveFromCharacters(obj);
 
             obj.Region = null;
-
+            
             // Also remove children
-            if (obj.Transform?.Children.Count > 0)
+            if (obj?.Transform?.Children.Count > 0)
                 foreach (var child in obj.Transform.Children)
                     RemoveVisibleObject(child.GameObject);
         }

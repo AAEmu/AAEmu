@@ -66,51 +66,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             using (var connection = SQLite.CreateConnection())
             {
-                _log.Info("Loading doodad templates...");
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM doodad_almighties ORDER BY id ASC";
-                    command.Prepare();
-                    using (var sqliteDataReader = command.ExecuteReader())
-                    using (var reader = new SQLiteWrapperReader(sqliteDataReader))
-                    {
-                        while (reader.Read())
-                        {
-                            var template = new DoodadTemplate();
-                            template.Id = reader.GetUInt32("id");
-                            template.OnceOneMan = reader.GetBoolean("once_one_man", true);
-                            template.OnceOneInteraction = reader.GetBoolean("once_one_interaction", true);
-                            template.MgmtSpawn = reader.GetBoolean("mgmt_spawn", true);
-                            template.Percent = reader.GetInt32("percent", 0);
-                            template.MinTime = reader.GetInt32("min_time", 0);
-                            template.MaxTime = reader.GetInt32("max_time", 0);
-                            template.ModelKindId = reader.GetUInt32("model_kind_id");
-                            template.UseCreatorFaction = reader.GetBoolean("use_creator_faction", true);
-                            template.ForceTodTopPriority = reader.GetBoolean("force_tod_top_priority", true);
-                            template.MilestoneId = reader.GetUInt32("milestone_id", 0);
-                            template.GroupId = reader.GetUInt32("group_id");
-                            template.UseTargetDecal = reader.GetBoolean("use_target_decal", true);
-                            template.UseTargetSilhouette = reader.GetBoolean("use_target_silhouette", true);
-                            template.UseTargetHighlight = reader.GetBoolean("use_target_highlight", true);
-                            template.TargetDecalSize = reader.GetFloat("target_decal_size", 0);
-                            template.SimRadius = reader.GetInt32("sim_radius", 0);
-                            template.CollideShip = reader.GetBoolean("collide_ship", true);
-                            template.CollideVehicle = reader.GetBoolean("collide_vehicle", true);
-                            template.ClimateId = reader.GetUInt32("climate_id", 0);
-                            template.SaveIndun = reader.GetBoolean("save_indun", true);
-                            template.ForceUpAction = reader.GetBoolean("force_up_action", true);
-                            template.Parentable = reader.GetBoolean("parentable", true);
-                            template.Childable = reader.GetBoolean("childable", true);
-                            template.FactionId = reader.GetUInt32("faction_id");
-                            template.GrowthTime = reader.GetInt32("growth_time", 0);
-                            template.DespawnOnCollision = reader.GetBoolean("despawn_on_collision", true);
-                            template.NoCollision = reader.GetBoolean("no_collision", true);
-                            template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
-
-                            _templates.Add(template.Id, template);
-                        }
-                    }
-                }
                 #region doodad_funcs
                 _log.Info("Loading doodad functions ...");
                 using (var command = connection.CreateCommand())
@@ -136,8 +91,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     }
                 }
 
-                _log.Info("Loaded {0} doodad templates", _templates.Count);
-
+                
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_funcs ORDER BY doodad_func_group_id ASC, actual_func_id ASC";
@@ -180,7 +134,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     {
                         while (reader.Read())
                         {
-                            var func = new DoodadPhaseFunc();
+                           var func = new DoodadPhaseFunc();
                             func.GroupId = reader.GetUInt32("doodad_func_group_id");
                             func.FuncId = reader.GetUInt32("actual_func_id");
                             func.FuncType = reader.GetString("actual_func_type");
@@ -471,7 +425,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-
+                
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_clout_effects";
@@ -2305,13 +2259,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     if (template != null)
                         template.FuncGroups.Add(funcGroups);
                 }
-                
-                
 
                 _log.Info("Loaded {0} doodad templates", _templates.Count);
                 #endregion
             }
-                
+                        
             _loaded = true;
         }
 
