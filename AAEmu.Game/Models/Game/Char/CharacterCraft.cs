@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Tasks.Characters;
 using AAEmu.Game.Models.Tasks.Skills;
