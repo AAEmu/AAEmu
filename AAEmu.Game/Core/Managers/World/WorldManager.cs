@@ -827,20 +827,27 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void RemoveVisibleObject(GameObject obj)
         {
-            if (obj?.Region == null)
-                return;
+            try
+            {
+                if (obj?.Region == null)
+                    return;
 
-            obj.Region.RemoveObject(obj);
+                obj.Region.RemoveObject(obj);
 
-            foreach (var neighbor in obj.Region.GetNeighbors())
-                neighbor.RemoveFromCharacters(obj);
+                foreach (var neighbor in obj.Region.GetNeighbors())
+                    neighbor.RemoveFromCharacters(obj);
 
-            obj.Region = null;
+                obj.Region = null;
             
-            // Also remove children
-            if (obj?.Transform?.Children.Count > 0)
-                foreach (var child in obj.Transform.Children)
-                    RemoveVisibleObject(child.GameObject);
+                // Also remove children
+                if (obj?.Transform?.Children.Count > 0)
+                    foreach (var child in obj.Transform.Children)
+                        RemoveVisibleObject(child.GameObject);
+            }
+            catch (Exception e)
+            {
+                _log.Error($"RemoveVisibleObject: {e}");
+            }
         }
 
         public List<T> GetAround<T>(GameObject obj) where T : class
