@@ -847,6 +847,10 @@ namespace AAEmu.Game.Core.Managers.World
             catch (Exception e)
             {
                 _log.Error($"RemoveVisibleObject: {e}");
+                // Also remove children
+                if (obj?.Transform?.Children.Count > 0)
+                    foreach (var child in obj.Transform.Children)
+                        RemoveVisibleObject(child.GameObject);
             }
         }
 
