@@ -1,6 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
@@ -21,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         {
             _log.Warn("QuestActSupplyItem");
 
-            if (character.Inventory.GetItemsCount(ItemId) >= Count || objective >= Count) // checking for call recursion
+            if (objective >= Count) // checking for call recursion
             {
                 return true;
             }

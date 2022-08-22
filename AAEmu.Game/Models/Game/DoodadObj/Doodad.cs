@@ -397,6 +397,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// </summary>
         public override void Spawn()
         {
+            base.Spawn();
             // TODO has already been called in Create() - this eliminates re-initialization of plants/trees/animals
             //FuncGroupId = GetFuncGroupId();  // Start phase
             _log.Trace("Doing phase {0} for WorldDoodad TemplateId {1}, objId {2}", FuncGroupId, TemplateId, ObjId);
@@ -441,8 +442,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     DoPhaseFuncs(null, (int)FuncGroupId);
                 }
             }
-
-            base.Spawn();
         }
 
         public override void BroadcastPacket(GamePacket packet, bool self)

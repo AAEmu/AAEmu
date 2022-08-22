@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -18,7 +17,6 @@ using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Quests;
 
 namespace AAEmu.Game.Models.Game.Quests
@@ -224,7 +222,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActSupplyItem":
                                 {
                                     // if SupplyItem = 0, we get the item
-                                    res = act.Use(Owner, this, SupplyItem); 
+                                    res = act.Use(Owner, this, 0); 
                                     Step = QuestComponentKind.Supply; 
                                     // в процессе работы метода ItemGather  переключается на Progress (
                                     // In the process of ItemGather method operation switches to Progress)
@@ -717,7 +715,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     break;
                                 }
                             case "QuestActSupplyItem":
-                                res = act.Use(Owner, this, SupplyItem);
+                                res = act.Use(Owner, this, 0); // всегда получаем предметы в конце квеста (always get items at the end of the quest)
                                 if (ComponentId == 0)
                                     ComponentId = components[componentIndex].Id;
                                 _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
@@ -1376,6 +1374,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         {
                             var template = acts[i].GetTemplate<QuestActSupplyItem>();
                             Objectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
+                            SupplyItem = Objectives[i]; // the same as Objectives, but for QuestActSupplyItem
                             if (Objectives[i] > template.Count) // TODO check to overtime
                             {
                                 Objectives[i] = template.Count;
@@ -1387,6 +1386,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         {
                             var template = acts[i].GetTemplate<QuestActObjItemGather>();
                             Objectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
+                            SupplyItem = Objectives[i]; // the same as Objectives, but for QuestActSupplyItem
                             if (Objectives[i] > template.Count) // TODO check to overtime
                             {
                                 Objectives[i] = template.Count;
@@ -1402,6 +1402,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             {
                                 Objectives[i] += Owner.Inventory.GetItemsCount(itemId);
                             }
+                            SupplyItem = Objectives[i]; // the same as Objectives, but for QuestActSupplyItem
 
                             if (Objectives[i] > template.Count) // TODO check to overtime
                             {
