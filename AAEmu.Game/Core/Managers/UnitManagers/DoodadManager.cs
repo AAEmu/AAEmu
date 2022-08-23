@@ -2320,8 +2320,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.PlantTime = DateTime.UtcNow;
             doodad.OwnerType = DoodadOwnerType.System;
             doodad.FuncGroupId = doodad.GetFuncGroupId();
-            
-            doodad.FuncGroupId = doodad.GetFuncGroupId();
 
             switch (obj)
             {
@@ -2517,8 +2515,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             foreach (var item in items)
                 character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1, preferredItem);
-            //doodad.DoPhaseFuncs(caster, (int)doodad.FuncGroupId);
-
+            
+            doodad.Spawn();
             doodad.Save();
 
             return doodad;
