@@ -58,13 +58,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                         trp.Z,
                         0,
                         0,
-                        0
+                        trp.Yaw
                     )
                 );
                 //var xyz = new Vector3(trp.X, trp.Y, trp.Z);
                 //character.Transform = new Transform(character, null, xyz);
                 // возвращаемся в main_world
-                character.Transform = new Transform(character, null, 0, trp.ZoneId, 0, trp.X, trp.Y, trp.Z, 0);
+                character.Transform = new Transform(character, null, 0, trp.ZoneId, 0, trp.X, trp.Y, trp.Z, trp.Yaw);
                 character.MainWorldPosition = null;
             }
             else if (character.MainWorldPosition != null)
