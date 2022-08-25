@@ -188,6 +188,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         
                         _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, acts[0].DetailType);
                         UseSkillAndBuff(currentComponent);
+                        SetNpcAggro(currentComponent);
                     }
 
                     foreach (var act in acts)
@@ -320,6 +321,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     Status = CalculateQuestStatus(components[componentIndex]);
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     UseSkillAndBuff(components[componentIndex]);
+                                    SetNpcAggro(components[componentIndex]);
                                     break;
                                 }
                             case "QuestActSupplyItem" when Step == QuestComponentKind.Supply:
@@ -465,8 +467,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     // компонент - выполнен (component - ready)
                                     complete = true;
                                     Status = QuestStatus.Ready;
-                                    _log.Warn(
-                                        $"[Quest] Update: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
+                                    _log.Warn($"[Quest] Update: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
                                     Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
                                     Owner.Quests.Complete(TemplateId, 0);
                                     return;
@@ -658,6 +659,19 @@ namespace AAEmu.Game.Models.Game.Quests
                 {
                     var npc = _worldManager.GetNpcByTemplateId(component.NpcId);
                     npc?.UseSkill(component.SkillId, npc);
+                }
+            }
+        }
+
+        private void SetNpcAggro(QuestComponent component)
+        {
+            if (component == null) { return; }
+            if (component.NpcAiId == 4)
+            {
+                if (component.NpcId > 0)
+                {
+                    var npc = _worldManager.GetNpcByTemplateId(component.NpcId);
+                    npc?.SetFaction(115);
                 }
             }
         }
