@@ -397,6 +397,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 var selective = false;
                 var complete = false;
                 var questActObjTalk = false; // TODO: added for quest Id=2037
+                var questActObjInteraction = false; // TODO: added for quest Id=3353
 
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {
@@ -522,6 +523,15 @@ namespace AAEmu.Game.Models.Game.Quests
                                     questActObjTalk = true;
                                     break;
                                 }
+                            case "QuestActObjInteraction":
+                                {
+                                    // TODO: added for quest Id=3353
+                                    complete = act.Use(Owner, this, Objectives[componentIndex]);
+                                    completes[componentIndex] = complete;
+                                    // установим в true для дальнейшей проверки (set in True for further verification)
+                                    questActObjInteraction = true;
+                                    break;
+                                }
                             case "QuestActSupplyRemoveItem":
                                 {
                                     // TODO: added for quest Id=2037
@@ -588,7 +598,7 @@ namespace AAEmu.Game.Models.Game.Quests
                     complete = Template.Score > 0 ? completes.Any(b => b) : completes.All(b => b);
                     Status = complete ? QuestStatus.Ready : QuestStatus.Progress;
 
-                    if (questActObjTalk) // TODO: added for quest Id=2037
+                    if (questActObjTalk || questActObjInteraction) // TODO: added for quest Id=2037, Id=3353
                     {
                         for (var i = 0; i < components.Length; i++)
                         {
