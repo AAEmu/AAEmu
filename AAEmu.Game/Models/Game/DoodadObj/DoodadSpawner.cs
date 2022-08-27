@@ -202,7 +202,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
                 // couldn't find it on the schedule, but it should have been!
                 // no entries found for this unit in Game_Schedule table
-                return;
+                //return;
+                // All the same, we will be Spawn Doodad, since there was no record in Scheduler
+                // Тем не менее, мы будем спавнить doodad, так как в планировщике не было никаких записей
             }
             #endregion Schedule
 
