@@ -1,0 +1,20 @@
+[
+    {
+        "UnitId": 87, // Blackscale Corps Cannon
+        "Position": {
+            "X": 613.9,
+            "Y": 657.3,
+            "Z": 178.4,
+            "Yaw": 157.5
+        }
+     },
+	     {
+        "UnitId": 87, // Blackscale Corps Cannon
+        "Position": {
+            "X": 607.8,
+            "Y": 665.7,
+            "Z": 178.4,
+            "Yaw": 157.5
+        }
+     }
+]
