@@ -27,6 +27,11 @@ namespace AAEmu.Game.Core.Packets.C2G
                     new SCTargetChangedPacket(Connection.ActiveChar.ObjId,
                         Connection.ActiveChar.CurrentTarget?.ObjId ?? 0), true);
 
+            if (targetId == 0)
+            {
+                Connection.ActiveChar.SendMessage("Selected nothing");
+                return;
+            }
             if (Connection.ActiveChar.CurrentTarget == null)
             {
                 Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: not found in Db", targetId);

@@ -96,14 +96,7 @@ namespace AAEmu.Game.Core.Managers
 
             // Only enable the force_scripts_reload when we don't have anything loaded, this is simply a failsafe function in case
             // things aren't working out when live-editing scripts
-            if ((_commands.Count <= 0) && (words.Length == 2) && (thisCommand == "scripts") && (words[1] == "reload") && (character.AccessLevel >= 100))
-            {
-                ForceScriptsReload(character);
-
-                return true;
-            }
-
-            if (thisCommand == "scripts" && words[1] == "reload" && words[2] == "force" && character.AccessLevel >= 100)
+            if ((_commands.Count <= 0) && (words.Length == 3) && (thisCommand == "scripts") && (words[1] == "reload") && (words[2] == "force") && (character.AccessLevel >= 100))
             {
                 ForceScriptsReload(character);
 

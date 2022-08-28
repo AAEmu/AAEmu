@@ -37,6 +37,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, Slave> _tlSlaves;
         public Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> _attachPoints;
         public Dictionary<uint, List<SlaveInitialItems>> _slaveInitialItems; // PackId and List<Slot/ItemData>
+        private object _slaveListLock;
 
         public bool Exist(uint templateId)
         {
@@ -50,7 +51,8 @@ namespace AAEmu.Game.Core.Managers
 
         public Slave GetActiveSlaveByOwnerObjId(uint objId)
         {
-            return _activeSlaves.ContainsKey(objId) ? _activeSlaves[objId] : null;
+            lock (_slaveListLock)
+                return _activeSlaves.ContainsKey(objId) ? _activeSlaves[objId] : null;
         }
 
         /// <summary>
@@ -61,9 +63,13 @@ namespace AAEmu.Game.Core.Managers
         /// <returns></returns>
         public IEnumerable<Slave> GetActiveSlavesByKind(SlaveKind kind, uint worldId = uint.MaxValue)
         {
-            if (worldId >= uint.MaxValue)
-                return _activeSlaves.Select(i => i.Value).Where(s => s.Template.SlaveKind == kind);
-            return _activeSlaves.Select(i => i.Value).Where(s => (s.Template.SlaveKind == kind) && (s.Transform.WorldId == worldId));
+            lock (_slaveListLock)
+            {
+                if (worldId >= uint.MaxValue)
+                    return _activeSlaves.Select(i => i.Value).Where(s => s.Template.SlaveKind == kind);
+                
+                return _activeSlaves.Select(i => i.Value).Where(s => (s.Template.SlaveKind == kind) && (s.Transform.WorldId == worldId));
+            }
         }
 
         /// <summary>
@@ -74,29 +80,38 @@ namespace AAEmu.Game.Core.Managers
         /// <returns></returns>
         public IEnumerable<Slave> GetActiveSlavesByKinds(SlaveKind[] kinds, uint worldId = uint.MaxValue)
         {
-            if (worldId >= uint.MaxValue)
+            lock (_slaveListLock)
+            {
+                if (worldId >= uint.MaxValue)
+                    return _activeSlaves.Where(s => kinds.Contains(s.Value.Template.SlaveKind))
+                        .Select(s => s.Value);
+                
                 return _activeSlaves.Where(s => kinds.Contains(s.Value.Template.SlaveKind))
+                    .Where(s => s.Value?.Transform.WorldId == worldId)
                     .Select(s => s.Value);
-            return _activeSlaves.Where(s => kinds.Contains(s.Value.Template.SlaveKind))
-                .Where(s => s.Value.Transform.WorldId == worldId)
-                .Select(s => s.Value);
+            }
         }
 
         public Slave GetActiveSlaveByObjId(uint objId)
         {
-            foreach (var slave in _activeSlaves.Values)
+            lock (_slaveListLock)
             {
-                if (slave.ObjId == objId) return slave;
+                foreach (var slave in _activeSlaves.Values)
+                {
+                    if (slave.ObjId == objId) return slave;
+                }
             }
-
             return null;
         }
 
         private Slave GetActiveSlaveByTlId(uint tlId)
         {
-            foreach (var slave in _activeSlaves.Values)
+            lock (_slaveListLock)
             {
-                if (slave.TlId == tlId) return slave;
+                foreach (var slave in _activeSlaves.Values)
+                {
+                    if (slave.TlId == tlId) return slave;
+                }
             }
 
             return null;
@@ -104,7 +119,10 @@ namespace AAEmu.Game.Core.Managers
 
         public void UnbindSlave(Character character, uint tlId, AttachUnitReason reason)
         {
-            var slave = _tlSlaves[tlId];
+
+            Slave slave;
+            lock (_slaveListLock)
+                slave = _tlSlaves[tlId];
             var attachPoint = slave.AttachedCharacters.FirstOrDefault(x => x.Value == character).Key;
             if (attachPoint != default)
             {
@@ -118,7 +136,9 @@ namespace AAEmu.Game.Core.Managers
         public void BindSlave(Character character, uint objId, AttachPointKind attachPoint, AttachUnitReason bondKind)
         {
             // Check if the target spot is already taken
-            var slave = _tlSlaves.FirstOrDefault(x => x.Value.ObjId == objId).Value;
+            Slave slave;
+            lock (_slaveListLock)
+                slave = _tlSlaves.FirstOrDefault(x => x.Value.ObjId == objId).Value;
             //var slave = GetActiveSlaveByObjId(objId);
             if ((slave == null) || (slave.AttachedCharacters.ContainsKey(attachPoint)))
                 return;
@@ -140,7 +160,9 @@ namespace AAEmu.Game.Core.Managers
         public void BindSlave(GameConnection connection, uint tlId)
         {
             var unit = connection.ActiveChar;
-            var slave = _tlSlaves[tlId];
+            Slave slave;
+            lock (_slaveListLock)
+                slave = _tlSlaves[tlId];
 
             BindSlave(unit, slave.ObjId, AttachPointKind.Driver, AttachUnitReason.NewMaster);
         }
@@ -167,7 +189,8 @@ namespace AAEmu.Game.Core.Managers
 
             foreach (var attachedSlave in activeSlaveInfo.AttachedSlaves)
             {
-                _tlSlaves.Remove(attachedSlave.TlId);
+                lock (_slaveListLock)
+                    _tlSlaves.Remove(attachedSlave.TlId);
                 attachedSlave.Despawn = despawnDelayedTime;
                 SpawnManager.Instance.AddDespawn(attachedSlave);
                 //attachedSlave.Delete();
@@ -177,7 +200,8 @@ namespace AAEmu.Game.Core.Managers
             world.Physics.RemoveShip(activeSlaveInfo);
             owner.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
             owner.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);
-            _activeSlaves.Remove(owner.ObjId);
+            lock (_slaveListLock)
+                _activeSlaves.Remove(owner.ObjId);
 
             activeSlaveInfo.Despawn = DateTime.UtcNow.AddSeconds(activeSlaveInfo.Template.PortalTime + 0.5f);
             SpawnManager.Instance.AddDespawn(activeSlaveInfo);
@@ -430,12 +454,16 @@ namespace AAEmu.Game.Core.Managers
                 }
 
                 template.AttachedSlaves.Add(childSlave);
-                _tlSlaves.Add(childSlave.TlId, childSlave);
+                lock (_slaveListLock)
+                    _tlSlaves.Add(childSlave.TlId, childSlave);
                 childSlave.Spawn();
             }
 
-            _tlSlaves.Add(template.TlId, template);
-            _activeSlaves.Add(owner.ObjId, template);
+            lock (_slaveListLock)
+            {
+                _tlSlaves.Add(template.TlId, template);
+                _activeSlaves.Add(owner.ObjId, template);
+            }
 
             if (template.Template.IsABoat())
             {
@@ -669,12 +697,16 @@ namespace AAEmu.Game.Core.Managers
                 }
 
                 slave.AttachedSlaves.Add(childSlave);
-                _tlSlaves.Add(childSlave.TlId, childSlave);
+                lock (_slaveListLock)
+                    _tlSlaves.Add(childSlave.TlId, childSlave);
                 childSlave.Spawn();
             }
 
-            _tlSlaves.Add(slave.TlId, slave);
-            _activeSlaves.Add(slave.ObjId, slave);
+            lock (_slaveListLock)
+            {
+                _tlSlaves.Add(slave.TlId, slave);
+                _activeSlaves.Add(slave.ObjId, slave);
+            }
 
             if (slave.Template.IsABoat())
             {
@@ -726,9 +758,13 @@ namespace AAEmu.Game.Core.Managers
 
         public void Load()
         {
+            _slaveListLock = new object();
             _slaveTemplates = new Dictionary<uint, SlaveTemplate>();
-            _activeSlaves = new Dictionary<uint, Slave>();
-            _tlSlaves = new Dictionary<uint, Slave>();
+            lock (_slaveListLock)
+            {
+                _activeSlaves = new Dictionary<uint, Slave>();
+                _tlSlaves = new Dictionary<uint, Slave>();
+            }
             _slaveInitialItems = new Dictionary<uint, List<SlaveInitialItems>>();
 
             #region SQLLite
@@ -915,7 +951,11 @@ namespace AAEmu.Game.Core.Managers
 
         public void SendMySlavePacketToAllOwners()
         {
-            foreach (var (ownerObjId, slave) in _activeSlaves)
+            Dictionary<uint, Slave> slaveList = null;
+            lock (_slaveListLock)
+                slaveList = _activeSlaves;
+            
+            foreach (var (ownerObjId, slave) in slaveList)
             {
                 var owner = WorldManager.Instance.GetCharacterByObjId(ownerObjId);
                 owner?.SendPacket(new SCMySlavePacket(slave.ObjId, slave.TlId, slave.Name, slave.TemplateId, slave.Hp,
@@ -928,15 +968,19 @@ namespace AAEmu.Game.Core.Managers
         public Slave GetIsMounted(uint objId, out AttachPointKind attachPoint)
         {
             attachPoint = AttachPointKind.None;
-            foreach (var slave in _activeSlaves)
-                foreach (var unit in slave.Value.AttachedCharacters)
+            lock (_slaveListLock)
+            {
+                foreach (var slave in _activeSlaves.Values)
+                foreach (var unit in slave.AttachedCharacters)
                 {
                     if (unit.Value.ObjId == objId)
                     {
                         attachPoint = unit.Key;
-                        return slave.Value;
+                        return slave;
                     }
                 }
+            }
+
             return null;
         }
     }
