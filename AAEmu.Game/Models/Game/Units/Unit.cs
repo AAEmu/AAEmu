@@ -663,7 +663,7 @@ namespace AAEmu.Game.Models.Game.Units
         /// <param name="factionId"></param>
         public void SetFaction(uint factionId)
         {
-            if (this is Character) { return; } // do not change the faction for the character
+            // if (this is Character) { return; } // do not change the faction for the character
             BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
             Faction = FactionManager.Instance.GetFaction(factionId);
 

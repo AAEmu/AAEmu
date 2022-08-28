@@ -58,6 +58,7 @@ namespace AAEmu.Game.Scripts.Commands
             }
 
             character.SetFaction(newFactionId);
+            character.SendMessage($"Faction set to: {newFactionId}");
         }
     }
 }

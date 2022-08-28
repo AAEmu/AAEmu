@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
@@ -74,12 +74,11 @@ namespace AAEmu.Game.Models.Game.Char
                     Owner = Owner.Id
                 };
                 
-                if (VisitedDistricts.ContainsKey(subZoneId)) { return; }
-                
                 VisitedDistricts.Add(subZoneId, newVisitedDistrict);
                 PopulateDistrictPortals();
                 Send();
-                _log.Info("{0}:{1} added to return district list ", portal.Name, subZoneId);
+                _log.Info($"{portal.Name}:{subZoneId} added to return district list");
+                Owner.SendMessage($"{portal.Name}:{subZoneId} added to visited district list in the portal book");
             }
         }
 
@@ -112,13 +111,9 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (DistrictPortals.Count > 0)
             {
-                var portals = new Portal[DistrictPortals.Count];
-                DistrictPortals.Values.CopyTo(portals, 0);
+                var portals = DistrictPortals.Values.ToArray();
                 var ReturnPointId = PortalManager.Instance.GetDistrictReturnPoint(Owner.ReturnDictrictId, Owner.Faction.Id);
-                if (ReturnPointId != 0)
-                {
-                    Owner.SendPacket(new SCCharacterReturnDistrictsPacket(portals, (int)ReturnPointId)); // INFO - What is returnDistrictId? Table district_return_point, field district_id => return_point_id
-                }
+                Owner.SendPacket(new SCCharacterReturnDistrictsPacket(portals, ReturnPointId)); // INFO - What is returnDistrictId? Table district_return_point, field district_id => return_point_id
             }
         }
 

@@ -827,23 +827,29 @@ namespace AAEmu.Game.Core.Managers.World
 
                 obj.Region.RemoveObject(obj);
 
-                foreach (var neighbor in obj.Region.GetNeighbors())
-                    neighbor.RemoveFromCharacters(obj);
+                var neighbours = obj.Region.GetNeighbors();
+                if ((neighbours != null) && (neighbours.Length > 0))
+                    foreach (var neighbor in neighbours)
+                        neighbor?.RemoveFromCharacters(obj);
 
                 obj.Region = null;
             
-                // Also remove children
-                if (obj?.Transform?.Children.Count > 0)
-                    foreach (var child in obj.Transform.Children)
-                        RemoveVisibleObject(child.GameObject);
             }
             catch (Exception e)
             {
                 _log.Error($"RemoveVisibleObject: {e}");
+            }
+
+            try
+            {
                 // Also remove children
                 if (obj?.Transform?.Children.Count > 0)
-                    foreach (var child in obj.Transform.Children)
-                        RemoveVisibleObject(child.GameObject);
+                    foreach (var child in obj?.Transform.Children)
+                        RemoveVisibleObject(child?.GameObject);
+            }
+            catch (Exception e)
+            {
+                _log.Error($"RemoveVisibleObject.RemoveChildren: {e}");
             }
         }
 

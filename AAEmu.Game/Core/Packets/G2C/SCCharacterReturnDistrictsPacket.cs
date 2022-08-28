@@ -7,9 +7,9 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCCharacterReturnDistrictsPacket : GamePacket
     {
         private readonly Portal[] _portals;
-        private readonly int _returnDistrictId;
+        private readonly uint _returnDistrictId;
         
-        public SCCharacterReturnDistrictsPacket(Portal[] portals, int returnDistrictId) : base(SCOffsets.SCCharacterReturnDistrictsPacket, 1)
+        public SCCharacterReturnDistrictsPacket(Portal[] portals, uint returnDistrictId) : base(SCOffsets.SCCharacterReturnDistrictsPacket, 1)
         {
             _portals = portals;
             _returnDistrictId = returnDistrictId;
