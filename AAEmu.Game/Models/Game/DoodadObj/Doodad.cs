@@ -184,41 +184,53 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 }
                 else
                 {
-                    _log.Debug("Use: Finished execution with recurse: TemplateId {0}, Using phase {1} with SkillId {2}",
-                        TemplateId, FuncGroupId, skillId);
+                    _log.Debug("Use: Finished execution with recurse: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
                     return;
                 }
 
                 //  first we find the functions, then we execute
                 var func = DoodadManager.Instance.GetFunc(FuncGroupId, skillId); // if skillId > 0
-                var funcs = DoodadManager.Instance
-                    .GetFuncsForGroup(FuncGroupId); // if several functions with one NextPhase
-                if (funcs.Count > 1)
+                if (skillId == 0)
                 {
-                    // check for functions to be executed if they have the same NextPhase
-                    var res = true;
-                    var prev = 0;
-                    foreach (var a in funcs)
+                    var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId); // if several functions with one NextPhase
+                    if (funcs.Count > 1)
                     {
-                        if (prev == 0)
+                        // check for functions to be executed if they have the same NextPhase
+                        // например: id=5085 Howling Abyss Entrance - 4 функции с разными skill и одним и тем же NextPhase = -1
+                        //           id=5933 Howling Abyss Restricted Attack Area - 6 функции с разными skill и повторяющимися по парно NextPhase
+                        //           id=5095 Explosive Keg - 2 функции с разными skill и с разными NextPhase != -1
+                        //           id=901 ??? - 3 функции с разными func_skill и одним и тем же NextPhase = 2221
+                        //           id=1549 Logic -lamp bit 1 - 2 функции с skill=0 и с разными NextPhase, один из них = -1
+                        
+                        //           id=6749 Nachashgar Room 9 - 4 функции с разными skill и одним и тем же NextPhase = 18123
+                        var res = true;
+                        var prev = 0;
+                        foreach (var a in funcs)
                         {
-                            prev = a.NextPhase;
-                            continue;
+                            if (prev == 0)
+                            {
+                                prev = a.NextPhase;
+                                continue;
+                            }
+
+                            res = a.NextPhase != prev;
                         }
 
-                        res = a.NextPhase != prev;
-                    }
-
-                    if (res)
-                    {
-                        // skillId may not be appropriate for the first function, but it is appropriate for the second
-                        if (funcs.All(fu => DoFunc(caster, skillId, fu))) { return; }
+                        if (res)
+                        {
+                            // skillId may not be appropriate for the first function, but it is appropriate for the second
+                            if (funcs.All(fu => DoFunc(caster, skillId, fu))) { return; }
+                        }
+                        else
+                        {
+                            //if (funcs.Any(fu => DoFunc(caster, skillId, fu))) { return; } // -1
+                            var list = funcs.Select(fu => DoFunc(caster, skillId, fu)).ToList();
+                            if (list.Any(b => b)) { return; }
+                        }
                     }
                     else
                     {
-                        //if (funcs.Any(fu => DoFunc(caster, skillId, fu))) { return; } // -1
-                        var list = funcs.Select(fu => DoFunc(caster, skillId, fu)).ToList();
-                        if (list.Any(b => b)) { return; }
+                        if (DoFunc(caster, skillId, func)) { return; }
                     }
                 }
                 else
@@ -231,9 +243,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 if (stop)
                 {
                     // did not pass the quest conditions check or there is no phase function
-                    _log.Debug(
-                        "Use:DoPhaseFuncs Did not pass the conditions check! TemplateId {0}, Using phase {1} with SkillId {2}",
-                        TemplateId, FuncGroupId, skillId);
+                    _log.Debug("Use:DoPhaseFuncs Did not pass the conditions check! TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
                     return;
                 }
 
@@ -253,9 +263,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             // if there is no function, complete the cycle
             if (func == null)
             {
-                _log.Debug(
-                    "Use:DoFunc Finished execution with func = null: TemplateId {0}, Using phase {1} with SkillId {2}",
-                    TemplateId, FuncGroupId, skillId);
+                _log.Debug("Use:DoFunc Finished execution with func = null: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
                 return true;
             }
 
@@ -282,9 +290,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
             else
             {
-                _log.Debug(
-                    "Use:DoFunc Finished execution with ToNextPhase = {3}: TemplateId {0}, Using phase {1} with SkillId {2}",
-                    TemplateId, FuncGroupId, skillId, ToNextPhase);
+                _log.Debug("Use:DoFunc Finished execution with ToNextPhase = {3}: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId, ToNextPhase);
                 return true;
             }
 

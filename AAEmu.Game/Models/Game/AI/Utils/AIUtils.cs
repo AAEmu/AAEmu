@@ -22,19 +22,19 @@ namespace AAEmu.Game.Models.Game.AI.Utils
             var idlePos = ai.IdlePosition.CloneDetached();
             var newPosition = idlePos.Clone();
 
-            var maxRoamingDistance = 6;
-            newPosition.Local.SetPosition(
-                (Rand.NextSingle() - 0.5f) * maxRoamingDistance * 2 + idlePos.Local.Position.X,
-                (Rand.NextSingle() - 0.5f) * maxRoamingDistance * 2 + idlePos.Local.Position.Y,
-                idlePos.Local.Position.Z);
+            //var maxRoamingDistance = 6;
+            //newPosition.Local.SetPosition(
+            //    (Rand.NextSingle() - 0.5f) * maxRoamingDistance * 2 + idlePos.Local.Position.X,
+            //    (Rand.NextSingle() - 0.5f) * maxRoamingDistance * 2 + idlePos.Local.Position.Y,
+            //    idlePos.Local.Position.Z);
 
-            var terrainHeight = WorldManager.Instance.GetHeight(newPosition.ZoneId, newPosition.Local.Position.X, newPosition.Local.Position.Y);
-            // Handles disabled heightmaps
-            if (terrainHeight <= 0.0f)
-                terrainHeight = newPosition.Local.Position.Z;
+            //var terrainHeight = WorldManager.Instance.GetHeight(newPosition.ZoneId, newPosition.Local.Position.X, newPosition.Local.Position.Y);
+            //// Handles disabled heightmaps
+            //if (terrainHeight <= 0.0f)
+            //    terrainHeight = newPosition.Local.Position.Z;
             
-            if (newPosition.Local.Position.Z < terrainHeight && terrainHeight - maxRoamingDistance < newPosition.Local.Position.Z)
-                newPosition.Local.SetHeight(terrainHeight);
+            //if (newPosition.Local.Position.Z < terrainHeight && terrainHeight - maxRoamingDistance < newPosition.Local.Position.Z)
+            //    newPosition.Local.SetHeight(terrainHeight);
             
             return newPosition;
         }

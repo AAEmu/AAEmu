@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Trace("DoodadFuncEnterInstance, ZoneId: {0}, ItemId: {1}", ZoneId, ItemId);
+            _log.Debug("DoodadFuncEnterInstance, ZoneId: {0}, ItemId: {1}", ZoneId, ItemId);
 
             if (caster is Character character)
             {
@@ -55,7 +55,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 else
                     _log.Warn("World #.{0}, not have default spawn position.", world.Id);
             }
-
         }
     }
 }
