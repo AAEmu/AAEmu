@@ -330,6 +330,10 @@ CREATE TABLE `items` (
   `flags` tinyint unsigned NOT NULL,
   `created_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `ucc` int unsigned NOT NULL DEFAULT '0',
+  `expire_time` DATETIME NULL DEFAULT NULL COMMENT 'Fixed time expire', 
+  `expire_online_minutes` DOUBLE NOT NULL DEFAULT '0' COMMENT 'Time left when player online',
+  `charge_time` DATETIME NULL DEFAULT NULL COMMENT 'Time charged items got activated',
+  `charge_count` INT NOT NULL DEFAULT '0' COMMENT 'Number of charges left',
   PRIMARY KEY (`id`) USING BTREE,
   KEY `owner` (`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='All items';
