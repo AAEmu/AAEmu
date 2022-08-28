@@ -47,8 +47,7 @@ namespace AAEmu.Game.Core.Managers
             _generalScheduler?.Shutdown(true);
         }
 
-        public async void Schedule(Task task, TimeSpan? startTime = null, TimeSpan? repeatInterval = null,
-            int count = -1)
+        public async void Schedule(Task task, TimeSpan? startTime = null, TimeSpan? repeatInterval = null, int count = -1)
         {
             if (_generalScheduler.IsShutdown)
                 return;
@@ -63,17 +62,22 @@ namespace AAEmu.Game.Core.Managers
             while (await _generalScheduler.CheckExists(new JobKey(task.Name + task.Id, task.Name)))
                 task.Id = TaskIdManager.Instance.GetNextId();
 
-            var job = JobBuilder
-                .Create<TaskJob>()
-                .WithIdentity(task.Name + task.Id, task.Name)
-                .Build();
-            job.JobDataMap.Put("Logger", _log);
-            job.JobDataMap.Put("Task", task);
-            task.JobDetail = job;
+            IJobDetail job;
+            var newJob = task.JobDetail == null;
+            if (newJob)
+            {
+                job = JobBuilder
+                    .Create<TaskJob>()
+                    .WithIdentity(task.Name + task.Id, task.Name)
+                    .Build();
+                job.JobDataMap.Put("Logger", _log);
+                job.JobDataMap.Put("Task", task);
+                task.JobDetail = job;
+            }
 
             var triggerBuild = TriggerBuilder
                 .Create()
-                .WithIdentity(job.Key.Name, job.Key.Group);
+                .WithIdentity(task.JobDetail.Key.Name, task.JobDetail.Key.Group);
 
             if (startTime == null)
                 triggerBuild.StartNow();
@@ -98,6 +102,8 @@ namespace AAEmu.Game.Core.Managers
             else
                 triggerBuild.WithSchedule(task.Scheduler);
 
+            triggerBuild.ForJob(task.JobDetail.Key);
+
             task.Trigger = triggerBuild.Build();
             task.ExecuteCount = 0;
             task.MaxCount = repeatInterval == null ? 0 : count;
@@ -105,7 +111,14 @@ namespace AAEmu.Game.Core.Managers
 
             try
             {
-                await _generalScheduler.ScheduleJob(job, task.Trigger);
+                if (newJob)
+                {
+                    await _generalScheduler.ScheduleJob(task.JobDetail, task.Trigger);
+                }
+                else
+                {
+                    await _generalScheduler.RescheduleJob(task.Trigger.Key, task.Trigger);
+                }
             }
             catch (Exception e)
             {
