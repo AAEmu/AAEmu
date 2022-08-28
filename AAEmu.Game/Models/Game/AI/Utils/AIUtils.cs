@@ -32,10 +32,10 @@ namespace AAEmu.Game.Models.Game.AI.Utils
             // Handles disabled heightmaps
             if (terrainHeight <= 0.0f)
                 terrainHeight = newPosition.Local.Position.Z;
-            
+
             if (newPosition.Local.Position.Z < terrainHeight && terrainHeight - maxRoamingDistance < newPosition.Local.Position.Z)
                 newPosition.Local.SetHeight(terrainHeight);
-            
+
             return newPosition;
         }
 
