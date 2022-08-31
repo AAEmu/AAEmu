@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Tasks.World
         }
         public override void Execute()
         {
-            _npc.DoDespawn(_npc);
+            _npc?.Spawner?.DoDespawn(_npc);
         }
     }
 }
