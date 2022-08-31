@@ -48,6 +48,8 @@ namespace AAEmu.Game.Utils.Scripts
             {
                 if (type.IsNested)
                     continue;
+                if (type.IsAbstract)
+                    continue;
                 try
                 {
                     var obj = Activator.CreateInstance(type);

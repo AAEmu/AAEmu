@@ -5,8 +5,10 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Utils.Scripts;
+using AAEmu.Game.Utils.Scripts.SubCommands;
 
-namespace AAEmu.Game.Utils.Scripts.SubCommands.Gold
+namespace AAEmu.Game.Scripts.Commands
 {
     public class GoldSetSubCommand : SubCommandBase
     {

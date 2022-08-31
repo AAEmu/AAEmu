@@ -10,8 +10,10 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Json;
 using AAEmu.Game.Utils.Converters;
 using Newtonsoft.Json;
+using AAEmu.Game.Utils.Scripts;
+using AAEmu.Game.Utils.Scripts.SubCommands;
 
-namespace AAEmu.Game.Utils.Scripts.SubCommands
+namespace AAEmu.Game.Scripts.Commands
 {
     public class DoodadSaveSubCommand : SubCommandBase
     {

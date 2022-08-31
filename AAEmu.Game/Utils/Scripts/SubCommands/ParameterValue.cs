@@ -37,9 +37,19 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             return value.As<float>();
         }
 
+        public static implicit operator double(ParameterValue value)
+        {
+            return value.As<double>();
+        }
+
         public static implicit operator long(ParameterValue value)
         {
             return value.As<long>();
+        }
+
+        public static implicit operator ulong(ParameterValue value)
+        {
+            return value.As<ulong>();
         }
 
         public static implicit operator int(ParameterValue value)

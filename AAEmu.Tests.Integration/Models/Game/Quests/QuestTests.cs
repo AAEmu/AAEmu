@@ -33,6 +33,7 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
     public class QuestTests
     {
         private static bool _managersLoaded = false;
+        
         private void LoadManagers()
         {
             if (_managersLoaded)
@@ -44,7 +45,7 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
             var configurationBuilderResult = configurationBuilder.Build();
             configurationBuilderResult.Bind(AppConfiguration.Instance);
 
-            //Loads all quests from DB
+            // Loads all quests from DB
             QuestManager.Instance.Load();
             FormulaManager.Instance.Load();
             ItemManager.Instance.Load();

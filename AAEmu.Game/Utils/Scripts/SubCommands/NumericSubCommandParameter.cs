@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands
 {
@@ -41,6 +42,10 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                     _minValue = (T)Convert.ChangeType(long.MinValue, typeof(T));
                     _maxValue = (T)Convert.ChangeType(long.MaxValue, typeof(T));
                     break;
+                case "UInt64":
+                    _minValue = (T)Convert.ChangeType(ulong.MinValue, typeof(T));
+                    _maxValue = (T)Convert.ChangeType(ulong.MaxValue, typeof(T));
+                    break;
                 case "Single":
                     _minValue = (T)Convert.ChangeType(float.MinValue, typeof(T));
                     _maxValue = (T)Convert.ChangeType(float.MaxValue, typeof(T));
@@ -52,6 +57,14 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                 case "Byte":
                     _minValue = (T)Convert.ChangeType(byte.MinValue, typeof(T));
                     _maxValue = (T)Convert.ChangeType(byte.MaxValue, typeof(T));
+                    break;
+                case "Float":
+                    _minValue = (T)Convert.ChangeType(float.MinValue, typeof(T));
+                    _maxValue = (T)Convert.ChangeType(float.MaxValue, typeof(T));
+                    break;
+                case "Double":
+                    _minValue = (T)Convert.ChangeType(double.MinValue, typeof(T));
+                    _maxValue = (T)Convert.ChangeType(double.MaxValue, typeof(T));
                     break;
             }
         }
@@ -68,6 +81,9 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                 case "Int64":
                     isValidRange = Convert.ToInt64(minValue) <= Convert.ToInt64(maxValue);
                     break;
+                case "UInt64":
+                    isValidRange = Convert.ToUInt64(minValue) <= Convert.ToUInt64(maxValue);
+                    break;
                 case "Single":
                     isValidRange = Convert.ToSingle(minValue) <= Convert.ToSingle(maxValue);
                     break;
@@ -76,6 +92,12 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                     break;
                 case "Byte":
                     isValidRange = Convert.ToByte(minValue) <= Convert.ToByte(maxValue);
+                    break;
+                case "Float":
+                    isValidRange = Convert.ToSingle(minValue) <= Convert.ToSingle(maxValue);
+                    break;
+                case "Double":
+                    isValidRange = Convert.ToDouble(minValue) <= Convert.ToDouble(maxValue);
                     break;
             }
 
@@ -114,10 +136,19 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                     }
                 case "Single":
                     {
-                        (isValidNumber, result) = (float.TryParse(textValue, out var singleValue), (T)Convert.ChangeType(singleValue, typeof(T)));
+                        (isValidNumber, result) = (float.TryParse(textValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var singleValue), (T)Convert.ChangeType(singleValue, typeof(T)));
                         if (isValidNumber)
                         {
                             isValidRange = singleValue >= Convert.ToSingle(_minValue) && singleValue <= Convert.ToSingle(_maxValue);
+                        }
+                        break;
+                    }
+                case "Double":
+                    {
+                        (isValidNumber, result) = (double.TryParse(textValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var doubleValue), (T)Convert.ChangeType(doubleValue, typeof(T)));
+                        if (isValidNumber)
+                        {
+                            isValidRange = doubleValue >= Convert.ToDouble(_minValue) && doubleValue <= Convert.ToDouble(_maxValue);
                         }
                         break;
                     }
@@ -127,6 +158,15 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                         if (isValidNumber)
                         {
                             isValidRange = uintValue >= Convert.ToUInt32(_minValue) && uintValue <= Convert.ToUInt32(_maxValue);
+                        }
+                        break;
+                    }
+                case "UInt64":
+                    {
+                        (isValidNumber, result) = (ulong.TryParse(textValue, out var ulongValue), (T)Convert.ChangeType(ulongValue, typeof(T)));
+                        if (isValidNumber)
+                        {
+                            isValidRange = ulongValue >= Convert.ToUInt64(_minValue) && ulongValue <= Convert.ToUInt64(_maxValue);
                         }
                         break;
                     }

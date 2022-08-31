@@ -6,8 +6,10 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Utils.Converters;
+using AAEmu.Game.Utils.Scripts;
+using AAEmu.Game.Utils.Scripts.SubCommands;
 
-namespace AAEmu.Game.Utils.Scripts.SubCommands
+namespace AAEmu.Game.Scripts.Commands
 {
     public class ItemAddSubCommand : SubCommandBase 
     {

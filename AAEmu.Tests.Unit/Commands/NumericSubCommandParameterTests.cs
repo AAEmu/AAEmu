@@ -39,7 +39,6 @@ namespace AAEmu.Tests.Unit.Commands
         [Theory]
         [InlineData(typeof(string))]
         [InlineData(typeof(decimal))]
-        [InlineData(typeof(double))]
         [InlineData(typeof(object))]
         public void Load_WhenTypeIsNotSupported_ShouldReturnUnsupportedMessage(Type type)
         {
