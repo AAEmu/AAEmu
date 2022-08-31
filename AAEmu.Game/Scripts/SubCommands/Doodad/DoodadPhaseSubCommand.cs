@@ -1,7 +1,8 @@
-﻿
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Utils.Scripts;
+using AAEmu.Game.Utils.Scripts.SubCommands;
 
-namespace AAEmu.Game.Utils.Scripts.SubCommands
+namespace AAEmu.Game.Scripts.Commands
 {
     public class DoodadPhaseSubCommand : SubCommandBase
     {

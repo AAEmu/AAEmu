@@ -5,8 +5,10 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Utils.Scripts;
+using AAEmu.Game.Utils.Scripts.SubCommands;
 
-namespace AAEmu.Game.Utils.Scripts.SubCommands
+namespace AAEmu.Game.Scripts.Commands
 {
     public class DoodadPhaseListSubCommand : SubCommandBase
     {

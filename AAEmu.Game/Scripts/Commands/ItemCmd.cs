@@ -17,7 +17,10 @@ namespace AAEmu.Game.Scripts.Commands
             CallPrefix = $"{CommandManager.CommandPrefix}item";
 
             Register(new ItemAddSubCommand(), "add");
+            Register(new ItemExpireSubCommand(), "expire");
+            Register(new ItemUnwrapSubCommand(), "unwrap");
         }
+        
         public void OnLoad()
         {
             CommandManager.Instance.Register("item", this);

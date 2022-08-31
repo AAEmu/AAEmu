@@ -214,7 +214,7 @@ namespace AAEmu.Game.Utils.Scripts
                 {
                     callExampleMessage.Append(parameter.IsRequired 
                         ? $" <{parameter.CallExample}>" 
-                        : $" [<{parameter.CallExample}>]");
+                        : $" [{parameter.CallExample}]");
                 }
             }
             return callExampleMessage.ToString();

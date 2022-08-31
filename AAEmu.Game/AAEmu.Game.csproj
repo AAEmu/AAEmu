@@ -37,7 +37,6 @@
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
           <LinkBase>Scripts\</LinkBase>
         </None>
-        <None Include="Utils\Scripts\SubCommands\SubCommandBase.cs" />
         <None Update="Config.json">
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
@@ -57,15 +56,10 @@
 
     <ItemGroup>
       <Compile Remove="Scripts\**\**" />
-      <Compile Include="Scripts\Commands\ExpireItem.cs" />
       <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
       <None Include="Configs\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Configs\" />
       <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
       <None Include="ClientData\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="ClientData\" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Compile Remove="Scripts\Commands\SlaveCmd.cs" />
     </ItemGroup>
 
     <ItemGroup>
@@ -151,5 +145,6 @@
 
     <ItemGroup>
       <Folder Include="Models\ClientData" />
+      <Folder Include="Scripts\SubCommands" />
     </ItemGroup>
 </Project>
