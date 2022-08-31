@@ -9,7 +9,7 @@ namespace AAEmu.Tests
         [Fact]
         public void ObjectIdManagerGetsNextId()
         {
-            ObjectIdManager.Instance.Initialize();
+            ObjectIdManager.Instance.Initialize(true);
             var firstId = 0x00000100u;
             var id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId, id);
@@ -22,7 +22,7 @@ namespace AAEmu.Tests
         [Fact]
         public void ObjectIdManagerReleasesId()
         {
-            ObjectIdManager.Instance.Initialize();
+            ObjectIdManager.Instance.Initialize(true);
             var firstId = 0x00000100u;
             var id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId, id);
@@ -39,7 +39,7 @@ namespace AAEmu.Tests
         [Fact]
         public void ObjectIdManagerGetMultipleIds()
         {
-            ObjectIdManager.Instance.Initialize();
+            ObjectIdManager.Instance.Initialize(true);
             
             var firstId = 0x00000100u;
             var ids = ObjectIdManager.Instance.GetNextId(10);

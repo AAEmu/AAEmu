@@ -1,7 +1,9 @@
 ﻿#pragma warning disable CS0618 // Type or member is obsolete
 
+using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
@@ -292,8 +294,8 @@ namespace AAEmu.Tests.Unit.Commands
         }
 
         [Theory]
-        [InlineData("required-long-prefix-w,optional-int-prefix-x,required-float,required-string", "[Test] " + CommandManager.CommandPrefix + "test <required-float> <required-string> <required-long-prefix-w> [<optional-int-prefix-x>]")]
-        [InlineData("required-float-prefix-yaw,optional-int-prefix-x,required-byte,optional-string", "[Test] " + CommandManager.CommandPrefix + "test <required-byte> [<optional-string>] <required-float-prefix-yaw> [<optional-int-prefix-x>]")]
+        [InlineData("required-long-prefix-w,optional-int-prefix-x,required-float,required-string", "[Test] " + CommandManager.CommandPrefix + "test <required-float> <required-string> <required-long-prefix-w> [optional-int-prefix-x]")]
+        [InlineData("required-float-prefix-yaw,optional-int-prefix-x,required-byte,optional-string", "[Test] " + CommandManager.CommandPrefix + "test <required-byte> [optional-string] <required-float-prefix-yaw> [optional-int-prefix-x]")]
         public void SendHelpMessage_MixedParameters_ShouldSendMessage(string parametersPattern, string expectedCallExample)
         {
             // Arrange
@@ -384,7 +386,11 @@ namespace AAEmu.Tests.Unit.Commands
                 }
                 else if (defaultValueText.StartsWith("(float)"))
                 {
-                    defaultValue = float.Parse(defaultValueText.Replace("(float)", string.Empty));
+                    defaultValue = float.Parse(defaultValueText.Replace("(float)", string.Empty), NumberStyles.Number, CultureInfo.InvariantCulture);
+                }
+                else if (defaultValueText.StartsWith("(double)"))
+                {
+                    defaultValue = double.Parse(defaultValueText.Replace("(double)", string.Empty), NumberStyles.Number, CultureInfo.InvariantCulture);
                 }
                 else if (defaultValueText.StartsWith("(uint)"))
                 {

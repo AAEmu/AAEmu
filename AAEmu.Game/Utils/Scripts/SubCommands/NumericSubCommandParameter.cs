@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands
 {
@@ -135,7 +136,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                     }
                 case "Single":
                     {
-                        (isValidNumber, result) = (float.TryParse(textValue, out var singleValue), (T)Convert.ChangeType(singleValue, typeof(T)));
+                        (isValidNumber, result) = (float.TryParse(textValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var singleValue), (T)Convert.ChangeType(singleValue, typeof(T)));
                         if (isValidNumber)
                         {
                             isValidRange = singleValue >= Convert.ToSingle(_minValue) && singleValue <= Convert.ToSingle(_maxValue);
@@ -144,7 +145,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                     }
                 case "Double":
                     {
-                        (isValidNumber, result) = (double.TryParse(textValue, out var doubleValue), (T)Convert.ChangeType(doubleValue, typeof(T)));
+                        (isValidNumber, result) = (double.TryParse(textValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var doubleValue), (T)Convert.ChangeType(doubleValue, typeof(T)));
                         if (isValidNumber)
                         {
                             isValidRange = doubleValue >= Convert.ToDouble(_minValue) && doubleValue <= Convert.ToDouble(_maxValue);
