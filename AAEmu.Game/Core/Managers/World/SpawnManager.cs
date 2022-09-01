@@ -14,7 +14,6 @@ using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Gimmicks;
-using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Slaves;
@@ -31,7 +30,7 @@ namespace AAEmu.Game.Core.Managers.World
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private bool _loaded = false;
-        
+
         private bool _work = true;
         private object _lock = new object();
         private object _lockSpawner = new object();
@@ -54,28 +53,23 @@ namespace AAEmu.Game.Core.Managers.World
             if (npcSpawner.NpcSpawnerIds.Count == 0)
             {
                 var npcSpawnerIds = NpcGameData.Instance.GetSpawnerIds(npcSpawner.UnitId);
+                // !!! npcSpawnerIds.Count всегда = 1 !!!
                 if (!_npcSpawners[(byte)npcSpawner.Position.WorldId].ContainsKey(_nextId))
                 {
-                    foreach (uint npcSpawnerId in npcSpawnerIds)
-                    {
-                        npcSpawner.NpcSpawnerIds.Add(npcSpawnerId);
-                        npcSpawner.Id = _nextId;
-                        if (!npcSpawner.Template.ContainsKey(npcSpawnerId))
-                        {
-                            npcSpawner.Template.Add(npcSpawnerId, NpcGameData.Instance.GetNpcSpawnerTemplate(npcSpawnerId));
-                        }
-                        _npcSpawners[(byte)npcSpawner.Position.WorldId].Add(_nextId, npcSpawner);
-                        _nextId++; //we'll renumber
-                    }
+                    npcSpawner.NpcSpawnerIds.Add(npcSpawnerIds[0]);
+                    npcSpawner.Id = _nextId;
+                    npcSpawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(npcSpawnerIds[0]);
+                    _npcSpawners[(byte)npcSpawner.Position.WorldId].Add(_nextId, npcSpawner);
+                    _nextId++; //we'll renumber
                 }
             }
             else
             {
                 // Load NPC Spawns for Events
                 npcSpawner.Id = _nextId;
-                if (!npcSpawner.Template.ContainsKey(npcSpawner.NpcSpawnerIds[0]))
+                if (npcSpawner.Template.Id != npcSpawner.NpcSpawnerIds[0])
                 {
-                    npcSpawner.Template.Add(npcSpawner.NpcSpawnerIds[0], new NpcSpawnerTemplate(npcSpawner.NpcSpawnerIds[0]));
+                    npcSpawner.Template = new NpcSpawnerTemplate(npcSpawner.NpcSpawnerIds[0]);
                 }
                 _npcEventSpawners[(byte)npcSpawner.Position.WorldId].Add(_nextId, npcSpawner);
                 _nextId++; //we'll renumber
@@ -109,7 +103,7 @@ namespace AAEmu.Game.Core.Managers.World
         {
             if (_loaded)
                 return;
-            
+
             _respawns = new HashSet<GameObject>();
             _despawns = new HashSet<GameObject>();
             _npcSpawners = new Dictionary<byte, Dictionary<uint, NpcSpawner>>();
@@ -130,7 +124,7 @@ namespace AAEmu.Game.Core.Managers.World
                 _gimmickSpawners.Add((byte)world.Id, new Dictionary<uint, GimmickSpawner>());
                 _slaveSpawners.Add((byte)world.Id, new Dictionary<uint, SlaveSpawner>());
             }
-            
+
             _log.Info("Loading spawns...");
             foreach (var world in worlds)
             {
@@ -193,7 +187,7 @@ namespace AAEmu.Game.Core.Managers.World
                 else
                 {
                     var contents = FileManager.GetFileContents(jsonFileName);
-                    
+
                     if (string.IsNullOrWhiteSpace(contents))
                         _log.Warn($"File {jsonFileName} is empty.");
                     else
@@ -238,7 +232,7 @@ namespace AAEmu.Game.Core.Managers.World
                 else
                 {
                     var contents = FileManager.GetFileContents(jsonFileName);
-                    
+
                     if (string.IsNullOrWhiteSpace(contents))
                     {
                         _log.Warn($"File {jsonFileName} doesn't exists or is empty.");
@@ -287,7 +281,7 @@ namespace AAEmu.Game.Core.Managers.World
                 else
                 {
                     var contents = FileManager.GetFileContents(jsonFileName);
-                    
+
                     if (string.IsNullOrWhiteSpace(contents))
                     {
                         _log.Warn($"File {jsonFileName} doesn't exists or is empty.");
@@ -333,7 +327,7 @@ namespace AAEmu.Game.Core.Managers.World
                 else
                 {
                     var contents = FileManager.GetFileContents(jsonFileName);
-                    
+
                     if (string.IsNullOrWhiteSpace(contents))
                     {
                         _log.Warn($"File {jsonFileName} doesn't exists or is empty.");
@@ -375,7 +369,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
 
             _log.Info("Loading persistent doodads...");
-            List<Doodad> newCoffers = new List<Doodad>();  
+            List<Doodad> newCoffers = new List<Doodad>();
             using (var connection = MySQL.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
@@ -406,7 +400,7 @@ namespace AAEmu.Game.Core.Managers.World
                             var data = reader.GetInt32("data");
 
                             var doodad = DoodadManager.Instance.Create(0, templateId);
-                            
+
                             doodad.Spawner = new DoodadSpawner();
                             doodad.Spawner.UnitId = templateId;
                             doodad.DbId = dbId;
@@ -424,7 +418,7 @@ namespace AAEmu.Game.Core.Managers.World
                             // Grab Ucc from it's old source item
                             doodad.UccId = sourceItem?.UccId ?? 0;
                             doodad.SetData(data); // Directly assigning to Data property would trigger a .Save()
-                                    
+
                             doodad.Transform.Local.SetPosition(x, y, z);
                             doodad.Transform.Local.SetRotation(reader.GetFloat("roll"), reader.GetFloat("pitch"), reader.GetFloat("yaw"));
 
@@ -565,7 +559,7 @@ namespace AAEmu.Game.Core.Managers.World
                     _log.Info("{0} Gimmicks spawned...", count);
                 });
             }
-            
+
             _log.Info("Spawning Slaves...");
             foreach (var (worldId, worldSpawners) in _slaveSpawners)
             {
@@ -591,7 +585,7 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 foreach (var doodad in _playerDoodads)
                 {
-                    if(doodad.Spawner.Spawn(doodad.ObjId) == null)
+                    if (doodad.Spawner.Spawn(doodad.ObjId) == null)
                     {
                         doodad.Spawn();
                     }
@@ -735,9 +729,9 @@ namespace AAEmu.Game.Core.Managers.World
 
             foreach (var spawner in npcEventSpawners.Values.Where(spawner => spawner.NpcSpawnerIds[0] == spawnerId))
             {
-                spawner.Template[spawnerId].Npcs[^1].MemberId = spawner.UnitId;
-                spawner.Template[spawnerId].Npcs[^1].UnitId = spawner.UnitId;
-                spawner.Template[spawnerId].Npcs[^1].MemberType = "Npc";
+                spawner.Template.Npcs[^1].MemberId = spawner.UnitId;
+                spawner.Template.Npcs[^1].UnitId = spawner.UnitId;
+                spawner.Template.Npcs[^1].MemberType = "Npc";
                 ret.Add(spawner);
             }
 
@@ -754,40 +748,38 @@ namespace AAEmu.Game.Core.Managers.World
                 {
                     spawner.UnitId = unitId;
                     spawner.Id = ObjectIdManager.Instance.GetNextId();
-                    spawner.NpcSpawnerIds = new List<uint> {spawner.Id};
-                    spawner.Template = new Dictionary<uint, NpcSpawnerTemplate>();
-                    spawner.Template.Add(spawner.Id, new NpcSpawnerTemplate(spawner.Id));
-                    spawner.Template[spawner.Id].Npcs[0].MemberId = spawner.UnitId;
-                    spawner.Template[spawner.Id].Npcs[0].UnitId = spawner.UnitId;
-                    spawner.Template[spawner.Id].Npcs[0].MemberType = "Npc";
+                    spawner.NpcSpawnerIds = new List<uint> { spawner.Id };
+                    spawner.Template = new NpcSpawnerTemplate(spawner.Id);
+                    spawner.Template.Npcs[0].MemberId = spawner.UnitId;
+                    spawner.Template.Npcs[0].UnitId = spawner.UnitId;
+                    spawner.Template.Npcs[0].MemberType = "Npc";
                 }
                 else
                 {
                     spawner.UnitId = unitId;
                     spawner.Id = npcSpawnersIds[0];
-                    spawner.NpcSpawnerIds = new List<uint> {spawner.Id};
-                    spawner.Template = new Dictionary<uint, NpcSpawnerTemplate>();
-                    spawner.Template.Add(spawner.Id, NpcGameData.Instance.GetNpcSpawnerTemplate(spawner.Id));
-                    if (spawner.Template.Count == 0 || spawner.Template == null)
+                    spawner.NpcSpawnerIds = new List<uint> { spawner.Id };
+                    spawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(spawner.Id);
+                    if (spawner.Template == null)
                     {
                         return null;
                     }
 
-                    spawner.Template[spawner.Id].Npcs = new List<NpcSpawnerNpc>();
+                    spawner.Template.Npcs = new List<NpcSpawnerNpc>();
                     var nsn = NpcGameData.Instance.GetNpcSpawnerNpc(spawner.Id);
                     if (nsn == null)
                     {
                         return null;
                     }
 
-                    spawner.Template[spawner.Id].Npcs.Add(nsn);
-                    if (spawner.Template[spawner.Id].Npcs == null)
+                    spawner.Template.Npcs.Add(nsn);
+                    if (spawner.Template.Npcs == null)
                     {
                         return null;
                     }
 
-                    spawner.Template[spawner.Id].Npcs[0].MemberId = spawner.UnitId;
-                    spawner.Template[spawner.Id].Npcs[0].UnitId = spawner.UnitId;
+                    spawner.Template.Npcs[0].MemberId = spawner.UnitId;
+                    spawner.Template.Npcs[0].UnitId = spawner.UnitId;
                 }
 
                 spawner.Position = new WorldSpawnPosition();

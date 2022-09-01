@@ -126,6 +126,75 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
+        public async void CronSchedule(Task task, string cronExpression, TimeSpan? startTime = null, TimeSpan? repeatInterval = null, int count = -1)
+        {
+            if (_generalScheduler.IsShutdown)
+                return;
+
+            if (task == null)
+            {
+                _log.Error("Task.Schedule: Task is NULL !!! StartTime: {0}, repeatInterval: {1}, count: {2}", startTime, repeatInterval, count);
+                return;
+            }
+
+            //var _cron = "0 0 22-7 * * *";
+            task.Id = TaskIdManager.Instance.GetNextId();
+            while (await _generalScheduler.CheckExists(new JobKey(task.Name + task.Id, task.Name)))
+                task.Id = TaskIdManager.Instance.GetNextId();
+
+            IJobDetail job;
+            var newJob = task.JobDetail == null;
+            if (newJob)
+            {
+                job = JobBuilder
+                    .Create<TaskJob>()
+                    .WithIdentity(task.Name + task.Id, task.Name)
+                    .Build();
+                job.JobDataMap.Put("Logger", _log);
+                job.JobDataMap.Put("Task", task);
+                task.JobDetail = job;
+            }
+
+            var triggerBuild = TriggerBuilder
+                .Create()
+                .WithIdentity(task.JobDetail.Key.Name, task.JobDetail.Key.Group);
+
+            if (startTime == null)
+                triggerBuild.StartNow();
+            else
+                triggerBuild.StartAt(DateTime.UtcNow.Add((TimeSpan)startTime));
+
+            if (task.Scheduler == null)
+            {
+                triggerBuild.WithCronSchedule(cronExpression);
+            }
+            else
+                triggerBuild.WithSchedule(CronScheduleBuilder.CronSchedule(cronExpression));
+
+            triggerBuild.ForJob(task.JobDetail.Key);
+            task.Trigger = triggerBuild.Build();
+
+            task.ExecuteCount = 0;
+            task.MaxCount = repeatInterval == null ? 0 : count;
+            task.ScheduleTime = Helpers.UnixTimeNowInMilli();
+
+            try
+            {
+                if (newJob)
+                {
+                    await _generalScheduler.ScheduleJob(task.JobDetail, task.Trigger);
+                }
+                else
+                {
+                    await _generalScheduler.RescheduleJob(task.Trigger.Key, task.Trigger);
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Error(e, "Error cron scheduling task");
+            }
+        }
+
         public async Task<bool> Cancel(Task task)
         {
             if (task?.JobDetail == null)
@@ -144,13 +213,14 @@ namespace AAEmu.Game.Core.Managers
             }
             catch (SchedulerException e)
             {
-                _log.Warn(e);
+                _log.Warn(e, "Error canceling task");
             }
 
             return task.Cancelled;
         }
     }
 
+    [DisallowConcurrentExecution]
     [PersistJobDataAfterExecution]
     public sealed class TaskJob : IJob
     {

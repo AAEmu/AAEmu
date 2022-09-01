@@ -27,7 +27,7 @@ namespace AAEmu.Game.Core.Managers
         {
             if (_loaded)
                 return;
-            
+
             _log.Info("Loading schedules...");
 
             SchedulesGameData.Instance.PostLoad();
@@ -111,6 +111,26 @@ namespace AAEmu.Game.Core.Managers
                        select CheckData(gs)).ToList();
 
             return res;
+        }
+
+        public string GetCronRemainingTime(int spawnerId, bool start = true)
+        {
+            var cronExpression = String.Empty;
+            if (!_gameScheduleSpawnerIds.ContainsKey(spawnerId))
+            {
+                return cronExpression;
+            }
+
+            foreach (var gameScheduleId in _gameScheduleSpawnerIds[spawnerId])
+            {
+                if (!_gameSchedules.ContainsKey(gameScheduleId)) { continue; }
+
+                var gameSchedules = _gameSchedules[gameScheduleId];
+
+                cronExpression = start ? GetCronExpression(gameSchedules, true) : GetCronExpression(gameSchedules, false);
+            }
+
+            return cronExpression;
         }
 
         public TimeSpan GetRemainingTime(int spawnerId, bool start = true)
@@ -300,7 +320,7 @@ namespace AAEmu.Game.Core.Managers
             }
             return remainingDate;
         }
-        
+
         private TimeSpan GetRemainingTimeEnd(GameSchedules value)
         {
             TimeSpan remainingDate;
@@ -410,6 +430,146 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
             return TimeSpan.FromHours(1);
+        }
+
+        private string GetCronExpression(GameSchedules value, bool start = true)
+        {
+            var dayOfWeek = (int)value.DayOfWeekId;
+
+            //var stYear = value.StYear;
+            var stMonth = value.StMonth;
+            var stDay = value.StDay;
+            var stHour = value.StHour;
+            var stMinute = value.StMin;
+            var startTime = value.StartTime;
+            var startTimeMin = value.StartTimeMin;
+
+            //var edYear = value.EdYear;
+            var edMonth = value.EdMonth;
+            var edDay = value.EdDay;
+            var edHour = value.EdHour;
+            var edMinute = value.EdMin;
+            var endTime = value.EndTime;
+            var endTimeMin = value.EndTimeMin;
+
+            var cronExpression = String.Empty;
+
+            /*
+               1.Секунды
+               2.Минуты
+               3.Часы
+               4.День месяца
+               5.Месяц
+               6.День недели
+               Год (необязательное поле)
+             */
+
+            if (start)
+            {
+                if (value.DayOfWeekId == DayOfWeek.Invalid)
+                {
+                    if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
+                    {
+                        cronExpression = "0 0 0 ? * * *"; // verified
+                    }
+                    if (value.EndTime > 0 && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
+                    {
+                        cronExpression = $"0 {startTimeMin} {startTime} ? * * *"; // not verified
+                    }
+                    if (value.EndTime > 0 && value.StMonth > 0 && value.StDay > 0)
+                    {
+                        cronExpression = $"0 {startTimeMin} {startTime} {stDay} {stMonth} ? *"; // not verified
+                    }
+                    if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth == 0 && value.StDay == 0)
+                    {
+                        cronExpression = $"0 {stMinute} {stHour} ? * * *"; // verified
+                    }
+                    if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth > 0 && value.StDay > 0)
+                    {
+                        cronExpression = $"0 {stMinute} {stHour} {stDay} {stMonth} ? *"; // verified
+                    }
+                    //cronExpression = $"0 {stMinute} {stHour} {stDay} {stMonth} ? *";
+                }
+                else
+                {
+                    if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
+                    {
+                        cronExpression = "0 0 0 ? * {dayOfWeek} *"; // not verified
+                    }
+                    if (value.EndTime > 0 && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
+                    {
+                        cronExpression = $"0 {startTimeMin} {startTime} ? * {dayOfWeek} *"; // verified
+                    }
+                    if (value.EndTime > 0 && value.StMonth > 0 && value.StDay > 0)
+                    {
+                        cronExpression = $"0 {startTimeMin} {startTime} {stDay} {stMonth} ? *"; // not verified
+                    }
+                    if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth == 0 && value.StDay == 0)
+                    {
+                        cronExpression = $"0 {stMinute} {stHour} ? * {dayOfWeek} *"; // not verified
+                    }
+                    if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth > 0 && value.StDay > 0)
+                    {
+                        cronExpression = $"0 {stMinute} {stHour} {edDay} {edMonth} {dayOfWeek} *"; // not verified
+                    }
+                    //cronExpression = $"0 {stMinute} {stHour} {stDay} {stMonth} {dayOfWeek}";
+                }
+            }
+            else
+            {
+                if (value.DayOfWeekId == DayOfWeek.Invalid)
+                {
+                    if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth == 0 && value.EdDay == 0 && value.EdHour == 0)
+                    {
+                        cronExpression = "0 0 0 ? * * *"; // not verified
+                    }
+                    if (value.EndTime > 0 && value.EdMonth == 0 && value.EdDay == 0 && value.EdHour == 0)
+                    {
+                        cronExpression = $"0 {endTimeMin} {endTime} ? * * *"; // not verified
+                    }
+                    if (value.EndTime > 0 && value.EdMonth > 0 && value.EdDay > 0)
+                    {
+                        cronExpression = $"0 {endTimeMin} {endTime} {edDay} {edMonth} ? *"; // not verified
+                    }
+                    if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth == 0 && value.EdDay == 0)
+                    {
+                        cronExpression = $"0 {edMinute} {edHour} ? * * *"; // not verified
+                    }
+                    if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth > 0 && value.EdDay > 0)
+                    {
+                        cronExpression = $"0 {edMinute} {edHour} {edDay} {edMonth} ? *"; // not verified
+                    }
+                }
+                else
+                {
+                    if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth == 0 && value.EdDay == 0 && value.EdHour == 0)
+                    {
+                        cronExpression = "0 0 0 ? * {dayOfWeek} *"; // not verified
+                    }
+                    if (value.EndTime > 0 && value.EdMonth == 0 && value.EdDay == 0 && value.EdHour == 0)
+                    {
+                        cronExpression = $"0 {endTimeMin} {endTime} ? * {dayOfWeek} *"; // not verified
+                    }
+                    if (value.EndTime > 0 && value.EdMonth > 0 && value.EdDay > 0)
+                    {
+                        cronExpression = $"0 {endTimeMin} {endTime} {edDay} {edMonth} ? *"; // not verified
+                    }
+                    if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth == 0 && value.EdDay == 0)
+                    {
+                        cronExpression = $"0 {edMinute} {edHour} ? * {dayOfWeek} *"; // not verified
+                    }
+                    if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth > 0 && value.EdDay > 0)
+                    {
+                        cronExpression = $"0 {edMinute} {edHour} {edDay} {edMonth} {dayOfWeek} *"; // not verified
+                    }
+                }
+                //cronExpression = start ?
+                //    $"0 {stMinute} {stHour} {stDay} {stMonth} {dayOfWeek}"
+                //    :
+                //    $"0 {edMinute} {edHour} {edDay} {edMonth} ?";
+            }
+
+            return cronExpression;
         }
     }
 }
