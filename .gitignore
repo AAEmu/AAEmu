@@ -28,3 +28,4 @@ publish/
 AAEmu.Tests/TestResults/
 Tools/*/bin/
 Tools/*/obj/
+*.7z
