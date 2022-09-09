@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -11,6 +10,9 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _code;
         private readonly string _cashHost;
         private readonly string _securityHost;
+        private readonly string _openseaApiKey;
+        private readonly string _KASAccessKeyId;
+        private readonly string _KASSecretAccessKey;
 
         public SCInitialConfigPacket() : base(SCOffsets.SCInitialConfigPacket, 5)
         {
@@ -19,6 +21,9 @@ namespace AAEmu.Game.Core.Packets.G2C
             _code = 0; // TODO: code[count]
             _cashHost = "xlcash.xlgames.com";
             _securityHost = "cs.xlgames.com";
+            _openseaApiKey = "";
+            _KASAccessKeyId = "";
+            _KASSecretAccessKey = "";
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -130,9 +135,9 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             // TODO config
             stream.Write(0);    // initLp 50 in 5750, 0 in 6070
-            stream.Write(false); // canPlaceHouse
-            stream.Write(false); // canPayTax
-            stream.Write(true);  // canUseAuction
+            //stream.Write(false); // canPlaceHouse del in archeworld
+            //stream.Write(false); // canPayTax del in archeworld
+            stream.Write(true);  // canUseAuction del in archeworld
             stream.Write(true);  // canTrade
             stream.Write(true);  // canSendMail
             stream.Write(true);  // canUseBank
@@ -164,7 +169,10 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(false);         // isDev
             stream.Write(1u);         // premiumConfigType
             stream.Write(1u);         // specificWorldDivisionIds
-            stream.Write(0x00000FA1); // ?
+            //stream.Write(0x00000FA1); // ?
+            stream.Write(_openseaApiKey);     // openseaApiKey add in archeworld
+            stream.Write(_KASAccessKeyId); // KASAccessKeyId add in archeworld
+            stream.Write(_KASSecretAccessKey); // KASSecretAccessKey add in archeworld
 
             return stream;
         }

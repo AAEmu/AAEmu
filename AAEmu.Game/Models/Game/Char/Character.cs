@@ -2210,6 +2210,7 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(BmPoint);            // bmPoint : moved in 5.7
             stream.Write((short)0);           // rechargetLp : added in 5.7
             stream.Write(DateTime.MinValue);  // rechargeResetTime : added in 5.7
+            stream.Write(0L);                 // moneyAmount add in 0.1.1.7 ArcheWorld
 
             #endregion sub_399CCE70
 
