@@ -15,6 +15,9 @@ namespace AAEmu.Game.Models.Game.AI.AStar
     /// </summary>
     public class PathNode
     {
+        // Current zone.Id
+        public static uint ZoneKey { get; set; }
+
         // The number of the current point on the map.
         public uint Current { get; set; }
 
@@ -58,9 +61,9 @@ namespace AAEmu.Game.Models.Game.AI.AStar
         {
             // Step 0
             // Find the nearest point from the start point in the list of geodata points and start the search from it.
-            var (current, posStart) = AiGeoDataManager.Instance.FindСlosestToTheCurrent(new Vector3(start.X, start.Y, start.Z));
+            var (current, posStart) = AiGeoDataManager.Instance.FindСlosestToTheCurrent(ZoneKey, new Vector3(start.X, start.Y, start.Z));
             start = posStart; // replace it with the nearest point from the geodata
-            var (_, posEnd) = AiGeoDataManager.Instance.FindСlosestToTheCurrent(new Vector3(goal.X, goal.Y, goal.Z));
+            var (_, posEnd) = AiGeoDataManager.Instance.FindСlosestToTheCurrent(ZoneKey, new Vector3(goal.X, goal.Y, goal.Z));
             goal = posEnd; // replace it with the nearest point from the geodata
 
             // Step 1.
@@ -96,7 +99,7 @@ namespace AAEmu.Game.Models.Game.AI.AStar
                 closedSet.Add(currentNode);
 
                 // Step 6.
-                foreach (var neighbourNode in GetNeighbours(currentNode, goal))
+                foreach (var neighbourNode in GetNeighbours(ZoneKey, currentNode, goal))
                 {
                     // Step 7.
                     if (closedSet.Count(node => node.Position.Equals(neighbourNode.Position)) > 0)
@@ -152,21 +155,22 @@ namespace AAEmu.Game.Models.Game.AI.AStar
         /// </summary>
         /// <param name="pathNode"></param>
         /// <param name="goal"></param>
+        /// <param name="worldId"></param>
         /// <returns></returns>
-        private static Collection<PathNode> GetNeighbours(PathNode pathNode, Point goal)
+        private static Collection<PathNode> GetNeighbours(uint zoneKey, PathNode pathNode, Point goal)
         {
             var result = new Collection<PathNode>();
 
             // The adjacent points are the points where you can go.
-            var neighbourPoints = AiGeoDataManager.Instance.GetAvailablePoints(pathNode.Current);
+            var neighbourPoints = AiGeoDataManager.Instance.GetAvailablePoints(zoneKey, pathNode.Current);
 
             foreach (var point in neighbourPoints)
             {
                 // Checking that the point falls within the forbidden area where it is not allowed to walk.
-                if (AiGeoDataManager.Instance.CheckImpossibleWalk(point.Position))
+                if (AiGeoDataManager.Instance.CheckImpossibleWalk(zoneKey, point.Position))
                 {
                     ViewPoint(point.Position, 858u); // let's show the point for debugging purposes
-                    continue;
+                    //continue;
                 }
 
                 // Fill in the data for the waypoint.

@@ -95,11 +95,18 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
                 WorldManager.Instance.GetHeight(Owner.Transform.ZoneId, Owner.Transform.World.Position.X, Owner.Transform.World.Position.Y) : 
                 Owner.Transform.World.Position.Z;
 
+            if (AppConfiguration.Instance.World.GeoData)
+            {
+                var height = AiGeoDataManager.Instance.GetHeight(Owner.Transform.ZoneId, Owner.Transform.Local.Position);
+                if (height > 0)
+                {
+                    newZ = height; // check, as there is no geodata for main_world yet
+                }
+            }
+
             // TODO: Implement Transform.World
             Owner.Transform.World.SetPosition(newX,newY, newZ);
             Owner.Transform.World.SetRotationDegree(0f, 0f, angle-90);
-
-
 
             moveType.X = Owner.Transform.Local.Position.X;
             moveType.Y = Owner.Transform.Local.Position.Y;
@@ -110,8 +117,8 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
             moveType.RotationX = 0; //rpy.Item1;
             moveType.RotationY = 0; //rpy.Item2;
             moveType.RotationZ = rpy.Item3;
-            moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
-            moveType.Flags = 0x14;//SC move flag
+            moveType.ActorFlags = flags; // 5-walk, 4-run, 3-stand still
+            moveType.Flags = 0x14;       //SC move flag
             moveType.ScType = Template.Id;
 
             moveType.DeltaMovement = new sbyte[3];

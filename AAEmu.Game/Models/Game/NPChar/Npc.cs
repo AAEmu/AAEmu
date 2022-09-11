@@ -860,6 +860,15 @@ namespace AAEmu.Game.Models.Game.NPChar
 
             // TODO: Implement Transform.World to do proper movement
             //Transform.Local.SetPosition(newX, newY, WorldManager.Instance.GetHeight(Transform));
+            if (AppConfiguration.Instance.World.GeoData)
+            {
+                var height = AiGeoDataManager.Instance.GetHeight(Transform.ZoneId, Transform.Local.Position);
+                if (height > 0)
+                {
+                    newZ = height; // check, as there is no geodata for main_world yet
+                }
+            }
+
             Transform.Local.SetPosition(newX, newY, newZ);
 
             var angle = MathUtil.CalculateAngleFrom(Transform.Local.Position, other);

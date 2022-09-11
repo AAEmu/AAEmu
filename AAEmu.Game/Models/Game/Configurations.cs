@@ -21,6 +21,7 @@ namespace AAEmu.Game.Models.Game
         public double LootRate { get; set; } = 1.0;
         public double GrowthRate { get; set; } = 1.0;
         public bool GodMode { get; set; } = false;
+        public bool GeoData { get; set; } = false;
     }
 
     public class AccountDeleteDelayTiming

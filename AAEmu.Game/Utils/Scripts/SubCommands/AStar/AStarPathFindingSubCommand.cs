@@ -23,6 +23,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.AStar
             //if (PathNode.pos1.X > 0 && PathNode.pos1.Y > 0 && PathNode.pos2.X > 0 && PathNode.pos2.Y > 0)
             if (PathNode.pos1 != null && PathNode.pos2 != null)
             {
+                PathNode.ZoneKey = character.Transform.ZoneId;
                 PathNode.findPath = PathNode.FindPath(PathNode.pos1, PathNode.pos2);
 
                 character.SendMessage($"AStar: points found Total: {PathNode.findPath?.Count ?? 0}");

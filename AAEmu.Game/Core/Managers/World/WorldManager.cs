@@ -542,6 +542,13 @@ namespace AAEmu.Game.Core.Managers.World
             return _worlds.Values.ToArray();
         }
 
+        public uint GetWorldIdByZone(uint zoneId)
+        {
+            if (_worldIdByZoneId.TryGetValue(zoneId, out var worldId))
+                return worldId;
+            _log.Fatal("GetWorldByZone(): No world defined for ZoneId {0}", zoneId);
+            return 0xffffffff; // -1
+        }
         public InstanceWorld GetWorldByZone(uint zoneId)
         {
             if (_worldIdByZoneId.TryGetValue(zoneId, out var worldId))
