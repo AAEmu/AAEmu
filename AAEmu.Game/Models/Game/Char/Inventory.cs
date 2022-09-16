@@ -494,7 +494,7 @@ namespace AAEmu.Game.Models.Game.Char
                     doUnEquipMainHand = true;
             }
 
-            if (doUnEquipOffhand)
+            if ((doUnEquipOffhand) && (offHandWeapon != null))
             {
                 //_log.Trace("SplitOrMoveItem - UnEquip OffHand required!");
                 // Check if we have enough space to unequip the offhand
