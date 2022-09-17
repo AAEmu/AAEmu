@@ -19,9 +19,12 @@ namespace AAEmu.Game.Scripts.Commands
             Title = "[WaterEdit]";
             Description = "Move a point in the select body of water to your location.";
             CallPrefix = $"{CommandManager.CommandPrefix}wateredit movepoint";
-            AddParameter(new NumericSubCommandParameter<uint>("point", "point id", false));
+            AddParameter(new NumericSubCommandParameter<int>("point", "point id", false));
         }
 
+        public override void Execute(ICharacter character, string triggerArgument, string[] args) =>
+            Execute(character, triggerArgument, new Dictionary<string, ParameterValue>());
+        
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
             var world = WorldManager.Instance.GetWorld(character.Transform.WorldId);

@@ -11,15 +11,15 @@ using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.Commands
 {
-    public class WaterEditListPointsSubCommand : SubCommandBase 
+    public class WaterEditNextSubCommand : SubCommandBase 
     {
-        public WaterEditListPointsSubCommand()
+        public WaterEditNextSubCommand()
         {
             Title = "[WaterEdit]";
-            Description = "Lists all points in the selected body of water.";
-            CallPrefix = $"{CommandManager.CommandPrefix}wateredit listpoints";
+            Description = "Selects the next body of water in the current world.";
+            CallPrefix = $"{CommandManager.CommandPrefix}wateredit next";
         }
-        
+
         public override void Execute(ICharacter character, string triggerArgument, string[] args) =>
             Execute(character, triggerArgument, new Dictionary<string, ParameterValue>());
 
@@ -32,15 +32,27 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
             
-            if (WaterEditCmd.SelectedWater == null)
+            var lastId = WaterEditCmd.SelectedWater != null ? WaterEditCmd.SelectedWater.Id : 0;
+            var doSelectNext = lastId <= 0;
+            foreach (var area in world.Water.Areas)
             {
-                character.SendMessage($"|cFFFF0000[WaterEdit] You need to select a water body first!|r");
-                return;
-            }
-            
-            for (var i = 0; i < WaterEditCmd.SelectedWater.Points.Count-1; i++)
-                character.SendMessage($"[WaterEdit] #{i} : {WaterEditCmd.SelectedWater.Points[i]}");
+                if (doSelectNext)
+                {
+                    WaterEditCmd.SelectedWater = area;
+                    WaterEditCmd.SelectedWorld = world;
+                    WaterEditCmd.NextPoint = 0;
+                    break;
+                }
 
+                if (area.Id == lastId)
+                    doSelectNext = true;
+            }
+
+            if (WaterEditCmd.SelectedWater != null)
+                character.SendMessage($"[WaterEdit] Selected |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r ({WaterEditCmd.SelectedWater.Id}), height: |cFF00FF00{WaterEditCmd.SelectedWater.Height}|r");
+            else
+                character.SendMessage($"[WaterEdit] Nothing selected");
+                
             WaterEditCmd.ShowSelectedArea(character);
         }
     }

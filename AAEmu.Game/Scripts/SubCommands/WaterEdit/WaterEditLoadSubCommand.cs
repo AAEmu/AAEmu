@@ -29,6 +29,9 @@ namespace AAEmu.Game.Scripts.Commands
             CallPrefix = $"{CommandManager.CommandPrefix}wateredit load";
         }
 
+        public override void Execute(ICharacter character, string triggerArgument, string[] args) =>
+            Execute(character, triggerArgument, new Dictionary<string, ParameterValue>());
+        
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
             var world = WorldManager.Instance.GetWorld(character.Transform.WorldId);

@@ -27,6 +27,8 @@ namespace AAEmu.Game.Scripts.Commands
         public static int NextPoint { get; set; }
         public static List<(WaterBodyArea, float)> NearbyList = new List<(WaterBodyArea, float)>();
         public static List<BaseUnit> Markers = new List<BaseUnit>();
+        public static DateTime MeasureTime = DateTime.MinValue;
+        public static Vector3 MeasurePosition = Vector3.Zero;
         
         public WaterEditCmd()
         {
@@ -34,21 +36,22 @@ namespace AAEmu.Game.Scripts.Commands
             Description = "Root command for live editing, saving and loading of water bodies";
             CallPrefix = $"{CommandManager.CommandPrefix}wateredit";
 
-            Register(new WaterEditListSubCommand(), "list");
+            Register(new WaterEditListSubCommand(), "list", "l");
             Register(new WaterEditNearbySubCommand(), "nearby");
             Register(new WaterEditLoadSubCommand(), "load");
             Register(new WaterEditSaveSubCommand(), "save");
-            Register(new WaterEditSelectSubCommand(), "select");
-            Register(new WaterEditClearSubCommand(), "clear");
-            Register(new WaterEditGoToSubCommand(), "goto");
-            // Register(new WaterEditNextSubCommand(), "next");
-            Register(new WaterEditSetBottomSubCommand(), "setbottom");
-            Register(new WaterEditSetHeightSubCommand(), "setheight");
-            Register(new WaterEditListPointsSubCommand(), "listpoints");
-            Register(new WaterEditMovePointSubCommand(), "movepoint");
-            Register(new WaterEditInsertPointSubCommand(), "insertpoint");
-            Register(new WaterEditRemovePointSubCommand(), "removepoint");
-            Register(new WaterEditRemoveWaterSubCommand(), "removewater");
+            Register(new WaterEditSelectSubCommand(), "select", "s");
+            Register(new WaterEditClearSubCommand(), "clear", "c");
+            Register(new WaterEditGoToSubCommand(), "goto", "g");
+            Register(new WaterEditNextSubCommand(), "next", "n");
+            Register(new WaterEditSetBottomSubCommand(), "setbottom", "sb");
+            Register(new WaterEditSetHeightSubCommand(), "setheight", "sh");
+            Register(new WaterEditListPointsSubCommand(), "listpoints", "lp");
+            Register(new WaterEditMovePointSubCommand(), "movepoint", "mp");
+            Register(new WaterEditInsertPointSubCommand(), "insertpoint", "ip");
+            Register(new WaterEditRemovePointSubCommand(), "removepoint", "rp", "dp");
+            Register(new WaterEditRemoveWaterSubCommand(), "removewater", "r");
+            Register(new WaterEditRegisterCurrentSubCommand(), "registercurrent", "flow", "f");
         }
         public void OnLoad()
         {
