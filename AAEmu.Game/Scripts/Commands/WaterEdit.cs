@@ -28,7 +28,7 @@ namespace AAEmu.Game.Scripts.Commands
         
         public void OnLoad()
         {
-            string[] name = { "wateredit", "water_edit", "wedit"};
+            string[] name = { "wateredit_old", "water_edit_old", "wedit_old"};
             CommandManager.Instance.Register(name, this);
         }
 

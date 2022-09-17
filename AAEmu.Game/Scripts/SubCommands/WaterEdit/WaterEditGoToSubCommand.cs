@@ -38,21 +38,22 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
             
-            if (WaterEdit.SelectedWater == null)
+            if (WaterEditCmd.SelectedWater == null)
             {
                 character.SendMessage($"|cFFFF0000[WaterEdit] You need to select a water body first!|r");
                 return;
             }
 
-            if (WaterEdit.SelectedWorld != world)
+            if (WaterEditCmd.SelectedWorld != world)
             {
-                character.SendMessage($"|cFFFF0000[WaterEdit] Currently selected water is not in the same world as you! ({WaterEdit.SelectedWorld.Name})|r");
+                character.SendMessage($"|cFFFF0000[WaterEdit] Currently selected water is not in the same world as you! ({WaterEditCmd.SelectedWorld.Name})|r");
                 return;
             }
             
-            var pos = WaterEdit.SelectedWater.GetCenter(true);
-            character.ForceDismount();
-            character.DisabledSetPosition = true;
+            var pos = WaterEditCmd.SelectedWater.GetCenter(true);
+            Character chara = character as Character; 
+            chara.ForceDismount();
+            chara.DisabledSetPosition = true;
             character.SendPacket(new SCTeleportUnitPacket(0, 0, pos.X + 1f, pos.Y + 1f, pos.Z + 3f, 0));
         }
     }

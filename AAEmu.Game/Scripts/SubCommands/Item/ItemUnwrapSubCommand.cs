@@ -27,7 +27,6 @@ namespace AAEmu.Game.Scripts.Commands
 
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
-            //Character addTarget;
             Character selfCharacter = (Character)character;
 
             ulong itemId = parameters["itemId"];

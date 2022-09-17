@@ -38,9 +38,9 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
             
-            CreateNearbyList(character, world);
+            WaterEditCmd.CreateNearbyList(character, world);
             var c = 0;
-            for (var i = 0; (i < NearbyList.Count) && (i < 5); i++)
+            for (var i = 0; (i < WaterEditCmd.NearbyList.Count) && (i < 5); i++)
             {
                 var area = WaterEditCmd.NearbyList[i].Item1;
                 var distance = WaterEditCmd.NearbyList[i].Item2;

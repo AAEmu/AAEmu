@@ -40,24 +40,24 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            if (WaterEdit.SelectedWater == null)
+            if (WaterEditCmd.SelectedWater == null)
             {
                 character.SendMessage($"|cFFFF0000[WaterEdit] You need to select a water body first!|r");
                 return;
             }
 
-            if (WaterEdit.SelectedWorld != world)
+            if (WaterEditCmd.SelectedWorld != world)
             {
                 character.SendMessage(
-                    $"|cFFFF0000[WaterEdit] Currently selected water is not in the same world as you! ({WaterEdit.SelectedWorld.Name})|r");
+                    $"|cFFFF0000[WaterEdit] Currently selected water is not in the same world as you! ({WaterEditCmd.SelectedWorld.Name})|r");
                 return;
             }
 
             float newHeight = parameters["height"];
 
-            WaterEdit.SelectedWater.Height = newHeight;
-            WaterEdit.ShowSelectedArea(character);
-            character.SendMessage($"[WaterEdit] Height for |cFFFFFFFF{WaterEdit.SelectedWater.Name}|r set to |cFF00FF00{newHeight}!|r");
+            WaterEditCmd.SelectedWater.Height = newHeight;
+            WaterEditCmd.ShowSelectedArea(character);
+            character.SendMessage($"[WaterEdit] Height for |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r set to |cFF00FF00{newHeight}!|r");
         }
     }
 }

@@ -41,13 +41,13 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            if (WaterEdit.SelectedWater == null)
+            if (WaterEditCmd.SelectedWater == null)
             {
                 character.SendMessage($"|cFFFF0000[WaterEdit] You need to select a water body first!|r");
                 return;
             }
 
-            if (WaterEdit.SelectedWorld != world)
+            if (WaterEditCmd.SelectedWorld != world)
             {
                 character.SendMessage(
                     $"|cFFFF0000[WaterEdit] Currently selected water is not in the same world as you! ({WaterEdit.SelectedWorld.Name})|r");
@@ -57,22 +57,22 @@ namespace AAEmu.Game.Scripts.Commands
             float newBottom = parameters["bottom"];
             var onePoint = GetOptionalParameterValue<int>(parameters, "point", -1);
 
-            for (var i = 0; i < WaterEdit.SelectedWater.Points.Count; i++)
+            for (var i = 0; i < WaterEditCmd.SelectedWater.Points.Count; i++)
             {
                 if ((onePoint >= 0) && (onePoint != i))
                     continue;
 
-                WaterEdit.SelectedWater.Points[i] = new Vector3(WaterEdit.SelectedWater.Points[i].X,
-                    WaterEdit.SelectedWater.Points[i].Y, newBottom);
+                WaterEditCmd.SelectedWater.Points[i] = new Vector3(WaterEditCmd.SelectedWater.Points[i].X,
+                    WaterEditCmd.SelectedWater.Points[i].Y, newBottom);
             }
 
-            WaterEdit.ShowSelectedArea(character);
+            WaterEditCmd.ShowSelectedArea(character);
             if (onePoint >= 0)
                 character.SendMessage(
-                    $"[WaterEdit] Z position for point |cFF00FF00{onePoint}|r in |cFFFFFFFF{WaterEdit.SelectedWater.Name}|r has been set to |cFF00FF00{newBottom}!|r");
+                    $"[WaterEdit] Z position for point |cFF00FF00{onePoint}|r in |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r has been set to |cFF00FF00{newBottom}!|r");
             else
                 character.SendMessage(
-                    $"[WaterEdit] Z position for all points in |cFFFFFFFF{WaterEdit.SelectedWater.Name}|r have been set to |cFF00FF00{newBottom}!|r");
+                    $"[WaterEdit] Z position for all points in |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r have been set to |cFF00FF00{newBottom}!|r");
         }
     }
 }

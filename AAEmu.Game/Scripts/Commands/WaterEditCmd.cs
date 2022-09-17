@@ -41,13 +41,14 @@ namespace AAEmu.Game.Scripts.Commands
             Register(new WaterEditSelectSubCommand(), "select");
             Register(new WaterEditClearSubCommand(), "clear");
             Register(new WaterEditGoToSubCommand(), "goto");
+            // Register(new WaterEditNextSubCommand(), "next");
             Register(new WaterEditSetBottomSubCommand(), "setbottom");
             Register(new WaterEditSetHeightSubCommand(), "setheight");
-            Register(new SubCommand(), "listpoints");
-            Register(new SubCommand(), "movepoint");
-            Register(new SubCommand(), "insertpoint");
-            Register(new SubCommand(), "removepoint");
-            Register(new SubCommand(), "removewater");
+            Register(new WaterEditListPointsSubCommand(), "listpoints");
+            Register(new WaterEditMovePointSubCommand(), "movepoint");
+            Register(new WaterEditInsertPointSubCommand(), "insertpoint");
+            Register(new WaterEditRemovePointSubCommand(), "removepoint");
+            Register(new WaterEditRemoveWaterSubCommand(), "removewater");
         }
         public void OnLoad()
         {
@@ -70,7 +71,7 @@ namespace AAEmu.Game.Scripts.Commands
             throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
         }
         
-        public static void CreateNearbyList(Character character, World world)
+        public static void CreateNearbyList(ICharacter character, World world)
         {
             NearbyList.Clear();
             lock (world.Water._lock)
@@ -102,7 +103,7 @@ namespace AAEmu.Game.Scripts.Commands
             }
         }
         
-        public static void ShowSelectedArea(Character character)
+        public static void ShowSelectedArea(ICharacter character)
         {
             var bottomDoodadId = 4763u; // Crescent Throne Flag 
             var centerSurfaceDoodadId = 5014u; // Combat Flag
