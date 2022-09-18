@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Game.Butler
         {
             ModelParams = new UnitCustomModelParams();
             Name = "";
-            Equipment.ContainerSize = 31; //28;
+            Equipment.ContainerSize = 32; // 28 in 1.2, 29 equip slots in 3.5, 31 in 5.7, 32 in 7+
         }
 
         public override void AddVisibleObject(Character character)

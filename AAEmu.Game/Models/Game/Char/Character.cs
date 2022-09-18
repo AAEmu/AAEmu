@@ -64,8 +64,8 @@ namespace AAEmu.Game.Models.Game.Char
         public ulong AccountId { get; set; }
         public Race Race { get; set; }
         public Gender Gender { get; set; }
-        public short LaborPower { get; set; }
-        public short LocalLaborPower { get; set; }
+        public int LaborPower { get; set; }
+        public int LocalLaborPower { get; set; }
         public DateTime LaborPowerModified { get; set; }
         public int ConsumedLaborPower { get; set; }
         public AbilityType Ability1 { get; set; }
@@ -2176,7 +2176,7 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(DeadCount);        // deadCount
             stream.Write(DeadTime);         // deadTime
             stream.Write(RezWaitDuration);  // rezWaitDuration
-            stream.Write((int) 0);          // specialRezWaitDuration, add in 7.5.3.3
+            stream.Write(0);                // specialRezWaitDuration, add in 7.5.3.3
             stream.Write(RezTime);          // rezTime
             stream.Write(RezPenaltyDuration);   // rezPenaltyDuration
             stream.Write(LeaveTime);        // lastWorldLeaveTime
@@ -2201,18 +2201,19 @@ namespace AAEmu.Game.Models.Game.Char
 
             stream.Write(Guid); // guid : added in 5.7
 
-            #region sub_399CCE70
+            #region sub_39A6A660
 
-            stream.Write(LaborPower);         // lp : moved in 5.7
-            stream.Write(LocalLaborPower);    // localLp : add for 3.5.0.3, moved in 5.7
+            stream.Write(LaborPower);         // lp : moved in 5.7 short, int in 1.1.2.9
+            stream.Write(LocalLaborPower);    // localLp : add for 3.5.0.3, moved in 5.7 short, int in 1.1.2.9
             stream.Write(ConsumedLaborPower); // consumed : moved in 5.7
             stream.Write(LaborPowerModified); // updated : moved in 5.7
             stream.Write(BmPoint);            // bmPoint : moved in 5.7
-            stream.Write((short)0);           // rechargetLp : added in 5.7
+            stream.Write(0);                  // rechargetLp : added in 5.7 short, int in 1.1.2.9
             stream.Write(DateTime.MinValue);  // rechargeResetTime : added in 5.7
-            stream.Write(0L);                 // moneyAmount add in 0.1.1.7 ArcheWorld
 
-            #endregion sub_399CCE70
+            #endregion sub_39A6A660
+
+            stream.Write(0L);                 // moneyAmount add in 0.1.1.7 ArcheWorld
 
             return stream;
 

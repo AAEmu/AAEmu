@@ -479,7 +479,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.Race = (Race)race;
                 character.Gender = (Gender)gender;
                 character.Transform.ApplyWorldSpawnPosition(template.SpawnPosition);
-                character.Level = 1;
+                character.Level = level;
                 character.Faction = FactionManager.Instance.GetFaction(template.FactionId);
                 character.FactionName = "";
                 character.AccessLevel = 100; // TODO для тестирования создаем с полными правами
@@ -495,7 +495,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.Ability3 = (AbilityType)ability[2];
                 character.ReturnDictrictId = template.ReturnDictrictId;
                 character.ResurrectionDictrictId = template.ResurrectionDictrictId;
-                character.Slots = new ActionSlot[133]; // 85 in 1.2, 133 in 3.5.0.3
+                character.Slots = new ActionSlot[144]; // 85 in 1.2, 133 in 3.5.0.3, 144 in 1.1.2.9
 
                 for (var i = 0; i < character.Slots.Length; i++)
                 {
@@ -503,6 +503,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 }
 
                 var items = _abilityItems[(byte)character.Ability1];
+
                 SetEquipItemTemplate(character.Inventory, items.Items.Headgear, EquipmentItemSlot.Head, items.Items.HeadgearGrade);
                 SetEquipItemTemplate(character.Inventory, items.Items.Necklace, EquipmentItemSlot.Neck, items.Items.NecklaceGrade);
                 SetEquipItemTemplate(character.Inventory, items.Items.Shirt, EquipmentItemSlot.Chest, items.Items.ShirtGrade);
@@ -519,10 +520,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 SetEquipItemTemplate(character.Inventory, items.Items.Ranged, EquipmentItemSlot.Ranged, items.Items.RangedGrade);
                 SetEquipItemTemplate(character.Inventory, items.Items.Musical, EquipmentItemSlot.Musical, items.Items.MusicalGrade);
                 SetEquipItemTemplate(character.Inventory, items.Items.Cosplay, EquipmentItemSlot.Cosplay, items.Items.CosplayGrade);
+                SetEquipItemTemplate(character.Inventory, items.Items.Stabilizer, EquipmentItemSlot.Stabilizer, items.Items.StabilizerGrade);
                 for (var i = 0; i < 7; i++)
                 {
-                    //if (body[i] == 0 && template.Items[i] > 0)
-                    //    body[i] = template.Items[i];
+                    if (body[i] == 0 && template.Items[i] > 0)
+                        body[i] = template.Items[i];
                     SetEquipItemTemplate(character.Inventory, body[i], (EquipmentItemSlot) (i + 19), 0);
                 }
 
@@ -704,7 +706,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             gameConnection.SendPacket(new SCCharacterDeletedPacket(character.Id, character.Name));
                             // Not sure if this is the way it should be send or not, but it seems to work with status 1
-                            gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 1, character.DeleteRequestTime, character.DeleteTime));
+                            gameConnection.SendPacket(new SCCharacterDeleteResponsePacket(character.Id, 1, character.DeleteRequestTime, character.DeleteTime));
                         }
                     }
                     return res > 0;
@@ -808,15 +810,14 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 {
                     using (var command = connection.CreateCommand())
                     {
-                        command.CommandText =
-                            "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
+                        command.CommandText = "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
                         command.Prepare();
                         command.Parameters.AddWithValue("@delete_request_time", character.DeleteRequestTime);
                         command.Parameters.AddWithValue("@delete_time", character.DeleteTime);
                         command.Parameters.AddWithValue("@id", character.Id);
                         if (command.ExecuteNonQuery() == 1)
                         {
-                            gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 2, character.DeleteRequestTime, character.DeleteTime));
+                            gameConnection.SendPacket(new SCCharacterDeleteResponsePacket(character.Id, 2, character.DeleteRequestTime, character.DeleteTime));
                         }
                         else
                         {
@@ -830,7 +831,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
             else
             {
-                gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(characterId, 0));
+                gameConnection.SendPacket(new SCCharacterDeleteResponsePacket(characterId, 0));
             }
             // Trigger our task queueing
             CheckForDeletedCharacters();

@@ -15,6 +15,8 @@
         SlaveEquipment = 10,
         Location = 11,
         Unk12 = 12,
-        Unk13 = 13
+        Unk13 = 13,
+        Unk14 = 14, // added in 1.1.2.9
+        Unk15 = 15 // added in 1.1.2.9
     }
 }

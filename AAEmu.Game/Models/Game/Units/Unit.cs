@@ -212,9 +212,8 @@ namespace AAEmu.Game.Models.Game.Units
             GCDLock = new object();
             Bonuses = new Dictionary<uint, List<Bonus>>();
             IsInBattle = false;
-            // TODO 1.2 Equipment.ContainerSize = 28, at 3.0.3.0 Equipment.ContainerSize = 29, 31 in 5.7
             Equipment = new ItemContainer(null, SlotType.Equipment, true);
-            Equipment.ContainerSize = 31; //TODO 28 in 1.2, 29 equip slots in 3.5, 31 in 5.7
+            Equipment.ContainerSize = 32; //TODO 28 in 1.2, 29 equip slots in 3.5, 31 in 5.7, 32 in 7+
             ChargeLock = new object();
             Cooldowns = new UnitCooldowns();
             SummarizeDamage = new List<int> { 0, 0, 0 };

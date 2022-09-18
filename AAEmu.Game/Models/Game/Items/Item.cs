@@ -275,13 +275,14 @@ namespace AAEmu.Game.Models.Game.Items
                     GemIds[17] = (uint)mGems[1];
                     break;
                 case ItemDetailType.Slave:
-                    mDetailLength = 34; // 30 in 3.5, 34 in 5.7
+                    mDetailLength = 34; // 30 in 3.5, 34 in 5.7+
                     goto Label_25;
                 case ItemDetailType.Mate:
                     mDetailLength = 21;
                     goto Label_25;
                 case ItemDetailType.Ucc:
-                    mDetailLength = 10;
+                case ItemDetailType.Unk12:
+                    mDetailLength = 11; // 10 in 1.2, 11 in 1.1.2.9
                     goto Label_25;
                 case ItemDetailType.Treasure:
                 case ItemDetailType.Location:
@@ -292,19 +293,18 @@ namespace AAEmu.Game.Models.Game.Items
                     mDetailLength = 17;
                     goto Label_25;
                 case ItemDetailType.MusicSheet:
+                case ItemDetailType.Unk14: // added in 1.1.2.9
                     mDetailLength = 9;
                     goto Label_25;
                 case ItemDetailType.Glider:
                     mDetailLength = 5;
                     goto Label_25;
                 case ItemDetailType.SlaveEquipment:
+                case ItemDetailType.Unk15: // added in 1.1.2.9
                     mDetailLength = 13;
                     goto Label_25;
-                case ItemDetailType.Unk12:
-                    mDetailLength = 11; // 12 in 3.5, 11 in 5.7
-                    goto Label_25;
                 case ItemDetailType.Unk13:
-                    mDetailLength = 14; // added in 5.7
+                    mDetailLength = 14; // added in 5.7+
 Label_25:
                     mDetailLength -= 1;
                     if (mDetailLength > 0)
@@ -346,7 +346,8 @@ Label_25:
                     mDetailLength = 21;
                     goto Label_25;
                 case ItemDetailType.Ucc:
-                    mDetailLength = 10;
+                case ItemDetailType.Unk12:
+                    mDetailLength = 11; // 10 in 1.2, 11 in 1.1.2.9
                     goto Label_25;
                 case ItemDetailType.Treasure:
                 case ItemDetailType.Location:
@@ -357,16 +358,15 @@ Label_25:
                     mDetailLength = 17;
                     goto Label_25;
                 case ItemDetailType.MusicSheet:
+                case ItemDetailType.Unk14: // added in 1.1.2.9
                     mDetailLength = 9;
                     goto Label_25;
                 case ItemDetailType.Glider:
                     mDetailLength = 5;
                     goto Label_25;
                 case ItemDetailType.SlaveEquipment:
+                case ItemDetailType.Unk15: // added in 1.1.2.9
                     mDetailLength = 13;
-                    goto Label_25;
-                case ItemDetailType.Unk12:
-                    mDetailLength = 11; // 12 in 3.5, 11 in 5.7+
                     goto Label_25;
                 case ItemDetailType.Unk13:
                     mDetailLength = 14; // added in 5.7+

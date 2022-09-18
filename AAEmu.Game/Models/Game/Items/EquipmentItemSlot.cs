@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Items
+﻿namespace AAEmu.Game.Models.Game.Items
 {
     public enum EquipmentItemSlot : byte
     {
@@ -32,7 +32,10 @@ namespace AAEmu.Game.Models.Game.Items
         // ---- somehow_special
         Backpack = 26,
         Cosplay = 27,
-        Stabilizer = 28
+        Stabilizer = 28,
+        Undershirt2 = 29,
+        Underpants2 = 30,
+        CosplayLooks = 31
     }
 
     public enum EquipmentItemSlotType : byte
@@ -71,5 +74,5 @@ namespace AAEmu.Game.Models.Game.Items
         Backpack = 30,
         Cosplay = 31,
         Stabilizer = 32
-}
+    }
 }

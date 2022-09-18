@@ -24,8 +24,8 @@ namespace AAEmu.Game.Models.Game.Char
     public class Inventory
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        
         public readonly Character Owner;
-
         public Dictionary<SlotType, ItemContainer> _itemContainers { get; private set; }
         public ItemContainer Equipment { get; private set; }
         public ItemContainer Bag { get; private set; }
@@ -43,15 +43,15 @@ namespace AAEmu.Game.Models.Game.Char
             var SlotTypes = Enum.GetValues(typeof(SlotType));
             foreach (var stv in SlotTypes)
             {
-                SlotType st = (SlotType)stv;
+                var st = (SlotType)stv;
                 // Take Equipment Container from Parent Unit's Equipment
                 if (st == SlotType.Equipment)
                 {
                     Equipment = Owner.Equipment;
                     Equipment.Owner = Owner;
                     Equipment.PartOfPlayerInventory = true;
-                    Equipment.ContainerSize = 32;  // 28 in 1.2, 29 equip slots in 3.5, 31 in 5.7, 32 in 7+
-                    _itemContainers.Add(st,Equipment);
+                    Equipment.ContainerSize = 32; // 28 in 1.2, 29 equip slots in 3.5, 31 in 5.7, 32 in 7+
+                    _itemContainers.Add(st, Equipment);
                     continue;
                 }
                 var newContainer = new ItemContainer(owner, st, true);
@@ -60,7 +60,7 @@ namespace AAEmu.Game.Models.Game.Char
                 {
                     /*
                     case SlotType.Equipment:
-                        newContainer.ContainerSize = 32;  // 28 in 1.2, 29 equip slots in 3.5, 31 in 5.7, 32 in 7+
+                        newContainer.ContainerSize = 32; // 28 in 1.2, 29 equip slots in 3.5, 31 in 5.7, 32 in 7+
                         Equipment = newContainer;
                         break;
                     */
@@ -168,7 +168,7 @@ namespace AAEmu.Game.Models.Game.Char
             var totalCount = 0;
             if (_itemContainers.TryGetValue(slotType, out var c))
             {
-                if (c.GetAllItemsByTemplate(templateId, -1, out _, out int itemCount))
+                if (c.GetAllItemsByTemplate(templateId, -1, out _, out var itemCount))
                     totalCount += itemCount;
             }
             return totalCount >= count;
@@ -201,7 +201,7 @@ namespace AAEmu.Game.Models.Game.Char
         /// <returns>True if any item was found</returns>
         public bool GetAllItemsByTemplate(SlotType[] inContainerTypes, uint templateId, int gradeToCheck, out List<Item> foundItems, out int unitsOfItemFound)
         {
-            bool res = false;
+            var res = false;
             foundItems = new List<Item>();
             unitsOfItemFound = 0;
             if (inContainerTypes == null || inContainerTypes.Length <= 0)
@@ -230,8 +230,7 @@ namespace AAEmu.Game.Models.Game.Char
             doEquipInEmptySlot,
         }
 
-        public bool SplitOrMoveItem(ItemTaskType taskType, ulong fromItemId, SlotType fromType, byte fromSlot,
-            ulong toItemId, SlotType toType, byte toSlot, int count = 0)
+        public bool SplitOrMoveItem(ItemTaskType taskType, ulong fromItemId, SlotType fromType, byte fromSlot, ulong toItemId, SlotType toType, byte toSlot, int count = 0)
         {
             var info = string.Format("SplitOrMoveItem({0} {1}:{2} => {3} {4}:{5} - {6})", fromItemId, fromType,
                 fromSlot, toItemId, toType, toSlot, count);
@@ -250,8 +249,8 @@ namespace AAEmu.Game.Models.Game.Char
                 count = fromItem.Count;
 
             // Grab target container for easy manipulation
-            ItemContainer targetContainer = Bag;
-            ItemContainer sourceContainer = fromItem?._holdingContainer ?? Bag;
+            var targetContainer = Bag;
+            var sourceContainer = fromItem?._holdingContainer ?? Bag;
             if (_itemContainers.TryGetValue(toType, out targetContainer))
             {
                 itemInTargetSlot = targetContainer.GetItemBySlot(toSlot);
@@ -551,7 +550,6 @@ namespace AAEmu.Game.Models.Game.Char
             return itemTasks.Count > 0;
         }
 
-
         public bool TakeoffBackpack(ItemTaskType taskType,bool glidersOnly = false)
         {
             var backpack = GetEquippedBySlot(EquipmentItemSlot.Backpack);
@@ -617,7 +615,6 @@ namespace AAEmu.Game.Models.Game.Char
             }
             return null;
         }
-
 
         public Item GetEquippedBySlot(EquipmentItemSlot slot)
         {
