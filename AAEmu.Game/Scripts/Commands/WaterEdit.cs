@@ -515,7 +515,7 @@ namespace AAEmu.Game.Scripts.Commands
                 }
 
                 var newName = args[1];
-                var newBody = new WaterBodyArea(newName);
+                var newBody = new WaterBodyArea(newName, WaterBodyAreaType.Polygon);
                 newBody.Id = (uint)Random.Shared.Next(8000000, 9000000);
                 var centerPos = character.Transform.World.Position with { Z = character.Transform.World.Position.Z - 5f };
                 newBody.Points.Add(new Vector3(centerPos.X - 15f, centerPos.Y - 15f, centerPos.Z));

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Numerics;
@@ -23,29 +24,33 @@ public class WaterBodies
         Areas = new List<WaterBodyArea>();
     }
 
-    public bool IsWater(Vector3 point)
+    public bool IsWater(Vector3 point, out Vector3 flowDirection)
     {
+        flowDirection = Vector3.Zero;
+        
         if (point.Z <= OceanLevel)
             return true;
 
         lock (_lock)
         {
             foreach (var area in Areas)
-                if (area.IsWater(point))
+                if (area.IsWater(point, out flowDirection))
                     return true;
         }
         return false;
     }
 
-    public float GetWaterSurface(Vector3 point)
+    public float GetWaterSurface(Vector3 point, out Vector3 flowDirection)
     {
+        flowDirection = Vector3.Zero;
+        
         if (point.Z <= OceanLevel)
             return OceanLevel;
 
         lock (_lock)
         {
             foreach (var area in Areas)
-                if (area.GetSurface(point, out var surfacePoint))
+                if (area.GetSurface(point, out var surfacePoint, out flowDirection))
                     return surfacePoint.Z;
         }
 

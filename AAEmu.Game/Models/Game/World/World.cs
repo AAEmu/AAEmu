@@ -28,10 +28,12 @@ namespace AAEmu.Game.Models.Game.World
         public BoatPhysicsManager Physics { get; set; }
         public WaterBodies Water { get; set; }
 
-        public bool IsWater(Vector3 point)
+        public bool IsWater(Vector3 point, out Vector3 flowDirection)
         {
             if (Water != null)
-                return Water.IsWater(point);
+                return Water.IsWater(point, out flowDirection);
+
+            flowDirection = Vector3.Zero;
             
             if (point.Z <= OceanLevel)
                 return true;

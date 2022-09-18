@@ -42,7 +42,7 @@ namespace AAEmu.Game.Core.Managers.World
         private bool CustomWater(ref JVector area)
         {
             // Query world if it's water and treat everything below 100 as water as a fallback
-            return SimulationWorld?.IsWater(new Vector3(area.X, area.Z, area.Y)) ?? area.Y <= 100f;
+            return SimulationWorld?.IsWater(new Vector3(area.X, area.Z, area.Y), out _) ?? area.Y <= 100f;
         }
 
         public void Initialize()

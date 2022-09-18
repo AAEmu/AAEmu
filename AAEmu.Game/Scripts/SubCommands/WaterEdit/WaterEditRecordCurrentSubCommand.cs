@@ -13,13 +13,13 @@ using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.Commands
 {
-    public class WaterEditRegisterCurrentSubCommand : SubCommandBase 
+    public class WaterEditRecordCurrentSubCommand : SubCommandBase 
     {
-        public WaterEditRegisterCurrentSubCommand()
+        public WaterEditRecordCurrentSubCommand()
         {
             Title = "[WaterEdit]";
-            Description = "Starts and stops recording currents excerted on the user in a body of water. Use this command twice while free floating in the river.";
-            CallPrefix = $"{CommandManager.CommandPrefix}wateredit registercurrent";
+            Description = "Starts and stops recording currents excerted on the user in a body of water. Use this command twice while free floating in the river. Recording also stops if you are no longer moving by a current.";
+            CallPrefix = $"{CommandManager.CommandPrefix}wateredit recordcurrent";
         }
         
         public override void Execute(ICharacter character, string triggerArgument, string[] args) =>
@@ -42,28 +42,21 @@ namespace AAEmu.Game.Scripts.Commands
             }
             */
 
-            if (WaterEditCmd.MeasureTime <= DateTime.MinValue)
+            if ((WaterEditCmd.RecordingTask != null) && (WaterEditCmd.RecordingTask.IsRecording()))
             {
-                // Begin recording
-                WaterEditCmd.MeasureTime = DateTime.UtcNow;
-                WaterEditCmd.MeasurePosition = character.Transform.World.Position;
-                character.SendMessage($"|cFFFFFF00[WaterEdit] Started recording water current!|r");
+                // Stop recording
+                WaterEditCmd.RecordingTask.StopRecording();
+                character.SendMessage($"|cFFFFFF00[WaterEdit] Stopping recording!|r");
                 return;
             }
             else
             {
-                var deltaPosition = character.Transform.World.Position - WaterEditCmd.MeasurePosition;
-                var deltaTime = (float)(DateTime.UtcNow - WaterEditCmd.MeasureTime).TotalSeconds;
-
-                var deltaPerSecond = deltaPosition / deltaTime;
-                
-                character.SendMessage($"[WaterEdit] You moved at |cFF00FF00{deltaPerSecond.Length():F3} m/s|r (offset {deltaPosition} in {deltaTime} seconds = {deltaPerSecond}/s)");
-
-                WaterEditCmd.MeasureTime = DateTime.MinValue;
-                WaterEditCmd.MeasurePosition = Vector3.Zero;
+                // Start Recording
+                WaterEditCmd.RecordingTask = new WaterEditRecordTask(character as Character);
+                TaskManager.Instance.Schedule(WaterEditCmd.RecordingTask);
+                character.SendMessage($"|cFFFFFF00[WaterEdit] Start recording flowing water!|r");
                 return;
             }
-            
         }
     }
 }

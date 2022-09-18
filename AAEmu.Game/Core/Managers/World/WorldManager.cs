@@ -1157,7 +1157,7 @@ namespace AAEmu.Game.Core.Managers.World
                                     continue; // this shape has no area defined
 
                                 // Create WaterBody here
-                                var newWaterBodyArea = new WaterBodyArea(entityName);
+                                var newWaterBodyArea = new WaterBodyArea(entityName, WaterBodyAreaType.Polygon);
                                 newWaterBodyArea.Id = XmlHelper.ReadAttribute<uint>(attribs, "EntityId", 0u);
                                 newWaterBodyArea.Guid = XmlHelper.ReadAttribute<string>(attribs, "Guid", "");
 

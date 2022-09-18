@@ -264,7 +264,7 @@ namespace AAEmu.Game.Core.Managers
                         return;
                     }
                     
-                    var worldWaterLevel = world.Water.GetWaterSurface(spawnPos.World.Position);
+                    var worldWaterLevel = world.Water.GetWaterSurface(spawnPos.World.Position, out _);
                     spawnPos.Local.SetHeight(worldWaterLevel);
 
                     // temporary grab ship information so that we can use it to find a suitable spot in front to summon it
@@ -281,7 +281,7 @@ namespace AAEmu.Game.Core.Managers
                         var floorHeight = WorldManager.Instance.GetHeight(depthCheckPos);
                         if (floorHeight > 0f)
                         {
-                            var surfaceHeight = world.Water.GetWaterSurface(depthCheckPos.World.Position); 
+                            var surfaceHeight = world.Water.GetWaterSurface(depthCheckPos.World.Position, out _); 
                             var delta = surfaceHeight - floorHeight;
                             if (delta > minDepth)
                             {
