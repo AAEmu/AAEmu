@@ -18,6 +18,9 @@ public class WaterBodyArea
     public float Height { get; set; }
     
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+    public float Depth { get; set; }
+    
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public string Name { get; set; }
     
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
@@ -27,7 +30,7 @@ public class WaterBodyArea
     public int WaterType { get; set; }
     
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-    public float CurrentSpeed { get; set; }
+    public float Speed { get; set; }
 
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public float RiverWidth { get; set; }
@@ -63,11 +66,11 @@ public class WaterBodyArea
         
         // If it's in withing the shape, check the height (assumes shape is flat)
         // Is it above the estimated water ?
-        if (point.Z > _heighest + Height)
+        if (point.Z > _heighest)
             return false;
 
         // Is it below the estimated water ?
-        if (point.Z < _lowest)
+        if (point.Z < _lowest - Depth)
             return false;
 
         // So I guess it's in the water then
@@ -85,7 +88,7 @@ public class WaterBodyArea
         if (AreaType == WaterBodyAreaType.Polygon)
         {
             // For flat areas, just use the top
-            surfacePoint = new Vector3(point.X, point.Y, _heighest + Height);
+            surfacePoint = new Vector3(point.X, point.Y, _heighest);
         }
         else
         if (AreaType == WaterBodyAreaType.LineArray)
@@ -106,7 +109,7 @@ public class WaterBodyArea
         else
         {
             // Fallback that shouldn't happen
-            surfacePoint = new Vector3(point.X, point.Y, _heighest + Height);
+            surfacePoint = new Vector3(point.X, point.Y, _heighest);
         }
         return true;
     }
@@ -128,23 +131,34 @@ public class WaterBodyArea
             if (first)
             {
                 first = false;
-                xMin = point.X;
-                yMin = point.Y;
-                xMax = point.X;
-                yMax = point.Y;
-                _lowest = point.Z;
-                _heighest = _lowest;
+                xMin = point.X - RiverWidth;
+                yMin = point.Y - RiverWidth;
+                xMax = point.X + RiverWidth;
+                yMax = point.Y + RiverWidth;
+                
+                if (AreaType == WaterBodyAreaType.Polygon)
+                {
+                    _lowest = point.Z;
+                    _heighest = _lowest;
+                }
+
+                if (AreaType == WaterBodyAreaType.LineArray)
+                {
+                    _heighest = point.Z;
+                    _lowest = _heighest;
+                }
             }
             else
             {
-                if (point.X < xMin)
-                    xMin = point.X;
-                if (point.X > xMax)
-                    xMax = point.X;
-                if (point.Y < yMin)
-                    yMin = point.Y;
-                if (point.Y > yMax)
-                    yMax = point.Y;
+                // The RiverWidth is used to generate a very rough range of the river's width for the rough bounds check
+                if (point.X - RiverWidth < xMin)
+                    xMin = point.X - RiverWidth;
+                if (point.X + RiverWidth > xMax)
+                    xMax = point.X + RiverWidth;
+                if (point.Y - RiverWidth < yMin)
+                    yMin = point.Y - RiverWidth;
+                if (point.Y + RiverWidth > yMax)
+                    yMax = point.Y + RiverWidth;
                 
                 // Z
                 if (point.Z > _heighest)
@@ -269,7 +283,7 @@ public class WaterBodyArea
                         closestDistance = distanceToLine;
                         closestPoint = side;
                         flowVector = (Points[side + 1] - Points[side]);
-                        flowVector = Vector3.Normalize(flowVector) * CurrentSpeed;
+                        flowVector = Vector3.Normalize(flowVector) * Speed;
                     }
                 }
             }
@@ -283,7 +297,7 @@ public class WaterBodyArea
 
     public Vector3 GetCenter(bool atSurface)
     {
-        var h = atSurface ? _heighest + Height : _lowest;
+        var h = atSurface ? _heighest : _lowest - Depth;
         return new Vector3(_boundingBox.Left + (_boundingBox.Width / 2f), _boundingBox.Top + (_boundingBox.Height / 2f), h);
     }
     

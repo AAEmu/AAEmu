@@ -20,14 +20,14 @@ using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.Commands
 {
-    public class WaterEditSetHeightSubCommand : SubCommandBase 
+    public class WaterEditSetWidthSubCommand : SubCommandBase 
     {
-        public WaterEditSetHeightSubCommand()
+        public WaterEditSetWidthSubCommand()
         {
             Title = "[WaterEdit]";
-            Description = "Set the height of the points in the water body";
-            CallPrefix = $"{CommandManager.CommandPrefix}wateredit setheight";
-            AddParameter(new NumericSubCommandParameter<float>("height", "height", true, 0f, 4096f));
+            Description = "Set speed at which the selected river flows in m/s.";
+            CallPrefix = $"{CommandManager.CommandPrefix}wateredit setspeed";
+            AddParameter(new NumericSubCommandParameter<float>("speed", "speed", true, 0f, 100f));
         }
 
         public override void Execute(ICharacter character, string triggerArgument,
@@ -52,12 +52,19 @@ namespace AAEmu.Game.Scripts.Commands
                     $"|cFFFF0000[WaterEdit] Currently selected water is not in the same world as you! ({WaterEditCmd.SelectedWorld.Name})|r");
                 return;
             }
+            
+            if (WaterEditCmd.SelectedWorld.AreaType != WaterBodyAreaType.LineArray)
+            {
+                character.SendMessage(
+                    $"|cFFFF0000[WaterEdit] Currently selected water is not of LineArray type! ({WaterEditCmd.SelectedWorld.Name})|r");
+                return;
+            }
 
-            float newHeight = parameters["height"];
+            float newSpeed = parameters["speed"];
 
-            WaterEditCmd.SelectedWater.Height = newHeight;
+            WaterEditCmd.SelectedWater.Speed = newSpeed;
             WaterEditCmd.ShowSelectedArea(character);
-            character.SendMessage($"[WaterEdit] Height for |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r set to |cFF00FF00{newHeight}!|r");
+            character.SendMessage($"[WaterEdit] Speed for |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r set to |cFF00FF00{newSpeed}!|r");
         }
     }
 }

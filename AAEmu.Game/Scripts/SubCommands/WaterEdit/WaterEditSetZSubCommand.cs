@@ -20,14 +20,14 @@ using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.Commands
 {
-    public class WaterEditSetBottomSubCommand : SubCommandBase 
+    public class WaterEditSetZSubCommand : SubCommandBase 
     {
-        public WaterEditSetBottomSubCommand()
+        public WaterEditSetZSubCommand()
         {
             Title = "[WaterEdit]";
-            Description = "Set the bottom location of all points in the water body";
-            CallPrefix = $"{CommandManager.CommandPrefix}wateredit setbottom";
-            AddParameter(new NumericSubCommandParameter<float>("bottom", "bottom height", true, 0f, 4096f));
+            Description = "Set the Z-position of all points in the water body";
+            CallPrefix = $"{CommandManager.CommandPrefix}wateredit setz";
+            AddParameter(new NumericSubCommandParameter<float>("z", "Z-height", true, 0f, 4096f));
             AddParameter(new NumericSubCommandParameter<int>("point", "point=0", false, -1, 9999) { DefaultValue = -1 });
         }
 
@@ -54,7 +54,7 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            float newBottom = parameters["bottom"];
+            float newZ = parameters["z"];
             var onePoint = GetOptionalParameterValue<int>(parameters, "point", -1);
 
             for (var i = 0; i < WaterEditCmd.SelectedWater.Points.Count; i++)
@@ -63,16 +63,16 @@ namespace AAEmu.Game.Scripts.Commands
                     continue;
 
                 WaterEditCmd.SelectedWater.Points[i] = new Vector3(WaterEditCmd.SelectedWater.Points[i].X,
-                    WaterEditCmd.SelectedWater.Points[i].Y, newBottom);
+                    WaterEditCmd.SelectedWater.Points[i].Y, newZ);
             }
 
             WaterEditCmd.ShowSelectedArea(character);
             if (onePoint >= 0)
                 character.SendMessage(
-                    $"[WaterEdit] Z position for point |cFF00FF00{onePoint}|r in |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r has been set to |cFF00FF00{newBottom}!|r");
+                    $"[WaterEdit] Z position for point |cFF00FF00{onePoint}|r in |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r has been set to |cFF00FF00{newZ}!|r");
             else
                 character.SendMessage(
-                    $"[WaterEdit] Z position for all points in |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r have been set to |cFF00FF00{newBottom}!|r");
+                    $"[WaterEdit] Z position for all points in |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r have been set to |cFF00FF00{newZ}!|r");
         }
     }
 }

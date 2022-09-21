@@ -19,7 +19,7 @@ namespace AAEmu.Game.Scripts.Commands
             Title = "[WaterEdit]";
             Description = "Adds a new point to the selected body of water at your location.";
             CallPrefix = $"{CommandManager.CommandPrefix}wateredit insertpoint";
-            AddParameter(new NumericSubCommandParameter<uint>("point", "point id", false));
+            AddParameter(new NumericSubCommandParameter<int>("point", "point id", false));
         }
 
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)

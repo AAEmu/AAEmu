@@ -70,7 +70,7 @@ namespace AAEmu.Game.Scripts.Commands
             }
 
             if (WaterEditCmd.SelectedWater != null)
-                character.SendMessage($"[WaterEdit] Selected |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r ({WaterEditCmd.SelectedWater.Id}), height: |cFF00FF00{WaterEditCmd.SelectedWater.Height}|r");
+                character.SendMessage($"[WaterEdit] Selected |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r ({WaterEditCmd.SelectedWater.Id}), depth: |cFF00FF00{WaterEditCmd.SelectedWater.Depth}|r");
             else
                 character.SendMessage($"[WaterEdit] Nothing selected");
             WaterEditCmd.ShowSelectedArea(character);

@@ -30,6 +30,7 @@ namespace AAEmu.Game.Scripts.Commands
         public static List<BaseUnit> Markers = new List<BaseUnit>();
         public static WaterEditRecordTask RecordingTask { get; set; }
         public static List<Vector3> RecordedData { get; set; } = new List<Vector3>();
+        public static float RecordedSpeed { get; set; };
         public static Character RecordingCharacter { get; set; }
         
         public WaterEditCmd()
@@ -39,21 +40,24 @@ namespace AAEmu.Game.Scripts.Commands
             CallPrefix = $"{CommandManager.CommandPrefix}wateredit";
 
             Register(new WaterEditListSubCommand(), "list", "l");
-            Register(new WaterEditNearbySubCommand(), "nearby");
+            Register(new WaterEditNearbySubCommand(), "nearby", "around", "a");
             Register(new WaterEditLoadSubCommand(), "load");
             Register(new WaterEditSaveSubCommand(), "save");
             Register(new WaterEditSelectSubCommand(), "select", "s");
             Register(new WaterEditClearSubCommand(), "clear", "c");
             Register(new WaterEditGoToSubCommand(), "goto", "g");
             Register(new WaterEditNextSubCommand(), "next", "n");
-            Register(new WaterEditSetBottomSubCommand(), "setbottom", "sb");
-            Register(new WaterEditSetHeightSubCommand(), "setheight", "sh");
+            Register(new WaterEditSetZSubCommand(), "setz", "sz");
+            Register(new WaterEditSetDepthSubCommand(), "setdepth", "sd");
+            Register(new WaterEditSetWidthSubCommand(), "setwidth", "sw");
+            Register(new WaterEditSetSpeedSubCommand(), "setspeed", "speed", "ss");
             Register(new WaterEditListPointsSubCommand(), "listpoints", "lp");
             Register(new WaterEditMovePointSubCommand(), "movepoint", "mp");
             Register(new WaterEditInsertPointSubCommand(), "insertpoint", "ip");
             Register(new WaterEditRemovePointSubCommand(), "removepoint", "rp", "dp");
             Register(new WaterEditRemoveWaterSubCommand(), "removewater", "rw");
             Register(new WaterEditRecordCurrentSubCommand(), "recordcurrent", "rec");
+            Register(new WaterEditCreateWaterSubCommand(), "createwater");
             Register(new WaterEditCreateFromRecordingSubCommand(), "createfromrecording");
         }
         
@@ -142,29 +146,31 @@ namespace AAEmu.Game.Scripts.Commands
                     var point = SelectedWater.Points[p];
                     var bottomDoodad = DoodadManager.Instance.Create(0, bottomDoodadId);
                     bottomDoodad.Transform.Local.SetPosition(point);
+                    bottomDoodad.Transform.Local.SetHeight(point.Z - SelectedWater.Depth);
                     bottomDoodad.Show();
                     Markers.Add(bottomDoodad);
 
                     var surfaceUnit = NpcManager.Instance.Create(0, topNpcId);
                     surfaceUnit.Transform.Local.SetPosition(point);
-                    surfaceUnit.Transform.Local.SetHeight(point.Z + SelectedWater.Height);
-                    if ((p != 0) || (SelectedWater.AreaType == WaterBodyAreaType.LineArray))
-                        surfaceUnit.Name = "#" + p.ToString();
-                    else
+                    
+                    if ((p == 0) && (SelectedWater.AreaType == WaterBodyAreaType.Polygon))
                         surfaceUnit.Name = "#" + p.ToString() + " <-> #" + (SelectedWater.Points.Count - 1).ToString();
+                    else
+                        surfaceUnit.Name = "#" + p.ToString();
+                    
                     surfaceUnit.Faction = FactionManager.Instance.GetFaction(FactionsEnum.Friendly);
                     surfaceUnit.Show();
                     Markers.Add(surfaceUnit);
 
-                    var dividers = MathF.Ceiling(SelectedWater.Height / 5f);
+                    var dividers = MathF.Ceiling(SelectedWater.Depth / 5f);
                     dividers = MathF.Max(dividers, 2f);
 
                     for (int i = 1; i < dividers; i++)
                     {
-                        var h = SelectedWater.Height / dividers * (float)i;
+                        var h = SelectedWater.Depth / dividers * (float)i;
                         var middleDoodad = DoodadManager.Instance.Create(0, middleDoodadId);
                         middleDoodad.Transform.Local.SetPosition(point);
-                        middleDoodad.Transform.Local.SetHeight(point.Z + h);
+                        middleDoodad.Transform.Local.SetHeight(point.Z - SelectedWater.Depth + h);
                         middleDoodad.Show();
                         Markers.Add(middleDoodad);
                     }
@@ -174,9 +180,6 @@ namespace AAEmu.Game.Scripts.Commands
 
         public static void ShowRecordedArea(ICharacter character)
         {
-            var bottomDoodadId = 4763u; // Crescent Throne Flag 
-            var centerSurfaceDoodadId = 5014u; // Combat Flag
-            var middleDoodadId = 5622u; // Stone Post
             var topNpcId = 13013u; // Forward Scarecrow
             foreach (var marker in Markers)
             {
@@ -194,38 +197,17 @@ namespace AAEmu.Game.Scripts.Commands
                 if (p > 0)
                     totalDistance += (point - RecordedData[p - 1]).Length();
 
-                /*
-                var bottomDoodad = DoodadManager.Instance.Create(0, bottomDoodadId);
-                bottomDoodad.Transform.Local.SetPosition(point);
-                bottomDoodad.Show();
-                Markers.Add(bottomDoodad);
-                */
-
                 var surfaceUnit = NpcManager.Instance.Create(0, topNpcId);
                 surfaceUnit.Transform.Local.SetPosition(point);
                 surfaceUnit.Name = "#" + p.ToString();
                 surfaceUnit.Faction = FactionManager.Instance.GetFaction(FactionsEnum.Friendly);
                 surfaceUnit.Show();
                 Markers.Add(surfaceUnit);
-
-                /*
-                var dividers = MathF.Ceiling(SelectedWater.Height / 5f);
-                dividers = MathF.Max(dividers, 2f);
-
-                for (int i = 1; i < dividers; i++)
-                {
-                    var h = SelectedWater.Height / dividers * (float)i;
-                    var middleDoodad = DoodadManager.Instance.Create(0, middleDoodadId);
-                    middleDoodad.Transform.Local.SetPosition(point);
-                    middleDoodad.Transform.Local.SetHeight(point.Z + h);
-                    middleDoodad.Show();
-                    Markers.Add(middleDoodad);
-                }
-                */
             }
 
             var averageSpeed = totalDistance / (RecordedData.Count - 1);
-            character?.SendMessage($"[WaterEdit] Recoded data: {RecordedData.Count} points, average speed: {averageSpeed} m/s (over {totalDistance} m)");
+            RecordedSpeed = MathF.Round(averageSpeed, 1);
+            character?.SendMessage($"[WaterEdit] Recoded data: {RecordedData.Count} points, average speed: |cFFFFFF00{averageSpeed} m/s|r over {totalDistance:F2} m (|cFF00FF00{RecordedSpeed}|r)");
         }
 
         public static void OnRecodingEnded()
