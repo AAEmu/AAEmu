@@ -18,7 +18,7 @@ namespace AAEmu.Game.Scripts.Commands
             Title = "[WaterEdit]";
             Description = "Removes the selected body of water from the world.";
             CallPrefix = $"{CommandManager.CommandPrefix}wateredit removewater";
-            AddParameter(new NumericSubCommandParameter<uint>("points", "number of points", true));
+            AddParameter(new NumericSubCommandParameter<int>("points", "number of points", true));
         }
 
         public override void Execute(ICharacter character, string triggerArgument,

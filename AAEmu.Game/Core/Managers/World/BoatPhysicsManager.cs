@@ -100,6 +100,15 @@ namespace AAEmu.Game.Core.Managers.World
                         if (slaveRigidBody == null)
                             continue;
 
+                        var underPos = slave.Transform.World.Position + (Vector3.UnitZ * -2f);
+                        if (SimulationWorld.Water.IsWater(underPos, out var flowDirection) && (flowDirection.Length() > 0f))
+                        {
+                            // We are in moving water, apply force
+                            var multiplier = slaveRigidBody.Mass * 3.15f ;
+                            slaveRigidBody.AddForce(new JVector(flowDirection.X * multiplier,flowDirection.Z * multiplier, flowDirection.Y * multiplier));
+                            // slaveRigidBody.LinearVelocity += new JVector(flowDirection.X * 0.1f,flowDirection.Z * 0.1f, flowDirection.Y * 0.1f);
+                        }
+
                         // Note: Y, Z swapped
                         var xDelta = slaveRigidBody.Position.X - slave.Transform.World.Position.X;
                         var yDelta = slaveRigidBody.Position.Z - slave.Transform.World.Position.Y;

@@ -35,7 +35,7 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            int scale = parameters["scale"];
+            int scale = parameters["skip"];
             
             if (WaterEditCmd.SelectedWater.Points.Count <= scale)
             {
@@ -50,7 +50,7 @@ namespace AAEmu.Game.Scripts.Commands
             {
                 // Pick every "skip" point, and the last one
                 if (((i % scale) == 0) || (i >= WaterEditCmd.SelectedWater.Points.Count-1))
-                    newPoints.Add();
+                    newPoints.Add(WaterEditCmd.SelectedWater.Points[i]);
             }
 
             WaterEditCmd.SelectedWater.Points = newPoints;

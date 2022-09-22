@@ -30,7 +30,7 @@ namespace AAEmu.Game.Scripts.Commands
         public static List<BaseUnit> Markers = new List<BaseUnit>();
         public static WaterEditRecordTask RecordingTask { get; set; }
         public static List<Vector3> RecordedData { get; set; } = new List<Vector3>();
-        public static float RecordedSpeed { get; set; };
+        public static float RecordedSpeed { get; set; }
         public static Character RecordingCharacter { get; set; }
         
         public WaterEditCmd()
@@ -59,6 +59,8 @@ namespace AAEmu.Game.Scripts.Commands
             Register(new WaterEditRecordCurrentSubCommand(), "recordcurrent", "rec");
             Register(new WaterEditCreateWaterSubCommand(), "createwater");
             Register(new WaterEditCreateFromRecordingSubCommand(), "createfromrecording");
+            Register(new WaterEditDowngradeSubCommand(), "downgrade");
+            Register(new WaterEditOffsetSubCommand(), "offset");
         }
         
         public void OnLoad()
@@ -144,6 +146,8 @@ namespace AAEmu.Game.Scripts.Commands
                 for (var p = 0; p < SelectedWater.Points.Count - 1; p++)
                 {
                     var point = SelectedWater.Points[p];
+                    var directionVector = Vector3.Zero;
+
                     var bottomDoodad = DoodadManager.Instance.Create(0, bottomDoodadId);
                     bottomDoodad.Transform.Local.SetPosition(point);
                     bottomDoodad.Transform.Local.SetHeight(point.Z - SelectedWater.Depth);
@@ -161,6 +165,14 @@ namespace AAEmu.Game.Scripts.Commands
                     surfaceUnit.Faction = FactionManager.Instance.GetFaction(FactionsEnum.Friendly);
                     surfaceUnit.Show();
                     Markers.Add(surfaceUnit);
+                    
+                    if (SelectedWater.AreaType == WaterBodyAreaType.LineArray)
+                    {
+                        if (p >= SelectedWater.Points.Count - 1)
+                            directionVector = Vector3.Normalize(SelectedWater.Points[^1] - SelectedWater.Points[^2]);
+                        else
+                            directionVector = Vector3.Normalize(SelectedWater.Points[p + 1] - SelectedWater.Points[p]);
+                    }
 
                     var dividers = MathF.Ceiling(SelectedWater.Depth / 5f);
                     dividers = MathF.Max(dividers, 2f);
@@ -173,7 +185,27 @@ namespace AAEmu.Game.Scripts.Commands
                         middleDoodad.Transform.Local.SetHeight(point.Z - SelectedWater.Depth + h);
                         middleDoodad.Show();
                         Markers.Add(middleDoodad);
+
+                        // If a line, also add markers on the width border
+                        if (SelectedWater.AreaType == WaterBodyAreaType.LineArray)
+                        {
+                            var perpendicular = Vector3.Normalize(Vector3.Cross(directionVector, Vector3.UnitZ));
+                            var rightDoodad = DoodadManager.Instance.Create(0, middleDoodadId);
+                            rightDoodad.Transform = middleDoodad.Transform.CloneDetached();
+                            rightDoodad.Transform.Local.AddDistance(perpendicular * SelectedWater.RiverWidth);
+                            rightDoodad.Show();
+                            Markers.Add(rightDoodad);
+                            
+                            var leftDoodad = DoodadManager.Instance.Create(0, middleDoodadId);
+                            leftDoodad.Transform = middleDoodad.Transform.CloneDetached();
+                            leftDoodad.Transform.Local.AddDistance(perpendicular * SelectedWater.RiverWidth * -1f);
+                            leftDoodad.Show();
+                            Markers.Add(leftDoodad);
+                            
+                        }
+
                     }
+                    
                 }
             }
         }

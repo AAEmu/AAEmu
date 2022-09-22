@@ -56,6 +56,7 @@ namespace AAEmu.Game.Scripts.Commands
 
             newBody.Depth = 10f;
             newBody.RiverWidth = 20f;
+            newBody.Speed = WaterEditCmd.RecordedSpeed;
             newBody.UpdateBounds();
 
             lock (world.Water._lock)

@@ -270,13 +270,13 @@ public class WaterBodyArea
             var closestDistance = 1000000f;
             
             // Test the ray against all sides
-            for (var side = 0; side < Points.Count - 1; side++)
+            for (var side = 0; side < Points.Count - 2; side++)
             {
                 var distanceToLine = MinimumDistanceToLine(Points[side], Points[side + 1], p);
 
                 if (distanceToLine * 2 < RiverWidth)
                 {
-                    // looks like it's in range of the river
+                    // looks like it's roughly in range of the river
 
                     if (distanceToLine < closestDistance)
                     {

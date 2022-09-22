@@ -53,7 +53,7 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
             
-            if (WaterEditCmd.SelectedWorld.AreaType != WaterBodyAreaType.LineArray)
+            if (WaterEditCmd.SelectedWater.AreaType != WaterBodyAreaType.LineArray)
             {
                 character.SendMessage(
                     $"|cFFFF0000[WaterEdit] Currently selected water is not of LineArray type! ({WaterEditCmd.SelectedWorld.Name})|r");
