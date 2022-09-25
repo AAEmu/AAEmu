@@ -2,7 +2,10 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
+using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Utils;
 using Newtonsoft.Json;
+using SQLitePCL;
 
 namespace AAEmu.Game.Models.Game.World;
 
@@ -39,16 +42,25 @@ public class WaterBodyArea
     public List<Vector3> Points { get; set; }
     
     [JsonIgnore]
+    public List<Vector3> BorderPoints { get; set; }
+    [JsonIgnore]
     public RectangleF _boundingBox = RectangleF.Empty;
     [JsonIgnore]
     public float _lowest;
     [JsonIgnore]
-    public float _heighest;
+    public float _highest;
 
+    [JsonIgnore]
+    public RectangleF BoundingBox { get => _boundingBox; }
+
+    [JsonIgnore]
+    public float Highest { get => _highest; }
+    
     public WaterBodyArea()
     {
         AreaType = WaterBodyAreaType.Polygon;
         Points = new List<Vector3>();
+        BorderPoints = new List<Vector3>();
     }
 
     public WaterBodyArea(string name, WaterBodyAreaType areaType)
@@ -56,6 +68,7 @@ public class WaterBodyArea
         AreaType = areaType;
         Name = name;
         Points = new List<Vector3>();
+        BorderPoints = new List<Vector3>();
     }
 
     public bool IsWater(Vector3 point, out Vector3 flowDirection)
@@ -66,7 +79,7 @@ public class WaterBodyArea
         
         // If it's in withing the shape, check the height (assumes shape is flat)
         // Is it above the estimated water ?
-        if (point.Z > _heighest)
+        if (point.Z > _highest)
             return false;
 
         // Is it below the estimated water ?
@@ -88,7 +101,7 @@ public class WaterBodyArea
         if (AreaType == WaterBodyAreaType.Polygon)
         {
             // For flat areas, just use the top
-            surfacePoint = new Vector3(point.X, point.Y, _heighest);
+            surfacePoint = new Vector3(point.X, point.Y, _highest);
         }
         else
         if (AreaType == WaterBodyAreaType.LineArray)
@@ -109,14 +122,14 @@ public class WaterBodyArea
         else
         {
             // Fallback that shouldn't happen
-            surfacePoint = new Vector3(point.X, point.Y, _heighest);
+            surfacePoint = new Vector3(point.X, point.Y, _highest);
         }
         return true;
     }
 
     public void UpdateBounds()
     {
-        _heighest = 0f;
+        _highest = 0f;
         _lowest = 0f;
         var first = true;
 
@@ -124,6 +137,41 @@ public class WaterBodyArea
         var yMin = 0f;
         var xMax = 0f;
         var yMax = 0f;
+
+        if (AreaType == WaterBodyAreaType.Polygon)
+        {
+            // If a polygon, just copy the points
+            BorderPoints = Points;
+        }
+        else if (AreaType == WaterBodyAreaType.LineArray)
+        {
+            // If a line array, generate a border
+            BorderPoints = new List<Vector3>();
+            var OtherSide = new List<Vector3>();
+            
+            var directionVector = Vector3.Zero;
+            // going downstream 0 -> max
+            for (var side = 0; side < Points.Count-1; side++)
+            {
+                if (side < Points.Count - 2)
+                    directionVector = Vector3.Normalize(Points[side] - Points[side + 1]);
+                
+                var perpendicular = Vector3.Normalize(Vector3.Cross(directionVector, Vector3.UnitZ));
+                
+                var right = new PositionAndRotation(Points[side], directionVector);
+                right.AddDistance(perpendicular * RiverWidth * -1f);
+                BorderPoints.Add(right.Position);
+                
+                var left = new PositionAndRotation(Points[side], directionVector);
+                left.AddDistance(perpendicular * RiverWidth);
+                OtherSide.Insert(0,left.Position);
+            }
+            BorderPoints.AddRange(OtherSide);
+        }
+        else
+        {
+            BorderPoints = new List<Vector3>();
+        }
         
         foreach (var point in Points)
         {
@@ -139,13 +187,13 @@ public class WaterBodyArea
                 if (AreaType == WaterBodyAreaType.Polygon)
                 {
                     _lowest = point.Z;
-                    _heighest = _lowest;
+                    _highest = _lowest;
                 }
 
                 if (AreaType == WaterBodyAreaType.LineArray)
                 {
-                    _heighest = point.Z;
-                    _lowest = _heighest;
+                    _highest = point.Z;
+                    _lowest = _highest;
                 }
             }
             else
@@ -161,8 +209,8 @@ public class WaterBodyArea
                     yMax = point.Y + RiverWidth;
                 
                 // Z
-                if (point.Z > _heighest)
-                    _heighest = point.Z;
+                if (point.Z > _highest)
+                    _highest = point.Z;
                 if (point.Z < _lowest)
                     _lowest = point.Z;
             }
@@ -241,40 +289,60 @@ public class WaterBodyArea
         if (!_boundingBox.Contains(x, y))
             return false;
 
-        // Check for Polygon type
-        if (AreaType == WaterBodyAreaType.Polygon)
+        // Check for Polygon type, or rough LineArray shape
+        // if (AreaType == WaterBodyAreaType.Polygon)
+        // Test the ray against all sides
+        var intersections = 0;
+        for (var side = 0; side < BorderPoints.Count - 1; side++)
         {
-            // Test the ray against all sides
-            var intersections = 0;
-            for (var side = 0; side < Points.Count - 1; side++)
-            {
-                var sideStart = new Vector2(Points[side].X, Points[side].Y);
-                var sideEnd = new Vector2(Points[side + 1].X, Points[side + 1].Y);
-                var rayStart = new Vector2(_boundingBox.X - 1f, _boundingBox.Y - 1f);
-                var rayEnd = new Vector2(x, y);
+            var sideStart = new Vector2(BorderPoints[side].X, BorderPoints[side].Y);
+            var sideEnd = new Vector2(BorderPoints[side + 1].X, BorderPoints[side + 1].Y);
+            var rayStart = new Vector2(_boundingBox.X - 1f, _boundingBox.Y - 1f);
+            var rayEnd = new Vector2(x, y);
 
-                // Test if current side intersects with ray.
-                // If yes, intersections++;
-                if (AreLinesIntersecting(rayStart, rayEnd, sideStart, sideEnd))
-                    intersections++;
-            }
-
-            return ((intersections & 1) == 1);
+            // Test if current side intersects with ray.
+            // If yes, intersections++;
+            if (AreLinesIntersecting(rayStart, rayEnd, sideStart, sideEnd))
+                intersections++;
         }
-        
+
+        var res = ((intersections & 1) == 1);
+
         // Check for Area Types
-        if (AreaType == WaterBodyAreaType.LineArray)
+        if (res && (AreaType == WaterBodyAreaType.LineArray))
         {
-            var p = new Vector3(x, y, _heighest);
+            var p = new Vector3(x, y, _highest);
             var closestPoint = -1;
             var closestDistance = 1000000f;
-            
+
             // Test the ray against all sides
             for (var side = 0; side < Points.Count - 2; side++)
             {
                 var distanceToLine = MinimumDistanceToLine(Points[side], Points[side + 1], p);
 
-                if (distanceToLine * 2 < RiverWidth)
+                var nextPointDirection = MathUtil.CalculateDirection(Points[side + 1], Points[side]);
+
+                // For the first point in the line, make sure it's in front of it
+                //if (side <= 0)
+                {
+                    var fromPointDirection = MathUtil.CalculateDirection(p, Points[side]);
+                    var diff = Math.Abs(nextPointDirection - fromPointDirection) * (180 / MathF.PI);
+
+                    if (((diff >= 90) && (diff <= 270))) // in front
+                        continue;
+                }
+
+                // For the last point in the line, make sure it's behind it
+                if (side >= Points.Count - 1)
+                {
+                    var fromPointDirection = MathUtil.CalculateDirection(p, Points[side]);
+                    var diff = Math.Abs(nextPointDirection - fromPointDirection) * (180 / MathF.PI);
+
+                    if (!((diff >= 90) && (diff <= 270))) // NOT in front
+                        continue;
+                }
+
+                if ((distanceToLine < RiverWidth))
                 {
                     // looks like it's roughly in range of the river
 
@@ -288,16 +356,16 @@ public class WaterBodyArea
                 }
             }
 
-            if (closestPoint >= 0)
-                return true;
+            if (closestPoint < 0)
+                res = false;
         }
 
-        return false;
+        return res;
     }
 
     public Vector3 GetCenter(bool atSurface)
     {
-        var h = atSurface ? _heighest : _lowest - Depth;
+        var h = atSurface ? _highest : _lowest - Depth;
         return new Vector3(_boundingBox.Left + (_boundingBox.Width / 2f), _boundingBox.Top + (_boundingBox.Height / 2f), h);
     }
     

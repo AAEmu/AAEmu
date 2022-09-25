@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Numerics;
@@ -61,6 +62,7 @@ namespace AAEmu.Game.Scripts.Commands
             Register(new WaterEditCreateFromRecordingSubCommand(), "createfromrecording");
             Register(new WaterEditDowngradeSubCommand(), "downgrade");
             Register(new WaterEditOffsetSubCommand(), "offset");
+            Register(new WaterEditShowSurfaceSubCommand(), "showsurface");
         }
         
         public void OnLoad()
@@ -116,20 +118,23 @@ namespace AAEmu.Game.Scripts.Commands
             }
         }
         
-        public static void ShowSelectedArea(ICharacter character)
+        public static void ShowSelectedArea(ICharacter character, bool clearOldMarkers = true, bool useVirtualBorder = false)
         {
             var bottomDoodadId = 4763u; // Crescent Throne Flag 
             var centerSurfaceDoodadId = 5014u; // Combat Flag
             var middleDoodadId = 5622u; // Stone Post
             var topNpcId = 13013u; // Forward Scarecrow
-            foreach (var marker in Markers)
+
+            if (clearOldMarkers)
             {
-                ObjectIdManager.Instance.ReleaseId(marker.ObjId);
-                marker.Delete();
+                foreach (var marker in Markers)
+                {
+                    ObjectIdManager.Instance.ReleaseId(marker.ObjId);
+                    marker.Delete();
+                }
+                Markers.Clear();
             }
 
-            Markers.Clear();
-            
             if ((SelectedWorld == null) || (SelectedWater == null))
                 return;
 
@@ -143,9 +148,11 @@ namespace AAEmu.Game.Scripts.Commands
                 Markers.Add(centerDoodad);
                 // character.SendMessage("--" + centerDoodad.Transform.ToFullString());
 
-                for (var p = 0; p < SelectedWater.Points.Count - 1; p++)
+                var ShowPoints = useVirtualBorder ? SelectedWater.BorderPoints : SelectedWater.Points;
+
+                for (var p = 0; p < ShowPoints.Count - 1; p++)
                 {
-                    var point = SelectedWater.Points[p];
+                    var point = ShowPoints[p];
                     var directionVector = Vector3.Zero;
 
                     var bottomDoodad = DoodadManager.Instance.Create(0, bottomDoodadId);
@@ -157,8 +164,8 @@ namespace AAEmu.Game.Scripts.Commands
                     var surfaceUnit = NpcManager.Instance.Create(0, topNpcId);
                     surfaceUnit.Transform.Local.SetPosition(point);
                     
-                    if ((p == 0) && (SelectedWater.AreaType == WaterBodyAreaType.Polygon))
-                        surfaceUnit.Name = "#" + p.ToString() + " <-> #" + (SelectedWater.Points.Count - 1).ToString();
+                    if ((p == 0) && (SelectedWater.AreaType == WaterBodyAreaType.Polygon) && (useVirtualBorder == false))
+                        surfaceUnit.Name = "#" + p.ToString() + " <-> #" + (ShowPoints.Count - 1).ToString();
                     else
                         surfaceUnit.Name = "#" + p.ToString();
                     
@@ -168,10 +175,10 @@ namespace AAEmu.Game.Scripts.Commands
                     
                     if (SelectedWater.AreaType == WaterBodyAreaType.LineArray)
                     {
-                        if (p >= SelectedWater.Points.Count - 1)
-                            directionVector = Vector3.Normalize(SelectedWater.Points[^1] - SelectedWater.Points[^2]);
+                        if (p >= ShowPoints.Count - 1)
+                            directionVector = Vector3.Normalize(ShowPoints[^1] - ShowPoints[^2]);
                         else
-                            directionVector = Vector3.Normalize(SelectedWater.Points[p + 1] - SelectedWater.Points[p]);
+                            directionVector = Vector3.Normalize(ShowPoints[p + 1] - ShowPoints[p]);
                     }
 
                     var dividers = MathF.Ceiling(SelectedWater.Depth / 5f);
@@ -187,7 +194,7 @@ namespace AAEmu.Game.Scripts.Commands
                         Markers.Add(middleDoodad);
 
                         // If a line, also add markers on the width border
-                        if (SelectedWater.AreaType == WaterBodyAreaType.LineArray)
+                        if ((SelectedWater.AreaType == WaterBodyAreaType.LineArray) && (useVirtualBorder == false))
                         {
                             var perpendicular = Vector3.Normalize(Vector3.Cross(directionVector, Vector3.UnitZ));
                             var rightDoodad = DoodadManager.Instance.Create(0, middleDoodadId);
@@ -201,7 +208,6 @@ namespace AAEmu.Game.Scripts.Commands
                             leftDoodad.Transform.Local.AddDistance(perpendicular * SelectedWater.RiverWidth * -1f);
                             leftDoodad.Show();
                             Markers.Add(leftDoodad);
-                            
                         }
 
                     }
@@ -242,6 +248,46 @@ namespace AAEmu.Game.Scripts.Commands
             character?.SendMessage($"[WaterEdit] Recoded data: {RecordedData.Count} points, average speed: |cFFFFFF00{averageSpeed} m/s|r over {totalDistance:F2} m (|cFF00FF00{RecordedSpeed}|r)");
         }
 
+        public static void ShowSelectedSurface(ICharacter character)
+        {
+            var surfaceDoodadId = 5622u; // Stone Post
+            foreach (var marker in Markers)
+            {
+                ObjectIdManager.Instance.ReleaseId(marker.ObjId);
+                marker.Delete();
+            }
+            Markers.Clear();
+            
+            if ((SelectedWorld == null) || (SelectedWater == null))
+                return;
+
+            lock (SelectedWorld.Water._lock)
+            {
+                SelectedWater.UpdateBounds();
+
+                RectangleF bb = SelectedWater.BoundingBox;
+                bb.Inflate(1f, 1f);
+                var rr = new Rectangle((int)MathF.Round(bb.Left), (int)MathF.Round(bb.Top),
+                    (int)MathF.Round(bb.Width), (int)MathF.Round(bb.Height));
+                
+                for(var y = rr.Top; y <= rr.Bottom; y += 2)
+                for (int x = rr.Left; x <= rr.Right; x += 2)
+                {
+                    var p = new Vector3(x, y, SelectedWater.Highest);
+                    if (SelectedWater.GetSurface(p, out var surfacePoint, out _))
+                    {
+                        var markerDoodad = DoodadManager.Instance.Create(0, surfaceDoodadId);
+                        markerDoodad.Transform.Local.SetPosition(p);
+                        markerDoodad.Show();
+                        Markers.Add(markerDoodad);
+                    }
+                }
+                
+            }
+
+            ShowSelectedArea(character, false, true);
+        }
+        
         public static void OnRecodingEnded()
         {
             // Do stuff

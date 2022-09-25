@@ -27,6 +27,7 @@ namespace AAEmu.Game.Utils
         {
             return CalculateAngleFrom(p1.X, p1.Y, p2.X, p2.Y);
         }
+        
         public static double CalculateDirection(Vector3 obj1, Vector3 obj2)
         {
             var rad = Math.Atan2(obj2.Y - obj1.Y, obj2.X - obj1.X);
