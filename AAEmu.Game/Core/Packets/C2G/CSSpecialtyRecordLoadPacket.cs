@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSpecialtyRecordLoadPacket : GamePacket
     {
-        public CSSpecialtyRecordLoadPacket() : base(CSOffsets.CSSpecialtyRecordLoadPacket, 1)
+        public CSSpecialtyRecordLoadPacket() : base(CSOffsets.CSSpecialtyRecordLoadPacket, 5)
         {
         }
 

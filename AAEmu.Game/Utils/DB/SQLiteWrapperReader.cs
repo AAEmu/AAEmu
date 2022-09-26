@@ -32,7 +32,9 @@ namespace AAEmu.Game.Utils.DB
             if (fromString)
             {
                 if (IsDBNull(column))
+                {
                     return false;
+                }
 
                 var value = GetString(column);
                 return value == "t" || value == "1";
@@ -50,7 +52,10 @@ namespace AAEmu.Game.Utils.DB
         {
             var ordinal = GetOrdinal(column);
             if (_reader.IsDBNull(ordinal))
+            {
                 return defaultValue;
+            }
+
             return _reader.GetByte(ordinal);
         }
 
@@ -91,7 +96,9 @@ namespace AAEmu.Game.Utils.DB
         {
             var ordinal = GetOrdinal(column);
             if (_reader.IsDBNull(ordinal))
+            {
                 return defaultValue;
+            }
 
             //Same impl of Sqlite.Core v2.2.1
             return (int)_reader.GetInt64(ordinal);
@@ -103,7 +110,10 @@ namespace AAEmu.Game.Utils.DB
         {
             var ordinal = GetOrdinal(column);
             if (_reader.IsDBNull(ordinal))
+            {
                 return defaultValue;
+            }
+
             return (uint) GetInt32(column);
         }
 
@@ -123,7 +133,10 @@ namespace AAEmu.Game.Utils.DB
         {
             var ordinal = GetOrdinal(column);
             if (_reader.IsDBNull(ordinal))
+            {
                 return defaultValue;
+            }
+
             return _reader.GetFloat(ordinal);
         }
 
@@ -141,7 +154,10 @@ namespace AAEmu.Game.Utils.DB
         {
             var ordinal = GetOrdinal(column);
             if (_reader.IsDBNull(ordinal))
+            {
                 return defaultValue;
+            }
+
             return _reader.GetString(ordinal);
         }
 
@@ -163,7 +179,9 @@ namespace AAEmu.Game.Utils.DB
         public int GetOrdinal(string column)
         {
             if (_ordinal.ContainsKey(column))
+            {
                 return _ordinal[column];
+            }
 
             var ordinal = _reader.GetOrdinal(column);
             _ordinal.Add(column, ordinal);

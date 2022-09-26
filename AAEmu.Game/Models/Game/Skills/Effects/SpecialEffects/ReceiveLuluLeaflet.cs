@@ -21,7 +21,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             var skillData = (SkillItem)casterObj;
 
             var itemInfo = owner.Inventory.GetItemById(skillData.ItemId);
-            if (itemInfo == null || itemInfo.Count <= 0) return;
+            if (itemInfo == null || itemInfo.Count <= 0)
+            {
+                return;
+            }
 
             if (owner.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, skillData.ItemTemplateId, 1, itemInfo) <= 0)
             {

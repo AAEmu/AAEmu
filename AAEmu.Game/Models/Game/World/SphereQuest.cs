@@ -83,11 +83,13 @@ namespace AAEmu.Game.Models.Game.World
         {
             UpdateUnits();
             if (TickRate > 0)
+            {
                 if ((DateTime.UtcNow - _lastTick).TotalMilliseconds > TickRate)
                 {
                     ApplyEffects();
                     _lastTick = DateTime.UtcNow;
                 }
+            }
         }
     }
 }

@@ -14,7 +14,9 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
             _log.Debug("QuestActConAcceptNpc");
 
             if (character.CurrentTarget is null or not Npc)
+            {
                 return false;
+            }
 
             quest.QuestAcceptorType = QuestAcceptorType.Npc;
             quest.AcceptorType = NpcId;

@@ -92,7 +92,9 @@ namespace AAEmu.Game.Core.Managers.World
                             _specialtyBundleItems.Add(template.Id, template);
                             
                             if (!_specialtyBundleItemsMapped.ContainsKey(template.ItemId))
+                            {
                                 _specialtyBundleItemsMapped.Add(template.ItemId, new Dictionary<uint, SpecialtyBundleItem>());
+                            }
 
                             _specialtyBundleItemsMapped[template.ItemId].Add(template.SpecialtyBundleId, template);
                         }
@@ -108,12 +110,19 @@ namespace AAEmu.Game.Core.Managers.World
                         while (reader.Read())
                         {
                             var template = new SpecialtyNpc();
-                            template.Id = reader.GetUInt32("id");
-                            template.Name = reader.GetString("name");
+                            //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                            //template.Name = reader.GetString("name"); // there is no such field in the database for version 3.0.3.0
                             template.NpcId = reader.GetUInt32("npc_id");
                             template.SpecialtyBundleId = reader.GetUInt32("specialty_bundle_id");
-                            
-                            _specialtyNpc.Add(template.NpcId, template);
+
+                            // TODO есть повторы
+                            // NpcId    SpecialtyBundleId
+                            // 15086	25
+                            // 15086	8000009
+                            if (!_specialtyNpc.ContainsKey(template.NpcId))
+                            {
+                                _specialtyNpc.Add(template.NpcId, template);
+                            }
                         }
                     }
                 }
@@ -142,8 +151,10 @@ namespace AAEmu.Game.Core.Managers.World
         public int GetRatioForSpecialty(Character player)
         {
             var backpack = player.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack);
-            if (backpack == null) 
+            if (backpack == null)
+            {
                 return 0;
+            }
 
             var zoneId = player.Transform.ZoneId;
 
@@ -210,7 +221,9 @@ namespace AAEmu.Game.Core.Managers.World
             var basePrice = GetBasePriceForSpecialty(player, npcObjId);
 
             if (basePrice == 0) // We had an error, no need to keep going
+            {
                 return;
+            }
 
             var priceRatio = GetRatioForSpecialty(player);
 
@@ -223,7 +236,9 @@ namespace AAEmu.Game.Core.Managers.World
 
             var npc = WorldManager.Instance.GetNpc(npcObjId);
             if (npc == null)
+            {
                 return;
+            }
             // Our backpack isn't null, we have the NPC, time to calculate the profits
 
             // TODO: Get crafter ID of tradepack
@@ -298,10 +313,14 @@ namespace AAEmu.Game.Core.Managers.World
 
             // Add one pack sold in this zone during this tick
             if (!_soldPackAmountInTick.ContainsKey(backpack.TemplateId))
+            {
                 _soldPackAmountInTick.Add(backpack.TemplateId, new Dictionary<uint, int>());
-            
+            }
+
             if (!_soldPackAmountInTick[backpack.TemplateId].ContainsKey(player.Transform.ZoneId))
+            {
                 _soldPackAmountInTick[backpack.TemplateId].Add(player.Transform.ZoneId, 0);
+            }
 
             _soldPackAmountInTick[backpack.TemplateId][player.Transform.ZoneId] += 1;
         }
@@ -336,11 +355,15 @@ namespace AAEmu.Game.Core.Managers.World
 
         private void InitRatioInZoneForPack(uint itemId, uint zoneId)
         {
-            if (!_priceRatios.ContainsKey(itemId)) 
+            if (!_priceRatios.ContainsKey(itemId))
+            {
                 _priceRatios.Add(itemId, new Dictionary<uint, int>());
-            
+            }
+
             if (!_priceRatios[itemId].ContainsKey(zoneId))
+            {
                 _priceRatios[itemId].Add(zoneId, MAX_SPECIALTY_RATIO);
+            }
         }
 
         // Dummy for tests

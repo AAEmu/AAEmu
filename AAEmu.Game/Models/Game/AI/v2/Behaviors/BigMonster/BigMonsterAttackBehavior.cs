@@ -22,7 +22,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
         {
             var aiParams = Ai.Owner.Template.AiParams as BigMonsterAiParams;
             if (aiParams == null)
+            {
                 return;
+            }
 
             if (!UpdateTarget() || ShouldReturn)
             {
@@ -31,10 +33,14 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             }
             
             if (CanStrafe && !IsUsingSkill)
+            {
                 MoveInRange(Ai.Owner.CurrentTarget, delta);
+            }
 
             if (!CanUseSkill)
+            {
                 return;
+            }
 
             _strafeDuringDelay = false;
             #region Pick a skill
@@ -42,11 +48,16 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
             var selectedSkill = PickSkill(RequestAvailableSkills(aiParams, targetDist));
             if (selectedSkill == null)
+            {
                 return;
+            }
+
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillType);
 
             if (skillTemplate == null)
+            {
                 return;
+            }
 
             if (targetDist >= skillTemplate.MinRange && targetDist <= skillTemplate.MaxRange || skillTemplate.TargetType == SkillTargetType.Self)
             {
@@ -78,15 +89,19 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
         private BigMonsterCombatSkill PickSkill(List<BigMonsterCombatSkill> skills)
         {
             if (skills.Count > 0)
+            {
                 return skills[Rand.Next(0, skills.Count)];
-            
+            }
+
             if (!Ai.Owner.Cooldowns.CheckCooldown((uint) Ai.Owner.Template.BaseSkillId))
+            {
                 return new BigMonsterCombatSkill
                 {
                     SkillType = (uint)Ai.Owner.Template.BaseSkillId,
                     SkillDelay = Ai.Owner.Template.BaseSkillDelay,
                     StrafeDuringDelay = Ai.Owner.Template.BaseSkillStrafe
                 };
+            }
 
             return null;
         }

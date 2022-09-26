@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _result;
         private readonly (byte mainTab, List<byte> subTabs)[] _tabs;
 
-        public SCICSMenuListPacket(byte result) : base(SCOffsets.SCICSMenuListPacket, 1)
+        public SCICSMenuListPacket(byte result) : base(SCOffsets.SCICSMenuListPacket, 5)
         {
             _result = result;
             _tabs = new (byte mainTab, List<byte> subTabs)[]
@@ -29,12 +29,16 @@ namespace AAEmu.Game.Core.Packets.G2C
             for (var i = 0; i < 6; i++)
             {
                 stream.Write(_tabs[i].mainTab); // mainTab
-                for (byte j = 1; j <= 7; j++)
+                for (byte j = 0; j < 7; j++)
                 {
                     if (_tabs[i].subTabs.IndexOf(j) > -1)
+                    {
                         stream.Write(j); // subTab
+                    }
                     else
+                    {
                         stream.Write((byte)0);
+                    }
                 }
             }
 

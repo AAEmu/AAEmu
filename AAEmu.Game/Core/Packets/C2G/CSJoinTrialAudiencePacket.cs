@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSJoinTrialAudiencePacket : GamePacket
     {
-        public CSJoinTrialAudiencePacket() : base(CSOffsets.CSJoinTrialAudiencePacket, 1)
+        public CSJoinTrialAudiencePacket() : base(CSOffsets.CSJoinTrialAudiencePacket, 5)
         {
         }
 

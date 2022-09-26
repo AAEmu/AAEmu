@@ -6,14 +6,15 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSetLpManageCharacterPacket : GamePacket
     {
-        public CSSetLpManageCharacterPacket() : base(CSOffsets.CSSetLpManageCharacterPacket, 1)
+        public CSSetLpManageCharacterPacket() : base(CSOffsets.CSSetLpManageCharacterPacket, 5)
         {
         }
 
         public override void Read(PacketStream stream)
         {
             var characterId = stream.ReadUInt32();
-            Connection.SendPacket(new SCLpManagedPacket(characterId));
+
+            Connection.SendPacket(new SCCharacterLpManagedPacket(characterId));
         }
     }
 }

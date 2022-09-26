@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDestroySlavePacket : GamePacket
     {
-        public CSDestroySlavePacket() : base(CSOffsets.CSDestroySlavePacket, 1)
+        public CSDestroySlavePacket() : base(CSOffsets.CSDestroySlavePacket, 5)
         {
         }
 

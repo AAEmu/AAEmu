@@ -150,12 +150,16 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
             var filteredUnits = FilterTargets(randomUnits, state, args, plotEvent);
             if (args.HitOnce)
+            {
                 filteredUnits = filteredUnits.Where(unit => unit.ObjId != PreviousTarget.ObjId);
+            }
 
             var index = Rand.Next(0, filteredUnits.Count());
 
             if (filteredUnits.Count() == 0)
+            {
                 return null;
+            }
 
             var randomUnit = filteredUnits.ElementAt(index);
 
@@ -219,17 +223,27 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             var template = state.ActiveSkill.Template;
             var filtered = units;
             if (!template.TargetAlive)
+            {
                 filtered = filtered.Where(o => o.Hp == 0);
+            }
+
             if (!template.TargetDead)
+            {
                 filtered = filtered.Where(o => o.Hp > 0);
+            }
+
             if (args.HitOnce)
             {
                 filtered = filtered.Where(o =>
                 {
                     if (state.HitObjects.ContainsKey(plotEvent.Id))
+                    {
                         return !state.HitObjects[plotEvent.Id].Contains(o);
+                    }
                     else
+                    {
                         return true;
+                    }
                 });
             }
             
@@ -238,7 +252,10 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 {
                     var relationState = state.Caster.GetRelationStateTo(o);
                     if (relationState == RelationState.Neutral) // TODO ?
+                    {
                         return false;
+                    }
+
                     return true;
                 });
             

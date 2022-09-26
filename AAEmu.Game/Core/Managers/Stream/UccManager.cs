@@ -43,7 +43,9 @@ namespace AAEmu.Game.Core.Managers.Stream
                 command.Prepare();
                 var res = command.ExecuteScalar();
                 if (res is long resVal)
+                {
                     return resVal;
+                }
             }
             return 0;
         }
@@ -176,7 +178,9 @@ namespace AAEmu.Game.Core.Managers.Stream
         public void UploadPart(StreamConnection connection, UccPart part)
         {
             if (!_complexUploadParts.TryGetValue(connection.Id, out var handle))
+            {
                 return;
+            }
 
             handle.AddPart(part);
 
@@ -200,25 +204,32 @@ namespace AAEmu.Game.Core.Managers.Stream
         public void CheckUccIsValid(StreamConnection connection, ulong id)
         {
             if (_uccs.ContainsKey(id))
+            {
                 connection.SendPacket(new TCUccComplexCheckValidPacket(id, false));
+            }
         }
 
         public void UccComplex(StreamConnection connection, ulong id)
         {
             if (_uccs.ContainsKey(id))
+            {
                 connection.SendPacket(new TCUccComplexPacket(_uccs[id]));
+            }
         }
 
         public void RequestUcc(StreamConnection connection, ulong id)
         {
             _log.Warn("User {0} requesting UCC {1}", connection.GameConnection.ActiveChar.Name, id);
             if (!_uccs.TryGetValue(id, out var ucc))
+            {
                 return;
+            }
 
             lock (s_lockObject)
             {
                 
                 if (_downloadQueue.ContainsKey(connection.Id))
+                {
                     if (_downloadQueue[connection.Id] == id)
                     {
                         //_log.Warn("User {0} is already requesting UCC {1}, skipping request !", connection.GameConnection.ActiveChar.Name, id);
@@ -226,6 +237,7 @@ namespace AAEmu.Game.Core.Managers.Stream
                         connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, 0));
                         return;
                     }
+                }
 
                 // Update currently downloading UCC Id
                 _downloadQueue.Remove(connection.Id);
@@ -260,11 +272,15 @@ namespace AAEmu.Game.Core.Managers.Stream
             }
 
             if (!_uccs.ContainsKey(uccId))
+            {
                 return;
-            
+            }
+
             var ucc = _uccs[uccId];
             if (!(ucc is CustomUcc customUcc))
+            {
                 return;
+            }
 
             var index = previousIndex ;
             index++;
@@ -292,7 +308,10 @@ namespace AAEmu.Game.Core.Managers.Stream
         {
             _log.Warn("DownloadStatus Id:{0}, Status: {1}, Count:{2}", id, status, count);
             if (!_uccs.ContainsKey(id))
+            {
                 return;
+            }
+
             var ucc = _uccs[id];
 
             // status 4 == I'm ready to begin download of the image ?
@@ -379,8 +398,10 @@ namespace AAEmu.Game.Core.Managers.Stream
         public Ucc GetUccFromItem(Item item)
         {
             if (_uccs.TryGetValue(item.UccId, out var ucc))
+            {
                 return ucc;
-            
+            }
+
             return null;
         }
     }

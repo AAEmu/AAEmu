@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 Ai.Owner.Buffs.AddBuff((uint)BuffConstants.NpcReturn, Ai.Owner);
                 Ai.Owner.Hp = Ai.Owner.MaxHp;
                 Ai.Owner.Mp = Ai.Owner.MaxMp;
-                Ai.Owner.BroadcastPacket(new SCUnitPointsPacket(Ai.Owner.ObjId, Ai.Owner.Hp, Ai.Owner.Mp), true);
+                Ai.Owner.BroadcastPacket(new SCUnitPointsPacket(Ai.Owner.ObjId, Ai.Owner.Hp, Ai.Owner.Mp, Ai.Owner.HighAbilityRsc), true);
             }
 
             var alwaysTeleportOnReturn = false; // TODO: get from params
@@ -48,10 +48,14 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             
             var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition.Local.Position, Ai.Owner.Transform.World.Position, true );
             if (distanceToIdle < 1.0f)
+            {
                 OnCompletedReturnNoTeleport();
-            
+            }
+
             if (DateTime.UtcNow > _timeoutTime)
+            {
                 OnCompletedReturn();
+            }
         }
 
         private void OnCompletedReturn()

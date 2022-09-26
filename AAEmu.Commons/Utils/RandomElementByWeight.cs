@@ -20,7 +20,9 @@ namespace AAEmu.Commons.Utils
 
                 // If we've hit or passed the weight we are after for this item then it's the one we want....
                 if (currentWeightIndex >= itemWeightIndex)
+                {
                     return item.Value;
+                }
             }
 
             return default(T);

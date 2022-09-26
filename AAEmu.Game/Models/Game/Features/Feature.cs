@@ -72,15 +72,18 @@
         flag_9_7 = 79,
         flag_10_0_DO_NOT_USE = 80, // setting this flag makes the client crash when connecting
         //These are different positions in 0.5 for some reason..
-        hudAuctionButton = 81,
+//        hudAuctionButton = 81,
+        flag_81 = 81,
         flag_10_2 = 82,
-        auctionPostBuff = 83,
-        houseTaxPrepay = 84,
+//        auctionPostBuff = 83,
+        flag_83 = 83,
+//        houseTaxPrepay = 84,
+        flag_84 = 84,
         flag_10_5 = 85,
         flag_10_6 = 86,
         flag_10_7 = 87,
 
-        /* 3503 Enum Only
+        // 3503 Enum Only
         hudAuctionButton = 89,
         auctionPostBuff = 91,
         itemRepairInBag = 92,
@@ -146,6 +149,5 @@
         specialtyTradeGoods = 194,
         reportBadWordUser = 195,
         residentweblink = 197
-        */
     }
 }

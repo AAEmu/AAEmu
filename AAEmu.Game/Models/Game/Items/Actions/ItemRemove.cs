@@ -11,8 +11,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
 
         public ItemRemove(Item item)
         {
-            _type = ItemAction.Remove;
-
+            _type = ItemAction.Remove; // 7
             _itemId = item.Id;
             _slotType = item.SlotType;
             _slot = (byte)item.Slot;
@@ -23,10 +22,14 @@ namespace AAEmu.Game.Models.Game.Items.Actions
         {
             base.Write(stream);
 
-            stream.Write((byte)_slotType);
-            stream.Write(_slot);
-            stream.Write(_itemId);
+            stream.Write((byte)_slotType); // type
+            stream.Write(_slot);           // index
+            stream.Write(_itemId);         // id
             stream.Write(_templateId);
+            stream.Write((ulong)0); //removeReservationTime
+            stream.Write((uint)0);  //type
+            stream.Write((uint)0);  //dbSlaveId
+            stream.Write((uint)0);  //type
             return stream;
         }
     }

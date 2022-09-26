@@ -18,47 +18,66 @@ namespace AAEmu.Game.Core.Managers
         public ModelType GetModelType(uint modelId)
         {
             if (_modelTypes.TryGetValue(modelId, out var res))
+            {
                 return res;
+            }
+
             return null;
         }
         
         public ActorModel GetActorModel(uint modelId)
         {
             if (!_modelTypes.ContainsKey(modelId))
+            {
                 return null;
-            
+            }
+
             var modelType = _modelTypes[modelId];
 
             if (!_models.ContainsKey(modelType.SubType) || !_models[modelType.SubType].ContainsKey(modelType.SubId))
+            {
                 return null;
+            }
 
             var model = _models[modelType.SubType][modelType.SubId];
             if (model is ActorModel actorModel)
+            {
                 return actorModel;
+            }
+
             return null;
         }
         
         public ShipModel GetShipModel(uint modelId)
         {
             if (!_modelTypes.ContainsKey(modelId))
+            {
                 return null;
-            
+            }
+
             var modelType = _modelTypes[modelId];
 
             if (!_models.ContainsKey(modelType.SubType) || !_models[modelType.SubType].ContainsKey(modelType.SubId))
+            {
                 return null;
-            
+            }
+
             var model = _models[modelType.SubType][modelType.SubId];
             if (model is ShipModel shipModel)
+            {
                 return shipModel;
+            }
+
             return null;
         }
         
         public void Load()
         {
             if (_loaded)
+            {
                 return;
-            
+            }
+
             _models = new Dictionary<string, Dictionary<uint, Model>>
             {
                 {"ActorModel", new Dictionary<uint, Model>()},

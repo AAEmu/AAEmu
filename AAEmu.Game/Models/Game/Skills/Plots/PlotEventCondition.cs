@@ -18,7 +18,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public bool CheckCondition(PlotState state, PlotTargetInfo targetInfo)
         {
             if (GetConditionResult(state, targetInfo, this))
+            {
                 return true;
+            }
 
             //if (NotifyFailure)
                 ;//Maybe do something here?

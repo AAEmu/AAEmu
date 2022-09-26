@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Faction;
 
@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly (uint memberObjId, uint memberId, string name)[] _members;
 
         public SCFactionCreatedPacket(SystemFaction faction, uint ownerObjId, (uint memberObjId, uint memberId, string name)[] members) :
-            base(SCOffsets.SCFactionCreatedPacket, 1)
+            base(SCOffsets.SCFactionCreatedPacket, 5)
         {
             _faction = faction;
             _ownerObjId = ownerObjId;

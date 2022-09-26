@@ -37,7 +37,9 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
         private void LoadManagers()
         {
             if (_managersLoaded)
+            {
                 return;
+            }
 
             var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
             var configurationBuilder = new ConfigurationBuilder();
@@ -313,7 +315,9 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
                     Assert.Equal(npcAcceptActQuest.NpcId, quest.AcceptorType);
 
                     if (npcComponentStart.SkillSelf)
+                    {
                         mockCharacter.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(mockCharacter.Object)), Times.Once);
+                    }
                     else if (npcComponentStart.NpcId > 0) 
                     {
                         mockWorldManager.Verify(o => o.GetNpcByTemplateId(It.IsIn(npcComponentStart.NpcId)), Times.Once);
@@ -374,7 +378,9 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
                     Assert.Equal(npcAcceptActQuest.NpcId, quest.AcceptorType);
 
                     if (npcComponentStart.SkillSelf)
+                    {
                         mockCharacter.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(mockCharacter.Object)), Times.Once);
+                    }
                     else
                     {
                         if (npc is not null)

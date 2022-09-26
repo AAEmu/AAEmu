@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ushort _uiDataType;
         private readonly string _uiData;
 
-        public SCResponseUIDataPacket(uint characterId, ushort uiDataType, string uiData) : base(SCOffsets.SCResponseUIDataPacket, 1)
+        public SCResponseUIDataPacket(uint characterId, ushort uiDataType, string uiData) : base(SCOffsets.SCResponseUIDataPacket, 5)
         {
             _characterId = characterId;
             _uiDataType = uiDataType;

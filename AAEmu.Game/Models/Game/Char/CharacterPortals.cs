@@ -34,7 +34,10 @@ namespace AAEmu.Game.Models.Game.Char
         public Portal GetPortalInfo(uint id)
         {
             if (DistrictPortals.ContainsKey(id))
+            {
                 return DistrictPortals[id];
+            }
+
             return PrivatePortals.ContainsKey(id) ? PrivatePortals[id] : null;
         }
 

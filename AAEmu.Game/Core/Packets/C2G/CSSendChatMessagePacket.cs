@@ -5,13 +5,12 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Chat;
-using NLog;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSendChatMessagePacket : GamePacket
     {
-        public CSSendChatMessagePacket() : base(CSOffsets.CSSendChatMessagePacket, 1)
+        public CSSendChatMessagePacket() : base(CSOffsets.CSSendChatMessagePacket, 5)
         {
         }
 
@@ -31,7 +30,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (message.StartsWith(CommandManager.CommandPrefix))
             {
                 if (CommandManager.Instance.Handle(Connection.ActiveChar, message.Substring(CommandManager.CommandPrefix.Length).Trim()))
+                {
                     return;
+                }
             }
 
             // Sidenote: Trino mixed up /faction and /nation back then, it was supposed to be the other way around
@@ -39,7 +40,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 case ChatType.Whisper: //whisper
                     var target = WorldManager.Instance.GetCharacter(targetName);
-                    if ((target == null) || (!target.IsOnline))
+                    if (target == null || !target.IsOnline)
                     {
                         Connection.ActiveChar.SendErrorMessage(ErrorMessageType.WhisperNoTarget);
                     }
@@ -67,7 +68,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                     if (teamRaid != null)
                     {
-                        if ((type == ChatType.RaidLeader) && (teamRaid.OwnerId != Connection.ActiveChar.Id))
+                        if (type == ChatType.RaidLeader && teamRaid.OwnerId != Connection.ActiveChar.Id)
                         {
                             Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotRaidOwner);
                         }

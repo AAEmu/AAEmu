@@ -6,10 +6,10 @@ namespace AAEmu.Game.Core.Packets.G2L
     public class GLPlayerReconnectPacket : LoginPacket
     {
         private readonly byte _gsId;
-        private readonly uint _accountId;
+        private readonly ulong _accountId;
         private readonly uint _connectionId;
 
-        public GLPlayerReconnectPacket(byte gsId, uint accountId, uint connectionId) : base(GLOffsets.GLPlayerReconnectPacket)
+        public GLPlayerReconnectPacket(byte gsId, ulong accountId, uint connectionId) : base(GLOffsets.GLPlayerReconnectPacket)
         {
             _gsId = gsId;
             _accountId = accountId;

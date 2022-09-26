@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -9,13 +9,15 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _authUrl;
         private readonly string _platformUrl;
         private readonly string _commerceUrl;
-        
-        public SCTrionConfigPacket(bool activate, string authUrl, string platformUrl, string commerceUrl) : base(SCOffsets.SCTrionConfigPacket, 1)
+        private readonly string _csUrl;
+
+        public SCTrionConfigPacket(bool activate, string authUrl, string platformUrl, string commerceUrl) : base(SCOffsets.SCTrionConfigPacket, 5)
         {
             _activate = activate;
             _authUrl = authUrl;
             _platformUrl = platformUrl;
             _commerceUrl = commerceUrl;
+            _csUrl = "";
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -24,6 +26,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_authUrl);
             stream.Write(_platformUrl);
             stream.Write(_commerceUrl);
+            stream.Write(_csUrl);
             return stream;
         }
     }

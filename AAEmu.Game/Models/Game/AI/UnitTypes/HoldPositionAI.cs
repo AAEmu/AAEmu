@@ -18,8 +18,10 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
         public override void OnEnemyDamage(Unit enemy)
         {
             if (!(StateMachine.GetCurrentState() is IdleState))
+            {
                 return;
-            
+            }
+
             var state = (MoveToTargetState)StateMachine.GetState(Framework.States.MovingToTarget);
             state.Target = enemy;
             StateMachine.SetCurrentState(state);

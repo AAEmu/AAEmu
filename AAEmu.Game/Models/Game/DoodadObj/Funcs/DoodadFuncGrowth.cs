@@ -21,9 +21,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             var customDelay = Delay / AppConfiguration.Instance.World.GrowthRate; // decrease delay
 
             if (caster is Character)
+            {
                 _log.Debug("DoodadFuncGrowth: Delay {0}, StartScale {1}, EndScale {2}, NextPhase {3}", Delay, StartScale, EndScale, NextPhase);
+            }
             else
+            {
                 _log.Trace("DoodadFuncGrowth: Delay {0}, StartScale {1}, EndScale {2}, NextPhase {3}", Delay, StartScale, EndScale, NextPhase);
+            }
 
             owner.FuncTask = new DoodadFuncGrowthTask(caster, owner, 0, NextPhase, EndScale / 1000f);
             owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(customDelay);

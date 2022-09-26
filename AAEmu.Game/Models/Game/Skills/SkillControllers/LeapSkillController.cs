@@ -112,7 +112,7 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
             moveType.RotationX = 0; //rpy.Item1;
             moveType.RotationY = 0; //rpy.Item2;
             moveType.RotationZ = rpy.Item3;
-            moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
+            moveType.ActorFlags = ActorMoveType.Run; // 5-walk, 4-run, 3-stand still
             moveType.Flags = 0x14;//SC move flag
             moveType.ScType = Template.Id;
 
@@ -120,8 +120,8 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = 127;
             moveType.DeltaMovement[2] = 0;
-            moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
-            moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+            moveType.Stance = EStance.Combat;        // COMBAT = 0x0, IDLE = 0x1
+            moveType.Alertness = AiAlertness.Combat; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
             moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
             Owner.CheckMovedPosition(oldPosition);

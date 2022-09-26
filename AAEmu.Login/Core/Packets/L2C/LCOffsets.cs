@@ -2,7 +2,7 @@
 {
     public static class LCOffsets
     {
-        // All opcodes here are updated for version client_12_r208022
+        // All opcodes here are updated for version client_3030_r330995
         public const ushort ACJoinResponsePacket = 0x000;
         public const ushort CARequestAuthPacket = 0x001;
         public const ushort ACChallengePacket = 0x002;

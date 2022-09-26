@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _huId;
         private readonly uint _htId;
         
-        public SCCombatFirstHitPacket(uint vuId, uint huId, uint htId) : base(SCOffsets.SCCombatFirstHitPacket, 1)
+        public SCCombatFirstHitPacket(uint vuId, uint huId, uint htId) : base(SCOffsets.SCCombatFirstHitPacket, 5)
         {
             _vuId = vuId;
             _huId = huId;

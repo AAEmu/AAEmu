@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         public EquipmentContainer(uint ownerId, SlotType containerType, bool isPartOfPlayerInventory, bool createWithNewId) : base(ownerId, containerType, isPartOfPlayerInventory, createWithNewId)
         {
             // Fancy way of getting the last enum value + 1 for equipment slots
-            ContainerSize = (int)(Enum.GetValues(typeof(EquipmentItemSlot)).Cast<EquipmentItemSlot>().Max()) + 1;
+            ContainerSize = (int)Enum.GetValues(typeof(EquipmentItemSlot)).Cast<EquipmentItemSlot>().Max() + 1;
         }
 
         public static List<EquipmentItemSlot> GetAllowedGearSlots(EquipmentItemSlotType slotTypeId)
@@ -101,9 +101,9 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 case EquipmentItemSlotType.Glasses:
                     allowedSlots.Add(EquipmentItemSlot.Glasses);
                     break;
-                case EquipmentItemSlotType.Reserved:
+                case EquipmentItemSlotType.Horns:
                     // maybe for Warborn horns or other race specifics ? I dunno
-                    allowedSlots.Add(EquipmentItemSlot.Reserved); 
+                    allowedSlots.Add(EquipmentItemSlot.Horns); 
                     break;
                 case EquipmentItemSlotType.Tail:
                     // Firran and Warborn tails ?
@@ -131,15 +131,25 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             var slotTypeId = (EquipmentItemSlotType)255; // Dummy value for invalid
 
             if (itemTemplate is BodyPartTemplate bodyPartTemplate)
+            {
                 slotTypeId = (EquipmentItemSlotType)bodyPartTemplate.SlotTypeId;
+            }
             else if (itemTemplate is WeaponTemplate weaponTemplate)
+            {
                 slotTypeId = (EquipmentItemSlotType)weaponTemplate.HoldableTemplate.SlotTypeId;
+            }
             else if (itemTemplate is ArmorTemplate armorTemplate)
+            {
                 slotTypeId = (EquipmentItemSlotType)armorTemplate.WearableTemplate.SlotTypeId;
+            }
             else if (itemTemplate is AccessoryTemplate accessoryTemplate)
+            {
                 slotTypeId = (EquipmentItemSlotType)accessoryTemplate.WearableTemplate.SlotTypeId;
+            }
             else if (itemTemplate is BackpackTemplate _)
+            {
                 slotTypeId = EquipmentItemSlotType.Backpack;
+            }
             else
             {
                 return new List<EquipmentItemSlot>(); // must be a equip-able item
@@ -151,12 +161,16 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         public override bool CanAccept(Item item, int targetSlot)
         {
             if (item == null)
+            {
                 return true; // always allow empty item slot (un-equip a item)
+            }
 
             if (Owner == null)
+            {
                 return true; // Not applicable to NPCs, they can hold whatever they want anywhere
+            }
 
-            if ((targetSlot < 0) || (targetSlot >= ContainerSize))
+            if (targetSlot < 0 || targetSlot >= ContainerSize)
             {
                 _log.Warn($"{Owner?.Name} ({OwnerId}) tried to equip a item that is out of range of the valid slots {targetSlot}/{ContainerSize}");
                 return false; // must be in equipment slot range
@@ -165,15 +179,25 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             var slotTypeId = (EquipmentItemSlotType)255; // Dummy value for invalid
 
             if (item.Template is BodyPartTemplate bodyPartTemplate)
+            {
                 slotTypeId = (EquipmentItemSlotType)bodyPartTemplate.SlotTypeId;
+            }
             else if (item.Template is WeaponTemplate weaponTemplate)
+            {
                 slotTypeId = (EquipmentItemSlotType)weaponTemplate.HoldableTemplate.SlotTypeId;
+            }
             else if (item.Template is ArmorTemplate armorTemplate)
+            {
                 slotTypeId = (EquipmentItemSlotType)armorTemplate.WearableTemplate.SlotTypeId;
+            }
             else if (item.Template is AccessoryTemplate accessoryTemplate)
+            {
                 slotTypeId = (EquipmentItemSlotType)accessoryTemplate.WearableTemplate.SlotTypeId;
+            }
             else if (item.Template is BackpackTemplate _)
+            {
                 slotTypeId = EquipmentItemSlotType.Backpack;
+            }
             else
             {
                 _log.Warn($"{Owner?.Name} ({OwnerId}) tried to equip a non-equipable item {item.Template.Name} ({item.TemplateId}), Id:{item.Id}");

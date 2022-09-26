@@ -33,8 +33,10 @@ namespace AAEmu.Game.Models.Game.World.Xml
 
             // Apply Data to world
             if (!world.ZoneKeys.Contains(Id))
+            {
                 world.ZoneKeys.Add(Id);
-            
+            }
+
             Cells = new ConcurrentDictionary<(int, int), XmlWorldCell>();
             if (cellNodes != null)
             {
@@ -43,7 +45,9 @@ namespace AAEmu.Game.Models.Game.World.Xml
                     var cell = new XmlWorldCell();
                     cell.ReadNode(cellNodes[i], world, this);
                     if (!Cells.TryAdd((cell.X, cell.Y), cell))
+                    {
                         throw new Exception($"Failed to add Cell {cell.X}, {cell.Y} in {Name}");
+                    }
                 }
             }
         }

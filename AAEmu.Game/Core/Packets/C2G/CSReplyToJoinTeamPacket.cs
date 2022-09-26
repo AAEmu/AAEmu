@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSReplyToJoinTeamPacket : GamePacket
     {
-        public CSReplyToJoinTeamPacket() : base(CSOffsets.CSReplyToJoinTeamPacket, 1)
+        public CSReplyToJoinTeamPacket() : base(CSOffsets.CSReplyToJoinTeamPacket, 5)
         {
         }
 

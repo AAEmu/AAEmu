@@ -24,15 +24,16 @@ namespace AAEmu.Game.Models.Game.Items.Actions
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
-            stream.Write((byte)_item.SlotType);
-            stream.Write((byte)_item.Slot);
-            stream.Write(_item.Id);
-            stream.Write(_bits);
-            stream.Write(_isUnsecureExcess);
-            stream.Write(_isUnsecureSet);
-            stream.Write(_isUnpack);
-            stream.Write(_item.UnsecureTime);
-            stream.Write(_item.UnpackTime);
+            stream.Write((byte)_item.SlotType); // type
+            stream.Write((byte)_item.Slot);     // index
+            stream.Write(_item.Id);             // id
+            stream.Write(_bits);                // bits
+            stream.Write((byte)0);              // prevBits
+            stream.Write(_isUnsecureExcess);    // isUnsecureExcess
+            stream.Write(_isUnsecureSet);       // isUnSecureSet
+            stream.Write(_isUnpack);            // isUnpack
+            stream.Write(_item.UnsecureTime);   // unSecureDateTime
+            stream.Write(_item.UnpackTime);     // unpackDateTime
             return stream;
         }
     }

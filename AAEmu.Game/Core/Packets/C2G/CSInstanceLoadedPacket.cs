@@ -1,14 +1,13 @@
 ﻿using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Core.Packets.Proxy;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSInstanceLoadedPacket : GamePacket
     {
-        public CSInstanceLoadedPacket() : base(CSOffsets.CSInstanceLoadedPacket, 1)
+        public CSInstanceLoadedPacket() : base(CSOffsets.CSInstanceLoadedPacket, 5)
         {
         }
 
@@ -19,11 +18,12 @@ namespace AAEmu.Game.Core.Packets.C2G
             
             Connection.SendPacket(new SCUnitStatePacket(Connection.ActiveChar));
             // Connection.SendPacket(new SCCooldownsPacket(Connection.ActiveChar));
-            Connection.SendPacket(new SCDetailedTimeOfDayPacket(12f));
+            var curTime = TimeManager.Instance.GetTime();
+            Connection.SendPacket(new SCDetailedTimeOfDayPacket(curTime));
 
             Connection.ActiveChar.DisabledSetPosition = false;
             
-            _log.Debug("InstanceLoaded.");
+            _log.Debug("InstanceLoaded...");
         }
     }
 }

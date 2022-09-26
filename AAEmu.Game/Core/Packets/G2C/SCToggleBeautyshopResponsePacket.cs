@@ -3,11 +3,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
-    public class SCToggleBeautyshopResponsePacket : GamePacket
+    public class SCToggleBeautyShopResponsePacket : GamePacket
     {
         private readonly byte _state;
 
-        public SCToggleBeautyshopResponsePacket(byte state) : base(SCOffsets.SCToggleBeautyshopResponsePacket, 1)
+        public SCToggleBeautyShopResponsePacket(byte state) : base(SCOffsets.SCToggleBeautyShopResponsePacket, 5)
         {
             _state = state;
         }

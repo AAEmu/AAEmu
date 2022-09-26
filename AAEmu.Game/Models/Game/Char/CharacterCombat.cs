@@ -15,7 +15,9 @@ namespace AAEmu.Game.Models.Game.Char
             base.DoDie(killer, killReason);
 
             if (killer is Character enemy && enemy.Faction.MotherId != Faction.MotherId)
+            {
                 enemy.HostileFactionKills++;
+            }
         }
     }
 }

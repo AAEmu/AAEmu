@@ -10,7 +10,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ulong _iId;
         private readonly uint _id;
 
-        public SCLootItemFailedPacket(ErrorMessageType errorMessage, ulong iId, uint id) : base(SCOffsets.SCLootItemFailedPacket,1)
+        public SCLootItemFailedPacket(ErrorMessageType errorMessage, ulong iId, uint id)
+            : base(SCOffsets.SCLootItemFailedPacket, 5)
         {
             _errorMessage = (int)errorMessage;
             _iId = iId;
@@ -22,6 +23,8 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_errorMessage);
             stream.Write(_iId);
             stream.Write(_id);
+            stream.WriteBc(0);   // objId - add in 3.0.3.0
+
             return stream;
         }
     }

@@ -7,7 +7,9 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Json;
 using AAEmu.Game.Models.Spheres;
 
@@ -141,8 +143,10 @@ namespace AAEmu.Game.Utils
                     FileManager.GetFileContents(
                         $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
                 if (string.IsNullOrWhiteSpace(contents))
+                {
                     _log.Warn(
                         $"File {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json doesn't exists or is empty.");
+                }
                 else
                 {
                     if (JsonHelper.TryDeserializeObject(contents, out List<JsonQuestSphere> spheres, out _))
@@ -177,8 +181,10 @@ namespace AAEmu.Game.Utils
 
                     }
                     else
+                    {
                         throw new Exception(
                             $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json file");
+                    }
 
                     var json = JsonConvert.SerializeObject(spheres.ToArray(), Formatting.Indented);
                     File.WriteAllText(path, json);
@@ -205,8 +211,10 @@ namespace AAEmu.Game.Utils
                     FileManager.GetFileContents(
                         $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
                 if (string.IsNullOrWhiteSpace(contents))
+                {
                     _log.Warn(
                         $"File {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json doesn't exists or is empty.");
+                }
                 else
                 {
                     if (JsonHelper.TryDeserializeObject(contents, out List<JsonQuestSphere> spheres, out _))
@@ -234,9 +242,10 @@ namespace AAEmu.Game.Utils
 
                     }
                     else
+                    {
                         throw new Exception(
                             $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json file");
-
+                    }
                 }
             }
         }
@@ -260,8 +269,10 @@ namespace AAEmu.Game.Utils
                     FileManager.GetFileContents(
                         $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
                 if (string.IsNullOrWhiteSpace(contents))
+                {
                     _log.Warn(
                         $"File {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json doesn't exists or is empty.");
+                }
                 else
                 {
                     if (JsonHelper.TryDeserializeObject(contents, out List<JsonQuestSphere> spheres, out _))
@@ -288,14 +299,18 @@ namespace AAEmu.Game.Utils
 
                     }
                     else
+                    {
                         throw new Exception(
                             $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json file");
+                    }
 
                     var json = JsonConvert.SerializeObject(spheres.ToArray(), Formatting.Indented);
                     File.WriteAllText(path, json);
 
                     if (found)
+                    {
                         character.SendMessage("Removed Json entry with ID {0} successfully", jsonId);
+                    }
                 }
             }
         }
@@ -317,8 +332,10 @@ namespace AAEmu.Game.Utils
                     FileManager.GetFileContents(
                         $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
                 if (string.IsNullOrWhiteSpace(contents))
+                {
                     _log.Warn(
                         $"File {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json doesn't exists or is empty.");
+                }
                 else
                 {
                     if (JsonHelper.TryDeserializeObject(contents, out List<JsonQuestSphere> spheres, out _))
@@ -329,7 +346,7 @@ namespace AAEmu.Game.Utils
                             if (sphere.Id == jsonId)
                             {
                                 found = true;
-                                character.SendPacket(new SCTeleportUnitPacket(0, 0, sphere.Position.X, sphere.Position.Y, sphere.Position.Z, 0));
+                                character.SendPacket(new SCUnitTeleportPacket(TeleportReason.Portal, ErrorMessageType.NoErrorMessage, sphere.Position.X, sphere.Position.Y, sphere.Position.Z, 0));
                                 break;
                             }
                         }
@@ -341,8 +358,10 @@ namespace AAEmu.Game.Utils
 
                     }
                     else
+                    {
                         throw new Exception(
                             $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json file");
+                    }
                 }
             }
         }

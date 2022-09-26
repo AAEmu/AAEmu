@@ -1,6 +1,4 @@
-﻿using System.Threading.Tasks;
-
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -10,7 +8,8 @@ namespace AAEmu.Game.Core.Packets.C2G
         private uint id;
         private uint objId;
         private int selected;
-        public CSTryQuestCompleteAsLetItDonePacket() : base(CSOffsets.CSTryQuestCompleteAsLetItDonePacket, 1)
+
+        public CSTryQuestCompleteAsLetItDonePacket() : base(CSOffsets.CSTryQuestCompleteAsLetItDonePacket, 5)
         {
         }
 
@@ -26,10 +25,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                 objId > 0
                 && Connection.ActiveChar.CurrentTarget != null
                 && Connection.ActiveChar.CurrentTarget.ObjId != objId
-               )
+            )
+            {
                 return;
+            }
+
             Connection.ActiveChar.Quests.Complete(id, selected);
         }
     }
 }
-

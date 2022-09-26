@@ -55,7 +55,10 @@ namespace AAEmu.Game.Core.Managers.World
                 lock (_addLock)
                 {
                     if (_addQueue?.Count > 0)
+                    {
                         _areaTriggers.AddRange(_addQueue);
+                    }
+
                     _addQueue = new List<AreaTrigger>();
                 }
 
@@ -63,7 +66,9 @@ namespace AAEmu.Game.Core.Managers.World
                 {
                     // if (trigger.Owner.Position)
                     if(trigger?.Owner?.Region?.HasPlayerActivity() ?? false)
+                    {
                         trigger?.Tick(delta);
+                    }
                 }
 
                 lock (_remLock)

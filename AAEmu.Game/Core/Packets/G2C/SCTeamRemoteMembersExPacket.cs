@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly TeamMember[] _members;
         
-        public SCTeamRemoteMembersExPacket(TeamMember[] members) : base(SCOffsets.SCTeamRemoteMembersExPacket, 1)
+        public SCTeamRemoteMembersExPacket(TeamMember[] members) : base(SCOffsets.SCTeamRemoteMembersExPacket, 5)
         {
             _members = members;
         }

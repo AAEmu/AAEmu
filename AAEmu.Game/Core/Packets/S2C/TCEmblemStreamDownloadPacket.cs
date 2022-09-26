@@ -13,7 +13,10 @@ namespace AAEmu.Game.Core.Packets.S2C
         public TCEmblemStreamDownloadPacket(Ucc ucc, int currentIndex) : base(TCOffsets.TCEmblemStreamDownloadPacket)
         {
             if (ucc is CustomUcc customUcc)
+            {
                 _ucc = customUcc;
+            }
+
             _currentIndex = currentIndex;
         }
 

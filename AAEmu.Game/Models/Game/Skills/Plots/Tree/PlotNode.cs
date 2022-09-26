@@ -34,7 +34,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             foreach(var child in Children)
             {
                 if (child.ParentNextEvent.Channeling == true)
+                {
                     return true;
+                }
             }
             return false;
         }
@@ -76,9 +78,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             castTime = Math.Max(castTime, 0);
 
             if (castTime > 0)
+            {
                 state.IsCasting = true;
+            }
+
             if ((ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Casting ?? false))
+            {
                 state.IsCasting = false;
+            }
 
             if (Event.HasSpecialEffects() || castTime > 0 || Event.Conditions.Count > 0)
             {
@@ -87,15 +94,23 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                 PlotObject casterPlotObj;
                 if (targetInfo.Source.ObjId == uint.MaxValue)
+                {
                     casterPlotObj = new PlotObject(targetInfo.Source.Transform);
+                }
                 else
+                {
                     casterPlotObj = new PlotObject(targetInfo.Source);
+                }
 
                 PlotObject targetPlotObj;
                 if (targetInfo.Target.ObjId == uint.MaxValue)
+                {
                     targetPlotObj = new PlotObject(targetInfo.Target.Transform);
+                }
                 else
+                {
                     targetPlotObj = new PlotObject(targetInfo.Target);
+                }
 
                 byte targetCount = (byte)targetInfo.EffectedTargets.Count();
 
@@ -103,10 +118,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     targetPlotObj, unkId, (ushort)castTime, flag, 0, targetCount);
 
                 if (packets != null)
+                {
                     packets.AddPacket(packet);
+                }
                 else
+                {
                     state.Caster.BroadcastPacket(packet, true);
-                
+                }
+
                 _log.Trace($"Execute Took {stopwatch.ElapsedMilliseconds} to finish.");
             }
         }

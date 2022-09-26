@@ -24,7 +24,10 @@ namespace AAEmu.Game.Core.Managers
             for (byte lv = 1; lv < _levels.Count; lv++)
             {
                 if (exp >= (mate ? _levels[lv].TotalMateExp : _levels[lv].TotalExp))
+                {
                     continue;
+                }
+
                 return (lv--);
             }
             return 0;
@@ -40,7 +43,10 @@ namespace AAEmu.Game.Core.Managers
         public int GetSkillPointsForLevel(byte level)
         {
             if (level > _levels.Count)
+            {
                 return 0;
+            }
+
             var points = 0;
             for (var i = 1; i <= level; i++)
                 points += _levels[level].SkillPoints;

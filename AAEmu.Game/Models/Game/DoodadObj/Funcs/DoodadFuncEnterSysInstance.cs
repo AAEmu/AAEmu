@@ -50,7 +50,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     character.InstanceId = world.Id; // TODO all instances are sys now
                 }
                 else
+                {
                     _log.Warn("World {0} (#.{1}), does not have a default spawn position.", world.Name, world.Id);
+                }
             }
 
         }

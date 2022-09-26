@@ -1,11 +1,13 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Connections;
+
 using NLog;
 
 namespace AAEmu.Login.Core.Network.Internal
@@ -35,7 +37,10 @@ namespace AAEmu.Login.Core.Network.Internal
             _log.Info("GameServer from {0} disconnected", session.Ip.ToString());
             var gsId = session.GetAttribute("gsId");
             if (gsId != null)
-                GameController.Instance.Remove((byte) gsId);
+            {
+                GameController.Instance.Remove((byte)gsId);
+            }
+
             InternalConnectionTable.Instance.RemoveConnection(session.SessionId);
         }
 
@@ -79,7 +84,9 @@ namespace AAEmu.Login.Core.Network.Internal
                         stream = stream3;
                     }
                     else
+                    {
                         stream = null;
+                    }
 
                     stream2.ReadUInt16();
                     var type = stream2.ReadUInt16();
@@ -92,9 +99,12 @@ namespace AAEmu.Login.Core.Network.Internal
                     {
                         try
                         {
-                            var packet = (InternalPacket) Activator.CreateInstance(classType);
-                            packet.Connection = connection;
-                            packet.Decode(stream2);
+                            var packet = (InternalPacket)Activator.CreateInstance(classType);
+                            if (packet != null)
+                            {
+                                packet.Connection = connection;
+                                packet.Decode(stream2);
+                            }
                         }
                         catch (Exception e)
                         {
@@ -115,7 +125,9 @@ namespace AAEmu.Login.Core.Network.Internal
         public void RegisterPacket(uint type, Type classType)
         {
             if (_packets.ContainsKey(type))
+            {
                 _packets.TryRemove(type, out _);
+            }
 
             _packets.TryAdd(type, classType);
         }

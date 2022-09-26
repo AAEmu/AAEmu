@@ -16,18 +16,26 @@ namespace AAEmu.Game.Models.Game.World.Interactions
             uint skillId, uint itemId, DoodadFuncTemplate objectFunc)
         {
             if (!(caster is Character character))
+            {
                 return;
+            }
 
             if (!(targetType is SkillCastItemTarget itemTarget))
+            {
                 return;
+            }
 
             if (!(casterType is SkillItem skillItem))
+            {
                 return;
+            }
 
             var targetItem = character.Inventory.Bag.GetItemByItemId(itemTarget.Id);
 
             if (!(targetItem is EquipItem equipItem))
+            {
                 return;
+            }
 
             equipItem.RuneId = skillItem.ItemTemplateId;
 

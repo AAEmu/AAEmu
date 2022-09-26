@@ -21,9 +21,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (NextPhase > 0)
             {
                 if (caster is Character)
+                {
                     _log.Debug("DoodadFuncTimer: TemplateId {0},  Delay {1}, NextPhase {2}, KeepRequester {3}, ShowTip {4}, ShowEndTime {5}, Tip {6}", owner.TemplateId, Delay, NextPhase, KeepRequester, ShowTip, ShowEndTime, Tip);
+                }
                 else
+                {
                     _log.Trace("DoodadFuncTimer: TemplateId {0},  Delay {1}, NextPhase {2}, KeepRequester {3}, ShowTip {4}, ShowEndTime {5}, Tip {6}", owner.TemplateId, Delay, NextPhase, KeepRequester, ShowTip, ShowEndTime, Tip);
+                }
 
                 owner.FuncTask = new DoodadFuncTimerTask(caster, owner, 0, NextPhase);
                 owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(Delay);

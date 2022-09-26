@@ -52,26 +52,26 @@ namespace AAEmu.Game.GameData
                 {
                     while (reader.Read())
                     {
-                        var template = new Spheres()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            Name = reader.GetString("name"),
-                            EnterOrLeave = reader.GetBoolean("enter_or_leave"),
-                            SphereDetailId = reader.GetUInt32("sphere_detail_id"),
-                            SphereDetailType = reader.GetString("sphere_detail_type"),
-                            TriggerConditionId = reader.GetUInt32("trigger_condition_id"),
-                            TriggerConditionTime = reader.GetUInt32("trigger_condition_time", 0),
-                            TeamMsg = reader.GetString("team_msg"),
-                            CategoryId = reader.GetUInt32("category_id"),
-                            OrUnitReqs = reader.GetBoolean("or_unit_reqs"),
-                            IsPersonalMsg = reader.GetBoolean("is_personal_msg"),
-                            MilestoneId = reader.GetUInt32("milestone_id"),
-                            NameTr = reader.GetBoolean("name_tr"),
-                            TeamMsgTr = reader.GetBoolean("team_msg_tr")
-                        };
+                        var template = new Spheres();
+                        template.Id = reader.GetUInt32("id");
+                        template.Name = reader.GetString("name");
+                        template.EnterOrLeave = reader.GetBoolean("enter_or_leave");
+                        template.SphereDetailId = reader.GetUInt32("sphere_detail_id");
+                        template.SphereDetailType = reader.GetString("sphere_detail_type");
+                        template.TriggerConditionId = reader.GetUInt32("trigger_condition_id");
+                        template.TriggerConditionTime = reader.GetUInt32("trigger_condition_time", 0);
+                        template.TeamMsg = reader.GetString("team_msg");
+                        template.CategoryId = reader.GetUInt32("category_id");
+                        template.OrUnitReqs = reader.GetBoolean("or_unit_reqs");
+                        template.IsPersonalMsg = reader.GetBoolean("is_personal_msg");
+                        //template.MilestoneId = reader.GetUInt32("milestone_id"); // there is no such field in the database for version 3.0.3.0
+                        //template.NameTr = reader.GetBoolean("name_tr"); // there is no such field in the database for version 3.0.3.0
+                        //template.TeamMsgTr = reader.GetBoolean("team_msg_tr"); // there is no such field in the database for version 3.0.3.0
 
                         if (!_spheres.ContainsKey(template.Id))
+                        {
                             _spheres.Add(template.Id, new List<Spheres>());
+                        }
 
                         _spheres[template.Id].Add(template);
                     }
@@ -87,15 +87,15 @@ namespace AAEmu.Game.GameData
                 {
                     while (reader.Read())
                     {
-                        var template = new SphereQuests()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            QuestId = reader.GetUInt32("quest_id"),
-                            QuestTriggerId = (QuestTrigger)reader.GetUInt32("quest_trigger_id")
-                        };
+                        var template = new SphereQuests();
+                        template.Id = reader.GetUInt32("id");
+                        template.QuestId = reader.GetUInt32("quest_id");
+                        template.QuestTriggerId = (QuestTrigger)reader.GetUInt32("quest_trigger_id");
 
                         if (!_sphereQuests.ContainsKey(template.Id))
+                        {
                             _sphereQuests.Add(template.Id, new List<SphereQuests>());
+                        }
 
                         _sphereQuests[template.Id].Add(template);
                     }
@@ -111,16 +111,16 @@ namespace AAEmu.Game.GameData
                 {
                     while (reader.Read())
                     {
-                        var template = new SphereSkills()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            SkillId = reader.GetUInt32("skill_id"),
-                            MaxRate = reader.GetUInt32("max_rate"),
-                            MinRate = reader.GetUInt32("min_rate")
-                        };
+                        var template = new SphereSkills();
+                        template.Id = reader.GetUInt32("id");
+                        template.SkillId = reader.GetUInt32("skill_id");
+                        template.MaxRate = reader.GetUInt32("max_rate");
+                        template.MinRate = reader.GetUInt32("min_rate");
 
                         if (!_sphereSkills.ContainsKey(template.Id))
+                        {
                             _sphereSkills.Add(template.Id, new List<SphereSkills>());
+                        }
 
                         _sphereSkills[template.Id].Add(template);
                     }
@@ -136,15 +136,15 @@ namespace AAEmu.Game.GameData
                 {
                     while (reader.Read())
                     {
-                        var template = new SphereSounds()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            SoundId = reader.GetUInt32("sound_id"),
-                            Broadcast = reader.GetBoolean("broadcast")
-                        };
+                        var template = new SphereSounds();
+                        template.Id = reader.GetUInt32("id");
+                        template.SoundId = reader.GetUInt32("sound_id");
+                        template.Broadcast = reader.GetBoolean("broadcast");
 
                         if (!_sphereSounds.ContainsKey(template.Id))
+                        {
                             _sphereSounds.Add(template.Id, new List<SphereSounds>());
+                        }
 
                         _sphereSounds[template.Id].Add(template);
                     }
@@ -160,15 +160,15 @@ namespace AAEmu.Game.GameData
                 {
                     while (reader.Read())
                     {
-                        var template = new SphereDoodadInteracts()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            SkillId = reader.GetUInt32("skill_id"),
-                            DoodadFamilyId = reader.GetUInt32("doodad_family_id")
-                        };
+                        var template = new SphereDoodadInteracts();
+                        template.Id = reader.GetUInt32("id");
+                        template.SkillId = reader.GetUInt32("skill_id");
+                        template.DoodadFamilyId = reader.GetUInt32("doodad_family_id");
 
                         if (!_sphereDoodadInteracts.ContainsKey(template.Id))
+                        {
                             _sphereDoodadInteracts.Add(template.Id, new List<SphereDoodadInteracts>());
+                        }
 
                         _sphereDoodadInteracts[template.Id].Add(template);
                     }
@@ -184,25 +184,25 @@ namespace AAEmu.Game.GameData
                 {
                     while (reader.Read())
                     {
-                        var template = new SphereChatBubbles()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            SphereBubbleId = reader.GetUInt32("sphere_bubble_id"),
-                            IsStart = reader.GetBoolean("is_start"),
-                            Speech = reader.GetString("speech"),
-                            NpcId = reader.GetUInt32("npc_id", 0),
-                            NpcSpawnerId = reader.GetUInt32("npc_spawner_id", 0),
-                            NextBubble = reader.GetUInt32("next_bubble", 0),
-                            SoundId = reader.GetUInt32("sound_id", 0),
-                            Angle = reader.GetUInt32("angle", 0),
-                            ChatBubbleKindId = (ChatBubbleKind)reader.GetUInt32("chat_bubble_kind_id"),
-                            Facial = reader.GetString("facial", ""),
-                            CameraId = reader.GetUInt32("camera_id", 0),
-                            ChangeSpeakerName = reader.GetString("change_speaker_name", "")
-                        };
+                        var template = new SphereChatBubbles();
+                        template.Id = reader.GetUInt32("id");
+                        template.SphereBubbleId = reader.GetUInt32("sphere_bubble_id");
+                        template.IsStart = reader.GetBoolean("is_start");
+                        template.Speech = reader.GetString("speech");
+                        template.NpcId = reader.GetUInt32("npc_id", 0);
+                        template.NpcSpawnerId = reader.GetUInt32("npc_spawner_id", 0);
+                        template.NextBubble = reader.GetUInt32("next_bubble", 0);
+                        template.SoundId = reader.GetUInt32("sound_id", 0);
+                        template.Angle = reader.GetUInt32("angle", 0);
+                        template.ChatBubbleKindId = (ChatBubbleKind)reader.GetUInt32("chat_bubble_kind_id");
+                        template.Facial = reader.GetString("facial", "");
+                        template.CameraId = reader.GetUInt32("camera_id", 0);
+                        template.ChangeSpeakerName = reader.GetString("change_speaker_name", "");
 
                         if (!_sphereChatBubbles.ContainsKey(template.Id))
+                        {
                             _sphereChatBubbles.Add(template.Id, new List<SphereChatBubbles>());
+                        }
 
                         _sphereChatBubbles[template.Id].Add(template);
                     }
@@ -218,15 +218,14 @@ namespace AAEmu.Game.GameData
                 {
                     while (reader.Read())
                     {
-                        var template = new SphereBuffs()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            BuffId = reader.GetUInt32("buff_id")
-
-                        };
+                        var template = new SphereBuffs();
+                        template.Id = reader.GetUInt32("id");
+                        template.BuffId = reader.GetUInt32("buff_id");
 
                         if (!_sphereBuffs.ContainsKey(template.Id))
+                        {
                             _sphereBuffs.Add(template.Id, new List<SphereBuffs>());
+                        }
 
                         _sphereBuffs[template.Id].Add(template);
                     }
@@ -242,13 +241,13 @@ namespace AAEmu.Game.GameData
                 {
                     while (reader.Read())
                     {
-                        var template = new SphereBubbles()
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
+                        var template = new SphereBubbles();
+                        template.Id = reader.GetUInt32("id");
 
                         if (!_sphereBubbles.ContainsKey(template.Id))
+                        {
                             _sphereBubbles.Add(template.Id, new List<SphereBubbles>());
+                        }
 
                         _sphereBubbles[template.Id].Add(template);
                     }
@@ -264,13 +263,13 @@ namespace AAEmu.Game.GameData
                 {
                     while (reader.Read())
                     {
-                        var template = new SphereAcceptQuests()
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
+                        var template = new SphereAcceptQuests();
+                        template.Id = reader.GetUInt32("id");
 
                         if (!_sphereAcceptQuests.ContainsKey(template.Id))
+                        {
                             _sphereAcceptQuests.Add(template.Id, new List<SphereAcceptQuests>());
+                        }
 
                         _sphereAcceptQuests[template.Id].Add(template);
                     }
@@ -286,15 +285,15 @@ namespace AAEmu.Game.GameData
                 {
                     while (reader.Read())
                     {
-                        var template = new SphereAcceptQuestQuests()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            SphereAcceptQuestId = reader.GetUInt32("sphere_accept_quest_id"),
-                            QuestId = reader.GetUInt32("quest_id")
-                        };
+                        var template = new SphereAcceptQuestQuests();
+                        template.Id = reader.GetUInt32("id");
+                        template.SphereAcceptQuestId = reader.GetUInt32("sphere_accept_quest_id");
+                        template.QuestId = reader.GetUInt32("quest_id");
 
                         if (!_sphereAcceptQuestQuests.ContainsKey(template.Id))
+                        {
                             _sphereAcceptQuestQuests.Add(template.Id, new List<SphereAcceptQuestQuests>());
+                        }
 
                         _sphereAcceptQuestQuests[template.Id].Add(template);
                     }
@@ -308,12 +307,17 @@ namespace AAEmu.Game.GameData
 
             var questTemplate = QuestManager.Instance.GetTemplate(questId);
             if (questTemplate == null)
+            {
                 return null;
+            }
+
             foreach (QuestComponentKind step in Enum.GetValues(typeof(QuestComponentKind)))
             {
                 var components = questTemplate.GetComponents(step);
                 if (components.Length == 0)
+                {
                     continue;
+                }
 
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {

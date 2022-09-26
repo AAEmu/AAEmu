@@ -40,13 +40,19 @@ namespace AAEmu.Commons.Utils
         {
             var offset = startFrom;
             if (offset >= Count)
+            {
                 return -1;
+            }
+
             var res = _bits.Get(offset);
             // locate non-empty slot
             while (!res)
             {
                 if ((++offset) >= Count)
+                {
                     return -1;
+                }
+
                 res = _bits.Get(offset);
             }
 
@@ -57,13 +63,19 @@ namespace AAEmu.Commons.Utils
         {
             var offset = startFrom;
             if (offset >= Count)
+            {
                 return -1;
+            }
+
             var res = _bits.Get(offset);
             // locate non-empty slot
             while (res)
             {
                 if ((++offset) >= Count)
+                {
                     return -1;
+                }
+
                 res = _bits.Get(offset);
             }
 

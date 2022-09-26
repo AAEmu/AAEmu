@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.DoodadObj;
 
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _targetObjId;
         private readonly uint _reason;
 
-        public SCUnhungPacket(uint unitObjId, uint targetObjId, uint reason) : base(SCOffsets.SCUnhungPacket, 1)
+        public SCUnhungPacket(uint unitObjId, uint targetObjId, uint reason) : base(SCOffsets.SCUnhungPacket, 5)
         {
             _unitObjId = unitObjId;
             _targetObjId = targetObjId;

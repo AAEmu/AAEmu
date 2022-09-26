@@ -14,6 +14,7 @@ namespace AAEmu.Game.Core.Packets.C2S
         {
             var id = stream.ReadInt32();
             var next = stream.ReadInt32();
+
             StreamManager.Instance.ContinueCell(Connection, id, next);
         }
     }

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _success;
         private readonly short _errorMessage;
 
-        public SCAddFriendPacket(Friend friend, bool success, short errorMessage) : base(SCOffsets.SCAddFriendPacket, 1)
+        public SCAddFriendPacket(Friend friend, bool success, short errorMessage) : base(SCOffsets.SCAddFriendPacket, 5)
         {
             _friend = friend;
             _success = success;

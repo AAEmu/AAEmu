@@ -163,7 +163,9 @@ namespace AAEmu.Game.Models.Game.Quests
             {
                 var components = Template.GetComponents(Step);
                 if (components.Length == 0 || Step is QuestComponentKind.Fail or QuestComponentKind.Drop)
+                {
                     continue;
+                }
 
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {
@@ -285,7 +287,9 @@ namespace AAEmu.Game.Models.Game.Quests
             {
                 var components = Template.GetComponents(Step);
                 if (components.Length == 0 || Step == QuestComponentKind.Fail || Step == QuestComponentKind.Drop)
+                {
                     continue;
+                }
 
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {
@@ -363,12 +367,18 @@ namespace AAEmu.Game.Models.Game.Quests
             for (; Step <= QuestComponentKind.Reward; Step++)
             {
                 if (Step is QuestComponentKind.Fail or QuestComponentKind.Drop)
+                {
                     continue;
+                }
 
                 if (Step >= QuestComponentKind.Drop)
+                {
                     Status = QuestStatus.Completed;
+                }
                 else if (Step >= QuestComponentKind.Ready)
+                {
                     Status = QuestStatus.Ready;
+                }
 
                 var components = Template.GetComponents(Step);
                 switch (components.Length)
@@ -422,7 +432,10 @@ namespace AAEmu.Game.Models.Game.Quests
                                     var next = QuestComponentKind.Progress;
                                     var componentnext = Template.GetFirstComponent(next);
                                     if (componentnext == null)
+                                    {
                                         break;
+                                    }
+
                                     var actsnext = _questManager.GetActs(componentnext.Id);
                                     foreach (var qa in actsnext)
                                     {
@@ -543,7 +556,10 @@ namespace AAEmu.Game.Models.Game.Quests
                                     // нужно посмотреть в инвентарь, так как после Start() ещё не знаем, есть предмет в инвентаре или нет (we need to look in the inventory, because after Start() we don't know yet if the item is in the inventory or not)
                                     var template = act.GetTemplate<QuestActObjItemGather>();
                                     if (Objectives[componentIndex] == 0)
+                                    {
                                         Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
+                                    }
+
                                     complete = act.Use(Owner, this, Objectives[componentIndex]);
                                     completes[componentIndex] = complete; // продублируем информацию (let's duplicate the information)
                                     // проверка результатов на валидность (Validation of results)
@@ -582,7 +598,9 @@ namespace AAEmu.Game.Models.Game.Quests
                     }
 
                     if (Step == QuestComponentKind.Progress && complete)
+                    {
                         ComponentId = components[componentIndex].Id;
+                    }
 
                     if (completes[componentIndex] || complete)
                     {
@@ -699,7 +717,9 @@ namespace AAEmu.Game.Models.Game.Quests
                     QuestRewardCoinsPool = 0; // Coins will be distributed in mail if any mail needed to be send, so set to zero again
                     foreach (var mail in mails)
                         if (!mail.Send())
+                        {
                             Owner.SendErrorMessage(ErrorMessageType.MailUnknownFailure);
+                        }
 
                     Owner.SendPacket(new SCQuestRewardedByMailPacket(new uint[] { TemplateId }));
                 }
@@ -743,16 +763,22 @@ namespace AAEmu.Game.Models.Game.Quests
             for (; step <= QuestComponentKind.Reward; step++)
             {
                 if (step >= QuestComponentKind.Drop)
+                {
                     Status = QuestStatus.Completed;
+                }
 
                 var components = Template.GetComponents(step);
                 if (components.Length == 0)
+                {
                     continue;
+                }
 
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {
                     if (step == QuestComponentKind.Ready)
+                    {
                         ComponentId = components[componentIndex].Id;
+                    }
 
                     var acts = _questManager.GetActs(components[componentIndex].Id);
                     var selective = 0;
@@ -763,7 +789,10 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActConReportNpc":
                                 res = act.Use(Owner, this, Objectives[componentIndex]);
                                 if (ComponentId == 0)
+                                {
                                     ComponentId = components[componentIndex].Id;
+                                }
+
                                 _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
                                 break;
                             case "QuestActSupplySelectiveItem":
@@ -773,7 +802,10 @@ namespace AAEmu.Game.Models.Game.Quests
                                     {
                                         res = act.Use(Owner, this, Objectives[componentIndex]);
                                         if (ComponentId == 0)
+                                        {
                                             ComponentId = components[componentIndex].Id;
+                                        }
+
                                         _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
                                     }
                                     break;
@@ -781,19 +813,28 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActSupplyItem":
                                 res = act.Use(Owner, this, 0); // всегда получаем предметы в конце квеста (always get items at the end of the quest)
                                 if (ComponentId == 0)
+                                {
                                     ComponentId = components[componentIndex].Id;
+                                }
+
                                 _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
                                 break;
                             case "QuestActConAutoComplete":
                                 res = true;
                                 if (ComponentId == 0)
+                                {
                                     ComponentId = components[componentIndex].Id;
+                                }
+
                                 _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
                                 break;
                             default:
                                 res = act.Use(Owner, this, Objectives[componentIndex]);
                                 if (ComponentId == 0)
+                                {
                                     ComponentId = components[componentIndex].Id;
+                                }
+
                                 _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
                                 break;
                         }
@@ -807,7 +848,9 @@ namespace AAEmu.Game.Models.Game.Quests
                     }
                 }
                 if (!res)
+                {
                     return ComponentId;
+                }
             }
             return res ? ComponentId : 0;
         }
@@ -860,7 +903,9 @@ namespace AAEmu.Game.Models.Game.Quests
             {
                 var components = Template.GetComponents(step);
                 if (components.Length == 0)
+                {
                     continue;
+                }
 
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {
@@ -933,7 +978,9 @@ namespace AAEmu.Game.Models.Game.Quests
             UseSkillAndBuff(component);
 
             if (update)
+            {
                 Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
+            }
 
             RemoveQuestItems();
             for (var i = 0; i < ObjectiveCount; i++)
@@ -948,7 +995,9 @@ namespace AAEmu.Game.Models.Game.Quests
             Step = QuestComponentKind.Ready;
             var components = Template.GetComponents(Step);
             if (components.Length == 0)
+            {
                 return;
+            }
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
@@ -978,7 +1027,9 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     checking = act.Use(Owner, this, Objectives[componentIndex]);
                                     if (ComponentId == 0)
+                                    {
                                         ComponentId = components[componentIndex].Id;
+                                    }
                                 }
                                 break;
                             }
@@ -995,7 +1046,9 @@ namespace AAEmu.Game.Models.Game.Quests
             Step = QuestComponentKind.Ready;
             var components = Template.GetComponents(Step);
             if (components.Length == 0)
+            {
                 return;
+            }
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
@@ -1027,7 +1080,9 @@ namespace AAEmu.Game.Models.Game.Quests
             Step = QuestComponentKind.Progress;
             var components = Template.GetComponents(Step);
             if (components.Length == 0)
+            {
                 return;
+            }
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
@@ -1059,7 +1114,9 @@ namespace AAEmu.Game.Models.Game.Quests
             Step = QuestComponentKind.Progress;
             var components = Template.GetComponents(Step);
             if (components.Length == 0)
+            {
                 return;
+            }
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
@@ -1102,7 +1159,9 @@ namespace AAEmu.Game.Models.Game.Quests
             Step = QuestComponentKind.Progress;
             var components = Template.GetComponents(Step);
             if (components.Length == 0)
+            {
                 return;
+            }
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
@@ -1168,7 +1227,9 @@ namespace AAEmu.Game.Models.Game.Quests
             Step = QuestComponentKind.Progress;
             var components = Template.GetComponents(Step);
             if (components.Length == 0)
+            {
                 return;
+            }
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
@@ -1218,7 +1279,9 @@ namespace AAEmu.Game.Models.Game.Quests
             Step = QuestComponentKind.Progress;
             var components = Template.GetComponents(Step);
             if (components.Length == 0)
+            {
                 return;
+            }
 
             var interactionTarget = (Doodad)target;
 
@@ -1258,7 +1321,9 @@ namespace AAEmu.Game.Models.Game.Quests
             Step = QuestComponentKind.Progress;
             var components = Template.GetComponents(Step);
             if (components.Length == 0)
+            {
                 return;
+            }
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
@@ -1352,7 +1417,9 @@ namespace AAEmu.Game.Models.Game.Quests
             Step = QuestComponentKind.Progress;
             var components = Template.GetComponents(Step);
             if (components.Length == 0)
+            {
                 return;
+            }
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
@@ -1392,7 +1459,9 @@ namespace AAEmu.Game.Models.Game.Quests
             Step = QuestComponentKind.Progress;
             var components = Template.GetComponents(Step);
             if (components.Length == 0)
+            {
                 return;
+            }
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
@@ -1504,20 +1573,22 @@ namespace AAEmu.Game.Models.Game.Quests
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(Id);
-            stream.Write(TemplateId);
-            stream.Write((byte)Status);
-            foreach (var objective in Objectives) // TODO do-while, count 5
-            {
-                stream.Write(objective);
-            }
+            stream.Write(Id);            // type
+            stream.Write(TemplateId);    // type
+            stream.Write((byte)Status);  // status
+            //foreach (var objective in Objectives) // TODO do-while, count 5
+            //{
+            //    stream.Write(objective);
+            //}
+            stream.WritePisc(Objectives[0], Objectives[1], Objectives[2], Objectives[3]);
+            stream.WritePisc(Objectives[3]);
 
             stream.Write(false);          // isCheckSet
-            stream.WriteBc((uint)ObjId);  // ObjId
+            stream.WriteBc((uint)ObjId);  // bc ObjId
             stream.Write(0u);             // type(id)
-            stream.WriteBc((uint)ObjId);  // ObjId
-            stream.WriteBc((uint)ObjId);  // ObjId
-            stream.Write(LeftTime);
+            stream.WriteBc((uint)ObjId);  // bc ObjId
+            stream.WriteBc((uint)ObjId);  // bc ObjId
+            stream.Write(LeftTime);       // lifetime
             stream.Write(0u);                      // type(id)
             stream.Write(DoodadId);                // doodadId
             stream.Write(DateTime.UtcNow);         // acceptTime

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly byte _reason;
 
-        public SCCharacterCreationFailedPacket(byte reason) : base(SCOffsets.SCCharacterCreationFailedPacket, 1)
+        public SCCharacterCreationFailedPacket(byte reason) : base(SCOffsets.SCCharacterCreationFailedPacket, 5)
         {
             _reason = reason;
         }

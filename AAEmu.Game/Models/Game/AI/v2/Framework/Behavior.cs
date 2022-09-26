@@ -179,7 +179,9 @@ namespace AAEmu.Game.Models.Game.AI.v2
             var result = skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject);
             if (skill.Template.TargetType == SkillTargetType.Self) { return; } // fix the eastward turn when using SelfSkill
             if (result == SkillResult.Success)
+            {
                 Ai.Owner.LookTowards(target.Transform.World.Position);
+            }
         }
 
         public virtual void OnSkillEnded()

@@ -1,18 +1,13 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Utils;
-using AAEmu.Game.Models.Game.Items.Actions;
-using System.Collections.Generic;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCreateDoodadPacket : GamePacket
     {
-        public CSCreateDoodadPacket() : base(CSOffsets.CSCreateDoodadPacket, 1)
+        public CSCreateDoodadPacket() : base(CSOffsets.CSCreateDoodadPacket, 5)
         {
         }
 

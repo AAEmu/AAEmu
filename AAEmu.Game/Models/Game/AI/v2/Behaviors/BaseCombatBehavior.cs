@@ -15,9 +15,14 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         public void MoveInRange(BaseUnit target, TimeSpan delta)
         {
             if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e => e.Template.Stun || e.Template.Sleep))
+            {
                 return;
+            }
+
             if ((Ai.Owner?.ActiveSkillController?.State ?? SCState.Ended) == SCState.Running)
+            {
                 return;
+            }
 
             //Ai.Owner.Template.AttackStartRangeScale * 4, 
             var range = 2f;// Ai.Owner.Template.AttackStartRangeScale * 6;
@@ -25,9 +30,13 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
             // var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
             if (distanceToTarget > range)
+            {
                 Ai.Owner.MoveTowards(target.Transform.World.Position, speed);
+            }
             else
+            {
                 Ai.Owner.StopMovement();
+            }
         }
 
         protected bool CanStrafe
@@ -51,11 +60,20 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             get
             {
                 if (IsUsingSkill)
+                {
                     return false;
+                }
+
                 if ((Ai.Owner?.ActiveSkillController?.State ?? SCState.Ended) == SCState.Running)
+                {
                     return false;
+                }
+
                 if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e => e.Template.Stun || e.Template.Sleep || e.Template.Silence))
+                {
                     return false;
+                }
+
                 return DateTime.UtcNow >= _delayEnd && !Ai.Owner.IsGlobalCooldowned;
             }
         }
@@ -74,7 +92,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             foreach (var abuser in abusers)
             {
                 if (Ai.AlreadyTargetted)
+                {
                     return true;
+                }
 
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead && !Ai.AlreadyTargetted)
                 {

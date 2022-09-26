@@ -7,14 +7,14 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint[] _ids;
 
-        public SCGimmicksRemovedPacket(uint[] ids) : base(SCOffsets.SCGimmicksRemovedPacket, 1)
+        public SCGimmicksRemovedPacket(uint[] ids) : base(SCOffsets.SCGimmicksRemovedPacket, 5)
         {
             _ids = ids;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((ushort) _ids.Length); // TODO max 500 elements
+            stream.Write((ushort)_ids.Length); // TODO max 500 elements
             foreach (var id in _ids)
             {
                 stream.WriteBc(id);

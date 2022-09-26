@@ -70,9 +70,13 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     if (now >= item.timestamp)
                     {
                         if (state.Tickets.ContainsKey(node.Event.Id))
+                        {
                             state.Tickets[node.Event.Id]++;
+                        }
                         else
+                        {
                             state.Tickets.TryAdd(node.Event.Id, 1);
+                        }
 
                         //Check if we hit max tickets
                         if (state.Tickets[node.Event.Id] > node.Event.Tickets
@@ -84,7 +88,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                         item.targetInfo.UpdateTargetInfo(node.Event, state);
 
                         if (item.targetInfo.Target == null)
+                        {
                             continue;
+                        }
 
                         var condition = node.CheckConditions(state, item.targetInfo);
 
@@ -138,12 +144,15 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                         //await Task.Delay(delay).ConfigureAwait(false);
                         if (delay > 0)
+                        {
                             await Task.Delay(15).ConfigureAwait(false);
-                        
+                        }
                     }
 
                     if (nodewatch.ElapsedMilliseconds > 100)
+                    {
                         _log.Trace($"Event:{node.Event.Id} Took {nodewatch.ElapsedMilliseconds} to finish.");
+                    }
                 }
 
                 FlushExecutionQueue(executeQueue, state);
@@ -166,7 +175,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             }
             
             if (packets.Packets.Count > 0)
+            {
                 state.Caster.BroadcastPacket(packets, true);
+            }
         }
 
         private void EndPlotChannel(PlotState state)
@@ -185,19 +196,25 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             state.Caster.Cooldowns.AddCooldown(state.ActiveSkill.Template.Id, (uint)state.ActiveSkill.Template.CooldownTime);
 
             if (state.Caster is Character character && character.IgnoreSkillCooldowns)
+            {
                 character.ResetSkillCooldown(state.ActiveSkill.Template.Id, false);
+            }
 
             //Maybe always do thsi on end of plot?
             //Should we check if it was a channeled skill?
             if (state.CancellationRequested())
+            {
                 state.Caster.Events.OnChannelingCancel(state.ActiveSkill, new OnChannelingCancelArgs { });
+            }
 
             SkillManager.Instance.ReleaseId(state.ActiveSkill.TlId);
             
             state.Caster?.OnSkillEnd(state.ActiveSkill);
             state.ActiveSkill.Callback?.Invoke();
             if (state.Caster?.ActivePlotState == state)
+            {
                 state.Caster.ActivePlotState = null;
+            }
         }
     }
 }

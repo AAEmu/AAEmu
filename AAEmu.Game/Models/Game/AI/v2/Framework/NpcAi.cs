@@ -90,7 +90,10 @@ namespace AAEmu.Game.Models.Game.AI.v2
         public Behavior AddTransition(Behavior source, Transition target)
         {
             if (!_transitions.ContainsKey(source))
+            {
                 _transitions.Add(source, new List<Transition>());
+            }
+
             _transitions[source].Add(target);
             return source;
         }
@@ -108,11 +111,16 @@ namespace AAEmu.Game.Models.Game.AI.v2
         private void Transition(TransitionEvent on)
         {
             if (!_transitions.ContainsKey(_currentBehavior))
+            {
                 return;
+            }
+
             var transition = _transitions[_currentBehavior].SingleOrDefault(t => t.On == on);
             if (transition == null)
+            {
                 return;
-            
+            }
+
             var newBehavior = GetBehavior(transition.Kind);
             SetCurrentBehavior(newBehavior);
         }

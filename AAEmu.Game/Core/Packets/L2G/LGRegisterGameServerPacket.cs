@@ -19,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.L2G
             }
             else
             {
-                _log.Info("Successfully registered on LoginServer");
+                _log.Info("Successufully registered on LoginServer");
             }
         }
     }

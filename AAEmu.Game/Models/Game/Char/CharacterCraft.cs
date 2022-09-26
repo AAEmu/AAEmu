@@ -34,7 +34,9 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var craftMaterial in craft.CraftMaterials)
             {
                 if (Owner.Inventory.GetItemsCount(craftMaterial.ItemId) < craftMaterial.Amount)
+                {
                     hasMaterials = false;
+                }
             }
 
             if (hasMaterials)
@@ -123,7 +125,10 @@ namespace AAEmu.Game.Models.Game.Char
             if (Owner != null)
             {
                 if (Owner.SkillTask != null)
+                {
                     Owner.SkillTask.Skill.Cancelled = true;
+                }
+
                 Owner.InterruptSkills();
             }
 

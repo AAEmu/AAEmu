@@ -23,14 +23,18 @@ namespace AAEmu.Game.Models.Game.Char
         public void AddPoint(uint id, int point)
         {
             if (!Actabilities.ContainsKey(id))
+            {
                 return;
-            
+            }
+
             var actability = Actabilities[id];
             actability.Point += point;
 
             var template = CharacterManager.Instance.GetExpertLimit(actability.Step);
             if (actability.Point > template.UpLimit)
+            {
                 actability.Point = template.UpLimit;
+            }
         }
 
         public void Regrade(uint id, bool isUpgrade)
@@ -43,10 +47,14 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var template = CharacterManager.Instance.GetExpertLimit(actability.Step);
                 if (template == null)
+                {
                     return; // TODO ... send msg error?
+                }
 
                 if (actability.Point < template.UpLimit)
+                {
                     return; // TODO ... send msg error?
+                }
 
                 actability.Step++;
             }
@@ -54,7 +62,9 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var template = CharacterManager.Instance.GetExpertLimit(actability.Step - 1);
                 if (template == null)
+                {
                     return; // TODO ... send msg error?
+                }
 
                 actability.Step--;
                 actability.Point = template.UpLimit;
@@ -67,7 +77,9 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var expand = CharacterManager.Instance.GetExpandExpertLimit(Owner.ExpandedExpert);
             if (expand == null)
+            {
                 return; // TODO ... send msg error?
+            }
 
             if (expand.LifePoint > Owner.VocationPoint)
             {

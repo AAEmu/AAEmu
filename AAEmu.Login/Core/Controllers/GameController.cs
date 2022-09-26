@@ -21,7 +21,10 @@ namespace AAEmu.Login.Core.Controllers
         public byte? GetParentId(byte gsId)
         {
             if (_mirrorsId.ContainsKey(gsId))
+            {
                 return _mirrorsId[gsId];
+            }
+
             return null;
         }
 
@@ -101,7 +104,9 @@ namespace AAEmu.Login.Core.Controllers
         public void Remove(byte gsId)
         {
             if (!_gameServers.ContainsKey(gsId))
+            {
                 return;
+            }
 
             var gameServer = _gameServers[gsId];
             gameServer.Connection = null;
@@ -109,7 +114,9 @@ namespace AAEmu.Login.Core.Controllers
             foreach (var mirrorId in gameServer.MirrorsId)
             {
                 if (_gameServers.ContainsKey(mirrorId))
+                {
                     _gameServers[mirrorId].Connection = null;
+                }
 
                 _mirrorsId.Remove(mirrorId);
             }
@@ -128,7 +135,10 @@ namespace AAEmu.Login.Core.Controllers
                 {
                     var value = gameServers[i];
                     if (!value.Active)
+                    {
                         continue;
+                    }
+
                     var chars = !connection.Characters.ContainsKey(value.Id);
                     value.SendPacket(
                         new LGRequestInfoPacket(connection.Id, requestIds[i], chars ? connection.AccountId : 0));
@@ -155,10 +165,16 @@ namespace AAEmu.Login.Core.Controllers
         public void RequestEnterWorld(LoginConnection connection, byte gsId)
         {
             if (!_gameServers.ContainsKey(gsId))
+            {
                 return;
+            }
+
             var gs = _gameServers[gsId];
             if (!gs.Active)
+            {
                 return;
+            }
+
             gs.SendPacket(new LGPlayerEnterPacket(connection.AccountId, connection.Id));
         }
 

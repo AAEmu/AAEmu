@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSLootCloseBagPacket : GamePacket
     {
-        public CSLootCloseBagPacket() : base(CSOffsets.CSLootCloseBagPacket, 1)
+        public CSLootCloseBagPacket() : base(CSOffsets.CSLootCloseBagPacket, 5)
         {
         }
 

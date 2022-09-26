@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Core.Packets.L2C;
 
@@ -13,9 +14,11 @@ namespace AAEmu.Login.Core.Packets.C2L
         public override void Read(PacketStream stream)
         {
             for (var i = 0; i < 8; i++)
-                stream.ReadUInt32(); // hc
+            {
+                stream.ReadUInt32(); // ch
+            }
 
-            Connection.SendPacket(new ACLoginDeniedPacket(2));
+            Connection.SendPacket(new ACLoginDeniedPacket(3));
         }
     }
 }

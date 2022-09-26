@@ -16,7 +16,9 @@ namespace AAEmu.Commons.Utils.XML
                 if ((float.TryParse(xyz[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x)) && 
                     (float.TryParse(xyz[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var y)) &&
                     (float.TryParse(xyz[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var z)))
+                {
                     return new Vector3(x, y, z);
+                }
             }
             return Vector3.Zero;
         }
@@ -35,7 +37,10 @@ namespace AAEmu.Commons.Utils.XML
         public static T ReadAttribute<T>(Dictionary<string, string> attribs, string field, T defaultValue)
         {
             if (!attribs.TryGetValue(field, out var val))
+            {
                 return defaultValue;
+            }
+
             try
             {
                 return (T)Convert.ChangeType(val, typeof(T));

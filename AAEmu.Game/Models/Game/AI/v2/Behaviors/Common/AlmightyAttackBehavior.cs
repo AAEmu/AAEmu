@@ -23,7 +23,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         public override void Tick(TimeSpan delta)
         {
             if (_aiParams == null)
+            {
                 return;
+            }
 
             if (!UpdateTarget() || ShouldReturn)
             {
@@ -32,10 +34,14 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             }
 
             if (CanStrafe && !IsUsingSkill)
+            {
                 MoveInRange(Ai.Owner.CurrentTarget, delta);
+            }
 
             if (!CanUseSkill)
+            {
                 return;
+            }
 
             _strafeDuringDelay = false;
             #region Pick a skill
@@ -45,12 +51,17 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             if (_skillQueue.Count == 0)
             {
                 if (!RefreshSkillQueue(targetDist))
+                {
                     return;
+                }
             }
 
             var selectedSkill = _skillQueue.Dequeue();
             if (selectedSkill == null)
+            {
                 return;
+            }
+
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillId);
             if (skillTemplate != null)
             {

@@ -569,7 +569,7 @@ namespace AAEmu.Game.Scripts.Commands
                             character.SendMessage("Teleporting to |cFFFFFFFFX:" + character.LocalPingPosition.X + " Y:" + character.LocalPingPosition.Y + " Z:" + height + "|r");
                             character.ForceDismount();
                             character.DisabledSetPosition = true;
-                            character.SendPacket(new SCTeleportUnitPacket(0, 0, character.LocalPingPosition.X, character.LocalPingPosition.Y, height, 0));
+                            character.SendPacket(new SCUnitTeleportPacket(0, 0, character.LocalPingPosition.X, character.LocalPingPosition.Y, height, 0));
                         }
                     }
                 }
@@ -603,7 +603,7 @@ namespace AAEmu.Game.Scripts.Commands
                             character.SendMessage("Teleporting to |cFFFFFFFF" + item.Info + "|r");
                             character.ForceDismount();
                             character.DisabledSetPosition = true;
-                            character.SendPacket(new SCTeleportUnitPacket(0, 0, item.X, item.Y, item.Z, 0));
+                            character.SendPacket(new SCUnitTeleportPacket(0, 0, item.X, item.Y, item.Z, 0));
 
                             break;
                         }

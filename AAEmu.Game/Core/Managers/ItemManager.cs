@@ -89,9 +89,13 @@ namespace AAEmu.Game.Core.Managers
         public EquipItemSet GetEquippedItemSet(uint id)
         {
             if (_equipItemSets.TryGetValue(id, out var value))
+            {
                 return value;
+            }
             else
+            {
                 return null;
+            }
         }
 
         public GradeTemplate GetGradeTemplate(int grade)
@@ -244,12 +248,14 @@ namespace AAEmu.Game.Core.Managers
                     isDone &= TookLootDropItem(character, lootDropItems, lootDropItems[i], lootDropItems[i].Count);
                 }
                 if (lootDropItems.Count > 0)
-                    character.SendPacket(new SCLootBagDataPacket(lootDropItems, lootAll));
+                {
+                    character.SendPacket(new SCLootingBagPacket(lootDropItems, lootAll));
+                }
             }
             else
             {
                 isDone = lootDropItems.Count <= 0;
-                character.SendPacket(new SCLootBagDataPacket(lootDropItems, lootAll));
+                character.SendPacket(new SCLootingBagPacket(lootDropItems, lootAll));
             }
             return isDone;
         }
@@ -374,7 +380,9 @@ namespace AAEmu.Game.Core.Managers
             foreach (var i in _templates)
             {
                 if (i.Value.searchString.Contains(searchString))
+                {
                     res.Add(i.Value.Id);
+                }
             }
             return res;
         }
@@ -385,7 +393,9 @@ namespace AAEmu.Game.Core.Managers
             var itemIds = new List<uint>();
 
             if (searchTemplate.ItemName != "")
+            {
                 itemIds = GetItemIdsBySearchName(searchTemplate.ItemName);
+            }
 
             if (itemIds.Count > 0)
             {
@@ -422,37 +432,55 @@ namespace AAEmu.Game.Core.Managers
         public ItemLookConvert GetWearableItemLookConvert(uint slotTypeId)
         {
             if (_wearableItemLookConverts.ContainsKey(slotTypeId))
+            {
                 return _itemLookConverts[_wearableItemLookConverts[slotTypeId]];
+            }
+
             return null;
         }
 
         public ItemLookConvert GetHoldableItemLookConvert(uint holdableId)
         {
             if (_holdableItemLookConverts.ContainsKey(holdableId))
+            {
                 return _itemLookConverts[_holdableItemLookConverts[holdableId]];
+            }
+
             return null;
         }
 
         public ItemProcTemplate GetItemProcTemplate(uint templateId)
         {
             if (_itemProcTemplates.ContainsKey(templateId))
+            {
                 return _itemProcTemplates[templateId];
+            }
+
             return null;
         }
 
         public List<BonusTemplate> GetUnitModifiers(uint itemId)
         {
             if (_itemUnitModifiers.ContainsKey(itemId))
+            {
                 return _itemUnitModifiers[itemId];
+            }
+
             return new List<BonusTemplate>();
         }
 
         public ArmorGradeBuff GetArmorGradeBuff(ArmorType type, ItemGrade grade)
         {
             if (!_armorGradeBuffs.ContainsKey(type))
+            {
                 return null;
+            }
+
             if (!_armorGradeBuffs[type].ContainsKey(grade))
+            {
                 return null;
+            }
+
             return _armorGradeBuffs[type][grade];
         }
 
@@ -461,7 +489,9 @@ namespace AAEmu.Game.Core.Managers
             var id = generateId ? ItemManager.Instance.GetNewId() : 0u;
             var template = GetTemplate(templateId);
             if (template == null)
+            {
                 return null;
+            }
 
             Item item;
             try
@@ -478,21 +508,31 @@ namespace AAEmu.Game.Core.Managers
             item.Grade = grade;
 
             if (item.Template.BindType == ItemBindType.BindOnPickup) // Bind on pickup.
+            {
                 item.SetFlag(ItemFlag.SoulBound);
+            }
 
             if (item.Template.FixedGrade >= 0)
+            {
                 item.Grade = (byte)item.Template.FixedGrade;
+            }
+
             item.CreateTime = DateTime.UtcNow;
             if (generateId)
+            {
                 _allItems.Add(item.Id, item);
+            }
+
             return item;
         }
 
         public void Load()
         {
             if (_loaded)
+            {
                 return;
-            
+            }
+
             _grades = new Dictionary<int, GradeTemplate>();
             _holdables = new Dictionary<uint, Holdable>();
             _wearables = new Dictionary<uint, Wearable>();
@@ -536,7 +576,10 @@ namespace AAEmu.Game.Core.Managers
                     using (var reader = new SQLiteWrapperReader(sqliteReader))
                     {
                         if (!reader.Read())
+                        {
                             return;
+                        }
+
                         _config.DurabilityDecrementChance = reader.GetFloat("durability_decrement_chance");
                         _config.DurabilityRepairCostFactor = reader.GetFloat("durability_repair_cost_factor");
                         _config.DurabilityConst = reader.GetFloat("durability_const");
@@ -565,7 +608,9 @@ namespace AAEmu.Game.Core.Managers
                             template.RequiredItemId = reader.GetUInt32("item_id");
                             template.RequiredItemCount = reader.GetInt32("item_count");
                             if (!_itemLookConverts.ContainsKey(template.Id))
+                            {
                                 _itemLookConverts.Add(template.Id, template);
+                            }
                         }
                     }
                 }
@@ -582,7 +627,9 @@ namespace AAEmu.Game.Core.Managers
                             var itemLookConvertId = reader.GetUInt32("item_look_convert_id");
                             var holdableId = reader.GetUInt32("holdable_id");
                             if (!_holdableItemLookConverts.ContainsKey(holdableId))
+                            {
                                 _holdableItemLookConverts.Add(holdableId, itemLookConvertId);
+                            }
                         }
                     }
                 }
@@ -599,7 +646,9 @@ namespace AAEmu.Game.Core.Managers
                             var itemLookConvertId = reader.GetUInt32("item_look_convert_id");
                             var wearableId = reader.GetUInt32("wearable_slot_id");
                             if (!_wearableItemLookConverts.ContainsKey(wearableId))
+                            {
                                 _wearableItemLookConverts.Add(wearableId, itemLookConvertId);
+                            }
                         }
                     }
                 }
@@ -626,15 +675,15 @@ namespace AAEmu.Game.Core.Managers
                             template.UpgradeRatio = reader.GetInt32("upgrade_ratio");
                             template.StatMultiplier = reader.GetInt32("stat_multiplier");
                             template.RefundMultiplier = reader.GetInt32("refund_multiplier");
-                            template.EnchantSuccessRatio = reader.GetInt32("grade_enchant_success_ratio");
-                            template.EnchantGreatSuccessRatio = reader.GetInt32("grade_enchant_great_success_ratio");
-                            template.EnchantBreakRatio = reader.GetInt32("grade_enchant_break_ratio");
-                            template.EnchantDowngradeRatio = reader.GetInt32("grade_enchant_downgrade_ratio");
-                            template.EnchantCost = reader.GetInt32("grade_enchant_cost");
-                            template.HoldableHealDps = reader.GetFloat("var_holdable_heal_dps");
-                            template.EnchantDowngradeMin = reader.GetInt32("grade_enchant_downgrade_min");
-                            template.EnchantDowngradeMax = reader.GetInt32("grade_enchant_downgrade_max");
-                            template.CurrencyId = reader.GetInt32("currency_id");
+                            //template.EnchantSuccessRatio = reader.GetInt32("grade_enchant_success_ratio"); // there is no such field in the database for version 3.0.3.0
+                            //template.EnchantGreatSuccessRatio = reader.GetInt32("grade_enchant_great_success_ratio"); // there is no such field in the database for version 3.0.3.0
+                            //template.EnchantBreakRatio = reader.GetInt32("grade_enchant_break_ratio"); // there is no such field in the database for version 3.0.3.0
+                            //template.EnchantDowngradeRatio = reader.GetInt32("grade_enchant_downgrade_ratio"); // there is no such field in the database for version 3.0.3.0
+                            //template.EnchantCost = reader.GetInt32("grade_enchant_cost"); // there is no such field in the database for version 3.0.3.0
+                            //template.HoldableHealDps = reader.GetFloat("var_holdable_heal_dps"); // there is no such field in the database for version 3.0.3.0
+                            //template.EnchantDowngradeMin = reader.GetInt32("grade_enchant_downgrade_min"); // there is no such field in the database for version 3.0.3.0
+                            //template.EnchantDowngradeMax = reader.GetInt32("grade_enchant_downgrade_max"); // there is no such field in the database for version 3.0.3.0
+                            //template.CurrencyId = reader.GetInt32("currency_id"); // there is no such field in the database for version 3.0.3.0
                             _grades.Add(template.Grade, template);
                             _gradesOrdered.Add(template.GradeOrder, template);
                         }
@@ -651,30 +700,27 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new Holdable
-                            {
-                                Id = reader.GetUInt32("id"),
-                                KindId = reader.GetUInt32("kind_id"),
-                                Speed = reader.GetInt32("speed"),
-                                ExtraDamagePierceFactor = reader.GetInt32("extra_damage_pierce_factor"),
-                                ExtraDamageSlashFactor = reader.GetInt32("extra_damage_slash_factor"),
-                                ExtraDamageBluntFactor = reader.GetInt32("extra_damage_blunt_factor"),
-                                MaxRange = reader.GetInt32("max_range"),
-                                Angle = reader.GetInt32("angle"),
-                                EnchantedDps1000 = reader.GetInt32("enchanted_dps1000"),
-                                SlotTypeId = reader.GetUInt32("slot_type_id"),
-                                DamageScale = reader.GetInt32("damage_scale"),
-                                FormulaDps = new Formula(reader.GetString("formula_dps")),
-                                FormulaMDps = new Formula(reader.GetString("formula_mdps")),
-                                FormulaArmor = new Formula(reader.GetString("formula_armor")),
-                                MinRange = reader.GetInt32("min_range"),
-                                SheathePriority = reader.GetInt32("sheathe_priority"),
-                                DurabilityRatio = reader.GetFloat("durability_ratio"),
-                                RenewCategory = reader.GetInt32("renew_category"),
-                                ItemProcId = reader.GetInt32("item_proc_id"),
-                                StatMultiplier = reader.GetInt32("stat_multiplier"),
-                                FormulaHDps = new Formula(reader.GetString("formula_hdps"))
-                            };
+                            var template = new Holdable();
+                            template.Id = reader.GetUInt32("id"); //KindId = reader.GetUInt32("kind_id"); // there is no such field in the database for version 3.0.3.0
+                            template.Speed = reader.GetInt32("speed");
+                            template.ExtraDamagePierceFactor = reader.GetInt32("extra_damage_pierce_factor");
+                            template.ExtraDamageSlashFactor = reader.GetInt32("extra_damage_slash_factor");
+                            template.ExtraDamageBluntFactor = reader.GetInt32("extra_damage_blunt_factor");
+                            template.MaxRange = reader.GetInt32("max_range");
+                            template.Angle = reader.GetInt32("angle");
+                            template.EnchantedDps1000 = reader.GetInt32("enchanted_dps1000");
+                            template.SlotTypeId = reader.GetUInt32("slot_type_id");
+                            template.DamageScale = reader.GetInt32("damage_scale");
+                            template.FormulaDps = new Formula(reader.GetString("formula_dps"));
+                            template.FormulaMDps = new Formula(reader.GetString("formula_mdps"));
+                            template.FormulaArmor = new Formula(reader.GetString("formula_armor"));
+                            template.MinRange = reader.GetInt32("min_range");
+                            template.SheathePriority = reader.GetInt32("sheathe_priority");
+                            template.DurabilityRatio = reader.GetFloat("durability_ratio");
+                            template.RenewCategory = reader.GetInt32("renew_category");
+                            template.ItemProcId = reader.GetInt32("item_proc_id");
+                            template.StatMultiplier = reader.GetInt32("stat_multiplier");
+                            template.FormulaHDps = new Formula(reader.GetString("formula_hdps"));
 
                             _holdables.Add(template.Id, template);
                         }
@@ -691,13 +737,10 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new Wearable
-                            {
-                                TypeId = reader.GetUInt32("armor_type_id"),
-                                SlotTypeId = reader.GetUInt32("slot_type_id"),
-                                ArmorBp = reader.GetInt32("armor_bp"),
-                                MagicResistanceBp = reader.GetInt32("magic_resistance_bp")
-                            };
+                            var template = new Wearable();
+                            template.TypeId = reader.GetUInt32("armor_type_id");
+                            template.SlotTypeId = reader.GetUInt32("slot_type_id");
+                            template.ArmorBp = reader.GetInt32("armor_bp"); //MagicResistanceBp = reader.GetInt32("magic_resistance_bp") // there is no such field in the database for version 3.0.3.0
                             _wearables.Add(template.TypeId * 128 + template.SlotTypeId, template);
                         }
                     }
@@ -712,18 +755,16 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new WearableKind
-                            {
-                                TypeId = reader.GetUInt32("armor_type_id"),
-                                ArmorRatio = reader.GetInt32("armor_ratio"),
-                                MagicResistanceRatio = reader.GetInt32("magic_resistance_ratio"),
-                                FullBufId = reader.GetUInt32("full_buff_id"),
-                                HalfBufId = reader.GetUInt32("half_buff_id"),
-                                ExtraDamagePierce = reader.GetInt32("extra_damage_pierce"),
-                                ExtraDamageSlash = reader.GetInt32("extra_damage_slash"),
-                                ExtraDamageBlunt = reader.GetInt32("extra_damage_blunt"),
-                                DurabilityRatio = reader.GetFloat("durability_ratio")
-                            };
+                            var template = new WearableKind();
+                            template.TypeId = reader.GetUInt32("armor_type_id");
+                            //template.ArmorRatio = reader.GetInt32("armor_ratio"); // there is no such field in the database for version 3.0.3.0
+                            //template.MagicResistanceRatio = reader.GetInt32("magic_resistance_ratio"); // there is no such field in the database for version 3.0.3.0
+                            template.FullBufId = reader.GetUInt32("full_buff_id");
+                            template.HalfBufId = reader.GetUInt32("half_buff_id");
+                            template.ExtraDamagePierce = reader.GetInt32("extra_damage_pierce");
+                            template.ExtraDamageSlash = reader.GetInt32("extra_damage_slash");
+                            template.ExtraDamageBlunt = reader.GetInt32("extra_damage_blunt");
+                            template.DurabilityRatio = reader.GetFloat("durability_ratio");
                             _wearableKinds.Add(template.TypeId, template);
                         }
                     }
@@ -738,11 +779,9 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new WearableSlot
-                            {
-                                SlotTypeId = reader.GetUInt32("slot_type_id"),
-                                Coverage = reader.GetInt32("coverage")
-                            };
+                            var template = new WearableSlot();
+                            template.SlotTypeId = reader.GetUInt32("slot_type_id");
+                            template.Coverage = reader.GetInt32("coverage");
                             _wearableSlots.Add(template.SlotTypeId, template);
                         }
                     }
@@ -758,15 +797,13 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new AttributeModifiers
-                            {
-                                Id = reader.GetUInt32("id"), // TODO ... alias
-                                StrWeight = reader.GetInt32("str_weight"),
-                                DexWeight = reader.GetInt32("dex_weight"),
-                                StaWeight = reader.GetInt32("sta_weight"),
-                                IntWeight = reader.GetInt32("int_weight"),
-                                SpiWeight = reader.GetInt32("spi_weight")
-                            };
+                            var template = new AttributeModifiers();
+                            template.Id = reader.GetUInt32("id"); // TODO ... alias
+                            template.StrWeight = reader.GetInt32("str_weight");
+                            template.DexWeight = reader.GetInt32("dex_weight");
+                            template.StaWeight = reader.GetInt32("sta_weight");
+                            template.IntWeight = reader.GetInt32("int_weight");
+                            template.SpiWeight = reader.GetInt32("spi_weight");
                             _modifiers.Add(template.Id, template);
                         }
                     }
@@ -780,17 +817,15 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new ItemProcTemplate()
-                            {
-                                Id = reader.GetUInt32("id"),
-                                SkillId = reader.GetUInt32("skill_id"),
-                                ChanceKind = (ProcChanceKind)reader.GetUInt32("chance_kind_id"),
-                                ChanceRate = reader.GetUInt32("chance_rate"),
-                                ChanceParam = reader.GetUInt32("chance_param"),
-                                CooldownSec = reader.GetUInt32("cooldown_sec"),
-                                Finisher = reader.GetBoolean("finisher", true),
-                                ItemLevelBasedChanceBonus = reader.GetUInt32("item_level_based_chance_bonus"),
-                            };
+                            var template = new ItemProcTemplate();
+                            template.Id = reader.GetUInt32("id");
+                            template.SkillId = reader.GetUInt32("skill_id");
+                            template.ChanceKind = (ProcChanceKind)reader.GetUInt32("chance_kind_id");
+                            template.ChanceRate = reader.GetUInt32("chance_rate");
+                            template.ChanceParam = reader.GetUInt32("chance_param");
+                            template.CooldownSec = reader.GetUInt32("cooldown_sec");
+                            template.Finisher = reader.GetBoolean("finisher", true);
+                            template.ItemLevelBasedChanceBonus = reader.GetUInt32("item_level_based_chance_bonus");
 
                             _itemProcTemplates.Add(template.Id, template);
                         }
@@ -808,17 +843,19 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var id = reader.GetUInt32("equip_item_set_id");
                             if (!_equipItemSets.ContainsKey(id))
-                                _equipItemSets.Add(id, new EquipItemSet { Id = id });
-
-                            var bonus = new EquipItemSetBonus()
                             {
-                                NumPieces = reader.GetInt32("num_pieces"),
-                                BuffId = reader.GetUInt32("buff_id", 0),
-                                ItemProcId = reader.GetUInt32("proc_id", 0)
-                            };
+                                _equipItemSets.Add(id, new EquipItemSet { Id = id });
+                            }
+
+                            var bonus = new EquipItemSetBonus();
+                            bonus.NumPieces = reader.GetInt32("num_pieces");
+                            bonus.BuffId = reader.GetUInt32("buff_id", 0);
+                            bonus.ItemProcId = reader.GetUInt32("proc_id", 0);
 
                             if (bonus.BuffId != 0 || bonus.ItemProcId != 0)
+                            {
                                 _equipItemSets[id].Bonuses.Add(bonus);
+                            }
                         }
                     }
                 }
@@ -835,23 +872,21 @@ namespace AAEmu.Game.Core.Managers
                             var slotTypeId = reader.GetUInt32("slot_type_id");
                             var typeId = reader.GetUInt32("type_id");
 
-                            var template = new ArmorTemplate
-                            {
-                                Id = reader.GetUInt32("item_id"),
-                                WearableTemplate = _wearables[typeId * 128 + slotTypeId],
-                                KindTemplate = _wearableKinds[typeId],
-                                SlotTemplate = _wearableSlots[slotTypeId],
-                                BaseEnchantable = reader.GetBoolean("base_enchantable", true),
-                                ModSetId = reader.GetUInt32("mod_set_id", 0),
-                                Repairable = reader.GetBoolean("repairable", true),
-                                DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
-                                BaseEquipment = reader.GetBoolean("base_equipment", true),
-                                RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
-                                ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
-                                ChargeCount = reader.GetInt32("charge_count", 0),
-                                ItemLookConvert = GetWearableItemLookConvert(slotTypeId),
-                                EquipItemSetId = reader.GetUInt32("eiset_id", 0)
-                            };
+                            var template = new ArmorTemplate();
+                            template.Id = reader.GetUInt32("item_id");
+                            template.WearableTemplate = _wearables[typeId * 128 + slotTypeId];
+                            template.KindTemplate = _wearableKinds[typeId];
+                            template.SlotTemplate = _wearableSlots[slotTypeId];
+                            template.BaseEnchantable = reader.GetBoolean("base_enchantable", true);
+                            template.ModSetId = reader.GetUInt32("mod_set_id", 0);
+                            template.Repairable = reader.GetBoolean("repairable", true);
+                            template.DurabilityMultiplier = reader.GetInt32("durability_multiplier");
+                            template.BaseEquipment = reader.GetBoolean("base_equipment", true);
+                            template.RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0);
+                            template.ChargeLifetime = reader.GetInt32("charge_lifetime", 0);
+                            template.ChargeCount = (short)reader.GetInt32("charge_count", 0);
+                            template.ItemLookConvert = GetWearableItemLookConvert(slotTypeId);
+                            template.EquipItemSetId = reader.GetUInt32("eiset_id", 0);
                             _templates.Add(template.Id, template);
                         }
                     }
@@ -867,21 +902,19 @@ namespace AAEmu.Game.Core.Managers
                         while (reader.Read())
                         {
                             var holdableId = reader.GetUInt32("holdable_id");
-                            var template = new WeaponTemplate
-                            {
-                                Id = reader.GetUInt32("item_id"),
-                                BaseEnchantable = reader.GetBoolean("base_enchantable"),
-                                HoldableTemplate = _holdables[holdableId],
-                                ModSetId = reader.GetUInt32("mod_set_id", 0),
-                                Repairable = reader.GetBoolean("repairable", true),
-                                DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
-                                BaseEquipment = reader.GetBoolean("base_equipment", true),
-                                RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
-                                ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
-                                ChargeCount = reader.GetInt32("charge_count", 0),
-                                ItemLookConvert = GetHoldableItemLookConvert(holdableId),
-                                EquipItemSetId = reader.GetUInt32("eiset_id", 0)
-                            };
+                            var template = new WeaponTemplate();
+                            template.Id = reader.GetUInt32("item_id");
+                            template.BaseEnchantable = reader.GetBoolean("base_enchantable");
+                            template.HoldableTemplate = _holdables[holdableId];
+                            template.ModSetId = reader.GetUInt32("mod_set_id", 0);
+                            template.Repairable = reader.GetBoolean("repairable", true);
+                            template.DurabilityMultiplier = reader.GetInt32("durability_multiplier");
+                            template.BaseEquipment = reader.GetBoolean("base_equipment", true);
+                            template.RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0);
+                            template.ChargeLifetime = reader.GetInt32("charge_lifetime", 0);
+                            template.ChargeCount = (short)reader.GetInt32("charge_count", 0);
+                            template.ItemLookConvert = GetHoldableItemLookConvert(holdableId);
+                            template.EquipItemSetId = reader.GetUInt32("eiset_id", 0);
                             _templates.Add(template.Id, template);
                         }
                     }
@@ -899,20 +932,18 @@ namespace AAEmu.Game.Core.Managers
                             var slotTypeId = reader.GetUInt32("slot_type_id");
                             var typeId = reader.GetUInt32("type_id");
 
-                            var template = new AccessoryTemplate
-                            {
-                                Id = reader.GetUInt32("item_id"),
-                                WearableTemplate = _wearables[typeId * 128 + slotTypeId],
-                                KindTemplate = _wearableKinds[typeId],
-                                SlotTemplate = _wearableSlots[slotTypeId],
-                                ModSetId = reader.GetUInt32("mod_set_id", 0),
-                                Repairable = reader.GetBoolean("repairable", true),
-                                DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
-                                RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
-                                ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
-                                ChargeCount = reader.GetInt32("charge_count", 0),
-                                EquipItemSetId = reader.GetUInt32("eiset_id", 0)
-                            };
+                            var template = new AccessoryTemplate();
+                            template.Id = reader.GetUInt32("item_id");
+                            template.WearableTemplate = _wearables[typeId * 128 + slotTypeId];
+                            template.KindTemplate = _wearableKinds[typeId];
+                            template.SlotTemplate = _wearableSlots[slotTypeId];
+                            template.ModSetId = reader.GetUInt32("mod_set_id", 0);
+                            template.Repairable = reader.GetBoolean("repairable", true);
+                            template.DurabilityMultiplier = reader.GetInt32("durability_multiplier");
+                            template.RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0);
+                            template.ChargeLifetime = reader.GetInt32("charge_lifetime", 0);
+                            template.ChargeCount = (short)reader.GetInt32("charge_count", 0);
+                            template.EquipItemSetId = reader.GetUInt32("eiset_id", 0);
                             _templates.Add(template.Id, template);
                         }
                     }
@@ -966,15 +997,18 @@ namespace AAEmu.Game.Core.Managers
                         while (reader.Read())
                         {
                             if (reader.IsDBNull("item_id"))
+                            {
                                 continue;
+                            }
+
                             var template = new BodyPartTemplate
                             {
                                 Id = reader.GetUInt32("item_id"),
                                 ItemId = reader.GetUInt32("item_id"),
                                 ModelId = reader.GetUInt32("model_id"),
                                 NpcOnly = reader.GetBoolean("npc_only", true),
-                                SlotTypeId = reader.GetUInt32("slot_type_id"),
-                                BeautyShopOnly = reader.GetBoolean("beautyshop_only", true)
+                                SlotTypeId = reader.GetUInt32("slot_type_id")
+                                //BeautyShopOnly = reader.GetBoolean("beautyshop_only", true) // there is no in the database for version 3.0.3.0
                             };
                             _templates.Add(template.Id, template);
                         }
@@ -1068,7 +1102,8 @@ namespace AAEmu.Game.Core.Managers
                             template.HonorPrice = reader.GetInt32("honor_price");
                             template.ExpAbsLifetime = reader.GetInt32("exp_abs_lifetime");
                             template.ExpOnlineLifetime = reader.GetInt32("exp_online_lifetime");
-                            template.ExpDate = !reader.IsDBNull("exp_date") ? reader.GetDateTime("exp_date") : DateTime.MinValue;
+                            //template.ExpDate = !reader.IsDBNull("exp_date") ? reader.GetDateTime("exp_date") : DateTime.MinValue;
+                            template.ExpDate = reader.IsDBNull("exp_date") ? reader.GetInt32("exp_date") : 0;
                             template.LevelRequirement = reader.GetInt32("level_requirement");
                             template.AuctionCategoryA = reader.IsDBNull("auction_a_category_id") ? 0 : reader.GetInt32("auction_a_category_id");
                             template.AuctionCategoryB = reader.IsDBNull("auction_b_category_id") ? 0 : reader.GetInt32("auction_b_category_id");
@@ -1079,7 +1114,9 @@ namespace AAEmu.Game.Core.Managers
                             template.CharGender = reader.GetByte("char_gender_id");
 
                             if (!_templates.ContainsKey(template.Id))
+                            {
                                 _templates.Add(template.Id, template);
+                            }
                         }
                     }
                 }
@@ -1091,14 +1128,18 @@ namespace AAEmu.Game.Core.Managers
                     using (var sqliteReader = command.ExecuteReader())
                     using (var reader = new SQLiteWrapperReader(sqliteReader))
                     {
+                        var step = 0u;
                         while (reader.Read())
                         {
                             var template = new EquipSlotEnchantingCost();
-                            template.Id = reader.GetUInt32("id");
+                            //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                            template.Id = step++;
                             template.SlotTypeId = reader.GetUInt32("slot_type_id");
                             template.Cost = reader.GetInt32("cost");
                             if (!_enchantingCosts.ContainsKey(template.SlotTypeId))
+                            {
                                 _enchantingCosts.Add(template.SlotTypeId, template);
+                            }
                         }
                     }
                 }
@@ -1113,7 +1154,7 @@ namespace AAEmu.Game.Core.Managers
                         while (reader.Read())
                         {
                             var template = new ItemGradeEnchantingSupport();
-                            template.Id = reader.GetUInt32("id");
+                            //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
                             template.ItemId = reader.GetUInt32("item_id");
                             template.RequireGradeMin = reader.GetInt32("require_grade_min");
                             template.RequireGradeMax = reader.GetInt32("require_grade_max");
@@ -1128,7 +1169,9 @@ namespace AAEmu.Game.Core.Managers
                             template.AddGreatSuccessGrade = reader.GetInt32("add_great_success_grade");
 
                             if (!_enchantingSupports.ContainsKey(template.ItemId))
+                            {
                                 _enchantingSupports.Add(template.ItemId, template);
+                            }
                         }
                     }
                 }
@@ -1142,11 +1185,13 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var numSockets = reader.GetUInt32("num_sockets");
-                            var chance = reader.GetUInt32("success_ratio");
+                            var numSockets = reader.GetUInt32("id"); // num_sockets
+                            var chance = reader.GetUInt32("cost_ratio"); // success_ratio
 
                             if (!_socketChance.ContainsKey(numSockets))
+                            {
                                 _socketChance.Add(numSockets, chance);
+                            }
                         }
                     }
                 }
@@ -1161,13 +1206,15 @@ namespace AAEmu.Game.Core.Managers
                         while (reader.Read())
                         {
                             var template = new ItemCapScale();
-                            template.Id = reader.GetUInt32("id");
+                            //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
                             template.SkillId = reader.GetUInt32("skill_id");
                             template.ScaleMin = reader.GetInt32("scale_min");
                             template.ScaleMax = reader.GetInt32("scale_max");
 
                             if (!_itemCapScales.ContainsKey(template.SkillId))
+                            {
                                 _itemCapScales.Add(template.SkillId, template);
+                            }
                         }
                     }
                 }
@@ -1194,7 +1241,9 @@ namespace AAEmu.Game.Core.Managers
                             template.AlwaysDrop = reader.GetBoolean("always_drop");
                             List<LootPacks> lootPacks;
                             if (_lootPacks.ContainsKey(template.LootPackId))
+                            {
                                 lootPacks = _lootPacks[template.LootPackId];
+                            }
                             else
                             {
                                 lootPacks = new List<LootPacks>();
@@ -1222,7 +1271,9 @@ namespace AAEmu.Game.Core.Managers
                             template.ItemGradeDistributionId = reader.GetByte("item_grade_distribution_id");
                             List<LootGroups> lootGroups;
                             if (_lootGroups.ContainsKey(template.PackId))
+                            {
                                 lootGroups = _lootGroups[template.PackId];
+                            }
                             else
                             {
                                 lootGroups = new List<LootGroups>();
@@ -1245,7 +1296,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new GradeDistributions();
                             template.Id = reader.GetInt32("id");
-                            template.Name = reader.GetString("name");
+                            //template.Name = reader.GetString("name"); // there is no such field in the database for version 3.0.3.0
                             template.Weight0 = reader.GetInt32("weight_0");
                             template.Weight1 = reader.GetInt32("weight_1");
                             template.Weight2 = reader.GetInt32("weight_2");
@@ -1278,7 +1329,9 @@ namespace AAEmu.Game.Core.Managers
                             template.DefaultPack = reader.GetBoolean("default_pack");
                             List<LootPackDroppingNpc> lootPackDroppingNpc;
                             if (_lootPackDroppingNpc.ContainsKey(template.NpcId))
+                            {
                                 lootPackDroppingNpc = _lootPackDroppingNpc[template.NpcId];
+                            }
                             else
                             {
                                 lootPackDroppingNpc = new List<LootPackDroppingNpc>();
@@ -1337,7 +1390,10 @@ namespace AAEmu.Game.Core.Managers
                             };
 
                             if (!_itemUnitModifiers.ContainsKey(itemId))
+                            {
                                 _itemUnitModifiers.Add(itemId, new List<BonusTemplate>());
+                            }
+
                             _itemUnitModifiers[itemId].Add(template);
                         }
                     }
@@ -1351,7 +1407,7 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var armorGradeBuff = new ArmorGradeBuff()
+                            var armorGradeBuff = new ArmorGradeBuff
                             {
                                 Id = reader.GetByte("id"),
                                 ArmorType = (ArmorType)reader.GetUInt32("armor_type_id"),
@@ -1360,10 +1416,14 @@ namespace AAEmu.Game.Core.Managers
                             };
 
                             if (!_armorGradeBuffs.ContainsKey(armorGradeBuff.ArmorType))
+                            {
                                 _armorGradeBuffs.Add(armorGradeBuff.ArmorType, new Dictionary<ItemGrade, ArmorGradeBuff>());
+                            }
 
                             if (!_armorGradeBuffs[armorGradeBuff.ArmorType].ContainsKey(armorGradeBuff.ItemGrade))
+                            {
                                 _armorGradeBuffs[armorGradeBuff.ArmorType].Add(armorGradeBuff.ItemGrade, armorGradeBuff);
+                            }
                         }
                     }
                 }
@@ -1393,9 +1453,13 @@ namespace AAEmu.Game.Core.Managers
         public Item GetItemByItemId(ulong itemId)
         {
             if (_allItems.TryGetValue(itemId, out var item))
+            {
                 return item;
+            }
             else
+            {
                 return null;
+            }
         }
 
         public (int, int, int) Save(MySqlConnection connection, MySqlTransaction transaction)
@@ -1422,7 +1486,10 @@ namespace AAEmu.Game.Core.Managers
                         }
 
                         if (deleteCount != _removedItems.Count)
+                        {
                             _log.Error($"Some items could not be deleted, only {deleteCount}/{_removedItems.Count} items removed !");
+                        }
+
                         _removedItems.Clear();
                     }
                 }
@@ -1440,11 +1507,15 @@ namespace AAEmu.Game.Core.Managers
                     foreach (var (_, c) in _allPersistantContainers)
                     {
                         if (c.ContainerId <= 0)
+                        {
                             continue;
-                        
+                        }
+
                         if (c.IsDirty == false)
+                        {
                             continue;
-                        
+                        }
+
                         command.CommandText = "REPLACE INTO item_containers (" +
                                               "`container_id`,`container_type`,`slot_type`,`container_size`,`owner_id`" +
                                               ") VALUES ( " +
@@ -1462,7 +1533,9 @@ namespace AAEmu.Game.Core.Managers
                             var res = command.ExecuteNonQuery();
                             containerUpdateCount += res;
                             if (res > 0)
+                            {
                                 c.IsDirty = false;
+                            }
                         }
                         catch (Exception e)
                         {
@@ -1485,19 +1558,26 @@ namespace AAEmu.Game.Core.Managers
                         var item = entry.Value;
                         
                         if (item == null)
+                        {
                             continue;
-                        
+                        }
+
                         if (item.SlotType == SlotType.None)
                         {
                             // Only give a error if it has no owner, otherwise it's likely a BuyBack item
                             if (item.OwnerId <= 0)
+                            {
                                 _log.Warn(string.Format("Found SlotType.None in itemslist, skipping ID:{0} - Template:{1}", item.Id, item.TemplateId));
+                            }
+
                             continue;
                         }
                         
                         if (!item.IsDirty)
+                        {
                             continue;
-                        
+                        }
+
                         var details = new Commons.Network.PacketStream();
                         item.WriteDetails(details);
 
@@ -1555,16 +1635,23 @@ namespace AAEmu.Game.Core.Managers
             foreach (var c in _allPersistantContainers)
             {
                 if ((c.Value.OwnerId == characterId) && (c.Value.ContainerType == slotType))
+                {
                     return c.Value;
+                }
             }
 
             var newContainerType = "ItemContainer";
             if (slotType == SlotType.Equipment)
+            {
                 newContainerType = "EquipmentContainer";
+            }
+
             var newContainer = ItemContainer.CreateByTypeName(newContainerType, characterId, slotType, true, slotType != SlotType.None);
             if (slotType != SlotType.None)
+            {
                 _allPersistantContainers.Add(newContainer.ContainerId, newContainer);
-            
+            }
+
             return newContainer;
         }
 
@@ -1588,11 +1675,15 @@ namespace AAEmu.Game.Core.Managers
         public bool DeleteItemContainer(ItemContainer container)
         {
             if (container == null)
+            {
                 return true;
+            }
 
             if (container.Items.Count > 0)
+            {
                 return false;
-            
+            }
+
             var idToRemove = (uint)container.ContainerId;
             container.ContainerId = 0;
             
@@ -1616,7 +1707,9 @@ namespace AAEmu.Game.Core.Managers
                     deleteCommand.Parameters.AddWithValue("@id", idToRemove);
                     deleteCommand.Prepare();
                     if (deleteCommand.ExecuteNonQuery() <= 0)
+                    {
                         _log.Error($"Failed to delete ItemContainer from DB container_id: {idToRemove}");
+                    }
                 }
             }
 
@@ -1626,8 +1719,10 @@ namespace AAEmu.Game.Core.Managers
         public void LoadUserItems()
         {
             if (_loadedUserItems)
+            {
                 return;
-            
+            }
+
             _log.Info("Loading user items ...");
             _allItems = new Dictionary<ulong, Item>();
             _allPersistantContainers = new Dictionary<ulong, ItemContainer>();
@@ -1714,14 +1809,18 @@ namespace AAEmu.Game.Core.Managers
 
                         // Overwrite Fixed-grade items, just to make sure. Retail does not do this, but it just feels better if we do
                         if (item.Template.FixedGrade >= 0)
+                        {
                             item.Grade = (byte)item.Template.FixedGrade;
+                        }
                         else if (item.Template.Gradable)
+                        {
                             item.Grade = reader.GetByte("grade"); // Load from our DB if the item is gradable
+                        }
 
                         item.ExpirationTime = reader.IsDBNull("expire_time") ? DateTime.MinValue : reader.GetDateTime("expire_time");
                         item.ExpirationOnlineMinutesLeft = reader.GetDouble("expire_online_minutes");
                         item.ChargeStartTime = reader.IsDBNull("charge_time") ? DateTime.MinValue : reader.GetDateTime("charge_time");
-                        item.ChargeCount = reader.GetInt32("charge_count");
+                        item.ChargeCount = (short)reader.GetInt32("charge_count");
                         
                         // Add it to the global pool
                         if (!_allItems.TryAdd(item.Id, item))
@@ -1734,9 +1833,13 @@ namespace AAEmu.Game.Core.Managers
                         {
                             // Move item to it's container (if defined)
                             if (container.AddOrMoveExistingItem(ItemTaskType.Invalid, item, item.Slot))
+                            {
                                 item.IsDirty = false;
+                            }
                             else
+                            {
                                 _log.Fatal($"Failed to add item {item} to existing container {container.ContainerId} !");
+                            }
                         }
                         else
                         {
@@ -1789,7 +1892,9 @@ namespace AAEmu.Game.Core.Managers
             lock (_removedItems)
             {
                 if (itemId != 0 && _removedItems.Contains(itemId))
+                {
                     _removedItems.Remove(itemId);
+                }
             }
             return itemId;
         }
@@ -1803,12 +1908,16 @@ namespace AAEmu.Game.Core.Managers
             lock (_removedItems)
             {
                 if (itemId != 0 && !_removedItems.Contains(itemId))
+                {
                     _removedItems.Add(itemId);
+                }
             }
             lock (_allItems)
             {
                 if (_allItems.ContainsKey(itemId))
+                {
                     _allItems.Remove(itemId);
+                }
             }
             // This should be the only place where ItemId ReleaseId should be called directly
             ItemIdManager.Instance.ReleaseId((uint)itemId);
@@ -1869,30 +1978,42 @@ namespace AAEmu.Game.Core.Managers
                     // Do we need to check if charges expired ?
                     var checkCharges = (equipItemTemplate.ChargeCount > 0);
                     if ((equipItemTemplate.BindType == ItemBindType.BindOnUnpack) && (equipItem.HasFlag(ItemFlag.Unpacked) == false))
+                    {
                         checkCharges = false;
-                    
+                    }
+
                     // Timed Charged items
                     if ((equipItemTemplate.ChargeLifetime > 0) && (expireCheckTime <= DateTime.UtcNow))
+                    {
                         expireBuff = true;
+                    }
 
                     // Count Charged Items
                     if (checkCharges && (equipItemTemplate.ChargeCount > 0) && (equipItem.ChargeCount <= 0))
+                    {
                         expireBuff = true;
+                    }
 
                     // Apply expire buff if needed
                     if (expireBuff && (character != null) &&
                         character.Buffs.CheckBuff(equipItemTemplate.RechargeBuffId))
+                    {
                         character.Buffs.RemoveBuff(equipItemTemplate.RechargeBuffId);
+                    }
                 }
 
                 // Check if item itself needs to be expired
                 if ((item.ExpirationTime > DateTime.MinValue) && (item.ExpirationTime <= DateTime.UtcNow))
+                {
                     doExpire = true; // Item expired by predefined end time
+                }
                 else if (item.ExpirationOnlineMinutesLeft > 0.0)
                 {
                     item.ExpirationOnlineMinutesLeft -= delta.TotalMinutes; // reduce lifespan of this item
                     if (item.ExpirationOnlineMinutesLeft <= 0.0)
+                    {
                         doExpire = true; // online timed lifespan is done
+                    }
                 }
 
                 if (doExpire)
@@ -1900,7 +2021,10 @@ namespace AAEmu.Game.Core.Managers
                     res++;
                     var sync = ExpireItemPacket(item);
                     if (sync != null)
+                    {
                         character?.SendPacket(sync);
+                    }
+
                     itemContainer.RemoveItem(ItemTaskType.LifespanExpiration, item, true);            
                 }
             }
@@ -1935,7 +2059,9 @@ namespace AAEmu.Game.Core.Managers
             }
 
             if (res > 0)
+            {
                 _log.Warn($"{res} item(s) expired and have been removed.");
+            }
         }
         
         public GamePacket SetItemExpirationTime(Item item, DateTime newTime)
@@ -1974,7 +2100,10 @@ namespace AAEmu.Game.Core.Managers
         {
             var item = GetItemByItemId(itemId);
             if (item == null)
+            {
                 return false;
+            }
+
             if ((item.SlotType != slotType) || (item.Slot != slot))
             {
                 _log.Warn($"UnwrapItem: Requested item position does not match up for {itemId} of user {character.Name}");
@@ -1983,11 +2112,17 @@ namespace AAEmu.Game.Core.Managers
             item.UnpackTime = DateTime.UtcNow;//.AddDays(-30).AddSeconds(15);
             item.SetFlag(ItemFlag.Unpacked);
             if (item.Template.BindType == ItemBindType.BindOnUnpack)
+            {
                 item.SetFlag(ItemFlag.SoulBound);
+            }
+
             var updateItemTask = new ItemUpdateSecurity(item, (byte)item.ItemFlags,  item.HasFlag(ItemFlag.Secure), item.HasFlag(ItemFlag.Secure), item.ItemFlags.HasFlag(ItemFlag.Unpacked));
             character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ItemTaskThistimeUnpack, updateItemTask, new List<ulong>()));
             if ((item.Template is EquipItemTemplate equipItemTemplate) && (equipItemTemplate.ChargeLifetime > 0))
+            {
                 character.SendPacket(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, item.UnpackTime));
+            }
+
             return true;
         }
     }

@@ -28,20 +28,22 @@ namespace AAEmu.Game.Models.Game.Shipyard
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(Id);
-            stream.Write(TemplateId);
+            stream.WritePisc(TemplateId, 0, Type, 0);      // 7, 0, 17707, 0
+
+            //stream.Write(TemplateId);
             stream.Write(Helpers.ConvertLongX(X));
             stream.Write(Helpers.ConvertLongY(Y));
             stream.Write(Z);
             stream.Write(zRot);
             stream.Write(MoneyAmount);
-            stream.Write(Actions);
-            stream.Write(Type);
+            //stream.Write(Actions);
+            //stream.Write(Type);
             stream.Write(Type2);
             stream.Write(OwnerName);
             stream.Write(Type3);
             stream.Write(Spawned);
             stream.WriteBc(ObjId);
-            stream.Write(Hp);
+            //stream.Write(Hp);
 
             return stream;
         }

@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSellItemsPacket : GamePacket
     {
-        public CSSellItemsPacket() : base(CSOffsets.CSSellItemsPacket, 1)
+        public CSSellItemsPacket() : base(CSOffsets.CSSellItemsPacket, 5)
         {
         }
 
@@ -22,7 +22,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             var npcObjId = stream.ReadBc();
             var npc = WorldManager.Instance.GetNpc(npcObjId);
             if (npc == null || !npc.Template.Merchant)
+            {
                 return;
+            }
 
             var unkObjId = stream.ReadBc();
 
@@ -39,13 +41,20 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 Item item = null;
                 if (slotType == SlotType.Equipment)
+                {
                     item = Connection.ActiveChar.Inventory.Equipment.GetItemBySlot(slot);
+                }
                 else if (slotType == SlotType.Inventory)
+                {
                     item = Connection.ActiveChar.Inventory.Bag.GetItemBySlot(slot);
-//                else if (slotType == SlotType.Bank)
+                }
+
+                //                else if (slotType == SlotType.Bank)
 //                    item = Connection.ActiveChar.Inventory.Bank[slot];
                 if (item != null && item.Id == itemId)
+                {
                     items.Add(item);
+                }
             }
 
             //var tasks = new List<ItemTask>();
@@ -53,7 +62,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             foreach (var item in items)
             {
                 if (!item.Template.Sellable)
+                {
                     continue;
+                }
 
                 if (!Connection.ActiveChar.BuyBackItems.AddOrMoveExistingItem(ItemTaskType.StoreSell, item))
                 {

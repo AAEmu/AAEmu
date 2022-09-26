@@ -281,7 +281,10 @@ namespace AAEmu.Commons.Utils
         public static void Init()
         {
             if (_init)
+            {
                 return;
+            }
+
             _init = true;
             // The above prime numbers are formatted for human readability.
             // To find numbers fast, we sort them once and for all.
@@ -293,7 +296,10 @@ namespace AAEmu.Commons.Utils
         {
             var i = Array.BinarySearch(primeCapacities, desiredCapacity);
             if (i < 0)
+            {
                 i = -i - 1;
+            }
+
             return primeCapacities[i];
         }
     }

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDestroyItemPacket : GamePacket 
     {
-        public CSDestroyItemPacket() : base(CSOffsets.CSDestroyItemPacket, 1)
+        public CSDestroyItemPacket() : base(CSOffsets.CSDestroyItemPacket, 5)
         {
         }
 
@@ -49,7 +49,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 }
                 // Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemRemove(item) }, new List<ulong>()));
             }
-
+        
             Connection.ActiveChar?.Inventory.OnItemManuallyDestroyed(item, item.Count);
         }
     }

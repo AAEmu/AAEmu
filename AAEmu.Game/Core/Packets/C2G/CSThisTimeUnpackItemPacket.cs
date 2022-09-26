@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSThisTimeUnpackItemPacket : GamePacket
     {
-        public CSThisTimeUnpackItemPacket() : base(CSOffsets.CSThisTimeUnpackItemPacket, 1)
+        public CSThisTimeUnpackItemPacket() : base(CSOffsets.CSThisTimeUnpackItemPacket, 5)
         {
 
         }
@@ -21,7 +21,9 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("CSThisTimeUnpackItemPacket, slotType: {0}, slot: {1}, itemId: {2}", slotType, slot, itemId);
             if (!ItemManager.Instance.UnwrapItem(Connection.ActiveChar, slotType, slot, itemId))
+            {
                 Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ItemUpdateFail);
+            }
         }
     }
 }

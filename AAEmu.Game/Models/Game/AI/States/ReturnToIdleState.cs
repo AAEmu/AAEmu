@@ -16,8 +16,10 @@ namespace AAEmu.Game.Models.Game.AI.States
         public override void Tick(TimeSpan delta)
         {
             if (!(AI.Owner is Npc npc))
+            {
                 return;
-            
+            }
+
             npc.MoveTowards(AI.IdlePosition.Position, 4.4f * (delta.Milliseconds / 1000.0f));
             if (MathUtil.CalculateDistance(npc.Transform.World.Position, AI.IdlePosition.Position, true) < 1.0f)
             {

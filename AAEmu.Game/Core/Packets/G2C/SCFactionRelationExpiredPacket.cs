@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _prevState;
         private readonly byte _currState;
 
-        public SCFactionRelationExpiredPacket(uint id, uint id2, byte prevState, byte currState) : base(SCOffsets.SCFactionRelationExpiredPacket, 1)
+        public SCFactionRelationExpiredPacket(uint id, uint id2, byte prevState, byte currState) : base(SCOffsets.SCFactionRelationExpiredPacket, 5)
         {
             _id = id;
             _id2 = id2;

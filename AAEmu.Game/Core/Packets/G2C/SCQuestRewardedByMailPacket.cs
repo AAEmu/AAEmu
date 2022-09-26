@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint[] _questList;
 
-        public SCQuestRewardedByMailPacket(uint[] questList) : base(SCOffsets.SCQuestRewardedByMailPacket, 1)
+        public SCQuestRewardedByMailPacket(uint[] questList) : base(SCOffsets.SCQuestRewardedByMailPacket, 5)
         {
             _questList = questList;
         }

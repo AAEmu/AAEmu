@@ -15,7 +15,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (caster is Character) { _log.Debug("Special effects: GiveBmMileage value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
             if (!(caster is Character character))
+            {
                 return;
+            }
 
             character.BmPoint += value1;
             character.SendPacket(new SCMileageChangedPacket(character.ObjId, (int) character.BmPoint));

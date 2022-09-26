@@ -67,9 +67,13 @@ namespace AAEmu.Game.Utils
                                 if (args.Length >= 3 && uint.TryParse(args[2], out var stepId))
                                 {
                                     if (character.Quests.SetStep(questId, stepId))
+                                    {
                                         character.SendMessage("[Quest] set Step {0} for Quest {1}", stepId, questId);
+                                    }
                                     else
+                                    {
                                         character.SendMessage("[Quest] Proper usage: /quest step <questId> <stepId>");
+                                    }
                                 }
                             }
                             else
@@ -92,15 +96,26 @@ namespace AAEmu.Game.Utils
                             {
                                 var quest = character.Quests.Quests[questId];
                                 if (quest.Step == QuestComponentKind.None)
+                                {
                                     quest.Step = QuestComponentKind.Start;
+                                }
+
                                 if (quest.Step == QuestComponentKind.Start)
+                                {
                                     quest.Step = QuestComponentKind.Supply;
+                                }
                                 else if (quest.Step == QuestComponentKind.Supply)
+                                {
                                     quest.Step = QuestComponentKind.Progress;
+                                }
                                 else if (quest.Step == QuestComponentKind.Progress)
+                                {
                                     quest.Step = QuestComponentKind.Ready;
+                                }
                                 else if (quest.Step == QuestComponentKind.Ready)
+                                {
                                     quest.Step = QuestComponentKind.Reward;
+                                }
                                 else if (quest.Step > QuestComponentKind.Reward)
                                 {
                                     quest.Drop(true);

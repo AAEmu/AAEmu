@@ -11,7 +11,7 @@ namespace AAEmu.Login.Core.Packets.C2L
 
         public override void Read(PacketStream stream)
         {
-            var wId = stream.ReadByte(); // diw -> world id
+            var wId = stream.ReadByte(); // wid -> world id
         }
     }
 }

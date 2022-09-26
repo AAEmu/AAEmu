@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSLeaveWorldPacket : GamePacket
     {
-        public CSLeaveWorldPacket() : base(CSOffsets.CSLeaveWorldPacket, 1)
+        public CSLeaveWorldPacket() : base(CSOffsets.CSLeaveWorldPacket, 5)
         {
         }
 

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Auction;
 
@@ -10,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     class SCAuctionBidPacket : GamePacket
     {
         private readonly AuctionItem _auctionItem;
-        public SCAuctionBidPacket(AuctionItem auctionItem) : base(SCOffsets.SCAuctionBidPacket, 1)
+        public SCAuctionBidPacket(AuctionItem auctionItem) : base(SCOffsets.SCAuctionBidPacket, 5)
         {
             _auctionItem = auctionItem;
         }

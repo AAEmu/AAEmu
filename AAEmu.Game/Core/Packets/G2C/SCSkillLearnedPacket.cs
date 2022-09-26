@@ -8,15 +8,15 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Skill _skill;
 
-        public SCSkillLearnedPacket(Skill skill) : base(SCOffsets.SCSkillLearnedPacket, 1)
+        public SCSkillLearnedPacket(Skill skill) : base(SCOffsets.SCSkillLearnedPacket, 5)
         {
             _skill = skill;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_skill.Id);
-            stream.Write(_skill.Level);
+            stream.Write(_skill.Id); // s
+            //stream.Write(_skill.Level); // нет в 3+
             return stream;
         }
     }

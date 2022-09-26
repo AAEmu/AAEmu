@@ -22,6 +22,7 @@ using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
 using System.Linq;
+using AAEmu.Commons.Cryptography;
 using AAEmu.Game.Utils.DB;
 using MySQL = AAEmu.Commons.Utils.DB.MySQL;
 
@@ -170,6 +171,7 @@ namespace AAEmu.Game
             CashShopManager.Instance.Load();
             UccManager.Instance.Load();
             MusicManager.Instance.Load();
+            EncryptionManager.Instance.Load();
             
             ScriptCompiler.Compile();
 

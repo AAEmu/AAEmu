@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSTakeAttachmentMoneyPacket : GamePacket
     {
-        public CSTakeAttachmentMoneyPacket() : base(CSOffsets.CSTakeAttachmentMoneyPacket, 1)
+        public CSTakeAttachmentMoneyPacket() : base(CSOffsets.CSTakeAttachmentMoneyPacket, 5)
         {
         }
 

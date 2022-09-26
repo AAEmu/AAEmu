@@ -114,7 +114,9 @@ namespace AAEmu.Commons.Utils
         public MersenneTwister(Int32[] initKey)
         {
             if (initKey == null)
+            {
                 throw new ArgumentNullException("initKey");
+            }
 
             var initArray = new UInt32[initKey.Length];
 
@@ -166,7 +168,9 @@ namespace AAEmu.Commons.Utils
         public virtual UInt32 NextUInt32(UInt32 minValue, UInt32 maxValue) /* throws ArgumentOutOfRangeException */
         {
             if (minValue > maxValue)
+            {
                 throw new ArgumentOutOfRangeException();
+            }
 
             return (UInt32) (GenerateUInt32() / ((Double) UInt32.MaxValue / (maxValue - minValue)) + minValue);
         }
@@ -195,7 +199,10 @@ namespace AAEmu.Commons.Utils
             if (maxValue < 1)
             {
                 if (maxValue < 0)
+                {
                     throw new ArgumentOutOfRangeException();
+                }
+
                 return 0;
             }
 
@@ -217,9 +224,15 @@ namespace AAEmu.Commons.Utils
         public override Int32 Next(Int32 minValue, Int32 maxValue)
         {
             if (maxValue < minValue)
+            {
                 throw new ArgumentOutOfRangeException();
+            }
+
             if (maxValue == minValue)
+            {
                 return minValue;
+            }
+
             return Next(maxValue - minValue) + minValue;
         }
 
@@ -234,7 +247,9 @@ namespace AAEmu.Commons.Utils
         {
             // [codekaizen: corrected this to check null before checking length.]
             if (buffer == null)
+            {
                 throw new ArgumentNullException();
+            }
 
             var bufLen = buffer.Length;
             for (var idx = 0; idx < bufLen; ++idx)
@@ -463,7 +478,10 @@ namespace AAEmu.Commons.Utils
                     i = 1;
                 }
 
-                if (j >= keyLength) j = 0;
+                if (j >= keyLength)
+                {
+                    j = 0;
+                }
             }
 
             for (k = N - 1; k > 0; k--)

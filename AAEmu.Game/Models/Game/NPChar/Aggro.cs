@@ -59,9 +59,13 @@ namespace AAEmu.Game.Models.Game.NPChar
             lock (_lock)
             {
                 if (kind == AggroKind.Damage)
+                {
                     _damageAggro += amount;
+                }
                 else if (kind == AggroKind.Heal)
+                {
                     _healAggro += (int)(amount * 0.6f);
+                }
             }
         }
 

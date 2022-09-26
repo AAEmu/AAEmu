@@ -29,7 +29,9 @@ namespace AAEmu.Game.Core.Managers
         {
             var result = CMD.Find(o => o.CommandName == commandStr);
             if (result != null)
+            {
                 return result.CommandLevel;
+            }
 
             return 100;
         }

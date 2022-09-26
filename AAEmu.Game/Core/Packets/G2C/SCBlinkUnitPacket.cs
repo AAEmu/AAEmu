@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly float _y;
         private readonly float _z;
 
-        public SCBlinkUnitPacket(uint objId, float distance, float degree, float x, float y, float z) : base(SCOffsets.SCBlinkUnitPacket, 1)
+        public SCBlinkUnitPacket(uint objId, float distance, float degree, float x, float y, float z) : base(SCOffsets.SCBlinkUnitPacket, 5)
         {
             _objId = objId;
             _distance = distance;

@@ -20,8 +20,10 @@ namespace AAEmu.Game.Genesis
         {
             var token = AppConfiguration.Instance.DiscordToken;
             if (string.IsNullOrEmpty(token))
+            {
                 return;
-            
+            }
+
             _client = new DiscordSocketClient();
 
             await _client.LoginAsync(TokenType.Bot, token);
@@ -36,7 +38,10 @@ namespace AAEmu.Game.Genesis
         public async Task StopAsync(CancellationToken cancellationToken)
         {
             if (_client == null)
+            {
                 return;
+            }
+
             await _client.StopAsync();
         }
         
@@ -56,9 +61,13 @@ namespace AAEmu.Game.Genesis
             {
                 var playerNames = WorldManager.Instance.GetAllCharacters().Select(c => c.Name).ToList();
                 if (playerNames.Count > 0)
+                {
                     await message.Channel.SendMessageAsync("Players online: " + string.Join(", ", playerNames));
+                }
                 else
+                {
                     await message.Channel.SendMessageAsync("No players online.");
+                }
             }
         }
     }

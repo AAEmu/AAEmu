@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             Owner = owner;
             Abilities = new Dictionary<AbilityType, Ability>();
-            for (var i = 1; i < 11; i++)
+            for (var i = 1; i < 13; i++) //1.2 = 10 ability, 3.0.3.0 = 12 ability
             {
                 var id = (AbilityType) i;
                 Abilities[id] = new Ability(id);
@@ -34,11 +34,20 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var list = new List<AbilityType>();
             if (Owner.Ability1 != AbilityType.None)
+            {
                 list.Add(Owner.Ability1);
+            }
+
             if (Owner.Ability2 != AbilityType.None)
+            {
                 list.Add(Owner.Ability2);
+            }
+
             if (Owner.Ability3 != AbilityType.None)
+            {
                 list.Add(Owner.Ability3);
+            }
+
             return list;
         }
 
@@ -46,18 +55,28 @@ namespace AAEmu.Game.Models.Game.Char
         {
             // TODO SCAbilityExpChangedPacket
             if (type != AbilityType.None)
+            {
                 Abilities[type].Exp += exp;
+            }
         }
 
         public void AddActiveExp(int exp)
         {
             // TODO SCExpChangedPacket
             if (Owner.Ability1 != AbilityType.None)
+            {
                 Abilities[Owner.Ability1].Exp = Math.Min(Abilities[Owner.Ability1].Exp + exp, ExpirienceManager.Instance.GetExpForLevel(55));
+            }
+
             if (Owner.Ability2 != AbilityType.None)
+            {
                 Abilities[Owner.Ability2].Exp = Math.Min(Abilities[Owner.Ability2].Exp + exp, ExpirienceManager.Instance.GetExpForLevel(55));
+            }
+
             if (Owner.Ability3 != AbilityType.None)
+            {
                 Abilities[Owner.Ability3].Exp = Math.Min(Abilities[Owner.Ability3].Exp + exp, ExpirienceManager.Instance.GetExpForLevel(55));
+            }
         }
 
         public void Swap(AbilityType oldAbilityId, AbilityType abilityId)
@@ -102,7 +121,10 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             if (oldAbilityId != AbilityType.None)
+            {
                 Abilities[oldAbilityId].Order = 255;
+            }
+
             Owner.BroadcastPacket(new SCAbilitySwappedPacket(Owner.ObjId, oldAbilityId, abilityId), true);
         }
 
@@ -122,11 +144,20 @@ namespace AAEmu.Game.Models.Game.Char
                             Exp = reader.GetInt32("exp")
                         };
                         if (ability.Id == Owner.Ability1)
+                        {
                             ability.Order = 0;
+                        }
+
                         if (ability.Id == Owner.Ability2)
+                        {
                             ability.Order = 1;
+                        }
+
                         if (ability.Id == Owner.Ability3)
+                        {
                             ability.Order = 2;
+                        }
+
                         Abilities[ability.Id] = ability;
                     }
                 }

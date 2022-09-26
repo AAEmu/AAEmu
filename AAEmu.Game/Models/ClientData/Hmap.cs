@@ -47,7 +47,9 @@ namespace AAEmu.Game.Models.ClientData
             OceanWaterLevel = br.ReadSingle();
 
             if (Version >= 24)
+            {
                 br.ReadBytes(128); // unk?
+            }
 
             var nodesRead = 0;
             while (br.BaseStream.Position != ChunkSize)
@@ -127,7 +129,10 @@ namespace AAEmu.Game.Models.ClientData
 
             Init();
             if (!disabledReCalc && Version < 7)
+            {
                 RescaleToInt();
+            }
+
             UpScale();
         }
 
@@ -147,7 +152,9 @@ namespace AAEmu.Game.Models.ClientData
             {
                 var index = nX * nSize + nY;
                 if (index >= pHMData.Length)
+                {
                     return 0;
+                }
 
                 return pHMData[index];
             }

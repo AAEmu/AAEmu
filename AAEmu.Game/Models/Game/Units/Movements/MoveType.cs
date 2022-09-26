@@ -85,7 +85,10 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             }
 
             if (mType != null)
+            {
                 mType.Type = type;
+            }
+
             return mType;
         }
     }

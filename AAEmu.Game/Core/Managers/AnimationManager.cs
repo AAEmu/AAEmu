@@ -75,7 +75,9 @@ namespace AAEmu.Game.Core.Managers
                     else if (props[0] == "total_time")
                     {
                         if (int.TryParse(props[1], out var totTime))
+                        {
                             lastAnimDuration.total_time = totTime;
+                        }
                         else
                         {
                             _log.Warn($"int parse error in {gFileName} at line {n + 1} : {line}");
@@ -85,7 +87,9 @@ namespace AAEmu.Game.Core.Managers
                     else if (props[0] == "combat_sync_time")
                     {
                         if (int.TryParse(props[1], out var syncTime))
+                        {
                             lastAnimDuration.combat_sync_time = syncTime;
+                        }
                         else
                         {
                             _log.Warn($"int parse error in {gFileName} at line {n + 1} : {line}");
@@ -138,8 +142,18 @@ namespace AAEmu.Game.Core.Managers
                                 SwimMoveUB = reader.GetString("swim_move_ub")
                             };
 
+                            if (_animationsByName.ContainsKey(template.Name))
+                            {
+                                continue;
+                            }
+
                             _animations.Add(template.Id, template);
-                            _animationsByName.Add(template.Name, template);
+                            _animationsByName.Add(template.Name, template); // в наличии дубль Nam
+                            /*
+                             *  id                                                              Name
+                             *  835     4   wyvern_ac_coin_launch	0	wyvern_ac_coin_launch	wyvern_ac_coin_launch		wyvern_ac_coin_launch	wyvern_ac_coin_launch	wyvern_ac_coin_launch
+                             *  8000021	4   wyvern_ac_coin_launch	0	wyvern_ac_coin_launch	wyvern_ac_coin_launch		wyvern_ac_coin_launch	wyvern_ac_coin_launch	wyvern_ac_coin_launch
+                             */
                         }
                     }
                 }

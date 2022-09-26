@@ -41,25 +41,39 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public List<SkillModifier> GetModifiersForSkillIdWithAttribute(uint skillId, SkillAttribute attribute) {
             var modifiers = GetModifiersForSkillId(skillId);
-            if (modifiers == null) return new List<SkillModifier>();
+            if (modifiers == null)
+            {
+                return new List<SkillModifier>();
+            }
+
             return modifiers.Where(mod => mod.SkillAttribute == attribute).ToList();
         }
 
         public List<SkillModifier> GetModifiersForTagIdWithAttribute(uint tagId, SkillAttribute attribute) {
             var modifiers = GetModifiersForTagId(tagId);
-            if (modifiers == null) return new List<SkillModifier>();
+            if (modifiers == null)
+            {
+                return new List<SkillModifier>();
+            }
+
             return modifiers.Where(mod => mod.SkillAttribute == attribute).ToList();
         }
 
         public List<SkillModifier> GetModifiersForSkillId(uint skillId) {
             if (_modifiersBySkillId.ContainsKey(skillId))
+            {
                 return _modifiersBySkillId[skillId];
+            }
+
             return null;
         }
 
         public List<SkillModifier> GetModifiersForTagId(uint tagId) {
             if (_modifiersByTagId.ContainsKey(tagId))
+            {
                 return _modifiersByTagId[tagId];
+            }
+
             return null;
         }
 
@@ -82,23 +96,33 @@ namespace AAEmu.Game.Models.Game.Skills
         public void AddModifier(SkillModifier modifier) {
             if (modifier.SkillId > 0) {
                 if (!_modifiersBySkillId.ContainsKey(modifier.SkillId))
+                {
                     _modifiersBySkillId.Add(modifier.SkillId, new List<SkillModifier>());
+                }
+
                 _modifiersBySkillId[modifier.SkillId].Add(modifier);
             }
 
             if (modifier.TagId > 0) {
                 if (!_modifiersByTagId.ContainsKey(modifier.TagId))
+                {
                     _modifiersByTagId.Add(modifier.TagId, new List<SkillModifier>());
+                }
+
                 _modifiersByTagId[modifier.TagId].Add(modifier);
             } 
         } 
 
         public void RemoveModifier(SkillModifier modifier) {
             if (_modifiersBySkillId.ContainsKey(modifier.SkillId))
+            {
                 _modifiersBySkillId[modifier.SkillId].Remove(modifier);
+            }
 
             if (_modifiersByTagId.ContainsKey(modifier.TagId))
+            {
                 _modifiersByTagId[modifier.TagId].Remove(modifier);
+            }
         }
     }
 }

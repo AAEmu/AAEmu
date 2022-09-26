@@ -46,8 +46,10 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public bool HasSpecialEffects()
         {
             if (_computedHasSpecialEffects)
+            {
                 return _hasSpecialEffects;
-            
+            }
+
             _hasSpecialEffects = Effects
                 .Select(eff =>
                     SkillManager.Instance.GetEffectTemplate(eff.ActualId, eff.ActualType))

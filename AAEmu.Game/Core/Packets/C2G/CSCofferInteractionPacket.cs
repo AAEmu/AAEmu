@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCofferInteractionPacket : GamePacket
     {
-        public CSCofferInteractionPacket() : base(CSOffsets.CSCofferInteractionPacket, 1)
+        public CSCofferInteractionPacket() : base(CSOffsets.CSCofferInteractionPacket, 5)
         {
         }
 
@@ -29,7 +29,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             else
             {
                 if (!DoodadManager.Instance.CloseCofferDoodad(Connection.ActiveChar, cofferObjId))
+                {
                     _log.Warn($"{Connection.ActiveChar.Name} failed to Close coffer objId {cofferObjId}");
+                }
             }
         }
     }

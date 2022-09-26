@@ -18,11 +18,11 @@ namespace AAEmu.Login.Core.Packets.C2L
             var pTo = stream.ReadUInt32();
             var dev = stream.ReadBoolean();
             var mac = stream.ReadBytes();
-            var ticket = stream.ReadString();
-            var signature = stream.ReadString();
+            var param = stream.ReadString();     // param
+            var signature = stream.ReadString(); // si
             var isLast = stream.ReadBoolean();
 
-            var xmlDoc = XDocument.Parse(ticket);
+            var xmlDoc = XDocument.Parse(param);
 
             if (xmlDoc.Root == null)
             {
@@ -40,6 +40,7 @@ namespace AAEmu.Login.Core.Packets.C2L
             }
 
             var token = Helpers.StringToByteArray(password);
+
             LoginController.Login(Connection, username, token);
         }
     }

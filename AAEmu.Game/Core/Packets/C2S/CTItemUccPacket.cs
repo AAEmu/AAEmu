@@ -13,7 +13,6 @@ namespace AAEmu.Game.Core.Packets.C2S
 
         public override void Read(PacketStream stream)
         {
-
             var player = stream.ReadUInt32();
             var count = stream.ReadUInt32();
             var items = new List<ulong>();

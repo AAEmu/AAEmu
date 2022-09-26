@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCompletedCinemaPacket : GamePacket
     {
-        public CSCompletedCinemaPacket() : base(CSOffsets.CSCompletedCinemaPacket, 1)
+        public CSCompletedCinemaPacket() : base(CSOffsets.CSCompletedCinemaPacket, 5)
         {
         }
 

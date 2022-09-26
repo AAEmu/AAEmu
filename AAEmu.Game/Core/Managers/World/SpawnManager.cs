@@ -53,12 +53,50 @@ namespace AAEmu.Game.Core.Managers.World
             if (npcSpawner.NpcSpawnerIds.Count == 0)
             {
                 var npcSpawnerIds = NpcGameData.Instance.GetSpawnerIds(npcSpawner.UnitId);
+                if (npcSpawnerIds == null)
+                {
+                    _log.Warn($"SpawnerIds not found for Npc UnitId={npcSpawner.UnitId}. Use SpawnerIds = 1 (default Test Warrior1) for Npc UnitId={npcSpawner.UnitId}");
+                    // У нас нет серверных таблиц npc_spawners, npc_spawner_npcs поэтому придется дополнять отсутствующие данные
+                    var defaultSpawnerId = 1u;
+                    var _npcSpawner = new NpcSpawner();
+                    var newSpawnerId = npcSpawner.UnitId * 1000;
+                    _npcSpawner.NpcSpawnerIds.Add(newSpawnerId);
+
+                    //_npcSpawner.Template = new NpcSpawnerTemplate(NpcGameData.Instance.GetNpcSpawnerTemplate(defaultSpawnerId));
+                    _npcSpawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(defaultSpawnerId).GetDeepClone();
+
+                    _npcSpawner.Id = _nextId;
+                    _npcSpawner.Template.Npcs[0].Id = newSpawnerId;
+                    _npcSpawner.Template.Id = newSpawnerId;
+                    _npcSpawner.Template.Npcs[0].MemberId = npcSpawner.UnitId;
+                    _npcSpawner.Template.Npcs[0].UnitId = npcSpawner.UnitId;
+                    _npcSpawner.UnitId = npcSpawner.UnitId;
+                    _npcSpawner.Template.Npcs[0].Position = npcSpawner.Position;
+                    _npcSpawner.Position = npcSpawner.Position;
+
+                    NpcGameData.Instance.AddMissingSpawnerNpc(newSpawnerId, _npcSpawner);
+                    npcSpawnerIds = NpcGameData.Instance.GetSpawnerIds(_npcSpawner.UnitId);
+                    if (npcSpawnerIds == null)
+                    {
+                        _log.Error($"SpawnerIds not found for Npc UnitId={_npcSpawner.UnitId}");
+                        return;
+                    }
+                    // Load NPC Spawns
+                    //npcSpawner.NpcSpawnerIds.Add(npcSpawnerIds[0]);
+                    //npcSpawner.Id = _nextId;
+                    //npcSpawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(npcSpawnerIds[0]);
+                    _npcSpawners[(byte)npcSpawner.Position.WorldId].Add(_nextId, _npcSpawner);
+                    _nextId++; //we'll renumber
+                    return;
+                }
+                // Load NPC Spawns
                 // !!! npcSpawnerIds.Count всегда = 1 !!!
                 if (!_npcSpawners[(byte)npcSpawner.Position.WorldId].ContainsKey(_nextId))
                 {
                     npcSpawner.NpcSpawnerIds.Add(npcSpawnerIds[0]);
                     npcSpawner.Id = _nextId;
                     npcSpawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(npcSpawnerIds[0]);
+                    npcSpawner.Template.Npcs[0].Position = npcSpawner.Position;
                     _npcSpawners[(byte)npcSpawner.Position.WorldId].Add(_nextId, npcSpawner);
                     _nextId++; //we'll renumber
                 }
@@ -70,21 +108,23 @@ namespace AAEmu.Game.Core.Managers.World
                 if (npcSpawner.Template.Id != npcSpawner.NpcSpawnerIds[0])
                 {
                     npcSpawner.Template = new NpcSpawnerTemplate(npcSpawner.NpcSpawnerIds[0]);
+                    npcSpawner.Template.Npcs[0].Position = npcSpawner.Position;
                 }
+                _npcSpawners[(byte)npcSpawner.Position.WorldId].Add(_nextId, npcSpawner);
                 _npcEventSpawners[(byte)npcSpawner.Position.WorldId].Add(_nextId, npcSpawner);
                 _nextId++; //we'll renumber
             }
         }
 
-        internal void SpawnAllNpcs(byte worldId)
+        public void SpawnAllNpcs(byte worldId)
         {
-            _log.Info("Spawning {0} NPC spawners in world {1}", _npcSpawners[worldId].Count, worldId);
+            _log.Info($"Spawning {_npcSpawners[worldId].Count} NPC spawners in world {worldId}");
             var count = 0;
             foreach (var spawner in _npcSpawners[worldId].Values)
             {
                 if (spawner.Template == null)
                 {
-                    _log.Warn("Templates not found for Npc templateId {0} in world {1}", spawner.UnitId, worldId);
+                    _log.Warn($"Templates not found for Npc templateId {spawner.UnitId} in world {worldId}");
                 }
                 else
                 {
@@ -92,17 +132,19 @@ namespace AAEmu.Game.Core.Managers.World
                     count++;
                     if (count % 5000 == 0 && worldId == 0)
                     {
-                        _log.Info("{0} NPC spawners spawned...", count);
+                        //_log.Info($"{count} NPC spawners spawned...");
                     }
                 }
             }
-            _log.Info("{0} NPC spawners spawned...", count);
+            //_log.Info($"{count} NPC spawners spawned...");
         }
 
         public void Load()
         {
             if (_loaded)
+            {
                 return;
+            }
 
             _respawns = new HashSet<GameObject>();
             _despawns = new HashSet<GameObject>();
@@ -146,7 +188,9 @@ namespace AAEmu.Game.Core.Managers.World
                     var contents = FileManager.GetFileContents(jsonFileName);
 
                     if (string.IsNullOrWhiteSpace(contents))
+                    {
                         _log.Warn($"File {jsonFileName} is empty.");
+                    }
                     else
                     {
                         if (JsonHelper.TryDeserializeObject(contents, out List<NpcSpawner> npcSpawnersFromFile, out _))
@@ -169,11 +213,16 @@ namespace AAEmu.Game.Core.Managers.World
                                 npcSpawnerFromFile.Position.Roll = npcSpawnerFromFile.Position.Roll.DegToRad();
                                 // проверка наличия введенного вручную идентификатора NpcSpawnerId
 
-                                AddNpcSpawner(npcSpawnerFromFile);
+                                if (npcSpawnerFromFile != null)
+                                {
+                                    AddNpcSpawner(npcSpawnerFromFile);
+                                }
                             }
                         }
                         else
+                        {
                             throw new Exception($"SpawnManager: Parse {jsonFileName} file");
+                        }
                     }
                 }
 
@@ -189,7 +238,9 @@ namespace AAEmu.Game.Core.Managers.World
                     var contents = FileManager.GetFileContents(jsonFileName);
 
                     if (string.IsNullOrWhiteSpace(contents))
+                    {
                         _log.Warn($"File {jsonFileName} is empty.");
+                    }
                     else
                     {
                         if (JsonHelper.TryDeserializeObject(contents, out List<DoodadSpawner> spawners, out _))
@@ -218,7 +269,9 @@ namespace AAEmu.Game.Core.Managers.World
                             }
                         }
                         else
+                        {
                             throw new Exception($"SpawnManager: Parse {jsonFileName} file");
+                        }
                     }
                 }
 
@@ -461,9 +514,13 @@ namespace AAEmu.Game.Core.Managers.World
                                 {
                                     var itemContainer = ItemManager.Instance.GetItemContainerByDbId(itemContainerId);
                                     if (itemContainer is CofferContainer cofferContainer)
+                                    {
                                         coffer.ItemContainer = cofferContainer;
+                                    }
                                     else
+                                    {
                                         _log.Error($"Unable to attach ItemContainer {itemContainerId} to DoodadCoffer, objId: {doodad.ObjId}, DbId: {doodad.DbId}");
+                                    }
                                 }
                                 else
                                 {
@@ -492,7 +549,7 @@ namespace AAEmu.Game.Core.Managers.World
         public void SpawnAll()
         {
             _log.Info("Spawning NPCs...");
-            foreach (var (worldId, worldSpawners) in _npcSpawners)
+            foreach (var (worldId, _) in _npcSpawners)
             {
                 Task.Run(() =>
                 {
@@ -513,10 +570,10 @@ namespace AAEmu.Game.Core.Managers.World
                         count++;
                         if (count % 1000 == 0 && worldId == 0)
                         {
-                            _log.Info("{0} Doodads spawned", count);
+                            //_log.Info("{0} Doodads spawned", count);
                         }
                     }
-                    _log.Info("{0} Doodads spawned", count);
+                    //_log.Info("{0} Doodads spawned", count);
                 });
             }
 
@@ -533,10 +590,10 @@ namespace AAEmu.Game.Core.Managers.World
                         count++;
                         if (count % 10 == 0 && worldId == 0)
                         {
-                            _log.Info("{0} Transfers spawned...", count);
+                            //_log.Info("{0} Transfers spawned...", count);
                         }
                     }
-                    _log.Info("{0} Transfers spawned...", count);
+                    //_log.Info("{0} Transfers spawned...", count);
                 });
             }
 
@@ -553,10 +610,10 @@ namespace AAEmu.Game.Core.Managers.World
                         count++;
                         if (count % 5 == 0 && worldId == 0)
                         {
-                            _log.Info("{0} Gimmicks spawned...", count);
+                            //_log.Info("{0} Gimmicks spawned...", count);
                         }
                     }
-                    _log.Info("{0} Gimmicks spawned...", count);
+                    //_log.Info("{0} Gimmicks spawned...", count);
                 });
             }
 
@@ -573,10 +630,10 @@ namespace AAEmu.Game.Core.Managers.World
                         count++;
                         if (count % 5 == 0 && worldId == 0)
                         {
-                            _log.Info("{0} Slaves spawned...", count);
+                            //_log.Info("{0} Slaves spawned...", count);
                         }
                     }
-                    _log.Info("{0} Slaves spawned...", count);
+                    //_log.Info("{0} Slaves spawned...", count);
                 });
             }
 
@@ -633,7 +690,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        private HashSet<GameObject> GetRespawnsReady()
+        public HashSet<GameObject> GetRespawnsReady()
         {
             HashSet<GameObject> temp;
             lock (_respawns)
@@ -644,11 +701,14 @@ namespace AAEmu.Game.Core.Managers.World
             var res = new HashSet<GameObject>();
             foreach (var npc in temp)
                 if (npc.Respawn <= DateTime.UtcNow)
+                {
                     res.Add(npc);
+                }
+
             return res;
         }
 
-        private HashSet<GameObject> GetDespawnsReady()
+        public HashSet<GameObject> GetDespawnsReady()
         {
             HashSet<GameObject> temp;
             lock (_despawns)
@@ -659,11 +719,14 @@ namespace AAEmu.Game.Core.Managers.World
             var res = new HashSet<GameObject>();
             foreach (var item in temp)
                 if (item.Despawn <= DateTime.UtcNow)
+                {
                     res.Add(item);
+                }
+
             return res;
         }
 
-        private void CheckRespawns()
+        public void CheckRespawns()
         {
             while (_work)
             {
@@ -673,15 +736,30 @@ namespace AAEmu.Game.Core.Managers.World
                     foreach (var obj in respawns)
                     {
                         if (obj.Respawn >= DateTime.UtcNow)
+                        {
                             continue;
+                        }
+
                         if (obj is Npc npc)
+                        {
                             npc.Spawner.Respawn(npc);
+                        }
+
                         if (obj is Doodad doodad)
+                        {
                             doodad.Spawner.Respawn(doodad);
+                        }
+
                         if (obj is Transfer transfer)
+                        {
                             transfer.Spawner.Respawn(transfer);
+                        }
+
                         if (obj is Gimmick gimmick)
+                        {
                             gimmick.Spawner.Respawn(gimmick);
+                        }
+
                         RemoveRespawn(obj);
                     }
                 }
@@ -692,19 +770,34 @@ namespace AAEmu.Game.Core.Managers.World
                     foreach (var obj in despawns)
                     {
                         if (obj.Despawn >= DateTime.UtcNow)
+                        {
                             continue;
+                        }
+
                         if (obj is Npc npc && npc.Spawner != null)
+                        {
                             npc.Spawner.Despawn(npc);
+                        }
                         else if (obj is Doodad doodad && doodad.Spawner != null)
+                        {
                             doodad.Spawner.Despawn(doodad);
+                        }
                         else if (obj is Transfer transfer && transfer.Spawner != null)
+                        {
                             transfer.Spawner.Despawn(transfer);
+                        }
                         else if (obj is Gimmick gimmick && gimmick.Spawner != null)
+                        {
                             gimmick.Spawner.Despawn(gimmick);
+                        }
                         else if (obj is Slave slave) // slaves don't have a spawner, but this is used for delayed despawn of un-summoned boats
+                        {
                             slave.Delete();
+                        }
                         else if (obj is Doodad doodad2)
+                        {
                             doodad2.Delete();
+                        }
                         else
                         {
                             ObjectIdManager.Instance.ReleaseId(obj.ObjId);

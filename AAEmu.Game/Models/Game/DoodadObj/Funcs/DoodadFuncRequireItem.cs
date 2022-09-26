@@ -17,9 +17,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 //character.Quests.OnInteraction(WorldInteractionId, character.CurrentTarget);
                 if (character.Inventory.GetItemsCount(ItemId) > 0)
+                {
                     return false; // продолжим выполнение, подходящий квест и есть нужный предмет
+                }
                 else
+                {
                     return true; // прерываем, не подходящий квест и нет нужного предмета
+                }
             }
             return true; // прерываем, не подходящий квест и нет нужного предмета
         }

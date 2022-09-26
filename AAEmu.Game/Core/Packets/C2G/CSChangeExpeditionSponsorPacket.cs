@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeExpeditionSponsorPacket : GamePacket
     {
-        public CSChangeExpeditionSponsorPacket() : base(CSOffsets.CSChangeExpeditionSponsorPacket, 1)
+        public CSChangeExpeditionSponsorPacket() : base(CSOffsets.CSChangeExpeditionSponsorPacket, 5)
         {
         }
 

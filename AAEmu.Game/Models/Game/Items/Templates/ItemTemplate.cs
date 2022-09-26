@@ -38,7 +38,7 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public int HonorPrice { get; set; }
         public int ExpAbsLifetime { get; set; }
         public int ExpOnlineLifetime { get; set; }
-        public DateTime ExpDate { get; set; }
+        public int ExpDate { get; set; } // DateTime in 1.2, int in 3.0.3.0
         public int LevelRequirement { get; set; }
         public int AuctionCategoryA {get; set; }
         public int AuctionCategoryB { get; set; }

@@ -81,7 +81,9 @@ namespace AAEmu.Game.Core.Managers.World
                     // Not sure if it's better to query it each tick, or track them locally
                     var slaveList = SlaveManager.Instance.GetActiveSlavesByKinds(simulatedSlaveTypeList, SimulationWorld.Id);
                     if (slaveList == null)
+                    {
                         continue;
+                    }
 
                     foreach (var slave in slaveList)
                     {
@@ -93,12 +95,16 @@ namespace AAEmu.Game.Core.Managers.World
 
                         // Skip simulation if still summoning
                         if (slave.SpawnTime.AddSeconds(slave.Template.PortalTime) > DateTime.UtcNow)
+                        {
                             continue;
+                        }
 
                         // Skip simulation if no rigidbody applied to slave
                         var slaveRigidBody = slave.RigidBody;
                         if (slaveRigidBody == null)
+                        {
                             continue;
+                        }
 
                         // Note: Y, Z swapped
                         var xDelta = slaveRigidBody.Position.X - slave.Transform.World.Position.X;
@@ -129,7 +135,9 @@ namespace AAEmu.Game.Core.Managers.World
         {
             var shipModel = ModelManager.Instance.GetShipModel(slave.ModelId);
             if (shipModel == null)
+            {
                 return;
+            }
 
             var slaveBox = new BoxShape(shipModel.MassBoxSizeX, shipModel.MassBoxSizeZ, shipModel.MassBoxSizeY);
             var slaveMaterial = new Material();
@@ -150,7 +158,11 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void RemoveShip(Slave slave)
         {
-            if (slave.RigidBody == null) return;
+            if (slave.RigidBody == null)
+            {
+                return;
+            }
+
             _buoyancy.Remove(slave.RigidBody);
             _physWorld.RemoveBody(slave.RigidBody);
             _log.Debug($"RemoveShip {slave.Name} <- {SimulationWorld.Name}");
@@ -180,9 +192,14 @@ namespace AAEmu.Game.Core.Managers.World
 
             // Provide minimum speed of 1 when Throttle is used
             if ((slave.Throttle > 0) && (slave.Speed < 1f))
+            {
                 slave.Speed = 1f;
+            }
+
             if ((slave.Throttle < 0) && (slave.Speed > -1f))
+            {
                 slave.Speed = -1f;
+            }
 
             // Convert sbyte throttle value to use as speed
             slave.Speed += (slave.Throttle * 0.00787401575f) * (velAccel / 10f);
@@ -199,14 +216,18 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 slave.RotSpeed -= (slave.RotSpeed / 20);
                 if (Math.Abs(slave.RotSpeed) <= 0.01)
+                {
                     slave.RotSpeed = 0;
+                }
             }
 
             if (slave.Throttle == 0) // this needs to be fixed : ships need to apply a static drag, and slowly ship away at the speed instead of doing it like this
             {
                 slave.Speed -= (slave.Speed / 20f);
                 if (Math.Abs(slave.Speed) < 0.01)
+                {
                     slave.Speed = 0;
+                }
             }
 
             // _log.Debug("Slave: {0}, speed: {1}, rotSpeed: {2}", slave.ObjId, slave.Speed, slave.RotSpeed);
@@ -225,7 +246,9 @@ namespace AAEmu.Game.Core.Managers.World
             // Make sure the steering is reversed when going backwards.
             var steer = (float)slave.Steering * shipModel.SteerVel * ((100f + slave.TurnSpeed) / 100f);
             if (forceThrottle < 0)
+            {
                 steer *= -1;
+            }
 
             // Calculate Steering Force based on bounding box 
             var steerForce = -steer * (solidVolume * boxSize.X * boxSize.Y / 172.5f * 2f); // Totally random value, but it feels right

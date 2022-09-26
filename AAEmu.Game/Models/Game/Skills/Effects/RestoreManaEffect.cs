@@ -27,7 +27,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             _log.Trace("RestoreManaEffect");
 
             if (!(target is Unit))
+            {
                 return;
+            }
+
             var trg = (Unit)target;
             var min = 0;
             var max = 0;
@@ -44,7 +47,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 skillLevel = (source.Skill.Level - 1) * source.Skill.Template.LevelStep + source.Skill.Template.AbilityLevel;
                 if (skillLevel >= source.Skill.Template.AbilityLevel)
+                {
                     unk = 0.15f * (skillLevel - source.Skill.Template.AbilityLevel + 1);
+                }
+
                 unk2 = (1 + unk) * 1.3f;
             }
 
@@ -64,7 +70,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             trg.BroadcastPacket(new SCUnitHealedPacket(castObj, casterObj, trg.ObjId, 1, 13, value), true);
             trg.Mp += value;
             trg.Mp = Math.Min(trg.Mp, trg.MaxMp);
-            trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);
+            trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp, trg.HighAbilityRsc), true);
         }
     }
 }

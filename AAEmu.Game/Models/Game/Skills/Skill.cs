@@ -17,7 +17,6 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Effects.Enums;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
@@ -44,7 +43,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public ushort TlId { get; set; }
         public PlotState ActivePlotState { get; set; }
         public Dictionary<uint, SkillHitType> HitTypes { get; set; }
-        public BaseUnit InitialTarget { get; set; }//Temp Hack Fix. Replace this with UnitsEffected
+        public BaseUnit InitialTarget { get; set; } //Temp Hack Fix. Replace this with UnitsEffected
         private bool _bypassGcd;
         public bool Cancelled { get; set; } = false;
         public Action Callback { get; set; }
@@ -63,9 +62,13 @@ namespace AAEmu.Game.Models.Game.Skills
             Id = template.Id;
             Template = template;
             if (owner != null)
+            {
                 Level = template.LevelStep > 0 ? (byte)((owner.GetAbLevel((AbilityType)template.AbilityId) - template.AbilityLevel) / template.LevelStep + 1) : (byte)1;
+            }
             else
+            {
                 Level = 1;
+            }
         }
 
         public SkillResult Use(Unit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null, bool bypassGcd = false)
@@ -130,7 +133,9 @@ namespace AAEmu.Game.Models.Game.Skills
             }
 
             if (Template.CancelOngoingBuffs)
+            {
                 caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.StartSkill, Template.CancelOngoingBuffExceptionTagId);
+            }
 
             if (skillObject == null)
             {
@@ -150,7 +155,9 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 Task.Run(() => Template.Plot.Run(caster, casterCaster, target, targetCaster, skillObject, this));
                 if (Template.PlotOnly)
+                {
                     return SkillResult.Success;
+                }
             }
 
             var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
@@ -158,9 +165,14 @@ namespace AAEmu.Game.Models.Game.Skills
             if (!(target is Doodad)) // HACKFIX : Used mostly for boats, since the actual position of the doodad is the boat's origin, and not where it is displayed
             {
                 if (targetDist < Template.MinRange)
+                {
                     return SkillResult.TooCloseRange;
+                }
+
                 if (targetDist > skillRange)
+                {
                     return SkillResult.TooFarRange;
+                }
             }
 
             if (Template.WeaponSlotForRangeId > 0)
@@ -174,9 +186,14 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
 
                 if (targetDist < minWeaponRange)
+                {
                     return SkillResult.TooCloseRange;
+                }
+
                 if (targetDist > maxWeaponRange)
+                {
                     return SkillResult.TooFarRange;
+                }
             }
 
             if (Template.CastingTime > 0)
@@ -190,7 +207,9 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
 
                 if (castTime < 0)
+                {
                     castTime = 0;
+                }
 
                 caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
                 {
@@ -230,7 +249,9 @@ namespace AAEmu.Game.Models.Game.Skills
             }
             // HACKFIX : Mounts and Turbulence
             if (skillCaster.Type == SkillCasterType.Unk3 || caster == null && skillCaster.Type == SkillCasterType.Unit)
+            {
                 target = WorldManager.Instance.GetUnit(skillCaster.ObjId);
+            }
 
             if (caster == null) // проверяем, так как иногда бывает null
             {
@@ -430,7 +451,9 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 var gcd = Template.CustomGcd;
                 if (Template.DefaultGcd)
+                {
                     gcd = caster is NPChar.Npc ? 1500 : 1000;
+                }
 
                 caster.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * (caster.GlobalCooldownMul / 100));
             }
@@ -462,7 +485,10 @@ namespace AAEmu.Game.Models.Game.Skills
                     if (sc != null)
                     {
                         if (caster.ActiveSkillController != null)
+                        {
                             caster.ActiveSkillController.End();
+                        }
+
                         caster.ActiveSkillController = sc;
                         sc.Execute();
                     }
@@ -626,11 +652,19 @@ namespace AAEmu.Game.Models.Game.Skills
 
             var totalDelay = 0;
             if (Template.EffectDelay > 0)
+            {
                 totalDelay += Template.EffectDelay;
+            }
+
             if (Template.EffectSpeed > 0)
+            {
                 totalDelay += (int)(caster.GetDistanceTo(target) / Template.EffectSpeed * 1000.0f);
+            }
+
             if (Template.FireAnim != null && Template.UseAnimTime)
+            {
                 totalDelay += (int)(Template.FireAnim.CombatSyncTime * (caster.GlobalCooldownMul / 100));
+            }
 
 
             caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
@@ -705,9 +739,14 @@ namespace AAEmu.Game.Models.Game.Skills
                     case SkillEffectApplicationMethod.SourceOnce:
                         // TODO: HACKFIX for owner's mark
                         if (casterCaster.Type == SkillCasterType.Unk3 && targetSelf is Slave)
+                        {
                             effectedTargets = targets;
+                        }
                         else
+                        {
                             effectedTargets.Add(caster);//idk
+                        }
+
                         break;
                     case SkillEffectApplicationMethod.SourceToPos:
                         effectedTargets = targets;
@@ -775,13 +814,17 @@ namespace AAEmu.Game.Models.Game.Skills
                     {
                         var useItem = ItemManager.Instance.GetItemByItemId(castItem.ItemId);
                         if (effect.ConsumeSourceItem)
+                        {
                             consumedItems.Add((useItem, effect.ConsumeItemCount));
+                        }
                         //player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItem.ItemTemplateId, effect.ConsumeItemCount, useItem);
                         else
                         {
                             var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
                             if (castItemTemplate.UseSkillAsReagent)
+                            {
                                 consumedItems.Add((useItem, effect.ConsumeItemCount));
+                            }
                             //player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, effect.ConsumeItemCount, useItem);
                         }
                     }
@@ -792,7 +835,9 @@ namespace AAEmu.Game.Models.Game.Skills
                         {
                             if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.SkillEffectConsumption,
                                 effect.ConsumeItemId, effect.ConsumeItemCount))
+                            {
                                 continue;
+                            }
                         }
                         else
                         {
@@ -848,15 +893,21 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
             }
             else
+            {
                 _log.Error("Could not find Reagents/Products for Template[{0}", Template.Id);
+            }
 
             foreach (var item in effectsToApply)
             {
                 //Template can be null for some reason..
                 if (item.effect.Template != null)
+                {
                     item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                }
                 else
+                {
                     _log.Error("Template not found for Skill[{0}] Effect[{1}]", Template.Id, item.effect.EffectId);
+                }
             }
 
             // TODO Call OnItemUse() moved to the ApplyEffects() method from the effects and add trigger ConditionChance;
@@ -869,7 +920,9 @@ namespace AAEmu.Game.Models.Game.Skills
 
             // Quick Hack
             if (packets.Packets.Count > 0)
+            {
                 caster.BroadcastPacket(packets, true);
+            }
 
             if (!Cancelled)
             {
@@ -883,8 +936,10 @@ namespace AAEmu.Game.Models.Game.Skills
 
                 // Doesn't matter, but by Template
                 if (caster is Character playerToConsumeFrom)
+                {
                     foreach (var (templateId, amount) in consumedItemTemplates)
                         playerToConsumeFrom.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectConsumption, templateId, amount, null);
+                }
             }
         }
 
@@ -914,7 +969,9 @@ namespace AAEmu.Game.Models.Game.Skills
             SkillManager.Instance.ReleaseId(TlId);
 
             if (caster is Character character1 && character1.IgnoreSkillCooldowns)
+            {
                 character1.ResetSkillCooldown(Template.Id, false);
+            }
         }
 
         public void Stop(Unit caster, Doodad channelDoodad = null)
@@ -937,7 +994,9 @@ namespace AAEmu.Game.Models.Game.Skills
             SkillManager.Instance.ReleaseId(TlId);
 
             if (caster is Character character && character.IgnoreSkillCooldowns)
+            {
                 character.ResetSkillCooldown(Template.Id, false);
+            }
             //TlId = 0;
         }
 
@@ -956,26 +1015,39 @@ namespace AAEmu.Game.Models.Game.Skills
 
             //Idk if this is right. Double check it
             if (!MathUtil.IsFront(attacker, target))
+            {
                 goto AlwaysHit;
+            }
 
             if (Rand.Next(0f, 100f) < target.DodgeRate - bullsEyeMod)
             {
                 if (damageType == DamageType.Melee)
+                {
                     return SkillHitType.MeleeDodge;
+                }
                 else if (damageType == DamageType.Ranged)
+                {
                     return SkillHitType.RangedDodge;
+                }
             }
             if (Rand.Next(0f, 100f) < target.BlockRate - bullsEyeMod)
             {
                 if (damageType == DamageType.Melee)
+                {
                     return SkillHitType.MeleeBlock;
+                }
                 else if (damageType == DamageType.Ranged)
+                {
                     return SkillHitType.RangedBlock;
+                }
             }
             if (Rand.Next(0F, 100f) < target.MeleeParryRate - bullsEyeMod)
             {
                 if (damageType == DamageType.Melee)
+                {
                     return SkillHitType.MeleeParry;
+                }
+
                 if (damageType == DamageType.Ranged
                     && target.Buffs.CheckBuff((uint)BuffConstants.EquipDualwield)
                     && target.Buffs.CheckBuff((uint)BuffConstants.DualwieldProficiency))
@@ -986,7 +1058,9 @@ namespace AAEmu.Game.Models.Game.Skills
             if (Rand.Next(0f, 100f) < target.RangedParryRate - bullsEyeMod)
             {
                 if (damageType == DamageType.Ranged)
+                {
                     return SkillHitType.RangedParry;
+                }
             }
 
 AlwaysHit:
@@ -994,19 +1068,31 @@ AlwaysHit:
             {
                 case DamageType.Melee:
                     if (Rand.Next(0f, 100f) < attacker.MeleeAccuracy)
+                    {
                         return SkillHitType.MeleeHit;
+                    }
                     else
+                    {
                         return SkillHitType.MeleeMiss;
+                    }
                 case DamageType.Magic:
                     if (Rand.Next(0f, 100f) < attacker.SpellAccuracy)
+                    {
                         return SkillHitType.SpellHit;
+                    }
                     else
+                    {
                         return SkillHitType.SpellMiss;
+                    }
                 case DamageType.Ranged:
                     if (Rand.Next(0f, 100f) < attacker.RangedAccuracy)
+                    {
                         return SkillHitType.RangedHit;
+                    }
                     else
+                    {
                         return SkillHitType.RangedMiss;
+                    }
                 case DamageType.Siege:
                     return SkillHitType.RangedHit;//No siege type?
                 default:

@@ -23,11 +23,20 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         {
             _log.Trace("ImprintUccEffect");
             if (!(target is Character player))
+            {
                 return;
+            }
+
             if (!(casterObj is SkillItem skillItem))
+            {
                 return;
+            }
+
             if (!(targetObj is SkillCastItemTarget scit))
+            {
                 return;
+            }
+
             var stampItem = ItemManager.Instance.GetItemByItemId(skillItem.ItemId);
             var targetItem = ItemManager.Instance.GetItemByItemId(scit.Id);
 
@@ -38,7 +47,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 //var oldFlags = targetItem.ItemFlags;
                 UccManager.Instance.ApplyStamp(stampItem, targetItem);
                 // Send Item Ucc changed packet
-                player.SendPacket(new SCItemUccDataChangedPacket(stampItem.UccId, player.Id, targetItem.Id));
+                player.SendPacket(new SCItemUccChangedPacket(stampItem.UccId, player.Id, targetItem.Id));
                 // Send ItemTask to change flags on client
                 player.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GainItemWithUcc, new ItemUpdateBits(targetItem), null));
                 // Consume the stamp

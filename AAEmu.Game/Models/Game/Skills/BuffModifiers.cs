@@ -49,28 +49,42 @@ namespace AAEmu.Game.Models.Game.Skills
         public List<BuffModifier> GetModifiersForBuffIdWithAttribute(uint skillId, BuffAttribute attribute)
         {
             var modifiers = GetModifiersForBuffId(skillId);
-            if (modifiers == null) return new List<BuffModifier>();
+            if (modifiers == null)
+            {
+                return new List<BuffModifier>();
+            }
+
             return modifiers.Where(mod => mod.BuffAttribute == attribute).ToList();
         }
 
         public List<BuffModifier> GetModifiersForTagIdWithAttribute(uint tagId, BuffAttribute attribute)
         {
             var modifiers = GetModifiersForTagId(tagId);
-            if (modifiers == null) return new List<BuffModifier>();
+            if (modifiers == null)
+            {
+                return new List<BuffModifier>();
+            }
+
             return modifiers.Where(mod => mod.BuffAttribute == attribute).ToList();
         }
 
         public List<BuffModifier> GetModifiersForBuffId(uint skillId)
         {
             if (_modifiersByBuffId.ContainsKey(skillId))
+            {
                 return _modifiersByBuffId[skillId];
+            }
+
             return null;
         }
 
         public List<BuffModifier> GetModifiersForTagId(uint tagId)
         {
             if (_modifiersByTagId.ContainsKey(tagId))
+            {
                 return _modifiersByTagId[tagId];
+            }
+
             return null;
         }
 
@@ -100,14 +114,20 @@ namespace AAEmu.Game.Models.Game.Skills
             if (modifier.BuffId > 0)
             {
                 if (!_modifiersByBuffId.ContainsKey(modifier.BuffId))
+                {
                     _modifiersByBuffId.Add(modifier.BuffId, new List<BuffModifier>());
+                }
+
                 _modifiersByBuffId[modifier.BuffId].Add(modifier);
             }
 
             if (modifier.TagId > 0)
             {
                 if (!_modifiersByTagId.ContainsKey(modifier.TagId))
+                {
                     _modifiersByTagId.Add(modifier.TagId, new List<BuffModifier>());
+                }
+
                 _modifiersByTagId[modifier.TagId].Add(modifier);
             }
         }
@@ -115,10 +135,14 @@ namespace AAEmu.Game.Models.Game.Skills
         public void RemoveModifier(BuffModifier modifier)
         {
             if (_modifiersByBuffId.ContainsKey(modifier.BuffId))
+            {
                 _modifiersByBuffId[modifier.BuffId].Remove(modifier);
+            }
 
             if (_modifiersByTagId.ContainsKey(modifier.TagId))
+            {
                 _modifiersByTagId[modifier.TagId].Remove(modifier);
+            }
         }
     }
 }

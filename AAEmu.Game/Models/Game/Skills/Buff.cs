@@ -36,7 +36,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public DateTime EndTime { get; set; }
         public int Charge { get; set; }
         public bool Passive { get; set; }
-        public uint AbLevel { get; set; }
+        public ushort AbLevel { get; set; } // int in 1.2, ushort in 3+
         public BuffEvents Events { get; }
         public BuffTriggersHandler Triggers { get; }
         public Dictionary<uint, uint> saveFactions { get; set; }
@@ -60,7 +60,10 @@ namespace AAEmu.Game.Models.Game.Skills
         {
             Template.Start(Caster, Owner, this);
             if (Duration == 0)
-                Duration = Template.GetDuration(AbLevel);
+            {
+                Duration = Template.GetDuration((uint)AbLevel);
+            }
+
             if (StartTime == DateTime.MinValue)
             {
                 StartTime = DateTime.UtcNow;
@@ -73,13 +76,20 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 var time = GetTimeLeft();
                 if (time > 0)
+                {
                     _count = (int)(time / Tick + 0.5f + 1);
+                }
                 else
+                {
                     _count = -1;
+                }
+
                 EffectTaskManager.Instance.AddDispelTask(this, Tick);
             }
             else
+            {
                 EffectTaskManager.Instance.AddDispelTask(this, GetTimeLeft());
+            }
         }
 
         public void ScheduleEffect(bool replace)
@@ -93,7 +103,10 @@ namespace AAEmu.Game.Models.Game.Skills
                         Template.Start(Caster, Owner, this);
 
                         if (Duration == 0)
-                            Duration = Template.GetDuration(AbLevel);
+                        {
+                            Duration = Template.GetDuration((uint)AbLevel);
+                        }
+
                         if (StartTime == DateTime.MinValue)
                         {
                             StartTime = DateTime.UtcNow;
@@ -106,13 +119,20 @@ namespace AAEmu.Game.Models.Game.Skills
                         {
                             var time = GetTimeLeft();
                             if (time > 0)
+                            {
                                 _count = (int)(time / Tick + 0.5f + 1);
+                            }
                             else
+                            {
                                 _count = -1;
+                            }
+
                             EffectTaskManager.Instance.AddDispelTask(this, Tick);
                         }
                         else
+                        {
                             EffectTaskManager.Instance.AddDispelTask(this, GetTimeLeft());
+                        }
 
                         if (Template.FactionId > 0 && Owner is Unit owner)
                         {
@@ -166,14 +186,19 @@ namespace AAEmu.Game.Models.Game.Skills
         public void Exit(bool replace = false)
         {
             if (State == EffectState.Finished)
+            {
                 return;
+            }
+
             if (State != EffectState.Created)
             {
                 State = EffectState.Finishing;
                 ScheduleEffect(replace);
             }
             else
+            {
                 State = EffectState.Finishing;
+            }
         }
 
         private void StopEffectTask(bool replace)
@@ -197,9 +222,13 @@ namespace AAEmu.Game.Models.Game.Skills
         {
             InUse = inUse;
             if (update)
+            {
                 UpdateEffect();
+            }
             else if (inUse)
+            {
                 ScheduleEffect(false);
+            }
             else if (State != EffectState.Finished)
             {
                 State = EffectState.Finishing;
@@ -215,7 +244,10 @@ namespace AAEmu.Game.Models.Game.Skills
         public double GetTimeLeft()
         {
             if (Duration == 0)
+            {
                 return -1;
+            }
+
             var time = (long)(StartTime.AddMilliseconds(Duration) - DateTime.UtcNow).TotalMilliseconds;
             return time > 0 ? time : 0;
         }
@@ -228,7 +260,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void WriteData(PacketStream stream)
         {
-            stream.WritePisc(Charge, Duration / 10, 0, (long)(Template.Tick / 10));
+            stream.WritePisc(Charge, Duration / 10, 0 / 10, (long)(Template.Tick / 10));
         }
 
         /// <summary>

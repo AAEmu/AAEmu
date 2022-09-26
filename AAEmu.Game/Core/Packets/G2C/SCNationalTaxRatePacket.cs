@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _prevTaxRate;
         private readonly DateTime _changedTime;
 
-        public SCNationalTaxRatePacket(ushort id, int taxRate, int prevTaxRate, DateTime changedTime) : base(SCOffsets.SCNationalTaxRatePacket, 1)
+        public SCNationalTaxRatePacket(ushort id, int taxRate, int prevTaxRate, DateTime changedTime) : base(SCOffsets.SCNationalTaxRatePacket, 5)
         {
             _id = id;
             _taxRate = taxRate;

@@ -17,9 +17,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (caster is Character character)
             {
                 if (!character.Quests.HasQuest(QuestId))
+                {
                     character.Quests.Add(QuestId);
+                }
                 else
+                {
                     character.Quests.OnReportToDoodad(owner.ObjId, QuestId, 0);
+                }
             }
         }
     }

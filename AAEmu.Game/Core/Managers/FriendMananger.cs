@@ -48,29 +48,47 @@ namespace AAEmu.Game.Core.Managers
 
         public void AddToAllFriends(FriendTemplate template)
         {
-            if (!_allFriends.ContainsKey(template.Id)) _allFriends.Add(template.Id, template);
+            if (!_allFriends.ContainsKey(template.Id))
+            {
+                _allFriends.Add(template.Id, template);
+            }
         }
 
         public void RemoveFromAllFriends(uint id)
         {
-            if (_allFriends.ContainsKey(id)) _allFriends.Remove(id);
+            if (_allFriends.ContainsKey(id))
+            {
+                _allFriends.Remove(id);
+            }
         }
 
         public void SendStatusChange(Character unit, bool forOnline, bool boolean)
         {
-            if (_allFriends.Count <= 0) return;
+            if (_allFriends.Count <= 0)
+            {
+                return;
+            }
+
             foreach (var (_, value) in _allFriends)
             {
-                if (value.FriendId != unit.Id) continue;
+                if (value.FriendId != unit.Id)
+                {
+                    continue;
+                }
 
                 var friendOwner = WorldManager.Instance.GetCharacterById(value.Owner);
                 if (friendOwner != null)
                 {
                     var myInfos = FormatFriend(unit);
                     if (forOnline)
+                    {
                         myInfos.IsOnline = boolean;
+                    }
                     else
+                    {
                         myInfos.InParty = boolean;
+                    }
+
                     friendOwner.SendPacket(new SCFriendStatusChangedPacket(myInfos));
                 }
             }
@@ -93,7 +111,10 @@ namespace AAEmu.Game.Core.Managers
                 friendsList.Add(newFriend);
             }
 
-            if (offlineIds.Count <= 0) return friendsList;
+            if (offlineIds.Count <= 0)
+            {
+                return friendsList;
+            }
 
             using (var connection = MySQL.CreateConnection())
             {
@@ -132,7 +153,10 @@ namespace AAEmu.Game.Core.Managers
         public Friend GetFriendInfo(string name)
         {
             var friend = WorldManager.Instance.GetCharacter(name);
-            if (friend != null) return FormatFriend(friend);
+            if (friend != null)
+            {
+                return FormatFriend(friend);
+            }
 
             uint friendId = 0;
             using (var connection = MySQL.CreateConnection())

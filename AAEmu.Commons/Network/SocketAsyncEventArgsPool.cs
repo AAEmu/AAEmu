@@ -33,7 +33,10 @@ namespace AAEmu.Commons.Network
         public SocketAsyncEventArgs Pop()
         {
             if (!_pool.TryPop(out var output))
+            {
                 _log.Error("TryPop from SocketAsyncEventArgs ConcurrentStack failed.");
+            }
+
             return output;
         }
     }

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSReadMailPacket : GamePacket
     {
-        public CSReadMailPacket() : base(CSOffsets.CSReadMailPacket, 1)
+        public CSReadMailPacket() : base(CSOffsets.CSReadMailPacket, 5)
         {
         }
 
@@ -14,7 +14,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             var isSent = stream.ReadBoolean();
             var mailId = stream.ReadInt64();
 
-            _log.Debug("ReadMail, Id: {0}, isSent: {1}", mailId, isSent);
+            _log.Debug($"ReadMail, Id: {mailId}, isSent: {isSent}");
+
             Connection.ActiveChar.Mails.ReadMail(isSent, mailId);
         }
     }

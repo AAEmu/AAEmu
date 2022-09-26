@@ -42,7 +42,9 @@ namespace AAEmu.Game.Models.Tasks
 
                 // Handle Family
                 if (_connection.ActiveChar.Family > 0)
+                {
                     FamilyManager.Instance.OnCharacterLogout(_connection.ActiveChar);
+                }
 
                 // Handle Guild
                 _connection.ActiveChar.Expedition?.OnCharacterLogout(_connection.ActiveChar);

@@ -35,8 +35,10 @@ namespace AAEmu.Game.Core.Network.Login
 
         public void Stop()
         {
-            if (_client?.IsConnected ?? false)
+            if (_client.IsConnected)
+            {
                 _client.DisconnectAsync();
+            }
         }
 
         public void SetConnection(LoginConnection con)

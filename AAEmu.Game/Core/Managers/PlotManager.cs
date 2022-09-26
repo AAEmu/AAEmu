@@ -22,22 +22,30 @@ namespace AAEmu.Game.Core.Managers
         public Plot GetPlot(uint id)
         {
             if (_plots.ContainsKey(id))
+            {
                 return _plots[id];
+            }
+
             return null;
         }
 
         public PlotEventTemplate GetEventByPlotId(uint plotId)
         {
             if (_plots.ContainsKey(plotId))
+            {
                 return _plots[plotId].EventTemplate;
+            }
+
             return null;
         }
 
         public void Load()
         {
             if (_loaded)
+            {
                 return;
-            
+            }
+
             _plots = new Dictionary<uint, Plot>();
             _eventTemplates = new Dictionary<uint, PlotEventTemplate>();
             _conditions = new Dictionary<uint, PlotCondition>();
@@ -92,7 +100,9 @@ namespace AAEmu.Game.Core.Managers
                             _eventTemplates.Add(template.Id, template);
 
                             if (template.Position == 1 && _plots.ContainsKey(template.PlotId))
+                            {
                                 _plots[template.PlotId].EventTemplate = template;
+                            }
                         }
                     }
                 }
@@ -146,10 +156,14 @@ namespace AAEmu.Game.Core.Managers
                                     }
 
                                 if (!res)
+                                {
                                     plotEvent.Conditions.AddLast(template);
+                                }
                             }
                             else
+                            {
                                 plotEvent.Conditions.AddFirst(template);
+                            }
                         }
                     }
                 }
@@ -180,10 +194,14 @@ namespace AAEmu.Game.Core.Managers
                                     }
 
                                 if (!res)
+                                {
                                     plotEvent.AoeConditions.AddLast(template);
+                                }
                             }
                             else
+                            {
                                 plotEvent.AoeConditions.AddFirst(template);
+                            }
                         }
                     }
                 }
@@ -216,10 +234,14 @@ namespace AAEmu.Game.Core.Managers
                                     }
 
                                 if (!res)
+                                {
                                     evnt.Effects.AddLast(template);
+                                }
                             }
                             else
+                            {
                                 evnt.Effects.AddFirst(template);
+                            }
                         }
                     }
                 }
@@ -263,10 +285,14 @@ namespace AAEmu.Game.Core.Managers
                                     }
 
                                 if (!res)
+                                {
                                     plotEvent.NextEvents.AddLast(template);
+                                }
                             }
                             else
+                            {
                                 plotEvent.NextEvents.AddFirst(template);
+                            }
                         }
                     }
                 }
@@ -276,7 +302,9 @@ namespace AAEmu.Game.Core.Managers
                 foreach(var plot in _plots.Values)
                 {
                     if (plot.EventTemplate != null)
+                    {
                         plot.Tree = PlotBuilder.BuildTree(plot.Id);
+                    }
                 }
                 // Task.Run(() => flameboltTree.Execute(new PlotState()));
             }

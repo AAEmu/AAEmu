@@ -5,6 +5,8 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 
+using Newtonsoft.Json;
+
 namespace AAEmu.Commons.Utils
 {
     public static class Helpers
@@ -28,7 +30,9 @@ namespace AAEmu.Commons.Utils
                         _baseDirectory = ExePath;
 
                         if (_baseDirectory.Length > 0)
+                        {
                             _baseDirectory = Path.GetDirectoryName(_baseDirectory);
+                        }
                     }
                     catch
                     {
@@ -50,9 +54,15 @@ namespace AAEmu.Commons.Utils
         public static long UnixTime(DateTime time)
         {
             if (time <= DateTime.MinValue)
+            {
                 return 0;
+            }
+
             if (time < _unixDate)
+            {
                 return 0;
+            }
+
             var timeSpan = (time - _unixDate);
             return (long)timeSpan.TotalSeconds;
         }
@@ -60,11 +70,15 @@ namespace AAEmu.Commons.Utils
         public static DateTime UnixTime(long time)
         {
             if (time > DateTime.MaxValue.Second)
+            {
                 return DateTime.MaxValue;
+            }
 
             if (time < DateTime.MinValue.Second)
+            {
                 return DateTime.MinValue;
-            
+            }
+
             return _unixDate.AddSeconds(time);
         }
 
@@ -254,6 +268,36 @@ namespace AAEmu.Commons.Utils
             var dir = Convert.ToSByte(z * 127f);
 
             return dir;
+        }
+
+        public static string ByteArrayToString(byte[] data)
+        {
+            var lookup = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+            int i = 0, p = 0, l = data.Length;
+            var c = new char[l * 2 + 2];
+            byte d;
+            //int p = 2; c[0] = '0'; c[1] = 'x'; //если хотим 0x
+            while (i < l)
+            {
+                d = data[i++];
+                c[p++] = lookup[d / 0x10];
+                c[p++] = lookup[d % 0x10];
+            }
+            return new string(c, 0, c.Length);
+        }
+
+        public static float ConvertDirectionToRadian(sbyte rotation)
+        {
+            var z = rotation * 0.0078740157; // переводим из направления в радианы
+            z *= Math.PI * 2;
+
+            return (float)z;
+        }
+
+        public static T GetDeepClone<T>(this T obj)
+        {
+            var json = JsonConvert.SerializeObject(obj);
+            return JsonConvert.DeserializeObject<T>(json);
         }
     }
 }

@@ -7,9 +7,9 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
-    public class CSBeautyshopDataPacket : GamePacket
+    public class CSBeautyShopDataPacket : GamePacket
     {
-        public CSBeautyshopDataPacket() : base(CSOffsets.CSBeautyshopDataPacket, 1)
+        public CSBeautyShopDataPacket() : base(CSOffsets.CSBeautyShopDataPacket, 5)
         {
         }
 

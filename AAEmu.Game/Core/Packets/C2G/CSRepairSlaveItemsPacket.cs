@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRepairSlaveItemsPacket : GamePacket
     {
-        public CSRepairSlaveItemsPacket() : base(CSOffsets.CSRepairSlaveItemsPacket, 1)
+        public CSRepairSlaveItemsPacket() : base(CSOffsets.CSRepairSlaveItemsPacket, 5)
         {
         }
 

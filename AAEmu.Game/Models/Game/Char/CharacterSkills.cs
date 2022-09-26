@@ -40,16 +40,25 @@ namespace AAEmu.Game.Models.Game.Char
                 template.AbilityId != (byte) Owner.Ability1 &&
                 template.AbilityId != (byte) Owner.Ability2 &&
                 template.AbilityId != (byte) Owner.Ability3)
+            {
                 return;
+            }
+
             var points = ExpirienceManager.Instance.GetSkillPointsForLevel(Owner.Level);
             points -= GetUsedSkillPoints();
             if (template.SkillPoints > points)
+            {
                 return;
+            }
 
             if (Skills.ContainsKey(skillId))
+            {
                 Owner.SendPacket(new SCSkillLearnedPacket(Skills[skillId]));
+            }
             else
+            {
                 AddSkill(template, 1, true);
+            }
         }
 
         public void AddSkill(SkillTemplate template, byte level, bool packet)
@@ -63,7 +72,9 @@ namespace AAEmu.Game.Models.Game.Char
             Skills.Add(skill.Id, skill);
 
             if (packet)
+            {
                 Owner.SendPacket(new SCSkillLearnedPacket(skill));
+            }
         }
         
         public void AddBuff(uint buffId)
@@ -73,13 +84,22 @@ namespace AAEmu.Game.Models.Game.Char
                template.AbilityId != (byte)Owner.Ability1 && 
                template.AbilityId != (byte)Owner.Ability2 && 
                template.AbilityId != (byte)Owner.Ability3)
+            {
                 return;
+            }
+
             var points = ExpirienceManager.Instance.GetSkillPointsForLevel(Owner.Level);
             points -= GetUsedSkillPoints();
             if(template.ReqPoints > points)
+            {
                 return;
+            }
+
             if(PassiveBuffs.ContainsKey(buffId))
+            {
                 return;
+            }
+
             var buff = new PassiveBuff {Id = buffId, Template = template};
             PassiveBuffs.Add(buff.Id, buff);
             Owner.BroadcastPacket(new SCBuffLearnedPacket(Owner.ObjId, buff.Id), true);
@@ -91,7 +111,10 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var skill in new List<Skill>(Skills.Values))
             {
                 if (skill.Template.AbilityId != (byte)abilityId)
+                {
                     continue;
+                }
+
                 Skills.Remove(skill.Id);
                 _removed.Add(skill.Id);
             }
@@ -99,7 +122,10 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var buff in new List<PassiveBuff>(PassiveBuffs.Values))
             {
                 if (buff.Template.AbilityId != (byte)abilityId)
+                {
                     continue;
+                }
+
                 buff.Remove(Owner);
                 PassiveBuffs.Remove(buff.Id);
                 _removed.Add(buff.Id);
@@ -112,9 +138,15 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var points = 0;
             foreach (var skill in Skills.Values)
+            {
                 points += skill.Template.SkillPoints;
+            }
+
             foreach (var buff in PassiveBuffs.Values)
+            {
                 points += buff.Template?.ReqPoints ?? 1;
+            }
+
             return points;
         }
         
@@ -162,8 +194,12 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             foreach (var skill in Skills.Values)
+            {
                 if (skill != null)
+                {
                     skill.Template = SkillManager.Instance.GetSkillTemplate(skill.Id);
+                }
+            }
         }
 
         public void Save(MySqlConnection connection, MySqlTransaction transaction)

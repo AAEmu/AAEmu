@@ -37,11 +37,16 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             _log.Trace("HealEffect {0}", Id);
 
             if (!(target is Unit))
+            {
                 return;
+            }
+
             var trg = (Unit)target;
 
             if (trg.Hp <= 0)
+            {
                 return;
+            }
 
             var min = 0.0f;
             var max = 0.0f;
@@ -64,9 +69,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             // Hack null-check on skill
             var castTimeMod = source.Skill?.Template.CastingTime ?? 0 ; // This mod depends on casting_inc too!
             if (castTimeMod <= 1000)
+            {
                 minCastBonus = min > 0 ? min : minCastBonus;
+            }
             else
+            {
                 minCastBonus = castTimeMod;
+            }
 
             var variableDamage = (max * minCastBonus * 0.001f);
             min = variableDamage + levelMin;
@@ -110,8 +119,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 if (source.Buff != null && source.IsTrigger)
                 {
                     value = (int)((value / 1000.0f) * source.Amount);
-                } else 
+                } else
+                {
                     value = (int) (value * tickModifier);
+                }
             }
             
             value = (int) (value * caster.HealMul);
@@ -120,13 +131,17 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             var packet = new SCUnitHealedPacket(castObj, casterObj, target.ObjId, 0, healHitType, value);
             if (packetBuilder != null)
+            {
                 packetBuilder.AddPacket(packet);
+            }
             else
+            {
                 trg.BroadcastPacket(packet, true);
+            }
 
             trg.Hp += value;
             trg.Hp = Math.Min(trg.Hp, trg.MaxHp);
-            trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);
+            trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp, trg.HighAbilityRsc), true);
 
             trg.Events.OnHealed(this, new OnHealedArgs { Healer = caster, HealAmount = value });
         }

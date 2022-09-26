@@ -1,16 +1,19 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Char.Static;
 using AAEmu.Game.Models.Observers;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSpawnCharacterPacket : GamePacket
     {
-        public CSSpawnCharacterPacket() : base(CSOffsets.CSSpawnCharacterPacket, 1)
+        public CSSpawnCharacterPacket() : base(CSOffsets.CSSpawnCharacterPacket, 5)
         {
         }
 
@@ -23,11 +26,14 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             Connection.SendPacket(new SCUnitStatePacket(Connection.ActiveChar));
 
-            Connection.ActiveChar.PushSubscriber(
-                TimeManager.Instance.Subscribe(Connection, new TimeOfDayObserver(Connection.ActiveChar))
-            );
+            Connection.SendPacket(new SCDailyResetPacket(DailyResetKind.Instance));
+            Connection.SendPacket(new SCDailyResetPacket(DailyResetKind.AbilitySetFreeActivationCount));
+            Connection.SendPacket(new SCCurServerTimePacket(DateTime.UtcNow));
+
+            Connection.ActiveChar.PushSubscriber(TimeManager.Instance.Subscribe(Connection, new TimeOfDayObserver(Connection.ActiveChar)));
 
             _log.Info("CSSpawnCharacterPacket");
+
         }
     }
 }

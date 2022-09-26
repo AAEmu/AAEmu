@@ -6,8 +6,6 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units.Route;
 
@@ -15,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSelectCharacterPacket : GamePacket
     {
-        public CSSelectCharacterPacket() : base(CSOffsets.CSSelectCharacterPacket, 1)
+        public CSSelectCharacterPacket() : base(CSOffsets.CSSelectCharacterPacket, 5)
         {
         }
 
@@ -27,13 +25,13 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (Connection.Characters.ContainsKey(characterId))
             {
-                var character = (Character)Connection.Characters[characterId];
+                var character = Connection.Characters[characterId];
                 character.Load();
                 character.Connection = Connection;
                 var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id);
 
                 Connection.ActiveChar = character;
-                if (Models.Game.Char.Character._usedCharacterObjIds.TryGetValue(character.Id, out uint oldObjId))
+                if (Models.Game.Char.Character._usedCharacterObjIds.TryGetValue(character.Id, out var oldObjId))
                 {
                     Connection.ActiveChar.ObjId = oldObjId;
                 }
@@ -56,13 +54,13 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.Actability.Send();
                 Connection.ActiveChar.Mails.SendUnreadMailCount();
                 Connection.ActiveChar.Appellations.Send();
-                Connection.ActiveChar.Portals.Send();
                 Connection.ActiveChar.Friends.Send();
                 Connection.ActiveChar.Blocked.Send();
+                Connection.ActiveChar.Portals.Send();
 
                 foreach (var house in houses)
                 {
-                    Connection.SendPacket(new SCMyHousePacket(house));
+                    Connection.SendPacket(new SCHousePacket(house));
                 }
 
                 foreach (var conflict in ZoneManager.Instance.GetConflicts())
@@ -82,10 +80,10 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.SendOption(1);
                 Connection.ActiveChar.SendOption(2);
                 Connection.ActiveChar.SendOption(5);
-                
+
                 Connection.ActiveChar.Buffs.AddBuff((uint)BuffConstants.LoggedOn, Connection.ActiveChar);
-                
-                Connection.ActiveChar.OnZoneChange(0,Connection.ActiveChar.Transform.ZoneId);
+
+                Connection.ActiveChar.OnZoneChange(0, Connection.ActiveChar.Transform.ZoneId);
             }
             else
             {

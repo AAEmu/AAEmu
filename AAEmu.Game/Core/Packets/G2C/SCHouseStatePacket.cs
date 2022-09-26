@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly House _house;
         
-        public SCHouseStatePacket(House house) : base(SCOffsets.SCHouseStatePacket, 1)
+        public SCHouseStatePacket(House house) : base(SCOffsets.SCHouseStatePacket, 5)
         {
             _house = house;
         }

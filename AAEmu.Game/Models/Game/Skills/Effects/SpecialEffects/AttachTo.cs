@@ -17,10 +17,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (caster is Character) { _log.Debug("Special effects: AttachTo value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
             if (!(target is Slave slave))
+            {
                 return;
+            }
 
             if (!(caster is Character character))
+            {
                 return;
+            }
 
             SlaveManager.Instance.BindSlave(character, slave.ObjId, (AttachPointKind)value1, AttachUnitReason.NewMaster);
         }

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ushort _tlId;
         private readonly uint _duration;
 
-        public SCCastingStoppedPacket(ushort tlId, uint duration) : base(SCOffsets.SCCastingStoppedPacket, 1)
+        public SCCastingStoppedPacket(ushort tlId, uint duration) : base(SCOffsets.SCCastingStoppedPacket, 5)
         {
             _tlId = tlId;
             _duration = duration;
@@ -16,8 +16,11 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_tlId);
-            stream.Write(_duration);
+            _log.Warn("SCCastingStoppedPacket: tl = {0}", _tlId);
+
+            stream.Write(_tlId);      // skillId (tl)
+            stream.Write(_duration);  // duration
+
             return stream;
         }
     }

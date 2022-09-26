@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _memberId;
         private readonly bool _online;
 
-        public SCFamilyMemberOnlinePacket(uint familyId, uint memberId, bool online) : base(SCOffsets.SCFamilyMemberOnlinePacket, 1)
+        public SCFamilyMemberOnlinePacket(uint familyId, uint memberId, bool online) : base(SCOffsets.SCFamilyMemberOnlinePacket, 5)
         {
             _familyId = familyId;
             _memberId = memberId;

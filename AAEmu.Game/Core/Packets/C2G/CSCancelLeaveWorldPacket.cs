@@ -6,14 +6,16 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCancelLeaveWorldPacket : GamePacket
     {
-        public CSCancelLeaveWorldPacket() : base(CSOffsets.CSCancelLeaveWorldPacket, 1)
+        public CSCancelLeaveWorldPacket() : base(CSOffsets.CSCancelLeaveWorldPacket, 5)
         {
         }
 
         public override async void Read(PacketStream stream)
         {
             if (Connection?.LeaveTask == null)
+            {
                 return;
+            }
 
             var result = await Connection.LeaveTask.CancelAsync();
             if (result)

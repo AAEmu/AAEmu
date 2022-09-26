@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Utils;
@@ -59,7 +59,8 @@ namespace AAEmu.Game.Scripts.Commands
 
             SpawnManager.Instance.AddNpcSpawner(npcSpawner);
 
-            npcSpawner.SpawnAll();
+            npcSpawner.DoSpawn(); // создаем в любом случае
+            //npcSpawner.SpawnAll(); // создаем с учетом расписания
         }
     }
 }

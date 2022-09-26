@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _defendantName;
         private readonly uint _trial;
 
-        public SCInviteJuryPacket(string defendantName, uint trial) : base(SCOffsets.SCInviteJuryPacket, 1)
+        public SCInviteJuryPacket(string defendantName, uint trial) : base(SCOffsets.SCInviteJuryPacket, 5)
         {
             _defendantName = defendantName;
             _trial = trial;

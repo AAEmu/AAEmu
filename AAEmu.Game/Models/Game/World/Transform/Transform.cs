@@ -236,8 +236,10 @@ namespace AAEmu.Game.Models.Game.World.Transform
             for (var i = Children.Count - 1; i >= 0; i--)
                 Children[i].Parent = null;
             if (!keepStickyParent)
+            {
                 for (var i = _stickyChildren.Count - 1; i >= 0; i--)
                     _stickyChildren[i].StickyParent = null;
+            }
         }
 
         /// <summary>
@@ -246,14 +248,20 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// <param name="parent"></param>
         protected void SetParent(Transform parent)
         {
-            if (_parentTransform == parent) return;
+            if (_parentTransform == parent)
+            {
+                return;
+            }
+
             lock (_lock)
             {
 
                 if ((parent == null) || (!parent.Equals(_parentTransform)))
                 {
                     if (_parentTransform != null)
+                    {
                         _parentTransform.InternalDetachChild(this);
+                    }
                     /*
                     if (_owningObject != null)
                     {
@@ -286,7 +294,9 @@ namespace AAEmu.Game.Models.Game.World.Transform
                     _parentTransform?.InternalAttachChild(this);
 
                     if ((_owningObject is Character aPlayer))
+                    {
                         aPlayer.SendMessage($"NewPos: {ToFullString(true, true)}");
+                    }
                 }
             }
         }
@@ -324,7 +334,10 @@ namespace AAEmu.Game.Models.Game.World.Transform
         private PositionAndRotation GetWorldPosition()
         {
             if (_parentTransform == null)
+            {
                 return _localPosRot;
+            }
+
             var res = _parentTransform.GetWorldPosition().Clone();
 
             // TODO: This is not taking into account parent rotation !
@@ -341,13 +354,16 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// </summary>
         /// <param name="wsp">WorldSpawnPosition to copy information from</param>
         /// <param name="newInstanceId">new InstanceId to assign to this transform, unchanged if 0</param>
-        public void ApplyWorldSpawnPosition(WorldSpawnPosition wsp,uint newInstanceId = 0,bool keepStickyParent = false)
+        public void ApplyWorldSpawnPosition(WorldSpawnPosition wsp, uint newInstanceId = 0, bool keepStickyParent = false)
         {
             DetachAll(keepStickyParent);
             WorldId = wsp.WorldId;
             ZoneId = wsp.ZoneId;
             if (newInstanceId != 0)
+            {
                 InstanceId = newInstanceId;
+            }
+
             Local.Position = new Vector3(wsp.X, wsp.Y, wsp.Z);
             Local.Rotation = new Vector3(wsp.Roll, wsp.Pitch, wsp.Yaw);
         }
@@ -388,15 +404,20 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 {
                     var stickyChild = _stickyChildren[i];
                     if (stickyChild == null)
+                    {
                         continue;
+                    }
+
                     stickyChild.Local.Translate(worldPosDelta);
                     stickyChild.FinalizeTransform(includeChildren);
                     WorldManager.Instance.AddVisibleObject(stickyChild._owningObject);                        
 
                     if (!(stickyChild.GameObject is Unit))
+                    {
                         continue;
-                    
-                    
+                    }
+
+
                     // Create a moveType
                     /*
                     var mt = new UnitMoveType();
@@ -428,10 +449,14 @@ namespace AAEmu.Game.Models.Game.World.Transform
             }
            
             if (_owningObject == null)
+            {
                 return;
-            
+            }
+
             if (!_owningObject.DisabledSetPosition)
+            {
                 WorldManager.Instance.AddVisibleObject(_owningObject);
+            }
 
             if (_owningObject is Slave slave)
             {
@@ -489,7 +514,10 @@ namespace AAEmu.Game.Models.Game.World.Transform
             var chatLineFeed = chatFormatted ? "\n" : "";
             var res = string.Empty;
             if (isFirstInList && ((_parentTransform != null) || (_stickyParentTransform != null)))
-                res += "[" + chatColorWhite + World.ToString() + chatColorRestore + "] " + chatLineFeed + "=> "; 
+            {
+                res += "[" + chatColorWhite + World.ToString() + chatColorRestore + "] " + chatLineFeed + "=> ";
+            }
+
             res += Local.ToString();
             if (_parentTransform != null)
             {
@@ -497,7 +525,10 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 if (_parentTransform._owningObject is BaseUnit bu)
                 {
                     if (bu.Name != string.Empty)
+                    {
                         res += chatColorGreen + bu.Name + chatColorRestore + " ";
+                    }
+
                     res += "#" + chatColorWhite + bu.ObjId + chatColorRestore + " ";
                 }
 
@@ -511,7 +542,10 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 if (_stickyParentTransform._owningObject is BaseUnit bu)
                 {
                     if (bu.Name != string.Empty)
+                    {
                         res += chatColorYellow + bu.Name + chatColorRestore + " ";
+                    }
+
                     res += "#" + chatColorWhite + bu.ObjId + chatColorRestore + " ";
                 }
 
@@ -530,13 +564,22 @@ namespace AAEmu.Game.Models.Game.World.Transform
         {
             // Null-check
             if ((stickyChild == null) || (stickyChild.GameObject == null))
+            {
                 return false;
+            }
+
             // Check if already there
             if (StickyChildren.Contains(stickyChild))
+            {
                 return false;
+            }
+
             // Check if in the same world
             if ((stickyChild.WorldId != this.WorldId) || (stickyChild.InstanceId != this.InstanceId))
+            {
                 return false;
+            }
+
             StickyChildren.Add(stickyChild);
             stickyChild._stickyParentTransform = this;
             return true;
@@ -549,13 +592,19 @@ namespace AAEmu.Game.Models.Game.World.Transform
         public void DetachStickyTransform(Transform stickyChild)
         {
             if (StickyChildren.Contains(stickyChild))
+            {
                 _stickyChildren.Remove(stickyChild);
+            }
+
             stickyChild._stickyParentTransform = null;
         }
 
         protected void SetStickyParent(Transform stickyParent)
         {
-            if (_stickyParentTransform == stickyParent) return;
+            if (_stickyParentTransform == stickyParent)
+            {
+                return;
+            }
 
             Parent = null; // detach from parent if on any
             
@@ -565,7 +614,9 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 // var oldStickyParent = _stickyParentTransform;
                 // Detach from previous sticky parent if needed 
                 if ((_stickyParentTransform != null) && (!_stickyParentTransform.Equals(stickyParent)))
+                {
                     _stickyParentTransform.DetachStickyTransform(this);
+                }
 
                 /*
                 if (oldStickyParent != stickyParent)
@@ -596,7 +647,9 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 
                 // Attach to new parent if needed
                 if (stickyParent != null)
+                {
                     stickyParent.AttachStickyTransform(this);
+                }
             }
             
             // Attach to Stick target's parent if it has one

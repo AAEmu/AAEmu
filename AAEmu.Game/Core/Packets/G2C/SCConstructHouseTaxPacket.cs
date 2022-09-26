@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public SCConstructHouseTaxPacket(uint designId, int heavyTaxHouseCount, int normalTaxHouseCount,
             bool isHeavyTaxHouse, int baseTaxMoneyAmount, int depositTaxMoneyAmount, int totalTaxMoneyAmount)
-            : base(SCOffsets.SCConstructHouseTaxPacket, 1)
+            : base(SCOffsets.SCConstructHouseTaxPacket, 5)
         {
             _designId = designId;
             _heavyTaxHouseCount = heavyTaxHouseCount;

@@ -22,7 +22,9 @@ namespace AAEmu.Game.Models.Game.AI.States
         public override void Tick(TimeSpan delta)
         {
             if (!(AI.Owner is Npc npc))
+            {
                 return;
+            }
 
             // if (PreviousDistance > AI.Params.CombatRange)
             if (PreviousDistance > 2.5f)

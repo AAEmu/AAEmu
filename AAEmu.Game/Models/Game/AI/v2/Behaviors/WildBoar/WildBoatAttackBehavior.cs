@@ -20,7 +20,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.WildBoar
         {
             _aiParams = Ai.Param as WildBoarAiParams;
             if (_aiParams == null)
+            {
                 return;
+            }
 
             _prevHealthRatio = (Ai.Owner.Hp / (float)Ai.Owner.MaxHp) * 100;
 
@@ -32,7 +34,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.WildBoar
             // On Combat Start Skill
             var startCombatSkillId = _aiParams.OnCombatStartSkills.FirstOrDefault();
             if (startCombatSkillId == 0)
+            {
                 return;
+            }
 
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(startCombatSkillId);
             var skill = new Skill(skillTemplate);
@@ -42,20 +46,28 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.WildBoar
         public override void Tick(TimeSpan delta)
         {
             if (_aiParams == null)
+            {
                 return;
-            
+            }
+
             var healthRatio = (Ai.Owner.Hp / (float)Ai.Owner.MaxHp) * 100;
             
             var target = Ai.Owner.CurrentTarget;
             if (target == null)
+            {
                 return; // Technically, the aggro code should take us out of this state very soon.
-            
+            }
+
             if (CanStrafe)
+            {
                 MoveInRange(target, delta);
+            }
 
             if (!CanUseSkill)
+            {
                 return;
-            
+            }
+
             // Spurt or base?
         }
 

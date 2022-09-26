@@ -28,7 +28,10 @@ namespace AAEmu.Game.Core.Managers
                 OnTick.Invoke();
                 var time = sw.Elapsed - before;
                 if(time > TimeSpan.FromMilliseconds(100))
+                {
                     _log.Warn("Tick took {0}ms to finish", time.TotalMilliseconds);
+                }
+
                 Thread.Sleep(20);
             }
             sw.Stop();
@@ -95,7 +98,9 @@ namespace AAEmu.Game.Core.Managers
                     var ev = _eventsToRemove.Dequeue();
                     var evToRemove = _eventList.FirstOrDefault(o => o.Event == ev);
                     if (evToRemove?.Event != null)
+                    {
                         _eventList.Remove(evToRemove);
+                    }
                 }
             }
 

@@ -46,7 +46,9 @@ namespace AAEmu.Game.Core.Managers
         public Shipyard Create(Character owner, ShipyardData shipyardData)
         {
             if (!_shipyardsTemplate.ContainsKey(shipyardData.TemplateId))
+            {
                 return null;
+            }
 
             var pos = owner.Transform.CloneAsSpawnPosition();
             pos.X = shipyardData.X;
@@ -239,7 +241,9 @@ namespace AAEmu.Game.Core.Managers
                 var timeleft = shipyard.Template.TaxDuration + mins;
 
                 if (shipyard.Buffs.CheckBuff((uint)BuffConstants.TaxProtection))
+                {
                     return;
+                }
 
                 var protectionBuffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.TaxProtection);
                 if (protectionBuffTemplate != null)
@@ -255,7 +259,9 @@ namespace AAEmu.Game.Core.Managers
             else
             {
                 if (shipyard.Buffs.CheckBuff((uint)BuffConstants.TaxProtection))
+                {
                     shipyard.Buffs.RemoveBuff((uint)BuffConstants.TaxProtection);
+                }
             }
         }
 
@@ -287,7 +293,9 @@ namespace AAEmu.Game.Core.Managers
             else
             {
                 if (shipyard.Buffs.CheckBuff((uint)BuffConstants.Deterioration))
+                {
                     shipyard.Buffs.RemoveBuff((uint)BuffConstants.Deterioration);
+                }
             }
         }
 

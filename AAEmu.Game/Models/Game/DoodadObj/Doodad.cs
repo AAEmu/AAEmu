@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Doodads;
 
 /*
@@ -68,7 +69,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
     public class Doodad : BaseUnit
     {
         private float _scale;
-
+        public byte Flag { get; set; }
         private int _data;
 
         //public uint TemplateId { get; set; } // moved to BaseUnit
@@ -88,6 +89,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint ParentObjId { get; set; }
         public DoodadOwnerType OwnerType { get; set; }
         public AttachPointKind AttachPoint { get; set; }
+        public Point AttachPosition { get; set; }
         public uint DbHouseId { get; set; }
 
         public int Data
@@ -99,7 +101,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 {
                     _data = value;
                     if (DbId > 0)
+                    {
                         Save();
+                    }
                 }
             }
         }
@@ -312,15 +316,23 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             {
                 FuncTask?.CancelAsync();
                 if (caster is Character)
+                {
                     _log.Debug("DoPhase:DoodadFuncTimer: The current timer has been canceled.");
+                }
                 else
+                {
                     _log.Trace("DoPhase:DoodadFuncTimer: The current timer has been canceled.");
+                }
             }
 
             if (caster is Character)
+            {
                 _log.Debug("DoPhase: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
+            }
             else
+            {
                 _log.Trace("DoPhase: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
+            }
 
             // Changing the phase.
             FuncGroupId = (uint)nextPhase;
@@ -352,7 +364,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
 
             if (!_deleted)
+            {
                 Save(); // let's save the doodad in the database
+            }
 
             return stop; // if true, it did not pass the check for the quest (it must be aborted)
         }
@@ -368,9 +382,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (nextPhase <= 0) { return false; }
 
             if (caster is Character)
+            {
                 _log.Debug("DoPhaseFuncs: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
+            }
             else
+            {
                 _log.Trace("DoPhaseFuncs: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
+            }
 
             // Start the phase functions
             var stop = DoPhase(caster, nextPhase);
@@ -471,16 +489,18 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public PacketStream Write(PacketStream stream)
         {
             stream.WriteBc(ObjId); //The object # in the list
-            stream.Write(
-                TemplateId); //The template id needed for that object, the client then uses the template configurations, not the server
+            // TemplateId - The template id needed for that object, the client then uses the template configurations, not the server
+            // CurrentPhaseId / FuncGroupId - doodad_func_group_id
+            // QuestGlow - When this is higher than 0 it shows a blue orb over the doodad
+            stream.WritePisc(TemplateId, FuncGroupId, 0, QuestGlow);
+
+            stream.Write(Flag);
             stream.WriteBc(OwnerObjId); //The creator of the object
             stream.WriteBc(ParentObjId); //Things like boats or cars,
-            stream.Write(
-                (byte)AttachPoint); // attachPoint, relative to the parentObj (Door or window on a house, seats on carriage, etc.)
-            if ((AttachPoint > 0) || (ParentObjId > 0))
+            stream.Write((byte)AttachPoint); // attachPoint, relative to the parentObj (Door or window on a house, seats on carriage, etc.)
+            if (AttachPoint > 0 || ParentObjId > 0)
             {
-                stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y,
-                    Transform.Local.Position.Z);
+                stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y, Transform.Local.Position.Z);
                 var (roll, pitch, yaw) = Transform.Local.ToRollPitchYawShorts();
                 stream.Write(roll);
                 stream.Write(pitch);
@@ -488,8 +508,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
             else
             {
-                stream.WritePosition(Transform.World.Position.X, Transform.World.Position.Y,
-                    Transform.World.Position.Z);
+                stream.WritePosition(Transform.World.Position.X, Transform.World.Position.Y, Transform.World.Position.Z);
                 var (roll, pitch, yaw) = Transform.World.ToRollPitchYawShorts();
                 stream.Write(roll);
                 stream.Write(pitch);
@@ -497,17 +516,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
 
             stream.Write(Scale); //The size of the object
-            stream.Write(false); // hasLootItem
-            stream.Write(FuncGroupId); // doodad_func_group_id
-            stream.Write(OwnerId); // characterId (Database relative)
-            stream.Write(UccId);
-            stream.Write(ItemTemplateId);
-            stream.Write(0u); //??type2
+            stream.Write(OwnerId);         // characterId
+            stream.Write(UccId);           // type(id)
+            stream.Write(ItemTemplateId);  // type(id)
             stream.Write(TimeLeft); // growing
-            stream.Write(PlantTime); //Time stamp of when it was planted
-            stream.Write(QuestGlow); //When this is higher than 0 it shows a blue orb over the doodad
-            stream.Write(0); // family TODO
-            stream.Write(-1); // puzzleGroup /for instances maybe?
+            stream.Write(PlantTime);       // plantTime
+            stream.Write(0);               // family
+            stream.Write(-1);              // puzzleGroup
             stream.Write((byte)OwnerType); // ownerType
             stream.Write(DbHouseId); // dbHouseId
             stream.Write(Data); // data
@@ -538,7 +553,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public void Save()
         {
             if (!IsPersistent)
+            {
                 return;
+            }
+
             DbId = DbId > 0 ? DbId : DoodadIdManager.Instance.GetNextId();
             using (var connection = MySQL.CreateConnection())
             {
@@ -547,7 +565,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     // Lookup Parent
                     var parentDoodadId = 0u;
                     if ((Transform?.Parent?.GameObject is Doodad pDoodad) && (pDoodad.DbId > 0))
+                    {
                         parentDoodadId = pDoodad.DbId;
+                    }
 
                     command.CommandText =
                         "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`) " +
@@ -590,7 +610,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             foreach (var child in Transform.Children)
             {
                 if ((child.GameObject is Doodad doodad) && (doodad.DbId > 0))
+                {
                     return false;
+                }
             }
 
             return base.AllowRemoval();

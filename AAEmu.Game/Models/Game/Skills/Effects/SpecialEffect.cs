@@ -21,7 +21,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
             CompressedGamePackets packetBuilder = null)
         {
-            if (source == null) return;
+            if (source == null)
+            {
+                return;
+            }
 
             _log.ConditionalTrace("SpecialEffect, Special: {0}, Value1: {1}, Value2: {2}, Value3: {3}, Value4: {4}",
                 SpecialEffectTypeId, Value1, Value2, Value3, Value4

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         private uint _doodadObjId;
         private int _selected;
 
-        public CSCompleteQuestContextPacket() : base(CSOffsets.CSCompleteQuestContextPacket, 1)
+        public CSCompleteQuestContextPacket() : base(CSOffsets.CSCompleteQuestContextPacket, 5)
         {
         }
 
@@ -22,9 +22,14 @@ namespace AAEmu.Game.Core.Packets.C2G
             _selected = stream.ReadInt32();
 
             if (_npcObjId > 0)
+            {
                 Connection.ActiveChar.Quests.OnReportToNpc(_npcObjId, _questContextId, _selected);
+            }
+
             if (_doodadObjId > 0)
+            {
                 Connection.ActiveChar.Quests.OnReportToDoodad(_doodadObjId, _questContextId, _selected);
+            }
         }
     }
 }

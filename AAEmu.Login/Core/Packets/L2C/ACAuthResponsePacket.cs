@@ -5,14 +5,16 @@ namespace AAEmu.Login.Core.Packets.L2C
 {
     public class ACAuthResponsePacket : LoginPacket
     {
-        private readonly uint _accountId;
-        private readonly byte[] _wsk;
+        private readonly ulong _accountId;
+        //private readonly byte[] _wsk;
+        private readonly string _wsk;
         private readonly byte _slotCount;
 
-        public ACAuthResponsePacket(uint accountId, byte slotCount) : base(LCOffsets.ACAuthResponsePacket)
+        public ACAuthResponsePacket(ulong accountId, byte slotCount) : base(LCOffsets.ACAuthResponsePacket)
         {
             _accountId = accountId;
-            _wsk = new byte[32];
+            //_wsk = new byte[32]; 
+            _wsk = "65CCBF5AF8DB8B633D3C03C5A8735601"; //TODO: генерация //ADBDAE13A28D415889FE34F20B268C97
             _slotCount = slotCount;
         }
 
@@ -21,6 +23,7 @@ namespace AAEmu.Login.Core.Packets.L2C
             stream.Write(_accountId);
             stream.Write(_wsk, true);
             stream.Write(_slotCount);
+            //stream.Write((short)0); //add for 5.1
 
             return stream;
         }

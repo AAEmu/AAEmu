@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _objId;
         private readonly uint _buffId;
 
-        public SCBuffLearnedPacket(uint objId, uint buffId) : base(SCOffsets.SCBuffLearnedPacket, 1)
+        public SCBuffLearnedPacket(uint objId, uint buffId) : base(SCOffsets.SCBuffLearnedPacket, 5)
         {
             _objId = objId;
             _buffId = buffId;

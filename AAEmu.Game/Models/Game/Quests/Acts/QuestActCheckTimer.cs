@@ -38,9 +38,13 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
             else
             {
                 if (!QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].ContainsKey(quest.TemplateId))
+                {
                     QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].Add(quest.TemplateId, new QuestTimeoutTask(character, quest.TemplateId));
+                }
                 else
+                {
                     QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id][quest.TemplateId] = new QuestTimeoutTask(character, quest.TemplateId);
+                }
             }
 
 

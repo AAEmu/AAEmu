@@ -75,10 +75,10 @@ namespace AAEmu.Game.Models.Game.Shipyard
 
         public override void AddVisibleObject(Character character)
         {
+            base.AddVisibleObject(character);
+
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCShipyardStatePacket(ShipyardData));
-
-            base.AddVisibleObject(character);
         }
 
         public override void RemoveVisibleObject(Character character)
@@ -443,19 +443,25 @@ namespace AAEmu.Game.Models.Game.Shipyard
         public void AddBuildAction()
         {
             if (CurrentStep == -1)
+            {
                 return;
+            }
 
             lock (_lock)
             {
                 var nextAction = NumAction + 1;
                 if (Template.ShipyardSteps[CurrentStep].NumActions > nextAction)
+                {
                     NumAction = nextAction;
+                }
                 else
                 {
                     NumAction = 0;
                     var nextStep = CurrentStep + 1;
                     if (Template.ShipyardSteps.Count > nextStep)
+                    {
                         CurrentStep = nextStep;
+                    }
                     else
                     {
                         CurrentStep = -1;

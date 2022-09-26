@@ -5,10 +5,10 @@ namespace AAEmu.Login.Core.Packets.L2G
 {
     public class LGPlayerEnterPacket : InternalPacket
     {
-        private readonly uint _accountId;
+        private readonly ulong _accountId;
         private readonly uint _connectionId;
 
-        public LGPlayerEnterPacket(uint accountId, uint connectionId) : base(LGOffsets.LGPlayerEnterPacket)
+        public LGPlayerEnterPacket(ulong accountId, uint connectionId) : base(LGOffsets.LGPlayerEnterPacket)
         {
             _accountId = accountId;
             _connectionId = connectionId;

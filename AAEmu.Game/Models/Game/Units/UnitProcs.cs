@@ -25,7 +25,10 @@ namespace AAEmu.Game.Models.Game.Units
             var proc = new ItemProc(procId);
             _procs.Add(proc);
             if (!_procsByChanceKind.ContainsKey(proc.Template.ChanceKind))
+            {
                 _procsByChanceKind.Add(proc.Template.ChanceKind, new List<ItemProc>());
+            }
+
             _procsByChanceKind[proc.Template.ChanceKind].Add(proc);
         }
 
@@ -34,19 +37,26 @@ namespace AAEmu.Game.Models.Game.Units
             var procTemplate = ItemManager.Instance.GetItemProcTemplate(procId);
 
             if (_procsByChanceKind.ContainsKey(procTemplate.ChanceKind))
+            {
                 _procsByChanceKind[procTemplate.ChanceKind].RemoveAll(p => p.TemplateId == procId);
+            }
         }
 
         public void RollProcsForKind(ProcChanceKind kind)
         {
             if (!_procsByChanceKind.ContainsKey(kind))
+            {
                 return;
+            }
+
             var procs = _procsByChanceKind[kind];
             
             foreach (var proc in procs)
             {
                 if (proc.LastProc.AddSeconds(proc.Template.CooldownSec) <= DateTime.UtcNow)
+                {
                     continue;
+                }
 
                 proc.Apply(Owner);
                 proc.LastProc = DateTime.UtcNow;

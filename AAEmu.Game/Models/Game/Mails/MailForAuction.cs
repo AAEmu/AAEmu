@@ -86,7 +86,9 @@ namespace AAEmu.Game.Models.Game.Mails
 
             var nameBuyer = NameManager.Instance.GetCharacterName(_buyerId);
             if (nameBuyer == null)
+            {
                 return false;
+            }
 
             Header.SenderName = ".auctionBidWin";
             ReceiverName = nameBuyer;
@@ -115,7 +117,9 @@ namespace AAEmu.Game.Models.Game.Mails
 
             var nameSeller = NameManager.Instance.GetCharacterName(_sellerId);
             if (nameSeller == null)
+            {
                 return false;
+            }
 
             Header.SenderName = ".auctionOffSuccess";
             Header.ReceiverId = _sellerId;
@@ -142,7 +146,9 @@ namespace AAEmu.Game.Models.Game.Mails
 
             var nameSeller = NameManager.Instance.GetCharacterName(_sellerId);
             if (nameSeller == null)
+            {
                 return false;
+            }
 
             Header.SenderName = ".auctionOffCancel";
             Header.ReceiverId = _sellerId;
@@ -169,7 +175,9 @@ namespace AAEmu.Game.Models.Game.Mails
 
             var nameSeller = NameManager.Instance.GetCharacterName(_sellerId);
             if (nameSeller == null)
+            {
                 return false;
+            }
 
             Header.SenderName = ".auctionOffFail";
             Header.ReceiverId = _sellerId;
@@ -197,7 +205,9 @@ namespace AAEmu.Game.Models.Game.Mails
 
             var nameBuyer = NameManager.Instance.GetCharacterName(_buyerId);
             if (nameBuyer == null)
+            {
                 return false;
+            }
 
             Header.SenderName = ".auctionBidFail";
             Header.ReceiverId = _buyerId;

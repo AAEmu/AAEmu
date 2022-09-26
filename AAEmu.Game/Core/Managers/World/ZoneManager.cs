@@ -42,14 +42,21 @@ namespace AAEmu.Game.Core.Managers.World
             var res = new List<uint>();
             foreach (var z in _zones)
                 if (z.Value.GroupId == zoneGroupId)
+                {
                     res.Add(z.Value.ZoneKey);
+                }
+
             return res;
         }
 
         public uint GetTargetIdByZoneId(uint zoneId)
         {
             var zone = GetZoneByKey(zoneId);
-            if (zone == null) return 0;
+            if (zone == null)
+            {
+                return 0;
+            }
+
             var zoneGroup = GetZoneGroupById(zone.GroupId);
             return zoneGroup?.TargetId ?? 0;
         }
@@ -154,11 +161,15 @@ namespace AAEmu.Game.Core.Managers.World
 
                                 // Only do intial setup when the zone isn't closed
                                 if (!template.Closed)
+                                {
                                     template.SetState(ZoneConflictType
                                         .Conflict); // Set to Conflict for testing, normally it should start at Tension
+                                }
                             }
                             else
+                            {
                                 _log.Warn("ZoneGroupId: {1} doesn't exist for conflict", zoneGroupId);
+                            }
                         }
                     }
                 }

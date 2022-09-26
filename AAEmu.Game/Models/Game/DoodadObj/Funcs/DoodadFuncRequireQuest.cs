@@ -18,9 +18,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 //character.Quests.OnInteraction(WorldInteractionId, character.CurrentTarget);
                 if (character.Quests.HasQuest(QuestId))
+                {
                     return false; // продолжим выполнение, подходящий квест
+                }
                 else
+                {
                     return true; // прерываем, не подходящий квест
+                }
             }
             return true; // прерываем, не подходящий квест
         }

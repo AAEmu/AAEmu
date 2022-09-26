@@ -5,9 +5,9 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
-    public class EnterBeautyshop : SpecialEffectAction
+    public class EnterBeautyShop : SpecialEffectAction
     {
-        protected override SpecialType SpecialEffectActionType => SpecialType.EnterBeautyshop;
+        protected override SpecialType SpecialEffectActionType => SpecialType.EnterBeautyShop;
         
         public override void Execute(Unit caster,
             SkillCaster casterObj,
@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             // TODO ...
             if (caster is Character) { _log.Debug("Special effects: EnterBeautyshop value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
             
-            caster.SendPacket(new SCToggleBeautyshopResponsePacket(1));
+            caster.SendPacket(new SCToggleBeautyShopResponsePacket(1));
         }
     }
 }

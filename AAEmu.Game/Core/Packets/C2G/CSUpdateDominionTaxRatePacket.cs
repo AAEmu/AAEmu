@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSUpdateDominionTaxRatePacket : GamePacket
     {
-        public CSUpdateDominionTaxRatePacket() : base(CSOffsets.CSUpdateDominionTaxRatePacket, 1)
+        public CSUpdateDominionTaxRatePacket() : base(CSOffsets.CSUpdateDominionTaxRatePacket, 5)
         {
         }
 

@@ -59,7 +59,10 @@ namespace AAEmu.Game.Core.Managers
         public bool DoSave()
         {
             if (_isSaving)
+            {
                 return false;
+            }
+
             var saved = false;
             lock (_lock)
             {
@@ -88,9 +91,13 @@ namespace AAEmu.Game.Core.Managers
                             foreach (var c in WorldManager.Instance.GetAllCharacters())
                             {
                                 if (c.Save(connection, transaction))
+                                {
                                     savedCharacters++;
+                                }
                                 else
+                                {
                                     _log.Error("Failed to get save data for character {0} - {1}", c.Id, c.Name);
+                                }
                             }
 
                             var totalCommits = 0;
@@ -112,17 +119,34 @@ namespace AAEmu.Game.Core.Managers
                                     transaction.Commit();
 
                                     if ((savedHouses.Item1 + savedHouses.Item2) > 0)
+                                    {
                                         _log.Debug("Updated {0} and deleted {1} houses ...", savedHouses.Item1, savedHouses.Item2);
+                                    }
+
                                     if ((savedMails.Item1 + savedMails.Item2) > 0)
+                                    {
                                         _log.Debug("Updated {0} and deleted {1} mails ...", savedMails.Item1, savedMails.Item2);
+                                    }
+
                                     if ((saveItems.Item1 + saveItems.Item2) > 0)
+                                    {
                                         _log.Debug("Updated {0} and deleted {1} items in {2} containers ...", saveItems.Item1, saveItems.Item2, saveItems.Item3);
+                                    }
+
                                     if ((saveItems.Item3) > 0)
+                                    {
                                         _log.Debug("Updated {0} item containers ...", saveItems.Item3);
+                                    }
+
                                     if ((savedAuctionHouse.Item1 + savedAuctionHouse.Item2) > 0)
+                                    {
                                         _log.Debug("Updated {0} and deleted {1} auction items ...", savedAuctionHouse.Item1, savedAuctionHouse.Item2);
+                                    }
+
                                     if (savedCharacters > 0)
+                                    {
                                         _log.Debug("Updated {0} characters ...", savedCharacters);
+                                    }
 
                                     saved = true;
                                 }

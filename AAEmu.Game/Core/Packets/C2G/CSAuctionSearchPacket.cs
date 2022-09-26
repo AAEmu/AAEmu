@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.C2G
     public class CSAuctionSearchPacket : GamePacket
     {
 
-        public CSAuctionSearchPacket() : base(CSOffsets.CSAuctionSearchPacket, 1)
+        public CSAuctionSearchPacket() : base(CSOffsets.CSAuctionSearchPacket, 5)
         {
         }
 

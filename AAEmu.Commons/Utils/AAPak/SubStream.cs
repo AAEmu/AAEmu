@@ -16,9 +16,20 @@ namespace AAEmu.Commons.Utils.AAPak
 
         public SubStream(Stream baseStream, long offset, long length)
         {
-            if (baseStream == null) throw new ArgumentNullException("baseStream");
-            if (!baseStream.CanRead) throw new ArgumentException("can't read base stream");
-            if (offset < 0) throw new ArgumentOutOfRangeException("offset");
+            if (baseStream == null)
+            {
+                throw new ArgumentNullException("baseStream");
+            }
+
+            if (!baseStream.CanRead)
+            {
+                throw new ArgumentException("can't read base stream");
+            }
+
+            if (offset < 0)
+            {
+                throw new ArgumentOutOfRangeException("offset");
+            }
 
             this.baseStream = baseStream;
             this.baseOffset = offset;
@@ -45,8 +56,16 @@ namespace AAEmu.Commons.Utils.AAPak
         {
             CheckDisposed();
             long remaining = length - position;
-            if (remaining <= 0) return 0;
-            if (remaining < count) count = (int)remaining;
+            if (remaining <= 0)
+            {
+                return 0;
+            }
+
+            if (remaining < count)
+            {
+                count = (int)remaining;
+            }
+
             int read = baseStream.Read(buffer, offset, count);
             position += read;
             return read;
@@ -54,7 +73,10 @@ namespace AAEmu.Commons.Utils.AAPak
 
         private void CheckDisposed()
         {
-            if (baseStream == null) throw new ObjectDisposedException(GetType().Name);
+            if (baseStream == null)
+            {
+                throw new ObjectDisposedException(GetType().Name);
+            }
         }
 
         public override long Length
@@ -87,9 +109,14 @@ namespace AAEmu.Commons.Utils.AAPak
             set
             {
                 if (position > length)
+                {
                     position = length;
+                }
                 else
+                {
                     position = value;
+                }
+
                 baseStream.Position = baseOffset + position; 
             }
         }

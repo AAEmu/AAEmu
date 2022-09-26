@@ -14,6 +14,7 @@ using NLog;
 using System;
 using System.Globalization;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.Commands
 {

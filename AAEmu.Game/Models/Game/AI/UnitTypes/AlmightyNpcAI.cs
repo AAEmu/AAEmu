@@ -25,7 +25,9 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
             }
             
             if (!(StateMachine.GetCurrentState() is IdleState))
+            {
                 return;
+            }
 
             var attackState = (AlmightyAttackState)StateMachine.GetState(Framework.States.AlmightyAttack);
             attackState.Target = enemy;
@@ -35,7 +37,9 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
         public override void OnSkillEnd(Skill skill)
         { 
             if (StateMachine.GetCurrentState() is AlmightyAttackState aas)
+            {
                 aas.OnSkillEnd(skill);
+            }
         }
 
         public override Framework.States GetNextState(State previous)

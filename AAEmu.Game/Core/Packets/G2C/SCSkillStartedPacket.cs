@@ -12,11 +12,11 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly SkillCastTarget _target;
         private readonly Skill _skill;
         private readonly SkillObject _skillObject;
-        
+
         public int CastTime { get; set; }
 
-        public SCSkillStartedPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject) 
-            : base(SCOffsets.SCSkillStartedPacket, 1)
+        public SCSkillStartedPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject)
+            : base(SCOffsets.SCSkillStartedPacket, 5)
         {
             _id = id;
             _tl = tl;
@@ -28,19 +28,19 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_id);
-            stream.Write(_tl);
+            stream.Write(_id); // st
+            stream.Write(_tl); // sid
             stream.Write(_caster);
             stream.Write(_target);
             stream.Write(_skillObject);
-            
+
             stream.Write((short)(CastTime / 10));
             stream.Write((short)(CastTime / 10));
             stream.Write(false); // castSynergy // (short)0
             stream.Write((byte)0); // f
             return stream;
         }
-        
+
         // TODO block with f flag
         /*
               a2->Reader->ReadByte("f", (unsigned __int8 *)&v5, 0);

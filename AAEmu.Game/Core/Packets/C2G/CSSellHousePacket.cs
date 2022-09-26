@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSellHousePacket : GamePacket
     {
-        public CSSellHousePacket() : base(CSOffsets.CSSellHousePacket, 1)
+        public CSSellHousePacket() : base(CSOffsets.CSSellHousePacket, 5)
         {
         }
 
@@ -31,11 +31,15 @@ namespace AAEmu.Game.Core.Packets.C2G
                     return;
                 }
             }
-
+            
             if (moneyAmount > 0)
+            {
                 HousingManager.Instance.SetForSale(tl, moneyAmount, sellToId, Connection.ActiveChar);
+            }
             else
+            {
                 HousingManager.Instance.CancelForSale(tl, true);
+            }
         }
     }
 }

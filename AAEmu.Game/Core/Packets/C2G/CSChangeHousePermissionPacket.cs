@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeHousePermissionPacket : GamePacket
     {
-        public CSChangeHousePermissionPacket() : base(CSOffsets.CSChangeHousePermissionPacket, 1)
+        public CSChangeHousePermissionPacket() : base(CSOffsets.CSChangeHousePermissionPacket, 5)
         {
         }
 

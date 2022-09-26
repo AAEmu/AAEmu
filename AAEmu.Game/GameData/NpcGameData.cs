@@ -50,7 +50,9 @@ namespace AAEmu.Game.GameData
                     };
 
                     if (!_skillsForNpc.ContainsKey(template.OwnerId))
+                    {
                         _skillsForNpc.Add(template.OwnerId, new List<NpcSkill>());
+                    }
 
                     _skillsForNpc[template.OwnerId].Add(template);
                 }
@@ -73,7 +75,9 @@ namespace AAEmu.Game.GameData
                     };
 
                     if (!_passivesForNpc.ContainsKey(template.OwnerId))
+                    {
                         _passivesForNpc.Add(template.OwnerId, new List<NpcPassiveBuff>());
+                    }
 
                     _passivesForNpc[template.OwnerId].Add(template);
                 }
@@ -140,7 +144,10 @@ namespace AAEmu.Game.GameData
             foreach (var passiveBuff in _passivesForNpc.Values.SelectMany(i => i))
             {
                 if (passiveBuff.PassiveBuff != null)
+                {
                     continue;
+                }
+
                 passiveBuff.PassiveBuff = SkillManager.Instance.GetPassiveBuffTemplate(passiveBuff.PassiveBuffId);
             }
 
@@ -232,6 +239,25 @@ namespace AAEmu.Game.GameData
         {
             //_npcSpawnerTemplateNpcs.TryGetValue(spawnerId, out var nsn);
             return _npcSpawnerTemplateNpcs.Values.FirstOrDefault(nsn => nsn.NpcSpawnerTemplateId == spawnerId);
+        }
+
+        public void AddMissingSpawnerNpc(uint spawnerId,  NpcSpawner npcSpawner)
+        {
+            if (_npcSpawnerTemplateNpcs.ContainsKey(spawnerId))
+            {
+                return;
+            }
+            _npcSpawnerTemplateNpcs.Add(spawnerId, npcSpawner.Template.Npcs[0]);
+            if (_npcSpawnerTemplates.ContainsKey(npcSpawner.Template.Id))
+            {
+                return;
+            }
+            _npcSpawnerTemplates.Add(npcSpawner.Template.Id, npcSpawner.Template);
+            if (_npcMemberAndSpawnerTemplateIds.ContainsKey(npcSpawner.UnitId))
+            {
+                return;
+            }
+            _npcMemberAndSpawnerTemplateIds.Add(npcSpawner.UnitId, new List<uint> {spawnerId});
         }
     }
 }

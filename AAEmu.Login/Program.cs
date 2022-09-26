@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Commons.IO;
+using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Login.Models;
 using AAEmu.Login.Utils;
@@ -27,11 +28,15 @@ namespace AAEmu.Login
 
         public static async Task Main(string[] args)
         {
+            CliUtil.WriteHeader("Login", ConsoleColor.DarkGreen);
+            CliUtil.LoadingTitle();
             Initialization();
 
             var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
             if (File.Exists(mainConfig))
+            {
                 Configuration(args, mainConfig);
+            }
             else
             {
                 _log.Fatal($"{mainConfig} doesn't exist!");

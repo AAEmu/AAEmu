@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSLootDicePacket : GamePacket
     {
-        public CSLootDicePacket() : base(CSOffsets.CSLootDicePacket, 1)
+        public CSLootDicePacket() : base(CSOffsets.CSLootDicePacket, 5)
         {
         }
 

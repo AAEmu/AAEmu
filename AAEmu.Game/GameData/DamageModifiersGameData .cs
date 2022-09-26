@@ -45,7 +45,10 @@ namespace AAEmu.Game.GameData
                         };
 
                         if (!__damageModifiers.ContainsKey(ownerId))
+                        {
                             __damageModifiers.Add(ownerId, new List<BonusTemplate>());
+                        }
+
                         __damageModifiers[ownerId].Add(template);
                     }
                 }

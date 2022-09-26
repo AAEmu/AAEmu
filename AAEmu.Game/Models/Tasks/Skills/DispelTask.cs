@@ -17,12 +17,20 @@ namespace AAEmu.Game.Models.Tasks.Skills
         public override void Execute()
         {
             if (!Effect.IsAlive)
+            {
                 return;
+            }
+
             var eff = Effect.Target as Buff;
             if (eff == null || eff.IsEnded())
+            {
                 return;
+            }
+
             if (eff.Owner == null)
+            {
                 return;
+            }
 
             eff.ScheduleEffect(false);
 

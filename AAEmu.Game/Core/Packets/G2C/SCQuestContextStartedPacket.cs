@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Quests;
 
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private Quest _quest;
         private uint _componentId;
 
-        public SCQuestContextStartedPacket(Quest quest, uint componentId) : base(SCOffsets.SCQuestContextStartedPacket, 1)
+        public SCQuestContextStartedPacket(Quest quest, uint componentId) : base(SCOffsets.SCQuestContextStartedPacket, 5)
         {
             _quest = quest;
             _componentId = componentId;

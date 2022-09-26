@@ -85,7 +85,9 @@ namespace AAEmu.Game.Models.Game.Char
 
                         Appellations.Add(id);
                         if (active)
+                        {
                             ActiveAppellation = id; // TODO нужно повесить баф
+                        }
                     }
                 }
             }

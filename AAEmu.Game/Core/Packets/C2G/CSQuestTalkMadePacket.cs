@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         private uint _questCompId;
         private uint _questActId;
 
-        public CSQuestTalkMadePacket() : base(CSOffsets.CSQuestTalkMadePacket, 1)
+        public CSQuestTalkMadePacket() : base(CSOffsets.CSQuestTalkMadePacket, 5)
         {
         }
 

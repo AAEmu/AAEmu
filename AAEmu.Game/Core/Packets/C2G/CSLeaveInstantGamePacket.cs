@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSLeaveInstantGamePacket : GamePacket
     {
-        public CSLeaveInstantGamePacket() : base(CSOffsets.CSLeaveInstantGamePacket, 1)
+        public CSLeaveInstantGamePacket() : base(CSOffsets.CSLeaveInstantGamePacket, 5)
         {
         }
 

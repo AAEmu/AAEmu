@@ -119,7 +119,9 @@ namespace AAEmu.Game.Models.Game.AI.States
         private AiSkillList GetNextAiSkills()
         {
             if (_sequenceIndex >= AiParams.AiSkillLists.Count)
+            {
                 _sequenceIndex = 0;
+            }
 
             var aiSkill = AiParams.AiSkillLists[_sequenceIndex];
 
@@ -129,11 +131,15 @@ namespace AAEmu.Game.Models.Game.AI.States
 
             if ((hpPercent < aiSkill.HealthRangeMin && aiSkill.HealthRangeMin != 0) 
                 || (hpPercent > aiSkill.HealthRangeMax && aiSkill.HealthRangeMax != 0))
+            {
                 return null;
+            }
 
             if (aiSkill.Dice > 0 && Rand.Next(0, 1000) > aiSkill.Dice)
+            {
                 return null;
-            
+            }
+
             return aiSkill;
         }
 

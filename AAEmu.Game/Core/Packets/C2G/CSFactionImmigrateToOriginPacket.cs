@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSFactionImmigrateToOriginPacket : GamePacket
     {
-        public CSFactionImmigrateToOriginPacket() : base(CSOffsets.CSFactionImmigrateToOriginPacket, 1)
+        public CSFactionImmigrateToOriginPacket() : base(CSOffsets.CSFactionImmigrateToOriginPacket, 5)
         {
         }
 

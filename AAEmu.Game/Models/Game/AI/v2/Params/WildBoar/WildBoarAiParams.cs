@@ -32,9 +32,14 @@ namespace AAEmu.Game.Models.Game.AI.v2.Params.WildBoar
                 aiParams.DoString($"data = {{\n{data}\n}}");
 
                 if (aiParams.GetObjectFromPath("data.alertDuration") != null)
+                {
                     AlertDuration = aiParams.GetInteger("data.alertDuration");
+                }
+
                 if (aiParams.GetObjectFromPath("data.alertSafeTargetRememberTime") != null)
+                {
                     AlertSafeTargetRememberTime = aiParams.GetInteger("data.alertSafeTargetRememberTime");
+                }
 
                 if (aiParams.GetTable("data.combatSkills") is LuaTable table)
                 {

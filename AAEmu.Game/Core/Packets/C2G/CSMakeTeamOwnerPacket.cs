@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSMakeTeamOwnerPacket : GamePacket
     {
-        public CSMakeTeamOwnerPacket() : base(CSOffsets.CSMakeTeamOwnerPacket, 1)
+        public CSMakeTeamOwnerPacket() : base(CSOffsets.CSMakeTeamOwnerPacket, 5)
         {
         }
 

@@ -29,7 +29,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             {
                 var item = ItemManager.Instance.GetItemByItemId(si.ItemId);
                 if (!MusicManager.Instance.CreateSheetMusic(player, item))
+                {
                     _log.Error("Special effects: UserMusicSaveNotes - Error saving music for {0} !", player.Name);
+                }
             }
             else
             {

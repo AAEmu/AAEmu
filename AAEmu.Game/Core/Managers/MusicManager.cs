@@ -147,21 +147,30 @@ namespace AAEmu.Game.Core.Managers
         public SongData GetSongById(uint songId)
         {
             if (_allSongs.TryGetValue(songId, out var song))
+            {
                 return song;
+            }
+
             return null;
         }
 
         public void CacheMidi(uint playerId, byte[] midiData)
         {
             if (_midiCache.ContainsKey(playerId))
+            {
                 _midiCache.Remove(playerId);
+            }
+
             _midiCache.Add(playerId,midiData);
         }
 
         public byte[] GetMidiCache(uint playerId)
         {
             if (_midiCache.TryGetValue(playerId, out var data))
+            {
                 return data;
+            }
+
             return Array.Empty<byte>();
         }
     }

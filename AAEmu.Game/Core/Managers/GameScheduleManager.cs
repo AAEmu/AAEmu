@@ -26,7 +26,9 @@ namespace AAEmu.Game.Core.Managers
         public void Load()
         {
             if (_loaded)
+            {
                 return;
+            }
 
             _log.Info("Loading schedules...");
 

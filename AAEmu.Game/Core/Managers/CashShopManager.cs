@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Managers
 
         private List<CashShopItem> _cashShopItem;
         private Dictionary<uint, CashShopItemDetail> _cashShopItemDetail;
-        private Dictionary<uint, object> _locks = new Dictionary<uint, object>();
+        private Dictionary<ulong, object> _locks = new Dictionary<ulong, object>();
 
         public void CreditDisperseTick(TimeSpan delta)
         {
@@ -27,7 +27,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public int GetAccountCredits(uint accountId)
+        public int GetAccountCredits(ulong accountId)
         {
             object accLock;
             lock(_locks)
@@ -75,7 +75,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public bool AddCredits(uint accountId, int creditsAmt)
+        public bool AddCredits(ulong accountId, int creditsAmt)
         {
             object accLock;
             lock (_locks)
@@ -94,15 +94,18 @@ namespace AAEmu.Game.Core.Managers
                     {
                         using (var command = connection.CreateCommand())
                         {
-                            command.CommandText = 
-                                "INSERT INTO accounts (account_id, credits) VALUES(@acc_id, @credits_amt) ON DUPLICATE KEY UPDATE credits = credits + @credits_amt";
+                            command.CommandText = "INSERT INTO accounts (account_id, credits) VALUES(@acc_id, @credits_amt) ON DUPLICATE KEY UPDATE credits = credits + @credits_amt";
                             command.Parameters.AddWithValue("@acc_id", accountId);
                             command.Parameters.AddWithValue("@credits_amt", creditsAmt);
                             command.Prepare();
                             if (command.ExecuteNonQuery() > 0)
+                            {
                                 return true;
+                            }
                             else
+                            {
                                 return false;
+                            }
                         }
                     }
                 }
@@ -114,7 +117,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public bool RemoveCredits(uint accountId, int credits) => AddCredits(accountId, -credits);
+        public bool RemoveCredits(ulong accountId, int credits) => AddCredits(accountId, -credits);
 
         public void Load()
         {
@@ -167,7 +170,7 @@ namespace AAEmu.Game.Core.Managers
                             cashShopItemDetail.DefaultFlag = reader.GetByte("default_flag");
                             cashShopItemDetail.EventType = reader.GetByte("event_type");
                             cashShopItemDetail.EventDate = reader.GetDateTime("event_date");
-                            cashShopItemDetail.DisPrice = reader.GetUInt32("dis_price");
+                            cashShopItemDetail.DisPrice = cashShopItem.DisPrice = reader.GetUInt32("dis_price");
 
                             _cashShopItem.Add(cashShopItem);
                             _cashShopItemDetail.Add(cashShopItem.CashShopId, cashShopItemDetail);
@@ -193,7 +196,7 @@ namespace AAEmu.Game.Core.Managers
             return _cashShopItem.Find(a => a.CashShopId == cashShopId);
         }
 
-        public List<CashShopItem> GetCashShopItems(sbyte mainTab,sbyte subTab,ushort page)
+        public List<CashShopItem> GetCashShopItems(byte mainTab, byte subTab, byte page)
         {
             return _cashShopItem.FindAll(a=>a.MainTab==mainTab && a.SubTab == subTab);
         }

@@ -47,7 +47,7 @@ namespace AAEmu.Game.Scripts.Commands
                 {
                     targetPlayer.Hp = targetPlayer.MaxHp;
                     targetPlayer.Mp = targetPlayer.MaxMp;
-                    targetPlayer.BroadcastPacket(new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp), true);
+                    targetPlayer.BroadcastPacket(new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp, targetPlayer.HighAbilityRsc), true);
                 }
             }
             else
@@ -62,7 +62,7 @@ namespace AAEmu.Game.Scripts.Commands
                 {
                     unit.Hp = unit.MaxHp;
                     unit.Mp = unit.MaxMp;
-                    unit.BroadcastPacket(new SCUnitPointsPacket(unit.ObjId, unit.Hp, unit.Mp), true);
+                    unit.BroadcastPacket(new SCUnitPointsPacket(unit.ObjId, unit.Hp, unit.Mp, unit.HighAbilityRsc), true);
                     character.SendMessage("{0} => {1}/{2} HP, {3}/{4} MP",
                         unit.Name, unit.Hp, unit.MaxHp, unit.Mp, unit.MaxMp);
                 }

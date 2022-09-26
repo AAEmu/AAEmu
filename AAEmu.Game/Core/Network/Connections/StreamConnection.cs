@@ -1,6 +1,7 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Net;
 using System.Threading;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Stream;
@@ -35,17 +36,22 @@ namespace AAEmu.Game.Core.Network.Connections
 
         public Doodad[] GetRequest(int requestId)
         {
-            if(_requests.ContainsKey(requestId))
+            if (_requests.ContainsKey(requestId))
+            {
                 return _requests[requestId];
+            }
+
             return null;
         }
 
         public void RemoveRequest(int requestId)
         {
-            if(_requests.ContainsKey(requestId))
+            if (_requests.ContainsKey(requestId))
+            {
                 _requests.Remove(requestId);
+            }
         }
-        
+
         public void SendPacket(StreamPacket packet)
         {
             SendPacket(packet.Encode());

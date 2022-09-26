@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly int _waitingNumber;
 
-        public SCJuryWaitingNumberPacket(int waitingNumber) : base(SCOffsets.SCJuryWaitingNumberPacket, 1)
+        public SCJuryWaitingNumberPacket(int waitingNumber) : base(SCOffsets.SCJuryWaitingNumberPacket, 5)
         {
             _waitingNumber = waitingNumber;
         }

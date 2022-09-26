@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly AbilityType _oldAbilityId;
         private readonly AbilityType _abilityId;
 
-        public SCAbilitySwappedPacket(uint objId, AbilityType oldAbilityId, AbilityType abilityId) : base(SCOffsets.SCAbilitySwappedPacket, 1)
+        public SCAbilitySwappedPacket(uint objId, AbilityType oldAbilityId, AbilityType abilityId) : base(SCOffsets.SCAbilitySwappedPacket, 5)
         {
             _objId = objId;
             _oldAbilityId = oldAbilityId;
@@ -19,9 +19,12 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.WriteBc(_objId);
-            stream.Write((byte) _oldAbilityId);
-            stream.Write((byte) _abilityId);
+            stream.WriteBc(_objId);                 // unitId
+            for (var i = 0; i < 3; i++)
+            {
+                stream.Write((byte)_oldAbilityId);  // old
+                stream.Write((byte)_abilityId);     // new
+            }
             return stream;
         }
     }

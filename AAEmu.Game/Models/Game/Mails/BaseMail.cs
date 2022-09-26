@@ -1,16 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Dynamic;
-using System.Text;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Models.Game.Mails
 {
@@ -59,19 +51,23 @@ namespace AAEmu.Game.Models.Game.Mails
         /// <returns></returns>
         public bool CanReturnMail()
         {
-            return ((IsDelivered == false) && (Header.SenderId != Header.ReceiverId) && (Header.SenderId > 0) && ((MailType == MailType.Normal) || (MailType == MailType.Express)) );
+            return IsDelivered == false && Header.SenderId != Header.ReceiverId && Header.SenderId > 0 && (MailType == MailType.Normal || MailType == MailType.Express);
         }
 
         public bool ReturnToSender()
         {
             if (!CanReturnMail())
+            {
                 return false;
+            }
 
             var originalReceiver = WorldManager.Instance.GetCharacterById(Header.ReceiverId);
             var originalSender = WorldManager.Instance.GetCharacterById(Header.SenderId);
 
-            if ((originalReceiver != null) && (originalReceiver.IsOnline))
+            if (originalReceiver != null && originalReceiver.IsOnline)
+            {
                 originalReceiver.SendPacket(new SCMailReturnedPacket(_id, _header));
+            }
 
             var originalReceiverId = Header.ReceiverId;
             var originalReceiverName = Header.ReceiverName;
@@ -82,10 +78,12 @@ namespace AAEmu.Game.Models.Game.Mails
 
             Send();
 
-            if ((originalSender != null) && (originalSender.IsOnline))
+            if (originalSender != null && originalSender.IsOnline)
+            {
                 MailManager.Instance.NotifyNewMailByNameIfOnline(this, originalSender.Name);
+            }
 
-            
+
             // TODO
             return true;
         }
@@ -94,11 +92,20 @@ namespace AAEmu.Game.Models.Game.Mails
         {
             var res = (byte)Body.Attachments.Count;
             if (Body.CopperCoins != 0)
+            {
                 res++;
+            }
+
             if (Body.BillingAmount != 0)
+            {
                 res++;
+            }
+
             if (Body.MoneyAmount2 != 0)
+            {
                 res++;
+            }
+
             return res;
         }
 

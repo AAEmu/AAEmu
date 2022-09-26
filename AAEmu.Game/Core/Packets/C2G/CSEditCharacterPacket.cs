@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSEditCharacterPacket : GamePacket
     {
-        public CSEditCharacterPacket() : base(CSOffsets.CSEditCharacterPacket, 1)
+        public CSEditCharacterPacket() : base(CSOffsets.CSEditCharacterPacket, 5)
         {
         }
 

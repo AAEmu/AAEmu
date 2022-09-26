@@ -21,21 +21,28 @@ namespace AAEmu.Game.Core.Managers.World
         public SystemFaction GetFaction(uint id)
         {
             if (_systemFactions.ContainsKey(id))
+            {
                 return _systemFactions[id];
+            }
 
             return null;
         }
 
-        public void AddFaction(SystemFaction faction) {
+        public void AddFaction(SystemFaction faction)
+        {
             if (!_systemFactions.ContainsKey(faction.Id))
+            {
                 _systemFactions.Add(faction.Id, faction);
+            }
         }
 
         public void Load()
         {
             if (_loaded)
+            {
                 return;
-            
+            }
+
             _systemFactions = new Dictionary<uint, SystemFaction>();
             _relations = new List<FactionRelation>();
             using (var connection = SQLite.CreateConnection())
@@ -50,19 +57,17 @@ namespace AAEmu.Game.Core.Managers.World
                     {
                         while (reader.Read())
                         {
-                            var faction = new SystemFaction
-                            {
-                                Id = reader.GetUInt32("id"),
-                                Name = LocalizationManager.Instance.Get("system_factions", "name", reader.GetUInt32("id")),
-                                OwnerName = reader.GetString("owner_name"),
-                                UnitOwnerType = (sbyte) reader.GetInt16("owner_type_id"),
-                                OwnerId = reader.GetUInt32("owner_id"),
-                                PoliticalSystem = reader.GetByte("political_system_id"),
-                                MotherId = reader.GetUInt32("mother_id"),
-                                AggroLink = reader.GetBoolean("aggro_link", true),
-                                GuardHelp = reader.GetBoolean("guard_help", true),
-                                DiplomacyTarget = reader.GetBoolean("is_diplomacy_tgt", true)
-                            };
+                            var faction = new SystemFaction();
+                            faction.Id = reader.GetUInt32("id");
+                            faction.Name = LocalizationManager.Instance.Get("system_factions", "name", reader.GetUInt32("id"));
+                            faction.OwnerName = reader.GetString("owner_name");
+                            faction.UnitOwnerType = (sbyte) reader.GetInt16("owner_type_id");
+                            faction.OwnerId = reader.GetUInt32("owner_id");
+                            faction.PoliticalSystem = reader.GetByte("political_system_id");
+                            faction.MotherId = reader.GetUInt32("mother_id");
+                            faction.AggroLink = reader.GetBoolean("aggro_link", true);
+                            faction.GuardHelp = reader.GetBoolean("guard_help", true);
+                            faction.DiplomacyTarget = reader.GetBoolean("is_diplomacy_tgt", true);
                             _systemFactions.Add(faction.Id, faction);
                         }
                     }
@@ -79,18 +84,19 @@ namespace AAEmu.Game.Core.Managers.World
                     {
                         while (reader.Read())
                         {
-                            var relation = new FactionRelation
-                            {
-                                Id = reader.GetUInt32("faction1_id"),
-                                Id2 = reader.GetUInt32("faction2_id"),
-                                State = (RelationState) reader.GetByte("state_id")
-                            };
+                            var relation = new FactionRelation();
+                            relation.Id = reader.GetUInt32("faction1_id");
+                            relation.Id2 = reader.GetUInt32("faction2_id");
+                            relation.State = (RelationState) reader.GetByte("state_id");
                             _relations.Add(relation);
 
                             var faction = _systemFactions[relation.Id];
-                            faction.Relations.Add(relation.Id2, relation);
-                            faction = _systemFactions[relation.Id2];
-                            faction.Relations.Add(relation.Id, relation);
+                            if (!faction.Relations.ContainsKey(relation.Id2)) // TODO проверить правильность удаления дублей
+                            {
+                                faction.Relations.Add(relation.Id2, relation);
+                                faction = _systemFactions[relation.Id2];
+                                faction.Relations.Add(relation.Id, relation);
+                            }
                         }
                     }
                 }
@@ -104,7 +110,9 @@ namespace AAEmu.Game.Core.Managers.World
         public void SendFactions(Character character)
         {
             if (_systemFactions.Values.Count == 0)
-                character.SendPacket(new SCFactionListPacket());
+            {
+                character.SendPacket(new SCSystemFactionListPacket());
+            }
             else
             {
                 var factions = _systemFactions.Values.ToArray();
@@ -112,7 +120,7 @@ namespace AAEmu.Game.Core.Managers.World
                 {
                     var temp = new SystemFaction[factions.Length - i <= 20 ? factions.Length - i : 20];
                     Array.Copy(factions, i, temp, 0, temp.Length);
-                    character.SendPacket(new SCFactionListPacket(temp));
+                    character.SendPacket(new SCSystemFactionListPacket(temp));
                 }
             }
         }
@@ -120,7 +128,9 @@ namespace AAEmu.Game.Core.Managers.World
         public void SendRelations(Character character)
         {
             if (_relations.Count == 0)
+            {
                 character.SendPacket(new SCFactionRelationListPacket());
+            }
             else
             {
                 var factions = _relations.ToArray();

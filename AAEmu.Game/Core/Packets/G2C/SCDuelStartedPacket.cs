@@ -1,5 +1,4 @@
 ﻿using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -9,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _challengerObjId;
         private readonly uint _challengedObjId;
 
-        public SCDuelStartedPacket(uint challengerObjId, uint challengedObjId) : base(SCOffsets.SCDuelStartedPacket, 1)
+        public SCDuelStartedPacket(uint challengerObjId, uint challengedObjId) : base(SCOffsets.SCDuelStartedPacket, 5)
         {
             _challengerObjId = challengerObjId;
             _challengedObjId = challengedObjId;

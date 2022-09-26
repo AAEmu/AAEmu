@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSetupSecondPassword : GamePacket
     {
-        public CSSetupSecondPassword() : base(CSOffsets.CSSetupSecondPassword, 1)
+        public CSSetupSecondPassword() : base(CSOffsets.CSSetupSecondPasswordPacket, 5)
         {
         }
 

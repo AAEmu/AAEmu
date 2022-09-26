@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Login;
@@ -8,8 +9,8 @@ using AAEmu.Game.Core.Packets.G2L;
 using AAEmu.Game.Core.Packets.Proxy;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Chat;
-using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Tasks;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
@@ -18,20 +19,22 @@ namespace AAEmu.Game.Core.Managers.World
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        private Dictionary<uint, uint> _accounts;
+        private Dictionary<uint, ulong> _accounts;
 
         protected EnterWorldManager()
         {
-            _accounts = new Dictionary<uint, uint>();
+            _accounts = new Dictionary<uint, ulong>();
         }
 
-        public void AddAccount(uint accountId, uint connectionId)
+        public void AddAccount(ulong accountId, uint connectionId)
         {
             var connection = LoginNetwork.Instance.GetConnection();
             var gsId = AppConfiguration.Instance.Id;
 
             if (AccountManager.Instance.Contains(accountId))
+            {
                 connection.SendPacket(new GLPlayerEnterPacket(connectionId, gsId, 1));
+            }
             else
             {
                 _accounts.Add(connectionId, accountId);
@@ -39,7 +42,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        public void Login(GameConnection connection, uint accountId, uint token)
+        public void Login(GameConnection connection, ulong accountId, uint token)
         {
             if (_accounts.ContainsKey(token))
             {
@@ -55,7 +58,7 @@ namespace AAEmu.Game.Core.Managers.World
 
                     var port = AppConfiguration.Instance.StreamNetwork.Port;
                     var gm = connection.GetAttribute("gmFlag") != null;
-                    connection.SendPacket(new X2EnterWorldResponsePacket(0, gm, connection.Id, port));
+                    connection.SendPacket(new X2EnterWorldResponsePacket(0, gm, connection.Id, port, connection));
                     connection.SendPacket(new ChangeStatePacket(0));
                 }
                 else
@@ -79,14 +82,18 @@ namespace AAEmu.Game.Core.Managers.World
                     {
                         // Say goodbye if player is quitting (but not going to character select)
                         if (type == 0)
+                        {
                             connection.ActiveChar?.SendMessage(ChatType.System, AppConfiguration.Instance.World.LogoutMessage);
+                        }
 
                         int logoutTime = 10000; // in ms
 
                         // Make it 5 minutes if you're still in combat
                         if (connection.ActiveChar?.IsInCombat ?? false)
+                        {
                             logoutTime *= 30;
-                        
+                        }
+
                         connection.SendPacket(new SCPrepareLeaveWorldPacket(logoutTime, type, false));
 
                         connection.LeaveTask = new LeaveWorldTask(connection, type);

@@ -55,8 +55,10 @@ namespace AAEmu.Game.GameData
                     {
                         var towerDefId = reader.GetUInt32("tower_def_id");
                         if (!_towerDefs.TryGetValue(towerDefId, out var towerDef))
+                        {
                             return;
-                        
+                        }
+
                         var template = new TowerDefProg()
                         {
                             Id = reader.GetUInt32("id"),
@@ -83,8 +85,10 @@ namespace AAEmu.Game.GameData
                     {
                         var towerDefProgId = reader.GetUInt32("tower_def_prog_id");
                         if (!_towerDefProgs.TryGetValue(towerDefProgId, out var towerDefProg))
+                        {
                             return;
-                        
+                        }
+
                         var template = new TowerDefProgSpawnTarget()
                         {
                             Id = reader.GetUInt32("id"),
@@ -109,8 +113,10 @@ namespace AAEmu.Game.GameData
                     {
                         var towerDefProgId = reader.GetUInt32("tower_def_prog_id");
                         if (!_towerDefProgs.TryGetValue(towerDefProgId, out var towerDefProg))
+                        {
                             return;
-                        
+                        }
+
                         var template = new TowerDefProgKillTarget()
                         {
                             Id = reader.GetUInt32("id"),

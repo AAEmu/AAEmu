@@ -94,7 +94,7 @@
         Dyeing = 98,
         GiveBmMileage = 99,
         GiveHonorPoint = 100,
-        EnterBeautyshop = 101,
+        EnterBeautyShop = 101,
         GiveCrimePoint = 102,
         CleanupLookConvert = 103,
         AggroCopy = 104,

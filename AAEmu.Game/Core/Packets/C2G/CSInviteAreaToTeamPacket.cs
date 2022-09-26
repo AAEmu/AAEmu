@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSInviteAreaToTeamPacket : GamePacket
     {
-        public CSInviteAreaToTeamPacket() : base(CSOffsets.CSInviteAreaToTeamPacket, 1)
+        public CSInviteAreaToTeamPacket() : base(CSOffsets.CSInviteAreaToTeamPacket, 5)
         {
         }
 

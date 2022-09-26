@@ -58,6 +58,7 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual int HpRegen { get; set; }
         [UnitAttribute(UnitAttribute.PersistentHealthRegen)]
         public virtual int PersistentHpRegen { get; set; } = 30;
+        public int HighAbilityRsc { get; set; }
         public int Mp { get; set; }
         [UnitAttribute(UnitAttribute.MaxMana)]
         public virtual int MaxMp { get; set; }
@@ -216,6 +217,7 @@ namespace AAEmu.Game.Models.Game.Units
             GCDLock = new object();
             Bonuses = new Dictionary<uint, List<Bonus>>();
             IsInBattle = false;
+            // TODO 1.2 Equipment.ContainerSize = 28, at 3.0.3.0 Equipment.ContainerSize = 29
             Equipment = new EquipmentContainer(0, SlotType.Equipment, true, false);
             ChargeLock = new object();
             Cooldowns = new UnitCooldowns();
@@ -244,7 +246,9 @@ namespace AAEmu.Game.Models.Game.Units
                 Events.OnMovement(this, new OnMovementArgs());
             }
             if (DisabledSetPosition)
+            {
                 return moved;
+            }
 
             WorldManager.Instance.AddVisibleObject(this);
             // base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
@@ -270,7 +274,9 @@ namespace AAEmu.Game.Models.Game.Units
             }
 
             if (Hp <= 0)
+            {
                 return;
+            }
 
             var absorptionEffects = Buffs.GetAbsorptionEffects().ToList();
             if (absorptionEffects.Count > 0)
@@ -293,20 +299,27 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 //StartRegen();
             }
-            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
+            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0, HighAbilityRsc), true);
         }
 
         public virtual void ReduceCurrentMp(Unit unit, int value)
         {
             if (Hp == 0)
+            {
                 return;
+            }
 
             Mp = Math.Max(Mp - value, 0);
             if (Mp == 0)
+            {
                 StopRegen();
+            }
             else
+            {
                 StartRegen();
-            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
+            }
+
+            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc), true);
         }
 
         public virtual void DoDie(Unit killer, KillReason killReason)
@@ -317,7 +330,9 @@ namespace AAEmu.Game.Models.Game.Units
             Buffs.RemoveEffectsOnDeath();
             killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, killer), true);
             if (killer == this)
+            {
                 return;
+            }
 
             var lootDropItems = ItemManager.Instance.CreateLootDropItems(ObjId);
             if (lootDropItems.Count > 0)
@@ -327,7 +342,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             if (CurrentTarget != null)
             {
-                killer.BroadcastPacket(new SCAiAggroPacket(killer.ObjId, 0), true);
+                killer.BroadcastPacket(new SCUnitAiAggroPacket(killer.ObjId, 0), true);
                 killer.SummarizeDamage = 0;
 
                 if (killer.CurrentTarget != null)
@@ -478,9 +493,13 @@ namespace AAEmu.Game.Models.Game.Units
             foreach (var bonus in GetBonuses(attr))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                {
                     value += (value * bonus.Value / 100f);
+                }
                 else
+                {
                     value += bonus.Value;
+                }
             }
             return value;
         }
@@ -504,10 +523,14 @@ namespace AAEmu.Game.Models.Game.Units
         public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
         {
             if (baseUnit == null)
+            {
                 return 0.0f;
+            }
 
             if (Transform.World.Position.Equals(baseUnit.Transform.World.Position))
+            {
                 return 0.0f;
+            }
 
             var rawDist = MathUtil.CalculateDistance(Transform.World.Position, baseUnit.Transform.World.Position, includeZAxis);
             if (baseUnit is Shipyard.Shipyard shipyard)
@@ -525,7 +548,9 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 // If target is a Unit, then use it's model for radius
                 if (baseUnit is Unit unit)
+                {
                     rawDist -= ModelManager.Instance.GetActorModel(unit.ModelId)?.Radius ?? 0 * unit.Scale;
+                }
             }
             // Subtract own radius
             rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
@@ -545,9 +570,13 @@ namespace AAEmu.Game.Models.Game.Units
                     .Any(a => a.Attributes.Contains(attr)));
 
             if (props.Count() > 0)
+            {
                 return props.ElementAt(0).GetValue(this).ToString();
+            }
             else
+            {
                 return "NotFound";
+            }
         }
 
         public T GetAttribute<T>(UnitAttribute attr, T defaultVal)
@@ -560,7 +589,9 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 var ElementValue = props.ElementAt(0).GetValue(this);
                 if (ElementValue is T ret)
+                {
                     return ret;
+                }
             }
             return defaultVal;
         }
@@ -583,7 +614,10 @@ namespace AAEmu.Game.Models.Game.Units
         {
             ActivePlotState?.RequestCancellation();
             if (SkillTask == null)
+            {
                 return;
+            }
+
             switch (SkillTask)
             {
                 case EndChannelingTask ect:
@@ -647,7 +681,9 @@ namespace AAEmu.Game.Models.Game.Units
                     Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.UtcNow), 0, duration);
 
                     if (Hp > minHpLeft)
+                    {
                         ReduceCurrentHp(this, maxDmgLeft); // Leaves you at 5% hp no matter what
+                    }
                 }
             }
 

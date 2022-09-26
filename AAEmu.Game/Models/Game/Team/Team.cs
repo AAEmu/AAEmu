@@ -35,7 +35,10 @@ namespace AAEmu.Game.Models.Game.Team
         {
             foreach (var (_, obj) in MarksList)
                 if (obj == id)
+                {
                     return true;
+                }
+
             return false;
         }
 
@@ -44,7 +47,10 @@ namespace AAEmu.Game.Models.Game.Team
             var count = 0;
             foreach (var member in Members)
                 if (member?.Character != null)
+                {
                     count++;
+                }
+
             return count;
         }
 
@@ -53,7 +59,10 @@ namespace AAEmu.Game.Models.Game.Team
             var count = 0;
             foreach (var member in Members)
                 if ((member?.Character != null) && (member.Character.IsOnline))
+                {
                     count++;
+                }
+
             return count;
         }
 
@@ -61,7 +70,10 @@ namespace AAEmu.Game.Models.Game.Team
         {
             foreach (var member in Members)
                 if (member?.Character != null && member.Character.Id == id)
+                {
                     return true;
+                }
+
             return false;
         }
 
@@ -69,7 +81,10 @@ namespace AAEmu.Game.Models.Game.Team
         {
             foreach (var member in Members)
                 if (member?.Character != null && member.Character.ObjId == objId)
+                {
                     return true;
+                }
+
             return false;
         }
 
@@ -77,7 +92,10 @@ namespace AAEmu.Game.Models.Game.Team
         {
             foreach (var member in Members)
                 if (member?.Character != null && member.Character.IsOnline && member.Character.Id != OwnerId)
+                {
                     return member.Character.Id;
+                }
+
             return 0;
         }
 
@@ -86,10 +104,14 @@ namespace AAEmu.Game.Models.Game.Team
             foreach (var member in Members)
             {
                 if (member == null || member.Character?.Id != id)
+                {
                     continue;
+                }
 
                 if (member.Role == role)
+                {
                     return false;
+                }
 
                 member.Role = role;
                 return true;
@@ -103,7 +125,9 @@ namespace AAEmu.Game.Models.Game.Team
             for (var i = 0; i < Members.Length; i++)
             {
                 if (Members[i]?.Character != null)
+                {
                     continue;
+                }
 
                 Members[i] = new TeamMember(unit);
                 return (Members[i], GetParty(i));
@@ -116,7 +140,9 @@ namespace AAEmu.Game.Models.Game.Team
         {
             var i = GetIndex(id);
             if (i < 0)
+            {
                 return false;
+            }
 
             Members[i] = null;
             return true;
@@ -143,7 +169,9 @@ namespace AAEmu.Game.Models.Game.Team
         {
             var i = GetIndex(unit.Id);
             if (i < 0)
+            {
                 return null;
+            }
 
             // TODO ...
             Members[i].Character = unit;
@@ -156,8 +184,11 @@ namespace AAEmu.Game.Models.Game.Team
         {
             foreach (var member in Members)
             {
-                if (member?.Character == null || !member.Character.IsOnline || member.Character.Id == id) 
+                if (member?.Character == null || !member.Character.IsOnline || member.Character.Id == id)
+                {
                     continue;
+                }
+
                 member.Character.SendPacket(packet);
             }
         }
@@ -166,14 +197,20 @@ namespace AAEmu.Game.Models.Game.Team
         {
             for (var i = 0; i < Members.Length; i++)
                 if (Members[i]?.Character != null && Members[i].Character.Id == id)
+                {
                     return i;
+                }
+
             return -1;
         }
 
         public int GetParty(int index)
         {
             if (index < 5)
+            {
                 return 0;
+            }
+
             return index / 5;
         }
 
@@ -183,7 +220,10 @@ namespace AAEmu.Game.Models.Game.Team
             for (var i = 0; i < Members.Length; i++)
             {
                 if (Members[i]?.Character == null)
+                {
                     continue;
+                }
+
                 var partyIndex = GetParty(i);
                 result[partyIndex]++;
             }
@@ -212,9 +252,13 @@ namespace AAEmu.Game.Models.Game.Team
                 var obj = MarksList[i].Item2;
                 stream.Write(type);
                 if (type == 1)
+                {
                     stream.Write(obj);
+                }
                 else if (type == 2)
+                {
                     stream.WriteBc(obj);
+                }
             }
 
             stream.Write(LootingRule);

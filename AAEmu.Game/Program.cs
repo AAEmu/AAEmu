@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Commons.IO;
+using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Genesis;
 using AAEmu.Game.Models;
@@ -30,6 +31,8 @@ namespace AAEmu.Game
 
         public static async Task Main(string[] args)
         {
+            CliUtil.WriteHeader("Game & Stream", ConsoleColor.DarkGreen);
+            CliUtil.LoadingTitle();
             Initialization();
             _launchArgs = args;
             if (!LoadConfiguration())

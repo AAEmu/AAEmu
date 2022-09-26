@@ -28,7 +28,10 @@ namespace AAEmu.Game.Core.Managers
         public IDisposable Subscribe(IObserver<float> observer)
         {
             if (_observers.Contains(observer))
+            {
                 return null;
+            }
+
             _observers.Add(observer);
             
             return new Unsubscriber<float>(_observers, observer);
@@ -61,7 +64,9 @@ namespace AAEmu.Game.Core.Managers
             {
                 _time += _tick * 10;
                 if (_time > MaxTime)
+                {
                     _time -= MaxTime;
+                }
 
                 new Thread(Push) {Name = "TimeManagerPushThread"}.Start();
                 Thread.Sleep(10000);

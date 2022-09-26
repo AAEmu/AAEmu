@@ -7,18 +7,19 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCUnitDetachedPacket : GamePacket
     {
         private readonly uint _childUnitId;
-        private readonly AttachUnitReason _reason;
+        private readonly byte _reason;
 
-        public SCUnitDetachedPacket(uint objId, AttachUnitReason reason) : base(SCOffsets.SCUnitDetachedPacket, 1)
+        public SCUnitDetachedPacket(uint objId, AttachUnitReason reason) : base(SCOffsets.SCUnitDetachedPacket, 5)
         {
             _childUnitId = objId;
-            _reason = reason;
+            _reason = (byte)reason;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             stream.WriteBc(_childUnitId);
-            stream.Write((byte)_reason);
+            stream.Write(_reason);
+
             return stream;
         }
     }

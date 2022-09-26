@@ -1,5 +1,4 @@
 ﻿using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -10,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _unitObjId;
         private readonly uint _type;
 
-        public SCAreaChatBubblePacket(bool enter, uint unitObjId, uint type) : base(SCOffsets.SCAreaChatBubblePacket, 1)
+        public SCAreaChatBubblePacket(bool enter, uint unitObjId, uint type) : base(SCOffsets.SCAreaChatBubblePacket, 5)
         {
             _enter = enter;
             _unitObjId = unitObjId;

@@ -19,7 +19,10 @@ namespace AAEmu.Game.GameData
         public AiParams GetAiParamsForId(uint id)
         {
             if (_aiParams.TryGetValue(id, out var value))
+            {
                 return value;
+            }
+
             return null;
         }
         
@@ -42,7 +45,9 @@ namespace AAEmu.Game.GameData
                         var type = (AiParams.AiParamType)reader.GetUInt32("ai_file_id");
                         var id = reader.GetUInt32("npc_ai_param_id");
                         if (!fileTypeToId.ContainsKey(id))
+                        {
                             fileTypeToId.Add(id, type);
+                        }
                     }
                 }
             }
@@ -58,7 +63,9 @@ namespace AAEmu.Game.GameData
                     {
                         var id = reader.GetUInt32("id");
                         if (!fileTypeToId.ContainsKey(id))
+                        {
                             continue;
+                        }
 
                         var fileType = fileTypeToId[id];
                         try
@@ -66,7 +73,9 @@ namespace AAEmu.Game.GameData
                             var data = reader.IsDBNull("ai_param") ? string.Empty : reader.GetString("ai_param");
                             var aiParams = AiParams.CreateByType(fileType, data);
                             if (aiParams != null && !_aiParams.ContainsKey(id))
+                            {
                                 _aiParams.Add(id, aiParams);
+                            }
                         }
                         catch (Exception e)
                         {

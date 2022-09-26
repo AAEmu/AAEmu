@@ -29,10 +29,16 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             var character = (Character)caster;
-            if (character == null) return;
+            if (character == null)
+            {
+                return;
+            }
 
             var lootPack = (SkillItem)casterObj;
-            if (lootPack == null) return;
+            if (lootPack == null)
+            {
+                return;
+            }
 
             var lootPacks = ItemManager.Instance.GetLootPacks(LootPackId);
             var lootGroups = ItemManager.Instance.GetLootGroups(LootPackId);
@@ -40,7 +46,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             Item sourceItem = null;
             if (casterObj is SkillItem skillItem)
+            {
                 sourceItem = character.Inventory.Bag.GetItemByItemId(skillItem.ItemId);
+            }
 
 
             _log.Trace("LootGroups {0}", string.Join(',', lootGroups.Select(x => x.Id)));
@@ -64,7 +72,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         dropRateGroup = 0;
                         for (var di = 0; di < lootGroups[i].GroupNo; di++)
                             if (lootGroups[di].GroupNo > 1)
+                            {
                                 dropRateGroup += lootGroups[di].DropRate;
+                            }
                     }
 
                     if (dropRateGroup >= dropRate)
@@ -107,10 +117,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     if (itemIdLoot > 0 && itemIdLoot != Item.Coins)
                     {
                         if (InheritGrade)
+                        {
                             gradeId = lootPackItem.Grade;
+                        }
 
                         if (lootGroups[i].ItemGradeDistributionId > 0)
+                        {
                             gradeId = GetGradeDistributionId(lootGroups[i].ItemGradeDistributionId);
+                        }
 
                         AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount, sourceItem);
                     }
@@ -129,7 +143,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         var dropRateMax = (uint)0;
                         for (var ui = 0; ui < rowP; ui++)
                             if (lootPacks[ui].Group == i)
+                            {
                                 dropRateMax += lootPacks[ui].DropRate;
+                            }
 
                         var dropRateItem = Rand.Next(0, dropRateMax);
                         var dropRateItemId = (uint)0;
@@ -153,12 +169,16 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         }
 
                         if (minAmount > 1 && itemIdLoot == 500)
+                        {
                             AddGold(caster, minAmount, maxAmount);
+                        }
 
                         if (itemIdLoot > 0 && itemIdLoot != 500)
                         {
                             if (InheritGrade)
+                            {
                                 gradeId = lootPackItem.Grade;
+                            }
 
                             AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount, sourceItem);
                         }
@@ -175,14 +195,22 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         private void AddGold(Unit caster, int goldMin, int goldMax)
         {
             var character = (Character)caster;
-            if (character == null) return;
+            if (character == null)
+            {
+                return;
+            }
+
             var goldAdd = Rand.Next(goldMin, goldMax);
             var jackpot = Rand.Next(0, 10000);
             if (jackpot <= 50)
+            {
                 goldAdd = goldAdd * 1000;
+            }
 
             if (jackpot <= 5)
+            {
                 goldAdd = goldAdd * 5000;
+            }
 
             character.Money += goldAdd;
             character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillEffectGainItem,
@@ -193,7 +221,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             Item sourceItem = null)
         {
             var character = (Character)caster;
-            if (character == null) return;
+            if (character == null)
+            {
+                return;
+            }
+
             var amount = Rand.Next(minAmount, maxAmount);
             if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, itemId, amount, gradeId))
             {

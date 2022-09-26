@@ -4,12 +4,9 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Items.Templates;
-using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
-using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -42,7 +39,11 @@ namespace AAEmu.Game.Models.Game.Char
 
         private MateDb CreateNewMate(ulong itemId, NpcTemplate npctemplate)
         {
-            if (_mates.ContainsKey(itemId)) return null;
+            if (_mates.ContainsKey(itemId))
+            {
+                return null;
+            }
+
             var template = new MateDb
             {
                 // TODO
@@ -73,7 +74,10 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             var item = Owner.Inventory.GetItemById(skillData.ItemId);
-            if (item == null) return;
+            if (item == null)
+            {
+                return;
+            }
 
             var itemTemplate = (SummonMateTemplate)ItemManager.Instance.GetTemplate(item.TemplateId);
             var npcId = itemTemplate.NpcId;
@@ -107,13 +111,17 @@ namespace AAEmu.Game.Models.Game.Char
             mount.Transform = Owner.Transform.CloneDetached(mount);
 
             foreach (var skill in MateManager.Instance.GetMateSkills(npcId))
+            {
                 mount.Skills.Add(skill);
-            
+            }
+
             foreach (var buffId in template.Buffs)
             {
                 var buff = SkillManager.Instance.GetBuffTemplate(buffId);
                 if (buff == null)
+                {
                     continue;
+                }
 
                 var obj = new SkillCasterUnit(mount.ObjId);
                 buff.Apply(mount, obj, mount, null, null, new EffectSource(), null, DateTime.UtcNow);

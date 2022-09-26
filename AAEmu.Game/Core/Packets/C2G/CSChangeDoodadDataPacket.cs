@@ -1,16 +1,15 @@
 ﻿using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.DoodadObj;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeDoodadDataPacket : GamePacket
     {
-        public CSChangeDoodadDataPacket() : base(CSOffsets.CSChangeDoodadDataPacket, 1)
+        public CSChangeDoodadDataPacket() : base(CSOffsets.CSChangeDoodadDataPacket, 5)
         {
         }
 
@@ -27,7 +26,9 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var doodadType = doodad.Template.GetType().ToString();
                 _log.Warn($"Doodad: {doodad.Name} ({doodad.TemplateId} - {doodadName} - {doodadType})");
                 if (!DoodadManager.Instance.ChangeDoodadData(Connection.ActiveChar, doodad, data))
+                {
                     Connection.ActiveChar.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
+                }
             }
         }
     }

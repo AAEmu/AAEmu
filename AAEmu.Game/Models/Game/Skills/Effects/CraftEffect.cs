@@ -27,8 +27,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             // Check what skill triggered this build
             uint usedSkill = 0;
             if (castObj is CastSkill castSkill)
+            {
                 usedSkill = castSkill.SkillId;
-            
+            }
+
             if (caster is Character character)
             {
                 switch (wiGroup)
@@ -96,9 +98,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         {
                             // When done, set step to -1
                             if (house.Template.BuildSteps.Count == 0)
+                            {
                                 house.CurrentStep = -1;
+                            }
                             else
+                            {
                                 house.AddBuildAction();
+                            }
 
                             // Send build packet
                             character.BroadcastPacket(
@@ -129,7 +135,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                                 ShipyardManager.Instance.ShipyardCompletedTask(sy);
                             }
                             else
+                            {
                                 caster.SendErrorMessage(ErrorMessageType.NoPermissionToLoot);
+                            }
                         }
                         break;
                 }

@@ -49,13 +49,17 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                             if (character.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem,
                                 item,
                                 (int)EquipmentItemSlot.Backpack))
+                            {
                                 addedItem = true;
+                            }
                         }
                     }
                     else
                     {
                         if (character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, item))
+                        {
                             addedItem = true;
+                        }
                     }
                 }
             }
@@ -70,10 +74,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             }
 
             if (addedItem && item != null && item._holdingContainer.ContainerType == SlotType.Equipment)
+            {
                 character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId,(byte)item.Slot,item), false);
+            }
 
             if (owner != null)
+            {
                 owner.ToNextPhase = addedItem;
+            }
         }
     }
 }

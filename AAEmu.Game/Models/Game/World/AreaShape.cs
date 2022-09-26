@@ -34,7 +34,9 @@ namespace AAEmu.Game.Models.Game.World
             var zOffset = Value3;
             toCheck = toCheck.Where(o => (o.Transform.World.Position.Z >= origin.Transform.World.Position.Z - zOffset) && (o.Transform.World.Position.Z <= origin.Transform.World.Position.Z + zOffset)).ToList();
             if (toCheck.Count == 0)
+            {
                 return toCheck;
+            }
 
             // Triangle check
             var vertices = MathUtil.GetCuboidVertices(Value1, Value2,
@@ -108,17 +110,23 @@ namespace AAEmu.Game.Models.Game.World
         public void OnEnter(Unit unit)
         {
             if (Caster == null)
+            {
                 return;
+            }
 
             if (SkillTargetingUtil.IsRelationValid(TargetRelation, Caster, unit))
+            {
                 InsideBuffTemplate?.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), null, new EffectSource(), null, DateTime.UtcNow);
+            }
             // unit.Effects.AddEffect(new Effect(Owner, Caster, new SkillCasterUnit(Caster.ObjId), InsideBuffTemplate, null, DateTime.UtcNow));
         }
 
         public void OnLeave(Unit unit)
         {
             if (InsideBuffTemplate != null)
+            {
                 unit.Buffs.RemoveBuff(InsideBuffTemplate.BuffId);
+            }
         }
 
         public void OnDelete()
@@ -135,9 +143,14 @@ namespace AAEmu.Game.Models.Game.World
         public void ApplyEffects()
         {
             if (InsideBuffTemplate == null)
+            {
                 return;
+            }
+
             if (Caster == null)
+            {
                 return;
+            }
 
             var unitsToApply = SkillTargetingUtil.FilterWithRelation(TargetRelation, Caster, Units);
             foreach (var unit in unitsToApply)
@@ -145,13 +158,20 @@ namespace AAEmu.Game.Models.Game.World
                 foreach (var effect in EffectPerTick)
                 {
                     if (effect is BuffEffect buffEffect && unit.Buffs.CheckBuff(buffEffect.BuffId))
+                    {
                         continue;
+                    }
+
                     var eff = unit.Buffs.GetEffectFromBuffId(InsideBuffTemplate.BuffId);
                     CastAction castAction = null;
                     if (eff != null)
+                    {
                         castAction = new CastBuff(eff);
+                    }
                     else
+                    {
                         castAction = new CastSkill(SkillId, 0);
+                    }
 
                     effect.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), castAction, new EffectSource(), new SkillObject(), DateTime.UtcNow);
                 }
@@ -163,11 +183,13 @@ namespace AAEmu.Game.Models.Game.World
         {
             UpdateUnits();
             if (TickRate > 0)
+            {
                 if ((DateTime.UtcNow - _lastTick).TotalMilliseconds > TickRate)
                 {
                     ApplyEffects();
                     _lastTick = DateTime.UtcNow;
                 }
+            }
         }
     }
 }

@@ -28,19 +28,28 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             // All Chests will not accept timed items 
             if ((itemTemplate.ExpAbsLifetime > 0) || 
                 (itemTemplate.ExpOnlineLifetime > 0) ||
-                (itemTemplate.ExpDate > DateTime.MinValue))
+                (itemTemplate.ExpDate > 0))
+            {
                 return false;
+            }
 
             // Otherwordly Storage Chest will accept pretty much any other item
             if (CofferType == ChestType.Otherworldly)
+            {
                 return true;
+            }
 
             // Normal Coffer/Chest will accept anything that can't be bound 
             if (itemTemplate.BindType == ItemBindType.BindOnPickup)
+            {
                 return false;
+            }
+
             if (itemTemplate.BindType == ItemBindType.BindOnPickupPack)
+            {
                 return false;
-            
+            }
+
             // All other cases should be good (if the item itself isn't bound yet)
             return true;
         }

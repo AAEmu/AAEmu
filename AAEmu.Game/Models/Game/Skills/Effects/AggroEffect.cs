@@ -30,10 +30,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             if (!(caster is Character character))
+            {
                 return;
+            }
 
             if (!(target is Npc npc))
+            {
                 return;
+            }
 
             _log.Debug("AggroEffect");
 
@@ -67,7 +71,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
 
             var value = (int)Rand.Next(min, max);
-            npc.BroadcastPacket(new SCAiAggroPacket(npc.ObjId, 1, caster.ObjId, value), true);
+            npc.BroadcastPacket(new SCUnitAiAggroPacket(npc.ObjId, 1, caster.ObjId, value), true);
             npc.AddUnitAggro(AggroKind.Damage, character, value);
         }
     }

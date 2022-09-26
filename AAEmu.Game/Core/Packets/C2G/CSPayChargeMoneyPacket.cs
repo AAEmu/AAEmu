@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSPayChargeMoneyPacket : GamePacket
     {
-        public CSPayChargeMoneyPacket() : base(CSOffsets.CSPayChargeMoneyPacket, 1)
+        public CSPayChargeMoneyPacket() : base(CSOffsets.CSPayChargeMoneyPacket, 5)
         {
         }
 
@@ -17,7 +17,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             
             _log.Debug("PayChargeMoney, mailId: {0}, autoUseAAPoint: {1}", mailId, autoUseAAPoint);
             if (!MailManager.Instance.PayChargeMoney(Connection.ActiveChar, mailId, autoUseAAPoint))
+            {
                 _log.Warn("PayChargeMoney failed, mailId: {0}, autoUseAAPoint: {1}", mailId, autoUseAAPoint);
+            }
         }
     }
 }

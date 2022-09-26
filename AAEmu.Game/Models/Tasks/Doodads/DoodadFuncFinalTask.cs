@@ -35,9 +35,13 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         public override void Execute()
         {
             if (_caster is Character)
+            {
                 _log.Debug("[Doodad] DoodadFuncFinalTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
+            }
             else
+            {
                 _log.Trace("[Doodad] DoodadFuncFinalTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
+            }
 
             if (_respawn && _owner.Spawner != null)
             {

@@ -32,10 +32,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             var zoneId = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId).GroupId;
             
             if(target.Transform.World.Position.Z > 101)
+            {
                 lootTableId = ZoneManager.Instance.GetZoneGroupById(zoneId).FishingLandLootPackId;
+            }
             else
+            {
                 lootTableId = ZoneManager.Instance.GetZoneGroupById(zoneId).FishingSeaLootPackId;
-            
+            }
+
             var lootPacks = ItemManager.Instance.GetLootPacks(lootTableId);
 
             if (lootPacks != null)
@@ -54,7 +58,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                         break;
                     }
                     else
+                    {
                         randChoice -= (int)item.DropRate;
+                    }
                 }
 
                 var player = (Character)caster;

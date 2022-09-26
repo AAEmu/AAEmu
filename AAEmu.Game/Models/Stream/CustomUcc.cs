@@ -44,7 +44,10 @@ namespace AAEmu.Game.Models.Stream
             command.Parameters.AddWithValue("@color3B", Color3B);
             command.Parameters.AddWithValue("@modified", DateTime.UtcNow);
             if (SaveDataInDB)
+            {
                 command.Parameters.AddWithValue("@data", Data.ToArray());
+            }
+
             command.ExecuteNonQuery();
         }
         

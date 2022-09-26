@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.v2;
 using AAEmu.Game.Models.Game.Char;
@@ -54,9 +55,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.Str))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -81,9 +86,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.Dex))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -107,9 +116,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.Sta))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -133,9 +146,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.Int))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -159,9 +176,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.Spi))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -185,9 +206,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.Fai))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -217,9 +242,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.MaxHealth))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -250,9 +279,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.HealthRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -283,9 +316,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.PersistentHealthRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -315,9 +352,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.MaxMana))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -348,9 +389,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.ManaRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -381,9 +426,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.PersistentManaRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -426,9 +475,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.MainhandDps))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return (int)(res * 1000);
@@ -460,9 +513,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.MeleeDpsInc))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return (int)res;
@@ -480,9 +537,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.OffhandDps))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return (int)(res * 1000);
@@ -500,9 +561,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.RangedDps))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return (int)(res * 1000);
@@ -534,9 +599,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.RangedDpsInc))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return (int)res;
@@ -554,9 +623,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.SpellDps))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return (int)(res * 1000);
@@ -588,9 +661,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return (int)res;
@@ -621,9 +698,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.Armor))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -653,9 +734,13 @@ namespace AAEmu.Game.Models.Game.NPChar
                 foreach (var bonus in GetBonuses(UnitAttribute.MagicResist))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -666,7 +751,10 @@ namespace AAEmu.Game.Models.Game.NPChar
             get
             {
                 if (Template.NoExp)
+                {
                     return 0;
+                }
+
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.KillExp);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
@@ -712,10 +800,16 @@ namespace AAEmu.Game.Models.Game.NPChar
             Ai?.GoToDead();
         }
 
+        public override void BroadcastPacket(GamePacket packet, bool self)
+        {
+            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
+                character.SendPacket(packet);
+        }
+
         public override void AddVisibleObject(Character character)
         {
             character.SendPacket(new SCUnitStatePacket(this));
-            character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+            character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc));
             
             base.AddVisibleObject(character);
         }
@@ -816,13 +910,18 @@ namespace AAEmu.Game.Models.Game.NPChar
         public void MoveTowards(Vector3 other, float distance, byte flags = 4)
         {
             if (ActiveSkillController != null && ActiveSkillController.State != SCState.Ended)
+            {
                 return;
+            }
 
             var oldPosition = Transform.Local.ClonePosition();
 
             var targetDist = MathUtil.CalculateDistance(Transform.Local.Position, other, true);
             if (targetDist <= 0.05f)
+            {
                 return;
+            }
+
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
             var travelDist = Math.Min(targetDist, distance);
@@ -847,15 +946,15 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.RotationX = rx;
             moveType.RotationY = ry;
             moveType.RotationZ = rz;
-            moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
-            moveType.Flags = 4;
+            moveType.ActorFlags = (ActorMoveType)flags;     // 5-walk, 4-run, 3-stand still
+            moveType.Flags = 0;
             
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = 127;
             moveType.DeltaMovement[2] = 0;
-            moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
-            moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+            moveType.Stance = EStance.Combat;    // COMBAT = 0x0, IDLE = 0x1
+            moveType.Alertness = AiAlertness.Combat; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
             moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
             CheckMovedPosition(oldPosition);
@@ -882,15 +981,15 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.RotationX = rx;
             moveType.RotationY = ry;
             moveType.RotationZ = rz;
-            moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
-            moveType.Flags = 4;
+            moveType.ActorFlags = (ActorMoveType)flags;     // 5-walk, 4-run, 3-stand still
+            moveType.Flags = 0;
             
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = 0;
             moveType.DeltaMovement[2] = 0;
-            moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
-            moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+            moveType.Stance = EStance.Combat;    // COMBAT = 0x0, IDLE = 0x1
+            moveType.Alertness = AiAlertness.Combat; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
             moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
             CheckMovedPosition(oldPosition);
@@ -900,6 +999,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         
         public void StopMovement()
         {
+            var oldPosition = Transform.Local.ClonePosition();
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
             moveType.X = Transform.Local.Position.X;
             moveType.Y = Transform.Local.Position.Y;
@@ -907,14 +1007,16 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = Transform.Local.ToRollPitchYawSBytesMovement().Item3;
-            moveType.Flags = 4;
+            moveType.Flags = 0;
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = 0;
             moveType.DeltaMovement[2] = 0;
-            moveType.Stance = (sbyte) (CurrentAggroTarget > 0 ? 0 : 1);    // COMBAT = 0x0, IDLE = 0x1
-            moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+            moveType.Stance = CurrentAggroTarget > 0 ? EStance.Combat : EStance.Idle;    // COMBAT = 0x0, IDLE = 0x1
+            moveType.Alertness = AiAlertness.Combat; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
             moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
+
+            CheckMovedPosition(oldPosition);
             BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
         }
 

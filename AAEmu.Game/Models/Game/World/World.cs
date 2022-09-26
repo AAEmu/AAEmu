@@ -31,11 +31,15 @@ namespace AAEmu.Game.Models.Game.World
         public bool IsWater(Vector3 point)
         {
             if (Water != null)
+            {
                 return Water.IsWater(point);
-            
+            }
+
             if (point.Z <= OceanLevel)
+            {
                 return true;
-            
+            }
+
             // TODO: Check shapes
             return false;
         }
@@ -91,10 +95,16 @@ namespace AAEmu.Game.Models.Game.World
         public Region GetRegion(int x, int y)
         {
             if (ValidRegion(x, y))
+            {
                 if (Regions[x, y] == null)
+                {
                     return Regions[x, y] = new Region(Id, x, y, 0);
+                }
                 else
+                {
                     return Regions[x, y];
+                }
+            }
 
             return null;
         }

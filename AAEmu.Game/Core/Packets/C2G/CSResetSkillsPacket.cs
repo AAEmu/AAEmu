@@ -6,14 +6,14 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSResetSkillsPacket : GamePacket
     {
-        public CSResetSkillsPacket() : base(CSOffsets.CSResetSkillsPacket, 1)
+        public CSResetSkillsPacket() : base(CSOffsets.CSResetSkillsPacket, 5)
         {
         }
 
         public override void Read(PacketStream stream)
         {
-            var abilityId = stream.ReadByte();
-            var ausp = stream.ReadBoolean();
+            var abilityId = stream.ReadByte(); // a
+            var ausp = stream.ReadBoolean();   // ausp
 
             Connection.ActiveChar.Skills.Reset((AbilityType) abilityId);
         }

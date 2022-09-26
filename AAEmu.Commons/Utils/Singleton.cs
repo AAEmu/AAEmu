@@ -30,7 +30,10 @@ namespace AAEmu.Commons.Utils
         private static void OnInit()
         {
             if (_instance != null)
+            {
                 return;
+            }
+
             lock (typeof(T))
             {
                 _instance = typeof(T).InvokeMember(typeof(T).Name,

@@ -5,14 +5,15 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSListMailContinuePacket : GamePacket
     {
-        public CSListMailContinuePacket() : base(CSOffsets.CSListMailContinuePacket, 1)
+        public CSListMailContinuePacket() : base(CSOffsets.CSListMailContinuePacket, 5)
         {
         }
 
         public override void Read(PacketStream stream)
         {
-            // Empty struct
-            _log.Debug("ListMailContinue");
+            var mailBoxListKind = stream.ReadByte();
+
+            _log.Debug($"ListMailContinue: mailBoxListKind {mailBoxListKind}");
         }
     }
 }

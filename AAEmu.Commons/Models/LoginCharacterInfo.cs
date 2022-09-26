@@ -5,7 +5,7 @@ namespace AAEmu.Commons.Models
     public class LoginCharacterInfo : PacketMarshaler
     {
         public uint Id { get; set; }
-        public uint AccountId { get; set; }
+        public ulong AccountId { get; set; }
         public byte GsId { get; set; }
         public string Name { get; set; }
         public byte Race { get; set; }

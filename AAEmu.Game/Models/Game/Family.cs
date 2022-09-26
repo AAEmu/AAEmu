@@ -30,7 +30,9 @@ namespace AAEmu.Game.Models.Game
         public void AddMember(FamilyMember member)
         {
             if (Members == null)
+            {
                 Members = new List<FamilyMember>();
+            }
 
             Members.Add(member);
         }
@@ -51,7 +53,9 @@ namespace AAEmu.Game.Models.Game
         {
             foreach (var member in Members)
                 if (member.Id == character.Id)
+                {
                     return member;
+                }
 
             return null;
         }
@@ -60,7 +64,9 @@ namespace AAEmu.Game.Models.Game
         {
             foreach (var member in Members)
                 if (member.Id != exclude)
+                {
                     member.Character?.SendPacket(packet);
+                }
         }
 
         public void Load(MySqlConnection connection)

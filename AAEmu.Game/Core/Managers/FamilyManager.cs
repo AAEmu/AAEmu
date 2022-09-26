@@ -36,7 +36,9 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var familyId = reader.GetUInt32("family");
                             if (familyId == 0)
+                            {
                                 continue;
+                            }
 
                             var family = new Family();
                             family.Id = familyId;
@@ -83,16 +85,23 @@ namespace AAEmu.Game.Core.Managers
         {
             var invited = WorldManager.Instance.GetCharacter(invitedCharacterName);
             if (invited != null && invited.Family == 0)
+            {
                 invited.SendPacket(new SCFamilyInvitationPacket(inviter.Id, inviter.Name, 1, title));
+            }
         }
 
         public void ReplyToInvite(uint invitorId, Character invitedChar, bool join, string title)
         {
             if (!join)
+            {
                 return;
+            }
 
             var invitor = WorldManager.Instance.GetCharacterById(invitorId);
-            if (invitor == null) return;
+            if (invitor == null)
+            {
+                return;
+            }
 
             if (invitor.Family == 0)
             {
@@ -160,9 +169,13 @@ namespace AAEmu.Game.Core.Managers
             family.SendPacket(new SCFamilyMemberRemovedPacket(family.Id, false, character.Id));
 
             if (family.Members.Count < 2)
+            {
                 DisbandFamily(family);
+            }
             else
+            {
                 SaveFamily(family); // TODO need to think how to do right
+            }
         }
 
         /// <summary>
@@ -197,11 +210,18 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="kickedId"></param>
         public void KickMember(Character kicker, uint kickedId) 
         {
-            if (kicker.Family == 0) return;
+            if (kicker.Family == 0)
+            {
+                return;
+            }
+
             Family family = _families[kicker.Family];
 
             FamilyMember kickerMember = family.GetMember(kicker);
-            if (kickerMember.Role != 1) return; // Only the steward can kick
+            if (kickerMember.Role != 1)
+            {
+                return; // Only the steward can kick
+            }
 
             // Load kicked character
             Character kickedCharacter = WorldManager.Instance.GetCharacterById(kickedId);
@@ -213,7 +233,10 @@ namespace AAEmu.Game.Core.Managers
                 kickedCharacter = Character.Load(kickedId);
             }
 
-            if (kickedCharacter == null) return;
+            if (kickedCharacter == null)
+            {
+                return;
+            }
 
             // Remove kicked character (if online, packet)
             kickedCharacter.Family = 0;
@@ -228,18 +251,29 @@ namespace AAEmu.Game.Core.Managers
             family.SendPacket(new SCFamilyMemberRemovedPacket(family.Id, true, kickedCharacter.Id));
 
             if (family.Members.Count < 2)
+            {
                 DisbandFamily(family);
+            }
             else
+            {
                 SaveFamily(family);
+            }
         }
 
         public void ChangeTitle(Character owner, uint memberId, string newTitle)
         {
-            if (owner.Family == 0) return;
+            if (owner.Family == 0)
+            {
+                return;
+            }
+
             Family family = _families[owner.Family];
 
             FamilyMember ownerMember = family.GetMember(owner);
-            if (ownerMember.Role != 1) return; // Only the steward can change titles
+            if (ownerMember.Role != 1)
+            {
+                return; // Only the steward can change titles
+            }
 
             FamilyMember member = _familyMembers[memberId];
             member.Title = newTitle;
@@ -249,11 +283,18 @@ namespace AAEmu.Game.Core.Managers
 
         public void ChangeOwner(Character previousOwner, uint memberId)
         {
-            if (previousOwner.Family == 0) return;
+            if (previousOwner.Family == 0)
+            {
+                return;
+            }
+
             Family family = _families[previousOwner.Family];
 
             FamilyMember previousOwnerMember = family.GetMember(previousOwner);
-            if (previousOwnerMember.Role != 1) return; // Only the steward can change owner
+            if (previousOwnerMember.Role != 1)
+            {
+                return; // Only the steward can change owner
+            }
 
             FamilyMember member = _familyMembers[memberId];
             member.Role = 1;

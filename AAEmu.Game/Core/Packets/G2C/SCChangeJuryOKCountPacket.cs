@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _count;
         private readonly int _total;
 
-        public SCChangeJuryOKCountPacket(int count, int total) : base(SCOffsets.SCChangeJuryOKCountPacket,1)
+        public SCChangeJuryOKCountPacket(int count, int total) : base(SCOffsets.SCChangeJuryOKCountPacket, 5)
         {
             _count = count;
             _total = total;

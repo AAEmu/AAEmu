@@ -1,17 +1,13 @@
-﻿using System.Numerics;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCreateHousePacket : GamePacket
     {
-        public CSCreateHousePacket() : base(CSOffsets.CSCreateHousePacket, 1)
+        public CSCreateHousePacket() : base(CSOffsets.CSCreateHousePacket, 5)
         {
         }
 

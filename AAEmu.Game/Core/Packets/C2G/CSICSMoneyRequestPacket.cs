@@ -7,14 +7,14 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSICSMoneyRequestPacket : GamePacket
     {
-        public CSICSMoneyRequestPacket() : base(CSOffsets.CSICSMoneyRequestPacket, 1)
+        public CSICSMoneyRequestPacket() : base(CSOffsets.CSICSMoneyRequestPacket, 5)
         {
         }
 
         public override void Read(PacketStream stream)
         {
             // Empty struct
-            _log.Warn("ICSMoneyRequest");
+            _log.Warn("CSICSMoneyRequestPacket");
 
             var points = CashShopManager.Instance.GetAccountCredits(Connection.AccountId);
             Connection.SendPacket(new SCICSCashPointPacket(points));

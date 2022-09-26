@@ -324,7 +324,7 @@ namespace AAEmu.Game.Scripts.Commands
                 var pos = SelectedWater.GetCenter(true);
                 character.ForceDismount();
                 character.DisabledSetPosition = true;
-                character.SendPacket(new SCTeleportUnitPacket(0, 0, pos.X + 1f, pos.Y + 1f, pos.Z + 3f, 0));
+                character.SendPacket(new SCUnitTeleportPacket(0, 0, pos.X + 1f, pos.Y + 1f, pos.Z + 3f, 0));
             }
             else if (subCommand is "clear" or "c")
             {

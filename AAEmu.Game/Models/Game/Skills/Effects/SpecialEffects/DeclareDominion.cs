@@ -30,12 +30,16 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (caster is Character) { _log.Debug("Special effects: DeclareDominion value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
             if (caster.Expedition == null)
+            {
                 return;
-            
+            }
+
             // Check target is not already claimed
             if (!(target is House lodestone))
+            {
                 return;
-            
+            }
+
             // Get target zone, radius, etc..
             
             // Advance building step on target

@@ -101,7 +101,9 @@ namespace AAEmu.Game.IO
                                 {
                                     if ((string.IsNullOrWhiteSpace(searchPattern) ||
                                          (Regex.Match(pfi.name.ToLower(), wildCard).Success)))
+                                    {
                                         list.Add(pfi.name);
+                                    }
                                 }
                             }
                         }
@@ -110,7 +112,9 @@ namespace AAEmu.Game.IO
                             var files = GamePak.GetFilesInDirectory(rootDir);
                             foreach (var pfi in files)
                                 if ((string.IsNullOrWhiteSpace(searchPattern) || (Regex.Match(pfi.name, wildCard).Success)))
+                                {
                                     list.Add(pfi.name);
+                                }
                         }
                         break;
                     }

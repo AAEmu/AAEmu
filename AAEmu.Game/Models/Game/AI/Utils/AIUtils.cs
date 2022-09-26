@@ -31,10 +31,14 @@ namespace AAEmu.Game.Models.Game.AI.Utils
             var terrainHeight = WorldManager.Instance.GetHeight(newPosition.ZoneId, newPosition.Local.Position.X, newPosition.Local.Position.Y);
             // Handles disabled heightmaps
             if (terrainHeight <= 0.0f)
+            {
                 terrainHeight = newPosition.Local.Position.Z;
+            }
 
             if (newPosition.Local.Position.Z < terrainHeight && terrainHeight - maxRoamingDistance < newPosition.Local.Position.Z)
+            {
                 newPosition.Local.SetHeight(terrainHeight);
+            }
 
             return newPosition;
         }
@@ -48,8 +52,11 @@ namespace AAEmu.Game.Models.Game.AI.Utils
             //     then
             //         range = 50;
             // end
-            if (distToIdlePos > range) 
+            if (distToIdlePos > range)
+            {
                 return true;
+            }
+
             return false;
         }
 

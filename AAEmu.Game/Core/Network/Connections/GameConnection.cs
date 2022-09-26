@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils.DB;
@@ -25,20 +26,22 @@ namespace AAEmu.Game.Core.Network.Connections
         private Session _session;
 
         public uint Id => _session.SessionId;
-        public uint AccountId { get; set; }
+        public ulong AccountId { get; set; }
         public IPAddress Ip => _session.Ip;
         public PacketStream LastPacket { get; set; }
-        
+
         public AccountPayment Payment { get; set; }
-        
+
         public int PacketCount { get; set; }
-        
+
         public List<IDisposable> Subscribers { get; set; }
         public GameState State { get; set; }
         public Character ActiveChar { get; set; }
-        public Dictionary<uint, Character> Characters;
+        public readonly Dictionary<uint, Character> Characters;
         public Dictionary<uint, House> Houses;
-        
+        public object WriteLock { get; set; }
+        public object ReadLock { get; set; }
+        public byte LastCount { get; set; }
         public Task LeaveTask { get; set; }
         public DateTime LastPing { get; set; }
 
@@ -46,10 +49,12 @@ namespace AAEmu.Game.Core.Network.Connections
         {
             _session = session;
             Subscribers = new List<IDisposable>();
-            
+
             Characters = new Dictionary<uint, Character>();
             Houses = new Dictionary<uint, House>();
             Payment = new AccountPayment(this);
+            WriteLock = new object();
+            ReadLock = new object();
             // AddAttribute("gmFlag", true);
         }
 
@@ -71,10 +76,12 @@ namespace AAEmu.Game.Core.Network.Connections
         public void OnDisconnect()
         {
             AccountManager.Instance.Remove(AccountId);
-            
+
             if (ActiveChar != null)
+            {
                 foreach (var subscriber in ActiveChar.Subscribers)
                     subscriber.Dispose();
+            }
 
             foreach (var subscriber in Subscribers)
                 subscriber.Dispose();
@@ -124,17 +131,16 @@ namespace AAEmu.Game.Core.Network.Connections
                 {
                     var character = Character.Load(connection, id, AccountId);
                     if (character == null)
+                    {
                         continue; // TODO ...
+                    }
+
+                    // Mark characters marked for deletion as deleted after their time is finished
                     if (!CharacterManager.Instance.CheckForDeletedCharactersDeletion(character, this, connection))
                     {
                         Characters.Add(character.Id, character);
                     }
                 }
-
-                /*
-                foreach (var character in Characters.Values)
-                    character.Inventory.Load(connection, SlotType.Equipment);
-                */
             }
 
             Houses.Clear();
@@ -148,7 +154,9 @@ namespace AAEmu.Game.Core.Network.Connections
         {
             // TODO: this needs a rewrite
             if (ActiveChar == null)
+            {
                 return;
+            }
 
             // stopping the TransferTelescopeTickStartTask if character disconnected
             TransferTelescopeManager.Instance.StopTransferTelescopeTickAsync().GetAwaiter().GetResult();

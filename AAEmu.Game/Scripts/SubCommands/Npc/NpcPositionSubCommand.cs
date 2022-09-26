@@ -71,14 +71,14 @@ namespace AAEmu.Game.Scripts.Commands
             moveType.RotationY = npcRot.Item2;
             moveType.RotationZ = npcRot.Item3;
 
-            moveType.Flags = 5;
+            moveType.ActorFlags = ActorMoveType.Walk;     // 5-walk, 4-run, 3-stand still
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = 0;
             moveType.DeltaMovement[2] = 0;
-            moveType.Stance = 1;    // combat=0, idle=1
-            moveType.Alertness = 0; // idle=0, combat=2
-            moveType.Time += 50;    // has to change all the time for normal motion.
+            moveType.Stance = EStance.Idle;    // COMBAT = 0x0, IDLE = 0x1
+            moveType.Alertness = AiAlertness.Idle; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+            moveType.Time += 100; // has to change all the time for normal motion.
             character.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
         }
     }

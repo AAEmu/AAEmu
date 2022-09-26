@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _type;
         private readonly bool _install;
 
-        public SCItemSocketingLunagemResultPacket(byte result, ulong itemId, uint type, bool install) : base(SCOffsets.SCItemSocketingLunagemResultPacket, 1)
+        public SCItemSocketingLunagemResultPacket(byte result, ulong itemId, uint type, bool install) : base(SCOffsets.SCItemSocketingLunagemResultPacket, 5)
         {
             _result = result;
             _itemId = itemId;

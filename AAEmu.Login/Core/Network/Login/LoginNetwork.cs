@@ -19,9 +19,10 @@ namespace AAEmu.Login.Core.Network.Login
         {
             _handler = new LoginProtocolHandler();
 
-            RegisterPacket(CLOffsets.CARequestAuthPacket, typeof(CARequestAuthPacket));
-            RegisterPacket(CLOffsets.CARequestAuthTencentPacket, typeof(CARequestAuthTencentPacket));
-            RegisterPacket(CLOffsets.CARequestAuthGameOnPacket, typeof(CARequestAuthGameOnPacket));
+            RegisterPacket(CLOffsets.CARequestAuthPacket_0x001, typeof(CARequestAuthPacket_0x001));
+            RegisterPacket(CLOffsets.CARequestAuthPacket_0x002, typeof(CARequestAuthPacket_0x002));
+            RegisterPacket(CLOffsets.CARequestAuthPacket_0x003, typeof(CARequestAuthPacket_0x003));
+            RegisterPacket(CLOffsets.CARequestAuthPacket_0x004, typeof(CARequestAuthPacket_0x004));
             RegisterPacket(CLOffsets.CARequestAuthTrionPacket, typeof(CARequestAuthTrionPacket));
             RegisterPacket(CLOffsets.CARequestAuthMailRuPacket, typeof(CARequestAuthMailRuPacket));
             RegisterPacket(CLOffsets.CAChallengeResponsePacket, typeof(CAChallengeResponsePacket));
@@ -46,8 +47,10 @@ namespace AAEmu.Login.Core.Network.Login
 
         public void Stop()
         {
-            if ((_server != null) && (_server.IsStarted))
+            if (_server.IsStarted)
+            {
                 _server.Stop();
+            }
 
             _log.Info("Network stoped");
         }

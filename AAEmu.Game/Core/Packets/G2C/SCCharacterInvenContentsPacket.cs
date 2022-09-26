@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly Item[] _items;
 
         public SCCharacterInvenContentsPacket(SlotType type, byte numChunks, byte startChunkIdx, Item[] items)
-            : base(SCOffsets.SCCharacterInvenContentsPacket, 1)
+            : base(SCOffsets.SCCharacterInvenContentsPacket, 5)
         {
             _type = type;
             _numChunks = numChunks;
@@ -28,9 +28,13 @@ namespace AAEmu.Game.Core.Packets.G2C
             foreach (var item in _items)
             {
                 if (item == null)
+                {
                     stream.Write(0);
+                }
                 else
+                {
                     stream.Write(item);
+                }
             }
 
             return stream;

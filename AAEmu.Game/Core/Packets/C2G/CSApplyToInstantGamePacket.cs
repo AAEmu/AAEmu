@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSApplyToInstantGamePacket : GamePacket
     {
-        public CSApplyToInstantGamePacket() : base(CSOffsets.CSApplyToInstantGamePacket, 1)
+        public CSApplyToInstantGamePacket() : base(CSOffsets.CSApplyToInstantGamePacket, 5)
         {
         }
 

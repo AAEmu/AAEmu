@@ -68,10 +68,16 @@ namespace AAEmu.Game.Utils
         public static sbyte ConvertDegreeToSByteDirection(double degree)
         {
             if (degree < 0)
+            {
                 degree = 360 + degree;
+            }
+
             var res = (sbyte)(degree / (360f / 128));
             if (res > 85)
+            {
                 res = (sbyte)((degree - 360) / (360f / 128));
+            }
+
             return res;
         }
 
@@ -80,9 +86,15 @@ namespace AAEmu.Game.Utils
             while (degree < 0f)
                 degree += 360f;
             if ((degree > 90f) && (degree <= 180f))
-                return (sbyte)((((degree - 90f) / 90f * 37f) + 90f) * - 1); 
+            {
+                return (sbyte)((((degree - 90f) / 90f * 37f) + 90f) * - 1);
+            }
+
             if (degree > 180f)
+            {
                 return (sbyte)((((degree - 270f) / 90f * 37f) - 90f) * -1);
+            }
+
             // When range is between -90 and 90, no rotation scaling is applied for doodads
             return (sbyte)(degree * - 1);
         }
@@ -94,7 +106,9 @@ namespace AAEmu.Game.Utils
             var diff = Math.Abs(degree - degree2);
 
             if (diff >= 90 && diff <= 270)
+            {
                 return true;
+            }
 
             return false;
         }
@@ -111,7 +125,9 @@ namespace AAEmu.Game.Utils
             var sinp = 2 * (quat.W * quat.Y - quat.Z * quat.X);
             var pitch = 0.0f;
             if (Math.Abs(sinp) >= 1)
+            {
                 pitch = (float)Math.CopySign(Math.PI / 2, sinp);
+            }
             else
             {
                 pitch = (float)Math.Asin(sinp);
@@ -285,10 +301,16 @@ namespace AAEmu.Game.Utils
         {
             var degree = radian.RadToDeg();
             if (degree < 0)
-              degree = 360 + degree;
+            {
+                degree = 360 + degree;
+            }
+
             var res = (sbyte)(degree / (360f / 128));
             if (res > 85)
+            {
                 res = (sbyte)((degree - 360) / (360f / 128));
+            }
+
             return res;
         }
 

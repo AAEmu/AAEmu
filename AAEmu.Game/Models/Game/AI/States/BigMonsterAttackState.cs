@@ -42,10 +42,14 @@ namespace AAEmu.Game.Models.Game.AI.States
         public override void Tick(TimeSpan delta)
         {
             if (OwnerTemplate == null)
+            {
                 return;
+            }
 
             if (_nextDelay != 0f)
+            {
                 return;
+            }
 
             if (Target.IsDead)
             {
@@ -78,18 +82,26 @@ namespace AAEmu.Game.Models.Game.AI.States
             }
 
             if (Npc.SkillTask != null || Npc.ActivePlotState != null)
+            {
                 return;
+            }
 
             if (_lastSkillEnd.AddSeconds(_currentDelay) > DateTime.UtcNow)
+            {
                 return;
+            }
 
             var combatSkill = GetNextAiCombatSkill();
 
             if (combatSkill == null)
+            {
                 return;//Set to base attack here?
+            }
 
             if (Npc.Cooldowns.CheckCooldown(combatSkill.SkillType))
+            {
                 return;
+            }
 
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(combatSkill.SkillType));
             // _currentDelay = nextAiSkill.Delay + (skill.Template.CastingTime / 1000.0f) + (skill.Template.ChannelingTime / 1000.0f); // TODO : Apply delay when skill **ends**
@@ -145,9 +157,13 @@ namespace AAEmu.Game.Models.Game.AI.States
             var filteredSkills = useableSkills.ToArray();
 
             if (filteredSkills.Length > 0)
+            {
                 return filteredSkills[Rand.Next(0, filteredSkills.Length)];
+            }
             else
+            {
                 return null;
+            }
         }
 
         public void OnSkillEnd(Skill skill)

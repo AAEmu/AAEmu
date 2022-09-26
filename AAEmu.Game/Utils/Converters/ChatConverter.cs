@@ -59,15 +59,24 @@ namespace AAEmu.Game.Utils.Converters
                     v4++;
                     v6 = 0;
                     i = v4;
-                    if (v4 >= a3) return new string(a2);
+                    if (v4 >= a3)
+                    {
+                        return new string(a2);
+                    }
                 }
-                else v6 = 2 * v7;
+                else
+                {
+                    v6 = 2 * v7;
+                }
             }
             if (v5 % 6 != 0)
             {
                 v4++;
                 a2[v4 - 1] = v9[v6 >> 1 << 6 * v5 / 6 - (byte)v5 + 6];
-                if (v4 >= a3) return new string(a2);
+                if (v4 >= a3)
+                {
+                    return new string(a2);
+                }
             }
             else
             {

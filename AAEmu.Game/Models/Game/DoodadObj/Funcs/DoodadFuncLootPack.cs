@@ -19,7 +19,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             var character = (Character)caster;
             if (character == null)
+            {
                 return;
+            }
 
             var lootPacks = ItemManager.Instance.GetLootPacks(LootPackId);
             var itemQuantity = new Random();

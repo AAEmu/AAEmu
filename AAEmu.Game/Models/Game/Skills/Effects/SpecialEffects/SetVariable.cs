@@ -38,14 +38,23 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (skill.ActivePlotState != null)
             {
                 if (operation == 1)
+                {
                     skill.ActivePlotState.Variables[index] += value;
+                }
                 else if (operation == 11)
+                {
                     skill.ActivePlotState.Variables[index] = value;
+                }
                 else
+                {
                     _log.Error("Invalid Plot Variable Operation Kind.");
+                }
             }
             else
+            {
                 _log.Error("No active plot state located.");
+            }
+
             _log.Trace("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
         }
     }

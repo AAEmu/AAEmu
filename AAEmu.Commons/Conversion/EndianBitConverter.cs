@@ -230,9 +230,14 @@ namespace AAEmu.Commons.Conversion
         private static void CheckByteArgument(byte[] value, int startIndex, int bytesRequired)
         {
             if (value == null)
+            {
                 throw new ArgumentNullException("value");
+            }
+
             if (startIndex < 0 || startIndex > value.Length - bytesRequired)
+            {
                 throw new ArgumentOutOfRangeException("startIndex");
+            }
         }
 
         /// <summary>
@@ -494,9 +499,15 @@ namespace AAEmu.Commons.Conversion
         private void CopyBytes(long value, int bytes, byte[] buffer, int index)
         {
             if (buffer == null)
+            {
                 throw new ArgumentNullException("buffer", "Byte array must not be null");
+            }
+
             if (buffer.Length < index + bytes)
+            {
                 throw new ArgumentOutOfRangeException("Buffer not big enough for value");
+            }
+
             CopyBytesImpl(value, bytes, buffer, index);
         }
 

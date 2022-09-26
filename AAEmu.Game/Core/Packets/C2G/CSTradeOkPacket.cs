@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSTradeOkPacket : GamePacket
     {
-        public CSTradeOkPacket() : base(CSOffsets.CSTradeOkPacket, 1)
+        public CSTradeOkPacket() : base(CSOffsets.CSTradeOkPacket, 5)
         {
         }
 

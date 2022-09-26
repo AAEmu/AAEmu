@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _teamId;
         private readonly uint _id;
         
-        public SCTeamOwnerChangedPacket(uint teamId, uint id) : base(SCOffsets.SCTeamOwnerChangedPacket, 1)
+        public SCTeamOwnerChangedPacket(uint teamId, uint id) : base(SCOffsets.SCTeamOwnerChangedPacket, 5)
         {
             _teamId = teamId;
             _id = id;

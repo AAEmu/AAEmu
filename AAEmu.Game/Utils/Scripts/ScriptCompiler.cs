@@ -24,12 +24,16 @@ namespace AAEmu.Game.Utils.Scripts
             EnsureDirectory("Scripts/");
 
             if (!CompileScripts(out var assembly))
+            {
                 return false;
+            }
 
             _assembly = assembly;
 
             if (_assembly != null)
+            {
                 OnLoad();
+            }
 
             return true;
         }
@@ -47,9 +51,15 @@ namespace AAEmu.Game.Utils.Scripts
             foreach (var type in types)
             {
                 if (type.IsNested)
+                {
                     continue;
+                }
+
                 if (type.IsAbstract)
+                {
                     continue;
+                }
+
                 try
                 {
                     var obj = Activator.CreateInstance(type);
@@ -65,8 +75,10 @@ namespace AAEmu.Game.Utils.Scripts
                 }
             }
             if (hasErrors)
+            {
                 _log.Warn($"There were some errors when compiling the user scripts !");
-                // throw new Exception("There were errors in the user scripts !");
+            }
+            // throw new Exception("There were errors in the user scripts !");
         }
 
         public static bool CompileScripts(out Assembly assembly)
@@ -131,7 +143,9 @@ namespace AAEmu.Game.Utils.Scripts
                     _log.Error("Compile failed ({0} errors, {1} warnings)", errorCount, warningCount);
                 }
                 else
+                {
                     _log.Info("Compile done ({0} errors, {1} warnings)", errorCount, warningCount);
+                }
 
                 var result = diagnostics.Where(diagnostic =>
                     diagnostic.Severity == DiagnosticSeverity.Error ||
@@ -139,9 +153,13 @@ namespace AAEmu.Game.Utils.Scripts
                 foreach (var diagnostic in result)
                 {
                     if (diagnostic.Severity == DiagnosticSeverity.Error)
+                    {
                         _log.Error(diagnostic);
+                    }
                     else
+                    {
                         _log.Warn(diagnostic);
+                    }
                 }
             }
 
@@ -153,7 +171,9 @@ namespace AAEmu.Game.Utils.Scripts
             var path = Path.Combine(Helpers.BaseDirectory, dir);
 
             if (!Directory.Exists(path))
+            {
                 Directory.CreateDirectory(path);
+            }
         }
 
         private static string[] GetScripts(string filter)

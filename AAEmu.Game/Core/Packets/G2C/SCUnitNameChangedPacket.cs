@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _objId;
         private readonly string _name;
 
-        public SCUnitNameChangedPacket(uint objId, string name) : base(SCOffsets.SCUnitNameChangedPacket, 1)
+        public SCUnitNameChangedPacket(uint objId, string name) : base(SCOffsets.SCUnitNameChangedPacket, 5)
         {
             _objId = objId;
             _name = name;

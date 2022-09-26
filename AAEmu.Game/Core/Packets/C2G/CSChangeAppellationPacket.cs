@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeAppellationPacket : GamePacket
     {
-        public CSChangeAppellationPacket() : base(CSOffsets.CSChangeAppellationPacket, 1)
+        public CSChangeAppellationPacket() : base(CSOffsets.CSChangeAppellationPacket, 5)
         {
         }
 

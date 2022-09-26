@@ -38,5 +38,26 @@ namespace AAEmu.Game.Models.Game.NPChar
             var npcs = new List<NpcSpawnerNpc> { new(spawnerId) };
             Npcs = npcs;
         }
+
+        //public NpcSpawnerTemplate(NpcSpawnerTemplate npcSpawnerTemplate)
+        //{
+        //    Id = npcSpawnerTemplate.Id;
+        //    NpcSpawnerCategoryId = npcSpawnerTemplate.NpcSpawnerCategoryId;
+        //    Name = npcSpawnerTemplate.Name;
+        //    Comment = npcSpawnerTemplate.Comment;
+        //    MaxPopulation = npcSpawnerTemplate.MaxPopulation;
+        //    StartTime = npcSpawnerTemplate.StartTime;
+        //    EndTime = npcSpawnerTemplate.EndTime;
+        //    DestroyTime = npcSpawnerTemplate.DestroyTime;
+        //    SpawnDelayMin = npcSpawnerTemplate.SpawnDelayMin;
+        //    ActivationState = npcSpawnerTemplate.ActivationState;
+        //    SaveIndun = npcSpawnerTemplate.SaveIndun;
+        //    MinPopulation = npcSpawnerTemplate.MinPopulation;
+        //    TestRadiusNpc = npcSpawnerTemplate.TestRadiusNpc;
+        //    TestRadiusPc = npcSpawnerTemplate.TestRadiusPc;
+        //    SuspendSpawnCount = npcSpawnerTemplate.SuspendSpawnCount;
+        //    SpawnDelayMax = npcSpawnerTemplate.SpawnDelayMax;
+        //    Npcs = new List<NpcSpawnerNpc>(npcSpawnerTemplate.Npcs);
+        //}
     }
 }

@@ -24,14 +24,23 @@ namespace AAEmu.Game.Models.Game.Items
             {
                 var template = (ArmorTemplate) Template;
                 if (template.ModSetId == 0)
+                {
                     return 0;
+                }
+
                 var modifiers = ItemManager.Instance.GetAttributeModifiers(template.ModSetId);
                 var grade = ItemManager.Instance.GetGradeTemplate(Grade);
                 var mod = 1f;
                 if (modifiers.Count == 1)
+                {
                     mod = 3f;
+                }
+
                 if (modifiers.Count == 2)
+                {
                     mod = 1.5f;
+                }
+
                 mod = (float) Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
                 var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                            ItemManager.Instance.GetWearableStatConst() * 0.0099999998f *
@@ -48,14 +57,23 @@ namespace AAEmu.Game.Models.Game.Items
             {
                 var template = (ArmorTemplate) Template;
                 if (template.ModSetId == 0)
+                {
                     return 0;
+                }
+
                 var modifiers = ItemManager.Instance.GetAttributeModifiers(template.ModSetId);
                 var grade = ItemManager.Instance.GetGradeTemplate(Grade);
                 var mod = 1f;
                 if (modifiers.Count == 1)
+                {
                     mod = 3f;
+                }
+
                 if (modifiers.Count == 2)
+                {
                     mod = 1.5f;
+                }
+
                 mod = (float) Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
                 var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                            ItemManager.Instance.GetWearableStatConst() * 0.0099999998f *
@@ -72,14 +90,23 @@ namespace AAEmu.Game.Models.Game.Items
             {
                 var template = (ArmorTemplate) Template;
                 if (template.ModSetId == 0)
+                {
                     return 0;
+                }
+
                 var modifiers = ItemManager.Instance.GetAttributeModifiers(template.ModSetId);
                 var grade = ItemManager.Instance.GetGradeTemplate(Grade);
                 var mod = 1f;
                 if (modifiers.Count == 1)
+                {
                     mod = 3f;
+                }
+
                 if (modifiers.Count == 2)
+                {
                     mod = 1.5f;
+                }
+
                 mod = (float) Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
                 var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                            ItemManager.Instance.GetWearableStatConst() * 0.0099999998f *
@@ -96,14 +123,23 @@ namespace AAEmu.Game.Models.Game.Items
             {
                 var template = (ArmorTemplate) Template;
                 if (template.ModSetId == 0)
+                {
                     return 0;
+                }
+
                 var modifiers = ItemManager.Instance.GetAttributeModifiers(template.ModSetId);
                 var grade = ItemManager.Instance.GetGradeTemplate(Grade);
                 var mod = 1f;
                 if (modifiers.Count == 1)
+                {
                     mod = 3f;
+                }
+
                 if (modifiers.Count == 2)
+                {
                     mod = 1.5f;
+                }
+
                 mod = (float) Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
                 var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                            ItemManager.Instance.GetWearableStatConst() * 0.0099999998f *
@@ -120,14 +156,23 @@ namespace AAEmu.Game.Models.Game.Items
             {
                 var template = (ArmorTemplate) Template;
                 if (template.ModSetId == 0)
+                {
                     return 0;
+                }
+
                 var modifiers = ItemManager.Instance.GetAttributeModifiers(template.ModSetId);
                 var grade = ItemManager.Instance.GetGradeTemplate(Grade);
                 var mod = 1f;
                 if (modifiers.Count == 1)
+                {
                     mod = 3f;
+                }
+
                 if (modifiers.Count == 2)
+                {
                     mod = 1.5f;
+                }
+
                 mod = (float) Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
                 var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                            ItemManager.Instance.GetWearableStatConst() * 0.0099999998f *
@@ -151,7 +196,10 @@ namespace AAEmu.Game.Models.Game.Items
                 var res = formula.Evaluate(parameters);
                 res = res * template.KindTemplate.ArmorRatio * 0.0099999998f;
                 if (TemperPhysical > 100)
+                {
                     res = res * (TemperPhysical / 100.0f);
+                }
+
                 return (int) (res * template.SlotTemplate.Coverage * 0.0099999998f);
             }
         }
@@ -169,7 +217,10 @@ namespace AAEmu.Game.Models.Game.Items
                 var res = formula.Evaluate(parameters);
                 res = res * template.KindTemplate.MagicResistanceRatio * 0.0099999998f;
                 if (TemperMagical > 100)
+                {
                     res = res * (TemperMagical / 100.0f);
+                }
+
                 return (int) (res * template.SlotTemplate.Coverage * 0.0099999998f);
             }
         }

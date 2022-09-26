@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSFamilyChangeOwnerPacket : GamePacket
     {
-        public CSFamilyChangeOwnerPacket() : base(CSOffsets.CSFamilyChangeOwnerPacket, 1)
+        public CSFamilyChangeOwnerPacket() : base(CSOffsets.CSFamilyChangeOwnerPacket, 5)
         {
         }
 

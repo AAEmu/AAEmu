@@ -94,10 +94,10 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            var abLevel = 1u;
+            ushort abLevel = 1;
             if (args.Length > firstArg + 1)
-                if (!uint.TryParse(args[firstArg + 1], out abLevel))
-                    abLevel = 1u;
+                if (!ushort.TryParse(args[firstArg + 1], out abLevel))
+                    abLevel = 1;
 
             uint buffId = (uint)Math.Abs(buffIdInt);
 

@@ -69,14 +69,19 @@ namespace AAEmu.Game.Core.Managers.World
                 lock (_addLock)
                 {
                     if (_addQueue?.Count > 0)
+                    {
                         _sphereQuestTriggers.AddRange(_addQueue);
+                    }
+
                     _addQueue = new List<SphereQuestTrigger>();
                 }
 
                 foreach (var trigger in _sphereQuestTriggers)
                 {
                     if (trigger?.Owner?.Region?.HasPlayerActivity() ?? false)
+                    {
                         trigger?.Tick(delta);
+                    }
                 }
 
                 lock (_remLock)
@@ -102,7 +107,9 @@ namespace AAEmu.Game.Core.Managers.World
 
             var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/quest_sign_spheres.json");
             if (string.IsNullOrWhiteSpace(contents))
+            {
                 _log.Warn($"File {FileManager.AppPath}Data/quest_sign_spheres.json doesn't exists or is empty.");
+            }
             else
             {
                 try
@@ -111,7 +118,9 @@ namespace AAEmu.Game.Core.Managers.World
                     foreach (var sphere in spheres)
                     {
                         if (sphereQuests.ContainsKey(sphere.ComponentID))
+                        {
                             continue;
+                        }
 
                         // конвертируем координаты из локальных в мировые, сразу при считывании из файла
                         var _xyz = new Vector3(sphere.X, sphere.Y, sphere.Z);

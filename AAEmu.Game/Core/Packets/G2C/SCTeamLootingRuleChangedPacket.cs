@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly LootingRule _lootingRule;
         private readonly byte _changeFlags;
 
-        public SCTeamLootingRuleChangedPacket(uint teamId, LootingRule lootingRule, byte changeFlags) : base(SCOffsets.SCTeamLootingRuleChangedPacket, 1)
+        public SCTeamLootingRuleChangedPacket(uint teamId, LootingRule lootingRule, byte changeFlags) : base(SCOffsets.SCTeamLootingRuleChangedPacket, 5)
         {
             _teamId = teamId;
             _lootingRule = lootingRule;

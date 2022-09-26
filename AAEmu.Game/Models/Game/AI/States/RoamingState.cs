@@ -16,7 +16,10 @@ namespace AAEmu.Game.Models.Game.AI.States
         public override void Enter()
         {
             if (!(AI.Owner is Npc npc))
+            {
                 return;
+            }
+
             // _targetLoc = AIUtils.CalcNextRoamingPosition(AI);
             _owner = npc;
         }

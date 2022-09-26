@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly SlotType _slotType;
         private readonly byte _slot;
 
-        public SCUnlockCurrencySlotPacket(SlotType slotType, byte slot) : base(SCOffsets.SCUnlockCurrencySlotPacket, 1)
+        public SCUnlockCurrencySlotPacket(SlotType slotType, byte slot) : base(SCOffsets.SCUnlockCurrencySlotPacket, 5)
         {
             _slotType = slotType;
             _slot = slot;

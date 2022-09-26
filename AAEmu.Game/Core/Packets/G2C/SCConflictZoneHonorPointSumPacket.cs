@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ushort _zoneId;
         private readonly int _sum;
 
-        public SCConflictZoneHonorPointSumPacket(ushort zoneId, int sum) : base(SCOffsets.SCConflictZoneHonorPointSumPacket, 1)
+        public SCConflictZoneHonorPointSumPacket(ushort zoneId, int sum) : base(SCOffsets.SCConflictZoneHonorPointSumPacket, 5)
         {
             _zoneId = zoneId;
             _sum = sum;

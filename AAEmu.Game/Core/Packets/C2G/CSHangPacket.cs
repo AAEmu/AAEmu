@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSHangPacket : GamePacket
     {
-        public CSHangPacket() : base(CSOffsets.CSHangPacket, 1)
+        public CSHangPacket() : base(CSOffsets.CSHangPacket, 5)
         {
         }
 
@@ -19,8 +19,11 @@ namespace AAEmu.Game.Core.Packets.C2G
             _log.Trace($"Hang, unitObjId: {unitObjId}, targetObjId: {targetObjId}");
             var character = WorldManager.Instance.GetBaseUnit(unitObjId);
             var target = WorldManager.Instance.GetGameObject(targetObjId);
-            if ((character != null) && (target != null))
+            if (character != null && target != null)
+            {
                 character.Transform.StickyParent = target?.Transform;
+            }
+
             Connection.ActiveChar.BroadcastPacket(new SCHungPacket(unitObjId,targetObjId),false);
         }
     }

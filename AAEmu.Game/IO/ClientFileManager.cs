@@ -25,7 +25,9 @@ namespace AAEmu.Game.IO
         public static bool AddSource(string pathName)
         {
             if (string.IsNullOrWhiteSpace(pathName))
+            {
                 return false;
+            }
 
             try
             {
@@ -98,7 +100,9 @@ namespace AAEmu.Game.IO
             foreach (var source in Sources)
             {
                 if (source.FileExists(fileName))
+                {
                     return source;
+                }
             }
             return null;
         }
@@ -135,23 +139,32 @@ namespace AAEmu.Game.IO
         {
             var source = GetFileSource(fileName);
             if (source == null)
+            {
                 return string.Empty;
+            }
+
             return source.GetFileAsString(fileName);
         }
 
         public static void Initialize()
         {
             if (_initialized)
+            {
                 return;
-            
+            }
+
             ClearSources();
             foreach (var source in AppConfiguration.Instance.ClientData.Sources)
             {
                 if (!AddSource(source))
-                    _log.Warn($"{source} is not a valid source for client data");    
+                {
+                    _log.Warn($"{source} is not a valid source for client data");
+                }
             }
             if (ListSources().Count <= 0)
+            {
                 _log.Error("No valid client sources have been defined or found, some features will not work !");
+            }
 
             _initialized = true;
         }

@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
         /// <param name="count">Amount to add or subtract</param>
         public ItemCountUpdate(Item item, int count)
         {
-            _type = ItemAction.AddStack;
+            _type = ItemAction.AddStack; // 4
             _item = item;
             _count = count;
         }
@@ -22,13 +22,11 @@ namespace AAEmu.Game.Models.Game.Items.Actions
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
-
-            stream.Write((byte)_item.SlotType);
-            stream.Write((byte)_item.Slot);
-
-            stream.Write(_item.Id);
-            stream.Write(_count);
-            stream.Write(_item.TemplateId);
+            stream.Write((byte)_item.SlotType); // type
+            stream.Write((byte)_item.Slot);     // index
+            stream.Write(_item.Id);             // id
+            stream.Write(_count);               // amount
+            stream.Write(_item.TemplateId);     // type
             return stream;
         }
     }

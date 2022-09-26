@@ -27,7 +27,10 @@ namespace AAEmu.Game.Core.Managers
         public UnitFormula GetUnitFormula(FormulaOwnerType owner, UnitFormulaKind kind)
         {
             if (_unitFormulas.ContainsKey(owner) && _unitFormulas[owner].ContainsKey(kind))
+            {
                 return _unitFormulas[owner][kind];
+            }
+
             return null;
         }
 
@@ -35,7 +38,10 @@ namespace AAEmu.Game.Core.Managers
         {
             if (_unitVariables.ContainsKey(formulaId) && _unitVariables[formulaId].ContainsKey(type) &&
                 _unitVariables[formulaId][type].ContainsKey(key))
+            {
                 return _unitVariables[formulaId][type][key].Value;
+            }
+
             return 0f;
         }
 
@@ -51,7 +57,10 @@ namespace AAEmu.Game.Core.Managers
         public void Load()
         {
             if (_loaded)
+            {
                 return;
+            }
+
             // TODO Funcs: min, max, clamp, if_zero, if_positive, if_negative, floor, log, sqrt
             CalculationEngine = new CalculationEngine(CultureInfo.InvariantCulture, ExecutionMode.Compiled, true, true, false);
             CalculationEngine.AddFunction("clamp", (a, b, c) => a < b ? b : (a > c ? c : a));
@@ -79,15 +88,15 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var formula = new UnitFormula
-                            {
-                                Id = reader.GetUInt32("id"),
-                                TextFormula = reader.GetString("formula"),
-                                Kind = (UnitFormulaKind) reader.GetByte("kind_id"),
-                                Owner = (FormulaOwnerType) reader.GetByte("owner_type_id")
-                            };
+                            var formula = new UnitFormula();
+                            formula.Id = reader.GetUInt32("id");
+                            formula.TextFormula = reader.GetString("formula");
+                            formula.Kind = (UnitFormulaKind) reader.GetByte("kind_id");
+                            formula.Owner = (FormulaOwnerType) reader.GetByte("owner_type_id");
                             if (formula.Prepare())
+                            {
                                 _unitFormulas[formula.Owner].Add(formula.Kind, formula);
+                            }
                         }
                     }
                 }
@@ -101,19 +110,23 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var variable = new UnitFormulaVariable
-                            {
-                                FormulaId = reader.GetUInt32("unit_formula_id"),
-                                Type = (UnitFormulaVariableType) reader.GetByte("variable_kind_id"),
-                                Key = reader.GetUInt32("key"),
-                                Value = reader.GetFloat("value")
-                            };
+                            var variable = new UnitFormulaVariable();
+                            variable.FormulaId = reader.GetUInt32("unit_formula_id");
+                            variable.Type = (UnitFormulaVariableType) reader.GetByte("variable_kind_id");
+                            variable.Key = reader.GetUInt32("key");
+                            variable.Value = reader.GetFloat("value");
                             if (!_unitVariables.ContainsKey(variable.FormulaId))
+                            {
                                 _unitVariables.Add(variable.FormulaId,
                                     new Dictionary<UnitFormulaVariableType, Dictionary<uint, UnitFormulaVariable>>());
+                            }
+
                             if (!_unitVariables[variable.FormulaId].ContainsKey(variable.Type))
+                            {
                                 _unitVariables[variable.FormulaId].Add(variable.Type,
                                     new Dictionary<uint, UnitFormulaVariable>());
+                            }
+
                             _unitVariables[variable.FormulaId][variable.Type].Add(variable.Key, variable);
                         }
                     }
@@ -128,14 +141,14 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var formula = new WearableFormula
-                            {
-                                Id = reader.GetUInt32("id"),
-                                Type = (WearableFormulaType) reader.GetByte("kind_id"),
-                                TextFormula = reader.GetString("formula")
-                            };
+                            var formula = new WearableFormula();
+                            //formula.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                            formula.Type = (WearableFormulaType) reader.GetByte("kind_id");
+                            formula.TextFormula = reader.GetString("formula");
                             if (formula.Prepare())
+                            {
                                 _wearableFormulas.Add(formula.Type, formula);
+                            }
                         }
                     }
                 }
@@ -149,13 +162,13 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var formula = new Formula
-                            {
-                                Id = reader.GetUInt32("id"),
-                                TextFormula = reader.GetString("formula")
-                            };
+                            var formula = new Formula();
+                            formula.Id = reader.GetUInt32("id");
+                            formula.TextFormula = reader.GetString("formula");
                             if (formula.Prepare())
+                            {
                                 _formulas.Add(formula.Id, formula);
+                            }
                         }
                     }
                 }

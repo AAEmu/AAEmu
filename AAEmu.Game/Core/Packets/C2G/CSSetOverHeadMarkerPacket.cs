@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSetOverHeadMarkerPacket : GamePacket
     {
-        public CSSetOverHeadMarkerPacket() : base(CSOffsets.CSSetOverHeadMarkerPacket, 1)
+        public CSSetOverHeadMarkerPacket() : base(CSOffsets.CSSetOverHeadMarkerPacket, 5)
         {
         }
 
@@ -21,9 +21,14 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             var type = stream.ReadByte();
             if (type == 1)
+            {
                 id = stream.ReadUInt32();
+            }
+
             if (type == 2)
+            {
                 id = stream.ReadBc();
+            }
 
             // _log.Warn("SetOverHeadMarker, teamId: {0}, index: {1}, type: {2}, id: {3}", teamId, index, type, id);
             var owner = Connection.ActiveChar;

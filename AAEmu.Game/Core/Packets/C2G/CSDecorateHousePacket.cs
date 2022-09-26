@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDecorateHousePacket : GamePacket
     {
-        public CSDecorateHousePacket() : base(CSOffsets.CSDecorateHousePacket, 1)
+        public CSDecorateHousePacket() : base(CSOffsets.CSDecorateHousePacket, 5)
         {
         }
 
@@ -34,8 +34,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var posVec = new Vector3(x, y, z);
             var quat = new Quaternion(quatX, quatY, quatZ, quatW);
             
-            _log.Debug("DecorateHouse, houseId: {0}, designId: {1}, x: {2}, y: {3}, z: {4}, rot {5}, objId: {6}, itemId: {7}", 
-                houseId, designId, x, y, z, quat, parentObjId, itemId);
+            _log.Debug("DecorateHouse, houseId: {0}, designId: {1}, x: {2}, y: {3}, z: {4}, rot {5}, objId: {6}, itemId: {7}", houseId, designId, x, y, z, quat, parentObjId, itemId);
 
             if (!HousingManager.Instance.DecorateHouse(Connection.ActiveChar, houseId, designId, posVec, quat, parentObjId, itemId))
             {

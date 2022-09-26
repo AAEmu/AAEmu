@@ -28,7 +28,11 @@ namespace AAEmu.Game.Models.Game.Units
     {
         None = 0,
         HouseState = 1,
+        Unk2 = 2,
+        Unk3 = 3,
         ActorModelState = 4,
+        Unk5 = 5,
+        Unk6 = 6,
         FarmfieldState = 7,
         TurretState = 8
     }
@@ -58,9 +62,15 @@ namespace AAEmu.Game.Models.Game.Units
         public bool CanAttack(BaseUnit target)
         {
             if (this.Faction == null || target.Faction == null)
+            {
                 return false;
+            }
+
             if (this.ObjId == target.ObjId)
+            {
                 return false;
+            }
+
             var relation = GetRelationStateTo(target);
             var zone = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId);
             if (this is Character me && target is Character other)
@@ -122,7 +132,9 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual bool UnitIsVisible(BaseUnit unit)
         {
             if (unit == null)
+            {
                 return false;
+            }
 
             //Some weird stuff happens here when in an invalid region..
             return Region?.GetNeighbors()?.Any(o => (o?.Id ?? 0) == (unit.Region?.Id ?? 0)) ?? false;
@@ -131,7 +143,10 @@ namespace AAEmu.Game.Models.Game.Units
         public override string DebugName()
         {
             if (string.IsNullOrWhiteSpace(Name))
+            {
                 return base.DebugName();
+            }
+
             return "(" + ObjId.ToString() + ") - " + Name;
         }
     }

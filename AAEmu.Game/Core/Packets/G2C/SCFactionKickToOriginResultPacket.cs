@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id2;
         private readonly short _errorMessage;
 
-        public SCFactionKickToOriginResultPacket(string tgtName, uint id, uint id2, short errorMessage) : base(SCOffsets.SCFactionKickToOriginResultPacket, 1)
+        public SCFactionKickToOriginResultPacket(string tgtName, uint id, uint id2, short errorMessage) : base(SCOffsets.SCFactionKickToOriginResultPacket, 5)
         {
             _tgtName = tgtName;
             _id = id;

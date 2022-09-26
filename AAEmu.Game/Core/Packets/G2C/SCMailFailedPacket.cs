@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly (SlotType slotType, byte slot)[] _items;
         private readonly bool _money;
 
-        public SCMailFailedPacket(byte err, (SlotType slotType, byte slot)[] items, bool money) : base(SCOffsets.SCMailFailedPacket, 1)
+        public SCMailFailedPacket(byte err, (SlotType slotType, byte slot)[] items, bool money) : base(SCOffsets.SCMailFailedPacket, 5)
         {
             _err = err;
             _items = items;

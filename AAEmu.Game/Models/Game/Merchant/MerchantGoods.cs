@@ -18,14 +18,20 @@ namespace AAEmu.Game.Models.Game.Merchant
         {
             foreach (var i in Items)
                 if (i.ItemTemplateId == itemTemplateId)
+                {
                     return true;
+                }
+
             return false;
         }
 
         public void AddItemToStock(uint itemTemplateId, byte itemGrade)
         {
             if (SellsItem(itemTemplateId))
+            {
                 return;
+            }
+
             var newItem = new MerchantGoodsItem();
             newItem.ItemTemplateId = itemTemplateId;
             newItem.Grade = itemGrade;

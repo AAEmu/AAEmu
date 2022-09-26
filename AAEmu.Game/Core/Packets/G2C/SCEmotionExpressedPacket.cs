@@ -7,20 +7,20 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _objId;
         private readonly uint _objId2;
-        private readonly uint _emotionId;
+        private readonly uint _type;
 
-        public SCEmotionExpressedPacket(uint objId, uint objId2, uint emotionId) : base(SCOffsets.SCEmotionExpressedPacket, 1)
+        public SCEmotionExpressedPacket(uint objId, uint objId2, uint type) : base(SCOffsets.SCEmotionExpressedPacket, 5)
         {
             _objId = objId;
             _objId2 = objId2;
-            _emotionId = emotionId;
+            _type = type;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             stream.WriteBc(_objId);
             stream.WriteBc(_objId2);
-            stream.Write(_emotionId);
+            stream.Write(_type);
             return stream;
         }
     }

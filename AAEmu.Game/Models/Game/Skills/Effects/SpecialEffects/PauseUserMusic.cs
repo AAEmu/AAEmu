@@ -40,7 +40,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 foreach (var buff in allMusicBuffs)
                 {
                     if (b.CheckBuff(buff))
+                    {
                         b.RemoveBuff(buff);
+                    }
                 }
             }
             

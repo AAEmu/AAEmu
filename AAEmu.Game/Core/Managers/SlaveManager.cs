@@ -66,8 +66,10 @@ namespace AAEmu.Game.Core.Managers
             lock (_slaveListLock)
             {
                 if (worldId >= uint.MaxValue)
+                {
                     return _activeSlaves.Select(i => i.Value).Where(s => s.Template.SlaveKind == kind);
-                
+                }
+
                 return _activeSlaves.Select(i => i.Value).Where(s => (s.Template.SlaveKind == kind) && (s.Transform.WorldId == worldId));
             }
         }
@@ -83,9 +85,11 @@ namespace AAEmu.Game.Core.Managers
             lock (_slaveListLock)
             {
                 if (worldId >= uint.MaxValue)
+                {
                     return _activeSlaves.Where(s => kinds.Contains(s.Value.Template.SlaveKind))
                         .Select(s => s.Value);
-                
+                }
+
                 return _activeSlaves.Where(s => kinds.Contains(s.Value.Template.SlaveKind))
                     .Where(s => s.Value?.Transform.WorldId == worldId)
                     .Select(s => s.Value);
@@ -98,7 +102,10 @@ namespace AAEmu.Game.Core.Managers
             {
                 foreach (var slave in _activeSlaves.Values)
                 {
-                    if (slave.ObjId == objId) return slave;
+                    if (slave.ObjId == objId)
+                    {
+                        return slave;
+                    }
                 }
             }
             return null;
@@ -110,7 +117,10 @@ namespace AAEmu.Game.Core.Managers
             {
                 foreach (var slave in _activeSlaves.Values)
                 {
-                    if (slave.TlId == tlId) return slave;
+                    if (slave.TlId == tlId)
+                    {
+                        return slave;
+                    }
                 }
             }
 
@@ -141,7 +151,9 @@ namespace AAEmu.Game.Core.Managers
                 slave = _tlSlaves.FirstOrDefault(x => x.Value.ObjId == objId).Value;
             //var slave = GetActiveSlaveByObjId(objId);
             if ((slave == null) || (slave.AttachedCharacters.ContainsKey(attachPoint)))
+            {
                 return;
+            }
 
             character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPoint, bondKind, objId), true);
             switch (attachPoint)
@@ -171,7 +183,10 @@ namespace AAEmu.Game.Core.Managers
         public void Delete(Character owner, uint objId)
         {
             var activeSlaveInfo = GetActiveSlaveByObjId(objId);
-            if (activeSlaveInfo == null) return;
+            if (activeSlaveInfo == null)
+            {
+                return;
+            }
 
             foreach (var character in activeSlaveInfo.AttachedCharacters.Values.ToList())
                 UnbindSlave(character, activeSlaveInfo.TlId, AttachUnitReason.SlaveBinding);
@@ -218,10 +233,16 @@ namespace AAEmu.Game.Core.Managers
             }
 
             var item = owner.Inventory.GetItemById(skillData.ItemId);
-            if (item == null) return;
+            if (item == null)
+            {
+                return;
+            }
 
             var itemTemplate = (SummonSlaveTemplate)ItemManager.Instance.GetTemplate(item.TemplateId);
-            if (itemTemplate == null) return;
+            if (itemTemplate == null)
+            {
+                return;
+            }
 
             Create(owner, itemTemplate.SlaveId, item, hideSpawnEffect, positionOverride); // TODO replace the underlying code with this call
         }
@@ -230,7 +251,10 @@ namespace AAEmu.Game.Core.Managers
         public void Create(Character owner, uint templateId, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
         {
             var slaveTemplate = GetSlaveTemplate(templateId);
-            if (slaveTemplate == null) return;
+            if (slaveTemplate == null)
+            {
+                return;
+            }
 
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
             var objId = ObjectIdManager.Instance.GetNextId();
@@ -299,7 +323,9 @@ namespace AAEmu.Game.Core.Managers
                     // TODO: check for maximum height difference for summoning
                     var h = WorldManager.Instance.GetHeight(spawnPos);
                     if (h > 0f)
+                    {
                         spawnPos.Local.SetHeight(h);
+                    }
                 }
 
                 // Always spawn horizontal(level) and 90° CCW of the player
@@ -347,21 +373,19 @@ namespace AAEmu.Game.Core.Managers
             // TODO - DOODAD SERVER SIDE
             foreach (var doodadBinding in template.Template.DoodadBindings)
             {
-                var doodad = new Doodad
-                {
-                    ObjId = ObjectIdManager.Instance.GetNextId(),
-                    TemplateId = doodadBinding.DoodadId,
-                    OwnerObjId = owner.ObjId,
-                    ParentObjId = template.ObjId,
-                    AttachPoint = doodadBinding.AttachPointId,
-                    OwnerId = owner.Id,
-                    PlantTime = DateTime.UtcNow,
-                    OwnerType = DoodadOwnerType.Slave,
-                    DbHouseId = template.Id,
-                    Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
-                    Data = (byte)doodadBinding.AttachPointId,
-                    ParentObj = template
-                };
+                var doodad = new Doodad();
+                doodad.ObjId = ObjectIdManager.Instance.GetNextId();
+                doodad.TemplateId = doodadBinding.DoodadId;
+                doodad.OwnerObjId = owner.ObjId;
+                doodad.ParentObjId = template.ObjId;
+                doodad.AttachPoint = doodadBinding.AttachPointId;
+                doodad.OwnerId = owner.Id;
+                doodad.PlantTime = DateTime.UtcNow;
+                doodad.OwnerType = DoodadOwnerType.Slave;
+                doodad.DbHouseId = template.Id;
+                doodad.Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId);
+                doodad.Data = (byte)doodadBinding.AttachPointId;
+                doodad.ParentObj = template;
 
                 doodad.SetScale(doodadBinding.Scale);
 
@@ -372,7 +396,9 @@ namespace AAEmu.Game.Core.Managers
                 // NOTE: In 1.2 we can't replace slave parts like sail, so just apply it to all of the doodads on spawn)
                 // Should probably have a check somewhere if a doodad can have the UCC applied or not
                 if (item != null && item.HasFlag(ItemFlag.HasUCC) && (item.UccId > 0))
+                {
                     doodad.UccId = item.UccId;
+                }
 
                 if (_attachPoints.ContainsKey(template.ModelId))
                 {
@@ -380,15 +406,12 @@ namespace AAEmu.Game.Core.Managers
                     {
                         doodad.Transform = template.Transform.CloneAttached(doodad);
                         doodad.Transform.Parent = template.Transform;
-                        doodad.Transform.Local.Translate(_attachPoints[template.ModelId][doodadBinding.AttachPointId]
-                            .AsPositionVector());
+                        doodad.Transform.Local.Translate(_attachPoints[template.ModelId][doodadBinding.AttachPointId].AsPositionVector());
                         doodad.Transform.Local.SetRotation(
                             _attachPoints[template.ModelId][doodadBinding.AttachPointId].Roll,
                             _attachPoints[template.ModelId][doodadBinding.AttachPointId].Pitch,
                             _attachPoints[template.ModelId][doodadBinding.AttachPointId].Yaw);
-                        _log.Debug("Model id: {0} attachment {1} => pos {2} = {3}", template.ModelId,
-                            doodadBinding.AttachPointId, _attachPoints[template.ModelId][doodadBinding.AttachPointId],
-                            doodad.Transform);
+                        _log.Debug("Model id: {0} attachment {1} => pos {2} = {3}", template.ModelId, doodadBinding.AttachPointId, _attachPoints[template.ModelId][doodadBinding.AttachPointId], doodad.Transform);
                     }
                     else
                     {
@@ -411,26 +434,24 @@ namespace AAEmu.Game.Core.Managers
                 var childSlaveTemplate = GetSlaveTemplate(slaveBinding.SlaveId);
                 var ctlId = (ushort)TlIdManager.Instance.GetNextId();
                 var cobjId = ObjectIdManager.Instance.GetNextId();
-                var childSlave = new Slave()
-                {
-                    TlId = ctlId,
-                    ObjId = cobjId,
-                    ParentObj = template,
-                    TemplateId = childSlaveTemplate.Id,
-                    Name = childSlaveTemplate.Name,
-                    Level = (byte)childSlaveTemplate.Level,
-                    ModelId = childSlaveTemplate.ModelId,
-                    Template = childSlaveTemplate,
-                    Hp = 1,
-                    Mp = 1,
-                    ModelParams = new UnitCustomModelParams(),
-                    Faction = owner.Faction,
-                    Id = 11, // TODO
-                    Summoner = owner,
-                    SpawnTime = DateTime.UtcNow,
-                    AttachPointId = (sbyte)slaveBinding.AttachPointId,
-                    OwnerObjId = template.ObjId
-                };
+                var childSlave = new Slave();
+                childSlave.TlId = ctlId;
+                childSlave.ObjId = cobjId;
+                childSlave.ParentObj = template;
+                childSlave.TemplateId = childSlaveTemplate.Id;
+                childSlave.Name = childSlaveTemplate.Name;
+                childSlave.Level = (byte)childSlaveTemplate.Level;
+                childSlave.ModelId = childSlaveTemplate.ModelId;
+                childSlave.Template = childSlaveTemplate;
+                childSlave.Hp = 1;
+                childSlave.Mp = 1;
+                childSlave.ModelParams = new UnitCustomModelParams();
+                childSlave.Faction = owner.Faction;
+                childSlave.Id = 11; // TODO
+                childSlave.Summoner = owner;
+                childSlave.SpawnTime = DateTime.UtcNow;
+                childSlave.AttachPointId = (sbyte)slaveBinding.AttachPointId;
+                childSlave.OwnerObjId = template.ObjId;
                 childSlave.Hp = childSlave.MaxHp;
                 childSlave.Mp = childSlave.MaxMp;
                 childSlave.Transform = spawnPos.CloneDetached(childSlave);
@@ -482,7 +503,10 @@ namespace AAEmu.Game.Core.Managers
         public Slave Create(SlaveSpawner spawner, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
         {
             var slaveTemplate = GetSlaveTemplate(spawner.UnitId);
-            if (slaveTemplate == null) return null;
+            if (slaveTemplate == null)
+            {
+                return null;
+            }
 
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
             var objId = ObjectIdManager.Instance.GetNextId();
@@ -560,7 +584,9 @@ namespace AAEmu.Game.Core.Managers
                     // TODO: check for maximum height difference for summoning
                     var h = WorldManager.Instance.GetHeight(spawnPos);
                     if (h > 0f)
+                    {
                         spawnPos.Local.SetHeight(h);
+                    }
                 }
 
                 // Always spawn horizontal(level) and 90° CCW of the player
@@ -617,7 +643,9 @@ namespace AAEmu.Game.Core.Managers
                 // NOTE: In 1.2 we can't replace slave parts like sail, so just apply it to all of the doodads on spawn)
                 // Should probably have a check somewhere if a doodad can have the UCC applied or not
                 if (item != null && item.HasFlag(ItemFlag.HasUCC) && (item.UccId > 0))
+                {
                     doodad.UccId = item.UccId;
+                }
 
                 if (_attachPoints.ContainsKey(slave.ModelId))
                 {
@@ -625,15 +653,12 @@ namespace AAEmu.Game.Core.Managers
                     {
                         doodad.Transform = slave.Transform.CloneAttached(doodad);
                         doodad.Transform.Parent = slave.Transform;
-                        doodad.Transform.Local.Translate(_attachPoints[slave.ModelId][doodadBinding.AttachPointId]
-                            .AsPositionVector());
+                        doodad.Transform.Local.Translate(_attachPoints[slave.ModelId][doodadBinding.AttachPointId].AsPositionVector());
                         doodad.Transform.Local.SetRotation(
                             _attachPoints[slave.ModelId][doodadBinding.AttachPointId].Roll,
                             _attachPoints[slave.ModelId][doodadBinding.AttachPointId].Pitch,
                             _attachPoints[slave.ModelId][doodadBinding.AttachPointId].Yaw);
-                        _log.Debug("Model id: {0} attachment {1} => pos {2} = {3}", slave.ModelId,
-                            doodadBinding.AttachPointId, _attachPoints[slave.ModelId][doodadBinding.AttachPointId],
-                            doodad.Transform);
+                        _log.Debug("Model id: {0} attachment {1} => pos {2} = {3}", slave.ModelId, doodadBinding.AttachPointId, _attachPoints[slave.ModelId][doodadBinding.AttachPointId], doodad.Transform);
                     }
                     else
                     {
@@ -729,14 +754,20 @@ namespace AAEmu.Game.Core.Managers
             var filePath = Path.Combine(FileManager.AppPath, "Data", "slave_attach_points.json");
             var contents = FileManager.GetFileContents(filePath);
             if (string.IsNullOrWhiteSpace(contents))
+            {
                 throw new IOException(
                     $"File {filePath} doesn't exists or is empty.");
+            }
 
             List<SlaveModelAttachPoint> attachPoints;
             if (JsonHelper.TryDeserializeObject(contents, out attachPoints, out _))
+            {
                 _log.Info("Slave model attach points loaded...");
+            }
             else
+            {
                 _log.Warn("Slave model attach points not loaded...");
+            }
 
             // Convert degrees from json to radian
             foreach (var vehicle in attachPoints)
@@ -779,26 +810,22 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new SlaveTemplate
-                            {
-                                Id = reader.GetUInt32("id"),
-                                Name =
-                                    LocalizationManager.Instance.Get("slaves", "name", reader.GetUInt32("id"),
-                                        reader.GetString("name")),
-                                ModelId = reader.GetUInt32("model_id"),
-                                Mountable = reader.GetBoolean("mountable"),
-                                SpawnXOffset = reader.GetFloat("spawn_x_offset"),
-                                SpawnYOffset = reader.GetFloat("spawn_y_offset"),
-                                FactionId = reader.GetUInt32("faction_id", 0),
-                                Level = reader.GetUInt32("level"),
-                                Cost = reader.GetInt32("cost"),
-                                SlaveKind = (SlaveKind)reader.GetUInt32("slave_kind_id"),
-                                SpawnValidAreaRance = reader.GetUInt32("spawn_valid_area_range", 0),
-                                SlaveInitialItemPackId = reader.GetUInt32("slave_initial_item_pack_id", 0),
-                                SlaveCustomizingId = reader.GetUInt32("slave_customizing_id", 0),
-                                Customizable = reader.GetBoolean("customizable", false),
-                                PortalTime = reader.GetFloat("portal_time")
-                            };
+                            var template = new SlaveTemplate();
+                            template.Id = reader.GetUInt32("id");
+                            template.Name = LocalizationManager.Instance.Get("slaves", "name", reader.GetUInt32("id"), reader.GetString("name"));
+                            template.ModelId = reader.GetUInt32("model_id");
+                            template.Mountable = reader.GetBoolean("mountable");
+                            template.SpawnXOffset = reader.GetFloat("spawn_x_offset");
+                            template.SpawnYOffset = reader.GetFloat("spawn_y_offset");
+                            template.FactionId = reader.GetUInt32("faction_id", 0);
+                            template.Level = reader.GetUInt32("level");
+                            template.Cost = reader.GetInt32("cost");
+                            template.SlaveKind = (SlaveKind)reader.GetUInt32("slave_kind_id");
+                            template.SpawnValidAreaRance = reader.GetUInt32("spawn_valid_area_range", 0);
+                            template.SlaveInitialItemPackId = reader.GetUInt32("slave_initial_item_pack_id", 0);
+                            template.SlaveCustomizingId = reader.GetUInt32("slave_customizing_id", 0);
+                            template.Customizable = reader.GetBoolean("customizable", false);
+                            template.PortalTime = reader.GetFloat("portal_time");
                             _slaveTemplates.Add(template.Id, template);
                         }
                     }
@@ -824,12 +851,10 @@ namespace AAEmu.Game.Core.Managers
                             else
                             {
                                 var newPack = new List<SlaveInitialItems>();
-                                var newKey = new SlaveInitialItems
-                                {
-                                    slaveInitialItemPackId = ItemPackId,
-                                    equipSlotId = SlotId,
-                                    itemId = item
-                                };
+                                var newKey = new SlaveInitialItems();
+                                newKey.slaveInitialItemPackId = ItemPackId;
+                                newKey.equipSlotId = SlotId;
+                                newKey.itemId = item;
                                 newPack.Add(newKey);
 
                                 _slaveInitialItems.Add(ItemPackId, newPack);
@@ -847,12 +872,10 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new SlaveInitialBuffs
-                            {
-                                Id = reader.GetUInt32("id"),
-                                SlaveId = reader.GetUInt32("slave_id"),
-                                BuffId = reader.GetUInt32("buff_id")
-                            };
+                            var template = new SlaveInitialBuffs();
+                            //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                            template.SlaveId = reader.GetUInt32("slave_id");
+                            template.BuffId = reader.GetUInt32("buff_id");
                             if (_slaveTemplates.ContainsKey(template.SlaveId))
                             {
                                 _slaveTemplates[template.SlaveId].InitialBuffs.Add(template);
@@ -870,13 +893,11 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new SlavePassiveBuffs
-                            {
-                                Id = reader.GetUInt32("id"),
-                                OwnerId = reader.GetUInt32("owner_id"),
-                                OwnerType = reader.GetString("owner_type"),
-                                PassiveBuffId = reader.GetUInt32("passive_buff_id")
-                            };
+                            var template = new SlavePassiveBuffs();
+                            //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                            template.OwnerId = reader.GetUInt32("owner_id");
+                            template.OwnerType = reader.GetString("owner_type");
+                            template.PassiveBuffId = reader.GetUInt32("passive_buff_id");
                             if (_slaveTemplates.ContainsKey(template.OwnerId))
                             {
                                 _slaveTemplates[template.OwnerId].PassiveBuffs.Add(template);
@@ -894,16 +915,14 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new SlaveDoodadBindings
-                            {
-                                Id = reader.GetUInt32("id"),
-                                OwnerId = reader.GetUInt32("owner_id"),
-                                OwnerType = reader.GetString("owner_type"),
-                                AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id"),
-                                DoodadId = reader.GetUInt32("doodad_id"),
-                                Persist = reader.GetBoolean("persist"),
-                                Scale = reader.GetFloat("scale")
-                            };
+                            var template = new SlaveDoodadBindings();
+                            //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                            template.OwnerId = reader.GetUInt32("owner_id");
+                            template.OwnerType = reader.GetString("owner_type");
+                            template.AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id");
+                            template.DoodadId = reader.GetUInt32("doodad_id");
+                            template.Persist = reader.GetBoolean("persist");
+                            template.Scale = reader.GetFloat("scale");
                             if (_slaveTemplates.ContainsKey(template.OwnerId))
                             {
                                 _slaveTemplates[template.OwnerId].DoodadBindings.Add(template);
@@ -921,14 +940,12 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new SlaveBindings()
-                            {
-                                Id = reader.GetUInt32("id"),
-                                OwnerId = reader.GetUInt32("owner_id"),
-                                OwnerType = reader.GetString("owner_type"),
-                                AttachPointId = (AttachPointKind)reader.GetUInt32("attach_point_id"),
-                                SlaveId = reader.GetUInt32("slave_id")
-                            };
+                            var template = new SlaveBindings();
+                            //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                            template.OwnerId = reader.GetUInt32("owner_id");
+                            template.OwnerType = reader.GetString("owner_type");
+                            template.AttachPointId = (AttachPointKind)reader.GetUInt32("attach_point_id");
+                            template.SlaveId = reader.GetUInt32("slave_id");
 
                             if (_slaveTemplates.ContainsKey(template.OwnerId))
                             {

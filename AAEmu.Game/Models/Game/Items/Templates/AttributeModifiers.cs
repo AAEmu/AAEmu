@@ -16,15 +16,30 @@ namespace AAEmu.Game.Models.Game.Items.Templates
             {
                 var res = 0;
                 if (StrWeight > 0)
+                {
                     res++;
+                }
+
                 if (DexWeight > 0)
+                {
                     res++;
+                }
+
                 if (StaWeight > 0)
+                {
                     res++;
+                }
+
                 if (IntWeight > 0)
+                {
                     res++;
+                }
+
                 if (SpiWeight > 0)
+                {
                     res++;
+                }
+
                 return res;
             }
         }

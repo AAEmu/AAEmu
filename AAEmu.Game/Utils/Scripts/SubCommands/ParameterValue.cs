@@ -23,8 +23,10 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         public T As<T>()
         {
             if (_value is T)
+            {
                 return (T)_value;
-            
+            }
+
             throw new InvalidCastException($"Cannot cast {_value.GetType().Name} to {typeof(T).Name}");
         }
         public bool Is<T>()

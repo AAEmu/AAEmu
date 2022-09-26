@@ -56,9 +56,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Str))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -79,9 +83,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Dex))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -102,9 +110,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Sta))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -125,9 +137,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Int))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -148,9 +164,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Spi))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -168,9 +188,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Fai))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -227,9 +251,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.HealthRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -258,9 +286,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.PersistentHealthRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -288,9 +320,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.MaxMana))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -319,9 +355,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.ManaRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -350,9 +390,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.PersistentManaRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -400,7 +444,10 @@ namespace AAEmu.Game.Models.Game.Units
         {
             
             if (exp == 0)
+            {
                 return;
+            }
+
             if (exp > 0)
             {
                 var totalExp = (int)Math.Round(AppConfiguration.Instance.World.ExpRate * exp);
@@ -434,8 +481,8 @@ namespace AAEmu.Game.Models.Game.Units
         public override void AddVisibleObject(Character character)
         {
             character.SendPacket(new SCUnitStatePacket(this));
-            character.SendPacket(new SCMateStatePacket(ObjId));
-            character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+            character.SendPacket(new SCMateStatusPacket(ObjId));
+            character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc));
             // TODO: Maybe let base handle this ?
             foreach (var ati in Passengers)
             {
@@ -443,7 +490,9 @@ namespace AAEmu.Game.Models.Game.Units
                 {
                     var player = WorldManager.Instance.GetCharacterByObjId(ati.Value._objId);
                     if (player != null)
+                    {
                         character.SendPacket(new SCUnitAttachedPacket(player.ObjId, ati.Key, ati.Value._reason, ObjId));
+                    }
                 }
             }
             base.AddVisibleObject(character);
@@ -471,7 +520,9 @@ namespace AAEmu.Game.Models.Game.Units
                     {
                         rider.DoFallDamage(fallVel);
                         if (rider.Hp <= 0)
+                        {
                             MateManager.Instance.UnMountMate(rider, TlId, pos, AttachUnitReason.SlaveBinding);
+                        }
                     }
                 }
             }

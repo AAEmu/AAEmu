@@ -158,19 +158,23 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                 //Super hacky way to do combat dice....
                 var hitType = skill.RollCombatDice(caster, trg);
                 if (!skill.HitTypes.ContainsKey(trg.ObjId))
+                {
                     skill.HitTypes.Add(trg.ObjId, hitType);
+                }
                 else
+                {
                     skill.HitTypes[trg.ObjId] = hitType;
+                }
 
                 return hitType == SkillHitType.MeleeDodge
-                    || hitType == SkillHitType.MeleeParry
-                    || hitType == SkillHitType.MeleeBlock
-                    || hitType == SkillHitType.MeleeMiss
-                    || hitType == SkillHitType.RangedDodge
-                    || hitType == SkillHitType.RangedParry
-                    || hitType == SkillHitType.RangedBlock
-                    || hitType == SkillHitType.RangedMiss
-                    || hitType == SkillHitType.Immune;
+                       || hitType == SkillHitType.MeleeParry
+                       || hitType == SkillHitType.MeleeBlock
+                       || hitType == SkillHitType.MeleeMiss
+                       || hitType == SkillHitType.RangedDodge
+                       || hitType == SkillHitType.RangedParry
+                       || hitType == SkillHitType.RangedBlock
+                       || hitType == SkillHitType.RangedMiss
+                       || hitType == SkillHitType.Immune;
             }
             return true; // Every CombatDiceResult is a NotCondition -> false makes it true.
         }
@@ -183,11 +187,16 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             {
                 var item = character.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Musical);
                 if (item == null)
+                {
                     return false;
+                }
+
                 if (item.Template is WeaponTemplate template)
                 {
                     if (instrumentTypeId == template.HoldableTemplate.SlotTypeId)
+                    {
                         return true;
+                    }
                 }
             }
             return false;

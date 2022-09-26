@@ -24,8 +24,10 @@ namespace AAEmu.Game.Core.Managers
         public async void Initialize()
         {
             if (_initialized)
+            {
                 return;
-            
+            }
+
             _generalPool = new DefaultThreadPool();
             _generalPool.MaxConcurrency = AppConfiguration.Instance.MaxConcurencyThreadPool;
             _generalPool.Initialize();
@@ -50,7 +52,9 @@ namespace AAEmu.Game.Core.Managers
         public async void Schedule(Task task, TimeSpan? startTime = null, TimeSpan? repeatInterval = null, int count = -1)
         {
             if (_generalScheduler.IsShutdown)
+            {
                 return;
+            }
 
             if (task == null)
             {
@@ -80,27 +84,39 @@ namespace AAEmu.Game.Core.Managers
                 .WithIdentity(task.JobDetail.Key.Name, task.JobDetail.Key.Group);
 
             if (startTime == null)
+            {
                 triggerBuild.StartNow();
+            }
             else
+            {
                 triggerBuild.StartAt(DateTime.UtcNow.Add((TimeSpan)startTime));
+            }
 
             if (task.Scheduler == null)
             {
                 triggerBuild.WithSimpleSchedule(scheduler =>
                 {
                     if (repeatInterval == null)
+                    {
                         return;
+                    }
 
                     scheduler.WithInterval((TimeSpan)repeatInterval);
 
                     if (count > 0)
+                    {
                         scheduler.WithRepeatCount(count);
+                    }
                     else if (count == -1)
+                    {
                         scheduler.RepeatForever();
+                    }
                 });
             }
             else
+            {
                 triggerBuild.WithSchedule(task.Scheduler);
+            }
 
             triggerBuild.ForJob(task.JobDetail.Key);
 
@@ -129,7 +145,9 @@ namespace AAEmu.Game.Core.Managers
         public async void CronSchedule(Task task, string cronExpression, TimeSpan? startTime = null, TimeSpan? repeatInterval = null, int count = -1)
         {
             if (_generalScheduler.IsShutdown)
+            {
                 return;
+            }
 
             if (task == null)
             {
@@ -160,16 +178,22 @@ namespace AAEmu.Game.Core.Managers
                 .WithIdentity(task.JobDetail.Key.Name, task.JobDetail.Key.Group);
 
             if (startTime == null)
+            {
                 triggerBuild.StartNow();
+            }
             else
+            {
                 triggerBuild.StartAt(DateTime.UtcNow.Add((TimeSpan)startTime));
+            }
 
             if (task.Scheduler == null)
             {
                 triggerBuild.WithCronSchedule(cronExpression);
             }
             else
+            {
                 triggerBuild.WithSchedule(CronScheduleBuilder.CronSchedule(cronExpression));
+            }
 
             triggerBuild.ForJob(task.JobDetail.Key);
             task.Trigger = triggerBuild.Build();
@@ -198,7 +222,10 @@ namespace AAEmu.Game.Core.Managers
         public async Task<bool> Cancel(Task task)
         {
             if (task?.JobDetail == null)
+            {
                 return true;
+            }
+
             try
             {
                 var result = await _generalScheduler.DeleteJob(task.JobDetail.Key);
@@ -231,13 +258,17 @@ namespace AAEmu.Game.Core.Managers
             {
                 var task = (Task) context.MergedJobDataMap.Get("Task");
                 if (task.Cancelled)
+                {
                     return ThreadTask.CompletedTask;
+                }
 
                 task.Execute();
                 task.ExecuteCount++;
 
                 if (task.MaxCount != -1 && task.ExecuteCount > task.MaxCount)
+                {
                     Clear(task.Id);
+                }
             }
             catch (Exception e)
             {

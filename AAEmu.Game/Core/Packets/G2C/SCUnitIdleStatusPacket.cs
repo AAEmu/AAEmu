@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly bool _status;
 
-        public SCUnitIdleStatusPacket(uint id, bool status) : base(SCOffsets.SCUnitIdleStatusPacket, 1)
+        public SCUnitIdleStatusPacket(uint id, bool status) : base(SCOffsets.SCUnitIdleStatusPacket, 5)
         {
             _id = id;
             _status = status;

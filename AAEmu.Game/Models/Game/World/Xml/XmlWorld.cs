@@ -70,7 +70,10 @@ namespace AAEmu.Game.Models.Game.World.Xml
                     var zone = new XmlWorldZone();
                     zone.ReadNode(zoneNodes[i], world, this);
                     if (!Zones.TryAdd(zone.Id, zone))
+                    {
                         throw new Exception("Duplicate zoneKey while reading world.xml");
+                    }
+
                     world.XmlWorldZones.TryAdd(zone.Id, zone);
                 }
             }

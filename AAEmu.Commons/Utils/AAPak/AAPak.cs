@@ -131,9 +131,13 @@ namespace AAEmu.Commons.Utils.AAPak
                 ICryptoTransform cipher;
 
                 if (doEncryption)
+                {
                     cipher = aes.CreateEncryptor();
+                }
                 else
+                {
                     cipher = aes.CreateDecryptor();
+                }
 
                 return cipher.TransformFinalBlock(message, 0, message.Length);
             }
@@ -157,16 +161,22 @@ namespace AAEmu.Commons.Utils.AAPak
                 ICryptoTransform cipher;
 
                 if (doEncryption)
+                {
                     cipher = aes.CreateEncryptor();
+                }
                 else
+                {
                     cipher = aes.CreateDecryptor();
+                }
 
                 // Create the streams used for encryption.
 
                 CryptoStream csEncrypt = new CryptoStream(target, cipher, CryptoStreamMode.Write);
                 source.CopyTo(csEncrypt);
                 if (!leaveOpen)
+                {
                     csEncrypt.Dispose();
+                }
 
                 /*
                 using (CryptoStream csEncrypt = new CryptoStream(target, cipher, CryptoStreamMode.Write))
@@ -196,9 +206,13 @@ namespace AAEmu.Commons.Utils.AAPak
                 ICryptoTransform cipher;
 
                 if (doEncryption)
+                {
                     cipher = aes.CreateEncryptor();
+                }
                 else
+                {
                     cipher = aes.CreateDecryptor();
+                }
 
                 // Create the streams used for encryption.
                 using (CryptoStream csEncrypt = new CryptoStream(target, cipher, CryptoStreamMode.Write))
@@ -235,9 +249,13 @@ namespace AAEmu.Commons.Utils.AAPak
                 ICryptoTransform cipher;
 
                 if (doEncryption == true)
+                {
                     cipher = aes.CreateEncryptor();
+                }
                 else
+                {
                     cipher = aes.CreateDecryptor();
+                }
 
                 return cipher.TransformFinalBlock(message, 0, message.Length);
             }
@@ -283,7 +301,9 @@ namespace AAEmu.Commons.Utils.AAPak
         public bool WriteToFAT()
         {
             if (_owner.PakType == PakFileType.CSV)
+            {
                 return false;
+            }
 
             // Read all File Table Data into Memory
             FAT.SetLength(0);
@@ -364,7 +384,10 @@ namespace AAEmu.Commons.Utils.AAPak
                     {
                         byte ch = 0;
                         if (c < pfi.name.Length)
+                        {
                             ch = (byte)pfi.name[c];
+                        }
+
                         writer.Write(ch);
                     }
                     writer.Write(pfi.offset);
@@ -390,7 +413,10 @@ namespace AAEmu.Commons.Utils.AAPak
                     {
                         byte ch = 0;
                         if (c < pfi.name.Length)
+                        {
                             ch = (byte)pfi.name[c];
+                        }
+
                         writer.Write(ch);
                     }
                     writer.Write(pfi.sizeDuplicate);
@@ -408,7 +434,10 @@ namespace AAEmu.Commons.Utils.AAPak
                     {
                         byte ch = 0;
                         if (c < pfi.name.Length)
+                        {
                             ch = (byte)pfi.name[c];
+                        }
+
                         writer.Write(ch);
                     }
                     writer.Write(pfi.offset);
@@ -495,9 +524,13 @@ namespace AAEmu.Commons.Utils.AAPak
                     {
                         byte ch = reader.ReadByte();
                         if (ch != 0)
+                        {
                             pfi.name += (char)ch;
+                        }
                         else
+                        {
                             break;
+                        }
                     }
                     ms.Position = 0x108;
                     pfi.offset = reader.ReadInt64();
@@ -523,9 +556,13 @@ namespace AAEmu.Commons.Utils.AAPak
                     {
                         byte ch = reader.ReadByte();
                         if (ch != 0)
+                        {
                             pfi.name += (char)ch;
+                        }
                         else
+                        {
                             break;
+                        }
                     }
                     ms.Position = 0x128;
                     pfi.sizeDuplicate = reader.ReadInt64();
@@ -544,9 +581,13 @@ namespace AAEmu.Commons.Utils.AAPak
                     {
                         byte ch = reader.ReadByte();
                         if (ch != 0)
+                        {
                             pfi.name += (char)ch;
+                        }
                         else
+                        {
                             break;
+                        }
                     }
                     ms.Position = 0x110;
 
@@ -652,13 +693,20 @@ namespace AAEmu.Commons.Utils.AAPak
             {
                 s += bytes[i].ToString("X2") + " ";
                 if ((i % 16) == 15)
+                {
                     s += "\r\n";
+                }
                 else
                 {
                     if ((i % 4) == 3)
+                    {
                         s += " ";
+                    }
+
                     if ((i % 8) == 7)
+                    {
                         s += " ";
+                    }
                 }
             }
             File.WriteAllText(fileName, s);
@@ -675,13 +723,20 @@ namespace AAEmu.Commons.Utils.AAPak
             {
                 s += bytes[i].ToString("X2") + spacingText;
                 if ((i % 16) == 15)
+                {
                     s += lineFeed;
+                }
                 else
                 {
                     if ((i % 4) == 3)
+                    {
                         s += spacingText;
+                    }
+
                     if ((i % 8) == 7)
+                    {
                         s += spacingText;
+                    }
                 }
             }
 
@@ -905,7 +960,9 @@ namespace AAEmu.Commons.Utils.AAPak
         ~AAPak()
         {
             if (isOpen)
+            {
                 ClosePak();
+            }
         }
 
         /// <summary>
@@ -918,7 +975,9 @@ namespace AAEmu.Commons.Utils.AAPak
         {
             // Fail if already open
             if (isOpen)
+            {
                 return false;
+            }
 
             // Check if it exists
             if (!File.Exists(filePath))
@@ -972,7 +1031,10 @@ namespace AAEmu.Commons.Utils.AAPak
         {
             // Fail if already open
             if (isOpen)
+            {
                 return false;
+            }
+
             isVirtual = false;
             try
             {
@@ -999,7 +1061,9 @@ namespace AAEmu.Commons.Utils.AAPak
         {            
             // Fail if already open
             if (isOpen)
+            {
                 return false;
+            }
 
             // Check if it exists
             if (!File.Exists(csvfilePath))
@@ -1032,11 +1096,20 @@ namespace AAEmu.Commons.Utils.AAPak
         public void ClosePak()
         {
             if (!isOpen)
+            {
                 return;
+            }
+
             if ((isDirty) && (readOnly == false))
+            {
                 SaveHeader();
+            }
+
             if (_gpFileStream != null)
+            {
                 _gpFileStream.Close();
+            }
+
             _gpFileStream = null;
             _gpFilePath = null;
             isOpen = false;
@@ -1134,12 +1207,35 @@ namespace AAEmu.Commons.Utils.AAPak
 
             try
             {
-                if (!int.TryParse(encodedString.Substring(0, 4), out yyyy)) yyyy = 0;
-                if (!int.TryParse(encodedString.Substring(5, 2), out mm)) mm = 0;
-                if (!int.TryParse(encodedString.Substring(8, 2), out dd)) dd = 0;
-                if (!int.TryParse(encodedString.Substring(11, 2), out hh)) hh = 0;
-                if (!int.TryParse(encodedString.Substring(14, 2), out nn)) nn = 0;
-                if (!int.TryParse(encodedString.Substring(17, 2), out ss)) ss = 0;
+                if (!int.TryParse(encodedString.Substring(0, 4), out yyyy))
+                {
+                    yyyy = 0;
+                }
+
+                if (!int.TryParse(encodedString.Substring(5, 2), out mm))
+                {
+                    mm = 0;
+                }
+
+                if (!int.TryParse(encodedString.Substring(8, 2), out dd))
+                {
+                    dd = 0;
+                }
+
+                if (!int.TryParse(encodedString.Substring(11, 2), out hh))
+                {
+                    hh = 0;
+                }
+
+                if (!int.TryParse(encodedString.Substring(14, 2), out nn))
+                {
+                    nn = 0;
+                }
+
+                if (!int.TryParse(encodedString.Substring(17, 2), out ss))
+                {
+                    ss = 0;
+                }
 
                 res = (new DateTime(yyyy, mm, dd, hh, nn, ss)).ToFileTimeUtc();
             }
@@ -1234,18 +1330,28 @@ namespace AAEmu.Commons.Utils.AAPak
         {
             // There is no actual directory info stored in the pak file, so we just generate it based on filenames
             folders.Clear();
-            if (!isOpen || !_header.isValid) return;
+            if (!isOpen || !_header.isValid)
+            {
+                return;
+            }
+
             foreach(AAPakFileInfo pfi in files)
             {
                 if (pfi.name == string.Empty)
+                {
                     continue;
+                }
+
                 try
                 {
                     // Horror function, I know :p
                     string n = Path.GetDirectoryName(pfi.name.ToLower().Replace('/', Path.DirectorySeparatorChar)).Replace(Path.DirectorySeparatorChar, '/');
                     var pos = folders.IndexOf(n);
                     if (pos >= 0)
+                    {
                         continue;
+                    }
+
                     folders.Add(n);
                 }
                 catch
@@ -1253,7 +1359,9 @@ namespace AAEmu.Commons.Utils.AAPak
                 }
             }
             if (sortTheList)
+            {
                 folders.Sort();
+            }
         }
 
         /// <summary>
@@ -1278,7 +1386,9 @@ namespace AAEmu.Commons.Utils.AAPak
                     n = string.Empty;
                 }
                 if (n == dirname)
+                {
                     res.Add(pfi);
+                }
             }
             return res;
         }
@@ -1381,7 +1491,9 @@ namespace AAEmu.Commons.Utils.AAPak
             {
                 var fs = new FileStream(_gpFilePath, FileMode.Open, FileAccess.Read);
                 if (fs.Length > 0)
+                {
                     return new SubStream(fs, file.offset, file.size);
+                }
             }
             return new MemoryStream();
         }
@@ -1416,7 +1528,10 @@ namespace AAEmu.Commons.Utils.AAPak
         public bool SetMD5(AAPakFileInfo file, byte[] newHash)
         {
             if ((file == null) || (newHash == null) || (newHash.Length != 16))
+            {
                 return false;
+            }
+
             newHash.CopyTo(file.md5, 0);
             isDirty = true;
             return true;
@@ -1456,11 +1571,15 @@ namespace AAEmu.Commons.Utils.AAPak
             // Overwrite a existing file in the pak
 
             if (readOnly)
+            {
                 return false;
+            }
 
             // Fail if the new file is too big
             if (sourceStream.Length > (pfi.size + pfi.paddingSize))
+            {
                 return false;
+            }
 
             // Save endpos for easy calculation later
             long endPos = pfi.offset + pfi.size + pfi.paddingSize;
@@ -1487,7 +1606,9 @@ namespace AAEmu.Commons.Utils.AAPak
             pfi.modifyTime = modifyTime.ToFileTimeUtc();
 
             if (PakType == PakFileType.TypeB)
+            {
                 pfi.dummy1 = 0x80000000;
+            }
 
             // Mark File Table as dirty
             isDirty = true;
@@ -1504,7 +1625,9 @@ namespace AAEmu.Commons.Utils.AAPak
         {
             // When we detele a file from the pak, we remove the entry from the FileTable and expand the previous file's padding to take up the space
             if (readOnly)
+            {
                 return false;
+            }
 
             if (paddingDeleteMode)
             {
@@ -1527,7 +1650,9 @@ namespace AAEmu.Commons.Utils.AAPak
                 eFile.paddingSize = 0 ;
                 eFile.md5 = new byte[16];
                 if (PakType == PakFileType.TypeB)
+                {
                     eFile.dummy1 = 0x80000000;
+                }
 
                 extraFiles.Add(eFile);
 
@@ -1545,7 +1670,9 @@ namespace AAEmu.Commons.Utils.AAPak
         public bool DeleteFile(string filename)
         {
             if (readOnly)
+            {
                 return false;
+            }
 
             AAPakFileInfo pfi = nullAAPakFileInfo;
             if (GetFileByName(filename, ref pfi))
@@ -1589,7 +1716,9 @@ namespace AAEmu.Commons.Utils.AAPak
             newFile.paddingSize = 0;
             newFile.md5 = new byte[16];
             if (PakType == PakFileType.TypeB)
+            {
                 newFile.dummy1 = 0x80000000;
+            }
 
             // check if we have "unused" space in extraFiles that we can use
             for(int i = 0; i < extraFiles.Count;i++)
@@ -1696,7 +1825,10 @@ namespace AAEmu.Commons.Utils.AAPak
         public bool AddFileFromFile(string sourceFileName, string asFileName, bool autoSpareSpace)
         {
             if (!File.Exists(sourceFileName))
+            {
                 return false;
+            }
+
             var createTime = File.GetCreationTime(sourceFileName);
             var modTime = File.GetLastWriteTime(sourceFileName);
             var fs = File.OpenRead(sourceFileName);

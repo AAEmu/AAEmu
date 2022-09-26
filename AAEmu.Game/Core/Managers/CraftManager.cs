@@ -34,7 +34,7 @@ namespace AAEmu.Game.Core.Managers
                             template.ToolId = reader.GetUInt32("tool_id", 0);
                             template.SkillId = reader.GetUInt32("skill_id", 0);
                             template.WiId = reader.GetUInt32("wi_id");
-                            template.MilestoneId = reader.GetUInt32("milestone_id", 0);
+                            //template.MilestoneId = reader.GetUInt32("milestone_id", 0); // there is no such field in the database for version 3.0.3.0
                             template.ReqDoodadId = reader.GetUInt32("req_doodad_id", 0);
                             template.NeedBind = reader.GetBoolean("need_bind");
                             template.AcId = reader.GetUInt32("ac_id", 0);
@@ -58,7 +58,9 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var craftId = reader.GetUInt32("craft_id");
                             if (!_crafts.ContainsKey(craftId))
+                            {
                                 continue;
+                            }
 
                             var template = new CraftProduct();
                             template.Id = reader.GetUInt32("id");
@@ -86,7 +88,9 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var craftId = reader.GetUInt32("craft_id");
                             if (!_crafts.ContainsKey(craftId))
+                            {
                                 continue;
+                            }
 
                             var template = new CraftMaterial();
                             template.Id = reader.GetUInt32("id");
@@ -110,7 +114,10 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var craftId = reader.GetUInt32("craft_id");
                             if (!_crafts.ContainsKey(craftId))
+                            {
                                 continue;
+                            }
+
                             _crafts[craftId].IsPack = true;
                         }
                     }

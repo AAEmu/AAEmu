@@ -41,8 +41,15 @@ namespace AAEmu.Game.Core.Managers
             {
                 foreach (var (key, value) in _trades)
                 {
-                    if (value.OwnerObjId.Equals(objId)) return key;
-                    if (value.TargetObjId.Equals(objId)) return key;
+                    if (value.OwnerObjId.Equals(objId))
+                    {
+                        return key;
+                    }
+
+                    if (value.TargetObjId.Equals(objId))
+                    {
+                        return key;
+                    }
                 }
             }
 
@@ -52,7 +59,10 @@ namespace AAEmu.Game.Core.Managers
         private bool IsTrading(uint objId)
         {
             var tradeId = GetTradeId(objId);
-            if (tradeId == 0) return false;
+            if (tradeId == 0)
+            {
+                return false;
+            }
 
             CancelTrade(objId, 0, tradeId); // TODO - reason?
             return true;
@@ -60,7 +70,10 @@ namespace AAEmu.Game.Core.Managers
 
         private void UnlockTrade(Character owner, Character target, uint tradeId)
         {
-            if (!_trades[tradeId].LockOwner && !_trades[tradeId].LockTarget) return;
+            if (!_trades[tradeId].LockOwner && !_trades[tradeId].LockTarget)
+            {
+                return;
+            }
 
             _trades[tradeId].LockOwner = false;
             _trades[tradeId].LockTarget = false;
@@ -73,7 +86,10 @@ namespace AAEmu.Game.Core.Managers
 
         public void CanStartTrade(Character owner, Character target)
         {
-            if (IsTrading(owner.ObjId) || IsTrading(target.ObjId)) return;
+            if (IsTrading(owner.ObjId) || IsTrading(target.ObjId))
+            {
+                return;
+            }
 
             // TODO - Check faction and others
             _log.Info("{0}({1}) is trying to trade with {2}({3}).", owner.Name, owner.ObjId, target.Name, target.ObjId);
@@ -82,7 +98,10 @@ namespace AAEmu.Game.Core.Managers
 
         public void StartTrade(Character owner, Character target)
         {
-            if (IsTrading(owner.ObjId) || IsTrading(target.ObjId)) return;
+            if (IsTrading(owner.ObjId) || IsTrading(target.ObjId))
+            {
+                return;
+            }
 
             var nextId = TradeIdManager.Instance.GetNextId();
             var template = new TradeTemplate
@@ -204,16 +223,30 @@ namespace AAEmu.Game.Core.Managers
                 if (isOwnerWhoAdd)
                 {
                     _log.Info("Trade Id:{0} {1}({2}) tookdown item ({3}-{4}).", tradeId, owner.Name, owner.ObjId, slotType, slot);
-                    if (_trades[tradeId].OwnerItems.Count <= 1) _trades[tradeId].OwnerItems.Clear();
-                    else _trades[tradeId].OwnerItems.Remove(item);
+                    if (_trades[tradeId].OwnerItems.Count <= 1)
+                    {
+                        _trades[tradeId].OwnerItems.Clear();
+                    }
+                    else
+                    {
+                        _trades[tradeId].OwnerItems.Remove(item);
+                    }
+
                     owner.SendPacket(new SCTradeItemTookdownPacket(slotType, slot));
                     target.SendPacket(new SCOtherTradeItemTookdownPacket(item));
                 }
                 else
                 {
                     _log.Info("Trade Id:{0} {1}({2}) tookdown item ({3}-{4}).", tradeId, target.Name, target.ObjId, slotType, slot);
-                    if (_trades[tradeId].TargetItems.Count <= 1) _trades[tradeId].TargetItems.Clear();
-                    else _trades[tradeId].TargetItems.Remove(item);
+                    if (_trades[tradeId].TargetItems.Count <= 1)
+                    {
+                        _trades[tradeId].TargetItems.Clear();
+                    }
+                    else
+                    {
+                        _trades[tradeId].TargetItems.Remove(item);
+                    }
+
                     owner.SendPacket(new SCOtherTradeItemTookdownPacket(item));
                     target.SendPacket(new SCTradeItemTookdownPacket(slotType, slot));
                 }
@@ -235,8 +268,15 @@ namespace AAEmu.Game.Core.Managers
                 var isOwnerWhoAdd = _trades[tradeId].OwnerObjId.Equals(character.ObjId);
 
                 // Check if already locked
-                if (isOwnerWhoAdd && _trades[tradeId].LockOwner && _lock) return;
-                if (!isOwnerWhoAdd && _trades[tradeId].LockTarget && _lock) return;
+                if (isOwnerWhoAdd && _trades[tradeId].LockOwner && _lock)
+                {
+                    return;
+                }
+
+                if (!isOwnerWhoAdd && _trades[tradeId].LockTarget && _lock)
+                {
+                    return;
+                }
 
                 var owner = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].OwnerObjId);
                 var target = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].TargetObjId);
@@ -275,7 +315,10 @@ namespace AAEmu.Game.Core.Managers
             {
                 var isOwnerWhoAdd = _trades[tradeId].OwnerObjId.Equals(character.ObjId);
                 // Check if both locked
-                if (!_trades[tradeId].LockOwner && !_trades[tradeId].LockTarget) return;
+                if (!_trades[tradeId].LockOwner && !_trades[tradeId].LockTarget)
+                {
+                    return;
+                }
 
                 var owner = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].OwnerObjId);
                 var target = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].TargetObjId);
@@ -300,8 +343,15 @@ namespace AAEmu.Game.Core.Managers
                 if (_trades[tradeId].OkOwner && _trades[tradeId].OkTarget)
                 {
                     // Check inventory space
-                    if (owner.Inventory.FreeSlotCount(SlotType.Inventory) < _trades[tradeId].TargetItems.Count) CancelTrade(owner.ObjId, 0, tradeId);
-                    if (target.Inventory.FreeSlotCount(SlotType.Inventory) < _trades[tradeId].OwnerItems.Count) CancelTrade(target.ObjId, 0, tradeId);
+                    if (owner.Inventory.FreeSlotCount(SlotType.Inventory) < _trades[tradeId].TargetItems.Count)
+                    {
+                        CancelTrade(owner.ObjId, 0, tradeId);
+                    }
+
+                    if (target.Inventory.FreeSlotCount(SlotType.Inventory) < _trades[tradeId].OwnerItems.Count)
+                    {
+                        CancelTrade(target.ObjId, 0, tradeId);
+                    }
 
                     // Finish trade
                     FinishTrade(owner, target, tradeId);

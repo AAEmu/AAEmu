@@ -76,7 +76,10 @@ namespace AAEmu.Game.Physics.Forces
             }
 
             bodies.Remove(body);
-            if (!flag) samples.Remove(body.Shape);
+            if (!flag)
+            {
+                samples.Remove(body.Shape);
+            }
         }
 
         /// <summary>
@@ -115,7 +118,9 @@ namespace AAEmu.Game.Physics.Forces
             JVector diff = body.Shape.BoundingBox.Max - body.Shape.BoundingBox.Min;
 
             if (diff.IsNearlyZero())
+            {
                 throw new InvalidOperationException("BoundingBox volume of the shape is zero.");
+            }
 
             Multishape ms = body.Shape as Multishape;
             int values = 0;
@@ -195,8 +200,14 @@ namespace AAEmu.Game.Physics.Forces
 
                         bool containsCoord = false;
 
-                        if (fluidArea == null) containsCoord = FluidBox.Contains(ref currentCoord) != JBBox.ContainmentType.Disjoint;
-                        else containsCoord = fluidArea(ref currentCoord);
+                        if (fluidArea == null)
+                        {
+                            containsCoord = FluidBox.Contains(ref currentCoord) != JBBox.ContainmentType.Disjoint;
+                        }
+                        else
+                        {
+                            containsCoord = fluidArea(ref currentCoord);
+                        }
 
                         if (containsCoord)
                         {

@@ -13,12 +13,12 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _damage;
         private readonly int _absorbed;
         public int _manaBurn;
-        
+
         public byte HoldableId { get; set; }
         public SkillHitType HitType { get; set; }
 
         public SCUnitDamagedPacket(CastAction castAction, SkillCaster skillCaster, uint casterId, uint targetId, int damage, int absorbed)
-            : base(SCOffsets.SCUnitDamagedPacket, 1)
+            : base(SCOffsets.SCUnitDamagedPacket, 5)
         {
             _castAction = castAction;
             _skillCaster = skillCaster;

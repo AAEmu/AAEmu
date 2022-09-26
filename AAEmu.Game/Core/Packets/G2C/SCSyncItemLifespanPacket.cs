@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _itemTemplateId;
         private readonly DateTime _expireTime;
 
-        public SCSyncItemLifespanPacket(bool added, ulong itemId, uint itemTemplateId, DateTime expireTime) : base(SCOffsets.SCSyncItemLifespanPacket, 1)
+        public SCSyncItemLifespanPacket(bool added, ulong itemId, uint itemTemplateId, DateTime expireTime) : base(SCOffsets.SCSyncItemLifespanPacket, 5)
         {
             _added = added;
             _itemId = itemId;

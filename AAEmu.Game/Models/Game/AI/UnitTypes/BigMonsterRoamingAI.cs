@@ -31,7 +31,9 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
             }
 
             if (!(StateMachine.GetCurrentState() is IdleState))
+            {
                 return;
+            }
 
             var attackState = (BigMonsterAttackState)StateMachine.GetState(Framework.States.BigMonsterAttack);
             attackState.Target = enemy;
@@ -41,7 +43,9 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
         public override void OnSkillEnd(Skill skill)
         {
             if (StateMachine.GetCurrentState() is BigMonsterAttackState aas)
+            {
                 aas.OnSkillEnd(skill);
+            }
         }
     }
 }

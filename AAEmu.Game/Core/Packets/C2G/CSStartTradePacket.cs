@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSStartTradePacket : GamePacket
     {
-        public CSStartTradePacket() : base(CSOffsets.CSStartTradePacket, 1)
+        public CSStartTradePacket() : base(CSOffsets.CSStartTradePacket, 5)
         {
         }
 
@@ -17,7 +17,11 @@ namespace AAEmu.Game.Core.Packets.C2G
             var objId = stream.ReadBc();
 
             var owner = WorldManager.Instance.GetCharacterByObjId(objId);
-            if (owner == null) return;
+            if (owner == null)
+            {
+                return;
+            }
+
             var target = Connection.ActiveChar;
             TradeManager.Instance.StartTrade(owner, target);
         }

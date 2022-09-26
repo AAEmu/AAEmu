@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSBuyHousePacket : GamePacket
     {
-        public CSBuyHousePacket() : base(CSOffsets.CSBuyHousePacket, 1)
+        public CSBuyHousePacket() : base(CSOffsets.CSBuyHousePacket, 5)
         {
         }
 

@@ -11,8 +11,8 @@ namespace AAEmu.Login.Core.Packets.L2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((int) 0); // mt
-            stream.Write((int) 0); // ct
+            stream.Write(0); // mt
+            stream.Write(0); // ct
 
             return stream;
         }

@@ -33,7 +33,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             var permission = (HousingPermission)Data; 
             if (permission == HousingPermission.Public)
+            {
                 return base.AllowedToInteract(character);
+            }
 
             // Try to cache the owner Character if it's already in the world to make lookups faster
             var owner = WorldManager.Instance.GetCharacterById(OwnerId);
@@ -42,7 +44,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             {
                 case HousingPermission.Private:
                     if (ItemContainer?.CofferType == ChestType.Otherworldly)
+                    {
                         return (character.Id == OwnerId) && base.AllowedToInteract(character);
+                    }
                     else
                     {
                         var ownerAccountId = NameManager.Instance.GetCharaterAccount(OwnerId);

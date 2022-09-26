@@ -64,8 +64,10 @@ namespace AAEmu.Game.Core.Managers
 
         public async System.Threading.Tasks.Task StopTransferTelescopeTickAsync()
         {
-            if (transferTelescopeTickStartTask == null) 
+            if (transferTelescopeTickStartTask == null)
+            {
                 return;
+            }
 
             await transferTelescopeTickStartTask.CancelAsync();
             transferTelescopeTickStartTask = null;

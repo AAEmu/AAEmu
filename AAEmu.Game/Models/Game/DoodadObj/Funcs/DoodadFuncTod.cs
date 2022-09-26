@@ -56,18 +56,26 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 if (curTime > Tod / 100f)
                 {
                     if (caster is Character)
+                    {
                         _log.Debug($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, OverridePhase {NextPhase}");
+                    }
                     else
+                    {
                         _log.Trace($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, OverridePhase {NextPhase}");
+                    }
 
                     owner.OverridePhase = NextPhase;
                     return true; // it is necessary to interrupt the phase functions and switch to NextPhase
                 }
 
                 if (caster is Character)
+                {
                     _log.Debug($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, NextPhase {owner.FuncGroupId}");
+                }
                 else
+                {
                     _log.Trace($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, NextPhase {owner.FuncGroupId}");
+                }
             }
             return false; // let's continue with the phase functions
         }

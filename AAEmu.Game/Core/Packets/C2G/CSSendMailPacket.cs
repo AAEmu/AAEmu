@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSendMailPacket : GamePacket
     {
-        public CSSendMailPacket() : base(CSOffsets.CSSendMailPacket, 1)
+        public CSSendMailPacket() : base(CSOffsets.CSSendMailPacket, 5)
         {
         }
 
@@ -32,37 +32,46 @@ namespace AAEmu.Game.Core.Packets.C2G
             var itemSlots = new List<(SlotType slotType, byte slot)>();
             for (var i = 0; i < 10; i++)
             {
-                var slotType = stream.ReadByte();
-                var slot = stream.ReadByte();
-                if (slotType == 0)
-                    itemSlots.Add(((byte)0, (byte)0));
-                else
-                    itemSlots.Add(((SlotType)slotType, slot));
+                var slotType = stream.ReadByte(); // type
+                var slot = stream.ReadByte();     // index
+                itemSlots.Add(slotType == 0
+                    ?
+                    ((SlotType slotType, byte slot))(0, 0)
+                    :
+                    ((SlotType)slotType, slot));
             }
 
             var doodadObjId = stream.ReadBc();
             var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
 
             // Validate if we are near a MailBox
-            bool mailCheckOK ;
+            bool mailCheckOK;
             if (doodad != null)
             {
                 // Doodad GroupID 6 is "Other - Mailboxes"
                 if (doodad.Template.GroupId == 6)
                 {
                     var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Transform.World.Position, doodad.Transform.World.Position);
-                    mailCheckOK = (dist <= 5f); // 5m is kinda generous I guess
+                    mailCheckOK = dist <= 5f; // 5m is kinda generous I guess
                 }
                 else
+                {
                     mailCheckOK = false;
+                }
             }
             else
+            {
                 mailCheckOK = false;
+            }
 
             if (mailCheckOK)
+            {
                 Connection.ActiveChar.Mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots);
+            }
             else
+            {
                 Connection.ActiveChar.SendErrorMessage(ErrorMessageType.MailFailMailboxNotFound);
+            }
         }
     }
 }

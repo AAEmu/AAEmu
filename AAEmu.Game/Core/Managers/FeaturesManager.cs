@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using Newtonsoft.Json;
-using System.IO;
-using System.Linq;
+
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Models.Game;
-using NLog;
 using AAEmu.Game.Models.Game.Features;
+
+using NLog;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -14,41 +11,41 @@ namespace AAEmu.Game.Core.Managers
     {
         public static FeatureSet Fsets;
         private static Logger _log = LogManager.GetCurrentClassLogger();
-        
+
         public void Initialize()
         {
             _log.Info("Initializing Features ...");
             Fsets = new FeatureSet();
 
-            Fsets.PlayerLevelLimit = 55;
-            Fsets.MateLevelLimit = 50;
+//            Fsets.PlayerLevelLimit = 55;
+//            Fsets.MateLevelLimit = 50;
 
             // Allow House sales
-            Fsets.Set(Feature.houseSale, true);
+//            Fsets.Set(Feature.houseSale, true);
 
             // Disables Auction Button
             // Fsets.Set(Feature.hudAuctionButton, false);
 
             // Enable the Nations UI menu
-            Fsets.Set(Feature.nations, true);
+//            Fsets.Set(Feature.nations, true);
 
             // Enables family invites
-            Fsets.Set(Feature.allowFamilyChanges, true);
+//            Fsets.Set(Feature.allowFamilyChanges, true);
 
             // Disables Dwarf/Warborn character creation (0.5 only)
-            Fsets.Set(Feature.dwarfWarborn, false);
+//            Fsets.Set(Feature.dwarfWarborn, true);
 
             // Debug convenience flags, disables most of the sensitive operation stuff to do easier testing
-            Fsets.Set(Feature.sensitiveOpeartion, false);
-            Fsets.Set(Feature.secondpass, false);
-            Fsets.Set(Feature.ingameshopSecondpass, false);
-            Fsets.Set(Feature.itemSecure, false);
+//            Fsets.Set(Feature.sensitiveOpeartion, false);
+//            Fsets.Set(Feature.secondpass, false);
+//            Fsets.Set(Feature.ingameshopSecondpass, false);
+//            Fsets.Set(Feature.itemSecure, false);
 
             // Use gold instead of tax certificates to pay house tax
             // Fsets.Set(Feature.taxItem, false); 
 
             // Enable the Custom UI (Addons) button and menu
-            Fsets.Set(Feature.customUiButton, true);
+//            Fsets.Set(Feature.customUiButton, true);
 
             // The following flags are set in our default, but have unknown behaviour. Disabling them seems to have no impact on gameplay
             /*
@@ -75,9 +72,11 @@ namespace AAEmu.Game.Core.Managers
             {
                 var f = (Feature)fObj;
                 if (FeaturesManager.Fsets.Check(f))
+                {
                     featsOn += f.ToString() + "  ";
+                }
             }
-            _log.Info("Enabled Features: {0}",featsOn);
+            _log.Info("Enabled Features: {0}", featsOn);
         }
 
     }

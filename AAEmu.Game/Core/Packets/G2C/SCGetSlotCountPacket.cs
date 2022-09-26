@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly byte _sc;
 
-        public SCGetSlotCountPacket(byte sc) : base(SCOffsets.SCGetSlotCountPacket, 1)
+        public SCGetSlotCountPacket(byte sc) : base(SCOffsets.SCGetSlotCountPacket, 5)
         {
             _sc = sc;
         }

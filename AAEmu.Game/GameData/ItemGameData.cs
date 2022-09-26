@@ -16,8 +16,13 @@ namespace AAEmu.Game.GameData
         public BuffTemplate GetItemBuff(uint itemId, byte gradeId)
         {
             if (_itemGradeBuffs.TryGetValue(itemId, out var itemGradeBuffs))
+            {
                 if (itemGradeBuffs.TryGetValue(gradeId, out var buffId))
+                {
                     return SkillManager.Instance.GetBuffTemplate(buffId);
+                }
+            }
+
             return null;
         }
         
@@ -39,7 +44,9 @@ namespace AAEmu.Game.GameData
                         var buffId = reader.GetUInt32("buff_id");
 
                         if (!_itemGradeBuffs.ContainsKey(itemId))
+                        {
                             _itemGradeBuffs.Add(itemId, new Dictionary<byte, uint>());
+                        }
 
                         _itemGradeBuffs[itemId].Add(itemGrade, buffId);
                     }

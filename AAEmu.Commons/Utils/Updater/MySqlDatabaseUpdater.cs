@@ -40,7 +40,9 @@ namespace AAEmu.Commons.Utils.Updater
                 using (var reader = command.ExecuteReader())
                 {
                     if (reader.Read() && (reader.HasRows) && (reader.GetInt32("is-exists") > 0))
+                    {
                         updateDbExists = true;
+                    }
                 }
             }
             return updateDbExists;
@@ -95,10 +97,15 @@ namespace AAEmu.Commons.Utils.Updater
                 {
                     var fName = Path.GetFileName(thisScriptFile);
                     if (fName == null)
+                    {
                         continue; // shouldn't happen here
+                    }
+
                     fName = fName.ToLower();
                     if (!fName.Contains(moduleNamePrefix))
+                    {
                         continue; // This files is not related to us, ignore (technically shouldn't happen, but add it anyway)
+                    }
 
                     command.CommandText = "REPLACE INTO `updates` " +
                                           "(`script_name`,`installed`,`install_date`,`last_error`" +
@@ -221,7 +228,9 @@ namespace AAEmu.Commons.Utils.Updater
 
             // If we're running this version for the first time, assume that all updates have been installed before
             if (updateDbExists == false)
+            {
                 InitializeUpdatesTable(connection,allUpdatesFiles,moduleNamePrefix);
+            }
 
             // Load the DB contents
             using (var command = connection.CreateCommand())
@@ -241,9 +250,13 @@ namespace AAEmu.Commons.Utils.Updater
                         if (File.Exists(fullPathName))
                         {
                             if (installed <= 0)
+                            {
                                 filesToRun.Add(fullPathName);
+                            }
                             else
+                            {
                                 filesAlreadyUpdated.Add(fullPathName);
+                            }
                         }
                     }
                 }
@@ -253,11 +266,19 @@ namespace AAEmu.Commons.Utils.Updater
             foreach (var fName in allUpdatesFiles)
             {
                 if (filesToRun.Contains(fName))
+                {
                     continue;
+                }
+
                 if (filesAlreadyUpdated.Contains(fName))
+                {
                     continue;
+                }
+
                 if (File.Exists(fName))
+                {
                     filesToRun.Add(fName);
+                }
             }
 
             if (filesToRun.Count > 0)
@@ -274,10 +295,14 @@ namespace AAEmu.Commons.Utils.Updater
                 Console.Write("Please type YES (all caps) to try and automatically install the updates, type SKIP if you already installed the update manually, or press Ctrl+C here to quit: ");
                 var yesNo = Console.ReadLine();
                 if ((yesNo != "YES") && (yesNo != "SKIP"))
+                {
                     return false;
+                }
 
                 if (!InstallUpdatesFiles(connection, filesToRun, yesNo == "SKIP"))
+                {
                     return false;
+                }
             }
             else
             {

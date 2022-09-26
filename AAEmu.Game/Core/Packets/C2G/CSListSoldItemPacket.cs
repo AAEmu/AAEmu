@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSListSoldItemPacket : GamePacket
     {
-        public CSListSoldItemPacket() : base(CSOffsets.CSListSoldItemPacket, 1)
+        public CSListSoldItemPacket() : base(CSOffsets.CSListSoldItemPacket, 5)
         {
         }
 
@@ -17,7 +17,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             var npcObjId = stream.ReadBc();
             var npc = WorldManager.Instance.GetNpc(npcObjId);
             if (npc == null || !npc.Template.Merchant)
+            {
                 return;
+            }
+
             Connection.ActiveChar.BuyBackItems.ReNumberSlots();
             Connection.SendPacket(new SCSoldItemListPacket(Connection.ActiveChar.BuyBackItems.Items));
         }

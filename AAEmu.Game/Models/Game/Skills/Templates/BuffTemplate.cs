@@ -175,10 +175,16 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             if (RequireBuffId > 0 && !target.Buffs.CheckBuff(RequireBuffId))
+            {
                 return; //TODO send error?
+            }
+
             if (target.Buffs.CheckBuffImmune(Id))
+            {
                 return; //TODO  error of immune?
-            uint abLevel = 1;
+            }
+
+            ushort abLevel = 1;
             if (caster is Character character)
             {
                 if (source.Skill != null)
@@ -186,12 +192,16 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                     var template = source.Skill.Template;
                     var abilityLevel = character.GetAbLevel((AbilityType)source.Skill.Template.AbilityId);
                     if (template.LevelStep != 0)
-                        abLevel = (uint)((abilityLevel / template.LevelStep) * template.LevelStep);
+                    {
+                        abLevel = (ushort)(abilityLevel / template.LevelStep * template.LevelStep);
+                    }
                     else
-                        abLevel = (uint)template.AbilityLevel;
+                    {
+                        abLevel = (ushort)template.AbilityLevel;
+                    }
 
                     //Dont allow lower than minimum ablevel for skill or infinite debuffs can happen
-                    abLevel = (uint)Math.Max(template.AbilityLevel, (int)abLevel);
+                    abLevel = (ushort)Math.Max(template.AbilityLevel, abLevel);
                 }
                 else if (source.Buff != null)
                 {
@@ -202,10 +212,10 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             {
                 if (source.Skill != null)
                 {
-                    abLevel = (uint)source.Skill.Template.AbilityLevel;
+                    abLevel = (ushort)source.Skill.Template.AbilityLevel;
                 }
             }
-            target.Buffs.AddBuff(new Buff(target, caster, casterObj, this, source?.Skill, time) { AbLevel = abLevel });
+            target.Buffs.AddBuff(new Buff(target, caster, casterObj, this, source?.Skill, time) { AbLevel = (ushort)abLevel });
         }
 
         public void Start(Unit caster, BaseUnit owner, Buff buff)
@@ -219,10 +229,14 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             }
 
             if (buff.Charge == 0)
+            {
                 buff.Charge = Rand.Next(InitMinCharge, InitMaxCharge);
-            
+            }
+
             if (!buff.Passive)
+            {
                 owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);
+            }
         }
 
         public void TimeToTimeApply(Unit caster, BaseUnit owner, Buff buff)
@@ -236,10 +250,16 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             {
                 if (tickEff.TargetBuffTagId > 0 &&
                     !owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
+                {
                     return;
+                }
+
                 if (tickEff.TargetNoBuffTagId > 0 &&
                     owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
+                {
                     return;
+                }
+
                 var eff = SkillManager.Instance.GetEffectTemplate(tickEff.EffectId);
                 if (eff == null)
                 {
@@ -256,18 +276,24 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             var units = WorldManager.Instance.GetAround<Unit>(owner, TickAreaRadius);
 
             if (owner == null)
+            {
                 owner = caster;
+            }
 
             var ownerUnit = owner as Unit;
             if (TickAreaExcludeSource)
             {
                 if(ownerUnit != null)
+                {
                     units.Remove(ownerUnit);
+                }
             }
             else
             {
                 if (!units.Contains(owner) && ownerUnit != null)
+                {
                     units.Add(ownerUnit);
+                }
             }
             
             units = SkillTargetingUtil.FilterWithRelation((SkillTargetRelation)TickAreaRelationId, caster, units).ToList();
@@ -286,10 +312,15 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                 {
                     if (tickEff.TargetBuffTagId > 0 &&
                         !trg.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
+                    {
                         continue;
+                    }
+
                     if (tickEff.TargetNoBuffTagId > 0 &&
                         trg.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
+                    {
                         continue;
+                    }
 
                     var targetObj = new SkillCastUnitTarget(trg.ObjId);
                     eff.Apply((Unit)source, buff.SkillCaster, trg, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.UtcNow);
@@ -306,7 +337,9 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                 requiringBuff.Exit();
             
             if (!buff.Passive && !replaced)
+            {
                 owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, buff.Index), true);
+            }
         }
 
         public void WriteData(PacketStream stream, uint abLevel)

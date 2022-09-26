@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSNotifySubZonePacket : GamePacket
     {
-        public CSNotifySubZonePacket() : base(CSOffsets.CSNotifySubZonePacket, 1)
+        public CSNotifySubZonePacket() : base(CSOffsets.CSNotifySubZonePacket, 5)
         {
         }
 
@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             Connection.ActiveChar.SubZoneId = subZoneId; // понадобилось хранить для составления точек Memory Tome (Recall)
 
-            _log.Info("Enter RegionId: {0} ", subZoneId);
+            _log.Debug("Enter RegionId: {0} ", subZoneId);
             Connection.ActiveChar.Portals.NotifySubZone(subZoneId);
         }
     }

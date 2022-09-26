@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSIdleStatusPacket : GamePacket
     {
-        public CSIdleStatusPacket() : base(CSOffsets.CSIdleStatusPacket, 1)
+        public CSIdleStatusPacket() : base(CSOffsets.CSIdleStatusPacket, 5)
         {
         }
 
@@ -14,8 +14,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             Connection.ActiveChar.IdleStatus = stream.ReadBoolean();
             _log.Debug("IdleStatus: BcId {0}, {1}", Connection.ActiveChar.ObjId, Connection.ActiveChar.IdleStatus);
-            Connection.ActiveChar.BroadcastPacket(
-                new SCUnitIdleStatusPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.IdleStatus), true);
+            Connection.ActiveChar.BroadcastPacket(new SCUnitIdleStatusPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.IdleStatus), true);
         }
     }
 }

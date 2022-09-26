@@ -14,7 +14,9 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
             _log.Warn("QuestActConAcceptNpcKill: NpcId {0}", NpcId);
 
             if (!(character.CurrentTarget is Npc))
+            {
                 return false;
+            }
 
             quest.QuestAcceptorType = QuestAcceptorType.Npc;
             quest.AcceptorType = NpcId;

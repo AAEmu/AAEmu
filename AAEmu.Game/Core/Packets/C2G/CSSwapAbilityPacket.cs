@@ -6,16 +6,16 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSwapAbilityPacket : GamePacket
     {
-        public CSSwapAbilityPacket() : base(CSOffsets.CSSwapAbilityPacket, 1)
+        public CSSwapAbilityPacket() : base(CSOffsets.CSSwapAbilityPacket, 5)
         {
         }
 
         public override void Read(PacketStream stream)
         {
-            var objId = stream.ReadBc();
-            var oldAbilityId = stream.ReadByte();
-            var abilityId = stream.ReadByte();
-            var auap = stream.ReadBoolean();
+            var objId = stream.ReadBc();           // bc
+            var oldAbilityId = stream.ReadByte();  // o
+            var abilityId = stream.ReadByte();     // n
+            var auap = stream.ReadBoolean();       // auap
             
             Connection.ActiveChar.Abilities.Swap((AbilityType)oldAbilityId, (AbilityType)abilityId);
         }

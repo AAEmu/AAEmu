@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using AAEmu.Commons.Network;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
-using Quartz.Impl.AdoJobStore;
 
 namespace AAEmu.Game.Models.Game.Mails
 {
@@ -53,10 +50,14 @@ namespace AAEmu.Game.Models.Game.Mails
             stream.Write(OpenDate);
             for (var i = 0; i < MaxMailAttachments; i++)
             {
-                if ((i >= Attachments.Count) || (Attachments[i] == null))
+                if (i >= Attachments.Count || Attachments[i] == null)
+                {
                     stream.Write(0);
+                }
                 else
+                {
                     stream.Write(Attachments[i]);
+                }
             }
 
             return stream;

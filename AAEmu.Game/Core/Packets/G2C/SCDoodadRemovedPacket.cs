@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _id;
 
-        public SCDoodadRemovedPacket(uint id) : base(SCOffsets.SCDoodadRemovedPacket, 1)
+        public SCDoodadRemovedPacket(uint id) : base(SCOffsets.SCDoodadRemovedPacket, 5)
         {
             _id = id;
         }
@@ -15,7 +15,10 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.WriteBc(_id);
-            stream.Write(false); // e if false then the doodad will be deleted
+            stream.Write(false); // es if false then the doodad will be deleted
+            // TODO or
+            //stream.Write(true); // es  if true then the doodad will be deleted
+
             return stream;
         }
     }

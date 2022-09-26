@@ -40,7 +40,9 @@ namespace AAEmu.Game.Models.Game.Expeditions
         {
             var member = GetMember(character);
             if (member == null)
+            {
                 return;
+            }
 
             member.Refresh(character);
 
@@ -65,7 +67,9 @@ namespace AAEmu.Game.Models.Game.Expeditions
         {
             foreach (var policy in Policies)
                 if (policy.Role == role)
+                {
                     return policy;
+                }
 
             return null;
         }
@@ -74,7 +78,10 @@ namespace AAEmu.Game.Models.Game.Expeditions
         {
             foreach (var member in Members)
                 if (member.CharacterId == character.Id)
+                {
                     return member;
+                }
+
             return null;
         }
 
@@ -82,7 +89,10 @@ namespace AAEmu.Game.Models.Game.Expeditions
         {
             foreach (var member in Members)
                 if (member.CharacterId == characterId)
+                {
                     return member;
+                }
+
             return null;
         }
 

@@ -31,16 +31,22 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         private int GetAnimDelay(IEnumerable<PlotEventEffect> effects)
         {
             if (!AddAnimCsTime)
+            {
                 return 0;
+            }
 
             foreach (var effect in effects)
             {
                 var template = SkillManager.Instance.GetEffectTemplate(effect.ActualId, effect.ActualType);
                 if (!(template is SpecialEffect specialEffect))
+                {
                     continue;
+                }
 
                 if (specialEffect.SpecialEffectTypeId != SpecialType.Anim)
+                {
                     continue;
+                }
 
                 var anim = AnimationManager.Instance.GetAnimation((uint)specialEffect.Value1);
                 return anim.CombatSyncTime;
@@ -52,7 +58,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         private int GetProjectileDelay(BaseUnit caster, BaseUnit target)
         {
             if (Speed <= 0)
+            {
                 return 0;
+            }
 
             var dist = MathUtil.CalculateDistance(caster.Transform.World.Position, target.Transform.World.Position, true);
             //We want damage to be applied when the projectile hits target.
@@ -76,10 +84,15 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             var skillCtrlTime = GetSkillControllerDelay(node);
             var delay = animTime + projectileTime + skillCtrlTime;
             if (Casting)
+            {
                 delay += (int)(state.Caster.ApplySkillModifiers(state.ActiveSkill, Static.SkillAttribute.CastTime,
                     Delay) * state.Caster.CastTimeMul);
+            }
             else
+            {
                 delay += Delay;
+            }
+
             return Math.Clamp(delay, 0, int.MaxValue);
         }
     }

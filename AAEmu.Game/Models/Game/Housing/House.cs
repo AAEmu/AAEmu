@@ -31,7 +31,7 @@ namespace AAEmu.Game.Models.Game.Housing
         private int _currentStep;
         private int _allAction;
         private uint _id;
-        private uint _accountId;
+        private ulong _accountId;
         private uint _coOwnerId;
         private uint _templateId;
         private int _baseAction;
@@ -50,7 +50,7 @@ namespace AAEmu.Game.Models.Game.Housing
         /// </summary>
         public bool IsDirty { get => _isDirty; set => _isDirty = value; }
         public new uint Id { get => _id; set { _id = value; _isDirty = true; } }
-        public uint AccountId { get => _accountId; set { _accountId = value; _isDirty = true; } }
+        public ulong AccountId { get => _accountId; set { _accountId = value; _isDirty = true; } }
         public uint CoOwnerId { get => _coOwnerId; set { _coOwnerId = value; _isDirty = true; } }
         //public ushort TlId { get; set; }
         public new uint TemplateId { get => _templateId; set { _templateId = value; _isDirty = true; } }
@@ -93,7 +93,9 @@ namespace AAEmu.Game.Models.Game.Housing
                 {
                     foreach (var doodad in AttachedDoodads)
                         if (doodad.ObjId > 0)
+                        {
                             ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+                        }
 
                     AttachedDoodads.Clear();
                 }
@@ -135,19 +137,25 @@ namespace AAEmu.Game.Models.Game.Housing
         public void AddBuildAction()
         {
             if (CurrentStep == -1)
+            {
                 return;
+            }
 
             lock (_lock)
             {
                 var nextAction = NumAction + 1;
                 if (Template.BuildSteps[CurrentStep].NumActions > nextAction)
+                {
                     NumAction = nextAction;
+                }
                 else
                 {
                     NumAction = 0;
                     var nextStep = CurrentStep + 1;
                     if (Template.BuildSteps.Count > nextStep)
+                    {
                         CurrentStep = nextStep;
+                    }
                     else
                     {
                         CurrentStep = -1;
@@ -169,7 +177,10 @@ namespace AAEmu.Game.Models.Game.Housing
             // Detach children that aren't part of the house itself
             foreach (var doodad in AttachedDoodads)
                 if (doodad.AttachPoint == AttachPointKind.None)
+                {
                     doodad.Transform.Parent = null;
+                }
+
             base.Delete();
         }
 
@@ -232,9 +243,15 @@ namespace AAEmu.Game.Models.Game.Housing
         public bool Save(MySqlConnection connection, MySqlTransaction transaction = null)
         {
             if (!IsDirty)
+            {
                 return false;
+            }
+
             if ((AccountId <= 0) || (OwnerId <= 0))
+            {
                 return false; // recently destroyed/expired house
+            }
+
             using (var command = connection.CreateCommand())
             {
                 command.Connection = connection;
@@ -325,14 +342,23 @@ namespace AAEmu.Game.Models.Game.Housing
         public override bool AllowedToInteract(Character player)
         {
             if (Template.AlwaysPublic)
+            {
                 return base.AllowedToInteract(player);
+            }
+
             if (CurrentStep != -1) // unfinished houses can't be used to private store, so always true
+            {
                 return base.AllowedToInteract(player);
+            }
+
             switch (Permission)
             {
                 case HousingPermission.Private:
                     if (player.Id != OwnerId)
+                    {
                         return base.AllowedToInteract(player);
+                    }
+
                     var ownerAccount = NameManager.Instance.GetCharaterAccount(OwnerId);
                     return (player.AccountId == ownerAccount) && base.AllowedToInteract(player);
                 case HousingPermission.Family when (player.Family != CoOwnerId):

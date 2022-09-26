@@ -50,16 +50,22 @@ public class WaterBodyArea
     {
         // First do a check in 2D top view
         if (!Contains(point.X, point.Y))
+        {
             return false;
-        
+        }
+
         // If it's in withing the shape, check the height (assumes shape is flat)
         // Is it above the estimated water ?
         if (point.Z > _heighest + Height)
+        {
             return false;
+        }
 
         // Is it below the estimated water ?
         if (point.Z < _lowest)
+        {
             return false;
+        }
 
         // So I guess it's in the water then
         return true;
@@ -104,19 +110,35 @@ public class WaterBodyArea
             else
             {
                 if (point.X < xMin)
+                {
                     xMin = point.X;
+                }
+
                 if (point.X > xMax)
+                {
                     xMax = point.X;
+                }
+
                 if (point.Y < yMin)
+                {
                     yMin = point.Y;
+                }
+
                 if (point.Y > yMax)
+                {
                     yMax = point.Y;
-                
+                }
+
                 // Z
                 if (point.Z > _heighest)
+                {
                     _heighest = point.Z;
+                }
+
                 if (point.Z < _lowest)
+                {
                     _lowest = point.Z;
+                }
             }
         }
         _boundingBox = new RectangleF(xMin, yMin, xMax - xMin, yMax - yMin);
@@ -146,8 +168,15 @@ public class WaterBodyArea
         // of our line 1 and in that case no intersection is possible. Careful, 
         // 0 is a special case, that's why we don't test ">=" and "<=", 
         // but "<" and ">".
-        if (d1 > 0 && d2 > 0) return false;
-        if (d1 < 0 && d2 < 0) return false;
+        if (d1 > 0 && d2 > 0)
+        {
+            return false;
+        }
+
+        if (d1 < 0 && d2 < 0)
+        {
+            return false;
+        }
 
         // The fact that vector 2 intersected the infinite line 1 above doesn't 
         // mean it also intersects the vector 1. Vector 1 is only a subset of that
@@ -165,13 +194,23 @@ public class WaterBodyArea
 
         // Again, if both have the same sign (and neither one is 0),
         // no intersection is possible.
-        if (d1 > 0 && d2 > 0) return false;
-        if (d1 < 0 && d2 < 0) return false;
+        if (d1 > 0 && d2 > 0)
+        {
+            return false;
+        }
+
+        if (d1 < 0 && d2 < 0)
+        {
+            return false;
+        }
 
         // If we get here, only two possibilities are left. Either the two
         // vectors intersect in exactly one point or they are collinear, which
         // means they intersect in any number of points from zero to infinite.
-        if ((a1 * b2) - (a2 * b1) == 0.0f) return false; // COLLINEAR;
+        if ((a1 * b2) - (a2 * b1) == 0.0f)
+        {
+            return false; // COLLINEAR;
+        }
 
         // If they are not collinear, they must intersect in exactly one point.
         return true;
@@ -183,7 +222,9 @@ public class WaterBodyArea
 
         // Very rough test for better speed
         if (!_boundingBox.Contains(x, y))
+        {
             return false;
+        }
 
         // Test the ray against all sides
         var intersections = 0;
@@ -197,7 +238,9 @@ public class WaterBodyArea
             // Test if current side intersects with ray.
             // If yes, intersections++;
             if (AreLinesIntersecting(rayStart, rayEnd, sideStart, sideEnd))
+            {
                 intersections++;
+            }
         }
 
         return ((intersections & 1) == 1);

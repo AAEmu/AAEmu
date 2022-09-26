@@ -1,5 +1,4 @@
 ﻿using AAEmu.Commons.Network;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.DoodadObj;
 
@@ -8,9 +7,9 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCDoodadsCreatedPacket : GamePacket
     {
         private readonly Doodad[] _doodads;
-        public const int MaxCountPerPacket = 30; // Suggested Maximum Size
+        public const int MaxCountPerPacket = 400; // Suggested Maximum Size
 
-        public SCDoodadsCreatedPacket(Doodad[] doodads) : base(SCOffsets.SCDoodadsCreatedPacket, 1)
+        public SCDoodadsCreatedPacket(Doodad[] doodads) : base(SCOffsets.SCDoodadsCreatedPacket, 5)
         {
             _doodads = doodads;
         }

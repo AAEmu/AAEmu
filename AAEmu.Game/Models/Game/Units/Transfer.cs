@@ -719,6 +719,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
 
             if ((current < transfer.Template.TransferAllPaths.Count) && (next < transfer.Template.TransferAllPaths.Count))
+            {
                 if (transfer.Template.TransferAllPaths[current].WaitTimeEnd > 0 || transfer.Template.TransferAllPaths[next].WaitTimeStart > 0)
                 {
                     // за несколько (3 ?) точек до конца участка будем тормозить
@@ -733,6 +734,7 @@ namespace AAEmu.Game.Models.Game.Units
                         return true;
                     }
                 }
+            }
 
             if (transfer.velAccel < 0)
             {

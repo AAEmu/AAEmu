@@ -53,6 +53,8 @@ namespace AAEmu.Game.Models.Game.NPChar
     {
         public uint Id { get; set; }
         public string Name { get; set; }
+        public bool NpcOnly { get; set; }
+        public uint OwnerTypeId { get; set; }
         public int CharRaceId { get; set; }
         public NpcGradeType NpcGradeId { get; set; }
         public NpcKindType NpcKindId { get; set; }
@@ -125,6 +127,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public uint MerchantPackId { get; set; }
 
         public uint HairId { get; set; }
+        public uint HornId { get; set; }
         public UnitCustomModelParams ModelParams { get; set; }
         public EquipItemsTemplate Items { get; set; }
         public (uint ItemId, bool NpcOnly)[] BodyItems { get; set; }
@@ -138,6 +141,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public NpcTemplate()
         {
             HairId = 0;
+            HornId = 0;
             Items = new EquipItemsTemplate();
             ModelParams = new UnitCustomModelParams();
             BodyItems = new (uint, bool)[7];
@@ -152,8 +156,10 @@ namespace AAEmu.Game.Models.Game.NPChar
             foreach (var skill in skills)
             {
                 if (!Skills.ContainsKey(skill.SkillUseCondition))
+                {
                     Skills.Add(skill.SkillUseCondition, new List<NpcSkill>());
-                
+                }
+
                 Skills[skill.SkillUseCondition].Add(skill);
             }
         }
