@@ -388,11 +388,11 @@
         // эти опкоды для версии 3030 отсутствуют в x2game.dll
         public const ushort CSAcceptCheatQuestContextPacket = 0xfff;
         public const ushort CSAllowHousingRecoverPacket = 0xfff;
-        public const ushort CSBidAuctionPacket = 0xfff;
+        //public const ushort CSBidAuctionPacket = 0xfff;
         public const ushort CSBuyCoinItemPacket = 0xfff;
         public const ushort CSBuyPriestBuffPacket = 0xfff;
         public const ushort CSBuySpecialtyItemPacket = 0xfff;
-        public const ushort CSCancelAuctionPacket = 0xfff;
+        //public const ushort CSCancelAuctionPacket = 0xfff;
         public const ushort CSChangeDoodadPhasePacket = 0xfff;
         public const ushort CSChangeExpeditionMemberRolePacket = 0xfff;
         public const ushort CSChangeExpeditionOwnerPacket = 0xfff;

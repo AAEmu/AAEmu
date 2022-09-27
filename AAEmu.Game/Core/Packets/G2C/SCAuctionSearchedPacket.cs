@@ -34,10 +34,10 @@ namespace AAEmu.Game.Core.Packets.G2C
             {
                 foreach (var item in _auctionItems)
                 {
-                    stream.Write(item.ID);
+                    stream.Write(item.Id);
                     stream.Write(item.Duration);
-                    stream.Write(item.ItemID);
-                    stream.Write(item.ObjectID);
+                    stream.Write(item.ItemId);
+                    stream.Write(item.ObjectId);
                     stream.Write(item.Grade);
                     stream.Write((byte)item.Flags);
                     stream.Write(item.StackSize);
@@ -55,7 +55,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(item.DirectMoney);
                     var offset = (ulong)random.Next(0, 10); //Adds offset to timeleft to prevent client from guessing it. 
                     stream.Write(item.TimeLeft + offset);
-                    stream.Write(item.BidWorldID);
+                    stream.Write(item.BidWorldId);
                     stream.Write(item.BidderId);
                     stream.Write(item.BidderName);
                     stream.Write(item.BidMoney);

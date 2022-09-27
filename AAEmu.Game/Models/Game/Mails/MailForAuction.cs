@@ -15,10 +15,10 @@ namespace AAEmu.Game.Models.Game.Mails
         private uint _sellerId;
         private Item _item;
         private string _itemName;
-        private int _itemBuyoutPrice;
+        private uint _itemBuyoutPrice;
         private int _sellerShare;
         private int _listingFee;
-        private int _tradeTaxFee;
+        private uint _tradeTaxFee;
 
         public static string AuctionName = "Auctioneer";
         // TODO: verify title names
@@ -30,7 +30,7 @@ namespace AAEmu.Game.Models.Game.Mails
 
         // Mail examples for 1.2
 
-        public MailForAuction(Item itemToSell, uint sellerId, int buyoutPrice, int listingFee) : base()
+        public MailForAuction(Item itemToSell, uint sellerId, uint buyoutPrice, int listingFee) : base()
         {
             _buyerId = 0;
             _sellerId = sellerId;
@@ -56,7 +56,7 @@ namespace AAEmu.Game.Models.Game.Mails
         /// <param name="sellerId"></param>
         /// <param name="buyoutPrice"></param>
         /// <param name="listingFee"></param>
-        public MailForAuction(uint itemTemplateIdToSell, uint sellerId, int buyoutPrice, int listingFee) : base()
+        public MailForAuction(uint itemTemplateIdToSell, uint sellerId, uint buyoutPrice, int listingFee) : base()
         {
             _buyerId = 0;
             _sellerId = sellerId;
@@ -109,7 +109,7 @@ namespace AAEmu.Game.Models.Game.Mails
         /// Prepare mail for the person selling the item
         /// </summary>
         /// <returns></returns>
-        public bool FinalizeForSaleSeller(int sellerShare, int tradeTaxFee)
+        public bool FinalizeForSaleSeller(int sellerShare, uint tradeTaxFee)
         {
             // /testmail 14 .auctionOffSuccess AHBuy "body('My Sold Item',7, 364000, 400000, 40000, 4000)"
             _sellerShare = sellerShare;
@@ -198,7 +198,7 @@ namespace AAEmu.Game.Models.Game.Mails
         /// Prepare mail for the person who was outbid
         /// </summary>
         /// <returns></returns>
-        public bool FinalizeForBidFail(uint previousBuyerId, int previousBid)
+        public bool FinalizeForBidFail(uint previousBuyerId, uint previousBid)
         {
             // /testmail 17 .auctionBidFail AHBidFail "body('My Sold Item')"
             _buyerId = previousBuyerId;
@@ -218,7 +218,7 @@ namespace AAEmu.Game.Models.Game.Mails
 
             Body.Text = string.Format("body('{0}')", _itemName);
 
-            AttachMoney(previousBid);
+            AttachMoney((int)previousBid);
 
             return true;
         }

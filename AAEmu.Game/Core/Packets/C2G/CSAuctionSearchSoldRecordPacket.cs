@@ -5,19 +5,20 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
-    public class CSAuctionLowestPricePacket : GamePacket
+    public class CSAuctionSearchSoldRecordPacket : GamePacket
     {
-        public CSAuctionLowestPricePacket() : base(CSOffsets.CSAuctionLowestPricePacket, 5)
+        public CSAuctionSearchSoldRecordPacket() : base(CSOffsets.CSAuctionSearchSoldRecordPacket, 5)
         {
         }
 
         public override void Read(PacketStream stream)
         {
-            var npcObjId = stream.ReadBc();
             var itemTemplateId = stream.ReadUInt32();
             var itemGrade = stream.ReadByte();
 
-            Connection.ActiveChar.SendPacket(new SCAuctionLowestPricePacket(itemTemplateId, itemGrade));
+            var cheapestItem = AuctionManager.Instance.GetCheapestAuctionItem(itemTemplateId);
+
+            Connection.ActiveChar.SendPacket(new SCAuctionSoldRecordPacket(cheapestItem));
 
         }
     }

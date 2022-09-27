@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Managers
 //            Fsets.Set(Feature.houseSale, true);
 
             // Disables Auction Button
-            // Fsets.Set(Feature.hudAuctionButton, false);
+            Fsets.Set(Feature.hudAuctionButton, true);
 
             // Enable the Nations UI menu
 //            Fsets.Set(Feature.nations, true);
@@ -33,7 +33,7 @@ namespace AAEmu.Game.Core.Managers
 //            Fsets.Set(Feature.allowFamilyChanges, true);
 
             // Disables Dwarf/Warborn character creation (0.5 only)
-//            Fsets.Set(Feature.dwarfWarborn, true);
+            Fsets.Set(Feature.dwarfWarborn, true);
 
             // Debug convenience flags, disables most of the sensitive operation stuff to do easier testing
 //            Fsets.Set(Feature.sensitiveOpeartion, false);

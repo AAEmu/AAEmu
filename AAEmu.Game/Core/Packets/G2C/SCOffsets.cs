@@ -695,7 +695,7 @@
         public const ushort SCGotMailPacket = 0x142;
         public const ushort SCChargeMoneyPaidPacket = 0x174;
         public const ushort SCAuctionSearchedPacket = 0x064;
-        public const ushort SCAuctionPacket = 0x072;
+        public const ushort SCAuctionLowestPricePacket = 0x072;
         public const ushort SCAuctionMessagePacket = 0x1F0;
         public const ushort SCGimmickMovementPacket = 0x1BA;
         public const ushort SCQuestContextStartedPacket = 0x2BD;
@@ -759,7 +759,7 @@
         public const ushort SCChangeJuryVerdictCountPacket = 0xfff;
         public const ushort SCTrialAudienceJoinedPacket = 0xfff;
         public const ushort SCTrialAudienceLeftPacket = 0xfff;
-        public const ushort SCAuctionLowestPricePacket = 0xfff;
+        //public const ushort SCAuctionLowestPricePacket = 0xfff; // SCAuctionPacket
         public const ushort SCSkillUpgradedPacket = 0xfff;
         public const ushort SCTrialCancledPacket = 0xfff;
         public const ushort SCExpeditionRoleChangedPacket = 0xfff;

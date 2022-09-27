@@ -82,6 +82,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.SendOption(5);
 
                 Connection.ActiveChar.Buffs.AddBuff((uint)BuffConstants.LoggedOn, Connection.ActiveChar);
+                Connection.ActiveChar.Buffs.AddBuff((uint)BuffConstants.Patron, Connection.ActiveChar);
+                Connection.ActiveChar.Buffs.AddBuff((uint)BuffConstants.AuctionLicense, Connection.ActiveChar);
 
                 Connection.ActiveChar.OnZoneChange(0, Connection.ActiveChar.Transform.ZoneId);
             }

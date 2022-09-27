@@ -4,9 +4,9 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
-    public class CSBidAuctionPacket : GamePacket
+    public class CSAuctionCancelPacket : GamePacket
     {
-        public CSBidAuctionPacket() : base(CSOffsets.CSBidAuctionPacket, 5)
+        public CSAuctionCancelPacket() : base(CSOffsets.CSAuctionCancelPacket, 5)
         {
         }
 
@@ -36,19 +36,13 @@ namespace AAEmu.Game.Core.Packets.C2G
             var directMoney = stream.ReadUInt32();
             var timeLeft = stream.ReadUInt64();
             var bidWorld = stream.ReadByte();
-            var type3 = stream.ReadUInt32(); 
+            var type3 = stream.ReadUInt32();
             var bidderName = stream.ReadString();
             var bidMoney = stream.ReadUInt32();
             var extra = stream.ReadUInt32();
+            var player = Connection.ActiveChar;
 
-            var typeBid = stream.ReadUInt64();
-            var biddingWorldID = stream.ReadByte();
-            var typeBid2 = stream.ReadUInt32();
-            var name = stream.ReadString();
-            var bid = stream.ReadInt32();
-
-
-            AuctionManager.Instance.BidOnAuctionItem(Connection.ActiveChar, auctionId, bid);
+            AuctionManager.Instance.CancelAuctionItem(player, auctionId);
         }
     }
 }
