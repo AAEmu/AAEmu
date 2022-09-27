@@ -63,6 +63,7 @@ namespace AAEmu.Game.Scripts.Commands
             Register(new WaterEditDowngradeSubCommand(), "downgrade");
             Register(new WaterEditOffsetSubCommand(), "offset");
             Register(new WaterEditShowSurfaceSubCommand(), "showsurface");
+            Register(new WaterEditSplitRiverSubCommand(), "splitriver", "split");
         }
         
         public void OnLoad()
