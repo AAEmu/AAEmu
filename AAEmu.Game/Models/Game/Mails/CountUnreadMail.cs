@@ -38,16 +38,16 @@ namespace AAEmu.Game.Models.Game.Mails
         {
             if ((mailType == MailType.Charged) || (mailType == MailType.Promotion))
             {
-                CommercialReceived += amount;
+                TotalCommercialReceived += amount;
             }
             else
             if (mailType == MailType.MiaRecv)
             {
-                MiaReceived += amount;
+                TotalMiaReceived += amount;
             }
             else
             {
-                Received += amount;
+                TotalReceived += amount;
             }
         }
         
