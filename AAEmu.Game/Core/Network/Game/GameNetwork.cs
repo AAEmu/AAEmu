@@ -289,7 +289,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSPremiumServiceListPacket, 1, typeof(CSPremiumServiceListPacket));
             // 0x137 CSICSBuyAAPointPacket
             // 0x138 CSRequestTencentFatigueInfoPacket
-            // 0x139 CSTakeAllAttachmentItemPacket
+            RegisterPacket(CSOffsets.CSTakeAllAttachmentItemPacket, 1, typeof(CSTakeAllAttachmentItemPacket));
             // 0x13a unk packet
             // 0x13b unk packet
             RegisterPacket(CSOffsets.CSPremiumServieceMsgPacket, 1, typeof(CSPremiumServieceMsgPacket));
