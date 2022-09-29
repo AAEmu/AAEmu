@@ -271,7 +271,7 @@
         public const ushort CSPremiumServiceListPacket = 0x136;
         // 0x137 CSICSBuyAAPointPacket
         // 0x138 CSRequestTencentFatigueInfoPacket
-        // 0x139 CSTakeAllAttachmentItemPacket
+        public const ushort CSTakeAllAttachmentItemPacket = 0x139;
         // 0x13a unk packet
         // 0x13b unk packet
         public const ushort CSPremiumServieceMsgPacket = 0x13c;
