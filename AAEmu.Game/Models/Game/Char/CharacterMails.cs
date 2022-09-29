@@ -24,6 +24,7 @@ namespace AAEmu.Game.Models.Game.Char
                 TotalMiaReceived = 0,
                 TotalCommercialReceived = 0
             };
+            unreadMailCount.ResetReceived();
         }
 
         public void OpenMailbox(byte mailBoxListKind)
@@ -54,7 +55,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 if ((mail.Header.Status == MailStatus.Unread) && !isSent)
                 {
-                    unreadMailCount.TotalReceived -= 1;
+                    unreadMailCount.UpdateReceived(mail.MailType, -1);
                     mail.OpenDate = DateTime.UtcNow;
                     mail.Header.Status = MailStatus.Read;
                     mail.IsDelivered = true;
@@ -126,8 +127,9 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        public void GetAttached(long mailId, bool takeMoney, bool takeItems, bool takeAllSelected, ulong specifiedItemId = 0)
+        public bool GetAttached(long mailId, bool takeMoney, bool takeItems, bool takeAllSelected, ulong specifiedItemId = 0)
         {
+            var res = true;
             if (MailManager.Instance._allPlayerMails.TryGetValue(mailId, out var thisMail))
             {
                 var tookMoney = false;
@@ -206,6 +208,7 @@ namespace AAEmu.Game.Models.Game.Char
                             {
                                 // Bag Full
                                 Self.SendErrorMessage(ErrorMessageType.BagFull);
+                                res = false;
                             }
                         }
                     }
@@ -223,6 +226,7 @@ namespace AAEmu.Game.Models.Game.Char
                 {
                     Self.SendPacket(new SCMailAttachmentTakenPacket(mailId, true, false, takeAllSelected, new List<ItemIdAndLocation>()));
                 }
+                
                 // Items
                 if (itemSlotList.Count > 0)
                 {
@@ -240,20 +244,23 @@ namespace AAEmu.Game.Models.Game.Char
                         Self.SendPacket(new SCMailAttachmentTakenPacket(mailId, takeMoney, false, takeAllSelected, dummyItemSlotList));
                     }
                 }
+                
                 // Mark mail as read in case we took at least one item from it
                 if ((thisMail.Header.Status == MailStatus.Unread) && (tookMoney || (itemSlotList.Count > 0)))
                 {
                     thisMail.Header.Status = MailStatus.Read;
-                    unreadMailCount.TotalReceived--;
+                    unreadMailCount.UpdateReceived(thisMail.MailType, -1);
                     Self.SendPacket(new SCMailStatusUpdatedPacket(false, mailId, MailStatus.Read));
                     SendUnreadMailCount();
                 }
 
                 // TODO: Make sure attachment settings and mail info is sent back correctly 
-                // taking all attachements sometimes doesn't enable the delete button when getting attachments using "GetAllSelected"
+                // taking all attachments sometimes doesn't enable the delete button when getting attachments using "GetAllSelected"
 
                 // TODO: if source player is online, update their mail info (sent tab)
             }
+
+            return res;
         }
 
         public void DeleteMail(long id, bool isSent)
@@ -264,7 +271,7 @@ namespace AAEmu.Game.Models.Game.Char
                 {
                     if (MailManager.Instance._allPlayerMails[id].Header.Status != MailStatus.Read)
                     {
-                        unreadMailCount.TotalReceived--;
+                        unreadMailCount.UpdateReceived(MailManager.Instance._allPlayerMails[id].MailType, -1);
                         Self.SendPacket(new SCMailDeletedPacket(isSent, id, true, unreadMailCount));
                     }
                     else

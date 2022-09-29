@@ -314,14 +314,16 @@ namespace AAEmu.Game.Core.Managers
         public Dictionary<long, BaseMail> GetCurrentMailList(Character character)
         {
             var tempMails = _allPlayerMails.Where(x => x.Value.Body.RecvDate <= DateTime.UtcNow && (x.Value.Header.ReceiverId == character.Id || x.Value.Header.SenderId == character.Id)).ToDictionary(x => x.Key, x => x.Value);
-            character.Mails.unreadMailCount.TotalReceived = 0;
+            character.Mails.unreadMailCount.ResetReceived();
             foreach (var mail in tempMails)
             {
                 //if ((mail.Value.Header.Status != MailStatus.Read) && (mail.Value.Header.SenderId != character.Id))
                 if (mail.Value.Header.Status != MailStatus.Read)
                 {
-                    character.Mails.unreadMailCount.TotalReceived += 1;
-                    character.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.unreadMailCount, false, null));
+                    character.Mails.unreadMailCount.UpdateReceived(mail.Value.MailType, 1);
+                    var addBody = (mail.Value.MailType == MailType.Charged);
+
+                    character.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.unreadMailCount, false, addBody ? mail.Value.Body : null));
                     mail.Value.IsDelivered = true;
                 }
             }
@@ -330,15 +332,18 @@ namespace AAEmu.Game.Core.Managers
 
         public bool NotifyNewMailByNameIfOnline(BaseMail m, string receiverName)
         {
-            _log.Trace("NotifyNewMailByNameIfOnline() - {0}", receiverName);
+            _log.Trace($"NotifyNewMailByNameIfOnline() - {receiverName}");
             // If unread and ready to deliver
             if ((m.Header.Status != MailStatus.Read) && (m.Body.RecvDate <= DateTime.UtcNow) && (m.IsDelivered == false))
             {
                 var player = WorldManager.Instance.GetCharacter(receiverName);
                 if (player != null)
                 {
-                    player.Mails.unreadMailCount.TotalReceived++;
-                    player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.unreadMailCount, false, null));
+                    // TODO: Mia mail stuff
+                    var addBody = (m.MailType == MailType.Charged);
+                    player.Mails.unreadMailCount.UpdateReceived(m.MailType, 1);
+                    
+                    player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.unreadMailCount, false, addBody ? m.Body : null));
                     m.IsDelivered = true;
                     return true;
                 }
@@ -348,15 +353,12 @@ namespace AAEmu.Game.Core.Managers
 
         public bool NotifyDeleteMailByNameIfOnline(BaseMail m, string receiverName)
         {
-            _log.Trace("NotifyDeleteMailByNameIfOnline() - {0}", receiverName);
+            _log.Trace($"NotifyDeleteMailByNameIfOnline() - {receiverName}");
             var player = WorldManager.Instance.GetCharacter(receiverName);
             if (player != null)
             {
                 if (m.Header.Status != MailStatus.Read)
-                {
-                    player.Mails.unreadMailCount.TotalReceived--;
-                }
-
+                    player.Mails.unreadMailCount.UpdateReceived(m.MailType, -1);
                 player.SendPacket(new SCMailDeletedPacket(false, m.Id, true, player.Mails.unreadMailCount));
                 return true;
             }
@@ -376,9 +378,7 @@ namespace AAEmu.Game.Core.Managers
                 }
 
             if (delivered > 0)
-            {
-                _log.Debug("{0}/{1} mail(s) delivered", delivered, undeliveredMails.Count);
-            }
+                _log.Debug($"{delivered}/{undeliveredMails.Count} mail(s) delivered");
 
             // TODO: Return expired mails back to owner if undelivered/unread
         }
@@ -484,7 +484,7 @@ namespace AAEmu.Game.Core.Managers
                 if (mail.Header.Status != MailStatus.Read)
                 {
                     mail.Header.Status = MailStatus.Read;
-                    character.Mails.unreadMailCount.TotalReceived--;
+                    character.Mails.unreadMailCount.UpdateReceived(mail.MailType, -1);
                 }
 
                 character.SendPacket(new SCChargeMoneyPaidPacket(mail.Id));

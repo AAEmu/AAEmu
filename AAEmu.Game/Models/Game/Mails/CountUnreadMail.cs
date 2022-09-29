@@ -26,5 +26,30 @@ namespace AAEmu.Game.Models.Game.Mails
 
             return stream;
         }
+
+        public void ResetReceived()
+        {
+            TotalReceived = 0;
+            TotalMiaReceived = 0;
+            TotalCommercialReceived = 0;
+        }
+
+        public void UpdateReceived(MailType mailType, int amount)
+        {
+            if ((mailType == MailType.Charged) || (mailType == MailType.Promotion))
+            {
+                CommercialReceived += amount;
+            }
+            else
+            if (mailType == MailType.MiaRecv)
+            {
+                MiaReceived += amount;
+            }
+            else
+            {
+                Received += amount;
+            }
+        }
+        
     }
 }
