@@ -89,8 +89,7 @@ namespace AAEmu.Game.Core.Managers
         }
 
         [Obsolete("SendMail() is deprecated. Use Send() of a BaseMail descendant instead.")]
-        public void SendMail(MailType type, string receiverName, string senderName, string title, string text,
-            byte attachments, int[] moneyAmounts, long extra, List<Item> items)
+        public void SendMail(MailType type, string receiverName, string senderName, string title, string text, byte attachments, int[] moneyAmounts, long extra, List<Item> items)
         {
             throw new Exception("SendMail is deprecated, use BaseMail.Send() instead");
         }
@@ -501,7 +500,6 @@ namespace AAEmu.Game.Core.Managers
             houseId = (uint)(extra & 0xFFFFFFFF); // Extract house DB Id from Extra
             zoneGroupId = (ushort)((extra >> 48) & 0xFFFF); // Extract zone group Id from Extra
         }
-
 
         public void DeleteHouseMails(uint houseId)
         {

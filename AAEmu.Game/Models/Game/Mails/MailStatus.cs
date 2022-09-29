@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AAEmu.Game.Models.Game.Mails
+﻿namespace AAEmu.Game.Models.Game.Mails
 {
     public enum MailStatus : byte
     {

@@ -73,7 +73,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public bool SendMailToPlayer(MailType mailType, string receiverName, string title, string text, byte attachments, int money0, int money1, int money2, long extra, List<(Items.SlotType, byte)> itemSlots)
         {
-            var mail = new MailPlayerToPlayer(Self,receiverName);
+            var mail = new MailPlayerToPlayer(Self, receiverName);
 
             mail.MailType = mailType;
             mail.Title = title;

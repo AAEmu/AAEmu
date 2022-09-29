@@ -32,22 +32,28 @@ namespace AAEmu.Game.Models.Game.Mails
             TotalReceived = 0;
             TotalMiaReceived = 0;
             TotalCommercialReceived = 0;
+            UnreadReceived = 0;
+            UnreadMiaReceived = 0;
+            UnreadCommercialReceived = 0;
         }
 
         public void UpdateReceived(MailType mailType, int amount)
         {
-            if ((mailType == MailType.Charged) || (mailType == MailType.Promotion))
+            if (mailType == MailType.Charged || mailType == MailType.Promotion)
             {
                 TotalCommercialReceived += amount;
+                UnreadCommercialReceived += amount;
             }
             else
             if (mailType == MailType.MiaRecv)
             {
                 TotalMiaReceived += amount;
+                UnreadMiaReceived += amount;
             }
             else
             {
                 TotalReceived += amount;
+                UnreadReceived += amount;
             }
         }
         

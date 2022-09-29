@@ -322,7 +322,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSDeleteMailPacket, 5, typeof(CSDeleteMailPacket));
             RegisterPacket(CSOffsets.CSReportSpamPacket, 5, typeof(CSReportSpamPacket));
             RegisterPacket(CSOffsets.CSReturnMailPacket, 5, typeof(CSReturnMailPacket));
-            //RegisterPacket(CSOffsets.CSTakeAllAttachmentItemPacket, 5, typeof(CSTakeAllAttachmentItemPacket));
+            RegisterPacket(CSOffsets.CSTakeAllAttachmentItemPacket, 5, typeof(CSTakeAllAttachmentItemPacket));
             RegisterPacket(CSOffsets.CSTakeAttachmentItemPacket, 5, typeof(CSTakeAttachmentItemPacket));
             RegisterPacket(CSOffsets.CSActiveWeaponChangedPacket, 5, typeof(CSActiveWeaponChangedPacket));
             //RegisterPacket(CSOffsets.CSUnknown0x0d8Packet, 5, typeof(CSUnknown0x0d8Packet));
