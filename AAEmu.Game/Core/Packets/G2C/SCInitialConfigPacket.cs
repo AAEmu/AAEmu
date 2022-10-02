@@ -70,7 +70,11 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             // TODO 0x3E, 0x32, 0x0F, 0x0F, 0x79, 0x00, 0x33
 
-            stream.Write(0); // count
+            stream.Write(0); // count // candidatelist.lua
+            /*
+             * local retrieveCount = X2:GetCandidateOnceRetrieveCount()
+             * x2ui\baselib
+            */
 
             stream.Write(0); // initLp
             stream.Write(false); // canPlaceHouse

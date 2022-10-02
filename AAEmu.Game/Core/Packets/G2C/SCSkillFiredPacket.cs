@@ -51,7 +51,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_target);
             stream.Write(_skillObject);
 
-            stream.Write((short)(ComputedDelay / 10 + 10)); // TODO +10 It became visible flying arrows
+            stream.Write((short)(ComputedDelay / 10 + 10)); // TODO  +10 It became visible flying arrows 
             stream.Write((short)(_skill.Template.ChannelingTime / 10 + 10));
             stream.Write((byte)0); // f - When changed to 1 when firing an auto-casting skill, will make the little blue arrow.
             if (_skill.Template.Id != 2) // TODO: rotate between mainhand and offhand animation?
