@@ -9,7 +9,7 @@ using AAEmu.Commons.Utils;
 
 namespace AAEmu.Commons.Network
 {
-    public sealed class MarshalException : Exception // next: нужно ли оно?
+    public sealed class MarshalException : Exception // next: is it necessary?
     {
     }
 
@@ -164,7 +164,7 @@ namespace AAEmu.Commons.Network
         /// <returns></returns>
         public PacketStream Replace(PacketStream stream, int offset, int count)
         {
-            // убрать мусор оставшейся после копирования из PacketStream stream
+            // remove garbage left after copying from PacketStream stream
             return Replace(stream.Buffer, offset, count);
         }
 
@@ -255,7 +255,7 @@ namespace AAEmu.Commons.Network
             if (Count < to)
                 throw new ArgumentOutOfRangeException(nameof(to));
 
-            // копируем байты с позиции to в позицию from, тем самым затирая то, что между
+            // shift good content to erase
             SBuffer.BlockCopy(Buffer, to, Buffer, from, Count -= to - from);
             return this;
         }
@@ -282,9 +282,9 @@ namespace AAEmu.Commons.Network
         public PacketStream Insert(int offset, byte[] copyArray, int copyArrayOffset, int count)
         {
             Reserve(Count + count);
-            // передвигаем данные с позиции offset до позиции offset + count
+            // move data from position offset to position offset + count
             SBuffer.BlockCopy(Buffer, offset, Buffer, offset + count, Count - offset);
-            // копируем новый массив данных в позицию offset
+            // copy the new data array to position offset
             SBuffer.BlockCopy(copyArray, copyArrayOffset, Buffer, offset, count);
             Count += count;
             return this;
@@ -527,7 +527,7 @@ namespace AAEmu.Commons.Network
         public long[] ReadPisc(int count)
         {
             var result = new long[count];
-            var pish = new BitArray(new[] {ReadByte()});
+            var pish = new BitArray(new byte[] { ReadByte() });
             for (var index = 0; index < count * 2; index += 2)
             {
                 if (pish[index] && pish[index + 1]) // uint
@@ -871,7 +871,7 @@ namespace AAEmu.Commons.Network
         public int CompareTo(object obj)
         {
             if (!(obj is PacketStream stream))
-                throw new ArgumentException("Object is not an PacketStream instance");
+                throw new ArgumentException("Object is not a PacketStream instance");
             var count = Math.Min(Count, stream.Count);
             for (var i = 0; i < count; i++)
             {

@@ -24,7 +24,6 @@ namespace AAEmu.Commons.Network.Core
 
         protected override TcpSession CreateSession() => new Session(this);
 
-
         protected override void OnStarted()
         {
             _logger.Info($"TCP server listening start on {Endpoint}");

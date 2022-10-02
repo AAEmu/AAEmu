@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
@@ -26,7 +25,7 @@ namespace AAEmu.Commons.Network.Core
             Client = client;
             ProtocolHandler = client.GetHandler();
             Ip = client.Endpoint.Address;
-            SessionId = (uint) client.Endpoint.GetHashCode();
+            SessionId = (uint)client.Endpoint.GetHashCode();
         }
 
         protected override void OnConnected()

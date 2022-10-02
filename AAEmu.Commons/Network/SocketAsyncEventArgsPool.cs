@@ -24,9 +24,8 @@ namespace AAEmu.Commons.Network
             {
                 _log.Error("Items added to a SocketAsyncEventArgsPool cannot be null.");
                 throw
-                    new ArgumentNullException(nameof(item)); // Items added to a SocketAsyncEventArgsPool cannot be null
+                    new ArgumentNullException(nameof(item));
             }
-
             _pool.Push(item);
         }
 

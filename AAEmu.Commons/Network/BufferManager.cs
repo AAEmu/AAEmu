@@ -34,7 +34,6 @@ namespace AAEmu.Commons.Network
                     int offset;
                     if (!_freeIndexPool.TryPop(out offset))
                         Console.WriteLine("TryPop from _freeIndexPool ConcurrentStack failed.");
-
                     args.SetBuffer(_buffer, offset, _bufferSize);
                 }
                 else
