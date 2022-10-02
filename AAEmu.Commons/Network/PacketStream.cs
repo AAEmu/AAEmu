@@ -4,13 +4,19 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
+using System.Runtime.Serialization;
 using AAEmu.Commons.Conversion;
 using AAEmu.Commons.Utils;
 
 namespace AAEmu.Commons.Network
 {
-    public sealed class MarshalException : Exception // next: is it necessary?
+    [Serializable]
+    public class MarshalException : Exception
     {
+        public MarshalException() { }
+        public MarshalException(string message) : base(message) { }
+        public MarshalException(string message, Exception inner) : base(message, inner) { }
+        protected MarshalException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 
     /// <summary>
