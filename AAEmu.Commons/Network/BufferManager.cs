@@ -1,11 +1,13 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Net.Sockets;
+using NLog;
 
 namespace AAEmu.Commons.Network
 {
     public class BufferManager
     {
+        private static Logger _log = LogManager.GetCurrentClassLogger();
+        
         private int _numBytes;
         private byte[] _buffer;
         private ConcurrentStack<int> _freeIndexPool;
@@ -33,8 +35,7 @@ namespace AAEmu.Commons.Network
                 {
                     int offset;
                     if (!_freeIndexPool.TryPop(out offset))
-                        Console.WriteLine("TryPop from _freeIndexPool ConcurrentStack failed.");
-
+                        _log.Warn("TryPop from _freeIndexPool ConcurrentStack failed.");
                     args.SetBuffer(_buffer, offset, _bufferSize);
                 }
                 else

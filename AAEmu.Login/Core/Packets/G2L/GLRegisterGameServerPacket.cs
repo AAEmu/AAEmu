@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Controllers;

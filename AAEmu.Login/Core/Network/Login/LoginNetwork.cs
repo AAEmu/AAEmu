@@ -41,7 +41,7 @@ namespace AAEmu.Login.Core.Network.Login
                 config.Host.Equals("*") ? IPAddress.Any : IPAddress.Parse(config.Host), config.Port, _handler);
             _server.Start();
 
-            _log.Info("Network started with Number Connections of: " + config.NumConnections);
+            _log.Info("Network started with Number of Connections: " + config.NumConnections);
         }
 
         public void Stop()
@@ -49,7 +49,7 @@ namespace AAEmu.Login.Core.Network.Login
             if ((_server != null) && (_server.IsStarted))
                 _server.Stop();
 
-            _log.Info("Network stoped");
+            _log.Info("Network stopped");
         }
 
         private void RegisterPacket(uint type, Type classType)

@@ -98,7 +98,7 @@ namespace AAEmu.Commons.Utils.Updater
                         continue; // shouldn't happen here
                     fName = fName.ToLower();
                     if (!fName.Contains(moduleNamePrefix))
-                        continue; // This files is not related to us, ignore (technically shouldn't happen, but add it anyway)
+                        continue; // These files are not related to us, ignore (technically shouldn't happen, but add it anyway)
 
                     command.CommandText = "REPLACE INTO `updates` " +
                                           "(`script_name`,`installed`,`install_date`,`last_error`" +
@@ -263,7 +263,7 @@ namespace AAEmu.Commons.Utils.Updater
             if (filesToRun.Count > 0)
             {
                 Thread.Sleep(1000);
-                Console.WriteLine($"Warning, there are {filesToRun.Count} updates for the database that need to be installed first !");
+                Console.WriteLine($"Warning, there are {filesToRun.Count} updates for the database that need to be installed first!");
                 Console.WriteLine("-----");
                 foreach (var fName in filesToRun)
                 {

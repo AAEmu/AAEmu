@@ -11,7 +11,7 @@ namespace AAEmu.Commons.Utils
             float totalWeight = sequence.Sum(weightSelector);
             // The weight we are after...
             float itemWeightIndex = Rand.NextSingle() * totalWeight;
-            float currentWeightIndex = 0;
+            float currentWeightIndex = 0.0f;
 
             foreach (var item in from weightedItem in sequence
                      select new { Value = weightedItem, Weight = weightSelector(weightedItem) })

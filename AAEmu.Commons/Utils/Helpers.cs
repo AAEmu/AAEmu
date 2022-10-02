@@ -9,13 +9,13 @@ namespace AAEmu.Commons.Utils
 {
     public static class Helpers
     {
-        private static DateTime _unixDate = new DateTime(1970, 1, 1, 0, 0, 0);
         private static Assembly _assembly;
         private static string _exePath;
         private static string _baseDirectory;
 
         public static Assembly Assembly => _assembly ?? (_assembly = Assembly.GetEntryAssembly());
         public static string ExePath => _exePath ?? (_exePath = Assembly.Location);
+        public static bool Is64Bit => Environment.Is64BitOperatingSystem;
 
         public static string BaseDirectory
         {
@@ -26,7 +26,6 @@ namespace AAEmu.Commons.Utils
                     try
                     {
                         _baseDirectory = ExePath;
-
                         if (_baseDirectory.Length > 0)
                             _baseDirectory = Path.GetDirectoryName(_baseDirectory);
                     }
@@ -35,12 +34,9 @@ namespace AAEmu.Commons.Utils
                         _baseDirectory = "";
                     }
                 }
-
                 return _baseDirectory;
             }
         }
-
-        public static readonly bool Is64Bit = Environment.Is64BitOperatingSystem;
 
         public static IEnumerable<Type> GetTypesInNamespace(string nameSpace)
         {
@@ -51,9 +47,9 @@ namespace AAEmu.Commons.Utils
         {
             if (time <= DateTime.MinValue)
                 return 0;
-            if (time < _unixDate)
+            if (time < DateTime.UnixEpoch)
                 return 0;
-            var timeSpan = (time - _unixDate);
+            var timeSpan = (time - DateTime.UnixEpoch);
             return (long)timeSpan.TotalSeconds;
         }
 
@@ -65,28 +61,28 @@ namespace AAEmu.Commons.Utils
             if (time < DateTime.MinValue.Second)
                 return DateTime.MinValue;
             
-            return _unixDate.AddSeconds(time);
+            return DateTime.UnixEpoch.AddSeconds(time);
         }
 
         public static long UnixTimeNow()
         {
-            var timeSpan = (DateTime.UtcNow - _unixDate);
+            var timeSpan = (DateTime.UtcNow - DateTime.UnixEpoch);
             return (long)timeSpan.TotalSeconds;
         }
 
         public static long UnixTimeNowInMilli()
         {
-            var timeSpan = (DateTime.UtcNow - _unixDate);
+            var timeSpan = (DateTime.UtcNow - DateTime.UnixEpoch);
             return (long)timeSpan.TotalMilliseconds;
         }
 
-        [Obsolete("This method is deprecated, is better to use ConvertPosition", false)]
+        [Obsolete("This method is deprecated, it's better to use ConvertPosition", false)]
         public static float ConvertX(byte[] coords)
         {
             return (float)Math.Round(coords[0] * 0.002f + coords[1] * 0.5f + coords[2] * 128, 4, MidpointRounding.ToEven);
         }
 
-        [Obsolete("This method is deprecated, is better to use ConvertPosition", false)]
+        [Obsolete("This method is deprecated, it's better to use ConvertPosition", false)]
         public static byte[] ConvertX(float x)
         {
             var coords = new byte[3];
@@ -99,13 +95,13 @@ namespace AAEmu.Commons.Utils
             return coords;
         }
 
-        [Obsolete("This method is deprecated, is better to use ConvertPosition", false)]
+        [Obsolete("This method is deprecated, it's better to use ConvertPosition", false)]
         public static float ConvertY(byte[] coords)
         {
             return (float)Math.Round(coords[0] * 0.002f + coords[1] * 0.5f + coords[2] * 128, 4, MidpointRounding.ToEven);
         }
 
-        [Obsolete("This method is deprecated, is better to use ConvertPosition", false)]
+        [Obsolete("This method is deprecated, it's better to use ConvertPosition", false)]
         public static byte[] ConvertY(float y)
         {
             var coords = new byte[3];
@@ -118,14 +114,14 @@ namespace AAEmu.Commons.Utils
             return coords;
         }
 
-        [Obsolete("This method is deprecated, is better to use ConvertPosition", false)]
+        [Obsolete("This method is deprecated, it's better to use ConvertPosition", false)]
         public static float ConvertZ(byte[] coords)
         {
             return (float)Math.Round(coords[0] * 0.001f + coords[1] * 0.2561f + coords[2] * 65.5625f - 100, 4,
                 MidpointRounding.ToEven);
         }
 
-        [Obsolete("This method is deprecated, is better to use ConvertPosition", false)]
+        [Obsolete("This method is deprecated, it's better to use ConvertPosition", false)]
         public static byte[] ConvertZ(float z)
         {
             var coords = new byte[3];
@@ -249,7 +245,7 @@ namespace AAEmu.Commons.Utils
 
         public static sbyte ConvertRadianToSbyteDirection(float radian)
         {
-            var z = radian * 0.15915494309189533576888376337251; // values.X / (float)Math.PI * 2; // переводим из радиан в направление
+            var z = radian * 0.15915494309189533576888376337251; // values.X / (float)Math.PI * 2; // convert from radians to direction
 
             var dir = Convert.ToSByte(z * 127f);
 

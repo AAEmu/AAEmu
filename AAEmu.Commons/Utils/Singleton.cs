@@ -18,7 +18,6 @@ namespace AAEmu.Commons.Utils
             get
             {
                 OnInit();
-
                 return _instance;
             }
         }
