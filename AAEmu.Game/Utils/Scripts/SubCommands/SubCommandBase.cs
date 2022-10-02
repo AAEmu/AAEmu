@@ -4,10 +4,9 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Utils.Scripts.SubCommands;
 using NLog;
 
-namespace AAEmu.Game.Utils.Scripts
+namespace AAEmu.Game.Utils.Scripts.SubCommands
 {
     public abstract class SubCommandBase : ICommandV2
     {

@@ -1,7 +1,6 @@
-﻿using System.Collections.Generic;
-using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Utils.Scripts
+namespace AAEmu.Game.Utils.Scripts.SubCommands
 {
     public interface ICommandV2
     {
