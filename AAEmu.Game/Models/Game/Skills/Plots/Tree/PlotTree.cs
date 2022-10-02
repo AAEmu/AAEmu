@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -147,7 +145,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 }
 
                 FlushExecutionQueue(executeQueue, state);
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 _log.Error($"Main Loop Error: {e.Message}\n {e.StackTrace}");
             }
