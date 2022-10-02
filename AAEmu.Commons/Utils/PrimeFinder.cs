@@ -2,7 +2,7 @@
 
 namespace AAEmu.Commons.Utils
 {
-    public class PrimeFinder
+    public static class PrimeFinder
     {
         private static bool _init;
         public static int largestPrime = int.MaxValue;

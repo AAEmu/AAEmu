@@ -2,7 +2,7 @@
 
 namespace AAEmu.Commons.Utils
 {
-    public class Rand
+    public static class Rand
     {
         private static MersenneTwister _random = new MersenneTwister(DateTime.UtcNow.Millisecond);
         private static object _lock = new object();
