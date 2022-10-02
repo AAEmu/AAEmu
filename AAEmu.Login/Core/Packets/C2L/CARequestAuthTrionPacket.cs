@@ -35,7 +35,7 @@ namespace AAEmu.Login.Core.Packets.C2L
 
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
-                _log.Error("RequestAuthTrion: username or password is empty or white space");
+                _log.Error("RequestAuthTrion: username or password is empty or whitespace");
                 return;
             }
 

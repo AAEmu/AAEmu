@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace AAEmu.Commons.Utils
 {
-    public class JsonHelper
+    public static class JsonHelper
     {
         public static T DeserializeObject<T>(string json, params JsonConverter[] converters) => JsonConvert.DeserializeObject<T>(json, converters);
 

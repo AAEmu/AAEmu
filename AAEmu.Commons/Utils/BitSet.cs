@@ -6,35 +6,20 @@ namespace AAEmu.Commons.Utils
     {
         private BitArray _bits;
 
+        public int Count { get; private set; }
+
         public BitSet(int count)
         {
             Count = count;
             _bits = new BitArray(count);
         }
 
-        public int Count { get; private set; }
-
         public bool this[int index] => Get(index);
 
-        public void Clear()
-        {
-            _bits.SetAll(false);
-        }
-
-        public void Clear(int index)
-        {
-            _bits.Set(index, false);
-        }
-
-        public void Set(int index)
-        {
-            _bits.Set(index, true);
-        }
-
-        public bool Get(int index)
-        {
-            return _bits.Get(index);
-        }
+        public void Clear() => _bits.SetAll(false);
+        public void Clear(int index) => _bits.Set(index, false);
+        public void Set(int index) => _bits.Set(index, true);
+        public bool Get(int index) => _bits.Get(index);
 
         public int NextSet(int startFrom)
         {

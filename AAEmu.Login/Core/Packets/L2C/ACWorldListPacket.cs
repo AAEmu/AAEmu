@@ -65,8 +65,8 @@ namespace AAEmu.Login.Core.Packets.L2C
                     stream.Write(character.Name);
                     stream.Write(character.Race);
                     stream.Write(character.Gender);
-                    stream.Write(new byte[16], true); //guid
-                    stream.Write(0L); //v
+                    stream.Write(new byte[16], true); // guid
+                    stream.Write(0L); // v
                 }
             }
             return stream;

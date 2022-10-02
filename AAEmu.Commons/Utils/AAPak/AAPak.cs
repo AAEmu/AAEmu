@@ -43,7 +43,7 @@ namespace AAEmu.Commons.Utils.AAPak
         /// <summary>
         /// Current encryption key
         /// </summary>
-        private byte[] key ;
+        private byte[] key;
         protected static readonly int headerSize = 0x200;
         protected static readonly int fileInfoSize = 0x150;
         /// <summary>
@@ -53,24 +53,24 @@ namespace AAEmu.Commons.Utils.AAPak
 
         public AAPak _owner;
         public int Size = headerSize;
-        public long FirstFileInfoOffset = 0;
-        public long AddFileOffset = 0;
+        public long FirstFileInfoOffset;
+        public long AddFileOffset;
         public byte[] rawData = new byte[headerSize]; // unencrypted header
         public byte[] data = new byte[headerSize]; // decrypted header data
         public bool isValid;
         /// <summary>
         /// Number of used files inside this pak
         /// </summary>
-        public uint fileCount = 0;
+        public uint fileCount;
         /// <summary>
         /// Number of unused "deleted" files inside this pak
         /// </summary>
-        public uint extraFileCount = 0;
+        public uint extraFileCount;
 
         /// <summary>
         /// Empty MD5 Hash to compare against
         /// </summary>
-        public static byte[] nullHash = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        public static byte[] nullHash = new byte[16];
         /// <summary>
         /// Empty MD5 Hash as a hex string to compare against
         /// </summary>

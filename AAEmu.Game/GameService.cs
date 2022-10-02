@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.Updater;
 using AAEmu.Game.IO;
 using AAEmu.Game.Core.Managers;
@@ -17,11 +15,9 @@ using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models;
-using AAEmu.Commons.Models;
 using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
-using System.Linq;
 using AAEmu.Game.Utils.DB;
 using MySQL = AAEmu.Commons.Utils.DB.MySQL;
 
@@ -40,14 +36,14 @@ namespace AAEmu.Game
             {
                 if (connection is null)
                 {
-                    _log.Fatal("Failed up connect to mysql database check version and credentials!");
+                    _log.Fatal("Failed to connect to mysql database check version and credentials!");
                     _log.Fatal("Press Ctrl+C to quit");
                     return;
                 }
                 
                 if (!MySqlDatabaseUpdater.Run(connection, "aaemu_game", AppConfiguration.Instance.Connections.MySQLProvider.Database))
                 {
-                    _log.Fatal("Failed up update database !");
+                    _log.Fatal("Failed to update database!");
                     _log.Fatal("Press Ctrl+C to quit");
                     return;
                 }
@@ -57,7 +53,7 @@ namespace AAEmu.Game
             {
                 if (connection is null)
                 {
-                    _log.Fatal("Failed up load compact.sqlite3 database check if it exists!");
+                    _log.Fatal("Failed to load compact.sqlite3 database check if it exists!");
                     _log.Fatal("Press Ctrl+C to quit");
                     return;
                 }
@@ -221,7 +217,7 @@ namespace AAEmu.Game
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _log.Info("Stopping daemon ...");
+            _log.Info("Stopping daemon...");
 
             SaveManager.Instance.Stop();
 
@@ -247,7 +243,7 @@ namespace AAEmu.Game
 
         public void Dispose()
         {
-            _log.Info("Disposing ...");
+            _log.Info("Disposing...");
 
             LogManager.Flush();
         }

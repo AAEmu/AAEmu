@@ -21,7 +21,7 @@ namespace AAEmu.Login.Core.Network.Login
 
         public override void OnConnect(Session session)
         {
-            _log.Info("Connect from {0} established, session id: {1}", session.Ip.ToString(), session.SessionId.ToString());
+            _log.Info("Connection from {0} established, session id: {1}", session.Ip.ToString(), session.SessionId.ToString());
             try
             {
                 var con = new LoginConnection(session);
@@ -39,7 +39,7 @@ namespace AAEmu.Login.Core.Network.Login
         {
             if (session is null)
             {
-                _log.Error("Unexpected Session is null");
+                _log.Error("Unexpected null Session");
                 return;
             }
             try
