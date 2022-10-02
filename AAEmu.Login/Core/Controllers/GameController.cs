@@ -62,7 +62,7 @@ namespace AAEmu.Login.Core.Controllers
 
                 if (_gameServers.Count <= 0)
                 {
-                    _log.Fatal("No servers have been defined in the game_servers table !");
+                    _log.Fatal("No servers have been defined in the game_servers table!");
                     return;
                 }
             }
@@ -74,7 +74,7 @@ namespace AAEmu.Login.Core.Controllers
         {
             if (!_gameServers.ContainsKey(gsId))
             {
-                _log.Error("GameServer connection from {0} is requesting a invalid WorldId {1}", connection.Ip, gsId);
+                _log.Error("GameServer connection from {0} is requesting an invalid WorldId {1}", connection.Ip, gsId);
 
                 Task.Run(() =>
                     SendPacketWithDelay(connection, 5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)));

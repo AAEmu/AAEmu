@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Login.Models;
-using AAEmu.Login.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -45,7 +44,7 @@ namespace AAEmu.Login
             {
                 MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 _log.Fatal("MySQL configuration could not be loaded !");
                 return;
