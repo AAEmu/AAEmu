@@ -15,7 +15,7 @@ namespace AAEmu.Commons.Utils
 
         public static Assembly Assembly => _assembly ?? (_assembly = Assembly.GetEntryAssembly());
         public static string ExePath => _exePath ?? (_exePath = Assembly.Location);
-        public static bool Is64Bit => Environment.Is64BitOperatingSystem;
+        public static readonly bool Is64Bit = Environment.Is64BitOperatingSystem;
 
         public static string BaseDirectory
         {
@@ -37,8 +37,6 @@ namespace AAEmu.Commons.Utils
                 return _baseDirectory;
             }
         }
-
-        public static readonly bool Is64Bit = Environment.Is64BitOperatingSystem;
 
         public static IEnumerable<Type> GetTypesInNamespace(Assembly sourceAssembly, string nameSpace)
         {
