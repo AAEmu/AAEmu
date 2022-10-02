@@ -67,7 +67,11 @@ namespace AAEmu.Game.Models.Game.NPChar
         /// <returns></returns>
         public override Npc Spawn(uint objId)
         {
-            DoSpawnSchedule(false); // show one Npc
+            if (DoSpawnSchedule())
+            {
+                return null; // if npcs are delayed to show later
+            }
+            DoSpawn(); // show one Npc
             return _lastSpawn;
         }
 
