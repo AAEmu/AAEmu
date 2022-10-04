@@ -29,7 +29,6 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void Execute(Character character, string[] args)
         {
-            
             if (!NpcManager.Instance.Exist(DUMMY_NPC_TEMPLATE_ID))
             {
                 character.SendMessage("|cFFFF0000[Dummy] Dummy NPC does not exist|r");
