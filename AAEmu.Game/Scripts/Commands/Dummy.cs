@@ -1,10 +1,7 @@
-﻿using System.Text;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Utils;
 
@@ -32,7 +29,6 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void Execute(Character character, string[] args)
         {
-            float angle;
             
             if (!NpcManager.Instance.Exist(DUMMY_NPC_TEMPLATE_ID))
             {
@@ -41,7 +37,7 @@ namespace AAEmu.Game.Scripts.Commands
             }
 
             var spawnPos = character.Transform.CloneDetached();
-            spawnPos.Local.AddDistanceToFront(3f);
+            spawnPos.Local.AddDistanceToFront(3.0f);
 
             var npcSpawner = new NpcSpawner
             {
@@ -49,7 +45,7 @@ namespace AAEmu.Game.Scripts.Commands
                 UnitId = DUMMY_NPC_TEMPLATE_ID,
                 Position = character.Transform.CloneAsSpawnPosition()
             };
-            angle = (float)MathUtil.CalculateAngleFrom(npcSpawner.Position.X, npcSpawner.Position.Y, character.Transform.World.Position.X, character.Transform.World.Position.Y);
+            float angle = (float)MathUtil.CalculateAngleFrom(npcSpawner.Position.X, npcSpawner.Position.Y, character.Transform.World.Position.X, character.Transform.World.Position.Y);
             npcSpawner.Position.Yaw = 0;
             npcSpawner.Position.Pitch = 0;
             npcSpawner.Position.Roll = angle.DegToRad();

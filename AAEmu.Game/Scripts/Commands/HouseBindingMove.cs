@@ -27,13 +27,18 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void Execute(Character character, string[] args)
         {
-            if (character.CurrentTarget != null && character.CurrentTarget is House house)
+            if (args.Length < 4)
             {
-                if (args.Length < 4)
-                {
-                    character.SendMessage("[HouseBindings] " + CommandManager.CommandPrefix + "house_binding_move <AttachPointId> <X> <Y> <Z>");
-                    return;
-                }
+                character.SendMessage("[HouseBindings] {CommandManager.CommandPrefix}house_binding_move <AttachPointId> <X> <Y> <Z>");
+                return;
+            }
+            if (character.CurrentTarget == null)
+            {
+                character.SendMessage("|cFFFF0000[HouseBindings] Target a house first|r");
+                return;
+            }
+            if (character.CurrentTarget is House house)
+            {
                 if (uint.TryParse(args[0], out var attachPointIdVal) &&
                     float.TryParse(args[1], out var x) &&
                     float.TryParse(args[2], out var y) &&
@@ -41,25 +46,24 @@ namespace AAEmu.Game.Scripts.Commands
                 {
                     var attachPointId = (AttachPointKind)attachPointIdVal;
                     var attachPointObj = house.AttachedDoodads.Find(o => o.AttachPoint == attachPointId);
-                    if (attachPointObj != null)
+                    if (attachPointObj == null)
                     {
-                        house.Delete();
-
-                        attachPointObj.Transform.Local.SetPosition(x, y, z);
-
-                        house.Spawn();
-                        
-                        character.CurrentTarget = house;
-
-                        character
-                            .BroadcastPacket(
-                                new SCTargetChangedPacket(character.ObjId, character.CurrentTarget?.ObjId ?? 0), true);
-                    } else
                         character.SendMessage("|cFFFF0000[HouseBindings] Not found this attach doodad|r");
-                } else
+                        return;
+                    }
+                    
+                    house.Delete();
+                    attachPointObj.Transform.Local.SetPosition(x, y, z);
+                    house.Spawn();
+                    character.CurrentTarget = house;
+                    character.BroadcastPacket(
+                            new SCTargetChangedPacket(character.ObjId, character.CurrentTarget?.ObjId ?? 0), true);
+                }
+                else
+                {
                     character.SendMessage("|cFFFF0000[HouseBindings] Throw parse args|r");
-            } else
-                character.SendMessage("|cFFFF0000[HouseBindings] First select house|r");
+                }
+            }
         }
     }
 }

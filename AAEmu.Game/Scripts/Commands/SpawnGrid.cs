@@ -1,23 +1,15 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
-using NLog;
-using System;
 
 namespace AAEmu.Game.Scripts.Commands
 {
     public class SpawnGrid : ICommand
     {
-        protected static Logger _log = LogManager.GetCurrentClassLogger();
-
         public void OnLoad()
         {
             string[] names = { "spawngrid", "spawngroup" };
@@ -31,8 +23,9 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Spawns a large amount of NPCs or doodads using <templateID> as a template in a grid in front of you using specified number of colums, rows and spacing.\n" +
-                "Example: " + CommandManager.CommandPrefix + "spawngrid doodad 320 5 5 2";
+            return "Spawns a large amount of NPCs or doodads using <templateID> as a template "
+                 + "in a grid in front of you using specified number of colums, rows and spacing.\n"
+                 + $"Example: {CommandManager.CommandPrefix}spawngrid doodad 320 5 5 2";
         }
 
         public void SpawnDoodad(uint unitId, Character character, float newX, float newY)
@@ -70,16 +63,15 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length < 5)
             {
-                character.SendMessage("[Spawn] " + CommandManager.CommandPrefix + "spawngrid " + GetCommandLineHelp());
+                character.SendMessage($"[Spawn] {CommandManager.CommandPrefix}spawngrid {GetCommandLineHelp()}");
                 return;
             }
 
-            string action = args[0].ToLower();
-            uint templateId ;
+            uint templateId;
             uint columns;
             uint rows;
             float spacing;
-            if (!uint.TryParse(args[1],out templateId) || !uint.TryParse(args[2], out columns) || !uint.TryParse(args[3], out rows) || !float.TryParse(args[4], out spacing))
+            if (!uint.TryParse(args[1], out templateId) || !uint.TryParse(args[2], out columns) || !uint.TryParse(args[3], out rows) || !float.TryParse(args[4], out spacing))
             {
                 character.SendMessage("|cFFFF0000[Spawn] Parse error|r");
                 return;
@@ -91,19 +83,20 @@ namespace AAEmu.Game.Scripts.Commands
             if (spacing < 0.1f)
                 spacing = 0.1f;
 
+            string action = args[0].ToLower();
             switch(action)
             {
                 case "npc":
                     if (!NpcManager.Instance.Exist(templateId))
                     {
-                        character.SendMessage("|cFFFF0000[Spawn] NPC {0} don't exist|r", templateId);
+                        character.SendMessage($"|cFFFF0000[Spawn] NPC {templateId} don't exist|r");
                         return;
                     }
                     break;
                 case "doodad":
                     if (!DoodadManager.Instance.Exist(templateId))
                     {
-                        character.SendMessage("|cFFFF0000[Spawn] Doodad {0} don't exist|r", templateId);
+                        character.SendMessage($"|cFFFF0000[Spawn] Doodad {templateId} don't exist|r");
                         return;
                     }
                     break;
@@ -112,14 +105,13 @@ namespace AAEmu.Game.Scripts.Commands
                     return;
             }
 
-            float startX;
-            float startY;
-
             // Origin point for spawns
-            (startX, startY) = MathUtil.AddDistanceToFront(3f, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Rotation.Z);
+            // float startX;
+            // float startY;
+            // (startX, startY) = MathUtil.AddDistanceToFront(3f, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Rotation.Z);
             for (var y = 0; y < rows; y++)
             {
-                float sizeY = rows * spacing;
+                // float sizeY = rows * spacing;
                 float posY = (y+1) * spacing;
                 for (var x = 0; x < columns; x++)
                 {
@@ -139,7 +131,6 @@ namespace AAEmu.Game.Scripts.Commands
                     }
                 }
             }
-
         }
     }
 }

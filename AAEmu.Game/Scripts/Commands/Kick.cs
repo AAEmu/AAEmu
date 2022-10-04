@@ -21,31 +21,28 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Kicks target";
+            return "Kicks target.";
         }
 
         public void Execute(Character character, string[] args)
         {
             if (args.Length < 3)
             {
-                character.SendMessage("[Kick] Usage : {0}", GetCommandLineHelp());
+                character.SendMessage($"[Kick] Usage : {GetCommandLineHelp()}");
                 return;
             }
 
             var targetChar = uint.TryParse(args[0], out uint characterId) ? WorldManager.Instance.GetCharacterById(characterId) : WorldManager.Instance.GetCharacter(args[0]);
-            
             if (targetChar == null)
             {
                 character.SendMessage("[Kick] Target not found");
                 return;
             }
-            
-            var reason = (KickedReason)byte.Parse(args[1]);
-            var msg = "";
-            for (var x = 2; x < args.Length; x++)
-                msg += args[x] + " ";
 
-            targetChar.SendPacket(new SCKickedPacket(reason, msg));
+            if (KickedReason.TryParse(args[1], out KickedReason reason))
+                targetChar.SendPacket(new SCKickedPacket(reason, string.Join(' ', args, 2, args.Length - 2)));
+            else
+                character.SendMessage("[Kick] Invalid reason");
         }
     }
 }

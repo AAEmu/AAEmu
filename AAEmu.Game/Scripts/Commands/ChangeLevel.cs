@@ -22,16 +22,15 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Adds experience points needed to reach target <level> (allowed range is 1-55)\n" +
-                "Do note that going above the intended max level might break skills.";
+            return "Adds experience points needed to reach target <level> (allowed range is 1-55)\n"
+                 + "Note: Going above the intended max level may break skills.";
         }
 
         public void Execute(Character character, string[] args)
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Level] " + CommandManager.CommandPrefix + "set_level (target) <level>");
-                //character.SendMessage("[Level] level: 1-100");
+                character.SendMessage($"[Level] {CommandManager.CommandPrefix}set_level (target) <level>");
                 return;
             }
 
@@ -45,7 +44,7 @@ namespace AAEmu.Game.Scripts.Commands
 
             if (level <= 0 && level > 55)
             {
-                character.SendMessage("|cFFFF0000[Level] Allowed level range: 1-55|r");
+                character.SendMessage("|cFFFF0000[Level] Level outside range: 1-55|r");
                 return;
             }
 

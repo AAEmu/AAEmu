@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Char;
@@ -25,14 +22,16 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Adds item with template <itemId> and amount [count] at a specific [grade]. If [count] is omitted, the amount is one. If [grade] is ommited, the default defined for that item will be used.";
+            return "Adds item with template <itemId> and amount [count] at a specific [grade]. "
+                 + "If [count] is omitted, the amount is one. If [grade] is ommited, the default "
+                 + "defined for that item will be used.";
         }
 
         public void Execute(Character character, string[] args)
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Items] " + CommandManager.CommandPrefix + "additem (target) <itemId> [count] [grade]");
+                character.SendMessage($"[Items] {CommandManager.CommandPrefix}additem (target) <itemId> [count] [grade]");
                 return;
             }
 
@@ -60,7 +59,7 @@ namespace AAEmu.Game.Scripts.Commands
             var itemTemplate = ItemManager.Instance.GetTemplate(itemId);
             if (itemTemplate == null)
             {
-                character.SendMessage("|cFFFF0000Item template does not exist for {0} !|r", itemId);
+                character.SendMessage($"|cFFFF0000Item template does not exist for {itemId}!|r");
                 return;
             }
 
@@ -87,8 +86,8 @@ namespace AAEmu.Game.Scripts.Commands
 
             if (character.Id != targetPlayer.Id)
             {
-                character.SendMessage("[Items] added item {0} to {1}'s inventory", itemId, targetPlayer.Name);
-                targetPlayer.SendMessage("[GM] {0} has added a item to your inventory", character.Name);
+                character.SendMessage("[Items] Added item {0} to {1}'s inventory", itemId, targetPlayer.Name);
+                targetPlayer.SendMessage("[GM] {0} has added an item to your inventory", character.Name);
             }
 
         }

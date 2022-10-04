@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Numerics;
-using System.Threading;
 using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -15,6 +14,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
+using System.Text;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -22,13 +22,13 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public static WaterBodyArea SelectedWater { get; set; }
         public static World SelectedWorld { get; set; }
-		public static int NextPoint { get; set; }
+        public static int NextPoint { get; set; }
         public List<(WaterBodyArea, float)> NearbyList = new List<(WaterBodyArea, float)>();
         public List<BaseUnit> Markers = new List<BaseUnit>();
         
         public void OnLoad()
         {
-            string[] name = { "wateredit", "water_edit", "wedit"};
+            string[] name = { "wateredit", "water_edit", "wedit" };
             CommandManager.Instance.Register(name, this);
         }
 
@@ -39,7 +39,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Live editing, saving and loading of water bodies";
+            return "Live editing, saving and loading of water bodies.";
         }
 
         public void CreateNearbyList(Character character, World world)
@@ -76,10 +76,10 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void ShowSelectedArea(Character character)
         {
-            var bottomDoodadId = 4763u; // Crescent Throne Flag 
-            var centerSurfaceDoodadId = 5014u; // Combat Flag
-            var middleDoodadId = 5622u; // Stone Post
-            var topNpcId = 13013u; // Forward Scarecrow
+            uint bottomDoodadId = 4763; // Crescent Throne Flag 
+            uint centerSurfaceDoodadId = 5014; // Combat Flag
+            uint middleDoodadId = 5622; // Stone Post
+            uint topNpcId = 13013; // Forward Scarecrow
             foreach (var marker in Markers)
             {
                 ObjectIdManager.Instance.ReleaseId(marker.ObjId);
@@ -87,7 +87,7 @@ namespace AAEmu.Game.Scripts.Commands
             }
 
             Markers.Clear();
-            
+
             if ((SelectedWorld == null) || (SelectedWater == null))
                 return;
 
@@ -99,7 +99,7 @@ namespace AAEmu.Game.Scripts.Commands
                 centerDoodad.Transform.Local.SetPosition(SelectedWater.GetCenter(true));
                 centerDoodad.Show();
                 Markers.Add(centerDoodad);
-                // character.SendMessage("--" + centerDoodad.Transform.ToFullString());
+                // character.SendMessage($"--{centerDoodad.Transform.ToFullString()}");
 
                 for (var p = 0; p < SelectedWater.Points.Count - 1; p++)
                 {
@@ -119,15 +119,15 @@ namespace AAEmu.Game.Scripts.Commands
                     surfaceUnit.Transform.Local.SetPosition(point);
                     surfaceUnit.Transform.Local.SetHeight(point.Z + SelectedWater.Height);
                     if (p != 0)
-                        surfaceUnit.Name = "#" + p.ToString();
+                        surfaceUnit.Name = $"#{p}";
                     else
-                        surfaceUnit.Name = "#" + p.ToString() + " <-> #" + (SelectedWater.Points.Count - 1).ToString();
+                        surfaceUnit.Name = $"#{p} <-> #{SelectedWater.Points.Count - 1}";
                     surfaceUnit.Faction = FactionManager.Instance.GetFaction(FactionsEnum.Friendly);
                     surfaceUnit.Show();
                     Markers.Add(surfaceUnit);
 
-                    var dividers = MathF.Ceiling(SelectedWater.Height / 5f);
-                    dividers = MathF.Max(dividers, 2f);
+                    var dividers = MathF.Ceiling(SelectedWater.Height / 5.0f);
+                    dividers = MathF.Max(dividers, 2.0f);
 
                     for (int i = 1; i < dividers; i++)
                     {
@@ -148,27 +148,31 @@ namespace AAEmu.Game.Scripts.Commands
 
             if (args.Length <= 0)
             {
-                character.SendMessage($"[WaterEdit] Currently selected:");
-                character.SendMessage($"|cFFFFFFFF{SelectedWater?.Name ?? "<no area>"}|r in |cFFFFFFFF{SelectedWorld?.Name ?? "<no world>"}|r with height {SelectedWater?.Height ?? 0f}");
-                character.SendMessage($"Available commands:");
-                character.SendMessage($"|cFF00FF00list|r: lists all water bodies in the current world");
-                character.SendMessage($"|cFF00FF00nearby|r: lists all nearby water bodies");
-                character.SendMessage($"|cFF00FF00select <name||id>|r: select a water body");
-                character.SendMessage($"|cFF00FF00next|r: select the next water body in the world list");
-                character.SendMessage($"|cFF00FF00createwater <name>|r: creates a new cube of water at your location using name");
-                character.SendMessage($"|cFF00FF00save|r: saves water_bodies.json to disk");
-                character.SendMessage($"|cFF00FF00load|r: load data from water_bodies.json on disk");
+                var sb = new StringBuilder();
+                sb.Append($"[WaterEdit] Currently selected:");
+                sb.Append($"|cFFFFFFFF{SelectedWater?.Name ?? "<no area>"}|r in |cFFFFFFFF{SelectedWorld?.Name ?? "<no world>"}|r with height {SelectedWater?.Height ?? 0.0f}");
+                sb.Append($"Available commands:");
+                sb.Append($"|cFF00FF00list|r: lists all water bodies in the current world");
+                sb.Append($"|cFF00FF00nearby|r: lists all nearby water bodies");
+                sb.Append($"|cFF00FF00select <name||id>|r: select a water body");
+                sb.Append($"|cFF00FF00next|r: select the next water body in the world list");
+                sb.Append($"|cFF00FF00createwater <name>|r: creates a new cube of water at your location using name");
+                sb.Append($"|cFF00FF00save|r: saves water_bodies.json to disk");
+                sb.Append($"|cFF00FF00load|r: load data from water_bodies.json on disk");
+                character.SendMessage(sb.ToString());
                 if (SelectedWater != null)
                 {
-                    character.SendMessage($"|cFF00FF00clear|r: unselect everything");
-                    character.SendMessage($"|cFF00FF00goto|r: teleports to selected water body");
-                    character.SendMessage($"|cFF00FF00setheight <value>|r: set a new height for selected water body");
-                    character.SendMessage($"|cFF00FF00setbottom <value>|r: set a new Z position for all points in selected water body");
-                    character.SendMessage($"|cFF00FF00listpoints|r: Shows world position of all points in the selected water body");
-                    character.SendMessage($"|cFF00FF00movepoint <index>|r: changes the point at index's X and Y position of your current location");
-                    character.SendMessage($"|cFF00FF00insertpoint <index>|r: inserts a new point before index using X and Y position of your current location");
-                    character.SendMessage($"|cFF00FF00removepoint <index>|r: removes the point at index");
-                    character.SendMessage($"|cFF00FF00removewater <count>|r: entirely removes a body of water, must provide the current amount of points in the body");
+                    sb.Clear();
+                    sb.Append($"|cFF00FF00clear|r: unselect everything");
+                    sb.Append($"|cFF00FF00goto|r: teleports to selected water body");
+                    sb.Append($"|cFF00FF00setheight <value>|r: set a new height for selected water body");
+                    sb.Append($"|cFF00FF00setbottom <value>|r: set a new Z position for all points in selected water body");
+                    sb.Append($"|cFF00FF00listpoints|r: Shows world position of all points in the selected water body");
+                    sb.Append($"|cFF00FF00movepoint <index>|r: changes the point at index's X and Y position of your current location");
+                    sb.Append($"|cFF00FF00insertpoint <index>|r: inserts a new point before index using X and Y position of your current location");
+                    sb.Append($"|cFF00FF00removepoint <index>|r: removes the point at index");
+                    sb.Append($"|cFF00FF00removewater <count>|r: entirely removes a body of water, must provide the current amount of points in the body");
+                    character.SendMessage(sb.ToString());
                 }
                 return;
             }
@@ -182,12 +186,11 @@ namespace AAEmu.Game.Scripts.Commands
             var subCommand = args[0].ToLower();
             if (subCommand is "list" or "l")
             {
-                character.SendMessage(
-                    $"[WaterEdit] World {world.Name} has {world.Water.Areas.Count} water bodies defined:");
+                var sb = new StringBuilder();
+                sb.Append($"[WaterEdit] World {world.Name} has {world.Water.Areas.Count} water bodies defined:");
                 foreach (var area in world.Water.Areas)
-                {
-                    character.SendMessage($"|cFFFFFFFF{area.Name}|r ({area.Id}) => {area.Points.Count} points");
-                }
+                    sb.Append($"|cFFFFFFFF{area.Name}|r ({area.Id}) => {area.Points.Count} points");
+                character.SendMessage(sb.ToString());
             }
             else if (subCommand == "nearby")
             {
@@ -197,7 +200,7 @@ namespace AAEmu.Game.Scripts.Commands
                 {
                     var area = NearbyList[i].Item1;
                     var distance = NearbyList[i].Item2;
-                    if (distance > 1000f)
+                    if (distance > 1000.0f)
                         break;
                     c++;
                     character.SendMessage($"[WaterEdit] |cFFFFFFFF{area.Name}|r ({area.Id}) - {distance:F1}m");
@@ -224,7 +227,7 @@ namespace AAEmu.Game.Scripts.Commands
                     if ((area.Name.ToLower() == selectName) || (area.Id.ToString() == selectName))
                     {
                         SelectedWater = area;
-						NextPoint = 0;
+                        NextPoint = 0;
                         break;
                     }
                 }
@@ -238,7 +241,7 @@ namespace AAEmu.Game.Scripts.Commands
                         if (area.Name.ToLower().Contains(selectName))
                         {
                             SelectedWater = area;
-							NextPoint = 0;
+                            NextPoint = 0;
                             break;
                         }
                     }
@@ -324,7 +327,7 @@ namespace AAEmu.Game.Scripts.Commands
                 var pos = SelectedWater.GetCenter(true);
                 character.ForceDismount();
                 character.DisabledSetPosition = true;
-                character.SendPacket(new SCTeleportUnitPacket(0, 0, pos.X + 1f, pos.Y + 1f, pos.Z + 3f, 0));
+                character.SendPacket(new SCTeleportUnitPacket(0, 0, pos.X + 1.0f, pos.Y + 1.0f, pos.Z + 3.0f, 0));
             }
             else if (subCommand is "clear" or "c")
             {
@@ -343,7 +346,7 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         SelectedWater = area;
                         SelectedWorld = world;
-						NextPoint = 0;
+                        NextPoint = 0;
                         break;
                     }
 
@@ -366,15 +369,15 @@ namespace AAEmu.Game.Scripts.Commands
                     return;
                 }
 
-				var pointIndex = NextPoint ;
+                var pointIndex = NextPoint ;
                 if (args.Length > 1)
-				{
-					if (!int.TryParse(args[1], out pointIndex))
-					{
-						character.SendMessage($"|cFFFFFFFF[WaterEdit] Error parsing point index!|r");
-						return;
-					}
-				}
+                {
+                    if (!int.TryParse(args[1], out pointIndex))
+                    {
+                        character.SendMessage($"|cFFFFFFFF[WaterEdit] Error parsing point index!|r");
+                        return;
+                    }
+                }
 
                 if ((pointIndex >= SelectedWater.Points.Count - 1) || (pointIndex < 0))
                 {
@@ -389,7 +392,7 @@ namespace AAEmu.Game.Scripts.Commands
                     if (pointIndex == 0)
                         SelectedWater.Points[^1] = newPos;
                 }
-				NextPoint = pointIndex + 1;
+                NextPoint = pointIndex + 1;
 
                 ShowSelectedArea(character);
                 character.SendMessage($"[WaterEdit] |cFFFFFFFF{SelectedWater.Name} #{pointIndex}|r moved to set to |cFF00FF00{newPos}|r");
@@ -517,13 +520,13 @@ namespace AAEmu.Game.Scripts.Commands
                 var newName = args[1];
                 var newBody = new WaterBodyArea(newName);
                 newBody.Id = (uint)Random.Shared.Next(8000000, 9000000);
-                var centerPos = character.Transform.World.Position with { Z = character.Transform.World.Position.Z - 5f };
-                newBody.Points.Add(new Vector3(centerPos.X - 15f, centerPos.Y - 15f, centerPos.Z));
-                newBody.Points.Add(new Vector3(centerPos.X - 15f, centerPos.Y + 15f, centerPos.Z));
-                newBody.Points.Add(new Vector3(centerPos.X + 15f, centerPos.Y + 15f, centerPos.Z));
-                newBody.Points.Add(new Vector3(centerPos.X + 15f, centerPos.Y - 15f, centerPos.Z));
-                newBody.Points.Add(new Vector3(centerPos.X - 15f, centerPos.Y - 15f, centerPos.Z));
-                newBody.Height = 10f;
+                var centerPos = character.Transform.World.Position with { Z = character.Transform.World.Position.Z - 5.0f };
+                newBody.Points.Add(new Vector3(centerPos.X - 15.0f, centerPos.Y - 15.0f, centerPos.Z));
+                newBody.Points.Add(new Vector3(centerPos.X - 15.0f, centerPos.Y + 15.0f, centerPos.Z));
+                newBody.Points.Add(new Vector3(centerPos.X + 15.0f, centerPos.Y + 15.0f, centerPos.Z));
+                newBody.Points.Add(new Vector3(centerPos.X + 15.0f, centerPos.Y - 15.0f, centerPos.Z));
+                newBody.Points.Add(new Vector3(centerPos.X - 15.0f, centerPos.Y - 15.0f, centerPos.Z));
+                newBody.Height = 10.0f;
                 newBody.UpdateBounds();
 
                 lock (world.Water._lock)
@@ -532,7 +535,7 @@ namespace AAEmu.Game.Scripts.Commands
                 }
                 SelectedWater = newBody;
                 SelectedWorld = world;
-				NextPoint = 0;
+                NextPoint = 0;
                 
                 ShowSelectedArea(character);
                 

@@ -27,7 +27,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Title] " + CommandManager.CommandPrefix + "set_title <titleId>");
+                character.SendMessage($"[Title] {CommandManager.CommandPrefix}set_title <titleId>");
                 return;
             }
 

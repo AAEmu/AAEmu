@@ -1,31 +1,31 @@
 {
     "itemkits": [
-	//Consumables
-		{
+    //Consumables
+        {
             // Desert Fire
             "names": [ "consumables" ],
             "id": 19042,
             "count": 1000
         },
-		{
+        {
             // Nui's Nova
             "names": [ "consumables" ],
             "id": 19043,
             "count": 100
         },
-		{
+        {
             // Mossy Pool
             "names": [ "consumables" ],
             "id": 31775,
             "count": 1000
         },
-		{
+        {
             // Kraken's Might
             "names": [ "consumables" ],
             "id": 19041,
             "count": 100
         },
-		{
+        {
             // Expansion Scroll
             "names": [ "consumables" ],
             "id": 8000025,
@@ -82,7 +82,7 @@
             "count": 1
         },
 
-	// Mag Meadow Cloth
+    // Mag Meadow Cloth
         {
             // Mag Meadow Hood
             "names": [ "meadow_cloth" ],
@@ -948,253 +948,253 @@
             "grade": 5,
             "count": 1
         },
-	//Gliders
-	    {
+    //Gliders
+        {
             // Sloth Glider
             "names": [ "glider" ],
             "id": 30621,
             "count": 1
         },
-	    {
+        {
             // Red Dragon Glider 
             "names": [ "glider" ],
             "id": 18175,
             "count": 1
         },
-	    {
+        {
             // Ezi's Glider
             "names": [ "glider" ],
             "id": 18174,
             "count": 1
         },
-	    {
+        {
             // Legendary Dragon Wings
             "names": [ "glider" ],
             "id": 29039,
             "count": 1
         },
-	    {
+        {
             // Feathered Dragon Glider
             "names": [ "glider" ],
             "id": 18173,
             "count": 1
         },
 
-	//Accesories
-		{
-			// Magnificent Earth Necklace
-			"names": [ "accessories" ],
-			"id": 31619,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Flame Necklace
-			"names": [ "accessories" ],
-			"id": 31620,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Life Necklace
-			"names": [ "accessories" ],
-			"id": 31621,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Wind Necklace
-			"names": [ "accessories" ],
-			"id": 31622,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Wave Necklace
-			"names": [ "accessories" ],
-			"id": 31623,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Earth Earring
-			"names": [ "accessories" ],
-			"id": 31624,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Flame Earring
-			"names": [ "accessories" ],
-			"id": 31625,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Wind Earring
-			"names": [ "accessories" ],
-			"id": 31626,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Wave Earring
-			"names": [ "accessories" ],
-			"id": 31627,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Life Earring
-			"names": [ "accessories" ],
-			"id": 31628,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Earth Ring
-			"names": [ "accessories" ],
-			"id": 31629,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Flame Ring
-			"names": [ "accessories" ],
-			"id": 31630,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Wave Ring
-			"names": [ "accessories" ],
-			"id": 31631,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Wind Ring
-			"names": [ "accessories" ],
-			"id": 31632,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Life Ring	
-			"names": [ "accessories" ],
-			"id": 31633,
-			"grade": 5,
-			"count": 1
-		},
-		
-	//Weapon Kit
-	    {
+    //Accesories
+        {
+            // Magnificent Earth Necklace
+            "names": [ "accessories" ],
+            "id": 31619,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Flame Necklace
+            "names": [ "accessories" ],
+            "id": 31620,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Life Necklace
+            "names": [ "accessories" ],
+            "id": 31621,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Wind Necklace
+            "names": [ "accessories" ],
+            "id": 31622,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Wave Necklace
+            "names": [ "accessories" ],
+            "id": 31623,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Earth Earring
+            "names": [ "accessories" ],
+            "id": 31624,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Flame Earring
+            "names": [ "accessories" ],
+            "id": 31625,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Wind Earring
+            "names": [ "accessories" ],
+            "id": 31626,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Wave Earring
+            "names": [ "accessories" ],
+            "id": 31627,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Life Earring
+            "names": [ "accessories" ],
+            "id": 31628,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Earth Ring
+            "names": [ "accessories" ],
+            "id": 31629,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Flame Ring
+            "names": [ "accessories" ],
+            "id": 31630,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Wave Ring
+            "names": [ "accessories" ],
+            "id": 31631,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Wind Ring
+            "names": [ "accessories" ],
+            "id": 31632,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Life Ring	
+            "names": [ "accessories" ],
+            "id": 31633,
+            "grade": 5,
+            "count": 1
+        },
+        
+    //Weapon Kit
+        {
             // Mag Flame Nodachi
             "names": [ "2hmelee" ],
             "id": 20285,
             "grade": 5,
             "count": 1
         },		
-	    {
+        {
             // Mag Lightning Nodachi
             "names": [ "2hmelee" ],
             "id": 20284,
             "grade": 5,
             "count": 1
         },
-	    {
+        {
             // Mag Gale Nodachi
             "names": [ "2hmelee" ],
             "id": 20286,
             "grade": 5,
             "count": 1
         },
-	    {
+        {
             // Mag Flame Greatsword
             "names": [ "2hmelee" ],
             "id": 20245,
             "grade": 5,
             "count": 1
         },
-	    {
+        {
             // Mag Meadow Staff
             "names": [ "2hmagic" ],
             "id": 20437,
             "grade": 5,
             "count": 1
         },
-	    {
+        {
             // Mag Desert Sword
             "names": [ "1hmelee" ],
             "id": 20223,
             "grade": 5,
             "count": 1
         },
-	    {
+        {
             // Mag Squall Dagger
             "names": [ "1hmelee" ],
             "id": 20196,
             "grade": 5,
             "count": 1
         },
-	    {
+        {
             // Mag Wave Scepter
             "names": [ "1hmagic" ],
             "id": 20418,
             "grade": 5,
             "count": 1
         },
-	    {
+        {
             // Obsidian Club
             "names": [ "1hclub" ],
             "id": 34609,
             "grade": 5,
             "count": 1
         },
-	//Shields
-	    {
-			// Magnificent Quake Shield
-			"names": [ "shields" ],
-			"id": 20528,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Desert Shield
-			"names": [ "shields" ],
-			"id": 20529,
-			"grade": 5,
-			"count": 1
-		},
-		{
-			// Magnificent Lake Shield
-			"names": [ "shields" ],
-			"id": 20530,
-			"grade": 5,
-			"count": 1
-		},
-	    {
+    //Shields
+        {
+            // Magnificent Quake Shield
+            "names": [ "shields" ],
+            "id": 20528,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Desert Shield
+            "names": [ "shields" ],
+            "id": 20529,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Magnificent Lake Shield
+            "names": [ "shields" ],
+            "id": 20530,
+            "grade": 5,
+            "count": 1
+        },
+        {
             // Mag Volcano Bow
             "names": [ "bow" ],
             "id": 20462,
             "grade": 5,
             "count": 1
         },
-	    {
+        {
             // Mag Lightning Bow
             "names": [ "bow" ],
             "id": 20463,
             "grade": 5,
             "count": 1
         },
-	    {
+        {
             // Mag Tidal Bow
             "names": [ "bow" ],
             "id": 20464,
             "grade": 5,
             "count": 1
         },
-	    {
+        {
             // Mag Sunset Bow
             "names": [ "bow" ],
             "id": 20465,

@@ -1,8 +1,6 @@
-﻿using System.Text;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -41,11 +39,11 @@ namespace AAEmu.Game.Scripts.Commands
                         var cmd = CommandManager.Instance.GetCommandInterfaceByName(thisCommand);
                         var argText = cmd.GetCommandLineHelp();
                         var helpText = cmd.GetCommandHelpText();
-                        character.SendMessage("Help for: |cFFFFFFFF" + CommandManager.CommandPrefix + thisCommand + " " + argText + "|r\n|cFF999999" + helpText + "|r");
+                        character.SendMessage($"Help for: |cFFFFFFFF{CommandManager.CommandPrefix}{thisCommand} {argText}|r\n|cFF999999{helpText}|r");
                     }
                 }
                 if (!foundIt)
-                    character.SendMessage("Command not found: " + CommandManager.CommandPrefix + thisCommand);
+                    character.SendMessage($"Command not found: {CommandManager.CommandPrefix}{thisCommand}");
                 return;
             }
 
@@ -60,7 +58,7 @@ namespace AAEmu.Game.Scripts.Commands
                 var cmd = CommandManager.Instance.GetCommandInterfaceByName(command);
                 var arghelp = cmd.GetCommandLineHelp();
                 if (arghelp != string.Empty)
-                    character.SendMessage(CommandManager.CommandPrefix + command + " |cFF999999" + arghelp + "|r");
+                    character.SendMessage($"{CommandManager.CommandPrefix}{command}|cFF999999{arghelp}|r");
                 else
                     character.SendMessage(CommandManager.CommandPrefix + command);
             }

@@ -3,8 +3,6 @@ using System.IO;
 using System.Collections.Generic;
 using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -85,30 +83,26 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Items] " + CommandManager.CommandPrefix + "kit (target) <kitname>");
-                character.SendMessage("[Items] " + kitconfig.itemkitnames.Count.ToString() + " kits have been loaded, use " + CommandManager.CommandPrefix + "kit ?  to get a list of kits");
+                character.SendMessage($"[Items] {CommandManager.CommandPrefix}kit (target) <kitname>");
+                character.SendMessage($"[Items] {kitconfig.itemkitnames.Count.ToString()} kits have been loaded, use {CommandManager.CommandPrefix}kit ?  to get a list of kits");
                 return;
             }
 
             Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
 
             string kitname = string.Empty;
-            int itemsAdded = 0;
-
             if (args.Length > firstarg + 0)
                 kitname = args[firstarg + 0].ToLower();
 
             if (kitname == "?")
             {
-                character.SendMessage("[Items] " + CommandManager.CommandPrefix + "kit has the following kits registered:");
-                string s = string.Empty;
-                foreach (var n in kitconfig.itemkitnames)
-                    s += n + "  ";
-                character.SendMessage("|cFFFFFFFF" + s + "|r");
+                character.SendMessage($"[Items] {CommandManager.CommandPrefix}kit has the following kits registered:");
+                character.SendMessage("|cFFFFFFFF" + string.Join("  ", kitconfig.itemkitnames) + "|r");
                 return;
             }
 
             //_log.Debug("foreach kit in kitconfig.itemkits");
+            int itemsAdded = 0;
             foreach (var kit in kitconfig.itemkits)
             {
                 //_log.Debug("kit.kitname: " + kit.kitname);
@@ -140,20 +134,19 @@ namespace AAEmu.Game.Scripts.Commands
                     itemsAdded++;
                     //_log.Debug("kit.itemID: " + kit.itemID.ToString()+ " added to " + targetPlayer.Name);
                 }
-
             }
 
             if (itemsAdded > 0)
             {
                 if (character.Id != targetPlayer.Id)
                 {
-                    character.SendMessage("[Items] added {0} items to {1}'s inventory", itemsAdded, targetPlayer.Name);
-                    targetPlayer.SendMessage("[GM] {0} has added a {1} item to your inventory", character.Name, itemsAdded);
+                    character.SendMessage($"[Items] added {itemsAdded} items to {targetPlayer.Name}'s inventory");
+                    targetPlayer.SendMessage($"[GM] {character.Name} has added a {itemsAdded} item to your inventory");
                 }
             }
             else
             {
-                character.SendMessage("[Items] No items in kit \"{0}\"", kitname);
+                character.SendMessage($"[Items] No items in kit \"{kitname}\"");
             }
 
         }
@@ -171,7 +164,6 @@ namespace AAEmu.Game.Scripts.Commands
                 if (string.IsNullOrWhiteSpace(contents))
                     throw new IOException($"File {filePath} doesn't exists or is empty.");
                 jsonkit = JsonConvert.DeserializeObject<GMItemKitConfig>(contents);
-
                 kitconfig.itemkits.AddRange(jsonkit.itemkits);
             }
             catch (Exception x)
@@ -187,7 +179,6 @@ namespace AAEmu.Game.Scripts.Commands
                         kitconfig.itemkitnames.Add(kn);
             }
             kitconfig.itemkitnames.Sort();
-
         }
     }
 }

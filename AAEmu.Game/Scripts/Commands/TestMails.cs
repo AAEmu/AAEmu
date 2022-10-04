@@ -1,15 +1,10 @@
 ﻿using System;
-using AAEmu.Game.Core.Packets.G2C;
+using System.Text;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
-using AAEmu.Game.Models.Game.Housing;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -28,7 +23,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Sends a dummy mail to yourself of given type";
+            return "Sends a dummy mail to yourself of a given type.";
         }
 
         public void Execute(Character character, string[] args)
@@ -43,24 +38,19 @@ namespace AAEmu.Game.Scripts.Commands
             if (args.Length <= 0)
             {
                 // List all mailtypes
-                var s = "[TestMail] " + GetCommandHelpText() + "\r";
-                s += "Possible MailTypes:\r";
-                character.SendMessage(s);
-                s = string.Empty;
+                var sb = new StringBuilder();
+                sb.Append($"[TestMail] {GetCommandHelpText()}\nPossible MailTypes:\n");
                 foreach (var t in Enum.GetValues(typeof(MailType)))
-                {
-                    s += string.Format("{0}={1}", (byte)t, t.ToString());
-                    s += "  ";
-                }
-                character.SendMessage(s);
+                    sb.Append($"{(byte)t}={t}  ");
+                character.SendMessage(sb.ToString());
                 return;
             }
 
             MailType mType = MailType.InvalidMailType;
             if (args.Length > 0)
             {
-                var a0 = args[0].ToLower();
-                switch (a0)
+                var arg0 = args[0].ToLower();
+                switch (arg0)
                 {
                     case "list":
                         character.SendMessage("[TestMail] List of Mails");
@@ -78,7 +68,7 @@ namespace AAEmu.Game.Scripts.Commands
                         return;
                     case "check":
                         character.Mails.SendUnreadMailCount();
-                        character.SendMessage("[TestMail] {0} unread mails", character.Mails.unreadMailCount.Received);
+                        character.SendMessage("[TestMail] {0} unread mail", character.Mails.unreadMailCount.Received);
                         return;
                     default:
                         if (MailType.TryParse(args[0], out MailType mTypeByName))
@@ -89,59 +79,51 @@ namespace AAEmu.Game.Scripts.Commands
 
             if (mType == MailType.InvalidMailType)
             {
-                character.SendMessage("[TestMail] Invalid type: {0}", mType);
+                character.SendMessage($"[TestMail] Invalid type: {mType}");
                 return;
             }
 
-            character.SendMessage("[TestMail] Testing type: {0}", mType);
+            character.SendMessage($"[TestMail] Testing type: {mType}");
             try
             {
                 var mail = new BaseMail();
-
                 mail.MailType = mType;
-                mail.Title = "TestMail " + mType.ToString();
+                mail.Title = $"TestMail {mType.ToString()}";
                 mail.ReceiverName = character.Name;
-
                 mail.Header.SenderId = character.Id;
                 mail.Header.SenderName = character.Name;
                 mail.Header.ReceiverId = character.Id;
-
                 mail.Header.Attachments = 0;
                 mail.Header.Extra = 0;
-
                 mail.Body.Text = "Test Mail Body";
                 mail.Body.SendDate = DateTime.UtcNow;
                 mail.Body.RecvDate = DateTime.UtcNow;
 
                 if (args.Length > 1)
                 {
-                    var n = args[1];
-                    mail.Header.SenderName = n;
-                    mail.Header.SenderId = NameManager.Instance.GetCharacterId(n);
-                    character.SendMessage("[TestMail] From: {0}", n);
+                    mail.Header.SenderName = args[1];
+                    mail.Header.SenderId = NameManager.Instance.GetCharacterId(args[1]);
+                    character.SendMessage($"[TestMail] From: {args[1]}");
                 }
 
                 if (args.Length > 2)
                 {
-                    var n = args[2];
-                    mail.Title = n;
-                    character.SendMessage("[TestMail] Title: {0}", n);
+                    mail.Title = args[2];
+                    character.SendMessage($"[TestMail] Title: {args[2]}");
                 }
 
                 if (args.Length > 3)
                 {
-                    var n = args[3];
-                    mail.Body.Text = n;
-                    character.SendMessage("[TestMail] Body: {0}", n);
+                    mail.Body.Text = args[3];
+                    character.SendMessage($"[TestMail] Body: {args[3]}");
                 }
 
                 if (args.Length > 4)
                 {
-                    var n = args[4];
-                    if (int.TryParse(n, out var copper))
+                    if (int.TryParse(args[4], out var copper))
                     {
                         mail.Body.CopperCoins = copper;
-                        character.SendMessage("[TestMail] Money: {0}", copper);
+                        character.SendMessage($"[TestMail] Money: {copper}");
                     }
                     else
                     {
@@ -151,11 +133,10 @@ namespace AAEmu.Game.Scripts.Commands
 
                 if (args.Length > 5)
                 {
-                    var n = args[5];
-                    if (int.TryParse(n, out var billing))
+                    if (int.TryParse(args[5], out var billing))
                     {
                         mail.Body.BillingAmount = billing;
-                        character.SendMessage("[TestMail] BillingCost: {0}", billing);
+                        character.SendMessage($"[TestMail] BillingCost: {billing}");
                     }
                     else
                     {
@@ -176,7 +157,7 @@ namespace AAEmu.Game.Scripts.Commands
                                 var itemTemplate = ItemManager.Instance.GetTemplate(itemId);
                                 if (itemTemplate == null)
                                 {
-                                    character.SendMessage("|cFFFF0000Item template does not exist for {0} !|r", itemId);
+                                    character.SendMessage($"|cFFFF0000Item template does not exist for {itemId}!|r");
                                     return;
                                 }
 
@@ -206,7 +187,6 @@ namespace AAEmu.Game.Scripts.Commands
                         }
                     }
                 }
-
 
                 mail.Send();
             }

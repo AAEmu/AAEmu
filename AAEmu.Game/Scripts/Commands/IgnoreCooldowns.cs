@@ -1,8 +1,6 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -16,7 +14,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "<true||false>";
+            return "true || false";
         }
 
         public string GetCommandHelpText()
@@ -28,7 +26,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[IgnoreCooldowns] " + CommandManager.CommandPrefix + "ignorecd <true||false>");
+                character.SendMessage($"[IgnoreCooldowns] {CommandManager.CommandPrefix}ignorecd true || false");
                 return;
             }
 

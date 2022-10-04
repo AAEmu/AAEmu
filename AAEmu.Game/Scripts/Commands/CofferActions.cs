@@ -1,17 +1,10 @@
-﻿using System;
-using System.Linq;
-using System.Text;
+﻿using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Models.Game.World.Transform;
-using System.Numerics;
-using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -30,28 +23,27 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "View or manipulate a coffer doodad, using one of the following actions:\n" +
-                "close - Force-Closes a coffer so it can be opened again by other people.\n" +
-                "view - View the coffer contents\n" +
-                "\n" +
-                "If doodadObjId is ommited, the first found coffer in a 4m radius will be used.\n";
+            return "View or manipulate a coffer doodad, using one of the following actions:\n"
+                 + "close - Force-Closes a coffer so it can be opened again by other people.\n"
+                 + "view - View the coffer contents\n\n"
+                 + "If doodadObjId is ommited, the first found coffer in a 4m radius will be used.\n";
         }
         
         public void Execute(Character character, string[] args)
         {
-            float checkRadius = 4f;
+            float checkRadius = 4.0f;
             var action = args.Length >= 1 ? args[0].ToLower() : "help";
             var doodadObjIdStr = args.Length >= 2 ? args[1] : "0";
             
             if (action == "help")
             {
-                character.SendMessage("[Coffer] Usage: " + CommandManager.CommandPrefix + "coffer " + GetCommandLineHelp());
+                character.SendMessage($"[Coffer] Usage: {CommandManager.CommandPrefix}coffer {GetCommandLineHelp()}");
                 return;
             }
 
             if (!uint.TryParse(doodadObjIdStr, out var doodadObjId))
             {
-                character.SendMessage("|cFFFF0000[Coffer] Error parsing doodadObjId !|r");
+                character.SendMessage("|cFFFF0000[Coffer] Error parsing doodadObjId!|r");
                 return;
             }
 
@@ -61,7 +53,7 @@ namespace AAEmu.Game.Scripts.Commands
                 var doodads = WorldManager.Instance.GetAround<DoodadCoffer>(character, checkRadius);
                 if (doodads.Count <= 0)
                 {
-                    character.SendMessage("|cFFFF0000[Coffer] No coffers found nearby !|r");
+                    character.SendMessage("|cFFFF0000[Coffer] No coffers found nearby!|r");
                     return;
                 }
                 coffer = doodads.First();
@@ -73,15 +65,9 @@ namespace AAEmu.Game.Scripts.Commands
                     coffer = dCoffer;
                 else
                 {
-                    character.SendMessage($"|cFFFF0000[Coffer] No coffers found with objId: {doodadObjId} !|r");
+                    character.SendMessage($"|cFFFF0000[Coffer] No coffers found with objId: {doodadObjId}!|r");
                     return;
                 }
-            }
-
-            if (coffer == null)
-            {
-                character.SendMessage($"|cFFFF0000[Coffer] Not sure how we got here !?|r");
-                return;
             }
 
             character.SendMessage($"[Coffer] objId: {coffer.ObjId}, DoodadDbId: {coffer.DbId}, ItemContainerDbId: {coffer.ItemContainer.ContainerId}, UsedBy: {coffer.OpenedBy?.Name ?? "<nobody>"}");
@@ -92,7 +78,7 @@ namespace AAEmu.Game.Scripts.Commands
                     foreach (var item in coffer.ItemContainer.Items)
                     {
                         var slotName = item.Slot.ToString();
-                        var countName = "|ng;" + item.Count.ToString() + "|r x ";
+                        var countName = $"|ng;{item.Count.ToString()}|r x ";
                         if (item.Count == 1)
                             countName = string.Empty;
                         character.SendMessage($"[|nd;@DOODAD_NAME({coffer.TemplateId})|r][{slotName}] |nb;{item.Id}|r {countName}|nn;{item.TemplateId}|r = @ITEM_NAME({item.TemplateId})");
@@ -101,7 +87,7 @@ namespace AAEmu.Game.Scripts.Commands
                     break;
                 case "close":
                     if (!DoodadManager.Instance.CloseCofferDoodad(null, coffer.ObjId))
-                        character.SendMessage($"|cFFFF0000[Coffer] Failed to close coffer {coffer.ObjId} ?|r");
+                        character.SendMessage($"|cFFFF0000[Coffer] Failed to close coffer {coffer.ObjId}?|r");
                     else
                         character.SendMessage($"[Coffer] Closed Coffer {coffer.ObjId}");
                     break;

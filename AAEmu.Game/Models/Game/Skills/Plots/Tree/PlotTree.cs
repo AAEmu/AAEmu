@@ -147,7 +147,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 }
 
                 FlushExecutionQueue(executeQueue, state);
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 _log.Error($"Main Loop Error: {e.Message}\n {e.StackTrace}");
             }

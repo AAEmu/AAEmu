@@ -5,7 +5,6 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Tasks.Skills;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -24,10 +23,10 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Adds or removes a buff to selected target. Negative BuffId's will remove a buff. " +
-                "If precered by AsTarget (at) buff will be applied as if target was source. " +
-                "If you provide view as a parameter, it will list the current buffs on target." +
-                "You can also use 'v' instead of 'view' and 'at' or 't' instead of 'AsTarget'";
+            return "Adds or removes a buff to selected target. Negative BuffId's will remove a buff. "
+                 + "If preceded by AsTarget (at) buff will be applied as if target was source. "
+                 + "If you provide view as a parameter, it will list the current buffs on target. "
+                 + "You can also use 'v' instead of 'view' and 'at' or 't' instead of 'AsTarget'";
         }
 
         public void Execute(Character character, string[] args)
@@ -35,12 +34,12 @@ namespace AAEmu.Game.Scripts.Commands
             var firstArg = 0;
             if (args.Length <= 0)
             {
-                character.SendMessage("[AddBuff] " + CommandManager.CommandPrefix + "addbuff " + GetCommandLineHelp());
+                character.SendMessage($"[AddBuff] {CommandManager.CommandPrefix}addbuff {GetCommandLineHelp()}");
                 return;
             }
 
             Unit sourceUnit = character;
-            Unit targetUnit = null ;
+            Unit targetUnit = null;
 
             if (!(character.CurrentTarget is Unit selectedUnit))
             {
@@ -84,13 +83,13 @@ namespace AAEmu.Game.Scripts.Commands
 
             if (args.Length <= firstArg)
             {
-                character.SendMessage("|cFFFF0000[AddBuff] No buffId provided ?|r");
+                character.SendMessage("|cFFFF0000[AddBuff] No buffId provided?|r");
                 return;
             }
 
             if (!int.TryParse(args[firstArg], out var buffIdInt))
             {
-                character.SendMessage("|cFFFF0000[AddBuff] Parse error buffId !|r");
+                character.SendMessage("|cFFFF0000[AddBuff] Parse error buffId!|r");
                 return;
             }
 
@@ -110,24 +109,23 @@ namespace AAEmu.Game.Scripts.Commands
 
             if (buffIdInt > 0)
             {
-
                 var casterObj = new SkillCasterUnit(sourceUnit.ObjId);
                 var targetObj = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
                 targetObj.ObjId = targetUnit.ObjId;
 
-                var newBuff = new Buff(targetUnit, sourceUnit, casterObj, buffTemplate, null, System.DateTime.UtcNow)
-                {
-                    AbLevel = abLevel
-                };
+                var newBuff = new Buff(targetUnit, sourceUnit, casterObj, buffTemplate, null, System.DateTime.UtcNow);
+                newBuff.AbLevel = abLevel;
                 targetUnit.Buffs.AddBuff(newBuff);
             }
             if (buffIdInt < 0)
             {
                 if (selectedUnit.Buffs.CheckBuff(buffId))
+                {
                     selectedUnit.Buffs.RemoveBuff(buffId);
+                }
                 else
                 {
-                    character.SendMessage("|cFFFF0000[AddBuff] Target didn't have buff to remove|r", buffId);
+                    character.SendMessage("|cFFFF0000[AddBuff] Target didn't have a buff to remove|r", buffId);
                 }
             }
             else

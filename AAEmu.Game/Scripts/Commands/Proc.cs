@@ -12,21 +12,6 @@ namespace AAEmu.Game.Scripts.Commands
             string[] name = { "proc" };
             CommandManager.Instance.Register(name, this);
         }
-        
-        public void Execute(Character character, string[] args)
-        {
-            if (args.Length == 0)
-            {
-                character.SendMessage("[Proc] " + CommandManager.CommandPrefix + "test_proc <proc id>");
-                return;
-            }
-
-            if (uint.TryParse(args[0], out var procId))
-            {
-                var proc = new ItemProc(procId);
-                proc.Apply(character, true);
-            }
-        }
 
         public string GetCommandLineHelp()
         {
@@ -37,6 +22,20 @@ namespace AAEmu.Game.Scripts.Commands
         {
             return "Triggers a proc from item_procs";
         }
-    }
 
+        public void Execute(Character character, string[] args)
+        {
+            if (args.Length == 0)
+            {
+                character.SendMessage($"[Proc] {CommandManager.CommandPrefix}test_proc <proc id>");
+                return;
+            }
+
+            if (uint.TryParse(args[0], out var procId))
+            {
+                var proc = new ItemProc(procId);
+                proc.Apply(character, true);
+            }
+        }
+    }
 }

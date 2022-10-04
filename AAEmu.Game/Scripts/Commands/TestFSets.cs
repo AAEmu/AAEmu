@@ -1,9 +1,7 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Features;
 
 namespace AAEmu.Game.Scripts.Commands
@@ -24,20 +22,18 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Shows currently active fsets of the server";
+            return "Shows currently active fsets of the server.";
         }
 
         public void Execute(Character character, string[] args)
         {
-            foreach (var fObj in Enum.GetValues(typeof(Feature)))
+            foreach (Feature fObj in Enum.GetValues(typeof(Feature)))
             {
-                var f = (Feature)fObj;
-                if (FeaturesManager.Fsets.Check(f))
-                    character.SendMessage("[Feature] |cFF00FF00ON  |cFF80FF80" + f.ToString() + "|r");
+                if (FeaturesManager.Fsets.Check(fObj))
+                    character.SendMessage($"[Feature] |cFF00FF00ON  |cFF80FF80{fObj}|r");
                 else
-                    character.SendMessage("[Feature] |cFFFF0000OFF |cFF802020" + f.ToString() + "|r");
+                    character.SendMessage($"[Feature] |cFFFF0000OFF |cFF802020{fObj}|r");
             }
-
         }
     }
 }

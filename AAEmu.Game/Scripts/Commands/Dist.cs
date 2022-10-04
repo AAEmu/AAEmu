@@ -1,9 +1,6 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Scripts.Commands
@@ -34,8 +31,7 @@ namespace AAEmu.Game.Scripts.Commands
             var rawDistanceZ = MathUtil.CalculateDistance(character.Transform.World.Position, target.Transform.World.Position, true);
             var modelDistance = character.GetDistanceTo(target);
             var modelDistanceZ = character.GetDistanceTo(target, true);
-
-            character.SendMessage("[Distance]\nRaw distance : {0}\nRaw distance (Z) : {1}\nModel adjusted distance: {2}\nModel adjusted distance (Z): {3}", rawDistance, rawDistanceZ, modelDistance, modelDistanceZ);
+            character.SendMessage($"[Distance]\nRaw distance : {rawDistance}\nRaw distance (Z) : {rawDistanceZ}\nModel adjusted distance: {modelDistance}\nModel adjusted distance (Z): {modelDistanceZ}");
         }
     }
 }

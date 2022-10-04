@@ -1,9 +1,6 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -22,15 +19,15 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Spawns a transportation vehicle";
+            return "Spawns a transportation vehicle.";
         }
 
         public void Execute(Character character, string[] args)
         {
-            character.SendMessage("[testtransfer] function disabled");
+            character.SendMessage("[TestTransfer] function disabled");
             //if (args.Length < 1)
             //{
-            //    character.SendMessage("[test_transfer] /test_transfer unitId (1..6{124})");
+            //    character.SendMessage("[TestTransfer] /test_transfer unitId (1..6{124})");
             //    return;
             //}
             //var transfer = new Transfer();
@@ -110,7 +107,7 @@ namespace AAEmu.Game.Scripts.Commands
             //owner.Spawn();
 
             //var transfer = new Transfer();
-            //transfer.TemplateId = owner.Template.TransferBindings[0].TransferId; // взять из owner transferId для второй части повозки
+            //transfer.TemplateId = owner.Template.TransferBindings[0].TransferId; // take from owner transferId for second wagon part
             //transfer.ModelId = transfer.Template.ModelId;
             //transfer.ObjId = ObjectIdManager.Instance.GetNextId();
             //transfer.TlId = (ushort)TlIdManager.Instance.GetNextId();

@@ -237,7 +237,6 @@ namespace AAEmu.Game
         public void Dispose()
         {
             _log.Info("Disposing...");
-
             LogManager.Flush();
         }
     }

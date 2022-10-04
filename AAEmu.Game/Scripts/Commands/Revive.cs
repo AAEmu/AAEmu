@@ -21,30 +21,29 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Revives target";
+            return "Revives target.";
         }
 
         public void Execute(Character character, string[] args)
         {
             Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args.Length > 0 ? args[0] : null, out var _);
-            if (targetPlayer != null)
-            {
-                if(targetPlayer.Hp == 0)
-                {
-                    targetPlayer.Hp = targetPlayer.MaxHp;
-                    targetPlayer.Mp = targetPlayer.MaxMp;
-                    targetPlayer.BroadcastPacket(new SCCharacterResurrectedPacket(targetPlayer.ObjId, targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y, targetPlayer.Transform.World.Position.Z, targetPlayer.Transform.World.Rotation.Z), true);
-                    targetPlayer.BroadcastPacket(new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp), true);
-                }
-                else
-                {
-                    character.SendMessage("Target is already alive");
-                }
-            }
-            else
+            if (targetPlayer == null)
             {
                 character.SendMessage("Cannot revive this target");
+                return;
             }
+            if(targetPlayer.Hp != 0)
+            {
+                character.SendMessage("Target is already alive");
+                return;
+            }
+
+            targetPlayer.Hp = targetPlayer.MaxHp;
+            targetPlayer.Mp = targetPlayer.MaxMp;
+
+            var pos = targetPlayer.Transform.World.Position;
+            targetPlayer.BroadcastPacket(new SCCharacterResurrectedPacket(targetPlayer.ObjId, pos.X, pos.Y, pos.Z, targetPlayer.Transform.World.Rotation.Z), true);
+            targetPlayer.BroadcastPacket(new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp), true);
         }
     }
 }

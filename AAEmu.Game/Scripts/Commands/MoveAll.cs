@@ -8,18 +8,6 @@ namespace AAEmu.Game.Scripts.Commands
 {
     public class MoveAll : ICommand
     {
-        public void Execute(Character character, string[] args)
-        {
-            foreach (var otherChar in WorldManager.Instance.GetAllCharacters())
-            {
-                if (otherChar != character)
-                {
-                    otherChar.DisabledSetPosition = true;
-                    otherChar.SendPacket(new SCTeleportUnitPacket(0, 0, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z + 1.0f, 0f));
-                }
-            }
-        }
-
         public void OnLoad()
         {
             string[] name = { "move_all", "moveall" };
@@ -34,6 +22,19 @@ namespace AAEmu.Game.Scripts.Commands
         public string GetCommandHelpText()
         {
             return "Moves every player to your location";
+        }
+
+        public void Execute(Character character, string[] args)
+        {
+            foreach (var otherChar in WorldManager.Instance.GetAllCharacters())
+            {
+                if (otherChar != character)
+                {
+                    otherChar.DisabledSetPosition = true;
+                    var pos = character.Transform.World.Position;
+                    otherChar.SendPacket(new SCTeleportUnitPacket(0, 0, pos.X, pos.Y, pos.Z + 1.0f, 0.0f));
+                }
+            }
         }
     }
 }

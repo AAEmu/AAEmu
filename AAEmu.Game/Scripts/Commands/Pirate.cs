@@ -1,6 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 
@@ -28,29 +26,28 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Faction] " + CommandManager.CommandPrefix + "faction <nuian||haranyan||elf||firran||pirate||friendly>");
+                character.SendMessage($"[Faction] {CommandManager.CommandPrefix}faction <nuian||haranyan||elf||firran||pirate||friendly>");
                 return;
             }
 
-            var newFactionId = 0u;
-
+            uint newFactionId = 0;
             var factionString = args[0];
             if (factionString == "nuian")
-                newFactionId = 101u;
+                newFactionId = 101;
             else if (factionString == "elf")
-                newFactionId = 103u;
+                newFactionId = 103;
             else if (factionString == "haranyan")
-                newFactionId = 109u;
+                newFactionId = 109;
             else if (factionString == "firran")
-                newFactionId = 113u;
+                newFactionId = 113;
             else if (factionString == "pirate")
-                newFactionId = 161u;
+                newFactionId = 161;
             else if (factionString == "red")
-                newFactionId = 159u;
+                newFactionId = 159;
             else if (factionString == "blue")
-                newFactionId = 160u;
+                newFactionId = 160;
             else if (factionString == "friendly")
-                newFactionId = 1u;
+                newFactionId = 1;
             else
             {
                 character.SendMessage("Invalid faction");

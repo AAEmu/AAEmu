@@ -1,18 +1,11 @@
-﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
+﻿using System;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Utils;
-using NLog;
-using System;
-using AAEmu.Game.Models.Game.Units.Movements;
-
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -31,10 +24,13 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Gets your or target's current height and that of the supposed floor (using heightmap data)\n" +
-                "testpos will move you near freedich underwater\r" +
-                "mark creates a grid of pillar doodads used for measuring the floor at 2m intervals (exact heightmap points)\r" +
-                "line creates a cross of pillar doodads used for measuring the floor at 1m intervals (for in-between points)";
+            return "Gets your or target's current height and that of the supposed "
+                 + "floor (using heightmap data)\n"
+                 + "testpos will move you near freedich underwater\n"
+                 + "mark creates a grid of pillar doodads used for measuring the "
+                 + "floor at 2m intervals (exact heightmap points)\n"
+                 + "line creates a cross of pillar doodads used for measuring the "
+                 + "floor at 1m intervals (for in-between points)";
         }
 
         public void Execute(Character character, string[] args)
@@ -47,10 +43,11 @@ namespace AAEmu.Game.Scripts.Commands
             if ((args.Length > firstarg) && (args[firstarg] == "testpos"))
             {
                 targetPlayer.DisabledSetPosition = true;
-                targetPlayer.SendPacket(new SCTeleportUnitPacket(0, 0, 22500f, 18500f, 10f, 0f));
-                targetPlayer.SendMessage("[Move] |cFFFFFFFF{0}|r moved to X: {1}, Y: {2}, Z: {3}", targetPlayer.Name, 22500f, 18500f, 10f);
+                targetPlayer.SendPacket(new SCTeleportUnitPacket(0, 0, 22500.0f, 18500.0f, 10.0f, 0.0f));
+                targetPlayer.SendMessage("[Move] |cFFFFFFFF{0}|r moved to X: {1}, Y: {2}, Z: {3}", targetPlayer.Name, 22500.0f, 18500.0f, 10.0f);
+                return;
             }
-            else
+
             if ((args.Length > firstarg) && (args[firstarg] == "mark"))
             { 
                 // Place markers
@@ -60,12 +57,12 @@ namespace AAEmu.Game.Scripts.Commands
                 rY = rY - (rY % 2);
                 uint unitId = 5622;
                 for (var y = rY - 10; y <= rY + 10; y += 2)
+                {
                     for (var x = rX - 10; x <= rX + 10; x += 2)
                     {
                         if (!DoodadManager.Instance.Exist(unitId))
-                        {
                             return;
-                        }
+
                         var doodadSpawner = new DoodadSpawner();
                         doodadSpawner.Id = 0;
                         doodadSpawner.UnitId = unitId;
@@ -78,9 +75,10 @@ namespace AAEmu.Game.Scripts.Commands
                         doodadSpawner.Position.Roll = 0;
                         doodadSpawner.Spawn(0);
                     }
-
+                }
+                return;
             }
-            else
+
             if ((args.Length > firstarg) && (args[firstarg] == "line"))
             {
                 // Place markers
@@ -92,12 +90,11 @@ namespace AAEmu.Game.Scripts.Commands
                 float rX = rXX;
                 float rY = rYY;
                 uint unitId = 5622;
-                for (var x = rX - 10f; x <= rX + 10f; x += 1f)
+                for (var x = rX - 10.0f; x <= rX + 10.0f; x += 1.0f)
                 {
                     if (!DoodadManager.Instance.Exist(unitId))
-                    {
                         return;
-                    }
+
                     var doodadSpawner = new DoodadSpawner();
                     doodadSpawner.Id = 0;
                     doodadSpawner.UnitId = unitId;
@@ -110,12 +107,11 @@ namespace AAEmu.Game.Scripts.Commands
                     doodadSpawner.Position.Roll = 0;
                     doodadSpawner.Spawn(0);
                 }
-                for (var y = rY - 10f; y <= rY + 10f; y += 1f)
+                for (var y = rY - 10.0f; y <= rY + 10.0f; y += 1.0f)
                 {
                     if (!DoodadManager.Instance.Exist(unitId))
-                    {
                         return;
-                    }
+
                     var doodadSpawner = new DoodadSpawner();
                     doodadSpawner.Id = 0;
                     doodadSpawner.UnitId = unitId;
@@ -128,37 +124,38 @@ namespace AAEmu.Game.Scripts.Commands
                     doodadSpawner.Position.Roll = 0;
                     doodadSpawner.Spawn(0);
                 }
-
+                return;
             }
-            else
-            {
-                // Show info
-                var world = WorldManager.Instance.GetWorldByZone(targetPlayer.Transform.ZoneId);
 
-                var height = world.GetHeight(targetPlayer.Transform.World.Position.X,targetPlayer.Transform.World.Position.Y);
-                var hDelta = character.Transform.World.Position.Z - height;
-                character.SendMessage("[Height] {2} Z-Pos: {0} - Floor: {1} - HeightmapDelta: {3}", character.Transform.World.Position.Z, height, targetPlayer.Name, hDelta);
+            // Show info
+            var modelWorld = WorldManager.Instance.GetWorldByZone(targetPlayer.Transform.ZoneId);
 
-                character.SendMessage("[Position] |cFFFFFFFF{0}|r X: |cFFFFFFFF{1:F1}|r  Y: |cFFFFFFFF{2:F1}|r  Z: |cFFFFFFFF{3:F1}|r ",
-                    targetPlayer.Name, targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y, targetPlayer.Transform.World.Position.Z);
+            var targetWorld = targetPlayer.Transform.World;
+            var charWorld = character.Transform.World;
+            var height = modelWorld.GetHeight(targetWorld.Position.X, targetWorld.Position.Y);
+            var hDelta = charWorld.Position.Z - height;
+            character.SendMessage("[Height] {2} Z-Pos: {0} - Floor: {1} - HeightmapDelta: {3}",
+                    charWorld.Position.Z, height, targetPlayer.Name, hDelta);
 
-                var borderLeft = (int)Math.Floor(targetPlayer.Transform.World.Position.X);
-                borderLeft = borderLeft - (borderLeft % 2);
-                var borderRight = borderLeft + 2; // we're using a divider of 2 of the heightmaps in memory, so we need to compensate with that in mind (instead of 1)
-                var borderBottom = (int)Math.Floor(targetPlayer.Transform.World.Position.Y);
-                borderBottom = borderBottom - (borderBottom % 2);
-                var borderTop = borderBottom + 2;
+            character.SendMessage("[Position] |cFFFFFFFF{0}|r X: |cFFFFFFFF{1:F1}|r  Y: |cFFFFFFFF{2:F1}|r  Z: |cFFFFFFFF{3:F1}|r ",
+                    targetPlayer.Name, targetWorld.Position.X, targetWorld.Position.Y, targetWorld.Position.Z);
 
-                // Get heights for these points
-                var heightTL = world.GetRawHeightMapHeight(borderLeft, borderTop);        // 10
-                var heightTR = world.GetRawHeightMapHeight(borderRight, borderTop);       // 6
-                var heightBL = world.GetRawHeightMapHeight(borderLeft, borderBottom);     // 14
-                var heightBR = world.GetRawHeightMapHeight(borderRight, borderBottom);    // 16
-                character.SendMessage("[Height] TL @ {0}x{1} = {2}", borderLeft, borderTop, heightTL);
-                character.SendMessage("[Height] TR @ {0}x{1} = {2}", borderRight, borderTop, heightTR);
-                character.SendMessage("[Height] BL @ {0}x{1} = {2}", borderLeft, borderBottom, heightBL);
-                character.SendMessage("[Height] BR @ {0}x{1} = {2}", borderRight, borderBottom, heightBR);
-            }
+            var borderLeft = (int)Math.Floor(targetWorld.Position.X);
+            borderLeft = borderLeft - (borderLeft % 2);
+            var borderRight = borderLeft + 2; // We're using a multiple of 2 in the heightmaps in memory, so we need to compensate with that in mind (instead of 1)
+            var borderBottom = (int)Math.Floor(targetWorld.Position.Y);
+            borderBottom = borderBottom - (borderBottom % 2);
+            var borderTop = borderBottom + 2;
+
+            // Get heights for these points
+            var heightTL = modelWorld.GetRawHeightMapHeight(borderLeft, borderTop);     // 10
+            var heightTR = modelWorld.GetRawHeightMapHeight(borderRight, borderTop);    // 6
+            var heightBL = modelWorld.GetRawHeightMapHeight(borderLeft, borderBottom);  // 14
+            var heightBR = modelWorld.GetRawHeightMapHeight(borderRight, borderBottom); // 16
+            character.SendMessage($"[Height] TL @ {borderLeft}x{borderTop} = {heightTL}");
+            character.SendMessage($"[Height] TR @ {borderRight}x{borderTop} = {heightTR}");
+            character.SendMessage($"[Height] BL @ {borderLeft}x{borderBottom} = {heightBL}");
+            character.SendMessage($"[Height] BR @ {borderRight}x{borderBottom} = {heightBR}");
         }
     }
 }

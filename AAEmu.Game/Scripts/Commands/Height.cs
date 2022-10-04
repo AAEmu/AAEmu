@@ -28,8 +28,9 @@ namespace AAEmu.Game.Scripts.Commands
             if (args.Length > 0)
                 targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
 
-            var height = WorldManager.Instance.GetHeight(targetPlayer.Transform.ZoneId, targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y);
-            character.SendMessage("[Height] {2} Z-Pos: {0} - Floor: {1}", character.Transform.World.Position.Z, height, targetPlayer.Name);
+            var pos = targetPlayer.Transform.World.Position;
+            var height = WorldManager.Instance.GetHeight(targetPlayer.Transform.ZoneId, pos.X, pos.Y);
+            character.SendMessage("[Height] {2} Z-Pos: {0} - Floor: {1}", pos.Z, height, targetPlayer.Name);
         }
     }
 }

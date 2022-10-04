@@ -1,14 +1,6 @@
-﻿using System;
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Expeditions;
-using AAEmu.Game.Models.Game.Faction;
-using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -34,19 +26,11 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[TestGuild] " + CommandManager.CommandPrefix + "testguild " + GetCommandLineHelp());
+                character.SendMessage($"[TestGuild] {CommandManager.CommandPrefix}testguild {GetCommandLineHelp()}");
                 return;
             }
 
-            var guildName = string.Empty;
-            foreach(var a in args)
-            {
-                if (guildName != string.Empty)
-                    guildName += " ";
-                guildName += a;
-            }
-
-            ExpeditionManager.Instance.CreateExpedition(guildName, character.Connection);
+            ExpeditionManager.Instance.CreateExpedition(string.Join(' ', args), character.Connection);
         }
     }
 }

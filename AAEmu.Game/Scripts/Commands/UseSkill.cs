@@ -1,6 +1,5 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -35,11 +34,12 @@ namespace AAEmu.Game.Scripts.Commands
             Unit source = character;
             Unit target = character.CurrentTarget == null ? character : (Unit)character.CurrentTarget;
 
-            if (target == null) return;
+            if (target == null)
+                return;
 
             if (args.Length == 0)
             {
-                character.SendMessage("[UseSkill] " + CommandManager.CommandPrefix + "useskill [target] <SkillId>");
+                character.SendMessage($"[UseSkill] {CommandManager.CommandPrefix}useskill [target] <SkillId>");
                 return;
             }
 
@@ -81,7 +81,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         private void DoAoe(Character character, SkillTemplate skill)
         {
-            foreach (var target in WorldManager.Instance.GetAround<Unit>(character, 20f))
+            foreach (var target in WorldManager.Instance.GetAround<Unit>(character, 20.0f))
             {
                 var casterObj = new SkillCasterUnit(target.ObjId);
                 var targetObj = SkillCastTarget.GetByType(SkillCastTargetType.Unit);

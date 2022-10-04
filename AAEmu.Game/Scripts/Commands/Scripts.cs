@@ -26,7 +26,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Scripts] Using: " + CommandManager.CommandPrefix + "scripts <action>");
+                character.SendMessage($"[Scripts] Using: {CommandManager.CommandPrefix}scripts <action>");
                 //character.SendMessage("[Scripts] Action: reload");
                 return;
             }
@@ -39,7 +39,7 @@ namespace AAEmu.Game.Scripts.Commands
                     if (ScriptCompiler.Compile())
                         character.SendMessage("[Scripts] Reload - Success");
                     else
-                        character.SendMessage("|cFFFF0000[Scripts] Reload - There were errors, please check the server logs for details !|r");
+                        character.SendMessage("|cFFFF0000[Scripts] Reload - There were errors, please check the server logs for details!|r");
                     break;
                 case "save":
                     if (SaveManager.Instance.DoSave())

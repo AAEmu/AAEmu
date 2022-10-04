@@ -1,9 +1,6 @@
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Scripts.Commands
@@ -23,25 +20,23 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Damages self or your current target based on raw damage or Hp percentage, usage:\n" +
-                   "/damage 9999  -> Inflicts 9999 damage\n" +
-                   "/damage 80 %  -> Inflicts 80% of target's max hp damage\n" +
-                   "/damage 20%   -> Inflicts 20% of target's max hp damage";
+            return "Damages self or your current target based on raw damage or Hp percentage, usage:\n"
+                 + $"{CommandManager.CommandPrefix}damage 9999 -> Inflicts 9999 damage\n"
+                 + $"{CommandManager.CommandPrefix}damage 80 % -> Inflicts 80% of target's max hp damage\n"
+                 + $"{CommandManager.CommandPrefix}damage 20%  -> Inflicts 20% of target's max hp damage";
         }
 
         public void Execute(Character character, string[] args)
         {
             if (args.Length < 1)
             {
-                character.SendMessage("[Damage] " + CommandManager.CommandPrefix + "damage (self or target) <damage> [%]");
+                character.SendMessage($"[Damage] {CommandManager.CommandPrefix}damage (self or target) <damage> [%]");
                 return;
             }
             
-            Unit target = null;
+            Unit target = character;
             if (character.CurrentTarget is Unit curTarget)
                 target = curTarget;
-            else
-                target = character;
             
             var damageStr = args[0];
             bool isPercent = false;

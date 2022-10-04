@@ -3,7 +3,6 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.TowerDefs;
-using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -11,7 +10,8 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register(new []{"tower_def", "td", "towerdef"}, this);
+            string[] name = { "tower_def", "td", "towerdef" };
+            CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()
@@ -21,17 +21,18 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Actions are: list, start, end, next";
+            return "Actions are: list, start, end, next.";
         }
 
         public void Execute(Character character, string[] args)
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Tower Defense] Usage: " + CommandManager.CommandPrefix + "tower_def <action> <params>");
+                character.SendMessage($"[Tower Defense] Usage: {CommandManager.CommandPrefix}tower_def <action> <params>");
                 return;
             }
 
+            var zoneId = character.Transform.ZoneId;
             switch (args[0])
             {
                 case "list":
@@ -43,7 +44,7 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         TowerDefId = startId,
                         ZoneGroupId = 5
-                    }, character.Transform.ZoneId);
+                    }, zoneId);
                     character.SendPacket(startPacket);
                     break;
                 case "end":
@@ -53,7 +54,7 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         TowerDefId = endId,
                         ZoneGroupId = 5
-                    }, character.Transform.ZoneId);
+                    }, zoneId);
                     character.SendPacket(endPacket);
                     break;
                 case "next":
@@ -65,7 +66,7 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         TowerDefId = nextId,
                         ZoneGroupId = 5
-                    }, character.Transform.ZoneId, step);
+                    }, zoneId, step);
                     character.SendPacket(nextPacket);
                     break;
             }

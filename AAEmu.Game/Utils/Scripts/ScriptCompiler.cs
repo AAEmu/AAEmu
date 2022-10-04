@@ -16,6 +16,7 @@ namespace AAEmu.Game.Utils.Scripts
     public static class ScriptCompiler
     {
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+        
         private static Assembly _assembly;
         private static Dictionary<string, ScriptObject> _scriptsObjects = new Dictionary<string, ScriptObject>();
 
@@ -75,7 +76,7 @@ namespace AAEmu.Game.Utils.Scripts
 
             if (files.Length == 0)
             {
-                _log.Info("Compile done (no files found)");
+                _log.Info("Compile success (no files found)");
                 assembly = null;
                 return true;
             }
@@ -116,7 +117,7 @@ namespace AAEmu.Game.Utils.Scripts
             bool res = true;
             if (diagnostics.Length == 0)
             {
-                _log.Info("Compile done (0 errors, 0 warnings)");
+                _log.Info("Compile success (0 errors, 0 warnings)");
             }
             else
             {
@@ -129,7 +130,7 @@ namespace AAEmu.Game.Utils.Scripts
                     _log.Error("Compile failed ({0} errors, {1} warnings)", errorCount, warningCount);
                 }
                 else
-                    _log.Info("Compile done ({0} errors, {1} warnings)", errorCount, warningCount);
+                    _log.Info("Compile success ({0} errors, {1} warnings)", errorCount, warningCount);
 
                 var result = diagnostics.Where(diagnostic =>
                     diagnostic.Severity == DiagnosticSeverity.Error ||

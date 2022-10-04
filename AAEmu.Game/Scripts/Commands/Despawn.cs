@@ -1,23 +1,19 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Utils;
-using NLog;
-using System;
 using AAEmu.Game.Models.Game.Units;
+using NLog;
 
 namespace AAEmu.Game.Scripts.Commands
 {
     public class Despawn : ICommand
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
+
         public void OnLoad()
         {
             CommandManager.Instance.Register("despawn", this);
@@ -30,14 +26,14 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Despawns a npc or doodad using by <objId> or <templateId> inside a <radius> range.";
+            return "Despawns an npc or doodad using by <objId> or <templateId> inside a <radius> range.";
         }
 
         public void Execute(Character character, string[] args)
         {
             if (args.Length < 2)
             {
-                character.SendMessage("[Despawn] " + CommandManager.CommandPrefix + "despawn "+ GetCommandLineHelp());
+                character.SendMessage($"[Despawn] {CommandManager.CommandPrefix}despawn {GetCommandLineHelp()}");
                 return;
             }
 
@@ -50,7 +46,7 @@ namespace AAEmu.Game.Scripts.Commands
                 character.SendMessage("|cFFFF0000[Despawn] Parse error unitId|r");
                 return;
             }
-            if ((args.Length >= 3) && (!float.TryParse(args[2],out radius)))
+            if (useRadius && (!float.TryParse(args[2], out radius)))
             {
                 character.SendMessage("|cFFFF0000[Despawn] Parse error radius|r");
                 return;
@@ -71,7 +67,7 @@ namespace AAEmu.Game.Scripts.Commands
                         }
                         else
                         {
-                            character.SendMessage("|cFFFF0000[Despawn] Doodad with Id {0} Does not exist |r", unitId);
+                            character.SendMessage("|cFFFF0000[Despawn] Doodad with Id {0} doesn't exist|r", unitId);
                         }
                         break;
                     case "npc":
@@ -85,7 +81,7 @@ namespace AAEmu.Game.Scripts.Commands
                         }
                         else
                         {
-                            character.SendMessage("|cFFFF0000[Despawn] NPC with objectId {0} don't exist|r", unitId);
+                            character.SendMessage("|cFFFF0000[Despawn] NPC with objectId {0} doesn't exist|r", unitId);
                         }
                         break;
                     case "unit":
@@ -99,7 +95,7 @@ namespace AAEmu.Game.Scripts.Commands
                         }
                         else
                         {
-                            character.SendMessage("|cFFFF0000[Despawn] NPC with objectId {0} don't exist|r", unitId);
+                            character.SendMessage("|cFFFF0000[Despawn] NPC with objectId {0} doesn't exist|r", unitId);
                         }
                         break;
                     default:
@@ -110,7 +106,6 @@ namespace AAEmu.Game.Scripts.Commands
             else
             {
                 var removedCount = 0;
-                // Use radius
                 switch (action)
                 {
                     case "doodad":

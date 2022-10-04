@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
@@ -28,7 +27,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[XP] " + CommandManager.CommandPrefix + "add_xp (target) <exp>");
+                character.SendMessage($"[XP] {CommandManager.CommandPrefix} add_xp (target) <exp>");
                 return;
             }
 

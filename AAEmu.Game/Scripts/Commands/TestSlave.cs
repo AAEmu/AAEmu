@@ -22,7 +22,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Spawns a test slave";
+            return "Spawns a test slave.";
         }
 
         public void Execute(Character character, string[] args)
@@ -36,12 +36,11 @@ namespace AAEmu.Game.Scripts.Commands
             slave.Faction = FactionManager.Instance.GetFaction(143);
             slave.Level = 50;
             slave.Transform = character.Transform.CloneDetached(slave);
-            slave.Transform.Local.AddDistanceToFront(5f);
+            slave.Transform.Local.AddDistanceToFront(5.0f);
             slave.Hp = slave.MaxHp = 190000;
             slave.Faction = character.Faction;
             slave.ModelParams = new UnitCustomModelParams();
             slave.Template = SlaveManager.Instance.GetSlaveTemplate(slave.TemplateId);
-
             slave.Spawn();
         }
     }

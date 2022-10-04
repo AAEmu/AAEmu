@@ -1,35 +1,24 @@
-﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
+﻿using System;
+using System.IO;
+using System.Collections.Generic;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Json;
-using AAEmu.Game.Utils;
-using NLog;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.Threading;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.IO;
-using MySql.Data;
+using NLog;
 
 namespace AAEmu.Game.Scripts.Commands
 {
     public class Nwrite : ICommand
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
+
         public void OnLoad()
         {
             string[] name = { "nwrite", "nw"};
@@ -43,13 +32,12 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "write's npc's or doodad's current position / rotation to json";
+            return "Write's npc's or doodad's current position / rotation to json";
         }
 
         public void Execute(Character character, string[] args)
         {
             var worlds = WorldManager.Instance.GetWorlds();
-            var npcs = WorldManager.Instance.GetAllNpcs();
 
             Doodad doodad = null;
             Npc npc = null;
@@ -70,10 +58,9 @@ namespace AAEmu.Game.Scripts.Commands
 
             if ((doodad == null) && (npc == null) && (saveAll == false))
             {
-                character.SendMessage("[Nwrite] {0}", GetCommandLineHelp());
+                character.SendMessage($"[Nwrite] {GetCommandLineHelp()}");
                 return;
             }
-
 
             if (doodad != null)
             {
@@ -82,8 +69,7 @@ namespace AAEmu.Game.Scripts.Commands
                 {
                     foreach (var world in worlds)
                     {
-                        string jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name,
-                            "doodad_spawns.json");
+                        string jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "doodad_spawns.json");
                         if (doodad.Spawner.Position.WorldId == world.Id)
                         {
                             var contents = FileManager.GetFileContents(jsonPath);
@@ -93,21 +79,21 @@ namespace AAEmu.Game.Scripts.Commands
                             }
                             else
                             {
-                                if (JsonHelper.TryDeserializeObject(contents, out List<JsonDoodadSpawns> spawners,
-                                    out _))
+                                if (JsonHelper.TryDeserializeObject(contents, out List<JsonDoodadSpawns> spawners, out _))
                                 {
                                     if (doodad.Spawner.Id == 0) // spawned into the game manually
                                     {
-                                        var newId = (uint)((spawners[spawners.Count - 1].Id) + 1);
                                         var pos = new Pos();
                                         pos.X = doodad.Transform.World.Position.X;
                                         pos.Y = doodad.Transform.World.Position.Y;
                                         pos.Z = doodad.Transform.World.Position.Z;
+
                                         var (rx, ry, rz) = doodad.Transform.World.ToRollPitchYawSBytesMovement();
                                         pos.RotationX = rx;
                                         pos.RotationY = ry;
                                         pos.RotationZ = rz;
 
+                                        var newId = (uint)((spawners[spawners.Count - 1].Id) + 1);
                                         var newEntry = new JsonDoodadSpawns();
                                         newEntry.Id = newId;
                                         newEntry.UnitId = doodad.TemplateId;
@@ -137,13 +123,11 @@ namespace AAEmu.Game.Scripts.Commands
 
                                     string json = JsonConvert.SerializeObject(spawners.ToArray(), Formatting.Indented);
                                     File.WriteAllText(jsonPath, json);
-                                    character.SendMessage("[Nwrite] Doodad ObjId: {0} has been saved!", doodad.ObjId);
+                                    character.SendMessage($"[Nwrite] Doodad ObjId: {doodad.ObjId} has been saved!");
                                 }
                             }
                         }
                     }
-
-
                 }
                 catch (Exception e)
                 {
@@ -154,6 +138,7 @@ namespace AAEmu.Game.Scripts.Commands
             else if (saveAll)
             {
                 // Save all NPCs in the current world
+                var npcs = WorldManager.Instance.GetAllNpcs();
                 foreach (var world in worlds)
                 {
                     try
@@ -161,7 +146,6 @@ namespace AAEmu.Game.Scripts.Commands
                         if (character.Transform.WorldId == world.Id)
                         {
                             string jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns.json");
-
                             var contents = FileManager.GetFileContents(jsonPath);
                             if (string.IsNullOrWhiteSpace(contents))
                             {
@@ -177,18 +161,16 @@ namespace AAEmu.Game.Scripts.Commands
                                             continue; // No spawner attached
 
                                         if (npcs[i].Spawner.Position.WorldId != character.Transform.WorldId)
-                                            continue; // wrong world
+                                            continue; // Wrong world
 
-                                        if (npcs[i].Spawner.Id == 0) // spawned into the game manually
+                                        if (npcs[i].Spawner.Id == 0) // Spawned into the game manually
                                         {
                                             var newId = (uint)((spawners[spawners.Count - 1].Id) + 1);
-
-                                            var pos = npcs[i].Transform.World;
-
                                             var newEntry = new JsonNpcSpawns();
                                             newEntry.Count = 1;
                                             newEntry.Id = newId;
                                             newEntry.UnitId = npcs[i].TemplateId;
+                                            var pos = npcs[i].Transform.World;
                                             newEntry.Position.X = pos.Position.X;
                                             newEntry.Position.Y = pos.Position.Y;
                                             newEntry.Position.Z = pos.Position.Z;
@@ -199,7 +181,7 @@ namespace AAEmu.Game.Scripts.Commands
                                             newEntry.Scale = npcs[i].Scale; // 0.0 and 1.0 seem to do the same thing 
                                             spawners.Add(newEntry);
 
-                                            npcs[i].Spawner.Id = newId; //Set ID incase you edit it after adding!
+                                            npcs[i].Spawner.Id = newId; // Set ID incase you edit it after adding!
                                         }
                                         else
                                         {
@@ -208,7 +190,6 @@ namespace AAEmu.Game.Scripts.Commands
                                                 if (spawner.Id == npc.Spawner.Id)
                                                 {
                                                     var pos = npc.Transform.World;
-                                                    
                                                     spawner.Position.X = pos.Position.X;
                                                     spawner.Position.Y = pos.Position.Y;
                                                     spawner.Position.Z = pos.Position.Z;
@@ -224,7 +205,7 @@ namespace AAEmu.Game.Scripts.Commands
 
                                     string json = JsonConvert.SerializeObject(spawners.ToArray(), Formatting.Indented);
                                     File.WriteAllText(jsonPath, json);
-                                    character.SendMessage("[Nwrite] all npcs have been saved!");
+                                    character.SendMessage("[Nwrite] All npcs have been saved!");
                                 }
                             }
                         }
@@ -244,26 +225,24 @@ namespace AAEmu.Game.Scripts.Commands
                 {
                     try
                     {
-
                         if (npc.Spawner.Position.WorldId == world.Id)
                         {
                             string jsonPath = ($"{FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json");
-
                             var contents = FileManager.GetFileContents(jsonPath);
                             if (string.IsNullOrWhiteSpace(contents))
                                 _log.Warn($"File {jsonPath} doesn't exists or is empty.");
+
                             if (JsonHelper.TryDeserializeObject(contents, out List<JsonNpcSpawns> spawners, out _))
                             {
                                 // Is it a new spawner ?
-                                if (npc.Spawner.Id == 0) // spawned into the game manually
+                                if (npc.Spawner.Id == 0) // Spawned into the game manually
                                 {
-                                    var newId = (uint)((spawners[spawners.Count - 1].Id) + 1);
-                                    var pos = npc.Transform.World;
-
                                     var newEntry = new JsonNpcSpawns();
                                     newEntry.Count = 1;
+                                    var newId = (uint)((spawners[spawners.Count - 1].Id) + 1);
                                     newEntry.Id = newId;
                                     newEntry.UnitId = npc.TemplateId;
+                                    var pos = npc.Transform.World;
                                     newEntry.Position.X = pos.Position.X;
                                     newEntry.Position.Y = pos.Position.Y;
                                     newEntry.Position.Z = pos.Position.Z;
@@ -281,10 +260,9 @@ namespace AAEmu.Game.Scripts.Commands
                                     // Find the spawner in the list
                                     foreach (var spawner in spawners)
                                     {
-                                        var pos = npc.Transform.World;
-
                                         if (spawner.Id == npc.Spawner.Id)
                                         {
+                                            var pos = npc.Transform.World;
                                             spawner.Position.X = pos.Position.X;
                                             spawner.Position.Y = pos.Position.Y;
                                             spawner.Position.Z = pos.Position.Z;
@@ -296,12 +274,11 @@ namespace AAEmu.Game.Scripts.Commands
                                         }
                                     }
                                 }
-
                             }
 
                             string json = JsonConvert.SerializeObject(spawners.ToArray(), Formatting.Indented);
                             File.WriteAllText(jsonPath, json);
-                            character.SendMessage("[Nwrite] npc has been saved!");
+                            character.SendMessage("[Nwrite] Npc has been saved!");
                         }
                     }
                     catch (Exception e)

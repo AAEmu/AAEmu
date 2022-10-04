@@ -28,20 +28,19 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void Execute(Character character, string[] args)
         {
-            Unit target = character;
-            int argsIdx = 0;
-
             if (args.Length == 0)
             {
-                character.SendMessage("[GetAttribute] " + CommandManager.CommandPrefix + "getattribute <attrId || attrName> [target]");
+                character.SendMessage($"[GetAttribute] {CommandManager.CommandPrefix}getattribute <attrId || attrName> [target]");
                 return;
             }
 
+            Unit target = character;
+            int argsIdx = 0;
             if (args.Length > 1 && args[0] == "target")
             {
                 if (character.CurrentTarget == null || !(character.CurrentTarget is Unit))
                 {
-                    character.SendPacket(new SCChatMessagePacket(ChatType.System, $"No Target Selected"));
+                    character.SendPacket(new SCChatMessagePacket(ChatType.System, "No Target Selected"));
                     return;
                 }
                 target = (Unit)character.CurrentTarget;

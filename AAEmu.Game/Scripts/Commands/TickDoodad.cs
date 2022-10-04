@@ -1,22 +1,13 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Utils;
-using NLog;
-using System;
 
 namespace AAEmu.Game.Scripts.Commands
 {
     public class TickDoodad : ICommand
     {
-        protected static Logger _log = LogManager.GetCurrentClassLogger();
         public void OnLoad()
         {
             CommandManager.Instance.Register("tickdoodad", this);
@@ -36,12 +27,12 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length < 1)
             {
-                character.SendMessage("[tickdoodad] " + CommandManager.CommandPrefix + "tickdoodad " + GetCommandLineHelp());
+                character.SendMessage($"[tickdoodad] {CommandManager.CommandPrefix}tickdoodad {GetCommandLineHelp()}");
                 return;
             }
 
             uint unitId;
-            float radius = 30f;
+            float radius = 30.0f;
             if (!uint.TryParse(args[0], out unitId))
             {
                 character.SendMessage("|cFFFF0000[tickdoodad] Parse error unitId|r");
@@ -62,7 +53,7 @@ namespace AAEmu.Game.Scripts.Commands
                     }
                 }
             }
-            character.SendMessage("[tickdoodad] phased {0} Doodad(s) with TemplateID {1} - @DOODAD_NAME({1})", tickedCount, unitId);
+            character.SendMessage($"[tickdoodad] phased {tickedCount} Doodad(s) with TemplateID {unitId} - @DOODAD_NAME({unitId})");
         }
     }
 }

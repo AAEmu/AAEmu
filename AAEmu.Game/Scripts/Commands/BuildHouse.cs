@@ -1,5 +1,4 @@
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -30,7 +29,7 @@ namespace AAEmu.Game.Scripts.Commands
             var targetHouse = character.CurrentTarget as House;
             if (targetHouse == null)
             {
-                character.SendMessage("You must target a house");
+                character.SendMessage("[BuildHouse] You must target a house");
                 return;
             }
 

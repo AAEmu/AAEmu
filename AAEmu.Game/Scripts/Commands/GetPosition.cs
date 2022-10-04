@@ -21,7 +21,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Displays information about the position of you, or your target if a target is selected or provided as a argument.";
+            return "Displays information about the position of you, or your target if a target is selected or provided as an argument.";
         }
 
         public void Execute(Character character, string[] args)
@@ -29,7 +29,6 @@ namespace AAEmu.Game.Scripts.Commands
             if (character.CurrentTarget != null && character.CurrentTarget != character)
             {
                 var pos = character.CurrentTarget.Transform.CloneAsSpawnPosition();
-
                 if (character.CurrentTarget is Npc npc)
                     character.SendMessage("[Position] Id: {0}, ObjId: {1}, TemplateId: {2} X: |cFFFFFFFF{3}|r  Y: |cFFFFFFFF{4}|r  Z: |cFFFFFFFF{5}|r", npc.Spawner.Id, character.CurrentTarget.ObjId, npc.TemplateId, pos.X, pos.Y, pos.Z);
             }
@@ -39,9 +38,7 @@ namespace AAEmu.Game.Scripts.Commands
                 if (args.Length > 0)
                     targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
 
-
                 var pos = targetPlayer.Transform.CloneAsSpawnPosition();
-
                 var zonename = "???";
                 var zone = ZoneManager.Instance.GetZoneByKey(pos.ZoneId);
                 if (zone != null)

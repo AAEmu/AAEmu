@@ -1,5 +1,4 @@
-
-
+using System.Text;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
@@ -28,15 +27,10 @@ namespace AAEmu.Game.Scripts.Commands
         public void Execute(Character character, string[] args)
         {
             var characters = WorldManager.Instance.GetAllCharacters();
-            var finalMessage = characters.Count + " players online. |cFFFFFFFF";
-            foreach (var onlineCharacter in characters)
-            {
-                finalMessage += (onlineCharacter.Name + "|r,|cFFFFFFFF ");
-            }
-
-            finalMessage += "|r";
-
-            character.SendMessage(finalMessage);
+            var sb = new StringBuilder();
+            for (int i = 0; i < characters.Count; i++)
+                sb.Append($"{characters[i].Name}|r,|cFFFFFFFF");
+            character.SendMessage($"{characters.Count} players online. |cFFFFFFFF{sb.ToString()}|r");
         }
     }
 }

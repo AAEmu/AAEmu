@@ -23,14 +23,14 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Adds X amount of money to target (can be negative values).";
+            return "Adds X amount of money to target (can be negative).";
         }
 
         public void Execute(Character character, string[] args)
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Gold] "+ CommandManager.CommandPrefix + "addgold (target) <gold> [silver] [copper]");
+                character.SendMessage($"[Gold] {CommandManager.CommandPrefix}addgold (target) <gold> [silver] [copper]");
                 return;
             }
 
@@ -40,7 +40,6 @@ namespace AAEmu.Game.Scripts.Commands
             var argSilver = 0;
             var argCopper = 0;
             var amount = 0;
-
             if ((args.Length > firstarg) && (int.TryParse(args[firstarg], out amount)))
             {
                 argGold = amount;
@@ -55,19 +54,18 @@ namespace AAEmu.Game.Scripts.Commands
             }
 
             var argTotal = argCopper + (argSilver * 100) + (argGold * 10000);
-
             if (argTotal != 0)
             {
                 targetPlayer.Money += argTotal;
                 targetPlayer.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, new List<ItemTask> { new MoneyChange(argTotal) }, new List<ulong>()));
                 if (character.Id != targetPlayer.Id)
                 {
-                    character.SendMessage("[Gold] changed {0}'s money by {1}g {2}s {3}c",targetPlayer.Name,argGold,argSilver,argCopper);
+                    character.SendMessage("[Gold] Changed {0}'s money by {1}g {2}s {3}c", targetPlayer.Name, argGold, argSilver, argCopper);
                     targetPlayer.SendMessage("[GM] {0} has adjusted your money", character.Name);
                 }
             }
             else
-                character.SendMessage("[Gold] No valid amount provided ...");
+                character.SendMessage("[Gold] No valid amount provided...");
         }
     }
 }

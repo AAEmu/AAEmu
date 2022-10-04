@@ -13,19 +13,19 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "<true||false>";
+            return "true || false";
         }
 
         public string GetCommandHelpText()
         {
-            return "Sets yourself as invisible to other players";
+            return "Sets yourself as invisible to other players.";
         }
 
         public void Execute(Character character, string[] args)
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Invisible] " + CommandManager.CommandPrefix + "invisible <true||false>");
+                character.SendMessage($"[Invisible] {CommandManager.CommandPrefix}invisible true || false");
                 return;
             }
 

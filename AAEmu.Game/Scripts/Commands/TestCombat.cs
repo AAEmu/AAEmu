@@ -20,20 +20,21 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Command to test combat related packets. You can try to use cleared if you are stuck in combat for example.";
+            return "Command to test combat related packets. You can try to use cleared "
+                 + "if you are stuck in combat for example.";
         }
 
         public void Execute(Character character, string[] args)
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[TestCombat] mods: engaged, cleared, first_hit");
+                character.SendMessage("[TestCombat] Mods: engaged, cleared, first_hit");
                 return;
             }
 
             switch (args[0])
             {
-                case "engaged": // TODO Battle Start
+                case "engaged": // TODO: Battle Start
                     if (character.CurrentTarget != null)
                     {
                         character.SendPacket(new SCCombatEngagedPacket(character.ObjId));
@@ -43,7 +44,7 @@ namespace AAEmu.Game.Scripts.Commands
                         character.SendMessage("[TestCombat] not have target");
 
                     break;
-                case "cleared": // TODO Battle End
+                case "cleared": // TODO: Battle End
                     if (character.CurrentTarget != null)
                     {
                         character.SendPacket(new SCCombatClearedPacket(character.ObjId));
@@ -60,7 +61,7 @@ namespace AAEmu.Game.Scripts.Commands
                     else
                         character.SendMessage("[TestCombat] not have target");
                     break;
-                case "text": // TODO Combat Effect
+                case "text": // TODO: Combat Effect
                     character.SendPacket(new SCCombatTextPacket(0, character.ObjId, 0));
                     break;
             }

@@ -25,7 +25,7 @@ namespace AAEmu.Game.Utils.DB
             }
             catch (Exception e)
             {
-                _log.Error(e,"Error on SQLite connect: {0}", e.Message);
+                _log.Error(e,"Error connecting to SQLite: {0}", e.Message);
                 return null;
             }
 

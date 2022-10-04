@@ -4,7 +4,6 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Scripts.Commands
@@ -38,36 +37,31 @@ namespace AAEmu.Game.Scripts.Commands
             
             if ((targetPlayer is Character) && (playerTarget != null))
             {
+                // This check is needed otherwise the player will be kicked
                 if (targetPlayer.Hp == 0)
                 {
-                    // This check is needed otherwise the player will be kicked
                     character.SendMessage("Cannot heal a dead target, use the revive command instead");
+                    return;
                 }
-                else
-                {
-                    targetPlayer.Hp = targetPlayer.MaxHp;
-                    targetPlayer.Mp = targetPlayer.MaxMp;
-                    targetPlayer.BroadcastPacket(new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp), true);
-                }
+                targetPlayer.Hp = targetPlayer.MaxHp;
+                targetPlayer.Mp = targetPlayer.MaxMp;
+                targetPlayer.BroadcastPacket(new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp), true);
+                return;
             }
-            else
+            // Player is trying to heal some other unit
             if (playerTarget is Unit unit)
             {
-                // Player is trying to heal some other unit
                 if (unit.Hp == 0)
                 {
                     character.SendMessage("Cannot heal a dead target");
+                    return;
                 }
-                else
-                {
-                    unit.Hp = unit.MaxHp;
-                    unit.Mp = unit.MaxMp;
-                    unit.BroadcastPacket(new SCUnitPointsPacket(unit.ObjId, unit.Hp, unit.Mp), true);
-                    character.SendMessage("{0} => {1}/{2} HP, {3}/{4} MP",
-                        unit.Name, unit.Hp, unit.MaxHp, unit.Mp, unit.MaxMp);
-                }
+                unit.Hp = unit.MaxHp;
+                unit.Mp = unit.MaxMp;
+                unit.BroadcastPacket(new SCUnitPointsPacket(unit.ObjId, unit.Hp, unit.Mp), true);
+                character.SendMessage($"{unit.Name} => {unit.Hp}/{unit.MaxHp} HP, {unit.Mp}/{unit.MaxMp} MP");
+                return;
             }
-            
         }
     }
 }
