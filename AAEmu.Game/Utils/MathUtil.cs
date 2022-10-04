@@ -342,7 +342,7 @@ namespace AAEmu.Game.Utils
             double sqx = quat.X*quat.X;
             double sqy = quat.Y*quat.Y;
             double sqz = quat.Z*quat.Z;
-            
+
             var rotX = (float)Math.Atan2(2.0 * (quat.X*quat.Y + quat.Z*quat.W),(sqx - sqy - sqz + sqw));
             var rotY = (float)Math.Atan2(2.0 * (quat.Y*quat.Z + quat.X*quat.W),(-sqx - sqy + sqz + sqw));
             var rotZ = (float)Math.Asin(-2.0 * (quat.X*quat.Z - quat.Y*quat.W)/(sqx + sqy + sqz + sqw));
