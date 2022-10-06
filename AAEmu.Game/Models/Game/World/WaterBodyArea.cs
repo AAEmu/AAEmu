@@ -71,25 +71,13 @@ public class WaterBodyArea
         BorderPoints = new List<Vector3>();
     }
 
-    public bool IsWater(Vector3 point, out Vector3 flowDirection)
-    {
-        // First do a check in 2D top view
-        if (!Contains(point.X, point.Y, out flowDirection))
-            return false;
-        
-        // If it's in withing the shape, check the height (assumes shape is flat)
-        // Is it above the estimated water ?
-        if (point.Z > _highest)
-            return false;
-
-        // Is it below the estimated water ?
-        if (point.Z < _lowest - Depth)
-            return false;
-
-        // So I guess it's in the water then
-        return true;
-    }
-
+    /// <summary>
+    /// Checks if a point is inside the water body, and returns a surface points of the given location
+    /// </summary>
+    /// <param name="point">Point to check against</param>
+    /// <param name="surfacePoint">Surface point of the water at the X,Y location provided by point</param>
+    /// <param name="flowDirection">In case the water body is a LineArray, this returns the water-flow direction</param>
+    /// <returns>Returns true if point is within the water area</returns>
     public bool GetSurface(Vector3 point, out Vector3 surfacePoint, out Vector3 flowDirection)
     {
         if (!Contains(point.X, point.Y, out flowDirection))
@@ -108,12 +96,14 @@ public class WaterBodyArea
         {
             // For flowing water find the actual closest point, and use it's position as height
             var closestPoint = Points[0];
-            var dist = 1000000f;
+            var closestDistance = 1000000000f;
             for (var i = 0; i < Points.Count - 1; i++)
             {
-                if ((point - Points[i]).Length() < dist)
+                // Using Length² as it's faster, and we don't care about the actual distance other than finding the closest
+                var thisDistance = (point - Points[i]).LengthSquared();
+                if (thisDistance < closestDistance)
                 {
-                    dist = (point - Points[i]).Length();
+                    closestDistance = thisDistance;
                     closestPoint = Points[i];
                 }
             }

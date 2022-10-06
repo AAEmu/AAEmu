@@ -33,10 +33,17 @@ public class WaterBodies
 
         lock (_lock)
         {
+            // TODO: take the top-most water area in case of overlaps
             foreach (var area in Areas)
-                if (area.IsWater(point, out flowDirection))
+            {
+                if (area.GetSurface(point, out var surfacePoint, out flowDirection) &&
+                    (point.Z <= surfacePoint.Z) &&
+                    (point.Z >= surfacePoint.Z - area.Depth))
                     return true;
+            }
+
         }
+        flowDirection = Vector3.Zero;
         return false;
     }
 

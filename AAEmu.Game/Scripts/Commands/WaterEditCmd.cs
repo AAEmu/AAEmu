@@ -278,7 +278,7 @@ namespace AAEmu.Game.Scripts.Commands
                     if (SelectedWater.GetSurface(p, out var surfacePoint, out _))
                     {
                         var markerDoodad = DoodadManager.Instance.Create(0, surfaceDoodadId);
-                        markerDoodad.Transform.Local.SetPosition(p);
+                        markerDoodad.Transform.Local.SetPosition(surfacePoint);
                         markerDoodad.Show();
                         Markers.Add(markerDoodad);
                     }
