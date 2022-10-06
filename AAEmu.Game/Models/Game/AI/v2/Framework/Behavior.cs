@@ -100,21 +100,36 @@ namespace AAEmu.Game.Models.Game.AI.v2
                 var skillSelfId = skills[Rand.Next(skills.Count)].SkillId;
                 var skillTemplateSelf = SkillManager.Instance.GetSkillTemplate(skillSelfId);
                 var skillSelf = new Skill(skillTemplateSelf);
-                if (!Ai.Owner.Cooldowns.CheckCooldown(skillTemplateSelf.Id))
+
+                var delay1 = (int) (Ai.Owner.Template.BaseSkillDelay * 1000);
+                if (Ai.Owner.Template.BaseSkillDelay == 0)
+                {
+                    const uint Delay1 = 10000u;
+                    const uint Delay2 = 13000u;
+                    delay1 = (int)Rand.Next(Delay1, Delay2);
+                }
+
+                if(this.CheckInterval(delay1))
                 {
                     _log.Warn("PickSkillAndUseIt:UseSelfSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplateSelf.Id);
-                    // TODO how to eliminate spam with skills? The following solution breaks the Npc attack
-                    if (Ai.Owner.Template.BaseSkillDelay == 0)
-                    {
-                        const uint Delay1 = 10000u;
-                        const uint Delay2 = 13000u;
-                        UseSkill(skillSelf, target, Ai.Owner.Template.BaseSkillDelay);
-                        Ai.Owner.Cooldowns.AddCooldown(skillSelf.Template.Id, (uint)Rand.Next(Delay1, Delay2));
-                        return;
-                    }
-                    UseSkill(skillSelf, target, Ai.Owner.Template.BaseSkillDelay);
-                    return;
+                    UseSkill(skillSelf, target);
                 }
+                return;
+                //if (!Ai.Owner.Cooldowns.CheckCooldown(skillTemplateSelf.Id))
+                //{
+                //    _log.Warn("PickSkillAndUseIt:UseSelfSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplateSelf.Id);
+                //    // TODO how to eliminate spam with skills? The following solution breaks the Npc attack
+                //    if (Ai.Owner.Template.BaseSkillDelay == 0)
+                //    {
+                //        const uint Delay1 = 10000u;
+                //        const uint Delay2 = 13000u;
+                //        UseSkill(skillSelf, target, Ai.Owner.Template.BaseSkillDelay);
+                //        Ai.Owner.Cooldowns.AddCooldown(skillSelf.Template.Id, (uint)Rand.Next(Delay1, Delay2));
+                //        return;
+                //    }
+                //    UseSkill(skillSelf, target, Ai.Owner.Template.BaseSkillDelay);
+                //    return;
+                //}
             }
 
             // This SkillUseConditionKind.InCombat
@@ -127,20 +142,35 @@ namespace AAEmu.Game.Models.Game.AI.v2
             if (pickedSkillId == 2 && targetDist > 4.0f) { return; }
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(pickedSkillId);
             var skill = new Skill(skillTemplate);
-            if (!Ai.Owner.Cooldowns.CheckCooldown(skillTemplate.Id))
+
+            var delay2 = (int) (Ai.Owner.Template.BaseSkillDelay * 1000);
+            if (Ai.Owner.Template.BaseSkillDelay == 0)
+            {
+                const uint Delay1 = 1500u;
+                const uint Delay2 = 1550u;
+                delay2 = (int)Rand.Next(Delay1, Delay2);
+            }
+
+            if(this.CheckInterval(delay2))
             {
                 _log.Warn("PickSkillAndUseIt:UseSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2} on Target {3}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplate.Id, target.ObjId);
-                // TODO how to eliminate spam with skills? The following solution breaks the Npc attack
-                if (Ai.Owner.Template.BaseSkillDelay == 0)
-                {
-                    const uint Delay1 = 1500u;
-                    const uint Delay2 = 1550u;
-                    UseSkill(skill, target, Ai.Owner.Template.BaseSkillDelay);
-                    Ai.Owner.Cooldowns.AddCooldown(skill.Template.Id, (uint)Rand.Next(Delay1, Delay2));
-                    return;
-                }
-                UseSkill(skill, target, Ai.Owner.Template.BaseSkillDelay);
+                UseSkill(skill, target);
             }
+
+            //if (!Ai.Owner.Cooldowns.CheckCooldown(skillTemplate.Id))
+            //{
+            //    _log.Warn("PickSkillAndUseIt:UseSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2} on Target {3}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplate.Id, target.ObjId);
+            //    // TODO how to eliminate spam with skills? The following solution breaks the Npc attack
+            //    if (Ai.Owner.Template.BaseSkillDelay == 0)
+            //    {
+            //        const uint Delay1 = 1500u;
+            //        const uint Delay2 = 1550u;
+            //        UseSkill(skill, target, Ai.Owner.Template.BaseSkillDelay);
+            //        Ai.Owner.Cooldowns.AddCooldown(skill.Template.Id, (uint)Rand.Next(Delay1, Delay2));
+            //        return;
+            //    }
+            //    UseSkill(skill, target, Ai.Owner.Template.BaseSkillDelay);
+            //}
         }
 
         // UseSkill (delay)
