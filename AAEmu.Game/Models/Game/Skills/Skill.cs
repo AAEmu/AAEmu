@@ -87,45 +87,26 @@ namespace AAEmu.Game.Models.Game.Skills
                     {
                         delay = caster is Character ? 300 : 1500;
                     }
+
                     if (caster.SkillLastUsed.AddMilliseconds(delay) > DateTime.UtcNow)
                     {
-                        _log.Warn("Skill: CooldownTime [{0}]!", delay);
+                        _log.Warn($"Skill: CooldownTime [{delay}]!");
                         // Will delay for 150 Milliseconds to eliminate the hanging of the skill
-                        var source = new CancellationTokenSource();
-                        var t = Task.Run(async delegate
+                        if(!this.CheckInterval(delay))
                         {
-                            await Task.Delay(TimeSpan.FromMilliseconds(delay), source.Token);
-                            return 0;
-                        });
-                        try {
-                            t.Wait();
+                            return SkillResult.CooldownTime;
                         }
-                        catch (AggregateException ae) {
-                            foreach (var e in ae.InnerExceptions)
-                                _log.Trace("{0}: {1}", e.GetType().Name, e.Message);
-                        }
-                        //return SkillResult.CooldownTime;
                     }
 
                     // Commented out the line to eliminate the hanging of the skill
                     if (caster.GlobalCooldown >= DateTime.UtcNow && !Template.IgnoreGlobalCooldown)
                     {
-                        _log.Warn("Skill: CooldownTime [50]!");
+                        _log.Warn($"Skill: CooldownTime [{delay}]!");
                         // Will delay for 50 Milliseconds to eliminate the hanging of the skill
-                        var source = new CancellationTokenSource();
-                        var t = Task.Run(async delegate
+                        if(!this.CheckInterval(delay))
                         {
-                            await Task.Delay(TimeSpan.FromMilliseconds(50), source.Token);
-                            return 0;
-                        });
-                        try {
-                            t.Wait();
+                            return SkillResult.CooldownTime;
                         }
-                        catch (AggregateException ae) {
-                            foreach (var e in ae.InnerExceptions)
-                                _log.Trace("{0}: {1}", e.GetType().Name, e.Message);
-                        }
-                        //return SkillResult.CooldownTime;
                     }
 
                     caster.SkillLastUsed = DateTime.UtcNow;
