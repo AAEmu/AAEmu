@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
-using System.Numerics;
 
 namespace AAEmu.Game.Models.ClientData
 {
@@ -205,9 +205,9 @@ namespace AAEmu.Game.Models.ClientData
             return Lerp(Lerp(cX0Y0, cX1Y0, tx), Lerp(cX0Y1, cX1Y1, tx), ty);
         }
 
-        private System.Drawing.Rectangle FindNearestSignificantPoints(int x, int y)
+        private Rectangle FindNearestSignificantPoints(int x, int y)
         {
-            return new System.Drawing.Rectangle(x / nSize, y / nSize, 1, 1);
+            return new Rectangle(x / nSize, y / nSize, 1, 1);
         }
 
         private ushort GetRawHeight(int x, int y)

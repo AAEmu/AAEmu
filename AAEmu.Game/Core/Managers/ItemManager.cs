@@ -1061,6 +1061,7 @@ namespace AAEmu.Game.Core.Managers
                             template.Sellable = reader.GetBoolean("sellable", true);
                             template.UseSkillId = reader.GetUInt32("use_skill_id");
                             template.UseSkillAsReagent = reader.GetBoolean("use_skill_as_reagent", true);
+                            template.ImplId = reader.GetByte("impl_id");
                             template.BuffId = reader.GetUInt32("buff_id");
                             template.Gradable = reader.GetBoolean("gradable", true);
                             template.LootMulti = reader.GetBoolean("loot_multi", true);
@@ -1075,6 +1076,7 @@ namespace AAEmu.Game.Core.Managers
                             template.AuctionCategoryC = reader.IsDBNull("auction_c_category_id") ? 0 : reader.GetInt32("auction_c_category_id");
                             template.LevelLimit = reader.GetInt32("level_limit");
                             template.FixedGrade = reader.GetInt32("fixed_grade");
+                            template.Disenchantable = reader.GetBoolean("disenchantable", true);
                             template.LivingPointPrice = reader.GetInt32("living_point_price");
                             template.CharGender = reader.GetByte("char_gender_id");
 
