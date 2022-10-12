@@ -43,6 +43,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 return;
             }
 
+            if (!targetItem.Template.Disenchantable)
+            {
+                return;
+            }
+
             var id = targetItem.TemplateId;
             var reagent = ItemConversionGameData.Instance.GetReagentForItem(targetItem.Grade, targetItem.Template.ImplId, id, targetItem.Template.Level);
             if (reagent == null)
