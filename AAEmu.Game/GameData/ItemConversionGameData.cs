@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Data.Sqlite;
@@ -19,7 +19,7 @@ namespace AAEmu.Game.GameData
         private List<int> _conversions;
         private Dictionary<uint, int> _conversionSets;
 
-        public ItemConversionReagent GetReagentForItem(byte grade, uint implId, ulong itemId, int level)
+        public ItemConversionReagent GetReagentForItem(byte grade, ItemImpl implId, uint itemId, int level)
         {
             // figure out if there is a conversion for this specific item id first
             foreach (var reagent in _reagents)
@@ -81,7 +81,7 @@ namespace AAEmu.Game.GameData
                         ItemConversionReagent data = new ItemConversionReagent()
                         {
                             ConversionId = reader.GetUInt32("item_conv_rpack_id"),
-                            ImplId = reader.GetUInt32("item_impl_id"),
+                            ImplId = (ItemImpl) reader.GetInt32("item_impl_id"),
                             MinLevel = reader.GetInt32("min_level"),
                             MaxLevel = reader.GetInt32("max_level"),
                             MinItemGrade = reader.GetByte("item_grade_id"),
@@ -139,14 +139,7 @@ namespace AAEmu.Game.GameData
                 {
                     while (reader.Read())
                     {
-                        if (!reader.IsDBNull("item_conv_set_id"))
-                        {
-                            _conversions.Add(reader.GetInt32("item_conv_set_id"));
-                        }
-                        else
-                        {
-                            _conversions.Add(-1);
-                        }
+                        _conversions.Add(reader.GetInt32("item_conv_set_id", -1));
                     }
                 }
             }
@@ -165,9 +158,9 @@ namespace AAEmu.Game.GameData
                         ItemConversionProduct data = new ItemConversionProduct()
                         {
                             ConversionId = reader.GetUInt32("item_conv_ppack_id"),
-                            ChanceRate = reader.IsDBNull("chance_rate") ? 0 : reader.GetUInt32("chance_rate"),
+                            ChanceRate = reader.GetInt32("chance_rate", 0),
                             OuputItemId = reader.GetUInt32("item_id"),
-                            Weight = reader.GetUInt32("weight"),
+                            Weight = reader.GetInt32("weight"),
                             MinOutput = reader.GetInt32("min"),
                             MaxOutput = reader.GetInt32("max")
                         };

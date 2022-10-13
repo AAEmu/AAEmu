@@ -1,11 +1,13 @@
+using AAEmu.Game.Models.StaticValues;
+
 namespace AAEmu.Game.Models.Game.Items
 {
     public class ItemConversionReagent
     {
         public int ConversionSet;
         public uint ConversionId;
-        public uint ImplId;
-        public ulong InputItemId;
+        public ItemImpl ImplId;
+        public uint InputItemId;
         public int MinLevel;
         public int MaxLevel;
         public byte MinItemGrade;
@@ -15,9 +17,9 @@ namespace AAEmu.Game.Models.Game.Items
     public class ItemConversionProduct
     {
         public uint ConversionId;
-        public uint ChanceRate;
-        public ulong OuputItemId;
-        public uint Weight;
+        public int ChanceRate;
+        public uint OuputItemId;
+        public int Weight;
         public int MinOutput;
         public int MaxOutput;
     }

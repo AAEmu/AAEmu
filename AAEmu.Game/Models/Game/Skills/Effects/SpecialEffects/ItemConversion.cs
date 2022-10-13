@@ -1,6 +1,5 @@
 ﻿using System;
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -27,12 +26,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             // TODO ...
             if (caster is Character) { _log.Debug("Special effects: ItemConversion value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
-            if ((!(caster is Character character)) || (character == null))
+            if (caster is not Character character)
             {
                 return;
             }
 
-            if (!(targetObj is SkillCastItemTarget itemTarget) || (itemTarget == null))
+            if (targetObj is not SkillCastItemTarget itemTarget)
             {
                 return;
             }
@@ -70,13 +69,15 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 // give product
                 // TODO: add in weights
                 int value = Rand.Next(product.MinOutput, product.MaxOutput + 1);
-                character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Conversion, (uint) product.OuputItemId, value);
+                if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Conversion, (uint) product.OuputItemId, value))
+                {
+                    // Skill cancelled probably
+                    return;
+                }
             }
 
             // destroy item
             targetItem._holdingContainer.RemoveItem(ItemTaskType.Conversion, targetItem, true);
-
-            character.BroadcastPacket(new SCSkillEndedPacket(skill.TlId), true);
         }
     }
 }

@@ -1,0 +1,38 @@
+namespace AAEmu.Game.Models.StaticValues
+{
+    public enum ItemImpl
+    {
+        ITEM_IMPL_MISC = 0x0,
+        ITEM_IMPL_WEAPON = 0x1,
+        ITEM_IMPL_ARMOR = 0x2,
+        ITEM_IMPL_BODY = 0x3,
+        ITEM_IMPL_BAG = 0x4,
+        ITEM_IMPL_HOUSING = 0x5,
+        ITEM_IMPL_HOUSING_DECORATION = 0x6,
+        ITEM_IMPL_TOOL = 0x7,
+        ITEM_IMPL_SUMMON_SLAVE = 0x8,
+        ITEM_IMPL_SPAWN_DOODAD = 0x9,
+        ITEM_IMPL_ACCEPT_QUEST = 0xA,
+        ITEM_IMPL_SUMMON_MATE = 0xB,
+        ITEM_IMPL_RECIPE = 0xC,
+        ITEM_IMPL_CRAFTING = 0xD,
+        ITEM_IMPL_PORTAL = 0xE,
+        ITEM_IMPL_ENCHANTING_GEM = 0xF,
+        ITEM_IMPL_REPORT_CRIME = 0x10,
+        ITEM_IMPL_LOGIC_DOODAD = 0x11,
+        ITEM_IMPL_HAS_UCC = 0x12,
+        ITEM_IMPL_OPEN_EMBLEM_UI = 0x13,
+        ITEM_IMPL_SHIPYARD = 0x14,
+        ITEM_IMPL_SOCKET = 0x15,
+        ITEM_IMPL_BACKPACK = 0x16,
+        ITEM_IMPL_OPEN_PAPER = 0x17,
+        ITEM_IMPL_ACCESSORY = 0x18,
+        ITEM_IMPL_TREASURE = 0x19,
+        ITEM_IMPL_MUSIC_SHEET = 0x1A,
+        ITEM_IMPL_DYEING = 0x1B,
+        ITEM_IMPL_SLAVE_EQUIPMENT = 0x1C,
+        ITEM_IMPL_GRADE_ENCHANTING_SUPPORT = 0x1D,
+        ITEM_IMPL_MATE_ARMOR = 0x1E,
+        ITEM_IMPL_LOCATION = 0x1F
+    };
+}

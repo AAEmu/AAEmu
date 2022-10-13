@@ -1,4 +1,5 @@
 ﻿using System;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Items.Templates
 {
@@ -31,7 +32,7 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public bool Sellable { get; set; }
         public uint UseSkillId { get; set; }
         public bool UseSkillAsReagent { get; set; }
-        public byte ImplId { get; set; }
+        public ItemImpl ImplId { get; set; }
         public uint BuffId { get; set; }
         public bool Gradable { get; set; }
         public bool LootMulti { get; set; }
