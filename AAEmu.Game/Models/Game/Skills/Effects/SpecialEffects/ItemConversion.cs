@@ -28,22 +28,26 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
             if (caster is not Character character)
             {
+                skill.Cancelled = true;
                 return;
             }
 
             if (targetObj is not SkillCastItemTarget itemTarget)
             {
+                skill.Cancelled = true;
                 return;
             }
 
-            var targetItem = character.Inventory.GetItemById(itemTarget.Id);
+            var targetItem = character.Inventory.Bag.GetItemByItemId(itemTarget.Id);
             if (targetItem == null)
             {
+                skill.Cancelled = true;
                 return;
             }
 
             if (!targetItem.Template.Disenchantable)
             {
+                skill.Cancelled = true;
                 return;
             }
 
@@ -52,6 +56,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (reagent == null)
             {
                 _log.Error($"Couldn't find Reagent for item {id}");
+                skill.Cancelled = true;
                 return;
             }
 
@@ -59,6 +64,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (product == null)
             {
                 _log.Error($"Couldn't find Product from Reagent for item {id}");
+                skill.Cancelled = true;
                 return;
             }
 
@@ -71,7 +77,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 int value = Rand.Next(product.MinOutput, product.MaxOutput + 1);
                 if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Conversion, (uint) product.OuputItemId, value))
                 {
-                    // Skill cancelled probably
+                    skill.Cancelled = true;
+                    character.SendErrorMessage(ErrorMessageType.BagFull);
                     return;
                 }
             }
