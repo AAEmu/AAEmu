@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
-using AAEmu.Game.Models.Tasks.Skills;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -17,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public CSStartInteractionPacket() : base(CSOffsets.CSStartInteractionPacket, 1)
         {
         }
-
+        
         public override void Read(PacketStream stream)
         {
             var npcObjId = stream.ReadBc();
@@ -40,38 +35,39 @@ namespace AAEmu.Game.Core.Packets.C2G
                 // it will still use the first action that is prompted to the user. This effectively makes quest NPCS
                 // right-clickable as intended
                 // This could later be used to implement some of the anti-cheating
+                // 0 is the intended default or else quests go wonky
                 
-                var skills = new List<uint>();
+                uint option = 0;
                 if (npc.Template.Banker)
-                    skills.Add(SkillsEnum.UseWarehouse); // Open warehouse
+                    option = SkillsEnum.UseWarehouse; // Open warehouse
                 // TODO: fill in the skills and maybe change the order to what it would show in-game
                 else if (npc.Template.AbilityChanger)
-                    skills.Add(SkillsEnum.ChangeSkillsets); // Open Skill-Trainer
+                    option = SkillsEnum.ChangeSkillsets; // Open Skill-Trainer
                 else if (npc.Template.Auctioneer)
-                    skills.Add(SkillsEnum.UseAuctioneer); // Open Auctioneer
+                    option = SkillsEnum.UseAuctioneer; // Open Auctioneer
                 else if (npc.Template.Priest)
-                    skills.Add(SkillsEnum.Blessing); // Open Recover-Exp dialog ?
+                    option = SkillsEnum.Blessing; // Open Recover-Exp dialog ?
                 else if (npc.Template.Repairman)
-                    skills.Add(SkillsEnum.Repair); // Open Repair dialog ?
+                    option = SkillsEnum.Repair; // Open Repair dialog ?
                 else if (npc.Template.Merchant)
-                    skills.Add(SkillsEnum.UseStore); // Open Shop dialog ?
+                    option = SkillsEnum.UseStore; // Open Shop dialog ?
                 else if (npc.Template.Stabler)
-                    skills.Add(SkillsEnum.HealPetSWounds); // Open Pet Recovery dialog ?
+                    option = SkillsEnum.HealPetSWounds; // Open Pet Recovery dialog ?
                 else if (npc.Template.Expedition)
-                    skills.Add(SkillsEnum.FormGuild); // Open Repair dialog ?
+                    option = SkillsEnum.FormGuild; // Open Repair dialog ?
                 else if (npc.Template.RecrutingBattlefieldId > 0)
-                    skills.Add(SkillsEnum.WarSupport); // Open Arena dialog ?
+                    option = SkillsEnum.WarSupport; // Open Arena dialog ?
                 else if (npc.Template.Blacksmith)
-                    skills.Add(SkillsEnum.ItemFusion); // Open Item Fuse dialog ?
+                    option = SkillsEnum.ItemFusion; // Open Item Fuse dialog ?
 
-                // Add a dummy-skill of 0 when we didn't intercept anything.
-                // This also fixes the right-click on quest NPCs
-                if (skills.Count <= 0)
-                    skills.Add(0);
-                
-                if (skills.Count > 0)
-                    Connection.ActiveChar.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo,
-                        pickId, mouseButton, modifierKeys, skills.ToArray()));
+                Connection.ActiveChar.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo,
+                    pickId, mouseButton, modifierKeys, new uint[] { option }));
+            }
+
+            var slave = WorldManager.Instance.GetUnit(npcObjId);
+            if (slave is Mate mate)
+            {
+                Connection.ActiveChar.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo, pickId, mouseButton, modifierKeys, new uint[] { SkillsEnum.SlaveMounting }));
             }
         }
     }
