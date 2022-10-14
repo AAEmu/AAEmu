@@ -19,7 +19,7 @@ namespace AAEmu.Game.GameData
         private List<int> _conversions;
         private Dictionary<uint, int> _conversionSets;
 
-        public ItemConversionReagent GetReagentForItem(byte grade, ItemImpl implId, uint itemId, int level)
+        public ItemConversionReagent GetReagentForItem(byte grade, ItemImplEnum implId, uint itemId, int level)
         {
             // figure out if there is a conversion for this specific item id first
             foreach (var reagent in _reagents)
@@ -81,7 +81,7 @@ namespace AAEmu.Game.GameData
                         ItemConversionReagent data = new ItemConversionReagent()
                         {
                             ConversionId = reader.GetUInt32("item_conv_rpack_id"),
-                            ImplId = (ItemImpl) reader.GetInt32("item_impl_id"),
+                            ImplId = (ItemImplEnum) reader.GetInt32("item_impl_id"),
                             MinLevel = reader.GetInt32("min_level"),
                             MaxLevel = reader.GetInt32("max_level"),
                             MinItemGrade = reader.GetByte("item_grade_id"),

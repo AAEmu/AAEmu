@@ -1061,7 +1061,7 @@ namespace AAEmu.Game.Core.Managers
                             template.Sellable = reader.GetBoolean("sellable", true);
                             template.UseSkillId = reader.GetUInt32("use_skill_id");
                             template.UseSkillAsReagent = reader.GetBoolean("use_skill_as_reagent", true);
-                            template.ImplId = (ItemImpl) reader.GetInt32("impl_id");
+                            template.ImplId = (ItemImplEnum) reader.GetInt32("impl_id");
                             template.BuffId = reader.GetUInt32("buff_id");
                             template.Gradable = reader.GetBoolean("gradable", true);
                             template.LootMulti = reader.GetBoolean("loot_multi", true);

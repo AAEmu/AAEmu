@@ -32,7 +32,7 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public bool Sellable { get; set; }
         public uint UseSkillId { get; set; }
         public bool UseSkillAsReagent { get; set; }
-        public ItemImpl ImplId { get; set; }
+        public ItemImplEnum ImplId { get; set; }
         public uint BuffId { get; set; }
         public bool Gradable { get; set; }
         public bool LootMulti { get; set; }

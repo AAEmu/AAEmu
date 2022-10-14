@@ -6,7 +6,7 @@ namespace AAEmu.Game.Models.Game.Items
     {
         public int ConversionSet;
         public uint ConversionId;
-        public ItemImpl ImplId;
+        public ItemImplEnum ImplId;
         public uint InputItemId;
         public int MinLevel;
         public int MaxLevel;
