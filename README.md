@@ -1,4 +1,4 @@
-# ![AAEmu](https://camo.githubusercontent.com/3b08c6a3475b72c0fc7cea0f91fe87308122b452e127837de9cfe921e69da006/68747470733a2f2f692e696d6775722e636f6d2f4e4644593337362e706e67)
+# ![AAEmu](https://i.imgur.com/NFDY376.png)
 
 [![Coverage Status](https://coveralls.io/repos/github/AAEmu/AAEmu/badge.svg?branch=develop)](https://coveralls.io/github/AAEmu/AAEmu?branch=develop)
 ![Discord](https://img.shields.io/discord/479677351618281472?color=%235865F2&label=Discord&logo=Discord&logoColor=%23FFFFFF")
