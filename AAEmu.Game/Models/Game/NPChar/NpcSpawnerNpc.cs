@@ -72,6 +72,7 @@ namespace AAEmu.Game.Models.Game.NPChar
                 npc.Spawner = new NpcSpawner();
                 npc.Spawner.Position = npcSpawner.Position;
                 npc.Spawner.Id = npcSpawner.Id;
+                npc.Id = npcSpawner.Id;
                 npc.Spawner.UnitId = MemberId;
                 npc.Spawner.NpcSpawnerIds.Add(NpcSpawnerTemplateId);
                 npc.Spawner.Template = npcSpawner.Template;

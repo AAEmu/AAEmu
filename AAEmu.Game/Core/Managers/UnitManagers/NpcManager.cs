@@ -72,8 +72,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             var npc = new Npc();
             npc.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
-            npc.TemplateId = id; // duplicate Id
-            npc.Id = id;
+            npc.TemplateId = id;
+            //npc.Id = id;
             npc.Template = template;
             npc.ModelId = template.ModelId;
             npc.Faction = FactionManager.Instance.GetFaction(template.FactionId);
