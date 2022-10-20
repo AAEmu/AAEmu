@@ -86,14 +86,14 @@ namespace AAEmu.Game.Core.Packets.G2C
                     break;
                 case BaseUnitType.Npc:
                     var npc = (Npc)_unit;
-                    stream.WriteBc(npc.Id);       // Id
+                    stream.WriteBc(npc.ObjId);    // objId
                     stream.Write(npc.TemplateId); // npc templateId
                     stream.Write(0u);             // type(id)
                     stream.Write((byte)0);        // clientDriven
                     break;
                 case BaseUnitType.Slave:
                     var slave = (Slave)_unit;
-                    stream.Write(slave.Id);         // Id
+                    stream.Write(slave.Id);         // Id ?
                     stream.Write(slave.TlId);       // tl
                     stream.Write(slave.TemplateId); // templateId
                     stream.Write(slave.Summoner.ObjId); // ownerId
