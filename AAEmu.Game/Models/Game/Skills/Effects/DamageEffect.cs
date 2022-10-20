@@ -421,7 +421,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 trg.BroadcastPacket(packet, true);
             if (trg is Npc)
             {
-                trg.BroadcastPacket(new SCAiAggroPacket(trg.ObjId, 1, caster.ObjId, caster.SummarizeDamage), true);
+                trg.BroadcastPacket(new SCAiAggroPacket(trg.Id, 1, caster.ObjId, caster.SummarizeDamage), true);
             }
             if (trg is Npc npc/* && npc.CurrentTarget != caster*/)
             {

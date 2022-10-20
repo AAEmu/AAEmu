@@ -327,7 +327,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             if (CurrentTarget != null)
             {
-                killer.BroadcastPacket(new SCAiAggroPacket(killer.ObjId, 0), true);
+                killer.BroadcastPacket(new SCAiAggroPacket(killer.Id, 0), true);
                 killer.SummarizeDamage = 0;
 
                 if (killer.CurrentTarget != null)

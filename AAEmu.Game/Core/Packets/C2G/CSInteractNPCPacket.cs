@@ -12,12 +12,12 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var objId = stream.ReadBc();
+            var id = stream.ReadBc();
             var isTargetChanged = stream.ReadBoolean();
 
-            _log.Debug("InteractNPC, BcId: {0}", objId);
+            _log.Debug("InteractNPC, BcId: {0}", id);
 
-            Connection.SendPacket(new SCAiAggroPacket(objId, 0)); // TODO проверить count=1
+            Connection.SendPacket(new SCAiAggroPacket(id, 0)); // TODO проверить count=1
         }
     }
 }
