@@ -70,14 +70,14 @@ namespace AAEmu.Game.Models.Game.Char
 
             foreach (var portal in portals)
             {
-                var newVisitedDistrict = new VisitedDistrict()
+                if (!VisitedDistricts.ContainsKey(subZoneId))
                 {
-                    Id = VisitedSubZoneIdManager.Instance.GetNextId(),
-                    SubZone = subZoneId,
-                    Owner = Owner.Id
-                };
-                
-                VisitedDistricts.Add(subZoneId, newVisitedDistrict);
+                    var newVisitedDistrict = new VisitedDistrict();
+                    newVisitedDistrict.Id = VisitedSubZoneIdManager.Instance.GetNextId();
+                    newVisitedDistrict.SubZone = subZoneId;
+                    newVisitedDistrict.Owner = Owner.Id;
+                    VisitedDistricts.Add(subZoneId, newVisitedDistrict);
+                }
                 PopulateDistrictPortals();
                 Send();
                 _log.Info($"{portal.Name}:{subZoneId} added to return district list");
