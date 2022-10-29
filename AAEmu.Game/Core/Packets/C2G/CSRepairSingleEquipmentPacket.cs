@@ -12,9 +12,9 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            stream.ReadByte();
+            //stream.ReadByte(); // not for version 1.2
             var slotType = (SlotType)stream.ReadByte();
-            stream.ReadByte();
+            //stream.ReadByte(); // not for version 1.2
             var slot = stream.ReadByte();
             var autoUseAAPoint = stream.ReadBoolean();
 
