@@ -13,8 +13,6 @@ services:
             - ./SQL/examples/test-user.sql:/docker-entrypoint-initdb.d/test-user.sql
         environment:
             MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-        ports:
-            - 3306:3306
 
     adminer:
         image: adminer
