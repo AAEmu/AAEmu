@@ -6,7 +6,7 @@ services:
         restart: unless-stopped
         command: --default_authentication_plugin=mysql_native_password
         volumes:
-            - db-data:/var/lib/mysql
+            - ./data/db:/var/lib/mysql
             - ./SQL/aaemu_login.sql:/docker-entrypoint-initdb.d/aaemu_login.sql
             - ./SQL/aaemu_game.sql:/docker-entrypoint-initdb.d/aaemu_game.sql
             - ./SQL/examples/example-server.sql:/docker-entrypoint-initdb.d/example-server.sql
@@ -73,6 +73,3 @@ services:
             - 1250:1250
         depends_on:
             - login
-
-volumes:
-    db-data:

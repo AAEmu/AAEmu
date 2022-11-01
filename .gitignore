@@ -21,3 +21,6 @@ publish/
 AAEmu.Tests/TestResults/
 Tools/*/bin/
 Tools/*/obj/
+
+# Docker data
+data/
