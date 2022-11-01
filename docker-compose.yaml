@@ -64,8 +64,8 @@ services:
         image: aaemu-game:${PROJECT_VERSION_PREFIX}-${PROJECT_VERSION_SUFFIX}
         restart: unless-stopped
         volumes:
-          - "./AAEmu.Game/bin/${BUILD_CONFIGURATION}/${BUILD_FRAMEWORK}/ClientData:/app/ClientData:ro"
-          - "./AAEmu.Game/bin/${BUILD_CONFIGURATION}/${BUILD_FRAMEWORK}/Data:/app/Data:ro"
+          - ./data/game_pak:/app/ClientData/game_pak:ro
+          - ./data/compact.sqlite3:/app/Data/compact.sqlite3:ro
         environment:
             DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: 1
         ports:
