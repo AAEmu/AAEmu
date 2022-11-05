@@ -169,7 +169,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 return;
             if (State != EffectState.Created)
             {
-                State = EffectState.Finishing;
+                //State = EffectState.Finishing;
                 ScheduleEffect(replace);
             }
             else
