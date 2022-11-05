@@ -129,11 +129,33 @@ namespace AAEmu.Game.Core.Managers
             {
                 if (newJob)
                 {
-                    await _generalScheduler.ScheduleJob(task.JobDetail, task.Trigger);
+                    try
+                    {
+                        await _generalScheduler.ScheduleJob(task.JobDetail, task.Trigger);
+                    }
+                    catch (Exception e)
+                    {
+                        _log.Trace(e, "Rescheduling task");
+                        try
+                        {
+                            await _generalScheduler.RescheduleJob(task.Trigger.Key, task.Trigger);
+                        }
+                        catch (Exception exception)
+                        {
+                            _log.Error(exception, "Error scheduling task");
+                        }
+                    }
                 }
                 else
                 {
-                    await _generalScheduler.RescheduleJob(task.Trigger.Key, task.Trigger);
+                    try
+                    {
+                        await _generalScheduler.RescheduleJob(task.Trigger.Key, task.Trigger);
+                    }
+                    catch (Exception e)
+                    {
+                        _log.Error(e, "Error scheduling task");
+                    }
                 }
             }
             catch (Exception e)
@@ -253,10 +275,10 @@ namespace AAEmu.Game.Core.Managers
     {
         public ThreadTask Execute(IJobExecutionContext context)
         {
-            var log = (Logger) context.MergedJobDataMap.Get("Logger");
+            var log = (Logger)context.MergedJobDataMap.Get("Logger");
             try
             {
-                var task = (Task) context.MergedJobDataMap.Get("Task");
+                var task = (Task)context.MergedJobDataMap.Get("Task");
                 if (task.Cancelled)
                 {
                     return ThreadTask.CompletedTask;
@@ -281,7 +303,7 @@ namespace AAEmu.Game.Core.Managers
         private void Clear(uint taskId)
         {
             var thread = new Thread(id =>
-                TaskIdManager.Instance.ReleaseId((uint) id)
+                TaskIdManager.Instance.ReleaseId((uint)id)
             );
             thread.Start(taskId);
         }

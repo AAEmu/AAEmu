@@ -441,8 +441,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     {
                         switch (doodadPhaseFunc.FuncType)
                         {
+                            case "DoodadFuncTimer":
                             case "DoodadFuncTod":
                             case "DoodadFuncRatioChange":
+                            case "DoodadFuncGrowth":
+                            case "DoodadFuncClout":
                                 DoPhaseFuncs(null, (int)FuncGroupId);
                                 break;
                                 //case "DoodadFuncClimateReact":
@@ -459,11 +462,21 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     }
                 }
 
-                if (funcs.Count <= 0 &&
-                    phaseFuncs.Length >
-                    0) // Initialize anything that does not require interaction immediately after spawning
+                if (funcs.Count <= 0 && phaseFuncs.Length > 0) // Initialize anything that does not require interaction immediately after spawning
                 {
-                    DoPhaseFuncs(null, (int)FuncGroupId);
+                    foreach (var doodadPhaseFunc in phaseFuncs)
+                    {
+                        switch (doodadPhaseFunc.FuncType)
+                        {
+                            case "DoodadFuncTimer":
+                            case "DoodadFuncTod":
+                            case "DoodadFuncRatioChange":
+                            case "DoodadFuncGrowth":
+                            case "DoodadFuncClout":
+                                DoPhaseFuncs(null, (int)FuncGroupId);
+                                break;
+                        }
+                    }
                 }
             }
         }
