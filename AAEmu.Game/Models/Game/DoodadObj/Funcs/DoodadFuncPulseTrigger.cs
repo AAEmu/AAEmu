@@ -8,12 +8,17 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public bool Flag { get; set; }
         public int NextPhase { get; set; }
 
+        public static bool Halt = false;
+
         public override bool Use(Unit caster, Doodad owner)
         {
-            _log.Trace("DoodadFuncPulseTrigger");
-            if (Flag)
+            _log.Debug($"DoodadFuncPulseTrigger Flag={Flag}, NextPhase={NextPhase}, Halt={Halt}");
+
+            if (Flag && !Halt)
             {
+                Halt = true; // запрещаем выполнение в цикле // we prohibit execution in a loop
                 owner.OverridePhase = NextPhase;
+
                 return true;
             }
 

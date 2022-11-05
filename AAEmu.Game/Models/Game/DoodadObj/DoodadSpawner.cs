@@ -30,6 +30,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         [DefaultValue(1f)]
         public uint Count { get; set; } = 1;
         private bool _permanent { get; set; }
+        public List<uint> RelatedIds { get; set; }
         //---
 
         public DoodadSpawner()
