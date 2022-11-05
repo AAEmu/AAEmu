@@ -6,11 +6,12 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
+
 namespace AAEmu.Game.Scripts.Commands
 {
     public class DoodadCmd : SubCommandBase, ICommand
     {
-        public DoodadCmd() 
+        public DoodadCmd()
         {
             Title = "[Doodad]";
             Description = "Root command to manage Doodads";
@@ -21,6 +22,7 @@ namespace AAEmu.Game.Scripts.Commands
             Register(new DoodadSaveSubCommand(), "save");
             Register(new DoodadPositionSubCommand(), "position", "pos");
             Register(new DoodadSpawnSubCommand(), "spawn");
+            Register(new DoodadDoSpawnSubCommand(), "dospawn");
         }
 
         public void OnLoad()
@@ -39,7 +41,7 @@ namespace AAEmu.Game.Scripts.Commands
         }
 
         public string GetCommandHelpText()
-{
+        {
             return CallPrefix;
         }
 

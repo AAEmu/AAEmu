@@ -91,7 +91,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     }
                 }
 
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_funcs ORDER BY doodad_func_group_id ASC, actual_func_id ASC";
@@ -134,7 +134,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     {
                         while (reader.Read())
                         {
-                           var func = new DoodadPhaseFunc();
+                            var func = new DoodadPhaseFunc();
                             func.GroupId = reader.GetUInt32("doodad_func_group_id");
                             func.FuncId = reader.GetUInt32("actual_func_id");
                             func.FuncType = reader.GetString("actual_func_type");
@@ -425,7 +425,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_clout_effects";
@@ -2168,11 +2168,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 }
 
                 _log.Info("Finished loading doodad functions ...");
-               
+
                 #endregion
-                
+
                 #region doodads_and_func_groups
-                
+
                 _log.Info("Loading doodad templates...");
 
                 // First load all doodad_func_groups
@@ -2190,13 +2190,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             funcGroups.Almighty = reader.GetUInt32("doodad_almighty_id");
                             funcGroups.GroupKindId = (DoodadFuncGroups.DoodadFuncGroupKind)reader.GetUInt32("doodad_func_group_kind_id");
                             funcGroups.SoundId = reader.GetUInt32("sound_id", 0);
-                            
+
                             if (!_allFuncGroups.TryAdd(funcGroups.Id, funcGroups))
                                 _log.Fatal($"Failed to add FuncGroups: {funcGroups.Id}");
                         }
                     }
                 }
-                
+
                 // Then Load actual doodads
                 using (var command = connection.CreateCommand())
                 {
@@ -2208,15 +2208,15 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         while (reader.Read())
                         {
                             var templateId = reader.GetUInt32("id");
-                            
+
                             var cofferCapacity = IsCofferTemplate(templateId);
-                            
+
                             DoodadTemplate template;
                             if (cofferCapacity > 0)
                                 template = new DoodadCofferTemplate() { Capacity = cofferCapacity };
                             else
                                 template = new DoodadTemplate();
-                            
+
                             template.Id = templateId;
                             template.OnceOneMan = reader.GetBoolean("once_one_man", true);
                             template.OnceOneInteraction = reader.GetBoolean("once_one_interaction", true);
@@ -2250,8 +2250,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             _templates.Add(template.Id, template);
                         }
                     }
-                }                
-                
+                }
+
                 // Bind FuncGroups to Template
                 foreach (var (_, funcGroups) in _allFuncGroups)
                 {
@@ -2263,7 +2263,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 _log.Info("Loaded {0} doodad templates", _templates.Count);
                 #endregion
             }
-                        
+
             _loaded = true;
         }
 
@@ -2276,7 +2276,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         {
             if (templateId == 0)
                 return -1;
-            
+
             // Check if template is a Coffer
             foreach (var (_, funcGroup) in _allFuncGroups)
             {
@@ -2312,7 +2312,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             if (doodad == null)
                 doodad = new Doodad();
-            
+
             doodad.ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
             doodad.TemplateId = template.Id; // duplicate Id
             doodad.Template = template;
@@ -2478,13 +2478,18 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             var targetHouse = HousingManager.Instance.GetHouseAtLocation(x, y);
 
+            // для работы скрипта '/doodad dospawn <id>'
+            // for the '/doodad dospawn <id>' script to work
+            var escds = character.ExpectScriptCommandDoSpawn;
+
             // Create doodad
-            var doodad = Instance.Create(0, id, character);
+
+            var doodad = Instance.Create(0, (escds == 0 ? id : escds), character);
             doodad.IsPersistent = true;
             doodad.Transform = character.Transform.CloneDetached(doodad);
             doodad.Transform.Local.SetPosition(x, y, z);
             doodad.Transform.Local.SetZRotation(zRot);
-            doodad.ItemId = itemId;
+            doodad.ItemId = escds == 0 ? itemId : escds;
             doodad.PlantTime = DateTime.UtcNow;
             if (targetHouse != null)
             {
@@ -2502,11 +2507,17 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             if (scale > 0f)
                 doodad.SetScale(scale);
 
-            // Consume item
-            var items = ItemManager.Instance.GetItemIdsFromDoodad(id);
-            var preferredItem = character.Inventory.Bag.GetItemByItemId(itemId);
+            List<uint> items = new List<uint>();
+            Item preferredItem = new Item();
+            doodad.ItemTemplateId = 0;
+            if (escds == 0)
+            {
+                // Consume item
+                items = ItemManager.Instance.GetItemIdsFromDoodad(id);
+                preferredItem = character.Inventory.Bag.GetItemByItemId(itemId);
 
-            doodad.ItemTemplateId = preferredItem.TemplateId;
+                doodad.ItemTemplateId = preferredItem.TemplateId;
+            }
 
             if (doodad is DoodadCoffer coffer)
             {
@@ -2515,8 +2526,15 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             foreach (var item in items)
                 character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1, preferredItem);
-            
+
             doodad.Spawn();
+
+            if (escds != 0)
+            {
+                character.ExpectScriptCommandDoSpawn = 0;
+                return doodad;
+            }
+
             doodad.Save();
 
             return doodad;
@@ -2527,11 +2545,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             var doodad = WorldManager.Instance.GetDoodad(objId);
             if (!(doodad is DoodadCoffer coffer))
                 return false;
-            
+
             // Somebody already using this ?
             if (coffer.OpenedBy != null)
                 return false;
-            
+
             // TODO: Check permissions
 
             coffer.OpenedBy = character;
@@ -2613,7 +2631,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             // TODO: Can non-coffer doodads that use this packet only be changed by their owner ?
             if (doodad.OwnerId != player.Id)
                 return false;
-            
+
             // For Coffers validate if select option is applicable
             if (doodad is DoodadCoffer coffer)
             {
@@ -2628,11 +2646,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     return false;
                 }
             }
-            
+
             doodad.Data = data;
 
             doodad.BroadcastPacket(new SCDoodadChangedPacket(doodad.ObjId, doodad.Data), false);
-            
+
             return true;
         }
         // }

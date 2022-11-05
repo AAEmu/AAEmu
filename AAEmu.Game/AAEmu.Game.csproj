@@ -141,6 +141,9 @@
       <None Update="Scripts\Commands\GetAttribute.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
+      <None Update="Scripts\SubCommands\Doodad\DoodadDoSpawnSubCommand.cs">
+        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      </None>
     </ItemGroup>
 
     <ItemGroup>

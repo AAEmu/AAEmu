@@ -178,6 +178,8 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        public uint ExpectScriptCommandDoSpawn { get; set; }
+
         #region Attributes
 
         [UnitAttribute(UnitAttribute.GlobalCooldownMul)]
