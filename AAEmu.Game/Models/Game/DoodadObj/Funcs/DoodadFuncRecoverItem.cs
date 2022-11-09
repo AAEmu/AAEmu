@@ -75,8 +75,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (owner != null)
                 owner.ToNextPhase = addedItem;
 
-            if (addedItem)
-                owner.Delete();
+            //if (addedItem)
+            //    owner.Delete();
         }
     }
 }
