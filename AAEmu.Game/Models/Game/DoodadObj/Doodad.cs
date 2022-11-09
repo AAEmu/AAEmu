@@ -365,6 +365,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <returns>if TRUE, it did not pass the check for the quest (it must be aborted)</returns>
         public bool DoPhaseFuncs(Unit caster, int nextPhase)
         {
+            if (nextPhase == -1)
+            {
+                Delete();
+                return false;
+            }
             if (nextPhase <= 0) { return false; }
 
             if (caster is Character)
