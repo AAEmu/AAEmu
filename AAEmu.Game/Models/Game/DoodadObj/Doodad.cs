@@ -109,6 +109,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         }
 
         public uint QuestGlow { get; set; } //0 off // 1 on
+        public int PuzzleGroup { get; set; } = -1; // -1 off
         public DoodadSpawner Spawner { get; set; }
         public DoodadFuncTask FuncTask { get; set; }
 
