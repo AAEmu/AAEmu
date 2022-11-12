@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
@@ -13,6 +14,7 @@ using AAEmu.Game.Models.Tasks.Quests;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Data.Sqlite;
 using NLog;
+using QuestNpcAiName = AAEmu.Game.Models.Game.Quests.Static.QuestNpcAiName;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -258,12 +260,12 @@ namespace AAEmu.Game.Core.Managers
                         template.Id = reader.GetUInt32("id");
                         template.KindId = (QuestComponentKind)reader.GetByte("component_kind_id");
                         template.NextComponent = reader.GetUInt32("next_component", 0);
-                        template.NpcAiId = reader.GetUInt32("npc_ai_id", 0);
+                        template.NpcAiId = (QuestNpcAiName)reader.GetUInt32("npc_ai_id", 0);
                         template.NpcId = reader.GetUInt32("npc_id", 0);
                         template.SkillId = reader.GetUInt32("skill_id", 0);
                         template.SkillSelf = reader.GetBoolean("skill_self", true);
                         template.AiPathName = reader.GetString("ai_path_name", string.Empty);
-                        template.AiPathTypeId = reader.GetUInt32("ai_path_type_id");
+                        template.AiPathTypeId = (PathType)reader.GetUInt32("ai_path_type_id");
                         template.NpcSpawnerId = reader.GetUInt32("npc_spawner_id", 0);
                         template.PlayCinemaBeforeBubble = reader.GetBoolean("play_cinema_before_bubble", true);
                         template.AiCommandSetId = reader.GetUInt32("ai_command_set_id", 0);

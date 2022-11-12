@@ -211,61 +211,11 @@ namespace AAEmu.Game.Core.Packets.G2C
             }
             #endregion AttachPoint2
 
-            // TODO added that NPCs can be hunted to move their legs while moving, but if they sit or do anything they will just stand there
-            if (_baseUnitType == BaseUnitType.Npc) // NPC
-            {
-                if (_unit is Npc npc)
-                {
-                    // TODO UnitModelPosture
-                    if (npc.Faction.GuardHelp)
-                    {
-                        stream.Write((byte)_modelPostureType); // type // оставим это для того, чтобы NPC могли заниматься своими делами
-                    }
-                    else
-                    {
-                        _modelPostureType = 0; // type //для NPC на которых можно напасть и чтобы они шевелили ногами (для людей особенно)
-                        stream.Write((byte)_modelPostureType);
-                    }
-                }
-            }
-            else // other
-            {
-                stream.Write((byte)_modelPostureType);
-            }
+            #region UnitModelPosture
 
-            stream.Write(false); // isLooted
+            _unit.ModelPosture(stream, _unit, _baseUnitType, _modelPostureType);
 
-            switch (_modelPostureType)
-            {
-                case ModelPostureType.HouseState: // build
-                    for (var i = 0; i < 2; i++)
-                    {
-                        stream.Write(true); // door
-                    }
-
-                    for (var i = 0; i < 6; i++)
-                    {
-                        stream.Write(true); // window
-                    }
-
-                    break;
-                case ModelPostureType.ActorModelState: // npc
-                    var npc = (Npc)_unit;
-                    stream.Write(npc.Template.AnimActionId);
-                    stream.Write(true); // activate
-                    break;
-                case ModelPostureType.FarmfieldState:
-                    stream.Write(0u);    // type(id)
-                    stream.Write(0f);    // growRate
-                    stream.Write(0);     // randomSeed
-                    stream.Write(false); // isWithered
-                    stream.Write(false); // isHarvested
-                    break;
-                case ModelPostureType.TurretState: // slave
-                    stream.Write(0f); // pitch
-                    stream.Write(0f); // yaw
-                    break;
-            }
+            #endregion
 
             stream.Write(_unit.ActiveWeapon);
 
@@ -428,7 +378,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             return stream;
         }
-        
+
         #region Inventory_Equip
         private void Inventory_Equip(PacketStream stream, Unit unit0, BaseUnitType baseUnitType)
         {

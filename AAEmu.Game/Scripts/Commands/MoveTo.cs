@@ -37,9 +37,9 @@ namespace AAEmu.Game.Scripts.Commands
                 "2. Take a route;\n" +
                 "3. Stop recording.\n" +
                 "=== here is an example file structure (x, y, z) ===\n" +
-                "|15629,0|14989,02|141,2055|\n" +
-                "|15628,0|14987,24|141,3826|\n" +
-                "|15626,0|14983,88|141,3446|\n" +
+                "|15629.0|14989.02|141.2055|\n" +
+                "|15628.0|14987.24|141.3826|\n" +
+                "|15626.0|14983.88|141.3446|\n" +
                 "===================================================;\n";
         }
         public void Execute(Character character, string[] args)
@@ -48,7 +48,7 @@ namespace AAEmu.Game.Scripts.Commands
             string cmd = "";
             Simulation moveTo;
             bool run = true;
-            // bool walk = false;
+            //bool walk = false;
             if (args.Length < 1)
             {
                 character.SendMessage("[MoveTo] /moveto <rec||save filename||go filename||back filename||stop||run||walk>");
@@ -71,8 +71,8 @@ namespace AAEmu.Game.Scripts.Commands
 
             character.SendMessage("[MoveTo] cmd: {0}, nameFile: {1}", cmd, nameFile);
             moveTo = character.Simulation; // take the AI ​​movement
-            moveTo.npc = (Npc)character.CurrentTarget;
-            if (moveTo.npc == null)
+            moveTo.Npc = (Npc)character.CurrentTarget;
+            if (moveTo.Npc == null)
             {
                 character.SendMessage("[MoveTo] You need a target NPC to manage it!");
             }
@@ -91,23 +91,23 @@ namespace AAEmu.Game.Scripts.Commands
                         break;
                     case "go":
                         character.SendMessage("[MoveTo] walk go...");
+                        moveTo.RunningMode = false;
                         moveTo.MoveFileName = nameFile;
-                        moveTo.ReadPath();
                         moveTo.GoToPath((Npc)character.CurrentTarget, true);
                         break;
                     case "back":
                         character.SendMessage("[MoveTo] walk back...");
+                        moveTo.RunningMode = false;
                         moveTo.MoveFileName = nameFile;
-                        moveTo.ReadPath();
                         moveTo.GoToPath((Npc)character.CurrentTarget, false);
                         break;
                     case "run":
                         character.SendMessage("[MoveTo] turned on running mode...");
-                        moveTo.runningMode = run;
+                        moveTo.RunningMode = run;
                         break;
                     //case "walk":
                     //    character.SendMessage("[MoveTo] turned off running mode...");
-                    //    moveTo.runningMode = walk;
+                    //    moveTo.RunningMode = walk;
                     //    break;
                     case "stop":
                         character.SendMessage("[MoveTo] standing still...");

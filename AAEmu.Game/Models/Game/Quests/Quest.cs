@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -17,6 +19,7 @@ using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Quests;
 
 namespace AAEmu.Game.Models.Game.Quests
@@ -72,7 +75,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 TemplateId = questTemplate.Id;
                 Template = questTemplate;
             }
-            
+
             Objectives = new int[ObjectiveCount];
             SupplyItem = 0;
             EarlyCompletion = false;
@@ -83,7 +86,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
         public Quest() : this(
             null,
-            QuestManager.Instance, 
+            QuestManager.Instance,
             SphereQuestManager.Instance,
             TaskManager.Instance,
             SkillManager.Instance,
@@ -107,12 +110,12 @@ namespace AAEmu.Game.Models.Game.Quests
         {
             var questComponents = Template.Components.Values.ToList();
             var currentComponentIndex = questComponents.IndexOf(currentComponent);
-            
-            if (currentComponent.KindId is not QuestComponentKind.None and not QuestComponentKind.Start) 
+
+            if (currentComponent.KindId is not QuestComponentKind.None and not QuestComponentKind.Start)
             {
                 return Status;
             }
-            
+
             // Let's take next component following Start or None
             var nextComponent = questComponents.ElementAt(currentComponentIndex + 1);
 
@@ -143,15 +146,15 @@ namespace AAEmu.Game.Models.Game.Quests
                 var supplyComponentSupplyItens = supplyComponent.ActTemplates.OfType<QuestActSupplyItem>().Select(i => i.ItemId).ToArray();
 
                 // Checks if the Itens provided in the Supply component act is the same for Progress component act
-                if (!componentAfterSupplySupplyItens.Except(supplyComponentSupplyItens).Any()) 
-                { 
+                if (!componentAfterSupplySupplyItens.Except(supplyComponentSupplyItens).Any())
+                {
                     return QuestStatus.Ready;
                 }
             }
-                
-            return componentAfterSupply.KindId == QuestComponentKind.Progress 
-                ? QuestStatus.Progress 
-                : QuestStatus.Ready;          
+
+            return componentAfterSupply.KindId == QuestComponentKind.Progress
+                ? QuestStatus.Progress
+                : QuestStatus.Ready;
         }
 
         public bool Start()
@@ -170,7 +173,7 @@ namespace AAEmu.Game.Models.Game.Quests
                     var currentComponent = components[componentIndex];
                     var acts = _questManager.GetActs(currentComponent.Id);
                     var questActConAcceptNpc = acts.All(a => a.DetailType == "QuestActConAcceptNpc");
-                    
+
                     if (acts.Length > 0 && questActConAcceptNpc)
                     {
                         // оказывается может быть несколько Npc с которыми можно заключить квест! (It turns out that there may be several NPCs with which you can make a quest!)
@@ -180,12 +183,12 @@ namespace AAEmu.Game.Models.Game.Quests
                             _log.Warn($"[Quest] Start: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {acts[0].DetailType}");
                             return false; // не тот Npc, что нужен по квесту, выход (Not the NPC that is needed by the quest, the exit)
                         }
-                        
+
                         res = true;
                         acceptNpc = true;
                         ComponentId = currentComponent.Id;
                         Status = CalculateQuestStatus(currentComponent);
-                        
+
                         _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, acts[0].DetailType);
                         UseSkillAndBuff(currentComponent);
                         SetNpcAggro(currentComponent);
@@ -214,7 +217,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     else
                                     {
                                         _log.Warn($"[Quest] Start failed: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
-                                        return false; 
+                                        return false;
                                         //Not the NPC that is needed by the quest, the exit)
                                     }
                                     UseSkillAndBuff(currentComponent);
@@ -223,11 +226,11 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActSupplyItem":
                                 {
                                     // if SupplyItem = 0, we get the item
-                                    res = act.Use(Owner, this, 0); 
-                                    Step = QuestComponentKind.Supply; 
+                                    res = act.Use(Owner, this, 0);
+                                    Step = QuestComponentKind.Supply;
                                     // в процессе работы метода ItemGather  переключается на Progress (
                                     // In the process of ItemGather method operation switches to Progress)
-                                    supply = res; 
+                                    supply = res;
                                     // если было пополнение предметом, то на метод Update() не переходить (
                                     // If there was a replenishment of an object, then do not go to the Update() method)
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
@@ -261,7 +264,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
             }
 
-            EndLoop:
+EndLoop:
             Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
 
             if (Status == QuestStatus.Progress && !supply)
@@ -412,7 +415,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActSupplyItem" when Step == QuestComponentKind.Progress:
                                 {
                                     // if SupplyItem = 0, we get the item
-                                    complete = act.Use(Owner, this, SupplyItem); 
+                                    complete = act.Use(Owner, this, SupplyItem);
                                     break;
                                 }
                             case "QuestActSupplyItem" when Step == QuestComponentKind.Supply:
@@ -516,11 +519,67 @@ namespace AAEmu.Game.Models.Game.Quests
                                 }
                             case "QuestActObjTalk":
                                 {
+                                    var template = act.GetTemplate<QuestActObjTalk>();
                                     // TODO: added for quest Id=2037
                                     complete = act.Use(Owner, this, Objectives[componentIndex]);
                                     completes[componentIndex] = complete; // продублируем информацию (let's duplicate the information)
                                     // установим в true для дальнейшей проверки (set in True for further verification)
                                     questActObjTalk = true;
+                                    switch (components[componentIndex].NpcAiId)
+                                    {
+                                        case QuestNpcAiName.FollowPath:
+                                            {
+                                                var route = components[componentIndex].AiPathName;
+                                                var npcs = WorldManager.Instance.GetAllNpcs();
+                                                foreach (var npc in npcs)
+                                                {
+                                                    if (npc.TemplateId != template.NpcId) { continue; }
+                                                    if (npc.IsInPatrol) { break; }
+                                                    switch (components[componentIndex].AiPathTypeId)
+                                                    {
+                                                        case PathType.Remove:
+                                                            npc.Simulation.Cycle = false;
+                                                            npc.Simulation.Remove = true;
+                                                            npc.IsInPatrol = true;
+                                                            npc.Simulation.RunningMode = true;
+                                                            npc.Simulation.MoveToPathEnabled = false;
+                                                            npc.Simulation.MoveFileName = route;
+                                                            npc.Simulation.GoToPath(npc, true);
+                                                            break;
+                                                        case PathType.None:
+                                                            break;
+                                                        case PathType.Idle:
+                                                            break;
+                                                        case PathType.Loop:
+                                                            npc.Simulation.Cycle = true;
+                                                            npc.Simulation.Remove = false;
+                                                            npc.IsInPatrol = true;
+                                                            npc.Simulation.RunningMode = true;
+                                                            npc.Simulation.MoveToPathEnabled = false;
+                                                            npc.Simulation.MoveFileName = route;
+                                                            npc.Simulation.GoToPath(npc, true);
+                                                            break;
+                                                        default:
+                                                            throw new ArgumentOutOfRangeException();
+                                                    }
+                                                    break;
+                                                }
+
+                                                break;
+                                            }
+                                        case QuestNpcAiName.None:
+                                            break;
+                                        case QuestNpcAiName.FollowUnit:
+                                            break;
+                                        case QuestNpcAiName.AttackUnit:
+                                            break;
+                                        case QuestNpcAiName.GoAway:
+                                            break;
+                                        case QuestNpcAiName.RunCommandSet:
+                                            break;
+                                        default:
+                                            throw new ArgumentOutOfRangeException();
+                                    }
                                     break;
                                 }
                             case "QuestActObjInteraction":
@@ -676,12 +735,12 @@ namespace AAEmu.Game.Models.Game.Quests
         private void SetNpcAggro(QuestComponent component)
         {
             if (component == null) { return; }
-            if (component.NpcAiId == 4)
+            if (component.NpcAiId == QuestNpcAiName.AttackUnit)
             {
                 if (component.NpcId > 0)
                 {
                     var npc = _worldManager.GetNpcByTemplateId(component.NpcId);
-                    npc?.SetFaction(115);
+                    npc?.SetFaction(FactionsEnum.Monstrosity); // TODO mb Hostile
                 }
             }
         }
@@ -713,14 +772,14 @@ namespace AAEmu.Game.Models.Game.Quests
                         }
                         else
                         {
-                            Owner.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, item.TemplateId, item.Count, item.GradeId);    
+                            Owner.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, item.TemplateId, item.Count, item.GradeId);
                         }
                     }
                 }
-                
+
                 QuestRewardItemsPool.Clear();
             }
-            
+
             // Add XP
             if (QuestRewardExpPool > 0)
             {
@@ -800,7 +859,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         SupplyItem = 0;
                         // _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
                     }
-                    
+
                     if (!res)
                     {
                         break;
@@ -941,7 +1000,7 @@ namespace AAEmu.Game.Models.Game.Quests
         }
 
         #region Events
-        
+
         public void OnReportToNpc(Npc npc, int selected)
         {
             var checking = false;
@@ -1147,13 +1206,13 @@ namespace AAEmu.Game.Models.Game.Quests
                                 }
                                 break;
                             }
-                        // TODO не работал из-за этого квест ID=3327, "Goblin Treasure", 39, "Sanddeep", "Sanddeep"
-                        //// TODO added for quest Id=4402
-                        //// TODO added for quest Id=266
-                        //default:
-                        //    {
-                        //        goto exit;
-                        //    }
+                            // TODO не работал из-за этого квест ID=3327, "Goblin Treasure", 39, "Sanddeep", "Sanddeep"
+                            //// TODO added for quest Id=4402
+                            //// TODO added for quest Id=266
+                            //default:
+                            //    {
+                            //        goto exit;
+                            //    }
                     }
                     _log.Warn($"[Quest] OnItemGather: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
                 }

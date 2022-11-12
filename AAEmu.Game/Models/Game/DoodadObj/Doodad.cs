@@ -105,6 +105,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         }
 
         public uint QuestGlow { get; set; } //0 off // 1 on
+        public int PuzzleGroup { get; set; } = -1; // -1 off
         public DoodadSpawner Spawner { get; set; }
         public DoodadFuncTask FuncTask { get; set; }
 
@@ -525,7 +526,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.Write(PlantTime); //Time stamp of when it was planted
             stream.Write(QuestGlow); //When this is higher than 0 it shows a blue orb over the doodad
             stream.Write(0); // family TODO
-            stream.Write(-1); // puzzleGroup /for instances maybe?
+            stream.Write(PuzzleGroup); // puzzleGroup /for instances maybe?
             stream.Write((byte)OwnerType); // ownerType
             stream.Write(DbHouseId); // dbHouseId
             stream.Write(Data); // data

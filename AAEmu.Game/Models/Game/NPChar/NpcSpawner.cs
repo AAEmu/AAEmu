@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.World;
+
 using Newtonsoft.Json;
 
 using NLog;
@@ -191,6 +192,20 @@ namespace AAEmu.Game.Models.Game.NPChar
                 //    _log.Debug($"DoSpawn: Npc TemplateId {UnitId}, NpcSpawnerId {Id}, MaxPopulation {Template.MaxPopulation} spawned...");
                 //}
                 DoDespawnSchedule(_lastSpawn, all);
+            }
+
+            if (!string.IsNullOrEmpty(FollowPath))
+            {
+                foreach (var npc in npcs)
+                {
+                    if (npc.IsInPatrol) { return; }
+                    npc.IsInPatrol = true;
+                    npc.Simulation.RunningMode = false;
+                    npc.Simulation.Cycle = true;
+                    npc.Simulation.MoveToPathEnabled = false;
+                    npc.Simulation.MoveFileName = FollowPath;
+                    npc.Simulation.GoToPath(npc, true);
+                }
             }
         }
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
 using NLog;
 
@@ -77,6 +78,7 @@ namespace AAEmu.Game.Models.Game.NPChar
                 npc.Spawner.Template = npcSpawner.Template;
                 npc.Spawner.RespawnTime = (int)Rand.Next(npc.Spawner.Template.SpawnDelayMin, npc.Spawner.Template.SpawnDelayMax);
                 npc.Spawn();
+                npc.Simulation = new Simulation(npc);
                 npcs.Add(npc);
             }
 
