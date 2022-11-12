@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using System.Numerics;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Route;
 
@@ -16,7 +16,10 @@ namespace AAEmu.Game.Models.Tasks.UnitMove
         /// Initialization task
         /// </summary>
         /// <param name="patrol"></param>
-        /// <param name="ch"></param>
+        /// <param name="npc"></param>
+        /// <param name="TargetX"></param>
+        /// <param name="TargetY"></param>
+        /// <param name="TargetZ"></param>
         public Move(Simulation patrol, Npc npc, float TargetX, float TargetY, float TargetZ)
         {
             _patrol = patrol;
@@ -33,7 +36,7 @@ namespace AAEmu.Game.Models.Tasks.UnitMove
         {
             if (_npc.Hp > 0)
             {
-                _patrol?.MoveTo(_patrol, _npc, _targetX, _targetY, _targetZ);
+                _patrol?.MoveTo(_patrol, _npc, new Vector3(_targetX, _targetY, _targetZ));
             }
         }
     }

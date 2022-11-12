@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
@@ -10,12 +11,12 @@ namespace AAEmu.Game.Models.Game.Quests
         public QuestComponentKind KindId { get; set; }
         public List<QuestActTemplate> ActTemplates { get; set; } = new List<QuestActTemplate>();
         public uint NextComponent { get; set; }
-        public uint NpcAiId { get; set; }
+        public QuestNpcAiName NpcAiId { get; set; }
         public uint NpcId { get; set; }
         public uint SkillId { get; set; }
         public bool SkillSelf { get; set; }
         public string AiPathName { get; set; }
-        public uint AiPathTypeId { get; set; }
+        public PathType AiPathTypeId { get; set; }
         public uint NpcSpawnerId { get; set; }
         public bool PlayCinemaBeforeBubble { get; set; }
         public uint AiCommandSetId { get; set; }

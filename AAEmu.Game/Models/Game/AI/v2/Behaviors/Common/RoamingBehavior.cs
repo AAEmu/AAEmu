@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Numerics;
+
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.Utils;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
@@ -12,9 +13,10 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
     {
         private Vector3 _targetRoamPosition = Vector3.Zero;
         private DateTime _nextRoaming;
-        
+
         public override void Enter()
         {
+            Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, BaseUnitType.Npc, ModelPostureType.ActorModelState, 2), false); // fixed animated
             UpdateRoaming();
         }
 
@@ -55,12 +57,12 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
             if (_targetRoamPosition.Equals(Vector3.Zero) && DateTime.UtcNow > _nextRoaming)
                 UpdateRoaming();
-            
+
             if (_targetRoamPosition.Equals(Vector3.Zero))
                 return;
-            
+
             Ai.Owner.MoveTowards(_targetRoamPosition, 1.8f * (delta.Milliseconds / 1000.0f), 5);
-            var dist = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, _targetRoamPosition, true );
+            var dist = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, _targetRoamPosition, true);
             if (dist < 1.0f)
             {
                 Ai.Owner.StopMovement();
@@ -76,7 +78,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         private void UpdateRoaming()
         {
             // TODO : Group member handling
-           
+
             _targetRoamPosition = AIUtils.CalcNextRoamingPosition(Ai).Local.Position;
         }
 

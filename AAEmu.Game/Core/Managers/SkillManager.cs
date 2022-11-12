@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -1178,7 +1178,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new NpcControlEffect();
                             template.Id = reader.GetUInt32("id");
-                            template.CategoryId = reader.GetUInt32("category_id");
+                            template.CategoryId = (NpcControlCategory)reader.GetUInt32("category_id");
                             template.ParamString = reader.GetString("param_string", "");
                             template.ParamInt = reader.GetUInt32("param_int");
                             _effects["NpcControlEffect"].Add(template.Id, template);
