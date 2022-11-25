@@ -1,6 +1,7 @@
-[![Coverage Status](https://coveralls.io/repos/github/AAEmu/AAEmu/badge.svg?branch=develop)](https://coveralls.io/github/AAEmu/AAEmu?branch=develop)
+# ![AAEmu](https://i.imgur.com/NFDY376.png)
 
-# AAEmu
+[![Coverage Status](https://coveralls.io/repos/github/AAEmu/AAEmu/badge.svg?branch=develop)](https://coveralls.io/github/AAEmu/AAEmu?branch=AW_1.1.2.8_r588242_(2022-09-03))
+![Discord](https://img.shields.io/discord/479677351618281472?color=%235865F2&label=Discord&logo=Discord&logoColor=%23FFFFFF")
 
 __Open source server software for ArcheAge written in .Net Core__
 
@@ -36,8 +37,8 @@ atel0/AAEmu are not affiliated with XLGames. All brands and trademarks belong to
 - It's just aproof of concept;
 - Made based on the develop_feat_quest&doodad branch;
 - Requires careful correction of package structures;
-- Database compact.sqlite3 from server version 3.0.3.0;
-- Client version 8.0.3.12 r558734 14.12.2021 ArcheAge Kakao.
+- Database compact.sqlite3 from server version 3.0.3.0 [https://github.com/NL0bP/Archeage-Server-emulator/releases/tag/3.0.3.0.002];
+- Client version 1.1.2.8 r588242 03.19.2022 XLGames [https://mega.nz/folder/C3Q0WQjT#vRUethZLPiYSo2B4nE_etg/folder/T75SQZxC].
 
 ## Screenshots
 ![avatar](/doc/img/Screenshot_1.png)
