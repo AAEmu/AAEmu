@@ -12,7 +12,9 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var autoUseAAPoint = stream.ReadBoolean();
-            _log.Debug("RepairAllEquipments, AutoUseAAPoint: {0}", autoUseAAPoint);
+            var inBag = stream.ReadBoolean();          // inBag
+
+            _log.Debug($"RepairAllEquipments, AutoUseAAPoint: {autoUseAAPoint}, inBag: {inBag}");
         }
     }
 }

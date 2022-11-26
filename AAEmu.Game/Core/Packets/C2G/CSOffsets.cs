@@ -358,8 +358,8 @@
         public const ushort CSItemUnsecurePacket = 0x16C;
         public const ushort CSEquipmentsSecurePacket = 0x08F;
         public const ushort CSEquipmentsUnsecurePacket = 0x08A;
-        public const ushort CSRepairSingleEquipmentPacket = 0x17F;
-        public const ushort CSRepairAllEquipmentsPacket = 0x17F;
+        public const ushort CSRepairSingleEquipmentPacket = 0x10D;
+        public const ushort CSRepairAllEquipmentsPacket = 0x19E;
         public const ushort CSChangeAutoUseAaPointPacket = 0x01C;
         public const ushort CSThisTimeUnpackPacket = 0x0CC;
         public const ushort CSTakeScheduleItemPacket = 0x0BA;

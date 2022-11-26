@@ -12,13 +12,12 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            stream.ReadByte();
-            var slotType = (SlotType)stream.ReadByte();
-            stream.ReadByte();
-            var slot = stream.ReadByte();
-            var autoUseAAPoint = stream.ReadBoolean();
+            var slotType = (SlotType)stream.ReadByte();     // type
+            var slot = stream.ReadByte();              // index
+            var autoUseAAPoint = stream.ReadBoolean(); // autoUseAAPoint
+            var inBag = stream.ReadBoolean();          // inBag
 
-            _log.Debug("RepairSingleEquipment, SlotType: {0}, Slot: {1}, AutoUseAAPoint: {2}", slotType, slot, autoUseAAPoint);
+            _log.Debug($"RepairSingleEquipment, SlotType: {slotType}, Slot: {slot}, AutoUseAAPoint: {autoUseAAPoint}, InBag: {inBag}");
         }
     }
 }
