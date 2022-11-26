@@ -347,15 +347,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 moveType.RotationX = rx;
                 moveType.RotationY = ry;
                 moveType.RotationZ = rz;
-                moveType.ActorFlags = (byte)(RunningMode ? 4 : 5); // 5-walk, 4-run, 3-stand still
+                moveType.ActorFlags = RunningMode ? ActorMoveType.Run : ActorMoveType.Walk; // 5-walk, 4-run, 3-stand still
                 moveType.Flags = 0;
 
                 moveType.DeltaMovement = new sbyte[3];
                 moveType.DeltaMovement[0] = 0;
                 moveType.DeltaMovement[1] = (sbyte)(RunningMode ? 127 : 63);
                 moveType.DeltaMovement[2] = 0;
-                moveType.Stance = 1;    // COMBAT = 0x0, IDLE = 0x1
-                moveType.Alertness = 1; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+                moveType.Stance = EStance.Idle;    // COMBAT = 0x0, IDLE = 0x1
+                moveType.Alertness = AiAlertness.Idle; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
                 moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
                 npc.CheckMovedPosition(oldPosition);
