@@ -166,13 +166,13 @@ namespace AAEmu.Game.Core.Managers.World
             }
             else
                 if (!JsonHelper.TryDeserializeObject(contents, out List<WorldSpawnLocation> worldSpawnLookupFromJson, out _))
-                {
-                    _log.Error($"Error in {spawnPositionFile}.");
-                }
-                else
-                {
-                    worldSpawnLookup = worldSpawnLookupFromJson;
-                }
+            {
+                _log.Error($"Error in {spawnPositionFile}.");
+            }
+            else
+            {
+                worldSpawnLookup = worldSpawnLookupFromJson;
+            }
 
             foreach (var worldXmlPath in worldXmlPaths)
             {
@@ -219,7 +219,7 @@ namespace AAEmu.Game.Core.Managers.World
 
                     // cache zone keys to world reference
                     foreach (var zoneKey in world.ZoneKeys)
-                        _worldIdByZoneId.Add(zoneKey,world.Id);
+                        _worldIdByZoneId.Add(zoneKey, world.Id);
 
                     world.Water = new WaterBodies();
                 }
@@ -519,7 +519,7 @@ namespace AAEmu.Game.Core.Managers.World
             foreach (var world in _worlds.Values)
             {
                 var loadFromClient = true;
-                
+
                 // Try to load from saved json data
                 var customFile = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "water_bodies.json");
                 if (File.Exists(customFile))
@@ -713,7 +713,7 @@ namespace AAEmu.Game.Core.Managers.World
         {
             _npcs[objId] = npc;
         }
-        
+
         public Character GetCharacter(string name)
         {
             foreach (var player in _characters.Values)
@@ -982,7 +982,7 @@ namespace AAEmu.Game.Core.Managers.World
                 }
 
                 obj.Region = null;
-            
+
             }
             catch (Exception e)
             {
@@ -1194,6 +1194,43 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 FamilyManager.Instance.OnCharacterLogin(character);
             }
+
+            StartingFirstJourney(character);
+        }
+
+        private void StartingFirstJourney(Character character)
+        {
+            var questId = 0u;
+            switch (character.Race)
+            {
+                case Race.Nuian: // Nuian
+                    questId = 6839;
+                    break;
+                case Race.Dwarf: // Dwarf
+                    questId = 5811;
+                    break;
+                case Race.Elf: // Elf
+                    questId = 6840;
+                    break;
+                case Race.Hariharan: // Hariharan
+                    questId = 6841;
+                    break;
+                case Race.Ferre: // Ferre
+                    questId = 6842;
+                    break;
+                case Race.Warborn: // Warborn
+                    questId = 8228;
+                    break;
+                case Race.Fairy:
+                    break;
+                case Race.Returned:
+                    break;
+            }
+            // showing it once
+            if (character.Updated - character.Created < TimeSpan.FromMinutes(1))
+            {
+                character.Quests.Add(questId);
+            }
         }
 
         public void Snow(Character character)
@@ -1270,7 +1307,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void StartPhysics()
         {
-            foreach (var (key,world) in _worlds)
+            foreach (var (key, world) in _worlds)
             {
                 world.Physics = new BoatPhysicsManager();
                 world.Physics.SimulationWorld = world;
@@ -1278,7 +1315,7 @@ namespace AAEmu.Game.Core.Managers.World
                 world.Physics.StartPhysics();
             }
         }
-        
+
         public bool LoadWaterBodiesFromClientData(InstanceWorld world)
         {
             // Use world.xml to check if we have client data enabled
@@ -1289,7 +1326,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
 
             var bodiesLoaded = 0;
-            
+
             // TODO: The data loaded here is incorrect !!!
 
             for (var cellY = 0; cellY < world.CellY; cellY++)
@@ -1311,7 +1348,7 @@ namespace AAEmu.Game.Core.Managers.World
                         {
                             var block = _allEntityBlocks[i];
                             var attribs = XmlHelper.ReadNodeAttributes(block);
-                        
+
                             if (!attribs.TryGetValue("Name", out var entityName))
                             {
                                 continue;
@@ -1343,7 +1380,7 @@ namespace AAEmu.Game.Core.Managers.World
 
                                     var entityPosString = XmlHelper.ReadAttribute<string>(attribs, "Pos", "0,0,0");
                                     var areaPos = XmlHelper.StringToVector3(entityPosString);
-                                
+
                                     // Read Area Data (height)
                                     var areaAttribs = XmlHelper.ReadNodeAttributes(areaBlock);
                                     newWaterBodyArea.Height = XmlHelper.ReadAttribute<float>(areaAttribs, "Height", 0f);

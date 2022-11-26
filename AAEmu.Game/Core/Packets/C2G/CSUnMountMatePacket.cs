@@ -14,11 +14,11 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var tlId = stream.ReadUInt16();
-            var ap = (AttachPointKind)stream.ReadByte();
+            var attachPoint = (AttachPointKind)stream.ReadByte();
             var reason = (AttachUnitReason)stream.ReadByte();
             
-            //_log.Warn("UnMountMate, TlId: {0}, Ap: {1}, Reason: {2}", tlId, ap, reason);
-            MateManager.Instance.UnMountMate(Connection.ActiveChar, tlId, ap, reason);
+            _log.Debug("UnMountMate, TlId: {0}, Ap: {1}, Reason: {2}", tlId, attachPoint, reason);
+            MateManager.Instance.UnMountMate(Connection.ActiveChar, tlId, attachPoint, reason);
         }
     }
 }

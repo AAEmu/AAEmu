@@ -7,9 +7,9 @@
             "X": 15578.042,
             "Y": 15382.122,
             "Z": 126.484,
-            "RotationX": 0,
-            "RotationY": 0,
-            "RotationZ": 125
+            "Roll": 0,
+            "Pitch": 0,
+            "Yaw": 125
         },
         "NumInventorySlot": 50,
         "NumBankSlot": 50
@@ -22,9 +22,9 @@
             "X": 8535.91,
             "Y": 13091.33,
             "Z": 678.35,
-            "RotationX": 0,
-            "RotationY": 0,
-            "RotationZ": 18
+            "Roll": 0,
+            "Pitch": 0,
+            "Yaw": 18
         },
         "NumInventorySlot": 50,
         "NumBankSlot": 50
@@ -37,9 +37,9 @@
             "X": 10388.576,
             "Y": 15982.466,
             "Z": 367.606,
-            "RotationX": 0,
-            "RotationY": 0,
-            "RotationZ": 34
+            "Roll": 0,
+            "Pitch": 0,
+            "Yaw": 34
         },
         "NumInventorySlot": 50,
         "NumBankSlot": 50
@@ -52,9 +52,9 @@
             "X": 19304.874,
             "Y": 7646.06,
             "Z": 212.704,
-            "RotationX": 0,
-            "RotationY": 0,
-            "RotationZ": -115
+            "Roll": 0,
+            "Pitch": 0,
+            "Yaw": -115
         },
         "NumInventorySlot": 50,
         "NumBankSlot": 50
@@ -67,9 +67,9 @@
             "X": 23881.218,
             "Y": 10495.782,
             "Z": 589.7838,
-            "RotationX": 0,
-            "RotationY": 0,
-            "RotationZ": -124
+            "Roll": 0,
+            "Pitch": 0,
+            "Yaw": -124
         },
         "NumInventorySlot": 50,
         "NumBankSlot": 50
@@ -82,9 +82,9 @@
             "X": 19216.63,
             "Y": 6784.40,
             "Z": 285.72,
-            "RotationX": 0,
-            "RotationY": 0,
-            "RotationZ": -124
+            "Roll": 0,
+            "Pitch": 0,
+            "Yaw": -124
         },
         "NumInventorySlot": 50,
         "NumBankSlot": 50

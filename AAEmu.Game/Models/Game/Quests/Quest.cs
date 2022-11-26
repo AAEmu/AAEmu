@@ -457,6 +457,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     }
                                     break;
                                 }
+                            //case "QuestActObjCinema":
                             case "QuestActConReportJournal":
                             case "QuestActConReportDoodad":
                             case "QuestActConReportNpc":
