@@ -14,7 +14,7 @@ namespace AAEmu.Commons.Models
         public override void Read(PacketStream stream)
         {
             Id = stream.ReadUInt32();
-            AccountId = stream.ReadUInt32();
+            AccountId = stream.ReadUInt64();
             Name = stream.ReadString();
             Race = stream.ReadByte();
             Gender = stream.ReadByte();
