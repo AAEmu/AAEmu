@@ -239,7 +239,7 @@
         public const ushort CSDespawnSlavePacket = 0x195;
         public const ushort CSDestroySlavePacket = 0x151;
         public const ushort CSBindSlavePacket = 0x039;
-        public const ushort CSRemoveAllFieldSlavesPacket = 0x154;
+        public const ushort CSDiscardSlavePacket = 0x03D; // CSRemoveAllFieldSlavesPacket
         public const ushort CSBoardingTransferPacket = 0x154;
         public const ushort CSTurretStatePacket = 0x03E;
         public const ushort CSCreateSkillControllerPacket = 0x126;
@@ -268,14 +268,14 @@
         public const ushort CSResetSkillsPacket = 0x12A;
         public const ushort CSSwapAbilityPacket = 0x16F;
         public const ushort CSSelectHighAbilityPacket = 0x0D5;
-        public const ushort off_39C28A74 = 0x18D;
+        public const ushort CSAbilityPacket = 0x18D;
         public const ushort CSRemoveBuffPacket = 0x19D;
         public const ushort CSStopCastingPacket = 0x096;
         public const ushort CSDeletePortalPacket = 0x02C;
         public const ushort CSIndunDirectTelPacket = 0x004;
         public const ushort CSSetForceAttackPacket = 0x06C;
         public const ushort CSStartSkillPacket = 0x160;
-        public const ushort off_39C28FCC = 0x122;
+        public const ushort CSSkillPacket = 0x122;
         public const ushort CSStopLootingPacket = 0x019;
         public const ushort CSCreateDoodadPacket = 0x119;
         public const ushort CSNaviTeleportPacket = 0x196;
@@ -403,7 +403,7 @@
         public const ushort CSChangeSlaveTargetPacket = 0xfff;
         public const ushort CSCharDetailPacket = 0xfff;
         public const ushort CSCreateExpeditionPacket = 0xfff;
-        public const ushort CSDiscardSlavePacket = 0xfff;
+        //public const ushort CSDiscardSlavePacket = 0x03D;
         public const ushort CSDismissExpeditionPacket = 0xfff;
         public const ushort CSFactionDeclareHostilePacket = 0xfff;
         public const ushort CSHangPacket = 0xfff;

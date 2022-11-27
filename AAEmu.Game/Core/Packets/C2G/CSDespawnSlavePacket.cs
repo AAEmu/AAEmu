@@ -12,9 +12,9 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var slaveObjId = stream.ReadBc();
+            var slaveObjId = stream.ReadBc(); // slave
 
-            //_log.Debug("DespawnSlave, SlaveObjId: {0}", slaveObjId);
+            _log.Debug("DespawnSlave, SlaveObjId: {0}", slaveObjId);
             SlaveManager.Instance.Delete(Connection.ActiveChar, slaveObjId);
         }
     }

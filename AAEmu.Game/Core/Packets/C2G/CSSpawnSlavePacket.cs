@@ -13,22 +13,17 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var slaveId = stream.ReadUInt32();
+            var slaveId = stream.ReadUInt32();          // slave
             var x = Helpers.ConvertLongX(stream.ReadInt64());
             var y = Helpers.ConvertLongY(stream.ReadInt64());
             var z = stream.ReadSingle();
-            var zRot = stream.ReadSingle();
-            var itemId = stream.ReadUInt64();
+            var zRot = stream.ReadSingle();            // zRot
+            var itemId = stream.ReadUInt64();          // item
+            var slotType = (SlotType)stream.ReadByte();     // type
+            var slot = stream.ReadByte();               // index
+            var hideSpawnEffect = stream.ReadBoolean(); // hideSpawnEffect
 
-            // TODO : check this part with nikes
-            stream.ReadByte();
-            var slotType = (SlotType)stream.ReadByte();
-            stream.ReadByte();
-            var slot = stream.ReadByte();
-
-            var hideSpawnEffect = stream.ReadBoolean();
-
-            _log.Debug("SpawnSlave, SlaveId: {0}", slaveId);
+            _log.Debug($"SpawnSlave, SlaveId: {slaveId}, x: {x}, y: {y}, z: {z}, zRot: {zRot}, itemId: {itemId}, slotType: {slotType}, slot: {slot}, hideSpawnEffect: {hideSpawnEffect}");
         }
     }
 }

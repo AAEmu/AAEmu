@@ -251,7 +251,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSDespawnSlavePacket, 5, typeof(CSDespawnSlavePacket));
             RegisterPacket(CSOffsets.CSDestroySlavePacket, 5, typeof(CSDestroySlavePacket));
             RegisterPacket(CSOffsets.CSBindSlavePacket, 5, typeof(CSBindSlavePacket));
-            //RegisterPacket(CSOffsets.CSRemoveAllFieldSlavesPacket, 5, typeof(CSRemoveAllFieldSlavesPacket));
+            RegisterPacket(CSOffsets.CSDiscardSlavePacket, 5, typeof(CSDiscardSlavePacket));
             RegisterPacket(CSOffsets.CSBoardingTransferPacket, 5, typeof(CSBoardingTransferPacket));
             RegisterPacket(CSOffsets.CSTurretStatePacket, 5, typeof(CSTurretStatePacket));
             RegisterPacket(CSOffsets.CSCreateSkillControllerPacket, 5, typeof(CSCreateSkillControllerPacket));

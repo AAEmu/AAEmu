@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -28,7 +28,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.WriteBc(_ownerObjId);
             stream.Write(_tlId);
             stream.WriteBc(_slaveObjId);
-            stream.Write(_hideSpawnEffect);
+            //stream.Write(_hideSpawnEffect);
             stream.Write(_unkId);
             stream.Write(_creatorName);
             return stream;

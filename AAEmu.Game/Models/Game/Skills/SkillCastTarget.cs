@@ -78,6 +78,7 @@ namespace AAEmu.Game.Models.Game.Skills
             base.Write(stream);
 
             stream.WriteBc(ObjId);
+
             return stream;
         }
     }
@@ -90,6 +91,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public float PosRot { get; set; }
         public uint ObjId1 { get; set; }
         public uint ObjId2 { get; set; }
+        public uint ObjId3 { get; set; } // add in 3+
 
         public override void Read(PacketStream stream)
         {
@@ -99,6 +101,7 @@ namespace AAEmu.Game.Models.Game.Skills
             PosRot = stream.ReadSingle();
             ObjId1 = stream.ReadBc();
             ObjId2 = stream.ReadBc();
+            ObjId3 = stream.ReadBc();
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -111,6 +114,8 @@ namespace AAEmu.Game.Models.Game.Skills
             stream.Write(PosRot);
             stream.WriteBc(ObjId1);
             stream.WriteBc(ObjId2);
+            stream.WriteBc(ObjId3);
+
             return stream;
         }
     }
@@ -157,6 +162,7 @@ namespace AAEmu.Game.Models.Game.Skills
             stream.Write(NormX);
             stream.Write(NormY);
             stream.Write(NormZ);
+
             return stream;
         }
     }
@@ -198,7 +204,9 @@ namespace AAEmu.Game.Models.Game.Skills
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
+            
             stream.WriteBc(ObjId);
+
             return stream;
         }
     }
@@ -226,6 +234,7 @@ namespace AAEmu.Game.Models.Game.Skills
             stream.Write(Helpers.ConvertLongY(PosY));
             stream.Write(PosZ);
             stream.Write(Pitch);
+
             return stream;
         }
     }

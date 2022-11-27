@@ -12,9 +12,9 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var tlId = stream.ReadUInt16();
+            var tlId = stream.ReadUInt16(); // target
 
-            //_log.Debug("BindSlave, Tl: {0}", tlId);
+            _log.Debug("BindSlave, Tl: {0}", tlId);
             SlaveManager.Instance.BindSlave(Connection, tlId);
         }
     }

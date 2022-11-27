@@ -25,14 +25,29 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.WriteBc(_objId);
-            stream.Write(_tlId);
+            stream.WriteBc(_objId); // bc
+            stream.Write(_tlId);    // tl
             stream.Write(0ul); // type
-            stream.Write(_skillCount);
-            stream.Write(_tagCount);
-            stream.Write(_creatorName);
-            stream.Write(_ownerId);
-            stream.Write(_DbHouseId);
+
+            #region skill&tag
+            stream.Write(_skillCount); // skillCount
+            for (var i = 0; i < _skillCount; i++)
+            {
+                stream.Write(0u); // type
+                stream.Write(0u); // type
+                stream.Write(0u); // type
+            }
+            stream.Write(_tagCount); // tagCount
+            for (var i = 0; i < _tagCount; i++)
+            {
+                stream.Write(0u); // type
+                stream.Write(0u); // type
+                stream.Write(0u); // type
+            }
+            #endregion
+            stream.Write(_creatorName); // creatorName
+            stream.Write(_ownerId);     // type
+            stream.Write(_DbHouseId);   // dbId
 
             return stream;
         }
