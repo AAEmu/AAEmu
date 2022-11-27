@@ -43,6 +43,7 @@ namespace AAEmu.Game.Models.Game.Housing
         private bool _allowRecover;
         private uint _sellToPlayerId;
         private uint _sellPrice;
+        private int _expandedDecoLimit;
 
         /// <summary>
         /// IsDirty flag for Houses, not all properties are taken into account here as most of the data that needs to be updated will never change
@@ -52,8 +53,7 @@ namespace AAEmu.Game.Models.Game.Housing
         public new uint Id { get => _id; set { _id = value; _isDirty = true; } }
         public ulong AccountId { get => _accountId; set { _accountId = value; _isDirty = true; } }
         public uint CoOwnerId { get => _coOwnerId; set { _coOwnerId = value; _isDirty = true; } }
-        //public ushort TlId { get; set; }
-        public new uint TemplateId { get => _templateId; set { _templateId = value; _isDirty = true; } }
+        public new uint TemplateId { get => _templateId; set { _templateId = value; _isDirty = true; } } // ht
         public HousingTemplate Template
         {
             get => _template;
@@ -123,6 +123,7 @@ namespace AAEmu.Game.Models.Game.Housing
         public uint SellToPlayerId { get => _sellToPlayerId; set { _sellToPlayerId = value; _isDirty = true; } }
         public uint SellPrice { get => _sellPrice ; set { _sellPrice = value; _isDirty = true; } }
         public bool AllowRecover { get => _allowRecover; set { _allowRecover = value; _isDirty = true; } }
+        public int ExpandedDecoLimit { get => _expandedDecoLimit; set { _expandedDecoLimit = value; _isDirty = true; } }
 
 
         public House()
@@ -298,38 +299,35 @@ namespace AAEmu.Game.Models.Game.Housing
             var ownerName = NameManager.Instance.GetCharacterName(OwnerId);
             var sellToPlayerName = NameManager.Instance.GetCharacterName(SellToPlayerId);
 
-            stream.Write(TlId);
-            stream.Write(Id); // dbId
-            stream.WriteBc(ObjId);
-            stream.Write(TemplateId);
-            stream.WritePisc(ModelId, 0);
-            //stream.Write(ModelId); // ht
-            stream.Write(CoOwnerId); // type(id)
-            stream.Write(OwnerId); // type(id)
-            stream.Write(ownerName ?? "");
-            stream.Write(AccountId);
-            stream.Write((byte)Permission);
+            stream.Write(TlId);             // tl
+            stream.Write(Id);               // dbId
+            stream.WriteBc(ObjId);          // bc
 
             if (CurrentStep == -1)
             {
-                stream.Write(0);
-                stream.Write(0);
+                stream.WritePisc(TemplateId, 0, 0, 0);
             }
             else
             {
-                stream.Write(AllAction); // allstep
-                stream.Write(CurrentAction); // curstep
+                stream.WritePisc(TemplateId, AllAction, CurrentAction, Template?.Taxation?.Tax ?? 0);
             }
-            
-            stream.Write(Template?.Taxation?.Tax ?? 0); // payMoneyAmount
+
+            stream.Write(ModelId);          // ht (house type)
+            stream.Write(CoOwnerId);        // type(id)
+            stream.Write(OwnerId);          // type(id)
+            stream.Write(ownerName ?? "");  // owner
+            stream.Write(AccountId);        // accountId
+            stream.Write((byte)Permission); // permission
             stream.Write(Helpers.ConvertLongX(Transform.World.Position.X));
             stream.Write(Helpers.ConvertLongY(Transform.World.Position.Y));
             stream.Write(Transform.World.Position.Z);
-            stream.Write(Name); // house // TODO max length 128
-            stream.Write(true); // allowRecover
-            stream.Write(SellPrice); // Sale moneyAmount
-            stream.Write(SellToPlayerId); // type(id)
-            stream.Write(sellToPlayerName??""); // sellToName
+            stream.Write(Name);                       // house
+            stream.Write(true);                       // allowRecover
+            stream.Write(SellPrice);                  // Sale moneyAmount
+            stream.Write(sellToPlayerName ?? "");     // sellToName
+            stream.Write(ExpandedDecoLimit);          // expandedDecoLimit
+            stream.Write(Template?.MainModelId ?? 0); // model_id (type)
+
             return stream;
         }
 

@@ -497,7 +497,9 @@ namespace AAEmu.Game.Core.Managers
                     houseTemplate.HeavyTax,
                     baseTax,
                     depositTax,
-                    totalTaxAmountDue
+                    totalTaxAmountDue,
+                    0,   // moneyAmount
+                    0 // hostileTaxRate
                 )
             );
         }
@@ -545,11 +547,13 @@ namespace AAEmu.Game.Core.Managers
                 new SCHouseTaxInfoPacket(
                     house.TlId,
                     0,  // TODO: implement when castles are added
+                    0,
                     depositTax, // this is used in the help text on (?) when you hover your mouse over it to display deposit tax for this building
                     totalTaxAmountDue, // Amount Due
                     house.ProtectionEndDate,
                     requiresPayment,
                     weeksWithoutPay,  // TODO: do proper calculation ?
+                    -1,
                     house.Template.HeavyTax
                 )
             );

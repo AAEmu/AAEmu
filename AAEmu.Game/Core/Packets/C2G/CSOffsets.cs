@@ -219,7 +219,7 @@
         public const ushort CSEnterSysInstancePacket = 0x114;
         public const ushort CSEndPortalInteractionPacket = 0x028;
         public const ushort CSCreateShipyardPacket = 0x17F;
-        public const ushort CSCreateHousePacket = 0x17F;
+        public const ushort CSCreateHousePacket = 0x10E;
         public const ushort CSLeaveBeautyShopPacket = 0x09C;
         public const ushort CSConstructHouseTaxPacket = 0x09D;
         public const ushort CSChangeHouseNamePacket = 0x147;
@@ -265,7 +265,7 @@
         public const ushort CSRestartMainQuestPacket = 0x001;
         public const ushort CSLearnSkillPacket = 0x085;
         public const ushort CSLearnBuffPacket = 0x19A;
-        public const ushort CSResetSkillsPacket = 0x12A; //0x17F;
+        public const ushort CSResetSkillsPacket = 0x12A;
         public const ushort CSSwapAbilityPacket = 0x16F;
         public const ushort CSSelectHighAbilityPacket = 0x0D5;
         public const ushort off_39C28A74 = 0x18D;
