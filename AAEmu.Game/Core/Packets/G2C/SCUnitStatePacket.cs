@@ -220,66 +220,11 @@ namespace AAEmu.Game.Core.Packets.G2C
             }
             #endregion AttachPoint2
 
-            #region ModelPosture
-            // TODO added that NPCs can be hunted to move their legs while moving, but if they sit or do anything they will just stand there
-            if (_baseUnitType == BaseUnitType.Npc) // NPC
-            {
-                if (_unit is Npc npc)
-                {
-                    // TODO UnitModelPosture
-                    if (npc.Faction.Id != 115 || npc.Faction.Id != 3) // npc.Faction.GuardHelp не агрессивные мобы
-                    {
-                        stream.Write((byte)_ModelPostureType); // type // оставим это для того, чтобы NPC могли заниматься своими делами
-                    }
-                    else
-                    {
-                        stream.Write((byte)ModelPostureType.None); // type //для NPC на которых можно напасть и чтобы они шевелили ногами (для людей особенно)
-                    }
-                }
-            }
-            else // other
-            {
-                stream.Write((byte)_ModelPostureType);
-            }
+            #region UnitModelPosture
 
-            stream.Write(false); // isLooted
+            _unit.ModelPosture(stream, _unit, _baseUnitType, _ModelPostureType);
 
-            switch (_ModelPostureType)
-            {
-                case ModelPostureType.HouseState: // build
-                    //for (var i = 0; i < 2; i++)
-                    //{
-                    //    stream.Write(true); // door
-                    //}
-
-                    //for (var i = 0; i < 6; i++)
-                    //{
-                    //    stream.Write(true); // window
-                    //}
-                    stream.Write((byte)0xF); // flags Byte (2 - door, 6 - window)
-                    break;
-                case ModelPostureType.ActorModelState: // npc
-                    var npc = _unit as Npc;
-                    stream.Write(npc.Template.AnimActionId); // animId
-                    stream.Write(true);                     // activate
-                    break;
-                case ModelPostureType.FarmfieldState:
-                    stream.Write(0u);    // type(id)
-                    stream.Write(0f);    // growRate
-                    stream.Write(0);     // randomSeed
-                    stream.Write(false); // flags Byte
-                    break;
-                case ModelPostureType.TurretState: // slave
-                    stream.Write(0f);    // pitch
-                    stream.Write(0f);    // yaw
-                    break;
-                case ModelPostureType.Unk2:
-                case ModelPostureType.Unk3:
-                case ModelPostureType.Unk5:
-                case ModelPostureType.Unk6:
-                    break;
-            }
-            #endregion ModelPosture
+            #endregion
 
             stream.Write(_unit.ActiveWeapon);
 

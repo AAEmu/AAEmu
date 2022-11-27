@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private ModelPostureType _modelPostureType;
         private uint _animActionId;
 
-        public SCUnitModelPostureChangedPacket(Unit unit, BaseUnitType baseUnitType, ModelPostureType modelPostureType, uint animActionId = 0xFFFFFFFF) : base(SCOffsets.SCUnitModelPostureChangedPacket, 1)
+        public SCUnitModelPostureChangedPacket(Unit unit, BaseUnitType baseUnitType, ModelPostureType modelPostureType, uint animActionId = 0xFFFFFFFF) : base(SCOffsets.SCUnitModelPostureChangedPacket, 5)
         {
             _unit = unit;
             _baseUnitType = baseUnitType;

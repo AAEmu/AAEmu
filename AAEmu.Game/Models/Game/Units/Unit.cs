@@ -732,45 +732,14 @@ namespace AAEmu.Game.Models.Game.Units
 
         public void ModelPosture(PacketStream stream, Unit unit, BaseUnitType baseUnitType, ModelPostureType modelPostureType, uint animActionId = 0xFFFFFFFF)
         {
-            // TODO added that NPCs can be hunted to move their legs while moving, but if they sit or do anything they will just stand there
-            if (baseUnitType == BaseUnitType.Npc) // NPC
-            {
-                if (unit is Npc npc)
-                {
-                    // TODO UnitModelPosture
-                    if (npc.Faction.GuardHelp)
-                    {
-                        stream.Write((byte)modelPostureType); // оставим это для того, чтобы NPC могли заниматься своими делами // let's leave it so that the NPCs can go about their business
-                        _log.Warn($"baseUnitType={baseUnitType}, modelPostureType={modelPostureType}");
-                    }
-                    else
-                    {
-                        modelPostureType = 0; // для NPC на которых можно напасть и чтобы они шевелили ногами (для людей особенно) // for NPCs that can be attacked and that they move their legs (especially for people)
-                        stream.Write((byte)modelPostureType);
-                        _log.Warn($"baseUnitType={baseUnitType}, modelPostureType={modelPostureType}");
-                    }
-                }
-            }
-            else // other
-            {
-                stream.Write((byte)modelPostureType);
-            }
+            stream.Write((byte)modelPostureType);
 
             stream.Write(false); // isLooted
 
             switch (modelPostureType)
             {
                 case ModelPostureType.HouseState: // build
-                    for (var i = 0; i < 2; i++)
-                    {
-                        stream.Write(true); // door
-                    }
-
-                    for (var i = 0; i < 6; i++)
-                    {
-                        stream.Write(true); // window
-                    }
-
+                    stream.Write((byte)0xF); // flags Byte (2 - door, 6 - window)
                     break;
                 case ModelPostureType.ActorModelState: // npc
                     var npc = (Npc)unit;
@@ -787,15 +756,19 @@ namespace AAEmu.Game.Models.Game.Units
                     stream.Write(true); // activate
                     break;
                 case ModelPostureType.FarmfieldState:
-                    stream.Write(0u); // type(id)
-                    stream.Write(0f); // growRate
-                    stream.Write(0); // randomSeed
-                    stream.Write(false); // isWithered
-                    stream.Write(false); // isHarvested
+                    stream.Write(0u);    // type(id)
+                    stream.Write(0f);    // growRate
+                    stream.Write(0);     // randomSeed
+                    stream.Write(false); // flags Byte
                     break;
                 case ModelPostureType.TurretState: // slave
                     stream.Write(0f); // pitch
                     stream.Write(0f); // yaw
+                    break;
+                case ModelPostureType.Unk2:
+                case ModelPostureType.Unk3:
+                case ModelPostureType.Unk5:
+                case ModelPostureType.Unk6:
                     break;
             }
         }
