@@ -20,7 +20,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             var rows = _points.GetUpperBound(0) + 1; // количество строк (number of rows)
 
-            stream.Write(rows); // cnt
+            stream.Write((byte)rows); // cnt
             for (var i = 0; i < rows; i++)
             {
                 stream.Write((byte)_points[i, 0]); // kind
