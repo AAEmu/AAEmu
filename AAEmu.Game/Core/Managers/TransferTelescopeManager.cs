@@ -19,7 +19,7 @@ namespace AAEmu.Game.Core.Managers
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
         private Task transferTelescopeTickStartTask { get; set; }
-        private const double Delay = 250;
+        private const double Delay = 1000;
         private Character owner { get; set; }
 
         public void TransferTelescopeStart(Character character)
