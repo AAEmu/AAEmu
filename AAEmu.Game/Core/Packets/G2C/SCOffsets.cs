@@ -726,7 +726,7 @@
         public const ushort SCUnitStatePacket = 0x08D;
         public const ushort SCSiegeStatePacket = 0x1A9;
         public const ushort SCDominionDataPacket = 0x029;
-        public const ushort SCGamePointChangedPacket = 0xfff;
+        public const ushort SCGamePointChangedPacket = 0x284;
         public const ushort SCNationListPacket = 0x0A7;
         public const ushort SCFactionRelationListPacket = 0x1FB;
         public const ushort SCFamilyDescribedPacket = 0x1F2;
