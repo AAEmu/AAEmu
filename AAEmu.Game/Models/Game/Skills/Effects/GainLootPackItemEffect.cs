@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
@@ -10,7 +11,6 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects
 {
@@ -57,7 +57,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var rowP = lootPacks.Length;
             if (rowG >= 1)
             {
-                const float maxDropRate = (float)10000000;
+                const float MaxDropRate = 10000000;
                 for (var i = 0; i < rowG; i++)
                 {
                     var itemIdLoot = (uint)0;
@@ -65,7 +65,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     var maxAmount = 0;
                     var gradeId = (byte)0;
                     var dropRateMax = (uint)0;
-                    var dropRate = Rand.Next(0, maxDropRate);
+                    var dropRate = Rand.Next(0, MaxDropRate);
                     var dropRateGroup = (uint)10000000;
                     if (lootGroups[i].GroupNo > 1 && rowG >= 2)
                     {
@@ -134,7 +134,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 if (rowP >= 1)
                 {
-                    for (var i = 1; i <= 17; i++) ////////max group here ////// in sqlite max group = 17 /////
+                    for (var i = 0; i < 18; i++) ////////max group here ////// in sqlite max group = 17 /////
                     {
                         var itemIdLoot = (uint)0;
                         var minAmount = 0;
@@ -189,7 +189,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             //if (sourceItem != null)
             //    character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, sourceItem.TemplateId, 1, sourceItem);   
 
-            _log.Trace("GainLootPackItemEffect {0}", LootPackId);
+            _log.Warn("GainLootPackItemEffect {0}", LootPackId);
         }
 
         private void AddGold(Unit caster, int goldMin, int goldMax)
@@ -214,7 +214,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             character.Money += goldAdd;
             character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillEffectGainItem,
-                new List<ItemTask> {new MoneyChange(goldAdd)}, new List<ulong>()));
+                new List<ItemTask> { new MoneyChange(goldAdd) }, new List<ulong>()));
         }
 
         private void AddItem(Unit caster, uint itemId, byte gradeId, int minAmount, int maxAmount,
