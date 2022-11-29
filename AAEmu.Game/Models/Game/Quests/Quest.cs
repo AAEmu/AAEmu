@@ -1641,7 +1641,7 @@ EndLoop:
             //    stream.Write(objective);
             //}
             stream.WritePisc(Objectives[0], Objectives[1], Objectives[2], Objectives[3]);
-            stream.WritePisc(Objectives[3]);
+            stream.WritePisc(Objectives[4]);
 
             stream.Write(false);          // isCheckSet
             stream.WriteBc((uint)ObjId);  // bc ObjId
@@ -1660,10 +1660,17 @@ EndLoop:
         public void ReadData(byte[] data)
         {
             var stream = new PacketStream(data);
-            for (var i = 0; i < ObjectiveCount; i++)
-            {
-                Objectives[i] = stream.ReadInt32();
-            }
+            //for (var i = 0; i < ObjectiveCount; i++)
+            //{
+            //    Objectives[i] = stream.ReadInt32();
+            //}
+            var mObjectives = stream.ReadPisc(4);
+            Objectives[0] = (int)mObjectives[0];
+            Objectives[1] = (int)mObjectives[1];
+            Objectives[2] = (int)mObjectives[2];
+            Objectives[3] = (int)mObjectives[3];
+            mObjectives = stream.ReadPisc(1);
+            Objectives[4] = (int)mObjectives[0];
 
             Step = (QuestComponentKind)stream.ReadByte();
             QuestAcceptorType = (QuestAcceptorType)stream.ReadByte();
@@ -1675,10 +1682,12 @@ EndLoop:
         public byte[] WriteData()
         {
             var stream = new PacketStream();
-            foreach (var objective in Objectives)
-            {
-                stream.Write(objective);
-            }
+            //foreach (var objective in Objectives)
+            //{
+            //    stream.Write(objective);
+            //}
+            stream.WritePisc(Objectives[0], Objectives[1], Objectives[2], Objectives[3]);
+            stream.WritePisc(Objectives[4]);
 
             stream.Write((byte)Step);
             stream.Write((byte)QuestAcceptorType);
