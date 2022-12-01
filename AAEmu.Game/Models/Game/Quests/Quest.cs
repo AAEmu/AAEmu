@@ -200,6 +200,7 @@ namespace AAEmu.Game.Models.Game.Quests
                     {
                         switch (act.DetailType)
                         {
+                            case "QuestActConAcceptItem":
                             case "QuestActConAcceptDoodad": // старт ежедневного квеста (The start of the daily quest)
                             case "QuestActConAcceptNpcKill":
                             case "QuestActConAcceptNpc":
@@ -255,18 +256,20 @@ namespace AAEmu.Game.Models.Game.Quests
                                     break;
                                 }
                             default:
-                                //case "QuestActObjTalk":
-                                //case "QuestActObjTalkNpcGroup":
-                                supply = true; // прерываем цикл и на метод Update() не переходим (interrupt the cycle and do not go to the update() method)
-                                _log.Warn("[Quest] Start: character {0}, default don't do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
-                                // TODO added for quest Id=4402
-                                goto EndLoop;
+                                {
+                                    //case "QuestActObjTalk":
+                                    //case "QuestActObjTalkNpcGroup":
+                                    supply = true; // прерываем цикл и на метод Update() не переходим (interrupt the cycle and do not go to the update() method)
+                                    _log.Warn("[Quest] Start: character {0}, default don't do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
+                                    // TODO added for quest Id=4402
+                                    goto EndLoop;
+                                }
                         }
                     }
                 }
             }
 
-EndLoop:
+            EndLoop:
             Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
 
             if (Status == QuestStatus.Progress && !supply)
@@ -304,6 +307,7 @@ EndLoop:
                             default:
                                 _log.Warn($"[Quest] Start: character {Owner.Name}, default don't do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
                                 break;
+                            case "QuestActConAcceptItem":
                             case "QuestActConAcceptDoodad": // старт ежедневного квеста (start of the daily quest)
                             case "QuestActConAcceptNpcKill":
                                 res = act.Use(Owner, this, Objectives[componentIndex]);
@@ -469,6 +473,7 @@ EndLoop:
                                     // проверка результатов на валидность (Validation of results)
                                     if (complete)
                                     {
+                                        UseSkillAndBuff(components[componentIndex]);
                                         // компонент - выполнен, мы у нужного Npc (component - done, we're at the right Npc)
                                         Status = QuestStatus.Ready;
                                         _log.Warn($"[Quest] Update: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
@@ -846,6 +851,7 @@ EndLoop:
                     {
                         switch (act.DetailType)
                         {
+                            case "QuestActConReportJournal":
                             case "QuestActConReportNpc":
                                 res = act.Use(Owner, this, Objectives[componentIndex]);
                                 if (ComponentId == 0)
@@ -1014,6 +1020,19 @@ EndLoop:
                                     }
                                     break;
                                 }
+                            case "QuestActConAcceptItem":
+                                {
+                                    // TODO: added for quest Id=5700
+                                    var template = act.GetTemplate<QuestActConAcceptItem>();
+                                    if (template.DropWhenDestroy || template.Cleanup)
+                                    {
+                                        var count = Owner.Inventory.GetItemsCount(template.ItemId);
+                                        Objectives[componentIndex] = count;
+                                        Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[componentIndex], null);
+                                        _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId {6}, Count {7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, count);
+                                    }
+                                    break;
+                                }
                             case "QuestActSupplyRemoveItem":
                                 {
                                     // TODO: added for quest Id=2037
@@ -1033,9 +1052,11 @@ EndLoop:
             Status = QuestStatus.Dropped;
             Step = QuestComponentKind.Drop;
 
-            var component = Template.GetFirstComponent(Step);
-
-            UseSkillAndBuff(component);
+            for (var step = QuestComponentKind.Ready; step < QuestComponentKind.Reward; step++)
+            {
+                var component = Template.GetFirstComponent(step);
+                UseSkillAndBuff(component);
+            }
 
             if (update)
             {
