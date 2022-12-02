@@ -25,7 +25,8 @@ namespace AAEmu.Game.Models.Game.World.Interactions
                         // Execute DoodadFuncRecoverItem
                         doodadFuncRecoverItemTemplate.Use(caster, doodad, skillId);
                         // Move to next phase to remove the doodad
-                        doodad.DoPhaseFuncs(caster, -1);
+                        //doodad.DoPhaseFuncs(caster, -1);
+                        doodad.Delete();
                         return;
                     }
                 }
