@@ -430,8 +430,8 @@ namespace AAEmu.Game.Models.Game.Char
 
                     var ids = string.Join(",", _removed);
                     command.CommandText = $"DELETE FROM quests WHERE owner = @owner AND template_id IN({ids})";
-                    command.Prepare();
                     command.Parameters.AddWithValue("@owner", Owner.Id);
+                    command.Prepare();
                     command.ExecuteNonQuery();
                 }
 

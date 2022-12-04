@@ -170,8 +170,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             using (var command2 = connection.CreateCommand())
                             {
                                 command2.CommandText = "SELECT * FROM item_body_parts WHERE model_id=@model_id";
-                                command2.Prepare();
                                 command2.Parameters.AddWithValue("model_id", template.ModelId);
+                                command2.Prepare();
                                 using (var reader2 = new SQLiteWrapperReader(command2.ExecuteReader()))
                                 {
                                     while (reader2.Read())
@@ -246,8 +246,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                 using (var command2 = connection.CreateCommand())
                                 {
                                     command2.CommandText = "SELECT * FROM equip_pack_cloths WHERE id=@id";
-                                    command2.Prepare();
                                     command2.Parameters.AddWithValue("id", clothPack);
+                                    command2.Prepare();
                                     using (var reader2 = new SQLiteWrapperReader(command2.ExecuteReader()))
                                     {
                                         while (reader2.Read())
@@ -286,8 +286,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                 using (var command2 = connection.CreateCommand())
                                 {
                                     command2.CommandText = "SELECT * FROM equip_pack_weapons WHERE id=@id";
-                                    command2.Prepare();
                                     command2.Parameters.AddWithValue("id", weaponPack);
+                                    command2.Prepare();
                                     using (var reader2 = new SQLiteWrapperReader(command2.ExecuteReader()))
                                     {
                                         while (reader2.Read())
@@ -795,12 +795,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 {
                     using (var command = connection.CreateCommand())
                     {
-                        command.CommandText =
-                            "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
-                        command.Prepare();
+                        command.CommandText = "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
                         command.Parameters.AddWithValue("@delete_request_time", character.DeleteRequestTime);
                         command.Parameters.AddWithValue("@delete_time", character.DeleteTime);
                         command.Parameters.AddWithValue("@id", character.Id);
+                        command.Prepare();
                         if (command.ExecuteNonQuery() == 1)
                         {
                             gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 2, character.DeleteRequestTime, character.DeleteTime));
@@ -836,12 +835,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 {
                     using (var command = connection.CreateCommand())
                     {
-                        command.CommandText =
-                            "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
-                        command.Prepare();
+                        command.CommandText = "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
                         command.Parameters.AddWithValue("@delete_request_time", character.DeleteRequestTime);
                         command.Parameters.AddWithValue("@delete_time", character.DeleteTime);
                         command.Parameters.AddWithValue("@id", character.Id);
+                        command.Prepare();
                         command.ExecuteNonQuery();
                     }
                 }

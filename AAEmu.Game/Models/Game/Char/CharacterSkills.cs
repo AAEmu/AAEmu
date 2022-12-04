@@ -176,8 +176,8 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Transaction = transaction;
 
                     command.CommandText = "DELETE FROM skills WHERE owner = @owner AND id IN(" + string.Join(",", _removed) + ")";
-                    command.Prepare();
                     command.Parameters.AddWithValue("@owner", Owner.Id);
+                    command.Prepare();
                     command.ExecuteNonQuery();
                     _removed.Clear();
                 }

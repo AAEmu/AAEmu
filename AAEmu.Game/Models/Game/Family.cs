@@ -68,8 +68,8 @@ namespace AAEmu.Game.Models.Game
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM family_members WHERE family_id=@family_id";
-                command.Prepare();
                 command.Parameters.AddWithValue("family_id", Id);
+                command.Prepare();
                 using (var reader = command.ExecuteReader())
                 {
                     while (reader.Read())
@@ -97,8 +97,8 @@ namespace AAEmu.Game.Models.Game
                     command.Transaction = transaction;
 
                     command.CommandText = $"DELETE FROM family_members WHERE character_id IN ({removedMembers})";
-                    command.Prepare();
                     command.Parameters.AddWithValue("@family_id", Id);
+                    command.Prepare();
                     command.ExecuteNonQuery();
                 }
 
@@ -108,8 +108,8 @@ namespace AAEmu.Game.Models.Game
                     command.Transaction = transaction;
 
                     command.CommandText = $"UPDATE characters SET family = 0 WHERE `characters`.`id` IN ({removedMembers})";
-                    command.Prepare();
                     command.Parameters.AddWithValue("@family_id", Id);
+                    command.Prepare();
                     command.ExecuteNonQuery();
                 }
 

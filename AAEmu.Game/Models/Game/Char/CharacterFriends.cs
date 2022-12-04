@@ -97,8 +97,8 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Transaction = transaction;
 
                     command.CommandText = "DELETE FROM friends WHERE owner = @owner AND friend_id IN(" + string.Join(",", _removedFriends) + ")";
-                    command.Prepare();
                     command.Parameters.AddWithValue("@owner", Owner.Id);
+                    command.Prepare();
                     command.ExecuteNonQuery();
                     _removedFriends.Clear();
                 }
