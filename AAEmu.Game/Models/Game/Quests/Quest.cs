@@ -253,7 +253,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
                                     _log.Warn($"[Quest] Start: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
                                     Update();
-                                    break;
+                                    return true;
                                 }
                             default:
                                 {
@@ -356,7 +356,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
                                     _log.Warn($"[Quest] Start: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
                                     Update();
-                                    break;
+                                    return;
                                 }
                         }
                         // _log.Warn($"[Quest] Start: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {acts[i].DetailType}");
@@ -483,6 +483,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     }
                                     // компонент - выполнен (component - done)
                                     Status = QuestStatus.Ready;
+                                    _log.Warn($"[Quest] Update: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
                                     break;
                                 }
                             case "QuestActConAutoComplete":
@@ -501,34 +502,48 @@ namespace AAEmu.Game.Models.Game.Quests
                                     //var template = act.GetTemplate<QuestActObjSphere>();
                                     Status = QuestStatus.Progress;
                                     ComponentId = components[componentIndex].Id;
-
-                                    foreach (var sphere in _sphereQuestManager.GetQuestSpheres(components[componentIndex].Id))
+                                    var spheres = _sphereQuestManager.GetQuestSpheres(ComponentId);
+                                    if (spheres != null)
                                     {
-                                        var sphereQuestTrigger = new SphereQuestTrigger();
-                                        sphereQuestTrigger.Sphere = sphere;
-
-                                        if (sphereQuestTrigger.Sphere == null)
+                                        foreach (var sphere in spheres)
                                         {
-                                            _log.Warn($"[Quest] QuestActObjSphere: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
-                                            _log.Warn($"[Quest] QuestActObjSphere: Sphere not found with cquest {components[componentIndex].Id} in quest_sign_spheres.json!");
-                                            return;
+                                            var sphereQuestTrigger = new SphereQuestTrigger();
+                                            sphereQuestTrigger.Sphere = sphere;
+
+                                            if (sphereQuestTrigger.Sphere == null)
+                                            {
+                                                _log.Warn(
+                                                    $"[Quest] QuestActObjSphere: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
+                                                _log.Warn(
+                                                    $"[Quest] QuestActObjSphere: Sphere not found with cquest {components[componentIndex].Id} in quest_sign_spheres.json!");
+                                                return;
+                                            }
+
+                                            sphereQuestTrigger.Owner = Owner;
+                                            sphereQuestTrigger.Quest = this;
+                                            sphereQuestTrigger.TickRate = 500;
+
+                                            _sphereQuestManager.AddSphereQuestTrigger(sphereQuestTrigger);
                                         }
 
-                                        sphereQuestTrigger.Owner = Owner;
-                                        sphereQuestTrigger.Quest = this;
-                                        sphereQuestTrigger.TickRate = 500;
-
-                                        _sphereQuestManager.AddSphereQuestTrigger(sphereQuestTrigger);
+                                        const int Duration = 500; 
+                                        // TODO : Add a proper delay in here
+                                        Task.Run(async () =>
+                                        {
+                                            await Task.Delay(Duration);
+                                        });
+                                        _log.Warn($"[Quest] Update: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
+                                        return;
                                     }
 
-                                    const int Duration = 500;
-                                    // TODO : Add a proper delay in here
-                                    Task.Run(async () =>
-                                    {
-                                        await Task.Delay(Duration);
-                                    });
-                                    _log.Warn($"[Quest] Update: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
-                                    return;
+                                    // если сфера по какой-то причине отсутствует, будем считать, что мы её посетили
+                                    // if the sphere is missing for some reason, we will assume that we have visited it
+                                    Status = QuestStatus.Progress;
+                                    Owner.SendMessage($"[Quest] {Owner.Name}, quest {TemplateId}, Sphere not found - skipped...");
+                                    _log.Warn($"[Quest] QuestActObjSphere: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, act.DetailType {act.DetailType}");
+                                    _log.Warn($"[Quest] QuestActObjSphere: Sphere not found with cquest {ComponentId} in quest_sign_spheres!");
+                                    complete = true;
+                                    break;
                                 }
                             case "QuestActEtcItemObtain":
                                 {
