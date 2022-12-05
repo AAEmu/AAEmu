@@ -877,7 +877,6 @@ namespace AAEmu.Game.Models.Game.Quests
             {
                 if (Step >= QuestComponentKind.Drop)
                     Status = QuestStatus.Completed;
-                }
 
                 var components = Template.GetComponents(Step);
                 if (components.Length == 0)
