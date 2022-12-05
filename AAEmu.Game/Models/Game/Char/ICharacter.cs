@@ -13,6 +13,7 @@ namespace AAEmu.Game.Models.Game.Char
         long Money { get; set; }
         CharacterMates Mates { get; set; }
         CharacterAppellations Appellations { get; set; }
+        CharacterAbilities Abilities { get; set; }
         byte NumInventorySlots { get; set; }
         short NumBankSlots { get; set; }
         void SendMessage(string message, params object[] parameters);
