@@ -199,8 +199,8 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Transaction = transaction;
 
                     command.CommandText = "DELETE FROM mates WHERE owner = @owner AND id IN(" + string.Join(",", _removedMates) + ")";
-                    command.Prepare();
                     command.Parameters.AddWithValue("@owner", Owner.Id);
+                    command.Prepare();
                     command.ExecuteNonQuery();
                     _removedMates.Clear();
                 }

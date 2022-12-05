@@ -266,7 +266,6 @@ namespace AAEmu.Game.Core.Managers
                         "@attachment6, @attachment7, @attachment8, @attachment9" +
                         ")";
 
-                    command.Prepare();
                     command.Parameters.AddWithValue("@id", mtbs.Value.Id);
                     command.Parameters.AddWithValue("@openDate", mtbs.Value.Header.OpenDate);
                     command.Parameters.AddWithValue("@type", (byte)mtbs.Value.Header.Type);
@@ -298,6 +297,7 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
 
+                    command.Prepare();
                     command.ExecuteNonQuery();
                     updatedCount++;
                     mtbs.Value.IsDirty = false;

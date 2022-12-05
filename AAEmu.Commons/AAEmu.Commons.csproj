@@ -9,7 +9,7 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <PackageReference Include="MySql.Data" Version="8.0.13" />
+    <PackageReference Include="MySql.Data" Version="8.0.31" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="NLog" Version="5.0.1" />   
     <PackageReference Include="NetCoreServer" Version="2.0.3" />
