@@ -1265,6 +1265,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Abilities.AddActiveExp(exp); // TODO ... or all?
             SendPacket(new SCExpChangedPacket(ObjId, exp, shouldAddAbilityExp));
             CheckLevelUp();
+            Quests.OnLevelUp(); // TODO added for quest Id=5967
         }
 
         public void CheckLevelUp()
@@ -1282,8 +1283,6 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
                 StartRegen();
-
-                Quests.OnLevelUp();
             }
         }
 
