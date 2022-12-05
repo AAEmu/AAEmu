@@ -531,7 +531,7 @@ namespace AAEmu.Game.Core.Managers
                         " @creation_time, @end_time, @lifespan_mins, @type_1, @world_id, @unsecure_date_time, @unpack_date_time," +
                         " @world_id_2, @client_id, @client_name, @start_money, @direct_money, @bid_world_id," +
                         " @bidder_id, @bidder_name, @bid_money, @extra)";
-                    command.Parameters.AddWithValue("@id", mtbs.ID);
+                    command.Parameters.AddWithValue("@id", mtbs.Id);
                     command.Parameters.AddWithValue("@duration", mtbs.Duration);
                     command.Parameters.AddWithValue("@item_id", mtbs.ItemId);
                     command.Parameters.AddWithValue("@object_id", mtbs.ObjectId);
