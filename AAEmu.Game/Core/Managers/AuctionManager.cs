@@ -492,9 +492,6 @@ namespace AAEmu.Game.Core.Managers
                         " @creation_time, @end_time, @lifespan_mins, @type_1, @world_id, @unsecure_date_time, @unpack_date_time," +
                         " @world_id_2, @client_id, @client_name, @start_money, @direct_money, @bid_world_id," +
                         " @bidder_id, @bidder_name, @bid_money, @extra)";
-
-                    command.Prepare();
-
                     command.Parameters.AddWithValue("@id", mtbs.ID);
                     command.Parameters.AddWithValue("@duration", mtbs.Duration);
                     command.Parameters.AddWithValue("@item_id", mtbs.ItemID);
@@ -522,6 +519,7 @@ namespace AAEmu.Game.Core.Managers
                     command.Parameters.AddWithValue("@bid_money", mtbs.BidMoney);
                     command.Parameters.AddWithValue("@extra", mtbs.Extra);
 
+                    command.Prepare();
                     command.ExecuteNonQuery();
                     updatedCount++;
                     mtbs.IsDirty = false;

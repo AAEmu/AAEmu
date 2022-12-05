@@ -113,8 +113,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
                     command.Connection = connection;
                     command.Transaction = transaction;
 
-                    command.CommandText =
-                        $"UPDATE characters SET expedition_id = 0 WHERE `characters`.`id` IN ({removedMembers})";
+                    command.CommandText = $"UPDATE characters SET expedition_id = 0 WHERE `characters`.`id` IN ({removedMembers})";
                     command.Prepare();
                     command.ExecuteNonQuery();
                 }

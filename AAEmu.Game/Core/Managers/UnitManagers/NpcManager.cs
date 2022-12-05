@@ -522,8 +522,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             using (var command2 = connection.CreateCommand())
                             {
                                 command2.CommandText = "SELECT char_race_id, char_gender_id FROM characters WHERE model_id = @model_id";
-                                command2.Prepare();
                                 command2.Parameters.AddWithValue("model_id", template.ModelId);
+                                command2.Prepare();
                                 using (var sqliteReader2 = command2.ExecuteReader())
                                 using (var reader2 = new SQLiteWrapperReader(sqliteReader2))
                                 {
@@ -542,8 +542,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                 using (var command2 = connection.CreateCommand())
                                 {
                                     command2.CommandText = "SELECT * FROM equip_pack_cloths WHERE id=@id";
-                                    command2.Prepare();
                                     command2.Parameters.AddWithValue("id", clothPack);
+                                    command2.Prepare();
                                     using (var sqliteReader2 = command2.ExecuteReader())
                                     using (var reader2 = new SQLiteWrapperReader(sqliteReader2))
                                     {
@@ -583,8 +583,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                 using (var command2 = connection.CreateCommand())
                                 {
                                     command2.CommandText = "SELECT * FROM equip_pack_weapons WHERE id=@id";
-                                    command2.Prepare();
                                     command2.Parameters.AddWithValue("id", weaponPack);
+                                    command2.Prepare();
                                     using (var sqliteReader2 = command2.ExecuteReader())
                                     using (var reader2 = new SQLiteWrapperReader(sqliteReader2))
                                     {
@@ -647,8 +647,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                 using (var command2 = connection.CreateCommand())
                                 {
                                     command2.CommandText = "SELECT * FROM npc_postures WHERE npc_posture_set_id=@id";
-                                    command2.Prepare();
                                     command2.Parameters.AddWithValue("id", template.NpcPostureSetId);
+                                    command2.Prepare();
                                     using (var sqliteReader2 = command2.ExecuteReader())
                                     using (var reader2 = new SQLiteWrapperReader(sqliteReader2))
                                     {
