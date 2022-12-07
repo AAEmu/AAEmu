@@ -578,7 +578,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             catch (Exception e)
             {
                 _log.Warn($"Error in read MovePath: {e.Message}");
-                Character.SendMessage($"[MoveTo] Error in read MovePath: {e.Message}");
+                //Character.SendMessage($"[MoveTo] Error in read MovePath: {e.Message}");
                 StopMove(Npc);
             }
             try
@@ -589,7 +589,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             catch (Exception e)
             {
                 _log.Warn($"Error in read RecordPath: {e.Message}");
-                Character.SendMessage($"[MoveTo] Error in read MovePath: {e.Message}");
+                //Character.SendMessage($"[MoveTo] Error in read MovePath: {e.Message}");
                 StopMove(Npc);
             }
         }
