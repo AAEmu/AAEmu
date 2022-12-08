@@ -1,0 +1,226 @@
+[
+  {
+    "Id": 1,
+    "Count": 1,
+    "UnitId": 13280,
+    "Title": "Servant of Pain",
+    "Position": {
+      "X": 1165.56,
+      "Y": 505.353,
+      "Z": 198.626,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 90
+  },
+  {
+    "Id": 2,
+    "Count": 1,
+    "UnitId": 13280,
+    "Title": "Servant of Pain",
+    "Position": {
+      "X": 1160.34,
+      "Y": 422.743,
+      "Z": 198.622,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 90
+  },
+  {
+    "Id": 3,
+    "Count": 1,
+    "UnitId": 13319,
+    "Title": "Life Slave",
+    "Position": {
+      "X": 1121.66,
+      "Y": 456.312,
+      "Z": 198.626,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 90
+  },
+  {
+    "Id": 4,
+    "Count": 1,
+    "UnitId": 13319,
+    "Title": "Life Slave",
+    "Position": {
+      "X": 1201.5,
+      "Y": 473.287,
+      "Z": 198.626,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 90
+  },
+  {
+    "Id": 5,
+    "Count": 1,
+    "UnitId": 13335,
+    "Title": "Servant of Flame",
+    "Position": {
+      "X": 1133.0,
+      "Y": 476.0,
+      "Z": 215.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 90
+  },
+  {
+    "Id": 6,
+    "Count": 1,
+    "UnitId": 13335,
+    "Title": "Servant of Flame",
+    "Position": {
+      "X": 1191.0,
+      "Y": 452.0,
+      "Z": 215.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 90
+  },
+  {
+    "Id": 7,
+    "Count": 1,
+    "UnitId": 13347,
+    "Title": "Red Army Defense Cannon",
+    "Position": {
+      "X": 1122.03,
+      "Y": 416.165,
+      "Z": 198.876,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 90
+  },
+  {
+    "Id": 8,
+    "Count": 1,
+    "UnitId": 13347,
+    "Title": "Red Army Defense Cannon",
+    "Position": {
+      "X": 1115.74,
+      "Y": 422.445,
+      "Z": 198.734,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 90
+  },
+  {
+    "Id": 9,
+    "Count": 1,
+    "UnitId": 13348,
+    "Title": "Blue Army Defense Cannon",
+    "Position": {
+      "X": 1206.26,
+      "Y": 516.044,
+      "Z": 198.623,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 90
+  },
+  {
+    "Id": 10,
+    "Count": 1,
+    "UnitId": 13348,
+    "Title": "Blue Army Defense Cannon",
+    "Position": {
+      "X": 1211.74,
+      "Y": 510.609,
+      "Z": 198.626,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 90
+  },
+  {
+    "Id": 11,
+    "Count": 1,
+    "UnitId": 13352,
+    "Title": "Red Army Polestar",
+    "Position": {
+      "X": 1116.17,
+      "Y": 416.812,
+      "Z": 198.405,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 90
+  },
+  {
+    "Id": 12,
+    "Count": 1,
+    "UnitId": 13353,
+    "Title": "Blue Army Polestar",
+    "Position": {
+      "X": 1211.26,
+      "Y": 515.348,
+      "Z": 198.252,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 90
+  },
+  {
+    "Id": 13,
+    "Count": 1,
+    "UnitId": 14168,
+    "Title": "Arena Manager",
+    "Position": {
+      "X": 1240.21,
+      "Y": 539.041,
+      "Z": 198.621,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 90
+  },
+  {
+    "Id": 14,
+    "Count": 1,
+    "UnitId": 14168,
+    "Title": "Arena Manager",
+    "Position": {
+      "X": 1091.61,
+      "Y": 390.974,
+      "Z": 198.614,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 90
+  }
+]

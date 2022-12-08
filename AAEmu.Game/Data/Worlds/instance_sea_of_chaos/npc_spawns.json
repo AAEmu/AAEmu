@@ -1,0 +1,146 @@
+[
+  {
+    "Id": 1,
+    "Count": 1,
+    "UnitId": 17652,
+    "Title": "",
+    "Position": {
+      "X": 2376.17,
+      "Y": 2550.91016,
+      "Z": 100.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 97
+  },
+  {
+    "Id": 2,
+    "Count": 1,
+    "UnitId": 17652,
+    "Title": "",
+    "Position": {
+      "X": 2024.0,
+      "Y": 2024.0,
+      "Z": 100.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 97
+  },
+  {
+    "Id": 3,
+    "Count": 1,
+    "UnitId": 17652,
+    "Title": "",
+    "Position": {
+      "X": 1689.96191,
+      "Y": 2466.56,
+      "Z": 100.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 97
+  },
+  {
+    "Id": 4,
+    "Count": 1,
+    "UnitId": 17653,
+    "Title": "",
+    "Position": {
+      "X": 2376.17,
+      "Y": 2550.91016,
+      "Z": 100.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 97
+  },
+  {
+    "Id": 5,
+    "Count": 1,
+    "UnitId": 17654,
+    "Title": "",
+    "Position": {
+      "X": 1689.96191,
+      "Y": 2466.56,
+      "Z": 100.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 97
+  },
+  {
+    "Id": 6,
+    "Count": 1,
+    "UnitId": 17655,
+    "Title": "",
+    "Position": {
+      "X": 2024.0,
+      "Y": 2024.0,
+      "Z": 100.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 97
+  },
+  {
+    "Id": 7,
+    "Count": 1,
+    "UnitId": 17656,
+    "Title": "",
+    "Position": {
+      "X": 2376.17,
+      "Y": 2550.91016,
+      "Z": 100.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 97
+  },
+  {
+    "Id": 8,
+    "Count": 1,
+    "UnitId": 17657,
+    "Title": "",
+    "Position": {
+      "X": 1689.96191,
+      "Y": 2466.56,
+      "Z": 100.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 97
+  },
+  {
+    "Id": 9,
+    "Count": 1,
+    "UnitId": 17658,
+    "Title": "",
+    "Position": {
+      "X": 2024.0,
+      "Y": 2024.0,
+      "Z": 100.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0,
+    "Zone": 97
+  }
+]
