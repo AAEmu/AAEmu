@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using AAEmu.Commons.Network;
@@ -141,7 +142,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_unit.ModelId); // modelRef
 
             //Inventory_Equip(stream, _unit); // Equip character
-            Inventory_Equip(stream, _unit, _baseUnitType); // Equip character
+            Inventory_Equip2(stream, _unit, _baseUnitType); // Equip character
             //Inventory_Equip0(stream, _unit); // Equip character
 
             stream.Write(_unit.ModelParams); // CustomModel_3570
@@ -406,7 +407,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                                                 break;
                                             }
                                     }
-                                    
+
                                     pcount -= index;
                                 } while (pcount > 0);
 
@@ -459,7 +460,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                                                 break;
                                             }
                                     }
-                                    
+
                                     pcount -= index;
                                 } while (pcount > 0);
 
@@ -945,6 +946,158 @@ namespace AAEmu.Game.Core.Packets.G2C
                     {
                         item = unit.Equipment.GetItemBySlot(index);
                         stream.Write(item.TemplateId); // somehow_special [19..26]
+                    }
+                }
+
+                ++index;
+            } while (index < 29);
+
+            if (baseUnitType != BaseUnitType.Character) { return; }
+
+            index = 0;
+            validFlags = 0;
+            foreach (var tmp in unit.Equipment.GetSlottedItemsList()
+                .Where(item => item != null)
+                .Select(item => (int)item.ItemFlags << index))
+            {
+                ++index;
+                validFlags |= tmp;
+            }
+
+            stream.Write(validFlags); //  ItemFlags flags for 3.0.3.0
+
+            #endregion Inventory_Equip
+        }
+        private void Inventory_Equip2(PacketStream stream, Unit unit0, BaseUnitType baseUnitType)
+        {
+            #region Inventory_Equip
+
+            var unit = new Unit();
+            switch (baseUnitType)
+            {
+                case BaseUnitType.Character:
+                    unit = (Character)unit0;
+                    break;
+                case BaseUnitType.Npc:
+                    unit = (Npc)unit0;
+                    break;
+                case BaseUnitType.Slave:
+                    unit = (Slave)_unit;
+                    break;
+                case BaseUnitType.Housing:
+                    unit = (House)_unit;
+                    break;
+                case BaseUnitType.Transfer:
+                    unit = (Transfer)_unit;
+                    break;
+                case BaseUnitType.Mate:
+                    unit = (Mate)_unit;
+                    break;
+                case BaseUnitType.Shipyard:
+                    unit = (Shipyard)_unit;
+                    break;
+                default:
+                    break;
+            }
+
+            // calculate validFlags
+            var index = 0;
+            var validFlags = 0;
+            var items = unit.Equipment.GetSlottedItemsList();
+            foreach (var item in items)
+            {
+                if (item != null)
+                {
+                    validFlags |= 1 << index;
+                }
+
+                index++;
+            }
+
+            stream.Write((uint)validFlags); // validFlags for 3.0.3.0
+
+            if (validFlags <= 0)
+            {
+                unit.ModelParams.SetType(UnitCustomModelType.Skin); // дополнительная проверка, что у NPC нет тела и лица
+                return;
+            }
+
+            index = 0;
+            do
+            {
+                if (((validFlags >> index) & 1) != 0)
+                {
+                    Item item;
+                    switch (index)
+                    {
+                        case 0: // Head
+                        case 1: // Neck
+                        case 2: // Chest
+                        case 3: // Waist
+                        case 4: // Legs
+                        case 5: // Hands
+                        case 6: // Feet
+                        case 7: // Arms
+                        case 8: // Back
+                        case 9: // Ear1
+                        case 10: // Ear2
+                        case 11: // Finger1
+                        case 12: // Finger2
+                        case 13: // Undershirt
+                        case 14: // Underpants
+                        case 15: // Mainhand
+                        case 16: // Offhand
+                        case 17: // Ranged
+                        case 18: // Musical
+                        case 26: // Backpack
+                        case 28: // Stabilizer
+                            {
+                                switch (baseUnitType)
+                                {
+                                    case BaseUnitType.Character: // Character
+                                    case BaseUnitType.Housing:   // Housing
+                                    case BaseUnitType.Mate:      // Mate
+                                    case BaseUnitType.Slave:     // Slave
+                                        {
+                                            item = unit.Equipment.GetItemBySlot(index);
+                                            stream.Write(item);
+                                            break;
+                                        }
+                                    case BaseUnitType.Npc:       // Npc
+                                        {
+                                            item = unit.Equipment.GetItemBySlot(index);
+                                            stream.Write(item.TemplateId);
+                                            stream.Write(item.Id);
+                                            stream.Write(item.Grade);
+                                            break;
+                                        }
+                                    case BaseUnitType.Transfer:
+                                    case BaseUnitType.Shipyard:
+                                    default:
+                                        {
+                                            break;
+                                        }
+                                }
+                                break;
+                            }
+                        case 19: // Face
+                        case 20: // Hair
+                        case 21: // Glasses
+                        case 22: // Horns
+                        case 23: // Tail
+                        case 24: // Body
+                        case 25: // Beard
+                            {
+                                item = unit.Equipment.GetItemBySlot(index);
+                                stream.Write(item.TemplateId); // somehow_special [19..25]
+                                break;
+                            }
+                        case 27: // Cosplay
+                            {
+                                item = unit.Equipment.GetItemBySlot(index);
+                                stream.Write(item); // Cosplay [27]
+                                break;
+                            }
                     }
                 }
 
