@@ -141,8 +141,8 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_unit.ModelId); // modelRef
 
             //Inventory_Equip(stream, _unit); // Equip character
-            //Inventory_Equip(stream, _unit, _baseUnitType); // Equip character
-            Inventory_Equip0(stream, _unit); // Equip character
+            Inventory_Equip(stream, _unit, _baseUnitType); // Equip character
+            //Inventory_Equip0(stream, _unit); // Equip character
 
             stream.Write(_unit.ModelParams); // CustomModel_3570
 
