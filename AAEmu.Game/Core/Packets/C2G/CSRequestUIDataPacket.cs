@@ -16,9 +16,11 @@ namespace AAEmu.Game.Core.Packets.C2G
             var id = stream.ReadUInt32();
 
             if (Connection.Characters.ContainsKey(id))
+            {
                 Connection.SendPacket(
                     new SCResponseUIDataPacket(id, uiDataType, Connection.Characters[id].GetOption(uiDataType))
                 );
+            }
         }
     }
 }

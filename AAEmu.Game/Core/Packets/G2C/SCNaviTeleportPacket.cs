@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private float _x;
         private float _y;
         private float _z;
-        
+
         public SCNaviTeleportPacket(float x, float y, float z) : base(SCOffsets.SCNaviTeleportPacket, 1)
         {
             _x = x;

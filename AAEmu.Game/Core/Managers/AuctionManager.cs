@@ -1,17 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
-using NLog;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
-using MySql.Data.MySqlClient;
 using AAEmu.Game.Models.Game.Mails;
+
+using MySql.Data.MySqlClient;
+
+using NLog;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -30,15 +33,21 @@ namespace AAEmu.Game.Core.Managers
             var newAuctionItem = CreateAuctionItem(player, newItem, startPrice, buyoutPrice, duration);
 
             if (newAuctionItem == null) //TODO
+            {
                 return;
+            }
 
             if (newItem == null) //TODO
+            {
                 return;
+            }
 
             var auctionFee = (newAuctionItem.DirectMoney * .01) * (duration + 1);
 
             if (auctionFee > MaxListingFee)
+            {
                 auctionFee = MaxListingFee;
+            }
 
             if (!player.ChangeMoney(SlotType.Inventory, -(int)auctionFee))
             {
@@ -65,15 +74,18 @@ namespace AAEmu.Game.Core.Managers
 
                 // TODO: Read this from saved data
                 var recalculatedFee = (itemToRemove.DirectMoney * .01) * (itemToRemove.Duration + 1);
-                if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
+                if (recalculatedFee > MaxListingFee)
+                {
+                    recalculatedFee = MaxListingFee;
+                }
 
                 if (itemToRemove.ClientName != "")
                 {
                     var sellMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, (int)recalculatedFee);
                     sellMail.FinalizeForSaleSeller((int)moneyAfterFee, (int)(soldAmount - moneyAfterFee));
-                    sellMail.Send();   
+                    sellMail.Send();
                 }
-                
+
                 var buyMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, (int)recalculatedFee);
                 var buyerId = NameManager.Instance.GetCharacterId(buyer);
                 buyMail.FinalizeForSaleBuyer(buyerId);
@@ -86,8 +98,10 @@ namespace AAEmu.Game.Core.Managers
         private void RemoveAuctionItemFail(AuctionItem itemToRemove)
         {
             if (!_auctionItems.Contains(itemToRemove))
+            {
                 return;
-            
+            }
+
             if (itemToRemove.BidderName != "") //Player won the bid. 
             {
                 RemoveAuctionItemSold(itemToRemove, itemToRemove.BidderName, itemToRemove.BidMoney);
@@ -102,13 +116,16 @@ namespace AAEmu.Game.Core.Managers
 
                 // TODO: Read this from saved data
                 var recalculatedFee = (itemToRemove.DirectMoney * .01) * (itemToRemove.Duration + 1);
-                if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
+                if (recalculatedFee > MaxListingFee)
+                {
+                    recalculatedFee = MaxListingFee;
+                }
 
                 if (itemToRemove.ClientName != "")
                 {
                     var failMail = new MailForAuction(newItem, itemToRemove.ClientId, itemToRemove.DirectMoney, (int)recalculatedFee);
                     failMail.FinalizeForFail();
-                    failMail.Send();   
+                    failMail.Send();
                 }
 
                 RemoveAuctionItem(itemToRemove);
@@ -119,7 +136,10 @@ namespace AAEmu.Game.Core.Managers
         {
             var auctionItem = GetAuctionItemFromID(auctionId);
 
-            if (auctionItem.BidderName != "") return;// Someone has already bid on the item and we do not want to remove it. 
+            if (auctionItem.BidderName != "")
+            {
+                return;// Someone has already bid on the item and we do not want to remove it. 
+            }
 
             var moneyToSubtract = auctionItem.DirectMoney * .1f;
             var itemList = new Item[10].ToList();
@@ -128,7 +148,10 @@ namespace AAEmu.Game.Core.Managers
 
             // TODO: Read this from saved data
             var recalculatedFee = (auctionItem.DirectMoney * .01) * (auctionItem.Duration + 1);
-            if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
+            if (recalculatedFee > MaxListingFee)
+            {
+                recalculatedFee = MaxListingFee;
+            }
 
             var cancelMail = new MailForAuction(newItem, auctionItem.ClientId, auctionItem.DirectMoney, (int)recalculatedFee);
             cancelMail.FinalizeForCancel();
@@ -158,21 +181,24 @@ namespace AAEmu.Game.Core.Managers
                         newMail.FinalizeForBidFail(auctionItem.BidderId, auctionItem.BidMoney);
                         newMail.Send();
                     }
-                    
+
                     player.SubtractMoney(SlotType.Inventory, (int)auctionItem.DirectMoney);
                     RemoveAuctionItemSold(auctionItem, player.Name, auctionItem.DirectMoney);
                 }
 
-                else if(bidAmount > auctionItem.BidMoney) //Bid
+                else if (bidAmount > auctionItem.BidMoney) //Bid
                 {
-                    if(auctionItem.BidderName != "") //Send mail to old bidder. 
+                    if (auctionItem.BidderName != "") //Send mail to old bidder. 
                     {
                         var moneyArray = new int[3];
                         moneyArray[0] = (int)auctionItem.BidMoney;
 
                         // TODO: Read this from saved data
                         var recalculatedFee = (auctionItem.DirectMoney * .01) * (auctionItem.Duration + 1);
-                        if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
+                        if (recalculatedFee > MaxListingFee)
+                        {
+                            recalculatedFee = MaxListingFee;
+                        }
 
                         var cancelMail = new MailForAuction(auctionItem.ItemID, auctionItem.ClientId, auctionItem.DirectMoney, (int)recalculatedFee);
                         cancelMail.FinalizeForBidFail(auctionItem.BidderId, auctionItem.BidMoney);
@@ -192,24 +218,24 @@ namespace AAEmu.Game.Core.Managers
 
         public List<AuctionItem> GetAuctionItems(AuctionSearchTemplate searchTemplate)
         {
-            List<AuctionItem> auctionItemsFound = new List<AuctionItem>();
-            bool myListing = false;
+            var auctionItemsFound = new List<AuctionItem>();
+            var myListing = false;
 
             if (searchTemplate.ItemName == "" && searchTemplate.CategoryA == 0 && searchTemplate.CategoryB == 0 && searchTemplate.CategoryC == 0)
             {
                 myListing = true;
                 auctionItemsFound = _auctionItems.Where(c => c.ClientId == searchTemplate.PlayerId).ToList();
             }
-            
-            if(!myListing)
+
+            if (!myListing)
             {
                 var itemTemplateList = ItemManager.Instance.GetAllItems();
                 var query = from item in itemTemplateList
-                    where ((searchTemplate.ItemName != "") ? item.searchString.Contains(searchTemplate.ItemName.ToLower()) : true)
-                    where ((searchTemplate.CategoryA != 0) ? searchTemplate.CategoryA == item.AuctionCategoryA : true)
-                    where ((searchTemplate.CategoryB != 0) ? searchTemplate.CategoryB == item.AuctionCategoryB : true)
-                    where ((searchTemplate.CategoryC != 0) ? searchTemplate.CategoryC == item.AuctionCategoryC : true)
-                    select item;
+                            where ((searchTemplate.ItemName != "") ? item.searchString.Contains(searchTemplate.ItemName.ToLower()) : true)
+                            where ((searchTemplate.CategoryA != 0) ? searchTemplate.CategoryA == item.AuctionCategoryA : true)
+                            where ((searchTemplate.CategoryB != 0) ? searchTemplate.CategoryB == item.AuctionCategoryB : true)
+                            where ((searchTemplate.CategoryC != 0) ? searchTemplate.CategoryC == item.AuctionCategoryC : true)
+                            select item;
 
                 var selectedItemList = query.ToList();
 
@@ -221,7 +247,9 @@ namespace AAEmu.Game.Core.Managers
                 var sortedList = auctionItemsFound.OrderByDescending(x => x.DirectMoney).ToList();
                 auctionItemsFound = sortedList;
                 if (searchTemplate.SortOrder == 1)
+                {
                     auctionItemsFound.Reverse();
+                }
             }
 
             //TODO 2 Name of item
@@ -232,7 +260,9 @@ namespace AAEmu.Game.Core.Managers
                 var sortedList = auctionItemsFound.OrderByDescending(x => x.TimeLeft).ToList();
                 auctionItemsFound = sortedList;
                 if (searchTemplate.SortOrder == 1)
+                {
                     auctionItemsFound.Reverse();
+                }
             }
 
             if (searchTemplate.Page > 0)
@@ -245,19 +275,23 @@ namespace AAEmu.Game.Core.Managers
                     for (var i = startingItemNumber; i < endingitemNumber; i++)
                     {
                         if (auctionItemsFound.ElementAtOrDefault(i) != null)
+                        {
                             tempItemList.Add(auctionItemsFound[i]);
+                        }
                     }
                     auctionItemsFound = tempItemList;
                 }
                 else
+                {
                     searchTemplate.Page = 0;
+                }
             }
 
-            if(auctionItemsFound.Count > 9)
+            if (auctionItemsFound.Count > 9)
             {
                 var tempList = new List<AuctionItem>();
 
-                for (int i = 0; i < 9; i++)
+                for (var i = 0; i < 9; i++)
                 {
                     tempList.Add(auctionItemsFound[i]);
                 }
@@ -274,7 +308,9 @@ namespace AAEmu.Game.Core.Managers
             foreach (var item in _auctionItems)
             {
                 if (item.ItemID == itemId)
+                {
                     tempList.Add(item);
+                }
             }
 
             if (tempList.Count > 0)
@@ -299,7 +335,9 @@ namespace AAEmu.Game.Core.Managers
             foreach (var item in _auctionItems)
             {
                 if (nextId < item.ID)
+                {
                     nextId = item.ID;
+                }
             }
             return nextId + 1;
         }
@@ -342,9 +380,13 @@ namespace AAEmu.Game.Core.Managers
                 foreach (var item in itemsToRemove)
                 {
                     if (item.BidderId != 0)
+                    {
                         RemoveAuctionItemSold(item, item.BidderName, item.BidMoney);
+                    }
                     else
+                    {
                         RemoveAuctionItemFail(item);
+                    }
                 }
             }
         }
@@ -357,22 +399,32 @@ namespace AAEmu.Game.Core.Managers
             switch (duration)
             {
                 case 0:
-                    timeLeft = 6; //6 hours
-                    break;
+                    {
+                        timeLeft = 6; //6 hours
+                        break;
+                    }
                 case 1:
-                    timeLeft = 12; //12 hours
-                    break;
+                    {
+                        timeLeft = 12; //12 hours
+                        break;
+                    }
                 case 2:
-                    timeLeft = 24; //24 hours
-                    break;
+                    {
+                        timeLeft = 24; //24 hours
+                        break;
+                    }
                 case 3:
-                    timeLeft = 48; //48 hours
-                    break;
+                    {
+                        timeLeft = 48; //48 hours
+                        break;
+                    }
                 default:
-                    timeLeft = 6; //default to 6 hours
-                    break;
+                    {
+                        timeLeft = 6; //default to 6 hours
+                        break;
+                    }
             }
-            
+
             var newAuctionItem = new AuctionItem
             {
                 ID = GetNextId(),
@@ -501,7 +553,7 @@ namespace AAEmu.Game.Core.Managers
                     command.Parameters.AddWithValue("@stack_size", mtbs.StackSize);
                     command.Parameters.AddWithValue("@detail_type", mtbs.DetailType);
                     command.Parameters.AddWithValue("@creation_time", mtbs.CreationTime);
-                    command.Parameters.AddWithValue("@end_time",mtbs.EndTime);
+                    command.Parameters.AddWithValue("@end_time", mtbs.EndTime);
                     command.Parameters.AddWithValue("@lifespan_mins", mtbs.LifespanMins);
                     command.Parameters.AddWithValue("@type_1", mtbs.Type1);
                     command.Parameters.AddWithValue("@world_id", mtbs.WorldId);

@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var id = stream.ReadUInt32();
-            
+
             _log.Warn("CriminalLocked, Id: {0}", id);
         }
     }

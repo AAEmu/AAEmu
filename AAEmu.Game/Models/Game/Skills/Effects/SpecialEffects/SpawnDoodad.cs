@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.SpawnDoodad;
 
-        public override void Execute(Unit caster,
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -34,7 +34,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             var (xx, yy) = MathUtil.AddDistanceToFrontDeg(1f, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, rpy.Z + 90f); //  + 90f to Front
             doodad.SetPosition(xx, yy, target.Transform.World.Position.Z, rpy.X, rpy.Y, rpy.Z);
             if (AppConfiguration.Instance.HeightMapsEnable)
+            {
                 doodad.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(doodad.Transform.ZoneId, xx, yy));
+            }
 
             doodad.Spawn();
         }

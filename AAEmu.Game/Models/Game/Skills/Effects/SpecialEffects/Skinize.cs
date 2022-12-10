@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.Skinize;
 
-        public override void Execute(Unit caster,
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -56,7 +56,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 return;
             }
 
-            Item powderItem = character.Inventory.GetItemById(powderSkillItem.ItemId);
+            var powderItem = character.Inventory.GetItemById(powderSkillItem.ItemId);
             if (powderItem == null)
             {
                 return;

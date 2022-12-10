@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class GiveLivingPoint : SpecialEffectAction
     {
-        public override void Execute(Unit caster,
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -24,7 +24,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (caster is Character) { _log.Debug("Special effects: GiveLivingPoint value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
             if (!(caster is Character character))
+            {
                 return;
+            }
 
             var points = (int)Math.Round(AppConfiguration.Instance.World.VocationRate * value1);
             character.ChangeGamePoints(GamePointKind.Vocation, points);

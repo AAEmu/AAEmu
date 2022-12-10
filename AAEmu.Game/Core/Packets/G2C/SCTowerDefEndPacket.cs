@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private TowerDefKey _key;
         private uint _eventZoneId;
-        
+
         public SCTowerDefEndPacket(TowerDefKey key, uint eventZoneId) : base(SCOffsets.SCTowerDefEndPacket, 1)
         {
             _key = key;

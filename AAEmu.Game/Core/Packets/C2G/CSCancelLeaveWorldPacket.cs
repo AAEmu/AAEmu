@@ -13,7 +13,9 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override async void Read(PacketStream stream)
         {
             if (Connection?.LeaveTask == null)
+            {
                 return;
+            }
 
             var result = await Connection.LeaveTask.CancelAsync();
             if (result)

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _recoverableExp;
         private readonly int _penaltiedExp;
         private readonly int _reason;
-        
+
         public SCRecoverableExpPacket(uint objId, int recoverableExp, int penaltiedExp, int reason) : base(SCOffsets.SCRecoverableExpPacket, 1)
         {
             _objId = objId;

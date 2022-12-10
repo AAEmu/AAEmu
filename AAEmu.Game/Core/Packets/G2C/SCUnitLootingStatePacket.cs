@@ -3,12 +3,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
-    public class SCUnitLootingStatePacket :GamePacket
+    public class SCUnitLootingStatePacket : GamePacket
     {
         private readonly byte _bc;
         private readonly byte _looting;
 
-        public SCUnitLootingStatePacket(byte bc, byte looting) : base(SCOffsets.SCUnitLootingStatePacket,1)
+        public SCUnitLootingStatePacket(byte bc, byte looting) : base(SCOffsets.SCUnitLootingStatePacket, 1)
         {
             _bc = bc;
             _looting = looting;

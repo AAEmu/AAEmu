@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using AAEmu.Game.Models.Game.Skills.Templates;
+﻿using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.SkillControllers
@@ -44,13 +41,21 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
             switch ((SkillControllerKind)template.KindId)
             {
                 case SkillControllerKind.Floating:
-                    return null; // TODO: Add Floating (telekinesis, bubble ?)
+                    {
+                        return null; // TODO: Add Floating (telekinesis, bubble ?)
+                    }
                 case SkillControllerKind.Wandering:
-                    return null;// TODO: Add Wandering (Fear ?)
+                    {
+                        return null;// TODO: Add Wandering (Fear ?)
+                    }
                 case SkillControllerKind.Leap:
-                    return new LeapSkillController(template, owner, target);
+                    {
+                        return new LeapSkillController(template, owner, target);
+                    }
                 default:
-                    return null;
+                    {
+                        return null;
+                    }
             }
         }
     }

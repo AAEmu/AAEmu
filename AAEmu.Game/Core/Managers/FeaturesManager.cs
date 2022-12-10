@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using Newtonsoft.Json;
-using System.IO;
-using System.Linq;
+
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Models.Game;
-using NLog;
 using AAEmu.Game.Models.Game.Features;
+
+using NLog;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -14,7 +11,7 @@ namespace AAEmu.Game.Core.Managers
     {
         public static FeatureSet Fsets;
         private static Logger _log = LogManager.GetCurrentClassLogger();
-        
+
         public void Initialize()
         {
             _log.Info("Initializing Features ...");
@@ -75,9 +72,11 @@ namespace AAEmu.Game.Core.Managers
             {
                 var f = (Feature)fObj;
                 if (FeaturesManager.Fsets.Check(f))
+                {
                     featsOn += f.ToString() + "  ";
+                }
             }
-            _log.Info("Enabled Features: {0}",featsOn);
+            _log.Info("Enabled Features: {0}", featsOn);
         }
 
     }

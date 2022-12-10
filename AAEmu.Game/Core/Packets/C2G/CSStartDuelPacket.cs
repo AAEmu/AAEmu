@@ -1,12 +1,8 @@
-﻿using System.Collections.Generic;
-using System.Drawing;
-using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers.UnitManagers;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {

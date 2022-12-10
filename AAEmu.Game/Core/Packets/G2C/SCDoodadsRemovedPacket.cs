@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((ushort) _ids.Length);
+            stream.Write((ushort)_ids.Length);
             stream.Write(_last);
             foreach (var id in _ids)
             {

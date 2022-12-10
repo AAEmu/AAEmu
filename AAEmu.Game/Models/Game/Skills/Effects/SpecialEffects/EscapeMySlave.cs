@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 
@@ -6,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class EscapeMySlave : SpecialEffectAction
     {
-        public override void Execute(Unit caster,
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,

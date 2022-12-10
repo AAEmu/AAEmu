@@ -16,7 +16,10 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write((byte)_questList.Length);
             foreach (var questId in _questList)
+            {
                 stream.Write(questId);
+            }
+
             return stream;
         }
     }

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
-using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
 {
@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
         {
             WheelAngVel = new List<float>();
         }
-        
+
         public override void Read(PacketStream stream)
         {
             base.Read(stream);

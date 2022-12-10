@@ -13,9 +13,9 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public SCSkillCooldownResetPacket() : base(SCOffsets.SCSkillCooldownResetPacket, 1)
         {
-            
+
         }
-        
+
         public SCSkillCooldownResetPacket(Character chr, uint skillId, uint tagId, bool gcd) : base(SCOffsets.SCSkillCooldownResetPacket, 1)
         {
             _skillId = skillId;

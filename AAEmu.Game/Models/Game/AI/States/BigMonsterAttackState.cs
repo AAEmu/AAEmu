@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.AI.Params;
 using AAEmu.Game.Models.Game.AI.Params.BigMonster;
@@ -38,14 +38,18 @@ namespace AAEmu.Game.Models.Game.AI.States
             OwnerTemplate = npc.Template;
             _lastSkillEnd = DateTime.MinValue;
         }
-        
+
         public override void Tick(TimeSpan delta)
         {
             if (OwnerTemplate == null)
+            {
                 return;
+            }
 
             if (_nextDelay != 0f)
+            {
                 return;
+            }
 
             if (Target.IsDead)
             {
@@ -78,18 +82,26 @@ namespace AAEmu.Game.Models.Game.AI.States
             }
 
             if (Npc.SkillTask != null || Npc.ActivePlotState != null)
+            {
                 return;
+            }
 
             if (_lastSkillEnd.AddSeconds(_currentDelay) > DateTime.UtcNow)
+            {
                 return;
+            }
 
             var combatSkill = GetNextAiCombatSkill();
 
             if (combatSkill == null)
+            {
                 return;//Set to base attack here?
+            }
 
             if (Npc.Cooldowns.CheckCooldown(combatSkill.SkillType))
+            {
                 return;
+            }
 
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(combatSkill.SkillType));
             // _currentDelay = nextAiSkill.Delay + (skill.Template.CastingTime / 1000.0f) + (skill.Template.ChannelingTime / 1000.0f); // TODO : Apply delay when skill **ends**
@@ -102,19 +114,24 @@ namespace AAEmu.Game.Models.Game.AI.States
             switch (skill.Template.TargetType)
             {
                 case SkillTargetType.Pos:
-                    var pos = Npc.Transform.World.Position;
-                    skillCastTarget = new SkillCastPositionTarget() {
-                        ObjId = Npc.ObjId,
-                        PosX = pos.X,
-                        PosY = pos.Y,
-                        PosZ = pos.Z,
-                        PosRot = Npc.Transform.World.ToRollPitchYawDegrees().Z
+                    {
+                        var pos = Npc.Transform.World.Position;
+                        skillCastTarget = new SkillCastPositionTarget()
+                        {
+                            ObjId = Npc.ObjId,
+                            PosX = pos.X,
+                            PosY = pos.Y,
+                            PosZ = pos.Z,
+                            PosRot = Npc.Transform.World.ToRollPitchYawDegrees().Z
                         };
-                    break;
+                        break;
+                    }
                 default:
-                    skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
-                    skillCastTarget.ObjId = Target.ObjId;
-                    break;
+                    {
+                        skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+                        skillCastTarget.ObjId = Target.ObjId;
+                        break;
+                    }
             }
 
             var skillObject = SkillObject.GetByType(SkillObjectType.None);
@@ -138,16 +155,20 @@ namespace AAEmu.Game.Models.Game.AI.States
 
             useableSkills = useableSkills.Where(o =>
             {
-                return (hpPercent > o.HealthRangeMin || o.HealthRangeMin == 0) 
+                return (hpPercent > o.HealthRangeMin || o.HealthRangeMin == 0)
                 && (hpPercent < o.HealthRangeMax || o.HealthRangeMax == 0);
             });
 
             var filteredSkills = useableSkills.ToArray();
 
             if (filteredSkills.Length > 0)
+            {
                 return filteredSkills[Rand.Next(0, filteredSkills.Length)];
+            }
             else
+            {
                 return null;
+            }
         }
 
         public void OnSkillEnd(Skill skill)

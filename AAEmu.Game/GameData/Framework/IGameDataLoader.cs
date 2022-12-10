@@ -1,5 +1,4 @@
-﻿using AAEmu.Commons.Utils;
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.GameData.Framework
 {

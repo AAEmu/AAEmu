@@ -145,7 +145,9 @@ namespace AAEmu.Login.Utils
         public virtual void ReleaseId(IEnumerable<uint> usedObjectIds)
         {
             foreach (var id in usedObjectIds)
+            {
                 ReleaseId(id);
+            }
         }
 
         public uint GetNextId()

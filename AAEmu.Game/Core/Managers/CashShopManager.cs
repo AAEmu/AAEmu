@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.CashShop;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -19,8 +21,8 @@ namespace AAEmu.Game.Core.Managers
         public void CreditDisperseTick(TimeSpan delta)
         {
             var characters = WorldManager.Instance.GetAllCharacters();
-            
-            foreach(var character in characters)
+
+            foreach (var character in characters)
             {
                 AddCredits(character.AccountId, 100);
                 character.SendMessage("You have received 100 credits.");
@@ -30,7 +32,7 @@ namespace AAEmu.Game.Core.Managers
         public int GetAccountCredits(uint accountId)
         {
             object accLock;
-            lock(_locks)
+            lock (_locks)
             {
                 if (!_locks.TryGetValue(accountId, out accLock))
                 {
@@ -94,15 +96,19 @@ namespace AAEmu.Game.Core.Managers
                     {
                         using (var command = connection.CreateCommand())
                         {
-                            command.CommandText = 
+                            command.CommandText =
                                 "INSERT INTO accounts (account_id, credits) VALUES(@acc_id, @credits_amt) ON DUPLICATE KEY UPDATE credits = credits + @credits_amt";
                             command.Parameters.AddWithValue("@acc_id", accountId);
                             command.Parameters.AddWithValue("@credits_amt", creditsAmt);
                             command.Prepare();
                             if (command.ExecuteNonQuery() > 0)
+                            {
                                 return true;
+                            }
                             else
+                            {
                                 return false;
+                            }
                         }
                     }
                 }
@@ -135,7 +141,7 @@ namespace AAEmu.Game.Core.Managers
                             var cashShopItemDetail = new CashShopItemDetail();
 
                             cashShopItemDetail.CashShopId = cashShopItem.CashShopId = reader.GetUInt32("id");
-                            cashShopItemDetail.CashUniqId =  reader.GetUInt32("uniq_id");
+                            cashShopItemDetail.CashUniqId = reader.GetUInt32("uniq_id");
 
                             cashShopItem.CashName = reader.GetString("cash_name");
                             cashShopItem.MainTab = reader.GetByte("main_tab");
@@ -193,9 +199,9 @@ namespace AAEmu.Game.Core.Managers
             return _cashShopItem.Find(a => a.CashShopId == cashShopId);
         }
 
-        public List<CashShopItem> GetCashShopItems(sbyte mainTab,sbyte subTab,ushort page)
+        public List<CashShopItem> GetCashShopItems(sbyte mainTab, sbyte subTab, ushort page)
         {
-            return _cashShopItem.FindAll(a=>a.MainTab==mainTab && a.SubTab == subTab);
+            return _cashShopItem.FindAll(a => a.MainTab == mainTab && a.SubTab == subTab);
         }
 
         public CashShopItemDetail GetCashShopItemDetail(uint cashShopId)

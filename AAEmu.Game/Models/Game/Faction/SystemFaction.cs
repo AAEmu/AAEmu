@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 
@@ -29,23 +30,30 @@ namespace AAEmu.Game.Models.Game.Faction
 
         public RelationState GetRelationState(SystemFaction otherFaction)
         {
-            if (otherFaction == null) return RelationState.Neutral;
-            
+            if (otherFaction == null)
+            {
+                return RelationState.Neutral;
+            }
+
             var factionId = MotherId != 0 ? MotherId : Id;
             var otherFactionId = otherFaction.MotherId != 0 ? otherFaction.MotherId : otherFaction.Id;
 
             if (factionId == otherFactionId)
+            {
                 return RelationState.Friendly;
+            }
 
             //Not sure if we should prioritize mother faction here?
             if (MotherId != 0)
             {
                 var motherFaction = FactionManager.Instance.GetFaction(MotherId);
-                if(motherFaction != null)
+                if (motherFaction != null)
                 {
                     var motherRelations = motherFaction.Relations;
                     if (motherRelations.ContainsKey(otherFactionId))
+                    {
                         return motherRelations[otherFactionId].State;
+                    }
 
                     // TODO not found, so enemy (id = [1, 2, 3])
                     return RelationState.Hostile;

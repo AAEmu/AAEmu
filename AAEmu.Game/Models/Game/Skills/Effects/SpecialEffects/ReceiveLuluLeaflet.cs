@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     public class ReceiveLuluLeaflet : SpecialEffect
     {
 
-        public void Execute(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+        public void Execute(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj, Skill skill, SkillObject skillObject, DateTime time, int value1, int value2, int value3,
             int value4)
         {
@@ -21,7 +21,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             var skillData = (SkillItem)casterObj;
 
             var itemInfo = owner.Inventory.GetItemById(skillData.ItemId);
-            if (itemInfo == null || itemInfo.Count <= 0) return;
+            if (itemInfo == null || itemInfo.Count <= 0)
+            {
+                return;
+            }
 
             if (owner.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, skillData.ItemTemplateId, 1, itemInfo) <= 0)
             {

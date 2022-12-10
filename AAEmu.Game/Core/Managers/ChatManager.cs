@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -8,6 +9,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Team;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -34,11 +36,15 @@ namespace AAEmu.Game.Core.Managers
         public bool JoinChannel(Character character)
         {
             if (character == null)
+            {
                 return false;
+            }
 
             if (members.Contains(character))
+            {
                 return false;
-            
+            }
+
             // character.SendMessage(ChatType.System, "ChatManager.JoinChannel {0} - {1} - {2}", chatType, internalId, internalName);
             members.Add(character);
             character.SendPacket(new SCJoinedChatChannelPacket(chatType, subType, faction));
@@ -49,7 +55,10 @@ namespace AAEmu.Game.Core.Managers
         public bool LeaveChannel(Character character)
         {
             if (character == null)
+            {
                 return false;
+            }
+
             // character.SendMessage(ChatType.System, "ChatManager.LeaveChannel {0} - {1} - {2}", chatType, internalId, internalName);
             if (members.Remove(character))
             {
@@ -70,9 +79,9 @@ namespace AAEmu.Game.Core.Managers
         public int SendMessage(Character origin, string msg, int ability = 0, byte languageType = 0)
         {
             var res = 0;
-            foreach(var m in members)
+            foreach (var m in members)
             {
-                m.SendPacket(new SCChatMessagePacket(chatType, origin != null? origin : m, msg, ability, languageType));
+                m.SendPacket(new SCChatMessagePacket(chatType, origin != null ? origin : m, msg, ability, languageType));
                 res++;
             }
             return res;
@@ -127,7 +136,7 @@ namespace AAEmu.Game.Core.Managers
         public void Initialize()
         {
             _log.Info("Initializing Chat Manager...");
-            
+
             // Create Faction Channels
             AddFactionChannel(148, "Nuia");
             AddFactionChannel(149, "Haranya");
@@ -162,19 +171,39 @@ namespace AAEmu.Game.Core.Managers
         public void LeaveAllChannels(Character character)
         {
             foreach (var c in _factionChannels)
+            {
                 c.Value?.LeaveChannel(character);
+            }
+
             foreach (var c in _nationChannels)
+            {
                 c.Value?.LeaveChannel(character);
+            }
+
             foreach (var c in _zoneChannels)
+            {
                 c.Value?.LeaveChannel(character);
+            }
+
             foreach (var c in _partyChannels)
+            {
                 c.Value?.LeaveChannel(character);
+            }
+
             foreach (var c in _raidChannels)
+            {
                 c.Value?.LeaveChannel(character);
+            }
+
             foreach (var c in _guildChannels)
+            {
                 c.Value?.LeaveChannel(character);
+            }
+
             foreach (var c in _familyChannels)
+            {
                 c.Value?.LeaveChannel(character);
+            }
         }
 
         /// <summary>
@@ -184,39 +213,54 @@ namespace AAEmu.Game.Core.Managers
         {
             var res = 0;
             foreach (var c in _zoneChannels)
+            {
                 if (c.Value.members.Count <= 0)
                 {
                     _zoneChannels.TryRemove(c.Key, out _);
                     res++;
                 }
+            }
+
             foreach (var c in _partyChannels)
+            {
                 if (c.Value.members.Count <= 0)
                 {
                     _partyChannels.TryRemove(c.Key, out _);
                     res++;
                 }
+            }
+
             foreach (var c in _raidChannels)
+            {
                 if (c.Value.members.Count <= 0)
                 {
                     _raidChannels.TryRemove(c.Key, out _);
                     res++;
                 }
+            }
+
             foreach (var c in _guildChannels)
+            {
                 if (c.Value.members.Count <= 0)
                 {
                     _guildChannels.TryRemove(c.Key, out _);
                     res++;
                 }
+            }
+
             foreach (var c in _familyChannels)
+            {
                 if (c.Value.members.Count <= 0)
                 {
                     _familyChannels.TryRemove(c.Key, out _);
                     res++;
                 }
+            }
+
             return res;
         }
 
-        private bool AddFactionChannel(uint factionId,string name)
+        private bool AddFactionChannel(uint factionId, string name)
         {
             var channel = new ChatChannel() { chatType = ChatType.Ally, faction = factionId, internalId = factionId, internalName = name };
             return _factionChannels.TryAdd(factionId, channel);
@@ -225,9 +269,13 @@ namespace AAEmu.Game.Core.Managers
         public ChatChannel GetFactionChat(uint factionMotherId)
         {
             if (_factionChannels.TryGetValue(factionMotherId, out var c))
+            {
                 return c;
+            }
             else
+            {
                 return nullChannel;
+            }
         }
 
         public ChatChannel GetFactionChat(Character character)
@@ -248,9 +296,13 @@ namespace AAEmu.Game.Core.Managers
             // If Fairy (for Nuia) and Returned (for Haranya) are ever added as a diffferent faction, we'll need to go and write some proper code for this
             var mRace = (((byte)race - 1) & 0xFC);
             if (_nationChannels.TryGetValue(mRace, out var channel))
+            {
                 return channel;
+            }
             else
+            {
                 return nullChannel;
+            }
         }
 
         public ChatChannel GetNationChat(Character character)
@@ -258,7 +310,7 @@ namespace AAEmu.Game.Core.Managers
             return GetNationChat(character.Race);
         }
 
-        private bool AddZoneChannel(uint zoneGroupId,string name)
+        private bool AddZoneChannel(uint zoneGroupId, string name)
         {
             var channel = new ChatChannel() { chatType = ChatType.Shout, subType = (short)zoneGroupId, internalId = zoneGroupId, internalName = name };
             return _zoneChannels.TryAdd(zoneGroupId, channel);
@@ -274,7 +326,9 @@ namespace AAEmu.Game.Core.Managers
             {
                 var zoneGroupName = ZoneManager.Instance.GetZoneGroupById(zoneGroupId)?.Name ?? "ZoneGroup(" + zoneGroupId.ToString() + ")";
                 if (!AddZoneChannel(zoneGroupId, zoneGroupName))
+                {
                     _log.Error("Failed to create zone chat channel !");
+                }
             }
 
             if (_zoneChannels.TryGetValue(zoneGroupId, out var channel))
@@ -301,7 +355,9 @@ namespace AAEmu.Game.Core.Managers
             if (!_guildChannels.ContainsKey(guild.Id))
             {
                 if (!AddGuildChannel(guild))
+                {
                     _log.Error("Failed to create guild chat channel !");
+                }
             }
 
             if (_guildChannels.TryGetValue(guild.Id, out var channel))
@@ -329,13 +385,16 @@ namespace AAEmu.Game.Core.Managers
         /// <returns>ChatChannel based on your position inside a Raid</returns>
         public ChatChannel GetPartyChat(Team party, Character myChar)
         {
-            uint partyId = party.Id << 6;
+            var partyId = party.Id << 6;
             // Find my position inside the raid
             uint partyNumber = 0;
-            for(uint i = 0; i < party.Members.Length;i++)
+            for (uint i = 0; i < party.Members.Length; i++)
             {
                 if ((party.Members[i] == null) || (party.Members[i].Character == null))
+                {
                     continue;
+                }
+
                 if (party.Members[i].Character.Id == myChar.Id)
                 {
                     partyNumber = (i / 5);
@@ -348,7 +407,9 @@ namespace AAEmu.Game.Core.Managers
             if (!_partyChannels.ContainsKey(partyId))
             {
                 if (!AddPartyChannel(partyId))
+                {
                     _log.Error("Failed to create party chat channel !");
+                }
             }
 
             if (_partyChannels.TryGetValue(partyId, out var channel))
@@ -365,7 +426,7 @@ namespace AAEmu.Game.Core.Managers
 
         private bool AddRaidChannel(uint partyId)
         {
-            var channel = new ChatChannel() { chatType = ChatType.Raid, subType = (short)partyId, internalId = partyId, internalName = "Party("+partyId.ToString()+")" };
+            var channel = new ChatChannel() { chatType = ChatType.Raid, subType = (short)partyId, internalId = partyId, internalName = "Party(" + partyId.ToString() + ")" };
             return _raidChannels.TryAdd(partyId, channel);
         }
 
@@ -380,7 +441,9 @@ namespace AAEmu.Game.Core.Managers
             if (!_raidChannels.ContainsKey(party.Id))
             {
                 if (!AddRaidChannel(party.Id))
+                {
                     _log.Error("Failed to create party chat channel !");
+                }
             }
 
             if (_raidChannels.TryGetValue(party.Id, out var channel))

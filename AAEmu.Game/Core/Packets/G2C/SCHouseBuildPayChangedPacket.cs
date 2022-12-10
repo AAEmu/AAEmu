@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ushort _tl;
         private readonly int _moneyAmount;
 
-        public SCHouseBuildPayChangedPacket(ushort tl, int moneyAmount) : base(SCOffsets.SCHouseBuildPayChangedPacket,1)
+        public SCHouseBuildPayChangedPacket(ushort tl, int moneyAmount) : base(SCOffsets.SCHouseBuildPayChangedPacket, 1)
         {
             _tl = tl;
             _moneyAmount = moneyAmount;

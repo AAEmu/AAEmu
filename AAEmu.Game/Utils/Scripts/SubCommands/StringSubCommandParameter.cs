@@ -15,11 +15,11 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             Prefix = prefix;
         }
 
-        public override string CallExample => 
-            _values.Count == 0 
+        public override string CallExample =>
+            _values.Count == 0
                 ? DisplayName
                 : $"{string.Join("||", _values)}";
-        
+
         public override ParameterResult Load(string argumentValue)
         {
             if (_values.Count == 0)

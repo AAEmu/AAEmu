@@ -1,6 +1,5 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.Quests.Static;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -23,9 +22,13 @@ namespace AAEmu.Game.Core.Packets.C2G
             _selected = stream.ReadInt32();
 
             if (_npcObjId > 0)
+            {
                 Connection.ActiveChar.Quests.OnReportToNpc(_npcObjId, _questContextId, _selected);
+            }
             else if (_doodadObjId > 0)
+            {
                 Connection.ActiveChar.Quests.OnReportToDoodad(_doodadObjId, _questContextId, _selected);
+            }
             else
             {
                 Connection.ActiveChar.Quests.Complete(_questContextId, 0, true);

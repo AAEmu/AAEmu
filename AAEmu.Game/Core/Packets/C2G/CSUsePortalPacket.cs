@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var objId = stream.ReadBc();
             var onlyMyPortal = stream.ReadBoolean();
-            
+
             _log.Debug("UsePortal, ObjId: {0}, OnlyMyPortal: {1}", objId, onlyMyPortal);
 
             PortalManager.Instance.UsePortal(Connection.ActiveChar, objId);

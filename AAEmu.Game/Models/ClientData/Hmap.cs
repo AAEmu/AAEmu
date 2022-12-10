@@ -47,7 +47,9 @@ namespace AAEmu.Game.Models.ClientData
             OceanWaterLevel = br.ReadSingle();
 
             if (Version >= 24)
+            {
                 br.ReadBytes(128); // unk?
+            }
 
             var nodesRead = 0;
             while (br.BaseStream.Position != ChunkSize)
@@ -58,7 +60,7 @@ namespace AAEmu.Game.Models.ClientData
                     node.Read(br, disabledReCalc);
                     nodesRead++;
                 }
-                catch 
+                catch
                 {
                     return -1;
                 }
@@ -127,7 +129,10 @@ namespace AAEmu.Game.Models.ClientData
 
             Init();
             if (!disabledReCalc && Version < 7)
+            {
                 RescaleToInt();
+            }
+
             UpScale();
         }
 
@@ -147,7 +152,9 @@ namespace AAEmu.Game.Models.ClientData
             {
                 var index = nX * nSize + nY;
                 if (index >= pHMData.Length)
+                {
                     return 0;
+                }
 
                 return pHMData[index];
             }
@@ -165,7 +172,7 @@ namespace AAEmu.Game.Models.ClientData
             if (nSize > 0)
             {
                 var index = nX * nSize + nY;
-                return GetHeightByIndex((uint) index);
+                return GetHeightByIndex((uint)index);
             }
 
             return 0f;
@@ -176,9 +183,9 @@ namespace AAEmu.Game.Models.ClientData
             fMin = fOffset;
             fMax = fMin + 0xFFF0 * fRange;
 
-            iOffset = (int) (fMin * Inv5Cm);
-            iRange = (int) ((fMax - fMin) * Inv5Cm);
-            iStep = (int) (iRange > 0 ? (iRange + Mask12Bit - 1) / Mask12Bit : 1);
+            iOffset = (int)(fMin * Inv5Cm);
+            iRange = (int)((fMax - fMin) * Inv5Cm);
+            iStep = (int)(iRange > 0 ? (iRange + Mask12Bit - 1) / Mask12Bit : 1);
         }
 
         private void RescaleToInt()
@@ -188,10 +195,10 @@ namespace AAEmu.Game.Models.ClientData
                 var hraw = pHMData[i];
 
                 var height = fMin + (0xFFF0 & hraw) * fRange;
-                var hdec = (ushort) ((int) ((height - fMin) * Inv5Cm) / iStep);
+                var hdec = (ushort)((int)((height - fMin) * Inv5Cm) / iStep);
 
                 var res = (hraw & 0xF) | (hdec << 4);
-                pHMData[i] = (ushort) res;
+                pHMData[i] = (ushort)res;
             }
         }
 

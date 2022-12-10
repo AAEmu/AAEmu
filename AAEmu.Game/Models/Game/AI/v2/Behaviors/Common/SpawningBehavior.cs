@@ -1,4 +1,5 @@
 using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -8,7 +9,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
     public class SpawningBehavior : Behavior
     {
         private bool _usedSpawnSkills = false;
-        
+
         public override void Enter()
         {
         }

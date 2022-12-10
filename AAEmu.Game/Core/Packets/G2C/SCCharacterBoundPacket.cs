@@ -1,4 +1,5 @@
 using System.Numerics;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -19,7 +20,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _isFavorite;
 
         public SCCharacterBoundPacket(uint unitObjId, uint returnDistrict, uint resurrectionDistrict,
-            bool returnDistrictChanged, uint id, string name, uint zoneKey, Vector3 pos, float zRot, bool isFavorite) : 
+            bool returnDistrictChanged, uint id, string name, uint zoneKey, Vector3 pos, float zRot, bool isFavorite) :
             base(SCOffsets.SCCharacterBoundPacket, 1)
         {
             _unitObjId = unitObjId;
@@ -41,7 +42,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_resurrectionDistrict);
             stream.Write(_returnDistrictChanged);
             stream.Write(_id);
-            stream.Write(_name,true);
+            stream.Write(_name, true);
             stream.Write(_zoneKey);
             stream.Write(_pos.X);
             stream.Write(_pos.Y);

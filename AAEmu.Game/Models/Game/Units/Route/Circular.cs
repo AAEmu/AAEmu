@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -63,7 +64,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             // Round cruising
             var hudu = 4 * Math.PI / 360 * Count;
             moveType.X = npc.Spawner.Position.X + (float)Math.Sin(hudu) * Radius;
-            moveType.Y =  npc.Spawner.Position.Y + Radius - (float)Math.Cos(hudu) * Radius;
+            moveType.Y = npc.Spawner.Position.Y + Radius - (float)Math.Cos(hudu) * Radius;
             npc.Transform.Local.SetPosition(moveType.X, moveType.Y, npc.Transform.Local.Position.Z);
 
             if (npc.TemplateId == 13677 || npc.TemplateId == 13676) // swimming

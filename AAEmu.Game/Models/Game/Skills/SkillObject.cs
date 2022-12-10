@@ -31,29 +31,45 @@ namespace AAEmu.Game.Models.Game.Skills
             switch (flag)
             {
                 case SkillObjectType.Unk1: // TODO - Skills bound to portals
-                    obj = new SkillObjectUnk1();
-                    break;
+                    {
+                        obj = new SkillObjectUnk1();
+                        break;
+                    }
                 case SkillObjectType.Unk2:
-                    obj = new SkillObjectUnk2();
-                    break;
+                    {
+                        obj = new SkillObjectUnk2();
+                        break;
+                    }
                 case SkillObjectType.Unk3:
-                    obj = new SkillObjectUnk3();
-                    break;
+                    {
+                        obj = new SkillObjectUnk3();
+                        break;
+                    }
                 case SkillObjectType.Unk4:
-                    obj = new SkillObjectUnk4();
-                    break;
+                    {
+                        obj = new SkillObjectUnk4();
+                        break;
+                    }
                 case SkillObjectType.Unk5:
-                    obj = new SkillObjectUnk5();
-                    break;
+                    {
+                        obj = new SkillObjectUnk5();
+                        break;
+                    }
                 case SkillObjectType.Unk6:
-                    obj = new SkillObjectUnk6();
-                    break;
+                    {
+                        obj = new SkillObjectUnk6();
+                        break;
+                    }
                 case SkillObjectType.ItemGradeEnchantingSupport:
-                    obj = new SkillObjectItemGradeEnchantingSupport();
-                    break;
+                    {
+                        obj = new SkillObjectItemGradeEnchantingSupport();
+                        break;
+                    }
                 default:
-                    obj = new SkillObject();
-                    break;
+                    {
+                        obj = new SkillObject();
+                        break;
+                    }
             }
 
             obj.Flag = flag;
@@ -89,7 +105,7 @@ namespace AAEmu.Game.Models.Game.Skills
             return stream;
         }
     }
-    
+
     public class SkillObjectUnk2 : SkillObject
     {
         public int Id { get; set; }
@@ -109,7 +125,7 @@ namespace AAEmu.Game.Models.Game.Skills
             return stream;
         }
     }
-    
+
     public class SkillObjectUnk3 : SkillObject
     {
         public string Msg { get; set; }
@@ -126,7 +142,7 @@ namespace AAEmu.Game.Models.Game.Skills
             return stream;
         }
     }
-    
+
     public class SkillObjectUnk4 : SkillObject
     {
         public float X { get; set; }
@@ -149,7 +165,7 @@ namespace AAEmu.Game.Models.Game.Skills
             return stream;
         }
     }
-    
+
     public class SkillObjectUnk5 : SkillObject
     {
         public int Step { get; set; }

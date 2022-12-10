@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCDoodadCreatedPacket : GamePacket
     {
         private readonly Doodad _doodad;
-        
+
         public SCDoodadCreatedPacket(Doodad doodad) : base(SCOffsets.SCDoodadCreatedPacket, 1)
         {
             _doodad = doodad;

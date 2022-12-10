@@ -1,9 +1,8 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
+
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Models;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -54,7 +53,9 @@ namespace AAEmu.Game.Core.Managers
         public void AddTranslation(string tbl_name, string tbl_column, long index, string translationValue)
         {
             if (!_translations.TryAdd(GetLookupKey(tbl_name, tbl_column, index), translationValue))
+            {
                 _log.Error("Failed to add translation: {0}:{1}:{2}", tbl_name, tbl_column, index);
+            }
         }
 
         public string Get(string tbl_name, string tbl_column, long index, string fallbackValue = "")
@@ -63,9 +64,13 @@ namespace AAEmu.Game.Core.Managers
             if (_translations.TryGetValue(key, out var translatedText))
             {
                 if (translatedText == string.Empty)
+                {
                     return fallbackValue;
+                }
                 else
+                {
                     return translatedText;
+                }
             }
             else
             {

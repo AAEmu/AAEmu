@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2S
             var type = stream.ReadUInt64();
             var status = stream.ReadByte();
             var count = stream.ReadInt32();
-            
+
             UccManager.Instance.DownloadStatus(Connection, type, status, count);
         }
     }

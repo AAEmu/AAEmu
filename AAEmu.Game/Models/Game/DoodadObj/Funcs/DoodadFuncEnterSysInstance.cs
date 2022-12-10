@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public uint ZoneId { get; set; }
         public uint FactionId { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Trace("DoodadFuncEnterSysInstance, ZoneId: {0}", ZoneId);
             if (caster is Character character)
@@ -50,7 +50,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     character.InstanceId = world.Id; // TODO all instances are sys now
                 }
                 else
+                {
                     _log.Warn("World {0} (#.{1}), does not have a default spawn position.", world.Name, world.Id);
+                }
             }
 
         }

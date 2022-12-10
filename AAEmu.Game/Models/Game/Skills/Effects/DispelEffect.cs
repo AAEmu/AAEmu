@@ -15,17 +15,25 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             _log.Trace("DispelEffect {0}", Id);
 
             if (BuffTagId > 0 && !target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(BuffTagId)))
+            {
                 return;
+            }
+
             if (DispelCount > 0 && caster.CanAttack(target))
+            {
                 target.Buffs.RemoveBuffs(BuffKind.Good, DispelCount, BuffTagId); //TODO ....
+            }
+
             if (CureCount > 0 && !caster.CanAttack(target))
+            {
                 target.Buffs.RemoveBuffs(BuffKind.Bad, CureCount, BuffTagId);
+            }
         }
     }
 }

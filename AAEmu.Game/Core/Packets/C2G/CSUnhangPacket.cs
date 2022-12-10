@@ -31,7 +31,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 character.Transform.StickyParent = null;
             }
 
-            Connection.ActiveChar.BroadcastPacket(new SCUnhungPacket(unitObjId, targetObjId, reason),false);
+            Connection.ActiveChar.BroadcastPacket(new SCUnhungPacket(unitObjId, targetObjId, reason), false);
         }
     }
 }

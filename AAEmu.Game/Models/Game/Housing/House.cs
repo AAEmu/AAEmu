@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -11,6 +12,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Units;
+
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Housing
@@ -92,8 +94,12 @@ namespace AAEmu.Game.Models.Game.Housing
                 else if (AttachedDoodads.Count > 0)
                 {
                     foreach (var doodad in AttachedDoodads)
+                    {
                         if (doodad.ObjId > 0)
+                        {
                             ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+                        }
+                    }
 
                     AttachedDoodads.Clear();
                 }
@@ -112,14 +118,14 @@ namespace AAEmu.Game.Models.Game.Housing
         public HousingPermission Permission
         {
             get => _permission;
-            set { _permission = ((_template != null) && (_template.AlwaysPublic)) ? HousingPermission.Public : value ; _isDirty = true; }
+            set { _permission = ((_template != null) && (_template.AlwaysPublic)) ? HousingPermission.Public : value; _isDirty = true; }
         }
 
         public DateTime PlaceDate { get => _placeDate; set { _placeDate = value; _isDirty = true; } }
         public DateTime ProtectionEndDate { get => _protectionEndDate; set { _protectionEndDate = value; _isDirty = true; } }
         public DateTime TaxDueDate { get => _protectionEndDate.AddDays(-7); }
         public uint SellToPlayerId { get => _sellToPlayerId; set { _sellToPlayerId = value; _isDirty = true; } }
-        public uint SellPrice { get => _sellPrice ; set { _sellPrice = value; _isDirty = true; } }
+        public uint SellPrice { get => _sellPrice; set { _sellPrice = value; _isDirty = true; } }
         public bool AllowRecover { get => _allowRecover; set { _allowRecover = value; _isDirty = true; } }
 
 
@@ -129,25 +135,31 @@ namespace AAEmu.Game.Models.Game.Housing
             ModelParams = new UnitCustomModelParams();
             AttachedDoodads = new List<Doodad>();
             IsDirty = true;
-            Events.OnDeath += OnDeath ;
+            Events.OnDeath += OnDeath;
         }
 
         public void AddBuildAction()
         {
             if (CurrentStep == -1)
+            {
                 return;
+            }
 
             lock (_lock)
             {
                 var nextAction = NumAction + 1;
                 if (Template.BuildSteps[CurrentStep].NumActions > nextAction)
+                {
                     NumAction = nextAction;
+                }
                 else
                 {
                     NumAction = 0;
                     var nextStep = CurrentStep + 1;
                     if (Template.BuildSteps.Count > nextStep)
+                    {
                         CurrentStep = nextStep;
+                    }
                     else
                     {
                         CurrentStep = -1;
@@ -161,15 +173,22 @@ namespace AAEmu.Game.Models.Game.Housing
         {
             base.Spawn();
             foreach (var doodad in AttachedDoodads)
+            {
                 doodad.Spawn();
+            }
         }
 
         public override void Delete()
         {
             // Detach children that aren't part of the house itself
             foreach (var doodad in AttachedDoodads)
+            {
                 if (doodad.AttachPoint == AttachPointKind.None)
+                {
                     doodad.Transform.Parent = null;
+                }
+            }
+
             base.Delete();
         }
 
@@ -177,13 +196,18 @@ namespace AAEmu.Game.Models.Game.Housing
         {
             base.Show();
             foreach (var doodad in AttachedDoodads)
+            {
                 doodad.Show();
+            }
         }
 
         public override void Hide()
         {
             foreach (var doodad in AttachedDoodads)
+            {
                 doodad.Hide();
+            }
+
             base.Hide();
         }
 
@@ -201,7 +225,7 @@ namespace AAEmu.Game.Models.Game.Housing
                 Array.Copy(doodads, i, temp, 0, temp.Length);
                 character.SendPacket(new SCDoodadsCreatedPacket(temp));
             }
-            
+
             base.AddVisibleObject(character);
         }
 
@@ -232,9 +256,15 @@ namespace AAEmu.Game.Models.Game.Housing
         public bool Save(MySqlConnection connection, MySqlTransaction transaction = null)
         {
             if (!IsDirty)
+            {
                 return false;
+            }
+
             if ((AccountId <= 0) || (OwnerId <= 0))
+            {
                 return false; // recently destroyed/expired house
+            }
+
             using (var command = connection.CreateCommand())
             {
                 command.Connection = connection;
@@ -303,7 +333,7 @@ namespace AAEmu.Game.Models.Game.Housing
                 stream.Write(AllAction); // allstep
                 stream.Write(CurrentAction); // curstep
             }
-            
+
             stream.Write(Template?.Taxation?.Tax ?? 0); // payMoneyAmount
             stream.Write(Helpers.ConvertLongX(Transform.World.Position.X));
             stream.Write(Helpers.ConvertLongY(Transform.World.Position.Y));
@@ -312,7 +342,7 @@ namespace AAEmu.Game.Models.Game.Housing
             stream.Write(true); // allowRecover
             stream.Write(SellPrice); // Sale moneyAmount
             stream.Write(SellToPlayerId); // type(id)
-            stream.Write(sellToPlayerName??""); // sellToName
+            stream.Write(sellToPlayerName ?? ""); // sellToName
             return stream;
         }
 
@@ -325,22 +355,37 @@ namespace AAEmu.Game.Models.Game.Housing
         public override bool AllowedToInteract(Character player)
         {
             if (Template.AlwaysPublic)
+            {
                 return base.AllowedToInteract(player);
+            }
+
             if (CurrentStep != -1) // unfinished houses can't be used to private store, so always true
+            {
                 return base.AllowedToInteract(player);
+            }
+
             switch (Permission)
             {
                 case HousingPermission.Private:
-                    if (player.Id != OwnerId)
-                        return base.AllowedToInteract(player);
-                    var ownerAccount = NameManager.Instance.GetCharaterAccount(OwnerId);
-                    return (player.AccountId == ownerAccount) && base.AllowedToInteract(player);
+                    {
+                        if (player.Id != OwnerId)
+                        {
+                            return base.AllowedToInteract(player);
+                        }
+
+                        var ownerAccount = NameManager.Instance.GetCharaterAccount(OwnerId);
+                        return (player.AccountId == ownerAccount) && base.AllowedToInteract(player);
+                    }
                 case HousingPermission.Family when (player.Family != CoOwnerId):
                 case HousingPermission.Guild when (player.Expedition.Id != CoOwnerId):
-                    return false;
+                    {
+                        return false;
+                    }
                 case HousingPermission.Public:
                 default:
-                    return base.AllowedToInteract(player);
+                    {
+                        return base.AllowedToInteract(player);
+                    }
             }
         }
 

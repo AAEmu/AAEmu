@@ -28,11 +28,13 @@
         public bool MatchPrefix(string argument)
         {
             if (Prefix is null)
+            {
                 return false;
+            }
 
             return argument.StartsWith(Prefix + "=");
         }
         public abstract ParameterResult Load(string argument);
-        
+
     }
 }

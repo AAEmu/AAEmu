@@ -5,10 +5,10 @@
     */
     public class CraftMaterial
     {
-        public uint Id {get; set;}
-        public uint CraftId {get; set;}
-        public uint ItemId {get; set;}
-        public int Amount {get; set;}
-        public bool MainGrade {get; set;}
+        public uint Id { get; set; }
+        public uint CraftId { get; set; }
+        public uint ItemId { get; set; }
+        public int Amount { get; set; }
+        public bool MainGrade { get; set; }
     }
 }

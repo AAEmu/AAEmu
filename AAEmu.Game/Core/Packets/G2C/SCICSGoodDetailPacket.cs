@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly bool _pageEnd;
         private readonly CashShopItemDetail _itemDetail;
-        
+
         public SCICSGoodDetailPacket(bool pageEnd, CashShopItemDetail itemDetail) : base(SCOffsets.SCICSGoodDetailPacket, 1)
         {
             _pageEnd = pageEnd;

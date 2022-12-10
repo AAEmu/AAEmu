@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Managers.Id
         private const uint FirstId = 0x00000001;
         private const uint LastId = 0x7FFFFFFF;
         private static readonly uint[] Exclude = { };
-        private static readonly string[,] ObjTables = {{ }};
+        private static readonly string[,] ObjTables = { { } };
 
         public static TaskIdManager Instance => _instance ?? (_instance = new TaskIdManager());
 

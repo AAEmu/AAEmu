@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
-using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Slaves;
+
 using Jitter.Dynamics;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -18,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Units
         //public uint Id { get; set; } // moved to BaseUnit
         //public uint TemplateId { get; set; } // moved to BaseUnit
         public uint BondingObjId { get; set; } = 0;
-        
+
         public SlaveTemplate Template { get; set; }
         // public Character Driver { get; set; }
         public Character Summoner { get; set; }
@@ -59,9 +61,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Str))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -80,9 +86,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Dex))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -100,9 +110,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Sta))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -120,9 +134,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Int))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -140,9 +158,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Spi))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -160,9 +182,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Fai))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -221,9 +247,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.HealthRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -247,9 +277,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.PersistentHealthRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -273,9 +307,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.MaxMana))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -300,9 +338,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.ManaRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -326,9 +368,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.PersistentManaRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -365,9 +411,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.MainhandDps))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return (int)(res * 1000);
@@ -392,9 +442,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.MeleeDpsInc))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return (int)res;
@@ -412,9 +466,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.OffhandDps))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return (int)(res * 1000);
@@ -432,9 +490,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.RangedDps))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return (int)(res * 1000);
@@ -460,9 +522,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.RangedDpsInc))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return (int)res;
@@ -480,9 +546,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.SpellDps))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return (int)(res * 1000);
@@ -508,9 +578,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return (int)res;
@@ -535,9 +609,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Armor))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
@@ -561,25 +639,29 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.MagicResist))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
                 return res;
             }
         }
-        
+
         [UnitAttribute(UnitAttribute.TurnSpeed)]
         public virtual float TurnSpeed { get => (float)CalculateWithBonuses(0, UnitAttribute.TurnSpeed); }
 
         #endregion
-        
+
         public override void AddVisibleObject(Character character)
         {
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
             character.SendPacket(new SCSlaveStatePacket(ObjId, TlId, Summoner.Name, Summoner.ObjId, Template.Id));
-            
+
             base.AddVisibleObject(character);
         }
 

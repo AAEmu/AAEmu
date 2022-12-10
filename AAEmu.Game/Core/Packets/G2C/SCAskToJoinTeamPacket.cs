@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _senderId;
         private readonly string _senderName;
         private readonly bool _isParty;
-        
+
         public SCAskToJoinTeamPacket(uint teamId, uint senderId, string senderName, bool isParty) : base(SCOffsets.SCAskToJoinTeamPacket, 1)
         {
             _teamId = teamId;

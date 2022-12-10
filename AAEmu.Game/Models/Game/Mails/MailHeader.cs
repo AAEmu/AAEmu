@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Mails
@@ -23,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Mails
         {
             _baseMail = parent;
         }
-        
+
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(MailId);

@@ -15,17 +15,23 @@ namespace AAEmu.Game.Models.Game.Units
         public void AddCooldown(uint skillId, uint duration)
         {
             if (!Cooldowns.ContainsKey(skillId))
-                Cooldowns.Add(skillId, DateTime.UtcNow + TimeSpan.FromMilliseconds(duration)); 
+            {
+                Cooldowns.Add(skillId, DateTime.UtcNow + TimeSpan.FromMilliseconds(duration));
+            }
         }
 
         public bool CheckCooldown(uint skillId)
         {
             if (!Cooldowns.ContainsKey(skillId))
+            {
                 return false;
+            }
 
             var endTime = Cooldowns[skillId];
             if (DateTime.UtcNow < endTime)
+            {
                 return true;
+            }
 
             RemoveCooldown(skillId);
             return false;

@@ -20,7 +20,10 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_isSent);
             stream.Write(_mails.Length);
             foreach (var mail in _mails)
+            {
                 stream.Write(mail);
+            }
+
             return stream;
         }
     }

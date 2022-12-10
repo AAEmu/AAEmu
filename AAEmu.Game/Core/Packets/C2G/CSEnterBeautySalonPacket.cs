@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             //_log.Debug("EnterBeautySalon");
             Connection.ActiveChar.SendPacket(new SCToggleBeautyshopResponsePacket(1));
-            Connection.ActiveChar.Buffs.AddBuff((uint)BuffConstants.InBeautySalon,Connection.ActiveChar);
+            Connection.ActiveChar.Buffs.AddBuff((uint)BuffConstants.InBeautySalon, Connection.ActiveChar);
         }
     }
 }

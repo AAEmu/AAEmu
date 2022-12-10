@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCMineAmountPacket : GamePacket
     {
         private readonly int _amount;
-        
+
         public SCMineAmountPacket(int amount) : base(SCOffsets.SCMineAmountPacket, 1)
         {
             _amount = amount;

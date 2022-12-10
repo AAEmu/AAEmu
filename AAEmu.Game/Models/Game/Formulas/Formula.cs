@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+
 using AAEmu.Game.Core.Managers;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Formulas
@@ -37,7 +39,10 @@ namespace AAEmu.Game.Models.Game.Formulas
                 {
                     var sb = new StringBuilder();
                     foreach (var (key, value) in parameters)
+                    {
                         sb.AppendLine(key + ": " + value);
+                    }
+
                     Log.Error("Error in formula {0}:\n{1}", Id, TextFormula);
                     Log.Error("Parameters:\n{0}", sb.ToString());
                     Log.Error(e);

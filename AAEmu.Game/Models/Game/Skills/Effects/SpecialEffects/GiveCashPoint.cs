@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.GiveCashPoint;
 
-        public override void Execute(Unit caster,
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -36,9 +36,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                     if (character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, skillItem.ItemTemplateId, 1, null) > 0)
                     {
                         if (!CashShopManager.Instance.AddCredits(character.AccountId, value1))
+                        {
                             _log.Error("Failed to credit Account:{0} with {1} credits.", character.AccountId, value1);
+                        }
                         else
+                        {
                             character.SendMessage("You received {0} credits.", value1);
+                        }
                     }
                     var points = CashShopManager.Instance.GetAccountCredits(character.AccountId);
                     character.SendPacket(new SCICSCashPointPacket(points));

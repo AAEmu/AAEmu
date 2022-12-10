@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Numerics;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Utils;
 
@@ -82,9 +83,9 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
         public (sbyte, sbyte, sbyte) ToRollPitchYawSBytesMovement()
         {
-            sbyte roll = MathUtil.ConvertRadianToDirection(Rotation.X - TwoPi);
-            sbyte pitch = MathUtil.ConvertRadianToDirection(Rotation.Y - TwoPi);
-            sbyte yaw = MathUtil.ConvertRadianToDirection(Rotation.Z - TwoPi);
+            var roll = MathUtil.ConvertRadianToDirection(Rotation.X - TwoPi);
+            var pitch = MathUtil.ConvertRadianToDirection(Rotation.Y - TwoPi);
+            var yaw = MathUtil.ConvertRadianToDirection(Rotation.Z - TwoPi);
             /*
             sbyte roll = (sbyte)(vec3.X / (Math.PI * 2) / ToSByteDivider);
             sbyte pitch = (sbyte)(vec3.Y / (Math.PI * 2) / ToSByteDivider);
@@ -197,14 +198,14 @@ namespace AAEmu.Game.Models.Game.World.Transform
             Position = m4.Translation;
             FromQuaternion(Quaternion.CreateFromRotationMatrix(m4));
             */
-            
+
             /*
             var offX = new Vector3((right * MathF.Cos(Rotation.Z)), (right * MathF.Sin(Rotation.Z)), 0);
             var offY = new Vector3((-front * MathF.Sin(Rotation.Z)), (front * MathF.Cos(Rotation.Z)), front * MathF.Cos(Rotation.Y));
             var offZ = new Vector3((up * MathF.Sin(Rotation.Z)), (up * MathF.Cos(Rotation.Z)), 0);
             Translate(offY);
             */
-            
+
             // Front // var off = new Vector3((-distance * MathF.Sin(Rotation.Z)), (distance * MathF.Cos(Rotation.Z)), distance * MathF.Cos(Rotation.Y));
             // Right // var off = new Vector3((distance * (float)Math.Cos(Rotation.Z)), (distance * (float)Math.Sin(Rotation.Z)), distance * MathF.Cos(Rotation.Y));
 
@@ -215,20 +216,20 @@ namespace AAEmu.Game.Models.Game.World.Transform
             float offZ = front *  MathF.Sin(Rotation.Y) * MathF.Sin(Rotation.X);
             var off = new Vector3(offX, offY, offZ);
             */
-            
+
             var off = new Vector3(right, front, up);
             Translate(off);
         }
 
         public void AddDistance(Vector3 move) => AddDistance(move.X, move.Y, move.Z);
         public void SubDistance(Vector3 move) => AddDistance(-move.X, -move.Y, -move.Z);
-        
-        
-        
+
+
+
 
 
         /// <summary>
-        
+
         /// Rotates Transform to make it face towards targetPosition's direction
         /// </summary>
         /// <param name="targetPosition"></param>
@@ -345,7 +346,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
         public WorldPos ToWorldPos()
         {
-            return new WorldPos((long)(Position.X * 4096) << 32,(long)(Position.Y * 4096) << 32,Position.Z);
+            return new WorldPos((long)(Position.X * 4096) << 32, (long)(Position.Y * 4096) << 32, Position.Z);
         }
 
         public (float, float, float) AddDistanceToFront(float travelDist, float targetDist, Vector3 position, Vector3 other)

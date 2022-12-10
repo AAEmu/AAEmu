@@ -17,7 +17,10 @@ namespace AAEmu.Game.Models
         public void Dispose()
         {
             if (!_observers.Contains(_observer))
+            {
                 return;
+            }
+
             _observers.Remove(_observer);
         }
     }

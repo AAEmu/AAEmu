@@ -5,8 +5,8 @@ namespace AAEmu.Game.Models.Game.AI.States
 {
     public class TrackingEnemyState : State
     {
-        public TrackingEnemyState() {}
-        
-        public TrackingEnemyState(Unit enemy) {}
+        public TrackingEnemyState() { }
+
+        public TrackingEnemyState(Unit enemy) { }
     }
 }

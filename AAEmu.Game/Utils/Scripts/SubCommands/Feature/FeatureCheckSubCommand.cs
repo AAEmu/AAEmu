@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 
@@ -23,9 +24,13 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.Feature
             {
                 var f = (Models.Game.Features.Feature)fObj;
                 if (FeaturesManager.Fsets.Check(f))
+                {
                     character.SendMessage("[Feature] |cFF00FF00ON  |cFF80FF80" + f.ToString() + "|r");
+                }
                 else
+                {
                     character.SendMessage("[Feature] |cFFFF0000OFF |cFF802020" + f.ToString() + "|r");
+                }
             }
         }
     }

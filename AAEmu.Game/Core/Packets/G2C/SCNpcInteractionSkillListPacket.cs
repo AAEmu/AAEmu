@@ -1,13 +1,5 @@
-﻿using System;
-using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Core.Packets.C2G;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Tasks.Skills;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
@@ -20,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _mouseButton;
         private readonly int _modifierKeys;
         private readonly uint[] _skillList;
-        
+
         public SCNpcInteractionSkillListPacket(uint npcObjId, uint objId, int extraInfo, int pickId, byte mouseButton, int modifierKeys, uint[] skillList) : base(SCOffsets.SCNpcInteractionSkillListPacket, 1)
         {
             _npcObjId = npcObjId;
@@ -42,7 +34,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             _modifierKeys = modifierKeys;
             _skillList = new uint[] { skillId };
         }
-        
+
         public override PacketStream Write(PacketStream stream)
         {
             stream.WriteBc(_npcObjId);

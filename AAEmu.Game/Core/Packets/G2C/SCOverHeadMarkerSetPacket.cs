@@ -26,9 +26,14 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             stream.Write((byte)(_isObjId ? 2 : 1));
             if (_isObjId)
+            {
                 stream.WriteBc(_id);
+            }
             else
+            {
                 stream.Write(_id);
+            }
+
             return stream;
         }
     }

@@ -9,8 +9,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _action;
         private readonly int _point;
         private readonly byte _step;
-        
-        public SCCharacterLaborPowerChangedPacket(int amount, int action, int point, byte step) 
+
+        public SCCharacterLaborPowerChangedPacket(int amount, int action, int point, byte step)
             : base(SCOffsets.SCCharacterLaborPowerChangedPacket, 1)
         {
             _amount = amount;
@@ -22,7 +22,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_amount);
-            
+
             stream.Write(_action);
             stream.Write(_point);
             stream.Write(_step);

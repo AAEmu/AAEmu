@@ -27,7 +27,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             GreatSuccess = 4
         }
 
-        public override void Execute(Unit caster,
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -148,7 +148,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             // TODO: Handled by skill already, do more tests
             // character.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.GradeEnchant, scroll.ItemTemplateId, 1, character.Inventory.GetItemById(scroll.ItemId));
             if (useCharm)
+            {
                 character.Inventory.Bag.ConsumeItem(ItemTaskType.GradeEnchant, charmItem.TemplateId, 1, charmItem);
+            }
 
             character.SendPacket(new SCGradeEnchantResultPacket((byte)result, item, initialGrade, item.Grade));
             character.BroadcastPacket(new SCSkillEndedPacket(skill.TlId), true);
@@ -225,17 +227,23 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             switch (ItemType)
             {
                 case 1:
-                    WeaponTemplate weaponTemplate = (WeaponTemplate)item.Template;
-                    slotTypeId = weaponTemplate.HoldableTemplate.SlotTypeId;
-                    break;
+                    {
+                        var weaponTemplate = (WeaponTemplate)item.Template;
+                        slotTypeId = weaponTemplate.HoldableTemplate.SlotTypeId;
+                        break;
+                    }
                 case 2:
-                    ArmorTemplate armorTemplate = (ArmorTemplate)item.Template;
-                    slotTypeId = armorTemplate.SlotTemplate.SlotTypeId;
-                    break;
+                    {
+                        var armorTemplate = (ArmorTemplate)item.Template;
+                        slotTypeId = armorTemplate.SlotTemplate.SlotTypeId;
+                        break;
+                    }
                 case 24:
-                    AccessoryTemplate accessoryTemplate = (AccessoryTemplate)item.Template;
-                    slotTypeId = accessoryTemplate.SlotTemplate.SlotTypeId;
-                    break;
+                    {
+                        var accessoryTemplate = (AccessoryTemplate)item.Template;
+                        slotTypeId = accessoryTemplate.SlotTemplate.SlotTypeId;
+                        break;
+                    }
             }
 
             if (slotTypeId == 0)

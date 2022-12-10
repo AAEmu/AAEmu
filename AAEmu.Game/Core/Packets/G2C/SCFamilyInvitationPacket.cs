@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _familyId;
         private readonly string _role;
 
-        public SCFamilyInvitationPacket(uint invitorId, string invitorName, uint familyId, string role) 
+        public SCFamilyInvitationPacket(uint invitorId, string invitorName, uint familyId, string role)
             : base(SCOffsets.SCFamilyInvitationPacket, 1)
         {
             _invitorId = invitorId;

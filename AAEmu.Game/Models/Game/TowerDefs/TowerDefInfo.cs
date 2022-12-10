@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.World;
 
@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Game.TowerDefs
         public uint TargetObjId { get; set; }
         public Point Position { get; set; }
         public uint CurrentStep { get; set; }
-        
+
         public override PacketStream Write(PacketStream stream)
         {
             TowerDefKey.Write(stream);

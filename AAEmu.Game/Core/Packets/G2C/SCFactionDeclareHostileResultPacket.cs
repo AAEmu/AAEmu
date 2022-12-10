@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _result;
         private readonly uint _id;
         private readonly uint _id2;
-        
+
         public SCFactionDeclareHostileResultPacket(bool result, uint id, uint id2) : base(SCOffsets.SCFactionDeclareHostileResultPacket, 1)
         {
             _result = result;

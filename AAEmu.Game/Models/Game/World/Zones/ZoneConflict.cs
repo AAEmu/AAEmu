@@ -1,9 +1,9 @@
 ﻿using System;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.World.Zones;
-using AAEmu.Game.Models.Tasks.Zones;
+
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Tasks.Zones;
 
 namespace AAEmu.Game.Models.Game.World.Zones
 {
@@ -50,11 +50,15 @@ namespace AAEmu.Game.Models.Game.World.Zones
         {
             // Ignore when in conflict, war or peace
             if (CurrentZoneState >= ZoneConflictType.Conflict)
+            {
                 return;
-            
+            }
+
             // Ignore if this zone doesn't have a kill counter mechanic
             if ((NumKills[0] == 0) && (NumKills[1] == 0) && (NumKills[2] == 0) && (NumKills[3] == 0) && (NumKills[4] == 0))
+            {
                 return;
+            }
 
             var LastState = CurrentZoneState;
             KillCount += NumberOfKills;
@@ -111,30 +115,43 @@ namespace AAEmu.Game.Models.Game.World.Zones
         public void CheckTimer()
         {
             if ((NextStateTime > DateTime.MinValue) && (DateTime.UtcNow >= NextStateTime))
+            {
                 ForceNextState();
+            }
         }
 
         public void SetState(ZoneConflictType ct)
         {
             if (ct == CurrentZoneState)
+            {
                 return;
+            }
+
             switch (ct)
             {
                 case ZoneConflictType.Conflict:
-                    KillCount = 0;
-                    NextStateTime = DateTime.UtcNow.AddMinutes(ConflictMin);
-                    break;
+                    {
+                        KillCount = 0;
+                        NextStateTime = DateTime.UtcNow.AddMinutes(ConflictMin);
+                        break;
+                    }
                 case ZoneConflictType.War:
-                    KillCount = 0;
-                    NextStateTime = DateTime.UtcNow.AddMinutes(WarMin);
-                    break;
+                    {
+                        KillCount = 0;
+                        NextStateTime = DateTime.UtcNow.AddMinutes(WarMin);
+                        break;
+                    }
                 case ZoneConflictType.Peace:
-                    KillCount = 0;
-                    NextStateTime = DateTime.UtcNow.AddMinutes(PeaceMin);
-                    break;
+                    {
+                        KillCount = 0;
+                        NextStateTime = DateTime.UtcNow.AddMinutes(PeaceMin);
+                        break;
+                    }
                 default:
-                    NextStateTime = DateTime.MinValue;
-                    break;
+                    {
+                        NextStateTime = DateTime.MinValue;
+                        break;
+                    }
             }
             CurrentZoneState = ct;
             SendSwitchZoneState();
@@ -158,9 +175,13 @@ namespace AAEmu.Game.Models.Game.World.Zones
             {
                 // If it doesn't have a killcounter, go directly back to conflict (ocean areas)
                 if ((NumKills[0] == 0) && (NumKills[1] == 0) && (NumKills[2] == 0) && (NumKills[3] == 0) && (NumKills[4] == 0))
+                {
                     SetState(ZoneConflictType.Conflict);
+                }
                 else
+                {
                     SetState(ZoneConflictType.Tension);
+                }
             }
         }
     }

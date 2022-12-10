@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
@@ -10,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Character _character;
         private readonly bool _success;
-        
+
         public SCCharDetailPacket(Character character, bool success) : base(SCOffsets.SCCharDetailPacket, 1)
         {
             _character = character;
@@ -37,9 +38,13 @@ namespace AAEmu.Game.Core.Packets.G2C
             foreach (var item in items)
             {
                 if (item == null)
+                {
                     stream.Write(0);
+                }
                 else
+                {
                     stream.Write(item);
+                }
             }
 
             stream.Write(_success);

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
+
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -18,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Char
             Abilities = new Dictionary<AbilityType, Ability>();
             for (var i = 1; i < 11; i++)
             {
-                var id = (AbilityType) i;
+                var id = (AbilityType)i;
                 Abilities[id] = new Ability(id);
             }
         }
@@ -34,11 +36,20 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var list = new List<AbilityType>();
             if (Owner.Ability1 != AbilityType.None)
+            {
                 list.Add(Owner.Ability1);
+            }
+
             if (Owner.Ability2 != AbilityType.None)
+            {
                 list.Add(Owner.Ability2);
+            }
+
             if (Owner.Ability3 != AbilityType.None)
+            {
                 list.Add(Owner.Ability3);
+            }
+
             return list;
         }
 
@@ -46,18 +57,28 @@ namespace AAEmu.Game.Models.Game.Char
         {
             // TODO SCAbilityExpChangedPacket
             if (type != AbilityType.None)
+            {
                 Abilities[type].Exp += exp;
+            }
         }
 
         public void AddActiveExp(int exp)
         {
             // TODO SCExpChangedPacket
             if (Owner.Ability1 != AbilityType.None)
+            {
                 Abilities[Owner.Ability1].Exp = Math.Min(Abilities[Owner.Ability1].Exp + exp, ExpirienceManager.Instance.GetExpForLevel(55));
+            }
+
             if (Owner.Ability2 != AbilityType.None)
+            {
                 Abilities[Owner.Ability2].Exp = Math.Min(Abilities[Owner.Ability2].Exp + exp, ExpirienceManager.Instance.GetExpForLevel(55));
+            }
+
             if (Owner.Ability3 != AbilityType.None)
+            {
                 Abilities[Owner.Ability3].Exp = Math.Min(Abilities[Owner.Ability3].Exp + exp, ExpirienceManager.Instance.GetExpForLevel(55));
+            }
         }
 
         public void Swap(AbilityType oldAbilityId, AbilityType abilityId)
@@ -84,7 +105,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Owner.Ability3 = abilityId;
                 Abilities[abilityId].Order = 2;
 
-                if(oldAbilityId == AbilityType.None)
+                if (oldAbilityId == AbilityType.None)
                 {
                     Abilities[Owner.Ability3].Exp = Abilities[Owner.Ability1].Exp;
 
@@ -102,7 +123,10 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             if (oldAbilityId != AbilityType.None)
+            {
                 Abilities[oldAbilityId].Order = 255;
+            }
+
             Owner.BroadcastPacket(new SCAbilitySwappedPacket(Owner.ObjId, oldAbilityId, abilityId), true);
         }
 
@@ -118,15 +142,24 @@ namespace AAEmu.Game.Models.Game.Char
                     {
                         var ability = new Ability
                         {
-                            Id = (AbilityType) reader.GetByte("id"),
+                            Id = (AbilityType)reader.GetByte("id"),
                             Exp = reader.GetInt32("exp")
                         };
                         if (ability.Id == Owner.Ability1)
+                        {
                             ability.Order = 0;
+                        }
+
                         if (ability.Id == Owner.Ability2)
+                        {
                             ability.Order = 1;
+                        }
+
                         if (ability.Id == Owner.Ability3)
+                        {
                             ability.Order = 2;
+                        }
+
                         Abilities[ability.Id] = ability;
                     }
                 }
@@ -143,7 +176,7 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Transaction = transaction;
 
                     command.CommandText = "REPLACE INTO abilities(`id`,`exp`,`owner`) VALUES (@id, @exp, @owner)";
-                    command.Parameters.AddWithValue("@id", (byte) ability.Id);
+                    command.Parameters.AddWithValue("@id", (byte)ability.Id);
                     command.Parameters.AddWithValue("@exp", ability.Exp);
                     command.Parameters.AddWithValue("@owner", Owner.Id);
                     command.ExecuteNonQuery();

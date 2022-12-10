@@ -1,8 +1,6 @@
-﻿using System;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
@@ -21,12 +19,14 @@ namespace AAEmu.Game.Core.Packets.G2C
             {
                 stream.Write((byte)slot.Type);
                 if (slot.Type != ActionSlotType.None)
+                {
                     stream.Write(slot.ActionId);
+                }
             }
 
             return stream;
         }
-        
+
         // TODO if i miss data
         /*
               v3 = 85;

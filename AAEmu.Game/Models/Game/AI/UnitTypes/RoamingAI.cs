@@ -1,6 +1,5 @@
 using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.AI.States;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.AI.UnitTypes
@@ -37,11 +36,17 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
             switch (previous)
             {
                 case IdleState idleState:
-                    return Framework.States.Roaming;
+                    {
+                        return Framework.States.Roaming;
+                    }
                 case RoamingState roamingState:
-                    return Framework.States.Idle;
+                    {
+                        return Framework.States.Idle;
+                    }
                 default:
-                    return Framework.States.Idle;
+                    {
+                        return Framework.States.Idle;
+                    }
             }
         }
     }

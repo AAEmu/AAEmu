@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var mailId = stream.ReadInt64();
-            
+
             _log.Debug("ReportSpam, mailId: {0}", mailId);
         }
     }

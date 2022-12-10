@@ -13,6 +13,6 @@ namespace AAEmu.Game.Models.Game.Animation
         Hit = 8,
         RandomIdle = 9,
         Any = 10,
-        Stun= 11
+        Stun = 11
     }
 }

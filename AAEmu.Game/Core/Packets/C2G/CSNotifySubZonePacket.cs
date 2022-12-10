@@ -12,7 +12,10 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var subZoneId = stream.ReadUInt32();
-            if (subZoneId == 0) return;
+            if (subZoneId == 0)
+            {
+                return;
+            }
 
             Connection.ActiveChar.SubZoneId = subZoneId; // понадобилось хранить для составления точек Memory Tome (Recall)
 

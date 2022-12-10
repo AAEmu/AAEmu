@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.World.Zones
+﻿namespace AAEmu.Game.Models.Game.World.Zones
 {
     public class IndunZone
     {
@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.World.Zones
         public bool ClientDriven { get; set; }
         public bool SelectChannel { get; set; }
         public string LocalizedName { get; set; }
-        
+
         public override string ToString()
         {
             return string.IsNullOrWhiteSpace(LocalizedName) ? Name : LocalizedName;

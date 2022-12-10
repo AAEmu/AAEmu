@@ -1,28 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AAEmu.Game.Models.Game.Skills
+﻿namespace AAEmu.Game.Models.Game.Skills
 {
-    public enum SkillHitType
+    public enum SkillHitType : byte
     {
-        Invalid = 0x0,
-        MeleeHit = 0x1,
-        MeleeCritical = 0x3,
-        MeleeMiss = 0x4,
-        MeleeDodge = 0x5,
-        MeleeBlock = 0x6,
-        MeleeParry = 0x7,
-        RangedHit = 0x9,
-        RangedMiss = 0xA,
-        RangedCritical = 0xB,
-        SpellHit = 0xD,
-        SpellMiss = 0xE,
-        SpellCritical = 0xF,
-        RangedDodge = 0x10,
-        RangedBlock = 0x11,
-        Immune = 0x12,
-        SpellResist = 0x13,
-        RangedParry = 0x14,
+        Invalid = 0,
+        MeleeHit = 1,
+        MeleeCritical = 3,
+        MeleeMiss = 4,
+        MeleeDodge = 5,
+        MeleeBlock = 6,
+        MeleeParry = 7,
+        RangedHit = 9,
+        RangedMiss = 10,
+        RangedCritical = 11, // aka CriticalHealHit
+        SpellHit = 13, // aka HealHit
+        SpellMiss = 014,
+        SpellCritical = 15,
+        RangedDodge = 16,
+        RangedBlock = 17,
+        Immune = 18,
+        SpellResist = 19,
+        RangedParry = 20
     }
 }

@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Threading.Tasks;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Tasks.Characters;
 using AAEmu.Game.Models.Tasks.Skills;
-using AAEmu.Game.Utils;
-using SQLitePCL;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -34,7 +31,9 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var craftMaterial in craft.CraftMaterials)
             {
                 if (Owner.Inventory.GetItemsCount(craftMaterial.ItemId) < craftMaterial.Amount)
+                {
                     hasMaterials = false;
+                }
             }
 
             if (hasMaterials)
@@ -79,7 +78,7 @@ namespace AAEmu.Game.Models.Game.Char
                 }
                 else
                 {
-                    if (!Owner.Inventory.TryEquipNewBackPack(ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount,-1,Owner.Id))
+                    if (!Owner.Inventory.TryEquipNewBackPack(ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount, -1, Owner.Id))
                     {
                         CancelCraft();
                         return;
@@ -89,9 +88,9 @@ namespace AAEmu.Game.Models.Game.Char
 
             foreach (var material in _craft.CraftMaterials)
             {
-                Owner.Inventory.Bag.ConsumeItem(ItemTaskType.CraftActSaved, material.ItemId, material.Amount,null);
+                Owner.Inventory.Bag.ConsumeItem(ItemTaskType.CraftActSaved, material.ItemId, material.Amount, null);
             }
-            
+
             Owner.Quests.OnCraft(_craft); // TODO added for quest Id=6024
 
             if (_count > 0)
@@ -118,12 +117,15 @@ namespace AAEmu.Game.Models.Game.Char
             _craft = null;
             _count = 0;
             _doodadId = 0;
-            
+
             // Also cancel the related skill ? I don't think this really does anything for crafts, but can't hurt I guess
             if (Owner != null)
             {
                 if (Owner.SkillTask != null)
+                {
                     Owner.SkillTask.Skill.Cancelled = true;
+                }
+
                 Owner.InterruptSkills();
             }
 

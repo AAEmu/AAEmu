@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var name = stream.ReadString();
             var id = stream.ReadUInt32(); // TODO character id?
-            
+
             _log.Debug("CreateExpedition, name: {0}, id: {1}", name, id);
             ExpeditionManager.Instance.CreateExpedition(name, Connection);
         }

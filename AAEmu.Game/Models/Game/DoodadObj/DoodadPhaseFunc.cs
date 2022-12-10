@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public string FuncType { get; set; }
 
         // This acts as an interface/relay for doodad function chain
-        public bool Use(Unit caster, Doodad owner)
+        public bool Use(BaseUnit caster, Doodad owner)
         {
             var template = DoodadManager.Instance.GetPhaseFuncTemplate(FuncId, FuncType);
             return template != null && template.Use(caster, owner);

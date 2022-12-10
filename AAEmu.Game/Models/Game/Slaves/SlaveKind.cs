@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Slaves
         Machine = 6,
         SiegeWeapon = 7,
         SlaveEquipment = 8,
-        Fishboat = 9, 
+        Fishboat = 9,
         // After 1.2
         MerchantShip = 10,
         Leviathan = 11,

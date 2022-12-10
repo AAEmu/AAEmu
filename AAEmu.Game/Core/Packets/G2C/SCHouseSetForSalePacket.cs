@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _sellToPlayerId;
         private readonly string _sellToName;
         private readonly string _houseName;
-        
+
         public SCHouseSetForSalePacket(ushort tl, uint moneyAmount, uint sellToPlayerId, string sellToName, string houseName) : base(SCOffsets.SCHouseSetForSalePacket, 1)
         {
             _tl = tl;

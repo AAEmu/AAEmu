@@ -26,8 +26,8 @@ namespace AAEmu.Game.Models.Game.Items
         public override void WriteDetails(PacketStream stream)
         {
             stream.Write(0); // exp
-            stream.Write((byte) 0);
-            stream.Write((byte) 1); // level
+            stream.Write((byte)0);
+            stream.Write((byte)1); // level
         }
     }
 }

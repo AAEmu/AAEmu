@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AAEmu.Game.Utils.Scripts.SubCommands
+﻿namespace AAEmu.Game.Utils.Scripts.SubCommands
 {
     public class ParameterResult
     {

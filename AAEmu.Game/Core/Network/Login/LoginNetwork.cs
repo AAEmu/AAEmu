@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
+
 using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
@@ -36,7 +37,9 @@ namespace AAEmu.Game.Core.Network.Login
         public void Stop()
         {
             if (_client?.IsConnected ?? false)
+            {
                 _client.DisconnectAsync();
+            }
         }
 
         public void SetConnection(LoginConnection con)

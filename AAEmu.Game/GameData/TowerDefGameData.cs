@@ -1,9 +1,10 @@
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
-using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.TowerDefs;
 using AAEmu.Game.Utils.DB;
+
 using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.GameData
@@ -13,12 +14,12 @@ namespace AAEmu.Game.GameData
     {
         private Dictionary<uint, TowerDef> _towerDefs;
         private Dictionary<uint, TowerDefProg> _towerDefProgs;
-        
+
         public void Load(SqliteConnection connection)
         {
             _towerDefs = new Dictionary<uint, TowerDef>();
             _towerDefProgs = new Dictionary<uint, TowerDefProg>();
-            
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM tower_defs";
@@ -39,12 +40,12 @@ namespace AAEmu.Game.GameData
                             TimeOfDayDayInterval = reader.GetUInt32("tod_day_interval"),
                             Progs = new List<TowerDefProg>()
                         };
-                        
+
                         _towerDefs.Add(template.Id, template);
                     }
                 }
             }
-            
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM tower_def_progs";
@@ -55,8 +56,10 @@ namespace AAEmu.Game.GameData
                     {
                         var towerDefId = reader.GetUInt32("tower_def_id");
                         if (!_towerDefs.TryGetValue(towerDefId, out var towerDef))
+                        {
                             return;
-                        
+                        }
+
                         var template = new TowerDefProg()
                         {
                             Id = reader.GetUInt32("id"),
@@ -66,13 +69,13 @@ namespace AAEmu.Game.GameData
                             KillTargets = new List<TowerDefProgKillTarget>(),
                             SpawnTargets = new List<TowerDefProgSpawnTarget>()
                         };
-                        
+
                         towerDef.Progs.Add(template);
                         _towerDefProgs.Add(template.Id, template);
                     }
                 }
             }
-            
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM tower_def_prog_spawn_targets";
@@ -83,8 +86,10 @@ namespace AAEmu.Game.GameData
                     {
                         var towerDefProgId = reader.GetUInt32("tower_def_prog_id");
                         if (!_towerDefProgs.TryGetValue(towerDefProgId, out var towerDefProg))
+                        {
                             return;
-                        
+                        }
+
                         var template = new TowerDefProgSpawnTarget()
                         {
                             Id = reader.GetUInt32("id"),
@@ -93,12 +98,12 @@ namespace AAEmu.Game.GameData
                             DespawnOnNextStep = reader.GetBoolean("despawn_on_next_step", true),
                             TowerDefProg = towerDefProg
                         };
-                        
+
                         towerDefProg.SpawnTargets.Add(template);
                     }
                 }
             }
-            
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM tower_def_prog_kill_targets";
@@ -109,8 +114,10 @@ namespace AAEmu.Game.GameData
                     {
                         var towerDefProgId = reader.GetUInt32("tower_def_prog_id");
                         if (!_towerDefProgs.TryGetValue(towerDefProgId, out var towerDefProg))
+                        {
                             return;
-                        
+                        }
+
                         var template = new TowerDefProgKillTarget()
                         {
                             Id = reader.GetUInt32("id"),
@@ -119,7 +126,7 @@ namespace AAEmu.Game.GameData
                             KillCount = reader.GetUInt32("kill_count"),
                             TowerDefProg = towerDefProg
                         };
-                        
+
                         towerDefProg.KillTargets.Add(template);
                     }
                 }

@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using AAEmu.Game.Core.Managers.World;
+
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 
@@ -41,7 +41,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             character.Transform.Parent = null;
             character.Transform.StickyParent = _parent.Transform;
         }
-        
+
         public void UnLoadPassenger(Character character, uint seatObjId)
         {
             for (var i = 0; i < _seats[seatObjId].Count; i++)
@@ -51,8 +51,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     _seats[seatObjId][i] = 0; // free up space
                     character.Transform.StickyParent = null;
                     if (_parent is Transfer transfer)
+                    {
                         if (transfer.AttachedCharacters.Contains(character))
+                        {
                             transfer.AttachedCharacters.Remove(character);
+                        }
+                    }
                 }
             }
         }
@@ -93,10 +97,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             {
                 spot = -1;
             }
-            
+
             if ((spot != -1) && (_parent is Transfer transfer))
+            {
                 if (!transfer.AttachedCharacters.Contains(character))
+                {
                     transfer.AttachedCharacters.Add(character);
+                }
+            }
 
             return spot;
         }

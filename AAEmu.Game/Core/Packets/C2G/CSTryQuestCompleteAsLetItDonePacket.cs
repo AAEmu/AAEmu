@@ -1,6 +1,4 @@
-﻿using System.Threading.Tasks;
-
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -27,7 +25,10 @@ namespace AAEmu.Game.Core.Packets.C2G
                 && Connection.ActiveChar.CurrentTarget != null
                 && Connection.ActiveChar.CurrentTarget.ObjId != objId
                )
+            {
                 return;
+            }
+
             Connection.ActiveChar.Quests.Complete(id, selected);
         }
     }

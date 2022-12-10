@@ -17,5 +17,5 @@
         public const uint CloseTheScore = 22217; // End of song/stop
         public const uint ItemFusion = 23478;
     }
- 
+
 }

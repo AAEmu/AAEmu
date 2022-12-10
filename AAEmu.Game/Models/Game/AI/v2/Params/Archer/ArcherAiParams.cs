@@ -1,7 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+
 using AAEmu.Game.Models.Game.AI.V2.Params;
 using AAEmu.Game.Models.Game.AI.V2.Params.Archer;
+
 using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Params.Archer
@@ -27,9 +28,15 @@ namespace AAEmu.Game.Models.Game.AI.v2.Params.Archer
                 aiParams.DoString($"data = {{\n{data}\n}}");
 
                 if (aiParams.GetObjectFromPath("data.alertDuration") != null)
+                {
                     AlertDuration = aiParams.GetInteger("data.alertDuration");
+                }
+
                 if (aiParams.GetObjectFromPath("data.alertSafeTargetRememberTime") != null)
+                {
                     AlertSafeTargetRememberTime = aiParams.GetInteger("data.alertSafeTargetRememberTime");
+                }
+
                 CombatSkills = new List<ArcherCombatSkill>();
                 if (aiParams.GetTable("data.combatSkills") is LuaTable table)
                 {
@@ -38,7 +45,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Params.Archer
                     CombatSkills.Add(combatSkill);
                 }
                 if (aiParams.GetObjectFromPath("data.maxMakeAGapCount") != null)
+                {
                     MaxMakeAGapeCount = aiParams.GetInteger("data.maxMakeAGapCount");
+                }
             }
         }
     }

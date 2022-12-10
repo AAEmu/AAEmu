@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
 {
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
     {
         public sbyte Throttle { get; set; }
         public sbyte Steering { get; set; }
-        
+
         public override void Read(PacketStream stream)
         {
             base.Read(stream);

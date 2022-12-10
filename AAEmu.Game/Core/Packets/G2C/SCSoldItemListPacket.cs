@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
@@ -24,7 +25,10 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_items.Count);
             foreach (var item in _items)
+            {
                 stream.Write(item);
+            }
+
             return stream;
         }
     }

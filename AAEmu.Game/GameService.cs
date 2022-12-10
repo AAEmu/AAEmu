@@ -2,8 +2,8 @@
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+
 using AAEmu.Commons.Utils.Updater;
-using AAEmu.Game.IO;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -14,11 +14,15 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.IO;
 using AAEmu.Game.Models;
-using AAEmu.Game.Utils.Scripts;
-using Microsoft.Extensions.Hosting;
-using NLog;
 using AAEmu.Game.Utils.DB;
+using AAEmu.Game.Utils.Scripts;
+
+using Microsoft.Extensions.Hosting;
+
+using NLog;
+
 using MySQL = AAEmu.Commons.Utils.DB.MySQL;
 
 namespace AAEmu.Game
@@ -40,7 +44,7 @@ namespace AAEmu.Game
                     _log.Fatal("Press Ctrl+C to quit");
                     return;
                 }
-                
+
                 if (!MySqlDatabaseUpdater.Run(connection, "aaemu_game", AppConfiguration.Instance.Connections.MySQLProvider.Database))
                 {
                     _log.Fatal("Failed to update database!");
@@ -58,7 +62,7 @@ namespace AAEmu.Game
                     return;
                 }
             }
-            
+
             ClientFileManager.Initialize();
             if (ClientFileManager.ListSources().Count == 0)
             {
@@ -70,14 +74,14 @@ namespace AAEmu.Game
             var stopWatch = new Stopwatch();
 
             stopWatch.Start();
-            
+
             TickManager.Instance.Initialize();
             TaskIdManager.Instance.Initialize();
             TaskManager.Instance.Initialize();
 
             WorldManager.Instance.Load();
             FeaturesManager.Instance.Initialize();
-            
+
             LocalizationManager.Instance.Load();
             ObjectIdManager.Instance.Initialize();
             TradeIdManager.Instance.Initialize();
@@ -92,7 +96,7 @@ namespace AAEmu.Game
             {
                 WorldManager.Instance.LoadWaterBodies();
             });
-            
+
             ContainerIdManager.Instance.Initialize();
             ItemIdManager.Instance.Initialize();
             DoodadIdManager.Instance.Initialize();
@@ -152,7 +156,7 @@ namespace AAEmu.Game
 
             GameScheduleManager.Instance.Load();
             NpcManager.Instance.Load();
-            
+
             DoodadManager.Instance.Load();
             TaxationsManager.Instance.Load();
             HousingManager.Instance.Load();
@@ -166,12 +170,12 @@ namespace AAEmu.Game
             CashShopManager.Instance.Load();
             UccManager.Instance.Load();
             MusicManager.Instance.Load();
-            
+
             ScriptCompiler.Compile();
 
             TimeManager.Instance.Start();
             TaskManager.Instance.Start();
-            
+
             SaveManager.Instance.Initialize();
             AreaTriggerManager.Instance.Initialize();
             SpecialtyManager.Instance.Initialize();
@@ -186,7 +190,7 @@ namespace AAEmu.Game
                 _log.Info("Waiting on water to be loaded before proceeding, please wait ...");
                 await waterBodyTask;
             }
-            
+
             if ((heightmapTask != null) && (!heightmapTask.IsCompleted))
             {
                 _log.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
@@ -204,13 +208,13 @@ namespace AAEmu.Game
 
             // Start running Physics when everything is loaded
             WorldManager.Instance.StartPhysics();
-            
+
             CharacterManager.Instance.CheckForDeletedCharacters();
-            
+
             GameNetwork.Instance.Start();
             StreamNetwork.Instance.Start();
             LoginNetwork.Instance.Start();
-            
+
             stopWatch.Stop();
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
         }
@@ -236,7 +240,7 @@ namespace AAEmu.Game
 
             TickManager.Instance.Stop();
             TimeManager.Instance.Stop();
-            
+
             ClientFileManager.ClearSources();
             return Task.CompletedTask;
         }

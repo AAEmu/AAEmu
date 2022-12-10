@@ -1,5 +1,4 @@
 ﻿using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
 
@@ -29,7 +28,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_item);
             stream.Write(_type1);
             stream.Write(_type2);
-            
+
             return stream;
         }
     }

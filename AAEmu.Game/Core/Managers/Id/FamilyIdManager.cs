@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Managers.Id
         private const uint FirstId = 0x00000001;
         private const uint LastId = 0x00FFFFFF;
         private static readonly uint[] Exclude = { };
-        private static readonly string[,] ObjTables = {{"characters", "family"}};
+        private static readonly string[,] ObjTables = { { "characters", "family" } };
 
         public static FamilyIdManager Instance => _instance ?? (_instance = new FamilyIdManager());
 

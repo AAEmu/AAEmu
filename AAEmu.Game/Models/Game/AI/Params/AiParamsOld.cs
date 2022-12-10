@@ -21,24 +21,32 @@ namespace AAEmu.Game.Models.Game.AI.Params
         Default = 26,
         AlmightyNpc = 27
     }
-    
+
     public class AiParamsOld
     {
         public virtual AiParamType Type { get; set; } = AiParamType.None;
-        public virtual void Parse(string data) {}
+        public virtual void Parse(string data) { }
 
         public static AiParamsOld GetByType(AiParamType type)
         {
             switch (type)
             {
                 case AiParamType.HoldPosition:
-                    return new HoldPositionAiParams();
+                    {
+                        return new HoldPositionAiParams();
+                    }
                 case AiParamType.AlmightyNpc:
-                    return new AlmightyNpcAiParams();
+                    {
+                        return new AlmightyNpcAiParams();
+                    }
                 case AiParamType.BigMonsterRoaming:
-                    return new BigMonsterRoamingAiParams();
+                    {
+                        return new BigMonsterRoamingAiParams();
+                    }
                 default:
-                    return null;
+                    {
+                        return null;
+                    }
             }
         }
     }

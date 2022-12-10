@@ -2,7 +2,6 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -22,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             position.Y = stream.ReadSingle();
             position.Z = stream.ReadSingle();
             var insId = stream.ReadUInt32();
-            
+
             // _log.Warn("SetPingPos, teamId {0}, hasPing {1}, insId {2}", teamId, hasPing, insId);
             var owner = Connection.ActiveChar;
             owner.LocalPingPosition = position;

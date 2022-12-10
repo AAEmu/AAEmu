@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.Char;
@@ -12,8 +13,11 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Quests;
 using AAEmu.Game.Utils.DB;
+
 using Microsoft.Data.Sqlite;
+
 using NLog;
+
 using QuestNpcAiName = AAEmu.Game.Models.Game.Quests.Static.QuestNpcAiName;
 
 namespace AAEmu.Game.Core.Managers
@@ -51,14 +55,20 @@ namespace AAEmu.Game.Core.Managers
         public QuestActTemplate GetActTemplate(uint id, string type)
         {
             if (!_actTemplates.ContainsKey(type))
+            {
                 return null;
+            }
+
             return _actTemplates[type].ContainsKey(id) ? _actTemplates[type][id] : null;
         }
 
         public T GetActTemplate<T>(uint id, string type) where T : QuestActTemplate
         {
             if (!_actTemplates.ContainsKey(type))
+            {
                 return default(T);
+            }
+
             return _actTemplates[type].ContainsKey(id) ? (T)_actTemplates[type][id] : default(T);
         }
 
@@ -91,19 +101,24 @@ namespace AAEmu.Game.Core.Managers
 
         private void UpdateQuestComponentActs()
         {
-            foreach(var questTemplate in _templates.Values)
+            foreach (var questTemplate in _templates.Values)
             {
-                foreach(var questComponent in questTemplate.Components)
+                foreach (var questComponent in questTemplate.Components)
                 {
                     if (_acts.TryGetValue(questComponent.Key, out var questActs))
+                    {
                         questComponent.Value.ActTemplates.AddRange(questActs.Select(a => a.Template));
+                    }
                 }
             }
         }
         public void Load()
         {
             if (_loaded)
+            {
                 return;
+            }
+
             //                              charId          questId  Task
             QuestTimeoutTask = new Dictionary<uint, Dictionary<uint, QuestTimeoutTask>>();
 
@@ -116,8 +131,12 @@ namespace AAEmu.Game.Core.Managers
             _groupNpcs = new Dictionary<uint, List<uint>>();
 
             foreach (var type in Helpers.GetTypesInNamespace(Assembly.GetAssembly(typeof(QuestManager)), "AAEmu.Game.Models.Game.Quests.Acts"))
+            {
                 if (type.BaseType == typeof(QuestActTemplate))
+                {
                     _actTemplates.Add(type.Name, new Dictionary<uint, QuestActTemplate>());
+                }
+            }
 
             _log.Info("Loading quests...");
             using (var connection = SQLite.CreateConnection())
@@ -155,7 +174,10 @@ namespace AAEmu.Game.Core.Managers
                             _groupNpcs.Add(groupId, npcs);
                         }
                         else
+                        {
                             npcs = _groupNpcs[groupId];
+                        }
+
                         npcs.Add(npcId);
                     }
                 }
@@ -181,7 +203,9 @@ namespace AAEmu.Game.Core.Managers
                             _groupItems.Add(groupId, items);
                         }
                         else
+                        {
                             items = _groupItems[groupId];
+                        }
 
                         items.Add(itemId);
                     }
@@ -206,7 +230,9 @@ namespace AAEmu.Game.Core.Managers
                         template.DetailType = reader.GetString("act_detail_type");
                         List<QuestAct> list;
                         if (_acts.ContainsKey(template.ComponentId))
+                        {
                             list = _acts[template.ComponentId];
+                        }
                         else
                         {
                             list = new List<QuestAct>();
@@ -254,7 +280,9 @@ namespace AAEmu.Game.Core.Managers
                     {
                         var questId = reader.GetUInt32("quest_context_id");
                         if (!_templates.ContainsKey(questId))
+                        {
                             continue;
+                        }
 
                         var template = new QuestComponent();
                         template.Id = reader.GetUInt32("id");
@@ -317,8 +345,8 @@ namespace AAEmu.Game.Core.Managers
         {
             var detailType = template.GetType().Name;
             _actTemplates[detailType].Add(template.Id, template);
-            foreach (var questAct in _actsDic.Values.Where(qa => 
-                    qa.DetailId == template.Id && 
+            foreach (var questAct in _actsDic.Values.Where(qa =>
+                    qa.DetailId == template.Id &&
                     qa.DetailType == detailType))
             {
                 questAct.Template = template;

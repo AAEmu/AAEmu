@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -16,15 +17,15 @@ namespace AAEmu.Game.Core.Packets.Proxy
             _tm = tm;
             _when = when;
             _local = local;
-            _world = (uint) (Environment.TickCount & int.MaxValue);
+            _world = (uint)(Environment.TickCount & int.MaxValue);
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_tm);
             stream.Write(_when);
-            stream.Write((long) 0); // elapsed
-            stream.Write((long) _world * 1000); // world * 1000; remote
+            stream.Write((long)0); // elapsed
+            stream.Write((long)_world * 1000); // world * 1000; remote
             stream.Write(_local);
             stream.Write(_world); // TODO packet sleep 250ms...
 

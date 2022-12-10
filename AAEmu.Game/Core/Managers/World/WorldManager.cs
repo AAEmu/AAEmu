@@ -4,10 +4,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Xml;
 
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.XML;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.IO;
@@ -20,8 +22,6 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
-using System.Numerics;
-using AAEmu.Commons.Utils.XML;
 using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
@@ -98,9 +98,15 @@ namespace AAEmu.Game.Core.Managers.World
                 foreach (var region in world.Regions)
                 {
                     if (region == null)
+                    {
                         continue;
+                    }
+
                     if (activeRegions.Contains(region))
+                    {
                         continue;
+                    }
+
                     //region.HasPlayerActivity = false;
                     if (!region.IsEmpty())
                     {
@@ -119,14 +125,19 @@ namespace AAEmu.Game.Core.Managers.World
         public WorldInteractionGroup? GetWorldInteractionGroup(uint worldInteractionType)
         {
             if (_worldInteractionGroups.ContainsKey(worldInteractionType))
+            {
                 return _worldInteractionGroups[worldInteractionType];
+            }
+
             return null;
         }
 
         public void Load()
         {
             if (_loaded)
+            {
                 return;
+            }
 
             _worlds = new Dictionary<uint, InstanceWorld>();
             _worldIdByZoneId = new Dictionary<uint, uint>();
@@ -150,25 +161,35 @@ namespace AAEmu.Game.Core.Managers.World
             var contents = File.Exists(spawnPositionFile) ? File.ReadAllText(spawnPositionFile) : "";
             var worldSpawnLookup = new List<WorldSpawnLocation>();
             if (string.IsNullOrWhiteSpace(contents))
+            {
                 _log.Error($"File {spawnPositionFile} doesn't exists or is empty.");
+            }
             else
                 if (!JsonHelper.TryDeserializeObject(contents, out List<WorldSpawnLocation> worldSpawnLookupFromJson, out _))
+            {
                 _log.Error($"Error in {spawnPositionFile}.");
+            }
             else
+            {
                 worldSpawnLookup = worldSpawnLookupFromJson;
+            }
 
             foreach (var worldXmlPath in worldXmlPaths)
             {
                 var worldName = Path.GetFileName(Path.GetDirectoryName(worldXmlPath)); // the the base name of the current directory
                 if (!worldNames.Contains(worldName))
+                {
                     worldNames.Add(worldName);
+                }
             }
 
             for (uint id = 0; id < worldNames.Count; id++)
             {
                 var worldName = worldNames[(int)id];
                 if (worldName == "main_world")
+                {
                     WorldManager.DefaultWorldId = id; // prefer to do it like this, in case we change order or IDs later on
+                }
 
                 var worldXmlData = ClientFileManager.GetFileStream(Path.Combine("game", "worlds", worldName, "world.xml"));
                 var xml = new XmlDocument();
@@ -198,7 +219,9 @@ namespace AAEmu.Game.Core.Managers.World
 
                     // cache zone keys to world reference
                     foreach (var zoneKey in world.ZoneKeys)
-                        _worldIdByZoneId.Add(zoneKey,world.Id);
+                    {
+                        _worldIdByZoneId.Add(zoneKey, world.Id);
+                    }
 
                     world.Water = new WaterBodies();
                 }
@@ -237,7 +260,9 @@ namespace AAEmu.Game.Core.Managers.World
                             idz.LocalizedName =
                                 LocalizationManager.Instance.Get("indun_zones", "name", idz.ZoneGroupId, idz.Name);
                             if (!_indunZones.TryAdd(idz.ZoneGroupId, idz))
+                            {
                                 _log.Fatal($"Unable to add zone_group_id: {idz.ZoneGroupId} from indun_zone");
+                            }
                         }
                     }
                 }
@@ -319,7 +344,10 @@ namespace AAEmu.Game.Core.Managers.World
                             for (var cellY = 0; cellY < world.CellY; cellY++)
                             {
                                 if (br.ReadBoolean())
+                                {
                                     continue;
+                                }
+
                                 for (var i = 0; i < SECTORS_PER_CELL; i++)
                                     for (var j = 0; j < SECTORS_PER_CELL; j++)
                                         for (var x = 0; x < SECTOR_HMAP_RESOLUTION; x++)
@@ -355,7 +383,9 @@ namespace AAEmu.Game.Core.Managers.World
             // Use world.xml to check if we have client data enabled
             var worldXmlTest = Path.Combine("game", "worlds", world.Name, "world.xml");
             if (!ClientFileManager.FileExists(worldXmlTest))
+            {
                 return false;
+            }
 
             var version = VersionCalc.Draft;
 
@@ -366,6 +396,7 @@ namespace AAEmu.Game.Core.Managers.World
                     var heightMapFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client",
                         "terrain", "heightmap.dat");
                     if (ClientFileManager.FileExists(heightMapFile))
+                    {
                         using (var stream = ClientFileManager.GetFileStream(heightMapFile))
                         {
                             if (stream == null)
@@ -431,7 +462,9 @@ namespace AAEmu.Game.Core.Managers.World
                                                         }
                                                         break;
                                                     default:
-                                                        throw new ArgumentOutOfRangeException();
+                                                        {
+                                                            throw new ArgumentOutOfRangeException();
+                                                        }
                                                 }
 
                                                 world.HeightMaps[oX, oY] = value;
@@ -440,6 +473,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 #endregion
                             }
                         }
+                    }
                 }
 
             _log.Info("{0} heightmap loaded", world.Name);
@@ -456,11 +490,17 @@ namespace AAEmu.Game.Core.Managers.World
                 foreach (var world in _worlds.Values)
                 {
                     if (AppConfiguration.Instance.ClientData.PreferClientHeightMap && LoadHeightMapFromClientData(world))
+                    {
                         loaded++;
+                    }
                     else if (LoadHeightMapFromDatFile(world))
+                    {
                         loaded++;
+                    }
                     else if (LoadHeightMapFromClientData(world))
+                    {
                         loaded++;
+                    }
                 }
 
                 _log.Info($"Loaded {loaded}/{_worlds.Count} heightmaps");
@@ -472,7 +512,7 @@ namespace AAEmu.Game.Core.Managers.World
             foreach (var world in _worlds.Values)
             {
                 var loadFromClient = true;
-                
+
                 // Try to load from saved json data
                 var customFile = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "water_bodies.json");
                 if (File.Exists(customFile))
@@ -486,14 +526,19 @@ namespace AAEmu.Game.Core.Managers.World
 
                 // If no custom data could be found or loaded, then load from client's cell data
                 if (loadFromClient)
+                {
                     LoadWaterBodiesFromClientData(world);
+                }
             }
         }
 
         public InstanceWorld GetWorld(uint worldId)
         {
             if (_worlds.TryGetValue(worldId, out var res))
+            {
                 return res;
+            }
+
             _log.Fatal("GetWorld(): No such WorldId {0}", worldId);
             return null;
         }
@@ -506,7 +551,10 @@ namespace AAEmu.Game.Core.Managers.World
         public InstanceWorld GetWorldByZone(uint zoneId)
         {
             if (_worldIdByZoneId.TryGetValue(zoneId, out var worldId))
+            {
                 return GetWorld(worldId);
+            }
+
             _log.Fatal("GetWorldByZone(): No world defined for ZoneId {0}", zoneId);
             return null;
         }
@@ -552,6 +600,7 @@ namespace AAEmu.Game.Core.Managers.World
         public float GetHeight(Transform transform)
         {
             if (AppConfiguration.Instance.HeightMapsEnable)
+            {
                 try
                 {
                     var world = GetWorld(transform.WorldId);
@@ -561,8 +610,11 @@ namespace AAEmu.Game.Core.Managers.World
                 {
                     return 0f;
                 }
+            }
             else
+            {
                 return transform.World.Position.Z;
+            }
         }
 
         private GameObject GetRootObj(GameObject obj)
@@ -580,7 +632,7 @@ namespace AAEmu.Game.Core.Managers.World
         public Region GetRegion(GameObject obj)
         {
             obj = GetRootObj(obj);
-            InstanceWorld world = GetWorld(obj.Transform.WorldId);
+            var world = GetWorld(obj.Transform.WorldId);
             return GetRegion(world, obj.Transform.World.Position.X, obj.Transform.World.Position.Y);
         }
 
@@ -592,7 +644,9 @@ namespace AAEmu.Game.Core.Managers.World
             for (var a = -REGION_NEIGHBORHOOD_SIZE; a <= REGION_NEIGHBORHOOD_SIZE; a++)
                 for (var b = -REGION_NEIGHBORHOOD_SIZE; b <= REGION_NEIGHBORHOOD_SIZE; b++)
                     if (ValidRegion(world.Id, x + a, y + b) && world.Regions[x + a, y + b] != null)
+                    {
                         result.Add(world.Regions[x + a, y + b]);
+                    }
 
             return result.ToArray();
         }
@@ -648,12 +702,17 @@ namespace AAEmu.Game.Core.Managers.World
         {
             _npcs[objId] = npc;
         }
-        
+
         public Character GetCharacter(string name)
         {
             foreach (var player in _characters.Values)
+            {
                 if (name.ToLower().Equals(player.Name.ToLower()))
+                {
                     return player;
+                }
+            }
+
             return null;
         }
 
@@ -670,7 +729,7 @@ namespace AAEmu.Game.Core.Managers.World
             FirstNonNameArgument = 0;
             if ((TargetName != null) && (TargetName != string.Empty))
             {
-                Character player = WorldManager.Instance.GetCharacter(TargetName);
+                var player = WorldManager.Instance.GetCharacter(TargetName);
                 if (player != null)
                 {
                     FirstNonNameArgument = 1;
@@ -678,7 +737,10 @@ namespace AAEmu.Game.Core.Managers.World
                 }
             }
             if ((character.CurrentTarget != null) && (character.CurrentTarget is Character))
+            {
                 return (Character)character.CurrentTarget;
+            }
+
             return character;
         }
 
@@ -691,78 +753,139 @@ namespace AAEmu.Game.Core.Managers.World
         public Character GetCharacterById(uint id)
         {
             foreach (var player in _characters.Values)
+            {
                 if (player.Id.Equals(id))
+                {
                     return player;
+                }
+            }
+
             return null;
         }
 
         public void AddObject(GameObject obj)
         {
             if (obj == null)
+            {
                 return;
+            }
 
             _objects.TryAdd(obj.ObjId, obj);
 
             if (obj is BaseUnit baseUnit)
+            {
                 _baseUnits.TryAdd(baseUnit.ObjId, baseUnit);
+            }
+
             if (obj is Unit unit)
+            {
                 _units.TryAdd(unit.ObjId, unit);
+            }
+
             if (obj is Doodad doodad)
+            {
                 _doodads.TryAdd(doodad.ObjId, doodad);
+            }
+
             if (obj is Npc npc)
+            {
                 _npcs.TryAdd(npc.ObjId, npc);
+            }
+
             if (obj is Character character)
+            {
                 _characters.TryAdd(character.ObjId, character);
+            }
+
             if (obj is Transfer transfer)
+            {
                 _transfers.TryAdd(transfer.ObjId, transfer);
+            }
+
             if (obj is Gimmick gimmick)
+            {
                 _gimmicks.TryAdd(gimmick.ObjId, gimmick);
+            }
+
             if (obj is Slave slave)
+            {
                 _slaves.TryAdd(slave.ObjId, slave);
+            }
         }
 
         public void RemoveObject(GameObject obj)
         {
             if (obj == null)
+            {
                 return;
+            }
 
             _objects.TryRemove(obj.ObjId, out _);
 
             if (obj is BaseUnit)
+            {
                 _baseUnits.TryRemove(obj.ObjId, out _);
+            }
+
             if (obj is Unit)
+            {
                 _units.TryRemove(obj.ObjId, out _);
+            }
+
             if (obj is Doodad)
+            {
                 _doodads.TryRemove(obj.ObjId, out _);
+            }
+
             if (obj is Npc)
+            {
                 _npcs.TryRemove(obj.ObjId, out _);
+            }
+
             if (obj is Character)
+            {
                 _characters.TryRemove(obj.ObjId, out _);
+            }
+
             if (obj is Transfer)
+            {
                 _transfers.TryRemove(obj.ObjId, out _);
+            }
+
             if (obj is Gimmick)
+            {
                 _gimmicks.TryRemove(obj.ObjId, out _);
+            }
+
             if (obj is Slave)
+            {
                 _slaves.TryRemove(obj.ObjId, out _);
+            }
         }
 
         public void AddVisibleObject(GameObject obj)
         {
             if (obj == null || !obj.IsVisible)
+            {
                 return;
+            }
 
             var region = GetRegion(obj); // Get region of Object or it's Root object if it has one
             var currentRegion = obj.Region; // Current Region this object is in
 
             // If region didn't change, ignore
             if (region == null || currentRegion != null && currentRegion.Equals(region))
+            {
                 return;
+            }
 
             if (currentRegion == null)
             {
                 // If no currentRegion, add it (happens on new spawns)
                 foreach (var neighbor in region.GetNeighbors())
+                {
                     neighbor.AddToCharacters(obj);
+                }
 
                 region.AddObject(obj);
                 obj.Region = region;
@@ -778,14 +901,18 @@ namespace AAEmu.Game.Core.Managers.World
                 {
                     var remove = true;
                     foreach (var newNeighbor in newNeighbors)
+                    {
                         if (newNeighbor.Equals(neighbor))
                         {
                             remove = false;
                             break;
                         }
+                    }
 
                     if (remove)
+                    {
                         neighbor.RemoveFromCharacters(obj);
+                    }
                 }
 
                 // Add visibility to newNeighbours
@@ -793,14 +920,18 @@ namespace AAEmu.Game.Core.Managers.World
                 {
                     var add = true;
                     foreach (var oldNeighbor in oldNeighbors)
+                    {
                         if (oldNeighbor.Equals(neighbor))
                         {
                             add = false;
                             break;
                         }
+                    }
 
                     if (add)
+                    {
                         neighbor.AddToCharacters(obj);
+                    }
                 }
 
                 // Add this obj to the new region
@@ -814,42 +945,56 @@ namespace AAEmu.Game.Core.Managers.World
 
             // Also show children
             if (obj?.Transform?.Children.Count > 0)
+            {
                 foreach (var child in obj.Transform.Children)
+                {
                     AddVisibleObject(child.GameObject);
+                }
+            }
         }
 
         public void RemoveVisibleObject(GameObject obj)
         {
-            try
+            if (obj == null)
             {
-                if (obj?.Region == null)
-                    return;
-
-                obj.Region.RemoveObject(obj);
-
-                var neighbours = obj.Region.GetNeighbors();
-                if ((neighbours != null) && (neighbours.Length > 0))
-                    foreach (var neighbor in neighbours)
-                        neighbor?.RemoveFromCharacters(obj);
-
-                obj.Region = null;
-            
-            }
-            catch (Exception e)
-            {
-                _log.Error($"RemoveVisibleObject: {e}");
+                return;
             }
 
-            try
+            if (obj.Region == null)
             {
-                // Also remove children
-                if (obj?.Transform?.Children.Count > 0)
-                    foreach (var child in obj?.Transform.Children)
-                        RemoveVisibleObject(child?.GameObject);
+                return;
             }
-            catch (Exception e)
+
+            var neighbors = obj.Region.GetNeighbors();
+            obj.Region.RemoveObject(obj);
+
+            if (neighbors == null)
             {
-                _log.Error($"RemoveVisibleObject.RemoveChildren: {e}");
+                return;
+            }
+
+            if (neighbors.Length > 0)
+            {
+                foreach (var neighbor in neighbors)
+                {
+                    neighbor?.RemoveFromCharacters(obj);
+                }
+            }
+
+            obj.Region = null;
+
+            // Also remove children
+            if (obj.Transform == null)
+            {
+                return;
+            }
+
+            if (obj.Transform.Children.Count > 0)
+            {
+                foreach (var child in obj.Transform.Children)
+                {
+                    RemoveVisibleObject(child?.GameObject);
+                }
             }
         }
 
@@ -857,10 +1002,14 @@ namespace AAEmu.Game.Core.Managers.World
         {
             var result = new List<T>();
             if (obj.Region == null)
+            {
                 return result;
+            }
 
             foreach (var neighbor in obj.Region.GetNeighbors())
+            {
                 neighbor.GetList(result, obj.ObjId);
+            }
 
             return result;
         }
@@ -869,10 +1018,14 @@ namespace AAEmu.Game.Core.Managers.World
         {
             var result = new List<T>();
             if (obj.Region == null)
+            {
                 return result;
+            }
 
             if (useModelSize)
+            {
                 radius += obj.ModelSize;
+            }
 
             if (radius > 0.0f && RadiusFitsCurrentRegion(obj, radius))
             {
@@ -881,7 +1034,9 @@ namespace AAEmu.Game.Core.Managers.World
             else
             {
                 foreach (var neighbor in obj.Region.GetNeighbors())
+                {
                     neighbor.GetList(result, obj.ObjId, obj.Transform.World.Position.X, obj.Transform.World.Position.Y, radius * radius, useModelSize);
+                }
             }
 
             return result;
@@ -891,18 +1046,26 @@ namespace AAEmu.Game.Core.Managers.World
         {
             var xMod = obj.Transform.World.Position.X % REGION_SIZE;
             if (xMod - radius < 0 || xMod + radius > REGION_SIZE)
+            {
                 return false;
+            }
 
             var yMod = obj.Transform.World.Position.Y % REGION_SIZE;
             if (yMod - radius < 0 || yMod + radius > REGION_SIZE)
+            {
                 return false;
+            }
+
             return true;
         }
 
         public List<T> GetAroundByShape<T>(GameObject obj, AreaShape shape) where T : GameObject
         {
             if (shape.Value1 == 0 && shape.Value2 == 0 && shape.Value3 == 0)
+            {
                 _log.Warn("AreaShape with no size values was used");
+            }
+
             if (shape.Type == AreaShapeType.Sphere)
             {
                 var radius = shape.Value1;
@@ -930,11 +1093,16 @@ namespace AAEmu.Game.Core.Managers.World
                 for (var b = y * SECTORS_PER_CELL; b < (y + 1) * SECTORS_PER_CELL; b++)
                 {
                     if (ValidRegion(worldId, a, b) && _worlds[worldId].Regions[a, b] != null)
+                    {
                         regions.Add(_worlds[worldId].Regions[a, b]);
+                    }
                 }
 
             foreach (var region in regions)
+            {
                 region.GetList(result, 0);
+            }
+
             return result;
         }
 
@@ -946,7 +1114,10 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 var cmRace = (((byte)character.Race - 1) & 0xFC);
                 if (mRace != cmRace)
+                {
                     continue;
+                }
+
                 character.SendPacket(packet);
             }
         }
@@ -957,7 +1128,10 @@ namespace AAEmu.Game.Core.Managers.World
             foreach (var character in _characters.Values)
             {
                 if (character.Faction.MotherId != factionMotherId)
+                {
                     continue;
+                }
+
                 character.SendPacket(packet);
             }
         }
@@ -972,7 +1146,10 @@ namespace AAEmu.Game.Core.Managers.World
             foreach (var character in _characters.Values)
             {
                 if (!validZones.Contains(character.Transform.ZoneId))
+                {
                     continue;
+                }
+
                 character.SendPacket(packet);
             }
         }
@@ -1033,9 +1210,13 @@ namespace AAEmu.Game.Core.Managers.World
             foreach (var stuff in stuffs)
             {
                 if (stuff is Doodad d)
+                {
                     doodads.Add(d);
+                }
                 else
+                {
                     stuff.AddVisibleObject(character);
+                }
             }
 
             for (var i = 0; i < doodads.Count; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
@@ -1070,8 +1251,11 @@ namespace AAEmu.Game.Core.Managers.World
 
         public AreaShape GetAreaShapeById(uint id)
         {
-            if (_areaShapes.TryGetValue(id, out AreaShape res))
+            if (_areaShapes.TryGetValue(id, out var res))
+            {
                 return res;
+            }
+
             return null;
         }
 
@@ -1085,7 +1269,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void StartPhysics()
         {
-            foreach (var (key,world) in _worlds)
+            foreach (var (key, world) in _worlds)
             {
                 world.Physics = new BoatPhysicsManager();
                 world.Physics.SimulationWorld = world;
@@ -1093,96 +1277,111 @@ namespace AAEmu.Game.Core.Managers.World
                 world.Physics.StartPhysics();
             }
         }
-        
+
         public bool LoadWaterBodiesFromClientData(InstanceWorld world)
         {
             // Use world.xml to check if we have client data enabled
             var worldXmlTest = Path.Combine("game", "worlds", world.Name, "world.xml");
             if (!ClientFileManager.FileExists(worldXmlTest))
+            {
                 return false;
+            }
 
             var bodiesLoaded = 0;
-            
+
             // TODO: The data loaded here is incorrect !!!
 
             for (var cellY = 0; cellY < world.CellY; cellY++)
-            for (var cellX = 0; cellX < world.CellX; cellX++)
-            {
-                var cellFileName = $"{cellX:000}_{cellY:000}";
-                var entityFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client", "entities.xml");
-                if (ClientFileManager.FileExists(entityFile))
+                for (var cellX = 0; cellX < world.CellX; cellX++)
                 {
-                    var xmlString = ClientFileManager.GetFileAsString(entityFile);
-                    var xmlDoc = new XmlDocument();
-                    xmlDoc.LoadXml(xmlString);
-
-                    var _allEntityBlocks = xmlDoc.SelectNodes("/Mission/Objects/Entity");
-                    var cellPos = new Vector3(cellX * 1024, cellY * 1024, 0);
-
-                    for (var i = 0; i < _allEntityBlocks?.Count; i++)
+                    var cellFileName = $"{cellX:000}_{cellY:000}";
+                    var entityFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client", "entities.xml");
+                    if (ClientFileManager.FileExists(entityFile))
                     {
-                        var block = _allEntityBlocks[i];
-                        var attribs = XmlHelper.ReadNodeAttributes(block);
-                        
-                        if (!attribs.TryGetValue("Name", out var entityName))
-                            continue;
+                        var xmlString = ClientFileManager.GetFileAsString(entityFile);
+                        var xmlDoc = new XmlDocument();
+                        xmlDoc.LoadXml(xmlString);
 
-                        // Is this Entity named like a water body ?
-                        // TODO: More sophisticated way of determining if it's water
-                        var isWaterBody = entityName.Contains("_water") || entityName.Contains("_pond") || entityName.Contains("_lake") || entityName.Contains("_river");
-                        if (isWaterBody == false)
-                            continue;
-                        
-                        if (attribs.TryGetValue("EntityClass", out var entityClass))
+                        var _allEntityBlocks = xmlDoc.SelectNodes("/Mission/Objects/Entity");
+                        var cellPos = new Vector3(cellX * 1024, cellY * 1024, 0);
+
+                        for (var i = 0; i < _allEntityBlocks?.Count; i++)
                         {
-                            // Is it a AreaShape ?
-                            if (entityClass == "AreaShape")
+                            var block = _allEntityBlocks[i];
+                            var attribs = XmlHelper.ReadNodeAttributes(block);
+
+                            if (!attribs.TryGetValue("Name", out var entityName))
                             {
-                                var areaBlock = block.SelectSingleNode("Area");
-                                if (areaBlock == null)
-                                    continue; // this shape has no area defined
+                                continue;
+                            }
 
-                                // Create WaterBody here
-                                var newWaterBodyArea = new WaterBodyArea(entityName);
-                                newWaterBodyArea.Id = XmlHelper.ReadAttribute<uint>(attribs, "EntityId", 0u);
-                                newWaterBodyArea.Guid = XmlHelper.ReadAttribute<string>(attribs, "Guid", "");
+                            // Is this Entity named like a water body ?
+                            // TODO: More sophisticated way of determining if it's water
+                            var isWaterBody = entityName.Contains("_water") || entityName.Contains("_pond") || entityName.Contains("_lake") || entityName.Contains("_river");
+                            if (isWaterBody == false)
+                            {
+                                continue;
+                            }
 
-                                var entityPosString = XmlHelper.ReadAttribute<string>(attribs, "Pos", "0,0,0");
-                                var areaPos = XmlHelper.StringToVector3(entityPosString);
-                                
-                                // Read Area Data (height)
-                                var areaAttribs = XmlHelper.ReadNodeAttributes(areaBlock);
-                                newWaterBodyArea.Height = XmlHelper.ReadAttribute<float>(areaAttribs, "Height", 0f);
-
-                                // Get Points within the Area
-                                var pointBlocks = areaBlock.SelectNodes("Points/Point");
-
-                                var firstPos = Vector3.Zero;
-                                for (var p = 0; p < pointBlocks.Count; p++)
+                            if (attribs.TryGetValue("EntityClass", out var entityClass))
+                            {
+                                // Is it a AreaShape ?
+                                if (entityClass == "AreaShape")
                                 {
-                                    var pointAttribs = XmlHelper.ReadNodeAttributes(pointBlocks[p]);
-                                    var pointPosString = XmlHelper.ReadAttribute<string>(pointAttribs, "Pos", "0,0,0");
-                                    var pointPos = XmlHelper.StringToVector3(pointPosString);
-                                    var pos = cellPos + areaPos + pointPos;
-                                    newWaterBodyArea.Points.Add(pos);
-                                    if (p == 0)
-                                        firstPos = pos;
+                                    var areaBlock = block.SelectSingleNode("Area");
+                                    if (areaBlock == null)
+                                    {
+                                        continue; // this shape has no area defined
+                                    }
+
+                                    // Create WaterBody here
+                                    var newWaterBodyArea = new WaterBodyArea(entityName);
+                                    newWaterBodyArea.Id = XmlHelper.ReadAttribute<uint>(attribs, "EntityId", 0u);
+                                    newWaterBodyArea.Guid = XmlHelper.ReadAttribute<string>(attribs, "Guid", "");
+
+                                    var entityPosString = XmlHelper.ReadAttribute<string>(attribs, "Pos", "0,0,0");
+                                    var areaPos = XmlHelper.StringToVector3(entityPosString);
+
+                                    // Read Area Data (height)
+                                    var areaAttribs = XmlHelper.ReadNodeAttributes(areaBlock);
+                                    newWaterBodyArea.Height = XmlHelper.ReadAttribute<float>(areaAttribs, "Height", 0f);
+
+                                    // Get Points within the Area
+                                    var pointBlocks = areaBlock.SelectNodes("Points/Point");
+
+                                    var firstPos = Vector3.Zero;
+                                    for (var p = 0; p < pointBlocks.Count; p++)
+                                    {
+                                        var pointAttribs = XmlHelper.ReadNodeAttributes(pointBlocks[p]);
+                                        var pointPosString = XmlHelper.ReadAttribute<string>(pointAttribs, "Pos", "0,0,0");
+                                        var pointPos = XmlHelper.StringToVector3(pointPosString);
+                                        var pos = cellPos + areaPos + pointPos;
+                                        newWaterBodyArea.Points.Add(pos);
+                                        if (p == 0)
+                                        {
+                                            firstPos = pos;
+                                        }
+                                    }
+
+                                    if (pointBlocks.Count > 2)
+                                    {
+                                        newWaterBodyArea.Points.Add(firstPos);
+                                    }
+
+                                    newWaterBodyArea.UpdateBounds();
+                                    world.Water.Areas.Add(newWaterBodyArea);
+                                    bodiesLoaded++;
                                 }
-
-                                if (pointBlocks.Count > 2)
-                                    newWaterBodyArea.Points.Add(firstPos);
-
-                                newWaterBodyArea.UpdateBounds();
-                                world.Water.Areas.Add(newWaterBodyArea);
-                                bodiesLoaded++;
                             }
                         }
                     }
                 }
-            }
 
             if (bodiesLoaded > 0)
+            {
                 _log.Info($"{bodiesLoaded} waters bodies loaded for {world.Name}");
+            }
+
             return true;
         }
     }

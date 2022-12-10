@@ -7,6 +7,6 @@ namespace AAEmu.Game.Models.Tasks.Item
         public override void Execute()
         {
             ItemManager.Instance.UpdateItemTimers();
-        }        
+        }
     }
 }

@@ -1,8 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Skills.Effects;
-using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -19,12 +17,20 @@ namespace AAEmu.Game.Core.Packets.C2G
             var reason = stream.ReadByte();
 
             if (Connection.ActiveChar.ObjId != objId)
+            {
                 return;
+            }
+
             var effect = Connection.ActiveChar.Buffs.GetEffectByIndex(buffId);
             if (effect == null)
+            {
                 return;
+            }
+
             if (effect.Template.Kind == BuffKind.Good)
+            {
                 effect.Exit();
+            }
         }
     }
 }

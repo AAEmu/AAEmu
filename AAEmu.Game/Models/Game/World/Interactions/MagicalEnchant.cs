@@ -12,22 +12,30 @@ namespace AAEmu.Game.Models.Game.World.Interactions
 {
     public class MagicalEnchant : IWorldInteraction
     {
-        public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
+        public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
             uint skillId, uint itemId, DoodadFuncTemplate objectFunc)
         {
             if (!(caster is Character character))
+            {
                 return;
+            }
 
             if (!(targetType is SkillCastItemTarget itemTarget))
+            {
                 return;
+            }
 
             if (!(casterType is SkillItem skillItem))
+            {
                 return;
+            }
 
             var targetItem = character.Inventory.Bag.GetItemByItemId(itemTarget.Id);
 
             if (!(targetItem is EquipItem equipItem))
+            {
                 return;
+            }
 
             equipItem.RuneId = skillItem.ItemTemplateId;
 

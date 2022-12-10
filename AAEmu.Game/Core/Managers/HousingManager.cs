@@ -4,6 +4,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -37,7 +38,7 @@ namespace AAEmu.Game.Core.Managers
     public class HousingManager : Singleton<HousingManager>
     {
         private const uint ForSaleMarkerDoodadId = 6760;
-        
+
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private Dictionary<uint, HousingTemplate> _housingTemplates;
         private Dictionary<uint, House> _houses;
@@ -58,8 +59,13 @@ namespace AAEmu.Game.Core.Managers
         public int GetByAccountId(Dictionary<uint, House> values, uint accountId)
         {
             foreach (var (id, house) in _houses)
+            {
                 if (house.AccountId == accountId)
+                {
                     values.Add(id, house);
+                }
+            }
+
             return values.Count;
         }
 
@@ -72,15 +78,22 @@ namespace AAEmu.Game.Core.Managers
         public int GetByCharacterId(Dictionary<uint, House> values, uint characterId)
         {
             foreach (var (id, house) in _houses)
+            {
                 if (house.OwnerId == characterId)
+                {
                     values.Add(id, house);
+                }
+            }
+
             return values.Count;
         }
 
         public House Create(uint templateId, uint factionId, uint objectId = 0, ushort tlId = 0)
         {
             if (!_housingTemplates.ContainsKey(templateId))
+            {
                 return null;
+            }
 
             var template = _housingTemplates[templateId];
 
@@ -95,7 +108,9 @@ namespace AAEmu.Game.Core.Managers
             house.Hp = house.MaxHp;
             // Force public on always public properties on create
             if (template.AlwaysPublic)
+            {
                 house.Permission = HousingPermission.Public;
+            }
 
             SetUntouchable(house, true);
 
@@ -141,14 +156,20 @@ namespace AAEmu.Game.Core.Managers
                 var filePath = Path.Combine(FileManager.AppPath, "Data", "housing_bindings.json");
                 var contents = FileManager.GetFileContents(filePath);
                 if (string.IsNullOrWhiteSpace(contents))
+                {
                     throw new IOException(
                         $"File {filePath} doesn't exists or is empty.");
+                }
 
                 List<HousingBindingTemplate> binding;
                 if (JsonHelper.TryDeserializeObject(contents, out binding, out _))
+                {
                     _log.Info("Housing bindings loaded...");
+                }
                 else
+                {
                     _log.Warn("Housing bindings not loaded...");
+                }
 
                 using (var command = connection.CreateCommand())
                 {
@@ -172,7 +193,7 @@ namespace AAEmu.Game.Core.Managers
                             template.GardenRadius = reader.GetFloat("garden_radius");
                             template.Family = reader.GetString("family");
                             var taxationId = reader.GetUInt32("taxation_id");
-                            template.Taxation = TaxationsManager.Instance.taxations.ContainsKey(taxationId) ? TaxationsManager.Instance.taxations[taxationId] : null; 
+                            template.Taxation = TaxationsManager.Instance.taxations.ContainsKey(taxationId) ? TaxationsManager.Instance.taxations[taxationId] : null;
                             template.GuardTowerSettingId = reader.GetUInt32("guard_tower_setting_id", 0);
                             template.CinemaRadius = reader.GetFloat("cinema_radius");
                             template.AutoZOffsetX = reader.GetFloat("auto_z_offset_x");
@@ -206,11 +227,15 @@ namespace AAEmu.Game.Core.Managers
 
                                         if (templateBindings != null &&
                                             templateBindings.AttachPointId.ContainsKey(bindingDoodad.AttachPointId))
+                                        {
                                             bindingDoodad.Position = templateBindings
                                                 .AttachPointId[bindingDoodad.AttachPointId].Clone();
+                                        }
 
                                         if (bindingDoodad.Position == null)
+                                        {
                                             bindingDoodad.Position = new WorldSpawnPosition();
+                                        }
 
                                         doodads.Add(bindingDoodad);
                                     }
@@ -234,7 +259,9 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var housingId = reader.GetUInt32("housing_id");
                             if (!_housingTemplates.ContainsKey(housingId))
+                            {
                                 continue;
+                            }
 
                             var template = new HousingBuildStep();
                             template.Id = reader.GetUInt32("id");
@@ -334,7 +361,9 @@ namespace AAEmu.Game.Core.Managers
 
                             // Manually placed houses (or after upgrading MySQL), will get 2 weeks for free as to not immediately trigger them into demolition
                             if (house.PlaceDate == house.ProtectionEndDate)
+                            {
                                 house.ProtectionEndDate = house.PlaceDate.AddDays(14);
+                            }
 
                             UpdateTaxInfo(house);
                             house.IsDirty = false;
@@ -373,8 +402,12 @@ namespace AAEmu.Game.Core.Managers
 
             var updateCount = 0;
             foreach (var house in _houses.Values)
+            {
                 if (house.Save(connection, transaction))
+                {
                     updateCount++;
+                }
+            }
 
             return (updateCount, deleteCount);
         }
@@ -382,7 +415,9 @@ namespace AAEmu.Game.Core.Managers
         public void SpawnAll()
         {
             foreach (var house in _houses.Values)
+            {
                 house.Spawn();
+            }
         }
 
         /// <summary>
@@ -395,7 +430,9 @@ namespace AAEmu.Game.Core.Managers
             if (isUntouchable)
             {
                 if (house.Buffs.CheckBuff((uint)BuffConstants.Untouchable))
+                {
                     return;
+                }
 
                 // Permanent Untouchable buff, should only be removed when failed tax payment, or demolishing by hand
                 var protectionBuffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Untouchable);
@@ -414,7 +451,9 @@ namespace AAEmu.Game.Core.Managers
             {
                 // Remove Untouchable if it's enabled
                 if (house.Buffs.CheckBuff((uint)BuffConstants.Untouchable))
+                {
                     house.Buffs.RemoveBuff((uint)BuffConstants.Untouchable);
+                }
             }
         }
 
@@ -447,7 +486,9 @@ namespace AAEmu.Game.Core.Managers
             {
                 // Remove Untouchable if it's enabled
                 if (house.Buffs.CheckBuff((uint)BuffConstants.RemovalDebuff))
+                {
                     house.Buffs.RemoveBuff((uint)BuffConstants.RemovalDebuff);
+                }
             }
         }
 
@@ -482,7 +523,9 @@ namespace AAEmu.Game.Core.Managers
         public void HouseTaxInfo(GameConnection connection, ushort tlId)
         {
             if (!_housesTl.ContainsKey(tlId))
+            {
                 return;
+            }
 
             var house = _housesTl[tlId];
 
@@ -582,7 +625,10 @@ namespace AAEmu.Game.Core.Managers
                     if ((userBoundTaxCount > 0) && (c > 0))
                     {
                         if (c > userBoundTaxCount)
+                        {
                             c = userBoundTaxCount;
+                        }
+
                         connection.ActiveChar.Inventory.Bag.ConsumeItem(Models.Game.Items.Actions.ItemTaskType.HouseCreation, Item.BoundTaxCertificate, c, null);
                         consumedCerts -= c;
                     }
@@ -590,13 +636,18 @@ namespace AAEmu.Game.Core.Managers
                     if ((userTaxCount > 0) && (c > 0))
                     {
                         if (c > userTaxCount)
+                        {
                             c = userTaxCount;
+                        }
+
                         connection.ActiveChar.Inventory.Bag.ConsumeItem(Models.Game.Items.Actions.ItemTaskType.HouseCreation, Item.TaxCertificate, c, null);
                         consumedCerts -= c;
                     }
 
                     if (consumedCerts != 0)
+                    {
                         _log.Error("Something went wrong when paying tax for new building for player {0}", connection.ActiveChar.Name);
+                    }
                 }
 
             }
@@ -627,7 +678,10 @@ namespace AAEmu.Game.Core.Managers
             {
                 var fakeLocalizedName = LocalizationManager.Instance.Get("items", "name", sourceDesignItem.Template.Id, houseTemplate.Name);
                 if (fakeLocalizedName.EndsWith(" Design"))
+                {
                     fakeLocalizedName = fakeLocalizedName.Replace(" Design", "");
+                }
+
                 house.Name = fakeLocalizedName;
             }
 
@@ -636,9 +690,14 @@ namespace AAEmu.Game.Core.Managers
             house.Transform.Local.SetZRotation(zRot);
 
             if (house.Template.BuildSteps.Count > 0)
+            {
                 house.CurrentStep = 0;
+            }
             else
+            {
                 house.CurrentStep = -1;
+            }
+
             house.OwnerId = connection.ActiveChar.Id;
             house.CoOwnerId = connection.ActiveChar.Id;
             house.AccountId = connection.AccountId;
@@ -661,25 +720,38 @@ namespace AAEmu.Game.Core.Managers
         public void ChangeHousePermission(GameConnection connection, ushort tlId, HousingPermission permission)
         {
             if (!_housesTl.ContainsKey(tlId))
+            {
                 return;
+            }
+
             var house = _housesTl[tlId];
             if (house.OwnerId != connection.ActiveChar.Id)
+            {
                 return;
+            }
 
             switch (permission)
             {
                 case HousingPermission.Guild when connection.ActiveChar.Expedition == null:
                 case HousingPermission.Family when connection.ActiveChar.Family == 0:
-                    return;
+                    {
+                        return;
+                    }
                 case HousingPermission.Guild:
-                    house.CoOwnerId = connection.ActiveChar.Expedition.Id;
-                    break;
+                    {
+                        house.CoOwnerId = connection.ActiveChar.Expedition.Id;
+                        break;
+                    }
                 case HousingPermission.Family:
-                    house.CoOwnerId = connection.ActiveChar.Family;
-                    break;
+                    {
+                        house.CoOwnerId = connection.ActiveChar.Family;
+                        break;
+                    }
                 default:
-                    house.CoOwnerId = connection.ActiveChar.Id;
-                    break;
+                    {
+                        house.CoOwnerId = connection.ActiveChar.Id;
+                        break;
+                    }
             }
 
             house.Permission = permission;
@@ -696,10 +768,15 @@ namespace AAEmu.Game.Core.Managers
         public void ChangeHouseName(GameConnection connection, ushort tlId, string name)
         {
             if (!_housesTl.ContainsKey(tlId))
+            {
                 return;
+            }
+
             var house = _housesTl[tlId];
             if (house.OwnerId != connection.ActiveChar.Id)
+            {
                 return;
+            }
 
             house.Name = name.Substring(0, 1).ToUpper() + name.Substring(1);
             house.IsDirty = true; // Manually set the IsDirty on House level
@@ -753,9 +830,9 @@ namespace AAEmu.Game.Core.Managers
                 ownerChar?.SendPacket(new SCMyHouseRemovedPacket(house.TlId));
                 // Make killable
                 UpdateHouseFaction(house, (uint)FactionsEnum.Monstrosity);
-                
+
                 SetForSaleMarkers(house, false);
-                
+
                 house.IsDirty = true;
 
                 // TODO: better house killing handling
@@ -804,39 +881,53 @@ namespace AAEmu.Game.Core.Managers
             hostileTaxRate = 0; // NOTE: When castles are added, this needs to be updated depending on ruling guild's settings
             oneWeekTaxCount = 0;
 
-            Dictionary<uint, House> userHouses = new Dictionary<uint, House>();
+            var userHouses = new Dictionary<uint, House>();
             if (GetByAccountId(userHouses, AccountId) <= 0)
+            {
                 return false;
+            }
 
             // Count the houses on this account
             foreach (var h in userHouses)
             {
                 if (h.Value.Template.HeavyTax)
+                {
                     heavyHouseCount++;
+                }
                 else
+                {
                     normalHouseCount++;
+                }
             }
 
             // If this is for a new building, add 1 to count
             if (buildingNewHouse)
             {
                 if (newHouseTemplate.HeavyTax)
+                {
                     heavyHouseCount++;
+                }
                 else
+                {
                     normalHouseCount++;
+                }
             }
 
             // Default Heavy Tax formula for 1.2
             var taxMultiplier = (heavyHouseCount < MAX_HEAVY_TAX_COUNTED ? heavyHouseCount : MAX_HEAVY_TAX_COUNTED) * 0.5f;
             // If less than 3 properties, or not a heavy tax property, no extra multiplier needed
             if ((heavyHouseCount < 3) || (newHouseTemplate.HeavyTax == false))
+            {
                 taxMultiplier = 1f;
+            }
 
             totalTaxToPay = oneWeekTaxCount = (int)Math.Ceiling(newHouseTemplate.Taxation.Tax * taxMultiplier);
 
             // If this is a new house, add the deposit (base tax * 2)
             if (buildingNewHouse)
+            {
                 totalTaxToPay += (int)(newHouseTemplate.Taxation.Tax * 2);
+            }
 
             return true;
         }
@@ -855,7 +946,9 @@ namespace AAEmu.Game.Core.Managers
             SetRemovalDebuff(house, isDemolished);
 
             if (house.OwnerId <= 0)
+            {
                 return;
+            }
 
             // If expired, start demolition debuffs
             if (isDemolished)
@@ -931,8 +1024,12 @@ namespace AAEmu.Game.Core.Managers
             var myHouses = new Dictionary<uint, House>();
             GetByCharacterId(myHouses, characterId);
             foreach (var h in myHouses)
+            {
                 if ((h.Value.Faction == null) || (h.Value.Faction.Id != factionId))
+                {
                     UpdateHouseFaction(h.Value, factionId);
+                }
+            }
         }
 
         /// <summary>
@@ -945,7 +1042,9 @@ namespace AAEmu.Game.Core.Managers
         public void ReturnHouseItemsToOwner(House house, bool failedToPayTax, bool forceRestoreAllDecor, Character newOwner)
         {
             if (house.OwnerId <= 0)
+            {
                 return;
+            }
 
             var returnedItems = new List<Item>();
             var returnedMoney = 0;
@@ -958,7 +1057,7 @@ namespace AAEmu.Game.Core.Managers
                 var designItemId = GetItemIdByDesign(house.Template.Id);
                 var designItem = ItemManager.Instance.Create(designItemId, 1, 0);
                 var designTemplate = ItemManager.Instance.GetTemplate(designItemId);
-                designItem.Grade = (designTemplate.FixedGrade >= 0) ? (byte)designTemplate.FixedGrade : (byte)0 ;
+                designItem.Grade = (designTemplate.FixedGrade >= 0) ? (byte)designTemplate.FixedGrade : (byte)0;
                 designItem.OwnerId = house.OwnerId;
                 designItem.SlotType = SlotType.Mail;
                 returnedItems.Add(designItem);
@@ -985,11 +1084,15 @@ namespace AAEmu.Game.Core.Managers
             {
                 // Ignore attached objects (those are doors/windows etc)
                 if (f.AttachPoint != AttachPointKind.None)
+                {
                     continue;
-                
+                }
+
                 // Ignore for sale signs
                 if (f.TemplateId == ForSaleMarkerDoodadId)
+                {
                     continue;
+                }
 
                 var decoDesign = GetDecorationDesignFromDoodadId(f.TemplateId);
                 if (decoDesign == null)
@@ -1020,16 +1123,20 @@ namespace AAEmu.Game.Core.Managers
 
                 var wantReturned = (newOwner == null) && decoInfo.Restore;
                 if (forceRestoreAllDecor)
+                {
                     wantReturned = true;
-                
+                }
+
                 // If item is bound, always return it owner
                 if (f.ItemId > 0)
                 {
                     var item = ItemManager.Instance.GetItemByItemId(f.ItemId);
                     if (item.ItemFlags.HasFlag(ItemFlag.SoulBound))
+                    {
                         wantReturned = true;
+                    }
                 }
-                
+
                 // If this doodad is a Coffer and has a ItemContainer attached, also return all item of that container
                 if ((f is DoodadCoffer coffer) && (f.GetItemContainerId() > 0))
                 {
@@ -1056,8 +1163,10 @@ namespace AAEmu.Game.Core.Managers
                         // Just delete the doodad and attached item if no new owner
                         // Delete the attached item
                         if (f.ItemId != 0)
+                        {
                             thisDoodadsItem._holdingContainer?.ConsumeItem(ItemTaskType.Invalid,
                                 thisDoodadsItem.TemplateId, thisDoodadsItem.Count, thisDoodadsItem);
+                        }
 
                         // Is furniture, but doesn't restore, destroy it
                         f.Transform.DetachAll();
@@ -1078,7 +1187,7 @@ namespace AAEmu.Game.Core.Managers
 
                     continue;
                 }
-                
+
                 // Item needs to be actually returned, so let's do that
                 if (f.ItemId > 0)
                 {
@@ -1104,7 +1213,7 @@ namespace AAEmu.Game.Core.Managers
                         // It's a new one, add a item slot
                         var furnitureItem = ItemManager.Instance.Create(f.ItemTemplateId, 1, 0);
                         var furnitureTemplate = ItemManager.Instance.GetTemplate(f.ItemTemplateId);
-                        furnitureItem.Grade = (furnitureTemplate.FixedGrade >= 0) ? (byte)furnitureTemplate.FixedGrade : (byte)0 ;
+                        furnitureItem.Grade = (furnitureTemplate.FixedGrade >= 0) ? (byte)furnitureTemplate.FixedGrade : (byte)0;
                         furnitureItem.OwnerId = house.OwnerId;
                         furnitureItem.SlotType = SlotType.Mail;
                         returnedItems.Add(furnitureItem);
@@ -1119,7 +1228,9 @@ namespace AAEmu.Game.Core.Managers
 
                 // Set new doodad owner if needed
                 if (newOwner != null)
+                {
                     f.OwnerId = newOwner.Id;
+                }
 
                 if ((newOwner == null) || returnedThisItem)
                 {
@@ -1148,29 +1259,42 @@ namespace AAEmu.Game.Core.Managers
                     newMail.Body.Text = "body"; // Yes, that's indeed what it needs to be set to
                     newMail.Body.SendDate = DateTime.UtcNow;
                     if (failedToPayTax)
+                    {
                         newMail.Body.RecvDate = DateTime.UtcNow.AddHours(22);
+                    }
                     else
+                    {
                         newMail.Body.RecvDate = DateTime.UtcNow;
+                    }
+
                     newMail.Header.Extra = house.Id;
                 }
                 // Only attach money to first mail
                 if ((returnedMoney > 0) && (i == 0))
+                {
                     newMail.AttachMoney(returnedMoney);
+                }
 
                 // If player is loaded in at the moment (which he/she should be anyway), directly manipulate the inventory
                 // If not, only change the container
                 var onlineOwner = WorldManager.Instance.GetCharacterById((uint)returnedItems[i].OwnerId);
                 if (onlineOwner != null)
+                {
                     onlineOwner.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Invalid, returnedItems[i]);
+                }
                 else
+                {
                     returnedItems[i].SlotType = SlotType.Mail;
+                }
 
                 // Attach item
                 newMail.Body.Attachments.Add(returnedItems[i]);
 
                 // Send on last or 10th item of the mail
                 if (((i % 10) == 9) || (i == returnedItems.Count - 1))
+                {
                     newMail.Send();
+                }
             }
 
             if (newMail != null)
@@ -1203,7 +1327,10 @@ namespace AAEmu.Game.Core.Managers
             // TODO: In later versions, this depends on the building-type/size
             var certAmount = (int)Math.Ceiling(salePrice / 1000000f);
             if (certAmount < 1)
+            {
                 certAmount = 1;
+            }
+
             return certAmount;
         }
 
@@ -1216,12 +1343,12 @@ namespace AAEmu.Game.Core.Managers
         {
             if (isForSale)
             {
-                for (int postId = 0; postId < 4; postId++)
+                for (var postId = 0; postId < 4; postId++)
                 {
                     var xMultiplier = (postId % 2) == 0 ? -1 : 1f;
                     var yMultiplier = (postId / 2) == 0 ? -1 : 1f;
-                    var zRot = ((135f + (90f * postId) % 360)).DegToRad(); 
-                    
+                    var zRot = ((135f + (90f * postId) % 360)).DegToRad();
+
                     var doodad = DoodadManager.Instance.Create(0, ForSaleMarkerDoodadId);
                     // location
                     doodad.Transform.Local.SetPosition(
@@ -1243,13 +1370,13 @@ namespace AAEmu.Game.Core.Managers
 
                     doodad.Spawn();
                 }
-                
+
             }
             else
             {
                 // Get all doodads related to this house
                 var thisHouseSalePosts = WorldManager.Instance.GetDoodadByHouseDbId(house.Id);
-                for(var c = thisHouseSalePosts.Count-1 ; c >= 0; c--)
+                for (var c = thisHouseSalePosts.Count - 1; c >= 0; c--)
                 {
                     var doodad = thisHouseSalePosts[c];
                     // If it's a for sale sign, remove it
@@ -1261,7 +1388,7 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
         }
-        
+
         public bool SetForSale(ushort houseTlId, uint price, uint buyerId, Character seller) =>
             SetForSale(GetHouseByTlId(houseTlId), price, buyerId, seller);
 
@@ -1276,18 +1403,26 @@ namespace AAEmu.Game.Core.Managers
         public bool SetForSale(House house, uint price, uint buyerId, Character seller)
         {
             if (house == null)
+            {
                 return false;
+            }
 
             if (!house.Template.IsSellable)
+            {
                 return false;
+            }
 
             // Check if buyer exists (we just check if the name exists)
             var buyerName = NameManager.Instance.GetCharacterName(buyerId);
             if ((buyerId != 0) && (buyerName == null))
+            {
                 return false;
+            }
 
             if (buyerName == null)
+            {
                 buyerName = "";
+            }
 
             // Using the GM command does not send the seller (uses null), and thus will not require certificates 
             if (seller != null)
@@ -1305,12 +1440,12 @@ namespace AAEmu.Game.Core.Managers
 
             house.BroadcastPacket(new SCHouseSetForSalePacket(house.TlId, price, house.SellToPlayerId, buyerName, house.Name), false);
             SetForSaleMarkers(house, true);
-            
+
             return true;
         }
-        
+
         public bool CancelForSale(ushort houseTlId, bool returnCertificates = true) =>
-            CancelForSale(GetHouseByTlId(houseTlId),returnCertificates);
+            CancelForSale(GetHouseByTlId(houseTlId), returnCertificates);
 
         /// <summary>
         /// Cancels a sale
@@ -1321,10 +1456,13 @@ namespace AAEmu.Game.Core.Managers
         public bool CancelForSale(House house, bool returnCertificates = true)
         {
             if (house.SellPrice <= 0)
+            {
                 return true;
+            }
+
             var certAmount = CalculateSaleCertifcates(house, house.SellPrice);
             var owner = WorldManager.Instance.GetCharacterById(house.OwnerId);
-            
+
             house.SellPrice = 0;
             house.SellToPlayerId = 0;
             // Can only return certificates if owner is online and is the one resetting the sale
@@ -1373,9 +1511,12 @@ namespace AAEmu.Game.Core.Managers
             foreach (var furniture in furnitures)
             {
                 if (furniture.AttachPoint != AttachPointKind.None)
+                {
                     continue;
+                }
+
                 furniture.OwnerId = characterId;
-                furniture.BroadcastPacket(new SCDoodadOriginatorPacket(furniture.ObjId, characterId, 0),true);
+                furniture.BroadcastPacket(new SCDoodadOriginatorPacket(furniture.ObjId, characterId, 0), true);
                 res++;
             }
             return res;
@@ -1450,7 +1591,7 @@ namespace AAEmu.Game.Core.Managers
             newOwnerMail.Body.SendDate = DateTime.UtcNow;
             newOwnerMail.Body.RecvDate = DateTime.UtcNow.AddMilliseconds(1);
             newOwnerMail.Send();
-            
+
             // Send sales money to previous owner
             var profitMail = new BaseMail();
             profitMail.MailType = MailType.HousingSale;
@@ -1463,9 +1604,9 @@ namespace AAEmu.Game.Core.Managers
             profitMail.Body.SendDate = DateTime.UtcNow;
             profitMail.Body.RecvDate = DateTime.UtcNow.AddMilliseconds(1);
             profitMail.Send();
-            
+
             ReturnHouseItemsToOwner(house, false, false, character);
-            
+
             // Set new owner info
             house.SellPrice = 0;
             house.SellToPlayerId = 0;
@@ -1482,14 +1623,16 @@ namespace AAEmu.Game.Core.Managers
                     house.Name), false);
 
             SetForSaleMarkers(house, false);
-            
+
             character.SendPacket(new SCMyHousePacket(house));
             var oldOwner = WorldManager.Instance.GetCharacterById(previousOwner);
             if ((oldOwner != null) && (oldOwner.IsOnline))
+            {
                 oldOwner.SendPacket(new SCMyHouseRemovedPacket(house.TlId));
+            }
 
             UpdateFurnitureOwner(house, character.Id);
-            
+
             house.IsDirty = true;
 
             return true;
@@ -1501,7 +1644,10 @@ namespace AAEmu.Game.Core.Managers
         public void CheckHousingTaxes()
         {
             if (isCheckingTaxTiming)
+            {
                 return;
+            }
+
             isCheckingTaxTiming = true;
             try
             {
@@ -1510,7 +1656,10 @@ namespace AAEmu.Game.Core.Managers
                 foreach (var house in _houses)
                 {
                     if ((house.Value?.ProtectionEndDate <= DateTime.UtcNow) && (house.Value?.OwnerId > 0))
+                    {
                         expiredHouseList.Add(house.Value);
+                    }
+
                     UpdateTaxInfo(house.Value);
                 }
                 foreach (var house in expiredHouseList)
@@ -1557,7 +1706,9 @@ namespace AAEmu.Game.Core.Managers
         {
             // Check Player
             if (player == null)
+            {
                 return false;
+            }
 
             // Check Item
             var item = ItemManager.Instance.GetItemByItemId(itemId);
@@ -1605,7 +1756,7 @@ namespace AAEmu.Game.Core.Managers
             doodad.OwnerType = DoodadOwnerType.Housing;
             doodad.UccId = itemUcc?.Id ?? 0;
             doodad.IsPersistent = true;
-            
+
             if (doodad is DoodadCoffer coffer)
             {
                 coffer.InitializeCoffer(player.Id);
@@ -1625,7 +1776,7 @@ namespace AAEmu.Game.Core.Managers
                 // Non-stackables are stored in the owner's system container as to retain crafter information and such 
                 res = player.Inventory.SystemContainer.AddOrMoveExistingItem(ItemTaskType.DoodadCreate, item);
             }
-            
+
             // _log.Debug("DecorateHouse => DoodadTemplate: {0} , DoodadId {1}, Pos: {2}", doodad.TemplateId, doodad.ObjId, doodad.Transform.ToString());
 
             return res;
@@ -1635,9 +1786,15 @@ namespace AAEmu.Game.Core.Managers
         {
             var house = GetHouseByTlId(houseTl);
             if (house == null)
+            {
                 return;
+            }
+
             if (character.Id != house.OwnerId)
+            {
                 return;
+            }
+
             house.AllowRecover = !house.AllowRecover;
             house.BroadcastPacket(new SCHousingRecoverTogglePacket(house.TlId, house.AllowRecover), false);
         }
@@ -1659,7 +1816,9 @@ namespace AAEmu.Game.Core.Managers
                 var bounds = new RectangleF(house.Transform.World.Position.X - r, house.Transform.World.Position.Y - r,
                     r * 2f, r * 2f);
                 if (bounds.Contains(x, y))
+                {
                     return house;
+                }
             }
             return null;
         }

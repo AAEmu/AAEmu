@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Network.Connections;
 
 namespace AAEmu.Game.Models

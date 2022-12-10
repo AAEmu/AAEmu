@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -71,7 +70,9 @@ namespace AAEmu.Game.GameData
                         };
 
                         if (!_spheres.ContainsKey(template.Id))
+                        {
                             _spheres.Add(template.Id, new List<Spheres>());
+                        }
 
                         _spheres[template.Id].Add(template);
                     }
@@ -95,7 +96,9 @@ namespace AAEmu.Game.GameData
                         };
 
                         if (!_sphereQuests.ContainsKey(template.Id))
+                        {
                             _sphereQuests.Add(template.Id, new List<SphereQuests>());
+                        }
 
                         _sphereQuests[template.Id].Add(template);
                     }
@@ -120,7 +123,9 @@ namespace AAEmu.Game.GameData
                         };
 
                         if (!_sphereSkills.ContainsKey(template.Id))
+                        {
                             _sphereSkills.Add(template.Id, new List<SphereSkills>());
+                        }
 
                         _sphereSkills[template.Id].Add(template);
                     }
@@ -144,7 +149,9 @@ namespace AAEmu.Game.GameData
                         };
 
                         if (!_sphereSounds.ContainsKey(template.Id))
+                        {
                             _sphereSounds.Add(template.Id, new List<SphereSounds>());
+                        }
 
                         _sphereSounds[template.Id].Add(template);
                     }
@@ -168,7 +175,9 @@ namespace AAEmu.Game.GameData
                         };
 
                         if (!_sphereDoodadInteracts.ContainsKey(template.Id))
+                        {
                             _sphereDoodadInteracts.Add(template.Id, new List<SphereDoodadInteracts>());
+                        }
 
                         _sphereDoodadInteracts[template.Id].Add(template);
                     }
@@ -202,7 +211,9 @@ namespace AAEmu.Game.GameData
                         };
 
                         if (!_sphereChatBubbles.ContainsKey(template.Id))
+                        {
                             _sphereChatBubbles.Add(template.Id, new List<SphereChatBubbles>());
+                        }
 
                         _sphereChatBubbles[template.Id].Add(template);
                     }
@@ -226,7 +237,9 @@ namespace AAEmu.Game.GameData
                         };
 
                         if (!_sphereBuffs.ContainsKey(template.Id))
+                        {
                             _sphereBuffs.Add(template.Id, new List<SphereBuffs>());
+                        }
 
                         _sphereBuffs[template.Id].Add(template);
                     }
@@ -248,7 +261,9 @@ namespace AAEmu.Game.GameData
                         };
 
                         if (!_sphereBubbles.ContainsKey(template.Id))
+                        {
                             _sphereBubbles.Add(template.Id, new List<SphereBubbles>());
+                        }
 
                         _sphereBubbles[template.Id].Add(template);
                     }
@@ -270,7 +285,9 @@ namespace AAEmu.Game.GameData
                         };
 
                         if (!_sphereAcceptQuests.ContainsKey(template.Id))
+                        {
                             _sphereAcceptQuests.Add(template.Id, new List<SphereAcceptQuests>());
+                        }
 
                         _sphereAcceptQuests[template.Id].Add(template);
                     }
@@ -294,7 +311,9 @@ namespace AAEmu.Game.GameData
                         };
 
                         if (!_sphereAcceptQuestQuests.ContainsKey(template.Id))
+                        {
                             _sphereAcceptQuestQuests.Add(template.Id, new List<SphereAcceptQuestQuests>());
+                        }
 
                         _sphereAcceptQuestQuests[template.Id].Add(template);
                     }
@@ -308,12 +327,17 @@ namespace AAEmu.Game.GameData
 
             var questTemplate = QuestManager.Instance.GetTemplate(questId);
             if (questTemplate == null)
+            {
                 return null;
+            }
+
             foreach (QuestComponentKind step in Enum.GetValues(typeof(QuestComponentKind)))
             {
                 var components = questTemplate.GetComponents(step);
                 if (components.Length == 0)
+                {
                     continue;
+                }
 
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {

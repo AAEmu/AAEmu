@@ -1,7 +1,7 @@
 using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Expeditions;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -32,7 +32,10 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write((byte)_members.Count); // TODO max length 20
             stream.Write(_id); // expedition id
             foreach (var member in _members)
+            {
                 stream.Write(member);
+            }
+
             return stream;
         }
     }

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.AI.Params
         public AiLua() : base()
         {
             //Define constants - Pseudo Values are used here
-            StringBuilder aiConsts = new StringBuilder();
+            var aiConsts = new StringBuilder();
             //UseTypes
             aiConsts.Append("USE_SEQUENCE = 1;");
             aiConsts.Append("USE_RANDOM = 2;");

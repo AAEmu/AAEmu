@@ -1,4 +1,5 @@
 ﻿using System;
+
 using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.V2.Params.BigMonster
@@ -10,7 +11,7 @@ namespace AAEmu.Game.Models.Game.AI.V2.Params.BigMonster
         public bool StrafeDuringDelay { get; set; }
         public int HealthRangeMin { get; set; }
         public int HealthRangeMax { get; set; }
-        
+
         public void ParseLua(LuaTable table)
         {
             if (table["healthRange"] is LuaTable healthRange)

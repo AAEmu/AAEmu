@@ -1,10 +1,13 @@
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
-using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
+
 using Microsoft.Data.Sqlite;
+
 using NLog;
 
 namespace AAEmu.Game.GameData
@@ -78,10 +81,10 @@ namespace AAEmu.Game.GameData
                 {
                     while (reader.Read())
                     {
-                        ItemConversionReagent data = new ItemConversionReagent()
+                        var data = new ItemConversionReagent()
                         {
                             ConversionId = reader.GetUInt32("item_conv_rpack_id"),
-                            ImplId = (ItemImplEnum) reader.GetInt32("item_impl_id"),
+                            ImplId = (ItemImplEnum)reader.GetInt32("item_impl_id"),
                             MinLevel = reader.GetInt32("min_level"),
                             MaxLevel = reader.GetInt32("max_level"),
                             MinItemGrade = reader.GetByte("item_grade_id"),
@@ -102,7 +105,7 @@ namespace AAEmu.Game.GameData
                 {
                     while (reader.Read())
                     {
-                        ItemConversionReagent data = new ItemConversionReagent()
+                        var data = new ItemConversionReagent()
                         {
                             ConversionId = reader.GetUInt32("item_conv_rpack_id"),
                             InputItemId = reader.GetUInt32("item_id"),
@@ -133,7 +136,7 @@ namespace AAEmu.Game.GameData
             {
                 command.CommandText = "SELECT * FROM item_convs";
                 command.Prepare();
-                
+
                 using (var sqliteReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteReader))
                 {
@@ -155,7 +158,7 @@ namespace AAEmu.Game.GameData
                 {
                     while (reader.Read())
                     {
-                        ItemConversionProduct data = new ItemConversionProduct()
+                        var data = new ItemConversionProduct()
                         {
                             ConversionId = reader.GetUInt32("item_conv_ppack_id"),
                             ChanceRate = reader.GetInt32("chance_rate", 0),
@@ -177,7 +180,9 @@ namespace AAEmu.Game.GameData
                 foreach (var reagent in _reagents)
                 {
                     if (reagent.ConversionId == set.Key)
+                    {
                         reagent.ConversionSet = set.Value;
+                    }
                 }
             }
             _conversionSets.Clear();

@@ -22,7 +22,10 @@ namespace AAEmu.Game.Core.Packets.G2L
             stream.Write(_gsId);
             stream.Write(_additionalesGsId.Length);
             foreach (var gsId in _additionalesGsId)
+            {
                 stream.Write(gsId);
+            }
+
             return stream;
         }
     }

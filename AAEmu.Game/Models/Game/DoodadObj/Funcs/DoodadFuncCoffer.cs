@@ -10,15 +10,22 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         // doodad_phase_funcs
         public int Capacity { get; set; }
 
-        public override bool Use(Unit caster, Doodad owner)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
             _log.Debug("DoodadFuncCoffer");
             owner.ToNextPhase = false;
             if ((caster is Character character) && (owner is DoodadCoffer coffer))
+            {
                 if (coffer.OpenedBy?.Id == character.Id)
+                {
                     DoodadManager.Instance.CloseCofferDoodad(character, owner.ObjId);
+                }
                 else
+                {
                     DoodadManager.Instance.OpenCofferDoodad(character, owner.ObjId);
+                }
+            }
+
             _log.Trace("DoodadFuncCoffer");
             return false;
         }

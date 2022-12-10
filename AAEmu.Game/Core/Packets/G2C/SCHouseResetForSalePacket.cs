@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly ushort _tl;
         private readonly string _houseName;
-        
+
         public SCHouseResetForSalePacket(ushort tl, string houseName) : base(SCOffsets.SCHouseResetForSalePacket, 1)
         {
             _tl = tl;

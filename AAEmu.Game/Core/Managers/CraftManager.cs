@@ -1,8 +1,10 @@
-﻿using AAEmu.Commons.Utils;
+﻿using System.Collections.Generic;
+
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
-using System.Collections.Generic;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -58,7 +60,9 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var craftId = reader.GetUInt32("craft_id");
                             if (!_crafts.ContainsKey(craftId))
+                            {
                                 continue;
+                            }
 
                             var template = new CraftProduct();
                             template.Id = reader.GetUInt32("id");
@@ -86,7 +90,9 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var craftId = reader.GetUInt32("craft_id");
                             if (!_crafts.ContainsKey(craftId))
+                            {
                                 continue;
+                            }
 
                             var template = new CraftMaterial();
                             template.Id = reader.GetUInt32("id");
@@ -110,7 +116,10 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var craftId = reader.GetUInt32("craft_id");
                             if (!_crafts.ContainsKey(craftId))
+                            {
                                 continue;
+                            }
+
                             _crafts[craftId].IsPack = true;
                         }
                     }

@@ -8,11 +8,11 @@ namespace AAEmu.Game.Models.Tasks.Doodads
     public abstract class DoodadFuncTask : Task
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-        private Unit _caster;
+        private BaseUnit _caster;
         private Doodad _owner;
         private uint _skillId;
 
-        protected DoodadFuncTask(Unit caster, Doodad owner, uint skillId)
+        protected DoodadFuncTask(BaseUnit caster, Doodad owner, uint skillId)
         {
             _caster = caster;
             _owner = owner;

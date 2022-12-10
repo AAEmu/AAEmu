@@ -14,12 +14,16 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         // doodad_funcs
         public uint SkillId { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             if (caster is Character)
+            {
                 _log.Debug("DoodadFuncUse: skillId {0}, nextPhase {1},  SkillId {2}", skillId, nextPhase, SkillId);
+            }
             else
+            {
                 _log.Trace("DoodadFuncUse: skillId {0}, nextPhase {1},  SkillId {2}", skillId, nextPhase, SkillId);
+            }
 
             if (caster == null)
             {
@@ -68,7 +72,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 var useSkill = new Skill(skillTemplate);
                 TaskManager.Instance.Schedule(new UseSkillTask(useSkill, caster, new SkillCasterUnit(caster.ObjId), owner, new SkillCastDoodadTarget { ObjId = owner.ObjId }, null), TimeSpan.FromMilliseconds(0));
             }
-        
+
             owner.ToNextPhase = skillId > 0;
         }
     }

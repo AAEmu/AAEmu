@@ -41,6 +41,6 @@ namespace AAEmu.Game.Models.Game.Mails
                 Received += amount;
             }
         }
-        
+
     }
 }

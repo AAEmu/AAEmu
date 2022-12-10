@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -38,7 +38,10 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             // If a NPC was provided, check if it's valid
             if ((npcObjId != 0) && (npc == null || !npc.Template.Merchant || npc.Template.MerchantPackId == 0))
+            {
                 return;
+            }
+
             MerchantGoods pack = null;
             if (npc != null)
             {
@@ -55,7 +58,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (doodadObjId != 0)
             {
                 if (doodad == null)
+                {
                     return;
+                }
+
                 var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Transform.World.Position, doodad.Transform.World.Position);
                 if (dist > 3f) // 3m should be enough for these
                 {
@@ -79,7 +85,9 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 // If using a NPC shop, check if the NPC is selling the specified item
                 if ((npcObjId != 0) && ((pack == null) || (!pack.SellsItem(itemId))))
+                {
                     continue;
+                }
 
                 if (doodadObjId != 0)
                 {
@@ -91,11 +99,17 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var template = ItemManager.Instance.GetTemplate(itemId);
 
                 if (currency == ShopCurrencyType.Money)
+                {
                     money += template.Price * count;
+                }
                 else if (currency == ShopCurrencyType.Honor)
+                {
                     honorPoints += template.HonorPrice * count;
+                }
                 else if (currency == ShopCurrencyType.VocationBadges)
+                {
                     vocationBadges += template.LivingPointPrice * count;
+                }
                 else
                 {
                     _log.Error("Unknown currency type");
@@ -115,7 +129,10 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var item = Connection.ActiveChar.BuyBack[index];
                 */
                 if (item == null)
+                {
                     continue;
+                }
+
                 itemsBuyBack.Add(item, index);
                 money += (int)(item.Template.Refund * ItemManager.Instance.GetGradeTemplate(item.Grade).RefundMultiplier / 100f) *
                          item.Count;
@@ -123,10 +140,12 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             var useAAPoint = stream.ReadBoolean();
 
-            if (money > Connection.ActiveChar.Money && 
-                honorPoints > Connection.ActiveChar.HonorPoint && 
+            if (money > Connection.ActiveChar.Money &&
+                honorPoints > Connection.ActiveChar.HonorPoint &&
                 vocationBadges > Connection.ActiveChar.VocationPoint)
+            {
                 return;
+            }
 
             var tasks = new List<ItemTask>();
             foreach (var (itemId, grade, count) in itemsBuy)
@@ -158,12 +177,12 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (honorPoints > 0)
             {
-                Connection.ActiveChar.ChangeGamePoints(GamePointKind.Honor,honorPoints);
+                Connection.ActiveChar.ChangeGamePoints(GamePointKind.Honor, honorPoints);
             }
 
             if (vocationBadges > 0)
             {
-                Connection.ActiveChar.ChangeGamePoints(GamePointKind.Vocation,vocationBadges);
+                Connection.ActiveChar.ChangeGamePoints(GamePointKind.Vocation, vocationBadges);
             }
 
             if (money > 0)

@@ -21,9 +21,14 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             var type = stream.ReadByte();
             if (type == 1)
+            {
                 id = stream.ReadUInt32();
+            }
+
             if (type == 2)
+            {
                 id = stream.ReadBc();
+            }
 
             // _log.Warn("SetOverHeadMarker, teamId: {0}, index: {1}, type: {2}, id: {3}", teamId, index, type, id);
             var owner = Connection.ActiveChar;

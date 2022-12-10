@@ -4,13 +4,16 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Genesis;
 using AAEmu.Game.Models;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+
 using NLog;
 using NLog.Config;
 
@@ -38,7 +41,7 @@ namespace AAEmu.Game
             }
 
             _log.Info($"{Name} version {Version}");
-            
+
             // Apply MySQL Configuration
             try
             {
@@ -49,7 +52,7 @@ namespace AAEmu.Game
                 _log.Fatal("MySQL configuration could not be loaded !");
                 return;
             }
-            
+
             // Test the DB connection
             var connection = MySQL.CreateConnection();
             if (connection == null)
@@ -105,7 +108,7 @@ namespace AAEmu.Game
             }
 
             Configuration(_launchArgs, mainConfig);
-            return true;            
+            return true;
         }
 
         private static void Configuration(string[] args, string mainConfigJson)

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
@@ -8,7 +9,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
-    public class CSDestroyItemPacket : GamePacket 
+    public class CSDestroyItemPacket : GamePacket
     {
         public CSDestroyItemPacket() : base(CSOffsets.CSDestroyItemPacket, 1)
         {
@@ -17,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var itemId = stream.ReadUInt64();
-            var slotType = (SlotType) stream.ReadByte();
+            var slotType = (SlotType)stream.ReadByte();
             var slot = stream.ReadByte();
             var count = stream.ReadInt32();
 

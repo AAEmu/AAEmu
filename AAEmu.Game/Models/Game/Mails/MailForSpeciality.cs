@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Models.Game.Mails
 {
@@ -75,15 +72,20 @@ namespace AAEmu.Game.Models.Game.Mails
          * 
          */
 
-        public MailForSpeciality(Character seller, uint crafterId, uint tradepackTemplate, int tradeRate, uint itemRewardTemplateId, 
+        public MailForSpeciality(Character seller, uint crafterId, uint tradepackTemplate, int tradeRate, uint itemRewardTemplateId,
             int itemCountBase, int itemCountBonus, int itemCountForSeller, int itemCountForCrafter, int interestRate) : base()
         {
             _sender = seller;
             _sellerIsCrafter = (crafterId == 0) || (crafterId == seller.Id);
             if ((crafterId != 0) && (crafterId != seller.Id))
+            {
                 _crafterId = crafterId;
+            }
             else
+            {
                 _crafterId = 0;
+            }
+
             _tradedPack = tradepackTemplate;
             _tradedRate = tradeRate;
             _itemToSend = itemRewardTemplateId;
@@ -110,7 +112,9 @@ namespace AAEmu.Game.Models.Game.Mails
         {
             var itemTemplate = ItemManager.Instance.GetTemplate(_itemToSend);
             if (itemTemplate == null)
+            {
                 return false;
+            }
 
             Header.SenderId = 0;
             Header.SenderName = TradeDeliveryName;
@@ -146,7 +150,10 @@ namespace AAEmu.Game.Models.Game.Mails
                 // Send items
                 var itemGrade = itemTemplate.FixedGrade;
                 if (itemGrade <= 0)
+                {
                     itemGrade = 0;
+                }
+
                 var newItem = ItemManager.Instance.Create(_itemToSend, _itemCountSeller, (byte)itemGrade, true);
                 newItem.OwnerId = _sender.Id;
                 newItem.SlotType = SlotType.Mail;
@@ -180,16 +187,21 @@ namespace AAEmu.Game.Models.Game.Mails
             // TODO: test this part of the code (currently no crafter id support on items)
 
             if (_crafterId == 0)
+            {
                 return false;
+            }
+
             var crafterName = NameManager.Instance.GetCharacterName(_crafterId);
             var itemTemplate = ItemManager.Instance.GetTemplate(_itemToSend);
             if (itemTemplate == null)
+            {
                 return false;
+            }
 
             Header.SenderId = 0;
             Header.SenderName = TradeDeliveryName;
 
-            Header.ReceiverId = _crafterId ;
+            Header.ReceiverId = _crafterId;
             ReceiverName = crafterName;
 
             var payout = (int)((_itemCountBase * _tradedRate) / 100f) + _itemCountBonus;
@@ -222,7 +234,10 @@ namespace AAEmu.Game.Models.Game.Mails
                 // Send items
                 var itemGrade = itemTemplate.FixedGrade;
                 if (itemGrade <= 0)
+                {
                     itemGrade = 0;
+                }
+
                 var newItem = ItemManager.Instance.Create(_itemToSend, _itemCountCrafter, (byte)itemGrade, true);
                 newItem.OwnerId = _sender.Id;
                 newItem.SlotType = SlotType.Mail;

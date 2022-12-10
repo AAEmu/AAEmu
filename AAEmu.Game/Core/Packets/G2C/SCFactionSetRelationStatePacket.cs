@@ -1,4 +1,5 @@
 using System;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -11,8 +12,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _state;
         private readonly DateTime _expireTime;
         private readonly byte _nextState;
-        
-        public SCFactionSetRelationStatePacket(uint id, uint id2, byte state, DateTime expireTime, byte nextState) 
+
+        public SCFactionSetRelationStatePacket(uint id, uint id2, byte state, DateTime expireTime, byte nextState)
             : base(SCOffsets.SCFactionSetRelationStatePacket, 1)
         {
             _id = id;

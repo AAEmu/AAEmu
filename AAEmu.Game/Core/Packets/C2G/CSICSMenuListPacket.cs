@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             // Empty struct
             _log.Warn("ICSMenuList");
-            
+
             Connection.SendPacket(new SCICSMenuListPacket(1));
         }
     }

@@ -4,6 +4,6 @@ namespace AAEmu.Game.Models.Game.AI.States
 {
     public class UseCombatSkills : State
     {
-        
+
     }
 }

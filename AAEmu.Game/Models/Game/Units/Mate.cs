@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -16,7 +17,7 @@ namespace AAEmu.Game.Models.Game.Units
         public uint _objId;
         public AttachUnitReason _reason;
     }
-    
+
     public sealed class Mate : Unit
     {
         public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Mate;
@@ -25,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Units
         public NpcTemplate Template { get; set; }
 
         public uint OwnerObjId { get; set; }
-        public Dictionary<AttachPointKind,MatePassengerInfo> Passengers { get; }
+        public Dictionary<AttachPointKind, MatePassengerInfo> Passengers { get; }
 
         public override float Scale => Template.Scale;
 
@@ -56,9 +57,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Str))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -79,9 +84,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Dex))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -102,9 +111,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Sta))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -125,9 +138,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Int))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -148,9 +165,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Spi))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -168,9 +189,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.Fai))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -227,9 +252,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.HealthRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -258,9 +287,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.PersistentHealthRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -288,9 +321,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.MaxMana))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -319,9 +356,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.ManaRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -350,9 +391,13 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.PersistentManaRegen))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
                         res += (int)(res * bonus.Value / 100f);
+                    }
                     else
+                    {
                         res += bonus.Value;
+                    }
                 }
 
                 return res;
@@ -392,15 +437,18 @@ namespace AAEmu.Game.Models.Game.Units
 
             // TODO: Spawn this with the correct amount of seats depending on the template
             // 2 seats by default
-            Passengers.Add(AttachPointKind.Driver,new MatePassengerInfo() { _objId = 0 , _reason = 0 });
-            Passengers.Add(AttachPointKind.Passenger0,new MatePassengerInfo() { _objId = 0 , _reason = 0 });
+            Passengers.Add(AttachPointKind.Driver, new MatePassengerInfo() { _objId = 0, _reason = 0 });
+            Passengers.Add(AttachPointKind.Passenger0, new MatePassengerInfo() { _objId = 0, _reason = 0 });
         }
 
         public void AddExp(int exp)
         {
-            
+
             if (exp == 0)
+            {
                 return;
+            }
+
             if (exp > 0)
             {
                 var totalExp = (int)Math.Round(AppConfiguration.Instance.World.ExpRate * exp);
@@ -443,7 +491,9 @@ namespace AAEmu.Game.Models.Game.Units
                 {
                     var player = WorldManager.Instance.GetCharacterByObjId(ati.Value._objId);
                     if (player != null)
+                    {
                         character.SendPacket(new SCUnitAttachedPacket(player.ObjId, ati.Key, ati.Value._reason, ObjId));
+                    }
                 }
             }
             base.AddVisibleObject(character);
@@ -471,7 +521,9 @@ namespace AAEmu.Game.Models.Game.Units
                     {
                         rider.DoFallDamage(fallVel);
                         if (rider.Hp <= 0)
+                        {
                             MateManager.Instance.UnMountMate(rider, TlId, pos, AttachUnitReason.SlaveBinding);
+                        }
                     }
                 }
             }

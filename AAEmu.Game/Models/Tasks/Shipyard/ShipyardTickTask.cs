@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Tasks.Shipyard
             ShipyardManager.Instance.ShipyardTick();
         }
     }
-    
+
     public class ShipyardCompleteTask : Task
     {
         public Game.Shipyard.Shipyard _shipyard;

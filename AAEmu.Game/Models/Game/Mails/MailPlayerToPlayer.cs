@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -31,7 +30,9 @@ namespace AAEmu.Game.Models.Game.Mails
             var attachmentCountForFee = Body.Attachments.Count;
 
             if (Body.CopperCoins > 0)
+            {
                 attachmentCountForFee++;
+            }
 
             if (MailType == MailType.Normal)
             {
@@ -47,7 +48,9 @@ namespace AAEmu.Game.Models.Game.Mails
 
             // Add cost based on attachments past the first one
             if (attachmentCountForFee > MailManager.CostFreeAttachmentCount)
+            {
                 mailFee += (attachmentCountForFee - MailManager.CostFreeAttachmentCount) * attachmentCost;
+            }
 
             return mailFee;
         }

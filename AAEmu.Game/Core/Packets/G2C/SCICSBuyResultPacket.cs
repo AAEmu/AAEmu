@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _buyMode;
         private readonly string _receiverName;
         private readonly int _chargeAaPoint;
-        
+
         public SCICSBuyResultPacket(bool success, byte buyMode, string receiverName, int chargeAaPoint) : base(SCOffsets.SCICSBuyResultPacket, 1)
         {
             _success = success;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.V2.Params;
@@ -23,7 +24,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         public override void Tick(TimeSpan delta)
         {
             if (_aiParams == null)
+            {
                 return;
+            }
 
             if (!UpdateTarget() || ShouldReturn)
             {
@@ -32,10 +35,14 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             }
 
             if (CanStrafe && !IsUsingSkill)
+            {
                 MoveInRange(Ai.Owner.CurrentTarget, delta);
+            }
 
             if (!CanUseSkill)
+            {
                 return;
+            }
 
             _strafeDuringDelay = false;
             #region Pick a skill
@@ -45,12 +52,17 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             if (_skillQueue.Count == 0)
             {
                 if (!RefreshSkillQueue(targetDist))
+                {
                     return;
+                }
             }
 
             var selectedSkill = _skillQueue.Dequeue();
             if (selectedSkill == null)
+            {
                 return;
+            }
+
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillId);
             if (skillTemplate != null)
             {
@@ -73,11 +85,11 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         {
             var availableSkills = RequestAvailableSkillList(trgDist);
 
-            if(availableSkills.Count > 0)
+            if (availableSkills.Count > 0)
             {
                 var selectedSkillList = availableSkills.RandomElementByWeight(s => s.Dice);
 
-                foreach(var skill in selectedSkillList.Skills)
+                foreach (var skill in selectedSkillList.Skills)
                 {
                     _skillQueue.Enqueue(skill);
                 }
@@ -86,7 +98,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             }
             else
             {
-                if(Ai.Owner.Template.BaseSkillId != 0)
+                if (Ai.Owner.Template.BaseSkillId != 0)
                 {
                     _skillQueue.Enqueue(new AiSkill
                     {
@@ -105,7 +117,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
         private List<AiSkillList> RequestAvailableSkillList(float trgDist)
         {
-            int healthRatio = (int)(((float)Ai.Owner.Hp / Ai.Owner.MaxHp) * 100);
+            var healthRatio = (int)(((float)Ai.Owner.Hp / Ai.Owner.MaxHp) * 100);
 
             var baseList = _aiParams.AiSkillLists.AsEnumerable();
 

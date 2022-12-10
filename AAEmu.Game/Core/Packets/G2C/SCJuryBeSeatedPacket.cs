@@ -3,14 +3,14 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
-   public class SCJuryBeSeatedPacket : GamePacket
+    public class SCJuryBeSeatedPacket : GamePacket
     {
         private readonly bool _isWest;
         private readonly uint _trial;
         private readonly int _court;
         private readonly int _juryNumber;
 
-        public SCJuryBeSeatedPacket(bool isWest, uint trial, int court, int juryNumber) : base(SCOffsets.SCJuryBeSeatedPacket,1)
+        public SCJuryBeSeatedPacket(bool isWest, uint trial, int court, int juryNumber) : base(SCOffsets.SCJuryBeSeatedPacket, 1)
         {
             _isWest = isWest;
             _trial = trial;

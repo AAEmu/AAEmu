@@ -1,7 +1,5 @@
-﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
@@ -23,19 +21,20 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         public SkillObject SkillObject { get; set; }
         public List<(BaseUnit unit, uint buffId)> ChanneledBuffs { get; set; }
 
-        public Dictionary<uint,List<GameObject>> HitObjects { get; set; }
+        public Dictionary<uint, List<GameObject>> HitObjects { get; set; }
 
-        public PlotState(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
+        public PlotState(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
         {
+            var unit = (Unit)caster;
             _cancellationRequest = false;
 
-            Caster = caster;
+            Caster = unit;
             CasterCaster = casterCaster;
             Target = target;
             TargetCaster = targetCaster;
             SkillObject = skillObject;
             ActiveSkill = skill;
-            
+
             HitObjects = new Dictionary<uint, List<GameObject>>();
             Tickets = new Dictionary<uint, int>();
             ChanneledBuffs = new List<(BaseUnit, uint)>();

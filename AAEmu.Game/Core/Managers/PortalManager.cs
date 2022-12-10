@@ -186,14 +186,19 @@ namespace AAEmu.Game.Core.Managers
 
             var filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "recalls.json");
             if (!File.Exists(filePath))
+            {
                 throw new IOException($"File {filePath} doesn't exists !");
+            }
 
             var contents = FileManager.GetFileContents(filePath);
 
             if (string.IsNullOrWhiteSpace(contents))
+            {
                 throw new IOException($"File {filePath} is empty !");
+            }
 
             if (JsonHelper.TryDeserializeObject(contents, out List<Portal> recalls, out _))
+            {
                 foreach (var recall in recalls)
                 {
                     var rp = new List<Portal>();
@@ -216,21 +221,29 @@ namespace AAEmu.Game.Core.Managers
                         //
                     }
                 }
+            }
             else
+            {
                 throw new Exception($"PortalManager: Parse {filePath} file");
+            }
 
             _log.Info("Loaded {0} Recall Portals", _recalls.Count);
 
             filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "respawns.json");
             if (!File.Exists(filePath))
+            {
                 throw new IOException($"File {filePath} doesn't exists !");
+            }
 
             contents = FileManager.GetFileContents(filePath);
 
             if (string.IsNullOrWhiteSpace(contents))
+            {
                 throw new IOException($"File {filePath} is empty !");
+            }
 
             if (JsonHelper.TryDeserializeObject(contents, out List<Portal> respawns, out _))
+            {
                 foreach (var respawn in respawns)
                 {
                     if (_respawns.ContainsKey(respawn.SubZoneId))
@@ -240,28 +253,39 @@ namespace AAEmu.Game.Core.Managers
                     _respawns.Add(respawn.SubZoneId, respawn);
                     _respawnsKey.Add(respawn.Id, respawn.SubZoneId);
                 }
+            }
             else
+            {
                 throw new Exception($"PortalManager: Parse {filePath} file");
+            }
 
             _log.Info("Loaded {0} Respawn Portals", _respawns.Count);
 
             filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "worldgates.json");
             if (!File.Exists(filePath))
+            {
                 throw new IOException($"File {filePath} doesn't exists !");
+            }
 
             contents = FileManager.GetFileContents(filePath);
 
             if (string.IsNullOrWhiteSpace(contents))
+            {
                 throw new IOException($"File {filePath} is empty !");
+            }
 
             if (JsonHelper.TryDeserializeObject(contents, out List<Portal> worldgates, out _))
+            {
                 foreach (var worldgate in worldgates)
                 {
                     _worldgates.Add(worldgate.SubZoneId, worldgate);
                     _worldgatesKey.Add(worldgate.Id, worldgate.SubZoneId);
                 }
+            }
             else
+            {
                 throw new Exception($"PortalManager: Parse {filePath} file");
+            }
 
             _log.Info("Loaded {0} Worldgate Portals", _worldgates.Count);
 
@@ -325,7 +349,9 @@ namespace AAEmu.Game.Core.Managers
                             ReturnPointId = reader.GetUInt32("return_point_id")
                         };
                         if (!_districtReturnPoints.ContainsKey(template.Id))
+                        {
                             _districtReturnPoints.Add(template.Id, template);
+                        }
                     }
                 }
             }
@@ -335,7 +361,11 @@ namespace AAEmu.Game.Core.Managers
 
         private static bool CheckItemAndRemove(Character owner, uint itemId, int amount)
         {
-            if (!owner.Inventory.CheckItems(SlotType.Inventory, itemId, amount)) return false;
+            if (!owner.Inventory.CheckItems(SlotType.Inventory, itemId, amount))
+            {
+                return false;
+            }
+
             owner.Inventory.Bag.ConsumeItem(ItemTaskType.Teleport, itemId, amount, null);
             return true;
             /*
@@ -362,14 +392,20 @@ namespace AAEmu.Game.Core.Managers
             {
                 foreach (var (_, value) in _openPortalInlandReagents)
                 {
-                    if (CheckItemAndRemove(owner, value.ItemId, value.Amount)) return true;
+                    if (CheckItemAndRemove(owner, value.ItemId, value.Amount))
+                    {
+                        return true;
+                    }
                 }
             }
             else
             {
                 foreach (var (_, value) in _openPortalOutlandReagents)
                 {
-                    if (CheckItemAndRemove(owner, value.ItemId, value.Amount)) return true;
+                    if (CheckItemAndRemove(owner, value.ItemId, value.Amount))
+                    {
+                        return true;
+                    }
                 }
             }
             return false; // Not enough items
@@ -413,7 +449,10 @@ namespace AAEmu.Game.Core.Managers
         public void OpenPortal(Character owner, SkillObjectUnk1 portalEffectObj)
         {
             var portalInfo = owner.Portals.GetPortalInfo((uint)portalEffectObj.Id);
-            if (!CheckCanOpenPortal(owner, portalInfo.ZoneId)) return;
+            if (!CheckCanOpenPortal(owner, portalInfo.ZoneId))
+            {
+                return;
+            }
 
             MakePortal(owner, false, portalInfo, portalEffectObj);   // Entrance (green)
             MakePortal(owner, true, portalInfo, portalEffectObj);    // Exit (yellow)
@@ -423,7 +462,10 @@ namespace AAEmu.Game.Core.Managers
         {
             // TODO - Cooldown between portals
             var portalInfo = (Models.Game.Units.Portal)WorldManager.Instance.GetNpc(objId);
-            if (portalInfo == null) return;
+            if (portalInfo == null)
+            {
+                return;
+            }
 
             character.DisabledSetPosition = true;
             // TODO - UnitPortalUsed
@@ -438,7 +480,11 @@ namespace AAEmu.Game.Core.Managers
         {
             var isPrivate = type != 1;
             var portalInfo = owner.Portals.GetPortalInfo(id);
-            if (portalInfo == null) return;
+            if (portalInfo == null)
+            {
+                return;
+            }
+
             owner.Portals.RemoveFromBookPortal(portalInfo, isPrivate);
         }
 

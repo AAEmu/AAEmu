@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Core.Network.Connections
@@ -40,7 +41,10 @@ namespace AAEmu.Game.Core.Network.Connections
         {
             var connectionInfo = _connections.Where(c => c.Value.AccountId == accountId).ToList();
             if (connectionInfo.Count >= 1)
+            {
                 return connectionInfo[0].Value;
+            }
+
             return null;
         }
     }

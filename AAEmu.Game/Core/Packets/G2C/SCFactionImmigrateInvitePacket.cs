@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _id;
         private readonly uint _id2;
-        
+
         public SCFactionImmigrateInvitePacket(uint id, uint id2) : base(SCOffsets.SCFactionImmigrateInvitePacket, 1)
         {
             _id = id;

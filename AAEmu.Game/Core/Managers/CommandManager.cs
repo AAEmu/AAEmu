@@ -3,18 +3,20 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text.RegularExpressions;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
 {
     public class CommandManager : Singleton<CommandManager>
     {
-        public const string CommandPrefix = "/" ;
+        public const string CommandPrefix = "/";
         private Logger _log = LogManager.GetCurrentClassLogger();
         private Dictionary<string, ICommand> _commands;
         private Dictionary<string, string> _commandAliases;
@@ -39,22 +41,34 @@ namespace AAEmu.Game.Core.Managers
         public void Register(string name, ICommand command)
         {
             if (_commands.ContainsKey(name.ToLower()))
+            {
                 _commands.Remove(name.ToLower());
+            }
+
             _commands.Add(name.ToLower(), command);
         }
 
         public void Register(string[] names, ICommand command)
         {
             if (names.Length <= 0)
+            {
                 return;
+            }
+
             if (_commands.ContainsKey(names[0].ToLower()))
+            {
                 _commands.Remove(names[0].ToLower());
+            }
+
             _commands.Add(names[0].ToLower(), command);
 
-            for (int i = 1; i < names.Length; i++)
+            for (var i = 1; i < names.Length; i++)
             {
                 if (_commandAliases.ContainsKey(names[i].ToLower()))
+                {
                     _commandAliases.Remove(names[i].ToLower());
+                }
+
                 _commandAliases.Add(names[i].ToLower(), names[0].ToLower());
             }
         }
@@ -64,9 +78,13 @@ namespace AAEmu.Game.Core.Managers
         {
             CommandManager.Instance.Clear();
             if (ScriptCompiler.Compile())
+            {
                 character.SendMessage("[Force Scripts Reload] Success");
+            }
             else
+            {
                 character.SendMessage("|cFFFF0000[Force Scripts Reload] There were errors !|r");
+            }
         }
 
         private string[] SplitCommandString(string baseString)
@@ -79,9 +97,13 @@ namespace AAEmu.Game.Core.Managers
         public string UnAliasCommandName(string cmd)
         {
             if (_commandAliases.TryGetValue(cmd.ToLower(), out var realName))
+            {
                 return realName;
+            }
             else
+            {
                 return cmd;
+            }
         }
 
         public bool Handle(Character character, string text)
@@ -108,12 +130,17 @@ namespace AAEmu.Game.Core.Managers
             {
                 // Only display extended error to admins
                 if (character.AccessLevel >= 100)
+                {
                     character.SendMessage(
                         "|cFFFF0000[Error] No commands have been loaded, this is usually because of compile errors. Try using \"" +
                         CommandManager.CommandPrefix + "scripts reload\" after the issues have been fixed.|r");
+                }
                 else
+                {
                     character.SendMessage(
                         "[Error] No commands available.");
+                }
+
                 return false;
             }
 
@@ -129,7 +156,9 @@ namespace AAEmu.Game.Core.Managers
             }
 
             if (command == null)
+            {
                 return false;
+            }
 
             if (AccessLevelManager.Instance.GetLevel(thisCommand) > character.AccessLevel)
             {
@@ -139,7 +168,9 @@ namespace AAEmu.Game.Core.Managers
 
             var args = new string[words.Length - 1];
             if (words.Length > 1)
+            {
                 Array.Copy(words, 1, args, 0, words.Length - 1);
+            }
 
             try
             {
@@ -158,7 +189,7 @@ namespace AAEmu.Game.Core.Managers
                 _log.Error(e.Message);
                 _log.Error(e.StackTrace);
             }
-            
+
             return true;
         }
 

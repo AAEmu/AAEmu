@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Route;
 

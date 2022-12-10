@@ -18,10 +18,13 @@ namespace AAEmu.Game.Core.Packets.C2G
             var objId = stream.ReadBc();
 
             if (Connection.ActiveChar.ObjId != objId)
+            {
                 return;
+            }
+
             if (pid != 0 && Connection.ActiveChar.ActivePlotState != null)
             {
-                if(Connection.ActiveChar.ActivePlotState.ActiveSkill.TlId == pid)
+                if (Connection.ActiveChar.ActivePlotState.ActiveSkill.TlId == pid)
                 {
                     Connection.ActiveChar.ActivePlotState.RequestCancellation();
                 }
@@ -32,8 +35,10 @@ namespace AAEmu.Game.Core.Packets.C2G
                 }
             }
             if (Connection.ActiveChar.SkillTask == null || Connection.ActiveChar.SkillTask.Skill.TlId != tl)
+            {
                 return;
-            
+            }
+
             await Connection.ActiveChar.SkillTask.CancelAsync();
 
             if (Connection.ActiveChar.SkillTask is EndChannelingTask ect)

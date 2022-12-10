@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var id = stream.ReadUInt16();
             var taxRate = stream.ReadInt32();
-            
+
             _log.Debug("UpdateDominionTaxRate, Id: {0}, TaxRate: {1}", id, taxRate);
         }
     }

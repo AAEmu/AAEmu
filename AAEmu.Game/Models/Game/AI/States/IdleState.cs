@@ -1,4 +1,5 @@
 using System;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.AI.Framework;
 
@@ -19,7 +20,7 @@ namespace AAEmu.Game.Models.Game.AI.States
         {
             _maxIdleTime = maxIdleTime;
         }
-        
+
         public override void Enter()
         {
             // Pick time to Idle

@@ -12,8 +12,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly uint _expeditionId;
         private readonly bool _expel;
-        
-        public SCUnitExpeditionChangedPacket(uint unitId, uint characterId, string kicker, string unitName, uint id, uint expeditionId, bool expel) 
+
+        public SCUnitExpeditionChangedPacket(uint unitId, uint characterId, string kicker, string unitName, uint id, uint expeditionId, bool expel)
             : base(SCOffsets.SCUnitExpeditionChangedPacket, 1)
         {
             _unitId = unitId;

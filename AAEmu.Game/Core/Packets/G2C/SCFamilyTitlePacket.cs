@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _role;
         private readonly string _owner;
         private readonly string _title;
-        
+
         public SCFamilyTitlePacket(uint unitId, byte role, string owner, string title) : base(SCOffsets.SCFamilyTitlePacket, 1)
         {
             _unitId = unitId;

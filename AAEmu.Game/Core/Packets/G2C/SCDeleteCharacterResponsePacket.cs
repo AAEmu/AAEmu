@@ -1,4 +1,5 @@
 using System;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -11,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly DateTime _deleteRequestedTime;
         private readonly DateTime _deleteDelay;
 
-        public SCDeleteCharacterResponsePacket(uint characterId, byte status, DateTime? deleteRequestedTime = null, DateTime? deleteDelay = null) 
+        public SCDeleteCharacterResponsePacket(uint characterId, byte status, DateTime? deleteRequestedTime = null, DateTime? deleteDelay = null)
             : base(SCOffsets.SCDeleteCharacterResponsePacket, 1)
         {
             _characterId = characterId;

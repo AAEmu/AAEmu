@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Items;
@@ -20,12 +21,18 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var item in Equipment.Items)
             {
                 if (!(item is EquipItem ei))
+                {
                     continue;
+                }
 
                 // Gems
                 foreach (var gem in ei.GemIds)
-                foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
-                    AddBonus(1, new Bonus {Template = template, Value = template.Value});
+                {
+                    foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
+                    {
+                        AddBonus(1, new Bonus { Template = template, Value = template.Value });
+                    }
+                }
             }
 
             // Apply Equip Effects
@@ -48,23 +55,31 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 case WeaponWieldKind.None:
                 case WeaponWieldKind.OneHanded:
-                    var item = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
-                    if (item != null && item.Template is WeaponTemplate weapon)
                     {
-                        var slotId = (EquipmentItemSlotType)weapon.HoldableTemplate.SlotTypeId;
-                        if (slotId == EquipmentItemSlotType.Shield)
-                            buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EquipShield);
+                        var item = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
+                        if (item != null && item.Template is WeaponTemplate weapon)
+                        {
+                            var slotId = (EquipmentItemSlotType)weapon.HoldableTemplate.SlotTypeId;
+                            if (slotId == EquipmentItemSlotType.Shield)
+                            {
+                                buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EquipShield);
+                            }
+                        }
+                        break;
                     }
-                    break;
                 case WeaponWieldKind.TwoHanded:
-                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EquipTwoHanded);
-                    break;
+                    {
+                        buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EquipTwoHanded);
+                        break;
+                    }
                 case WeaponWieldKind.DuelWielded:
-                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EquipDualwield);
-                    break;
+                    {
+                        buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EquipDualwield);
+                        break;
+                    }
             }
 
-            if(buffTemplate != null)
+            if (buffTemplate != null)
             {
                 var effect = new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.UtcNow);
                 Buffs.AddBuff(effect);
@@ -76,13 +91,15 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var setNumPieces = new Dictionary<uint, int>();
             var itemLevels = new Dictionary<uint, uint>();
-            foreach(var item in Equipment.Items)
+            foreach (var item in Equipment.Items)
             {
                 if (item.Template is EquipItemTemplate template)
                 {
                     var equipItemSetId = template.EquipItemSetId;
                     if (template.EquipItemSetId == 0)
+                    {
                         continue;
+                    }
 
                     if (!setNumPieces.ContainsKey(equipItemSetId))
                     {
@@ -93,7 +110,9 @@ namespace AAEmu.Game.Models.Game.Char
                     {
                         setNumPieces[equipItemSetId]++;
                         if (item.Template.Level < itemLevels[equipItemSetId])
+                        {
                             itemLevels[equipItemSetId] = (uint)item.Template.Level;
+                        }
                     }
                 }
             }
@@ -102,7 +121,7 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var setCount in setNumPieces)
             {
                 var equipItemSet = ItemManager.Instance.GetEquippedItemSet(setCount.Key);
-                foreach(var bonus in equipItemSet.Bonuses)
+                foreach (var bonus in equipItemSet.Bonuses)
                 {
                     if (setCount.Value >= bonus.NumPieces)
                     {
@@ -131,9 +150,14 @@ namespace AAEmu.Game.Models.Game.Char
                     else //This needs to be revised? Will we ever remove more than 1 item at a time?
                     {
                         if (bonus.BuffId != 0 && Buffs.CheckBuff(bonus.BuffId) && !appliedBuffs.Contains(bonus.BuffId))
+                        {
                             Buffs.RemoveBuff(bonus.BuffId);
+                        }
+
                         if (bonus.ItemProcId != 0)
+                        {
                             Procs.RemoveProc(bonus.ItemProcId);
+                        }
                     }
                 }
             }
@@ -142,65 +166,94 @@ namespace AAEmu.Game.Models.Game.Char
         private void ApplyArmorGradeBuff(Item itemAdded, Item itemRemoved)
         {
             if ((itemAdded != null || itemRemoved != null) && (!(itemAdded is Armor) && !(itemRemoved is Armor)))
+            {
                 return;
+            }
 
             // Clear any existing armor grade buffs
-            Buffs.RemoveBuffs((uint) BuffConstants.ArmorBuffTag, 10);
+            Buffs.RemoveBuffs((uint)BuffConstants.ArmorBuffTag, 10);
 
             // Get armor pieces by kind
             var armorPieces = new Dictionary<ArmorType, List<Armor>>();
             foreach (var item in Equipment.Items)
             {
                 if (!(item is Armor armor))
+                {
                     continue;
+                }
 
                 if (!(item.Template is ArmorTemplate armorTemplate))
+                {
                     continue;
+                }
 
                 if (armorTemplate.SlotTemplate.SlotTypeId == (ulong)EquipmentItemSlotType.Back)
+                {
                     continue;
+                }
 
                 if (!armorPieces.ContainsKey((ArmorType)armorTemplate.KindTemplate.TypeId))
+                {
                     armorPieces.Add((ArmorType)armorTemplate.KindTemplate.TypeId, new List<Armor>());
+                }
+
                 armorPieces[(ArmorType)armorTemplate.KindTemplate.TypeId].Add(armor);
             }
 
             if (!armorPieces.Any())
+            {
                 return;
+            }
+
             // Get kind with most pieces
             var piecesOfKind = armorPieces.First();
             foreach (var piecesByKind in armorPieces)
             {
-                if (piecesByKind.Value.Count > piecesOfKind.Value.Count) piecesOfKind = piecesByKind;
+                if (piecesByKind.Value.Count > piecesOfKind.Value.Count)
+                {
+                    piecesOfKind = piecesByKind;
+                }
             }
 
             var piecesToAccountForBuff = piecesOfKind.Value;
 
             if (piecesToAccountForBuff.Count < 4)
+            {
                 return;
+            }
 
             var finalArmorTemplate = piecesToAccountForBuff.First().Template as ArmorTemplate;
             if (finalArmorTemplate == null)
+            {
                 return;
-            
+            }
+
             if (piecesToAccountForBuff.Count == 7)
             {
                 BuffTemplate templ = null;
                 switch ((ArmorType)finalArmorTemplate.WearableTemplate.TypeId)
                 {
                     case ArmorType.Cloth:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Cloth7P);
-                        break;
+                        {
+                            templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Cloth7P);
+                            break;
+                        }
                     case ArmorType.Leather:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Leather7P);
-                        break;
+                        {
+                            templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Leather7P);
+                            break;
+                        }
                     case ArmorType.Metal:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Plate7P);
-                        break;
+                        {
+                            templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Plate7P);
+                            break;
+                        }
                 }
-                
+
                 if (templ != null)
+                {
                     Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.UtcNow));
+                }
             }
             else
             {
@@ -208,24 +261,34 @@ namespace AAEmu.Game.Models.Game.Char
                 switch ((ArmorType)finalArmorTemplate.WearableTemplate.TypeId)
                 {
                     case ArmorType.Cloth:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Cloth4P);
-                        break;
+                        {
+                            templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Cloth4P);
+                            break;
+                        }
                     case ArmorType.Leather:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Leather4P);
-                        break;
+                        {
+                            templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Leather4P);
+                            break;
+                        }
                     case ArmorType.Metal:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Plate4P);
-                        break;
+                        {
+                            templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Plate4P);
+                            break;
+                        }
                 }
-                
+
                 if (templ != null)
+                {
                     Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.UtcNow));
+                }
             }
 
             // Get only pieces >= arcane
             var piecesAboveArcane = piecesToAccountForBuff.Where(p => p.Grade >= (int)ItemGrade.Arcane).ToList();
             if (piecesAboveArcane.Count < 4)
+            {
                 return;
+            }
 
             var totalLevel = piecesAboveArcane.Sum(a => a.Template.Level);
 
@@ -259,7 +322,10 @@ namespace AAEmu.Game.Models.Game.Char
                 // Static Item Buffs
                 var itemRemovedBuff = ItemGameData.Instance.GetItemBuff(itemRemoved?.TemplateId ?? 0, itemRemoved?.Grade ?? 0);
                 if (itemRemovedBuff == null)
+                {
                     itemRemovedBuff = SkillManager.Instance.GetBuffTemplate(itemRemoved?.Template.BuffId ?? 0);
+                }
+
                 if (itemRemovedBuff != null) // remove previous buff
                 {
                     if (Buffs.CheckBuff(itemRemovedBuff.Id))
@@ -272,15 +338,20 @@ namespace AAEmu.Game.Models.Game.Char
                 if ((itemRemoved.Template is EquipItemTemplate equipItemTemplate) &&
                     (equipItemTemplate.RechargeBuffId > 0) &&
                     Buffs.CheckBuff(equipItemTemplate.RechargeBuffId))
+                {
                     Buffs.RemoveBuff(equipItemTemplate.RechargeBuffId);
+                }
             }
 
-            if(itemAdded != null)
+            if (itemAdded != null)
             {
                 // Static Buffs
                 var itemAddedBuff = ItemGameData.Instance.GetItemBuff(itemAdded?.TemplateId ?? 0, itemAdded?.Grade ?? 0);
                 if (itemAddedBuff == null)
+                {
                     itemAddedBuff = SkillManager.Instance.GetBuffTemplate(itemAdded?.Template.BuffId ?? 0);
+                }
+
                 if (itemAddedBuff != null) // add buff from equipped item
                 {
                     var newEffect =
@@ -301,18 +372,24 @@ namespace AAEmu.Game.Models.Game.Char
                         ? equipItem.UnpackTime
                         : equipItem.ChargeStartTime;
                     checkExpireTime = checkExpireTime.AddMinutes(equipItemTemplate.ChargeLifetime);
-                    
+
                     // Check against timer
                     if ((equipItemTemplate.ChargeLifetime > 0) && (checkExpireTime > DateTime.UtcNow))
+                    {
                         addChargeBuff = true;
+                    }
 
                     // Check against charge counter
                     if ((equipItemTemplate.ChargeCount > 0) && (equipItem.ChargeCount > 0))
+                    {
                         addChargeBuff = true;
+                    }
 
                     // If this item is Bind on unwrap, don't start the buff if it's not unwrapped
                     if (equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack) && (equipItem.HasFlag(ItemFlag.Unpacked) == false))
+                    {
                         addChargeBuff = false;
+                    }
 
                     if (addChargeBuff)
                     {
@@ -327,17 +404,20 @@ namespace AAEmu.Game.Models.Game.Char
                 }
             }
 
-            if(itemAdded == null && itemRemoved == null) // This is the first load check to apply buffs for equipped items. 
+            if (itemAdded == null && itemRemoved == null) // This is the first load check to apply buffs for equipped items. 
             {
                 Buffs.RemoveBuffs((uint)BuffConstants.EquipmentBuffTag, 20);
                 foreach (var item in Equipment.Items)
                 {
                     // Static Buffs
-                    if(item.Template.BuffId != 0)
+                    if (item.Template.BuffId != 0)
                     {
                         var buffTemplate = ItemGameData.Instance.GetItemBuff(item?.TemplateId ?? 0, item?.Grade ?? 0);
                         if (buffTemplate == null)
+                        {
                             buffTemplate = SkillManager.Instance.GetBuffTemplate(item?.Template.BuffId ?? 0);
+                        }
+
                         var newEffect =
                             new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
                             {
@@ -346,7 +426,7 @@ namespace AAEmu.Game.Models.Game.Char
 
                         Buffs.AddBuff(newEffect);
                     }
-                    
+
                     // Charged Item Buffs
                     if ((item is EquipItem equipItem) && (equipItem.Template is EquipItemTemplate equipItemTemplate) &&
                         (equipItemTemplate.RechargeBuffId > 0))
@@ -356,18 +436,24 @@ namespace AAEmu.Game.Models.Game.Char
                             ? equipItem.UnpackTime
                             : equipItem.ChargeStartTime;
                         checkExpireTime = checkExpireTime.AddMinutes(equipItemTemplate.ChargeLifetime);
-                    
+
                         // Check against timer
                         if ((equipItemTemplate.ChargeLifetime > 0) && (checkExpireTime > DateTime.UtcNow))
+                        {
                             addChargeBuff = true;
+                        }
 
                         // Check against charge counter
                         if ((equipItemTemplate.ChargeCount > 0) && (equipItem.ChargeCount > 0))
+                        {
                             addChargeBuff = true;
+                        }
 
                         // If this item is Bind on unwrap, don't start the buff if it's not unwrapped
                         if (equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack) && (equipItem.HasFlag(ItemFlag.Unpacked) == false))
+                        {
                             addChargeBuff = false;
+                        }
 
                         if (addChargeBuff)
                         {

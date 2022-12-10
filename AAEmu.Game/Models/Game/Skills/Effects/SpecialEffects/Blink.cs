@@ -3,17 +3,14 @@
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
-
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class Blink : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.Blink;
-        
-        public override void Execute(Unit caster,
+
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -31,7 +28,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (caster is Character character)
             {
                 //character.SendMessage("From: " + character.Transform.ToString());
-                var newPos = character.Transform.CloneDetached(); 
+                var newPos = character.Transform.CloneDetached();
                 newPos.Local.AddDistanceToFront(value1);
                 //var (endX, endY) = MathUtil.AddDistanceToFront(value1, character.Transform.World.Position.X, character.Transform.World.Position.Y, (sbyte)value2);
                 //var endZ = character.Transform.World.Position.Z;

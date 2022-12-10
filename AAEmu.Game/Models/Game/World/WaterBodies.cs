@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Numerics;
+
 using AAEmu.Commons.Utils;
+
 using Newtonsoft.Json;
 
 namespace AAEmu.Game.Models.Game.World;
@@ -26,13 +27,19 @@ public class WaterBodies
     public bool IsWater(Vector3 point)
     {
         if (point.Z <= OceanLevel)
+        {
             return true;
+        }
 
         lock (_lock)
         {
             foreach (var area in Areas)
+            {
                 if (area.IsWater(point))
+                {
                     return true;
+                }
+            }
         }
         return false;
     }
@@ -40,13 +47,19 @@ public class WaterBodies
     public float GetWaterSurface(Vector3 point)
     {
         if (point.Z <= OceanLevel)
+        {
             return OceanLevel;
+        }
 
         lock (_lock)
         {
             foreach (var area in Areas)
+            {
                 if (area.GetSurface(point, out var surfacePoint))
+                {
                     return surfacePoint.Z;
+                }
+            }
         }
 
         return OceanLevel;
@@ -77,9 +90,15 @@ public class WaterBodies
         {
             var jsonString = File.ReadAllText(fileName);
             if (!JsonHelper.TryDeserializeObject<WaterBodies>(jsonString, out var newData, out var error))
+            {
                 return false;
+            }
+
             foreach (var area in newData.Areas)
+            {
                 area.UpdateBounds();
+            }
+
             waterBodies = newData;
         }
         catch

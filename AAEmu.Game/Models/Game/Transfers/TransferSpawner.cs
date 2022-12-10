@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Numerics;
 
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -103,7 +102,7 @@ namespace AAEmu.Game.Models.Game.Transfers
                         //_log.Warn("TransfersPath #" + transfer.TemplateId);
                         //_log.Warn("New spawn Pos={0}", transfer.Transform.ToString());
                         //_log.Warn("zoneId={0}", transfer.Transform.ZoneId);
-                        
+
 
                         transfer.GoToPath(transfer);
                         //TransferManager.Instance.AddMoveTransfers(transfer.ObjId, transfer);

@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
     public class DoodadFuncRecoverItem : DoodadFuncTemplate
     {
         // doodad_funcs
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Debug($"DoodadFuncRecoverItem({Id}) - Caster:{caster.Name} - DoodadOwner Template:{owner?.TemplateId} - SkillId:{skillId} - Nextphase:{nextPhase}");
 
@@ -30,7 +30,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                         character.SendErrorMessage(ErrorMessageType.InteractionRecoverParent); // TODO: Not sure what error I need to put here
                         return;
                     }
-                    
+
                     // If it's on house property, check if the player has access to it
                     if (owner.DbHouseId > 0)
                     {
@@ -41,7 +41,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                             return;
                         }
                     }
-                    
+
                     if (ItemManager.Instance.IsAutoEquipTradePack(item.TemplateId))
                     {
                         if (character.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
@@ -49,13 +49,17 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                             if (character.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem,
                                 item,
                                 (int)EquipmentItemSlot.Backpack))
+                            {
                                 addedItem = true;
+                            }
                         }
                     }
                     else
                     {
                         if (character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, item))
+                        {
                             addedItem = true;
+                        }
                     }
                 }
             }
@@ -70,10 +74,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             }
 
             if (addedItem && item != null && item._holdingContainer.ContainerType == SlotType.Equipment)
-                character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId,(byte)item.Slot,item), false);
+            {
+                character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId, (byte)item.Slot, item), false);
+            }
 
             if (owner != null)
+            {
                 owner.ToNextPhase = addedItem;
+            }
 
             //if (addedItem)
             //    owner.Delete();

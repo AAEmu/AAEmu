@@ -9,11 +9,11 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
     {
         public BigMonsterRoamingAI()
         {
-            StateMachine.AddState(Framework.States.Idle, new IdleState() {AI = this});
-            StateMachine.AddState(Framework.States.Roaming, new RoamingState(){AI = this});
-            StateMachine.AddState(Framework.States.BigMonsterAttack, new BigMonsterAttackState(){AI = this});
-            StateMachine.AddState(Framework.States.ReturnToIdle, new ReturnToIdleState(){AI = this});
-            
+            StateMachine.AddState(Framework.States.Idle, new IdleState() { AI = this });
+            StateMachine.AddState(Framework.States.Roaming, new RoamingState() { AI = this });
+            StateMachine.AddState(Framework.States.BigMonsterAttack, new BigMonsterAttackState() { AI = this });
+            StateMachine.AddState(Framework.States.ReturnToIdle, new ReturnToIdleState() { AI = this });
+
             StateMachine.SetCurrentState(StateMachine.GetState(Framework.States.Idle));
         }
 
@@ -31,7 +31,9 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
             }
 
             if (!(StateMachine.GetCurrentState() is IdleState))
+            {
                 return;
+            }
 
             var attackState = (BigMonsterAttackState)StateMachine.GetState(Framework.States.BigMonsterAttack);
             attackState.Target = enemy;
@@ -41,7 +43,9 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
         public override void OnSkillEnd(Skill skill)
         {
             if (StateMachine.GetCurrentState() is BigMonsterAttackState aas)
+            {
                 aas.OnSkillEnd(skill);
+            }
         }
     }
 }

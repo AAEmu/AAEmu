@@ -10,8 +10,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly uint _id2;
         private readonly bool _temp;
-        
-        public SCUnitFactionChangedPacket(uint unitId, string unitName, uint id, uint id2, bool temp) 
+
+        public SCUnitFactionChangedPacket(uint unitId, string unitName, uint id, uint id2, bool temp)
             : base(SCOffsets.SCUnitFactionChangedPacket, 1)
         {
             _unitId = unitId;

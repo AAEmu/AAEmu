@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
@@ -20,13 +21,13 @@ namespace AAEmu.Game.Core.Packets.C2G
             var page = stream.ReadUInt16();
 
             var items = CashShopManager.Instance.GetCashShopItems(mainTabId, subTabId, page);
-            bool featured = (mainTabId == 1) && (subTabId == 1);//Im sure there is another way to check this..
-            int maxPerPage = featured ? 4 : 8;
+            var featured = (mainTabId == 1) && (subTabId == 1);//Im sure there is another way to check this..
+            var maxPerPage = featured ? 4 : 8;
             var numPages = (ushort)Math.Ceiling((float)items.Count / maxPerPage);
             var pageItems = items.Skip(maxPerPage * (page - 1)).Take(maxPerPage).ToList();
 
-            int i = 0;
-            foreach(var item in pageItems)
+            var i = 0;
+            foreach (var item in pageItems)
             {
                 i++;
                 var itemDetail = CashShopManager.Instance.GetCashShopItemDetail(item.CashShopId);

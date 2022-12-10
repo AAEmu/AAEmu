@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((ushort) _movements.Length); // TODO ... max size is 400
+            stream.Write((ushort)_movements.Length); // TODO ... max size is 400
             foreach (var (id, type) in _movements)
             {
                 stream.WriteBc(id);

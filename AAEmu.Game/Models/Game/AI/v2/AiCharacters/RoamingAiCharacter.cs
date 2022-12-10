@@ -1,5 +1,4 @@
 using AAEmu.Game.Models.Game.AI.v2.Behaviors;
-using AAEmu.Game.Models.Game.AI.v2.Behaviors.Archer;
 
 namespace AAEmu.Game.Models.Game.AI.v2.AiCharacters
 {
@@ -8,7 +7,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.AiCharacters
         protected override void Build()
         {
             AddBehavior(BehaviorKind.Spawning, new SpawningBehavior());
-            
+
             AddBehavior(BehaviorKind.Roaming, new RoamingBehavior())
                 .AddTransition(TransitionEvent.OnAggroTargetChanged, BehaviorKind.Attack)
                 .AddTransition(TransitionEvent.OnTalk, BehaviorKind.Talk);

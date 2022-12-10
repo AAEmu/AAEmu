@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+
 using Jitter;
 using Jitter.Collision;
 using Jitter.Collision.Shapes;
@@ -67,16 +68,19 @@ namespace AAEmu.Game.Physics.Forces
         /// <param name="body"></param>
         public void Remove(RigidBody body)
         {
-            bool flag = false;
+            var flag = false;
 
-            foreach (RigidBody b in bodies)
+            foreach (var b in bodies)
             {
                 if (body.Shape == b.Shape)
                 { flag = true; break; }
             }
 
             bodies.Remove(body);
-            if (!flag) samples.Remove(body.Shape);
+            if (!flag)
+            {
+                samples.Remove(body.Shape);
+            }
         }
 
         /// <summary>
@@ -109,44 +113,46 @@ namespace AAEmu.Game.Physics.Forces
         /// the results. Note that the total number of subdivisions is subdivisions³.</param>
         public void Add(RigidBody body, int subdivisions)
         {
-            List<JVector> massPoints = new List<JVector>();
+            var massPoints = new List<JVector>();
             JVector testVector;
 
-            JVector diff = body.Shape.BoundingBox.Max - body.Shape.BoundingBox.Min;
+            var diff = body.Shape.BoundingBox.Max - body.Shape.BoundingBox.Min;
 
             if (diff.IsNearlyZero())
+            {
                 throw new InvalidOperationException("BoundingBox volume of the shape is zero.");
+            }
 
-            Multishape ms = body.Shape as Multishape;
-            int values = 0;
+            var ms = body.Shape as Multishape;
+            var values = 0;
 
             if (ms != null)
             {
-                JBBox largeBox = JBBox.LargeBox;
+                var largeBox = JBBox.LargeBox;
                 values = ms.Prepare(ref largeBox);
             }
 
-            for (int i = 0; i < subdivisions; i++)
+            for (var i = 0; i < subdivisions; i++)
             {
-                for (int e = 0; e < subdivisions; e++)
+                for (var e = 0; e < subdivisions; e++)
                 {
-                    for (int k = 0; k < subdivisions; k++)
+                    for (var k = 0; k < subdivisions; k++)
                     {
                         testVector.X = body.Shape.BoundingBox.Min.X + (diff.X / (float)(subdivisions - 1)) * ((float)i);
                         testVector.Y = body.Shape.BoundingBox.Min.Y + (diff.Y / (float)(subdivisions - 1)) * ((float)e);
                         testVector.Z = body.Shape.BoundingBox.Min.Z + (diff.Z / (float)(subdivisions - 1)) * ((float)k);
 
-                        JMatrix ident = JMatrix.Identity;
-                        JVector zero = JVector.Zero;
+                        var ident = JMatrix.Identity;
+                        var zero = JVector.Zero;
 
                         if (ms != null)
                         {
-     
-                            for (int j = 0; j < values; j++)
+
+                            for (var j = 0; j < values; j++)
                             {
                                 ms.SetCurrentShape(j);
 
-               
+
                                 if (GJKCollide.Pointcast(body.Shape, ref ident,
                                     ref zero, ref testVector))
                                 {
@@ -156,7 +162,7 @@ namespace AAEmu.Game.Physics.Forces
                         }
                         else
                         {
-                            if (GJKCollide.Pointcast(body.Shape,ref ident,
+                            if (GJKCollide.Pointcast(body.Shape, ref ident,
                                 ref zero, ref testVector))
                             {
                                 massPoints.Add(testVector);
@@ -176,27 +182,33 @@ namespace AAEmu.Game.Physics.Forces
         /// <param name="timeStep"></param>
         public override void PreStep(float timeStep)
         {
-            float damping = (float)Math.Pow(Damping, timeStep);
+            var damping = (float)Math.Pow(Damping, timeStep);
 
-            foreach (RigidBody body in bodies)
+            foreach (var body in bodies)
             {
 
-                if ((FluidBox.Contains(body.BoundingBox) != JBBox.ContainmentType.Disjoint) || (fluidArea != null)) 
+                if ((FluidBox.Contains(body.BoundingBox) != JBBox.ContainmentType.Disjoint) || (fluidArea != null))
                 {
-                    JVector[] positions = samples[body.Shape];
+                    var positions = samples[body.Shape];
 
-                    float frac = 0.0f;
+                    var frac = 0.0f;
 
-                    JVector currentCoord = JVector.Zero;
-                    for (int i = 0; i < positions.Length; i++)
+                    var currentCoord = JVector.Zero;
+                    for (var i = 0; i < positions.Length; i++)
                     {
                         currentCoord = JVector.Transform(positions[i], body.Orientation);
                         currentCoord = JVector.Add(currentCoord, body.Position);
 
-                        bool containsCoord = false;
+                        var containsCoord = false;
 
-                        if (fluidArea == null) containsCoord = FluidBox.Contains(ref currentCoord) != JBBox.ContainmentType.Disjoint;
-                        else containsCoord = fluidArea(ref currentCoord);
+                        if (fluidArea == null)
+                        {
+                            containsCoord = FluidBox.Contains(ref currentCoord) != JBBox.ContainmentType.Disjoint;
+                        }
+                        else
+                        {
+                            containsCoord = fluidArea(ref currentCoord);
+                        }
 
                         if (containsCoord)
                         {
