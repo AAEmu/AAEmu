@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Models.Game.Char;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Quests.Templates

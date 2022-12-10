@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -26,7 +27,7 @@ namespace AAEmu.Game.Models.Game.Mails
             _house = house;
 
             MailType = MailType.Billing;
-            Body.RecvDate = DateTime.UtcNow ;
+            Body.RecvDate = DateTime.UtcNow;
         }
 
         public static bool UpdateTaxInfo(BaseMail mail, House house)
@@ -40,7 +41,7 @@ namespace AAEmu.Game.Models.Game.Mails
 
             mail.Header.ReceiverId = house.OwnerId;
             mail.ReceiverName = ownerName;
-            
+
             // Grab the zone the house is in
             var zone = ZoneManager.Instance.GetZoneByKey(house.Transform.ZoneId);
             if (zone == null)
@@ -101,7 +102,7 @@ namespace AAEmu.Game.Models.Game.Mails
             Header.SenderId = 0;
             Header.SenderName = TaxSenderName;
 
-            if (!UpdateTaxInfo(this,_house))
+            if (!UpdateTaxInfo(this, _house))
             {
                 return false;
             }

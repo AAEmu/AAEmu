@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
@@ -12,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public uint DetailId { get; set; }
         public string DetailType { get; set; }
         public QuestActTemplate Template { get; set; }
-    
+
         public QuestActTemplate GetTemplate()
         {
             return QuestManager.Instance.GetActTemplate(DetailId, DetailType);

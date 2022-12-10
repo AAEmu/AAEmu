@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var name = stream.ReadString();
-            
+
             _log.Debug("FactionKickToOrigin, Name: {0}", name);
         }
     }

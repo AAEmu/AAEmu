@@ -78,43 +78,49 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 case 0: // выход из игры, quit game
                 case 1: // выход к списку персонажей, go to character select
-                    if (connection.State == GameState.World)
                     {
-                        // Say goodbye if player is quitting (but not going to character select)
-                        if (type == 0)
+                        if (connection.State == GameState.World)
                         {
-                            connection.ActiveChar?.SendMessage(ChatType.System, AppConfiguration.Instance.World.LogoutMessage);
+                            // Say goodbye if player is quitting (but not going to character select)
+                            if (type == 0)
+                            {
+                                connection.ActiveChar?.SendMessage(ChatType.System, AppConfiguration.Instance.World.LogoutMessage);
+                            }
+
+                            var logoutTime = 10000; // in ms
+
+                            // Make it 5 minutes if you're still in combat
+                            if (connection.ActiveChar?.IsInCombat ?? false)
+                            {
+                                logoutTime *= 30;
+                            }
+
+                            connection.SendPacket(new SCPrepareLeaveWorldPacket(logoutTime, type, false));
+
+                            connection.LeaveTask = new LeaveWorldTask(connection, type);
+                            TaskManager.Instance.Schedule(connection.LeaveTask, TimeSpan.FromMilliseconds(logoutTime));
                         }
 
-                        int logoutTime = 10000; // in ms
-
-                        // Make it 5 minutes if you're still in combat
-                        if (connection.ActiveChar?.IsInCombat ?? false)
-                        {
-                            logoutTime *= 30;
-                        }
-
-                        connection.SendPacket(new SCPrepareLeaveWorldPacket(logoutTime, type, false));
-
-                        connection.LeaveTask = new LeaveWorldTask(connection, type);
-                        TaskManager.Instance.Schedule(connection.LeaveTask, TimeSpan.FromMilliseconds(logoutTime));
+                        break;
                     }
-
-                    break;
                 case 2: // выбор сервера, server select
-                    if (connection.State == GameState.Lobby)
                     {
-                        var gsId = AppConfiguration.Instance.Id;
-                        LoginNetwork
-                            .Instance
-                            .GetConnection()
-                            .SendPacket(new GLPlayerReconnectPacket(gsId, connection.AccountId, connection.Id));
-                    }
+                        if (connection.State == GameState.Lobby)
+                        {
+                            var gsId = AppConfiguration.Instance.Id;
+                            LoginNetwork
+                                .Instance
+                                .GetConnection()
+                                .SendPacket(new GLPlayerReconnectPacket(gsId, connection.AccountId, connection.Id));
+                        }
 
-                    break;
+                        break;
+                    }
                 default:
-                    _log.Warn("[Leave] Unknown type: {0}", type);
-                    break;
+                    {
+                        _log.Warn("[Leave] Unknown type: {0}", type);
+                        break;
+                    }
             }
         }
     }

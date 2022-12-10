@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
-   public class SCJuryBeSeatedPacket : GamePacket
+    public class SCJuryBeSeatedPacket : GamePacket
     {
         private readonly bool _isWest;
         private readonly uint _trial;

@@ -1,17 +1,15 @@
 ﻿using System;
-using AAEmu.Game.Core.Managers;
+
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Tasks.Skills;
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class SetVariable : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.SetVariable;
-        
-        public override void Execute(Unit caster,
+
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -27,9 +25,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             // TODO ...
             if (caster is Character) { _log.Debug("Special effects: SetVariable index {0}, value {1}, operation {2}, value4 {3}", value1, value2, value3, value4); }
 
-            int index = value1;
-            int value = value2;
-            int operation = value3;
+            var index = value1;
+            var value = value2;
+            var operation = value3;
             //value 4 unused
 
 

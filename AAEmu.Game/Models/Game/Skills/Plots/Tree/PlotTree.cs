@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using AAEmu.Commons.Network;
+
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
@@ -17,9 +17,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
     public class PlotTree
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-        
+
         public uint PlotId { get; set; }
-        
+
         public PlotNode RootNode { get; set; }
 
         public PlotTree(uint plotId)
@@ -98,14 +98,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                         {
                             executeQueue.Enqueue((node, item.targetInfo));
                         }
-                        
+
                         foreach (var child in node.Children)
                         {
                             if (condition != child.ParentNextEvent.Fail)
                             {
                                 if (child?.ParentNextEvent?.PerTarget ?? false)
                                 {
-                                    foreach(var target in item.targetInfo.EffectedTargets)
+                                    foreach (var target in item.targetInfo.EffectedTargets)
                                     {
                                         var targetInfo = new PlotTargetInfo(item.targetInfo.Source, target);
                                         queue.Enqueue(
@@ -139,7 +139,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                     if (queue.Count > 0)
                     {
-                        int delay = (int)queue.Min(o => (o.timestamp - DateTime.UtcNow).TotalMilliseconds);
+                        var delay = (int)queue.Min(o => (o.timestamp - DateTime.UtcNow).TotalMilliseconds);
                         delay = Math.Max(delay, 0);
 
                         //await Task.Delay(delay).ConfigureAwait(false);
@@ -156,24 +156,25 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 }
 
                 FlushExecutionQueue(executeQueue, state);
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 _log.Error($"Main Loop Error: {e.Message}\n {e.StackTrace}");
             }
-            
+
             DoPlotEnd(state);
             _log.Trace("Tree with ID {0} has finished executing took {1}ms", PlotId, treeWatch.ElapsedMilliseconds);
         }
-        
+
         private void FlushExecutionQueue(Queue<(PlotNode node, PlotTargetInfo targetInfo)> executeQueue, PlotState state)
-        { 
+        {
             var packets = new CompressedGamePackets();
             while (executeQueue.Count > 0)
             {
                 var item = executeQueue.Dequeue();
                 item.node.Execute(state, item.targetInfo, packets);
             }
-            
+
             if (packets.Packets.Count > 0)
             {
                 state.Caster.BroadcastPacket(packets, true);
@@ -182,7 +183,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
         private void EndPlotChannel(PlotState state)
         {
-            foreach(var pair in state.ChanneledBuffs)
+            foreach (var pair in state.ChanneledBuffs)
             {
                 pair.unit.Buffs.RemoveBuff(pair.buffId);
             }
@@ -208,7 +209,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             }
 
             SkillManager.Instance.ReleaseId(state.ActiveSkill.TlId);
-            
+
             state.Caster?.OnSkillEnd(state.ActiveSkill);
             state.ActiveSkill.Callback?.Invoke();
             if (state.Caster?.ActivePlotState == state)

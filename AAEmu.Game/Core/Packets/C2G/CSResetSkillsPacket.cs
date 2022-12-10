@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var abilityId = stream.ReadByte(); // a
             var ausp = stream.ReadBoolean();   // ausp
 
-            Connection.ActiveChar.Skills.Reset((AbilityType) abilityId);
+            Connection.ActiveChar.Skills.Reset((AbilityType)abilityId);
         }
     }
 }

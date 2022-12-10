@@ -17,9 +17,26 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write((ushort)_ids.Length);
             foreach (var id in _ids)
+            {
                 stream.WriteBc(id);
+            }
 
             return stream;
+        }
+
+        public override string Verbose()
+        {
+            if (_ids?.Length > 1)
+            {
+                return " - Removed " + _ids.Length.ToString() + " objects";
+            }
+
+            if (_ids?.Length == 1)
+            {
+                return " - " + WorldManager.Instance.GetGameObject(_ids[0])?.DebugName();
+            }
+
+            return base.Verbose();
         }
     }
 }

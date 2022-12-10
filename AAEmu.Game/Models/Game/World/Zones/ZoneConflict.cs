@@ -1,9 +1,9 @@
 ﻿using System;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.World.Zones;
-using AAEmu.Game.Models.Tasks.Zones;
+
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Tasks.Zones;
 
 namespace AAEmu.Game.Models.Game.World.Zones
 {
@@ -130,20 +130,28 @@ namespace AAEmu.Game.Models.Game.World.Zones
             switch (ct)
             {
                 case ZoneConflictType.Conflict:
-                    KillCount = 0;
-                    NextStateTime = DateTime.UtcNow.AddMinutes(ConflictMin);
-                    break;
+                    {
+                        KillCount = 0;
+                        NextStateTime = DateTime.UtcNow.AddMinutes(ConflictMin);
+                        break;
+                    }
                 case ZoneConflictType.War:
-                    KillCount = 0;
-                    NextStateTime = DateTime.UtcNow.AddMinutes(WarMin);
-                    break;
+                    {
+                        KillCount = 0;
+                        NextStateTime = DateTime.UtcNow.AddMinutes(WarMin);
+                        break;
+                    }
                 case ZoneConflictType.Peace:
-                    KillCount = 0;
-                    NextStateTime = DateTime.UtcNow.AddMinutes(PeaceMin);
-                    break;
+                    {
+                        KillCount = 0;
+                        NextStateTime = DateTime.UtcNow.AddMinutes(PeaceMin);
+                        break;
+                    }
                 default:
-                    NextStateTime = DateTime.MinValue;
-                    break;
+                    {
+                        NextStateTime = DateTime.MinValue;
+                        break;
+                    }
             }
             CurrentZoneState = ct;
             SendSwitchZoneState();

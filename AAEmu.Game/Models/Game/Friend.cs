@@ -1,9 +1,9 @@
 ﻿using System;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game
@@ -18,7 +18,7 @@ namespace AAEmu.Game.Models.Game
         public AbilityType Ability1 { get; set; }
         public AbilityType Ability2 { get; set; }
         public AbilityType Ability3 { get; set; }
-        public Transform Position { get; set; } = new Transform(null,null);
+        public Transform Position { get; set; } = new Transform(null, null);
         public bool InParty { get; set; }
         public bool IsOnline { get; set; }
         public DateTime LastWorldLeaveTime { get; set; }

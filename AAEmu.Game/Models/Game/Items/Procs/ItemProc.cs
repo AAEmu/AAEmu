@@ -1,4 +1,5 @@
 using System;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
@@ -39,7 +40,7 @@ namespace AAEmu.Game.Models.Game.Items.Procs
 
             var target = SkillCastTarget.GetByType(SkillCastTargetType.Doodad);
             target.ObjId = owner.ObjId;
-                
+
             var skill = new Skill(Template.SkillTemplate);
             skill.Use(owner, caster, target);
             return true;

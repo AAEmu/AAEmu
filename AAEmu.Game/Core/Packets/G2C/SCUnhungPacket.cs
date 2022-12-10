@@ -1,6 +1,5 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.DoodadObj;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {

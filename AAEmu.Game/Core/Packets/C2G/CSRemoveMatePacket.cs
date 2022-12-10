@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var tlId = stream.ReadUInt16();
-            
+
             // _log.Warn("RemoveMate, TlId: {0}", tlId);
             Connection.ActiveChar.Mates.DespawnMate(tlId);
         }

@@ -1,19 +1,18 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Units;
 
-using NLog;
-
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class PlayUserMusic : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.PlayUserMusic;
-        
-        public override void Execute(Unit caster,
+
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -36,8 +35,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             {
                 // Send Midi data
                 player.BroadcastPacket(new SCSendUserMusicPacket(player.ObjId, player.Name, MusicManager.Instance.GetMidiCache(player.Id)), true);
-                
-                
+
+
                 var instrument = player.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Musical);
                 if (instrument != null)
                 {
@@ -46,18 +45,24 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                     switch ((ItemCategory)instrument.Template.Category_Id)
                     {
                         case ItemCategory.Lute:
-                            target.Buffs.AddBuff((uint)BuffConstants.LutePlay, caster);
-                            break;
+                            {
+                                target.Buffs.AddBuff((uint)BuffConstants.LutePlay, caster);
+                                break;
+                            }
                         case ItemCategory.Flute:
-                            target.Buffs.AddBuff((uint)BuffConstants.FlutePlay, caster);
-                            break;
+                            {
+                                target.Buffs.AddBuff((uint)BuffConstants.FlutePlay, caster);
+                                break;
+                            }
                         //case ItemCategory.Drum:
                         //    // NOTE: You can't actually use drum weapons as a instrument, client will throw a "requirements not met" error
                         //    target.Buffs.AddBuff((uint)BuffConstants.DrumPlay, caster);
                         //    break;
                         default:
-                            _log.Trace("SpecialEffectAction - PlayUserMusic - Equipped instrument slot is not a known instrument !");
-                            break;
+                            {
+                                _log.Trace("SpecialEffectAction - PlayUserMusic - Equipped instrument slot is not a known instrument !");
+                                break;
+                            }
                     }
                 }
                 else
@@ -66,7 +71,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 }
 
             }
-            
+
         }
     }
 }

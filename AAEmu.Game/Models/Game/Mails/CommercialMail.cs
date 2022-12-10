@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -57,8 +58,12 @@ namespace AAEmu.Game.Models.Game.Mails
             // If the player is exists, move it to their mail container first
             var targetCharacter = WorldManager.Instance.GetCharacter(_receiverName);
             if (targetCharacter != null)
+            {
                 foreach (var item in Body.Attachments)
-                    targetCharacter.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Invalid,item);
+                {
+                    targetCharacter.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Invalid, item);
+                }
+            }
 
             // Title looks like it should be the item shop entry names (in multiple language?)
             // Title = "title('Rainbow Pumpkin Taffy|Rainbow Pumpkin Taffy|Rainbow Pumpkin Taffy|彩虹南瓜糖|Радужный марципан')";

@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Numerics;
 using System.Threading;
 using System.Xml;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -15,12 +15,13 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Tasks;
-using AAEmu.Game.Models.Tasks.Transfers;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
+
 using XmlHelper = AAEmu.Commons.Utils.XML.XmlHelper;
 
 namespace AAEmu.Game.Core.Managers
@@ -48,7 +49,7 @@ namespace AAEmu.Game.Core.Managers
 
             //TransferTickTask = new TransferTickStartTask();
             //TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMinutes(DelayInit), TimeSpan.FromMilliseconds(Delay));
-            
+
             TickManager.Instance.OnTick.Subscribe(TransferTick, TimeSpan.FromMilliseconds(Delay), true);
 
             _initialized = true;
@@ -171,7 +172,7 @@ namespace AAEmu.Game.Core.Managers
             owner.Id = Carriage.Id;
             owner.ModelId = Carriage.ModelId;
             owner.Template = Carriage;
-            owner.AttachPointId = AttachPointKind.System ;
+            owner.AttachPointId = AttachPointKind.System;
             owner.BondingObjId = 0;
             owner.Level = 1;
             owner.Hp = owner.MaxHp;
@@ -184,10 +185,10 @@ namespace AAEmu.Game.Core.Managers
             //var quat = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
 
             owner.Faction = FactionManager.Instance.GetFaction(FactionsEnum.PcFriendly); // formerly set to 164
-            
+
             owner.Patrol = null;
             // BUFF: Untouchable (Unable to attack this target)
-            var buffId = (uint)BuffConstants.Untouchable; 
+            var buffId = (uint)BuffConstants.Untouchable;
             owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow));
             owner.Spawn();
             _activeTransfers.Add(owner.ObjId, owner);
@@ -222,7 +223,7 @@ namespace AAEmu.Game.Core.Managers
             transfer.Transform.ResetFinalizeTransform();
 
             transfer.Faction = FactionManager.Instance.GetFaction(FactionsEnum.PcFriendly); // used to be 164
-            
+
             transfer.Patrol = null;
             // add effect
             buffId = (uint)BuffConstants.Untouchable; // Buff: Unable to attack this target
@@ -232,7 +233,7 @@ namespace AAEmu.Game.Core.Managers
 
             transfer.Spawn();
             _activeTransfers.Add(transfer.ObjId, transfer);
-            
+
             foreach (var doodadBinding in transfer.Template.TransferBindingDoodads)
             {
                 var doodad = DoodadManager.Instance.Create(0, doodadBinding.DoodadId, transfer);
@@ -244,11 +245,15 @@ namespace AAEmu.Game.Core.Managers
                 switch (doodadBinding.AttachPointId)
                 {
                     case AttachPointKind.Passenger0:
-                        doodad.Transform.Local.SetPosition(0.00537476f, 5.7852f, 1.36648f, 0, 0, MathF.PI * 2f);
-                        break;
+                        {
+                            doodad.Transform.Local.SetPosition(0.00537476f, 5.7852f, 1.36648f, 0, 0, MathF.PI * 2f);
+                            break;
+                        }
                     case AttachPointKind.Passenger1:
-                        doodad.Transform.Local.SetPosition(0.00537476f, 1.63614f, 1.36648f, 0, 0, 0);
-                        break;
+                        {
+                            doodad.Transform.Local.SetPosition(0.00537476f, 1.63614f, 1.36648f, 0, 0, 0);
+                            break;
+                        }
                 }
                 doodad.Transform.ResetFinalizeTransform();
                 doodad.PlantTime = DateTime.UtcNow;
@@ -267,7 +272,7 @@ namespace AAEmu.Game.Core.Managers
         {
             _templates = new Dictionary<uint, TransferTemplate>();
             _activeTransfers = new Dictionary<uint, Transfer>();
-            
+
             #region SQLLite
 
             using (var connection = SQLite.CreateConnection())
@@ -365,7 +370,7 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
             #endregion
-            
+
             #region TransferPath
             _log.Info("Loading transfer_path...");
 
@@ -377,11 +382,11 @@ namespace AAEmu.Game.Core.Managers
             foreach (var world in worlds)
             {
                 var transferPaths = new Dictionary<uint, List<TransferRoads>>();
-                
+
                 var worldLevelDesignDir = Path.Combine("game", "worlds", world.Name, "level_design", "zone");
                 var pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "transfer_path.xml", true);
-                
-                foreach(var pathFileName in pathFiles)
+
+                foreach (var pathFileName in pathFiles)
                 {
                     if (!uint.TryParse(Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(pathFileName))),
                         out var zoneId))
@@ -391,7 +396,7 @@ namespace AAEmu.Game.Core.Managers
                     }
 
                     var contents = ClientFileManager.GetFileAsString(pathFileName);
-                    
+
                     if (string.IsNullOrWhiteSpace(contents))
                     {
                         _log.Warn($"{pathFileName} doesn't exists or is empty.");
@@ -399,7 +404,7 @@ namespace AAEmu.Game.Core.Managers
                     }
 
                     _log.Debug($"Loading {pathFileName}");
-                    
+
                     var transferPath = new List<TransferRoads>();
                     var xDoc = new XmlDocument();
                     xDoc.LoadXml(contents);
@@ -412,10 +417,10 @@ namespace AAEmu.Game.Core.Managers
                             var transferAttribs = XmlHelper.ReadNodeAttributes(xNode);
 
                             transferRoad.ZoneId = zoneId;
-                            transferRoad.Name = XmlHelper.ReadAttribute<string>(transferAttribs, "Name","");
-                            transferRoad.Type = XmlHelper.ReadAttribute<int>(transferAttribs, "Type",0);
-                            transferRoad.CellX = XmlHelper.ReadAttribute<int>(transferAttribs, "cellX",0);
-                            transferRoad.CellY = XmlHelper.ReadAttribute<int>(transferAttribs, "cellY",0);
+                            transferRoad.Name = XmlHelper.ReadAttribute<string>(transferAttribs, "Name", "");
+                            transferRoad.Type = XmlHelper.ReadAttribute<int>(transferAttribs, "Type", 0);
+                            transferRoad.CellX = XmlHelper.ReadAttribute<int>(transferAttribs, "cellX", 0);
+                            transferRoad.CellY = XmlHelper.ReadAttribute<int>(transferAttribs, "cellY", 0);
 
                             foreach (XmlNode childNode in xNode.ChildNodes)
                             {

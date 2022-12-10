@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Units;
 
@@ -14,21 +14,35 @@ namespace AAEmu.Game.Models.Game.Skills.Utils
             switch (relation)
             {
                 case SkillTargetRelation.Any:
-                    return units;
+                    {
+                        return units;
+                    }
                 case SkillTargetRelation.Friendly:
-                    return units.Where(o => caster.GetRelationStateTo(o) == RelationState.Friendly && !caster.CanAttack(o));
+                    {
+                        return units.Where(o => caster.GetRelationStateTo(o) == RelationState.Friendly && !caster.CanAttack(o));
+                    }
                 case SkillTargetRelation.Hostile:
-                    return units.Where(caster.CanAttack);
+                    {
+                        return units.Where(caster.CanAttack);
+                    }
                 case SkillTargetRelation.Party:
-                    return units;
+                    {
+                        return units;
+                    }
                 case SkillTargetRelation.Raid:
-                    var team = TeamManager.Instance.GetTeamByObjId(caster.ObjId);
-                    units = team == null ? new List<T>() : units.Where(o => team.IsObjMember(o.ObjId));
-                    return units.Append(caster);
+                    {
+                        var team = TeamManager.Instance.GetTeamByObjId(caster.ObjId);
+                        units = team == null ? new List<T>() : units.Where(o => team.IsObjMember(o.ObjId));
+                        return units.Append(caster);
+                    }
                 case SkillTargetRelation.Others:
-                    return units.Where(o => caster.GetRelationStateTo(o) == RelationState.Neutral);
+                    {
+                        return units.Where(o => caster.GetRelationStateTo(o) == RelationState.Neutral);
+                    }
                 default:
-                    return units;
+                    {
+                        return units;
+                    }
             }
         }
 
@@ -37,26 +51,40 @@ namespace AAEmu.Game.Models.Game.Skills.Utils
             switch (relation)
             {
                 case SkillTargetRelation.Any:
-                    return true;
-                case SkillTargetRelation.Friendly:
-                    return caster?.GetRelationStateTo(target) == RelationState.Friendly && !caster.CanAttack(target);
-                case SkillTargetRelation.Hostile:
-                    return caster.CanAttack(target);
-                case SkillTargetRelation.Party:
-                    return true;
-                case SkillTargetRelation.Raid:
-                    if (target == caster)
                     {
                         return true;
                     }
+                case SkillTargetRelation.Friendly:
+                    {
+                        return caster?.GetRelationStateTo(target) == RelationState.Friendly && !caster.CanAttack(target);
+                    }
+                case SkillTargetRelation.Hostile:
+                    {
+                        return caster.CanAttack(target);
+                    }
+                case SkillTargetRelation.Party:
+                    {
+                        return true;
+                    }
+                case SkillTargetRelation.Raid:
+                    {
+                        if (target == caster)
+                        {
+                            return true;
+                        }
 
-                    var team = TeamManager.Instance.GetTeamByObjId(caster.ObjId);
-                    return team?.IsObjMember(target.ObjId) ?? false;
+                        var team = TeamManager.Instance.GetTeamByObjId(caster.ObjId);
+                        return team?.IsObjMember(target.ObjId) ?? false;
+                    }
                 case SkillTargetRelation.Others:
-                    // return caster.GetRelationStateTo(target) == RelationState.Neutral;
-                    return caster?.ObjId != target.ObjId;
+                    {
+                        // return caster.GetRelationStateTo(target) == RelationState.Neutral;
+                        return caster?.ObjId != target.ObjId;
+                    }
                 default:
-                    return true;
+                    {
+                        return true;
+                    }
             }
         }
     }

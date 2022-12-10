@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
@@ -7,7 +8,9 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
+
 using MySql.Data.MySqlClient;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -31,7 +34,7 @@ namespace AAEmu.Game.Models.Game.Char
             Owner = owner;
             // Create all container types
             _itemContainers = new Dictionary<SlotType, ItemContainer>();
-            
+
             // Override Unit's created equipment container with a persistent one
             Owner.Equipment = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, SlotType.Equipment);
 
@@ -154,7 +157,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
             else
             {
-                containerList = new SlotType[3] {SlotType.Inventory, SlotType.Equipment, SlotType.Bank};
+                containerList = new SlotType[3] { SlotType.Inventory, SlotType.Equipment, SlotType.Bank };
             }
 
             var res = 0;
@@ -221,8 +224,10 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 return counted;
             }
-
-            return 0;
+            else
+            {
+                return 0;
+            }
         }
 
         /// <summary>
@@ -241,9 +246,9 @@ namespace AAEmu.Game.Models.Game.Char
             unitsOfItemFound = 0;
             if (inContainerTypes == null || inContainerTypes.Length <= 0)
             {
-                inContainerTypes = new SlotType[3] { SlotType.Inventory, SlotType.Equipment, SlotType.Bank};
+                inContainerTypes = new SlotType[3] { SlotType.Inventory, SlotType.Equipment, SlotType.Bank };
             }
-            foreach(var ct in inContainerTypes)
+            foreach (var ct in inContainerTypes)
             {
                 if (_itemContainers.TryGetValue(ct, out var c))
                 {
@@ -333,7 +338,7 @@ namespace AAEmu.Game.Models.Game.Char
                 _log.Error($"SplitOrMoveItem - toItemId {toItemId} is not welcome in this container {sourceContainer?.ContainerType}.");
                 return false;
             }
-            
+
             // Are we equipping into a empty slot ? For whatever reason the client will send FROM empty equipment slot => TO item to equip
             if (fromItemId == 0 && fromType == SlotType.Equipment && toType != SlotType.Equipment &&
                 itemInTargetSlot != null)
@@ -503,6 +508,7 @@ namespace AAEmu.Game.Models.Game.Char
                 }
 
                 if (isMain2H && sourceContainer?.ContainerType == SlotType.Equipment && fromSlot == (int)EquipmentItemSlot.Offhand)
+                {
                 {
                     doUnEquipMainHand = true;
                 }
@@ -682,7 +688,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, toSlot, Equipment.GetItemBySlot(toSlot)), false);
             }
-            
+
             // Send ItemContainer events
             if (sourceContainer != targetContainer)
             {
@@ -697,8 +703,8 @@ namespace AAEmu.Game.Models.Game.Char
                     targetContainer?.OnLeaveContainer(itemInTargetSlot, sourceContainer);
                     sourceContainer?.OnEnterContainer(itemInTargetSlot, targetContainer);
                 }
-            }            
-            
+            }
+
             if (itemTasks.Count > 0)
             {
                 Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
@@ -741,7 +747,7 @@ namespace AAEmu.Game.Models.Game.Char
         /// <param name="taskType"></param>
         /// <param name="glidersOnly">When true, only allow for gliders</param>
         /// <returns></returns>
-        public bool TakeoffBackpack(ItemTaskType taskType,bool glidersOnly = false)
+        public bool TakeoffBackpack(ItemTaskType taskType, bool glidersOnly = false)
         {
             var backpack = GetEquippedBySlot(EquipmentItemSlot.Backpack);
             if (backpack == null)
@@ -820,11 +826,11 @@ namespace AAEmu.Game.Models.Game.Char
         /// <returns></returns>
         public Item GetItemById(ulong id)
         {
-            foreach(var c in _itemContainers)
+            foreach (var c in _itemContainers)
             {
                 if (c.Key == SlotType.Equipment || c.Key == SlotType.Inventory || c.Key == SlotType.Bank)
                 {
-                    foreach(var i in c.Value.Items)
+                    foreach (var i in c.Value.Items)
                     {
                         if (i != null && i.Id == id)
                         {
@@ -989,7 +995,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (expand.ItemId != 0 && expand.ItemCount != 0)
             {
-                Bag.ConsumeItem(isBank ? ItemTaskType.ExpandBank : ItemTaskType.ExpandBag, expand.ItemId, expand.ItemCount,null);
+                Bag.ConsumeItem(isBank ? ItemTaskType.ExpandBank : ItemTaskType.ExpandBag, expand.ItemId, expand.ItemCount, null);
             }
 
             if (isBank)
@@ -1012,7 +1018,7 @@ namespace AAEmu.Game.Models.Game.Char
         /// <param name="item"></param>
         /// <param name="count"></param>
         /// <param name="onlyUpdatedCount"></param>
-        public void OnAcquiredItem(Item item,int count,bool onlyUpdatedCount = false)
+        public void OnAcquiredItem(Item item, int count, bool onlyUpdatedCount = false)
         {
             // Quests
             //if ((item?.Template.LootQuestId > 0) && (count != 0))
@@ -1060,7 +1066,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             ItemContainer sourceContainer = null;
             ItemContainer targetContainer = null;
-            
+
             if (fromSlotType == SlotType.Trade)
             {
                 sourceContainer = relatedCoffer;
@@ -1096,7 +1102,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             ItemContainer sourceContainer = null;
             ItemContainer targetContainer = null;
-            
+
             if (fromSlotType == SlotType.Trade)
             {
                 sourceContainer = relatedCoffer;

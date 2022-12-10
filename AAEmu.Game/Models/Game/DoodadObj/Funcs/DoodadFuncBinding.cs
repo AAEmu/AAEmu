@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -14,7 +15,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
     {
         public uint DistrictId { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             if (caster is not Character character) { return; }
 
@@ -22,7 +23,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             _log.Trace("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}, SubZonesId {2}", DistrictId, returnPointId, character.SubZoneId);
             character.SendMessage("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}, SubZonesId {2}", DistrictId, returnPointId, character.SubZoneId);
-            
+
             if (returnPointId == 0) { return; }
 
             var portal = PortalManager.Instance.GetRecallById(returnPointId);

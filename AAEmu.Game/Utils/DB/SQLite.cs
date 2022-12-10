@@ -1,7 +1,10 @@
 using System;
 using System.IO;
+
 using AAEmu.Commons.IO;
+
 using Microsoft.Data.Sqlite;
+
 using NLog;
 
 namespace AAEmu.Game.Utils.DB
@@ -15,7 +18,7 @@ namespace AAEmu.Game.Utils.DB
             var dbPath = Path.Combine(FileManager.AppPath, "Data", "compact.sqlite3");
             if (!File.Exists(dbPath))
             {
-                _log.Fatal("Server database does not exist: {0} !",dbPath);
+                _log.Fatal("Server database does not exist: {0} !", dbPath);
                 return null;
             }
             var connection = new SqliteConnection($"Data Source=file:{dbPath}; Mode=ReadOnly");
@@ -25,7 +28,7 @@ namespace AAEmu.Game.Utils.DB
             }
             catch (Exception e)
             {
-                _log.Error(e,"Error on SQLite connect: {0}", e.Message);
+                _log.Error(e, "Error on SQLite connect: {0}", e.Message);
                 return null;
             }
 

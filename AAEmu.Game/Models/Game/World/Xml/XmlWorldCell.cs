@@ -1,8 +1,5 @@
-﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Xml;
-using System.Xml.Resolvers;
+﻿using System.Xml;
+
 using XmlH = AAEmu.Commons.Utils.XML.XmlHelper;
 
 namespace AAEmu.Game.Models.Game.World.Xml
@@ -17,7 +14,7 @@ namespace AAEmu.Game.Models.Game.World.Xml
         public void ReadNode(XmlNode node, World world, XmlWorldZone xmlWorldZone)
         {
             Parent = xmlWorldZone;
-            
+
             // Read XML
             var a = XmlH.ReadNodeAttributes(node);
             X = XmlH.ReadAttribute<int>(a, "x", 0);
@@ -33,7 +30,7 @@ namespace AAEmu.Game.Models.Game.World.Xml
                     sector.ReadNode(sectorNodes[i], world, this);
                 }
             }
-            
+
         }
 
         public override string ToString()

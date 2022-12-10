@@ -9,10 +9,10 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
     {
         public AlmightyNpcAI()
         {
-            StateMachine.AddState(Framework.States.Idle, new IdleState() {AI = this});
-            StateMachine.AddState(Framework.States.AlmightyAttack, new AlmightyAttackState() {AI = this});
-            StateMachine.AddState(Framework.States.ReturnToIdle, new ReturnToIdleState() {AI = this});
-            
+            StateMachine.AddState(Framework.States.Idle, new IdleState() { AI = this });
+            StateMachine.AddState(Framework.States.AlmightyAttack, new AlmightyAttackState() { AI = this });
+            StateMachine.AddState(Framework.States.ReturnToIdle, new ReturnToIdleState() { AI = this });
+
             StateMachine.SetCurrentState(StateMachine.GetState(Framework.States.Idle));
         }
 
@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
                 aas.Target = enemy;
                 return;
             }
-            
+
             if (!(StateMachine.GetCurrentState() is IdleState))
             {
                 return;
@@ -35,7 +35,7 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
         }
 
         public override void OnSkillEnd(Skill skill)
-        { 
+        {
             if (StateMachine.GetCurrentState() is AlmightyAttackState aas)
             {
                 aas.OnSkillEnd(skill);

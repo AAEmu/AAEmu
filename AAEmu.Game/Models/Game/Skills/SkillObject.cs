@@ -44,23 +44,35 @@ namespace AAEmu.Game.Models.Game.Skills
             switch (flag)
             {
                 case SkillObjectType.Unk1: // TODO - Skills bound to portals
-                    obj = new SkillObjectUnk1();
-                    break;
+                    {
+                        obj = new SkillObjectUnk1();
+                        break;
+                    }
                 case SkillObjectType.Unk2:
-                    obj = new SkillObjectUnk2();
-                    break;
+                    {
+                        obj = new SkillObjectUnk2();
+                        break;
+                    }
                 case SkillObjectType.Unk3:
-                    obj = new SkillObjectUnk3();
-                    break;
+                    {
+                        obj = new SkillObjectUnk3();
+                        break;
+                    }
                 case SkillObjectType.Unk4:
-                    obj = new SkillObjectUnk4();
-                    break;
+                    {
+                        obj = new SkillObjectUnk4();
+                        break;
+                    }
                 case SkillObjectType.Unk5:
-                    obj = new SkillObjectUnk5();
-                    break;
+                    {
+                        obj = new SkillObjectUnk5();
+                        break;
+                    }
                 case SkillObjectType.Unk6:
-                    obj = new SkillObjectUnk6();
-                    break;
+                    {
+                        obj = new SkillObjectUnk6();
+                        break;
+                    }
                 case SkillObjectType.ItemGradeEnchantingSupport:
                     obj = new SkillObjectItemGradeEnchantingSupport();
                     break;
@@ -101,8 +113,10 @@ namespace AAEmu.Game.Models.Game.Skills
                     obj = new SkillObjectUnk19(); // added in 3.5.0.3 NA
                     break;
                 default:
-                    obj = new SkillObject();
-                    break;
+                    {
+                        obj = new SkillObject();
+                        break;
+                    }
             }
 
             obj.Flag = flag;

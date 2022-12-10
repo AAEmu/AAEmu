@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Models.Game.Char;
@@ -9,8 +10,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     public class GainItemWithEmblemImprint : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.GainItemWithEmblemImprint;
-        
-        public override void Execute(Unit caster,
+
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,

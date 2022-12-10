@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
@@ -33,7 +34,7 @@ namespace AAEmu.Game.Core.Managers
             }
 
             _observers.Add(observer);
-            
+
             return new Unsubscriber<float>(_observers, observer);
         }
 
@@ -50,7 +51,7 @@ namespace AAEmu.Game.Core.Managers
             _time = 12 * 3600f;
             //_time = curHours * 3600f + curMinutes;
             _work = true;
-            new Thread(Tick) {Name = "TimeManagerThread"}.Start();
+            new Thread(Tick) { Name = "TimeManagerThread" }.Start();
         }
 
         public void Stop()
@@ -68,7 +69,7 @@ namespace AAEmu.Game.Core.Managers
                     _time -= MaxTime;
                 }
 
-                new Thread(Push) {Name = "TimeManagerPushThread"}.Start();
+                new Thread(Push) { Name = "TimeManagerPushThread" }.Start();
                 Thread.Sleep(10000);
             }
         }
@@ -77,7 +78,9 @@ namespace AAEmu.Game.Core.Managers
         {
             var time = GetTime();
             foreach (var observer in _observers)
+            {
                 observer.OnNext(time);
+            }
         }
     }
 }

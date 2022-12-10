@@ -411,7 +411,7 @@ namespace AAEmu.Game.Models.Game.Units
         public override void RemoveVisibleObject(Character character)
         {
             base.RemoveVisibleObject(character);
-            
+
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }
 
@@ -455,10 +455,10 @@ namespace AAEmu.Game.Models.Game.Units
             transfer.MoveToForward = true;
             // попробуем взять эти значения как скорость движения транспорта
             // let's try to take these values as vehicle speed
-            transfer.MaxVelocityForward = transfer.Template.PathSmoothing + 1.6f; 
+            transfer.MaxVelocityForward = transfer.Template.PathSmoothing + 1.6f;
             transfer.Speed = 0;
             if (!MoveToPathEnabled || !transfer.IsInPatrol)
-            
+
             {
                 //_log.Warn("the route is stopped.");
                 transfer.StopMove(transfer);
@@ -593,7 +593,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             // вектор скорости (т.е. координаты, куда попадём двигаясь со скоростью velociti по направдению direction)
             var diff = direction * velocity;
-            transfer.Transform.Local.Translate(diff.X,diff.Y,diff.Z);
+            transfer.Transform.Local.Translate(diff.X, diff.Y, diff.Z);
 
             var nextPoint = Math.Abs(transfer.vDistance.X) < transfer.RangeToCheckPoint
                             && Math.Abs(transfer.vDistance.Y) < transfer.RangeToCheckPoint
@@ -648,7 +648,7 @@ namespace AAEmu.Game.Models.Game.Units
                 // Added so whatever riding this, doesn't clip out of existence when moving
                 transfer.Transform.FinalizeTransform(true);
                 // Only send movement of the main vehicle motor, client will drag carriage on it's own
-                if ((transfer.Bounded != null) || (transfer.ParentObj == null)) 
+                if ((transfer.Bounded != null) || (transfer.ParentObj == null))
                 {
                     transfer.BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeTr), false);
                     /*
@@ -660,7 +660,7 @@ namespace AAEmu.Game.Models.Game.Units
                     }
                     */
                 }
-                
+
 
                 /*
                 if (Bounded != null)
@@ -672,7 +672,7 @@ namespace AAEmu.Game.Models.Game.Units
                 }
                 */
             }
-            
+
         }
 
         public void CheckWaitTime(Transfer transfer)

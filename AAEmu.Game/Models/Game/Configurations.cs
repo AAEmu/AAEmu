@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
-using System;
 
 namespace AAEmu.Game.Models.Game
 {

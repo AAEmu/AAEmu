@@ -98,7 +98,6 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
             {
                 count++;
                 var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _, out _);
-                
 
                 // Act
                 var result = quest.Start();
@@ -185,16 +184,13 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
         public void Start_ActCheckTimer_ShouldStartSchedulerAndSendCharacterMessage()
         {
             // Arrange
-            var questIds = GetQuestIdsWithComponentKindContainingActDetailType(
-                new QuestCondition(QuestComponentKind.Start, "QuestActCheckTimer")
-            );
+            var questIds = GetQuestIdsWithComponentKindContainingActDetailType(new QuestCondition(QuestComponentKind.Start, "QuestActCheckTimer"));
 
             // Excluding sphere and acceptcomponent to avoid early exit or Update();
             var targetQuestIds = RemoveSphereAndNotImplementedQuests(questIds);
             foreach (var questId in targetQuestIds)
             {
                 // Arrange
-                
                 var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _, out _);
                 SetupCharacter(mockCharacter);
 
@@ -274,9 +270,7 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
         public void UseSkillAndBuff_MockedWorldManager_WhenQuestUseSkill_ShouldUseOnSelfOrTargetNpc()
         {
             // Arrange
-            var questIds = GetQuestIdsWithComponentKindContainingActDetailType(
-                new QuestCondition(QuestComponentKind.Start, "QuestActConAcceptNpc", HasSkill: true)
-            );
+            var questIds = GetQuestIdsWithComponentKindContainingActDetailType(new QuestCondition(QuestComponentKind.Start, "QuestActConAcceptNpc", HasSkill: true));
             var targetQuestIds = RemoveSphereAndNotImplementedQuests(questIds);
 
             //targetQuestIds = new uint[] { 1966 };
@@ -284,13 +278,11 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
             foreach (var questId in targetQuestIds)
             {
                 // Arrange
-
                 var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _, out var mockWorldManager);
                 SetupCharacter(mockCharacter);
                 // Simulates the character to be targeting an expected npc for the quest
                 var npcComponent = QuestManager.Instance.GetTemplate(questId).GetFirstComponent(QuestComponentKind.Start);
                 var npcAcceptAct = npcComponent.ActTemplates.OfType<QuestActConAcceptNpc>().FirstOrDefault();
-
 
                 var targetNpc = new Npc { TemplateId = npcAcceptAct.NpcId };
                 var mockSkillNpc = new Mock<Npc>();
@@ -303,6 +295,7 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
                     mockCharacter.SetupGet(o => o.CurrentTarget).Returns(targetNpc);
                 }
                 mockWorldManager.Setup(wm => wm.GetNpcByTemplateId(It.IsIn(npcComponent.NpcId))).Returns(mockComponentNpc.Object);
+                
                 // Act
                 var result = quest.Start();
 
@@ -332,9 +325,7 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
         public void UseSkillAndBuff_WhenQuestUseSkill_ShouldUseOnSelfOrTargetNpc()
         {
             // Arrange
-            var questIds = GetQuestIdsWithComponentKindContainingActDetailType(
-                new QuestCondition(QuestComponentKind.Start, "QuestActConAcceptNpc", HasSkill: true)
-            );
+            var questIds = GetQuestIdsWithComponentKindContainingActDetailType(new QuestCondition(QuestComponentKind.Start, "QuestActConAcceptNpc", HasSkill: true));
             var targetQuestIds = RemoveSphereAndNotImplementedQuests(questIds);
 
             //targetQuestIds = new uint[] { 1966 };
@@ -342,7 +333,6 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
             foreach (var questId in targetQuestIds)
             {
                 // Arrange
-
                 var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out _, out _, WorldManager.Instance);
                 SetupCharacter(mockCharacter);
 
@@ -350,8 +340,6 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
                 var npcComponent = QuestManager.Instance.GetTemplate(questId).GetFirstComponent(QuestComponentKind.Start);
                 var npcAcceptAct = npcComponent.ActTemplates.OfType<QuestActConAcceptNpc>().FirstOrDefault();
                 var npc = WorldManager.Instance.GetNpcByTemplateId(npcComponent.NpcId);
-
-
                 
                 var targetNpc = new Npc { TemplateId = npcAcceptAct.NpcId };
                 var mockSkillNpc = new Mock<NpcFake>(npc);
@@ -413,7 +401,6 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
                 // Arrange
                 var mockCharacterBuffs = new Mock<IBuffs>();
 
-
                 var quest = SetupQuest(questId, QuestManager.Instance, out var mockCharacter, out var mockQuestTemplate, out _, out _, out var mockSkillManager, out _, WorldManager.Instance);
                 SetupCharacter(mockCharacter, 10, 0, mockCharacterBuffs);
 
@@ -434,19 +421,13 @@ namespace AAEmu.Tests.Integration.Models.Game.Quests
                 Assert.True(result);
             }
         }
+
         private IEnumerable<uint> RemoveSphereAndNotImplementedQuests(IEnumerable<uint> questIds)
         {
             // Excluding sphere and acceptcomponent to avoid early exit or Update();
             return questIds
-            .Except(
-                GetQuestIdsWithComponentKindContainingActDetailType(
-                new QuestCondition(QuestComponentKind.Progress, "QuestActObjSphere")
-            )
-            .Union
-            (
-                GetQuestIdsWithComponentKindContainingActDetailType(
-                new QuestCondition(QuestComponentKind.Start, "QuestActConAcceptComponent")
-            )));
+            .Except(GetQuestIdsWithComponentKindContainingActDetailType(new QuestCondition(QuestComponentKind.Progress, "QuestActObjSphere"))
+            .Union(GetQuestIdsWithComponentKindContainingActDetailType(new QuestCondition(QuestComponentKind.Start, "QuestActConAcceptComponent"))));
         }
 
         private void SetupCharacter(Mock<ICharacter> mockCharacter, byte inventorySlots = 10, uint equippedBackPackItem = 0,  Mock<IBuffs> mockCharacterBuffs = null)

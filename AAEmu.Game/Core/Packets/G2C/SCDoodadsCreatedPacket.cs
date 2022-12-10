@@ -18,7 +18,9 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write((byte)_doodads.Length);
             foreach (var doodad in _doodads)
+            {
                 doodad.Write(stream);
+            }
 
             return stream;
         }

@@ -38,7 +38,7 @@ using AAEmu.Game.Models.Tasks.Doodads;
  [Doodad] PhaseFunc: GroupId 5137, FuncId 1001, FuncType DoodadFuncTimer : delay=30000, nextPhase=5136
  [Doodad] Func: GroupId 5137, FuncId 0
 *-----------------------------------------------------------------------------------------------------------------
-метод public void Use(Unit caster, uint skillId) запускает в цикле:
+метод public void Use(BaseUnit caster, uint skillId) запускает в цикле:
 
 2. запуск Func (функций) func.Use(caster, this, skillId, func.NextPhase)
    - одна функция выбирается методом GetFunc(FuncGroupId, skillId)
@@ -173,7 +173,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         //     
         // }
 
-        public void Use(Unit caster, uint skillId)
+        public void Use(BaseUnit caster, uint skillId)
         {
             if (caster == null) { return; }
 
@@ -206,7 +206,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                         //           id=5095 Explosive Keg - 2 функции с разными skill и с разными NextPhase != -1
                         //           id=901 ??? - 3 функции с разными func_skill и одним и тем же NextPhase = 2221
                         //           id=1549 Logic -lamp bit 1 - 2 функции с skill=0 и с разными NextPhase, один из них = -1
-                        
+
                         //           id=6749 Nachashgar Room 9 - 4 функции с разными skill и одним и тем же NextPhase = 18123
                         var res = true;
                         var prev = 0;
@@ -263,7 +263,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <param name="skillId"></param>
         /// <param name="func"></param>
         /// <returns>If TRUE, then we stop further execution of functions and wait for interaction</returns>
-        private bool DoFunc(Unit caster, uint skillId, DoodadFunc func)
+        private bool DoFunc(BaseUnit caster, uint skillId, DoodadFunc func)
         {
             // if there is no function, complete the cycle
             if (func == null)
@@ -308,7 +308,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <param name="caster"></param>
         /// <param name="nextPhase"></param>
         /// <returns>if true, it did not pass the check for the quest (it must be aborted)</returns>
-        private bool DoPhase(Unit caster, int nextPhase)
+        private bool DoPhase(BaseUnit caster, int nextPhase)
         {
             ListGroupId = new List<uint>();
             if (nextPhase <= 0) { return false; }
@@ -378,7 +378,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <param name="caster"></param>
         /// <param name="nextPhase"></param>
         /// <returns>if TRUE, it did not pass the check for the quest (it must be aborted)</returns>
-        public bool DoPhaseFuncs(Unit caster, int nextPhase)
+        public bool DoPhaseFuncs(BaseUnit caster, int nextPhase)
         {
             //if (nextPhase == -1)
             //{
@@ -411,7 +411,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     select funcGroup.Id).FirstOrDefault();
         }
 
-        public void OnSkillHit(Unit caster, uint skillId)
+        public void OnSkillHit(BaseUnit caster, uint skillId)
         {
             var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
             if (funcs == null) { return; }
@@ -452,8 +452,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                             case "DoodadFuncRatioChange":
                             case "DoodadFuncGrowth":
                             case "DoodadFuncClout":
-                                DoPhaseFuncs(null, (int)FuncGroupId);
-                                break;
+                                {
+                                    DoPhaseFuncs(null, (int)FuncGroupId);
+                                    break;
+                                }
                                 //case "DoodadFuncClimateReact":
                                 //case "DoodadFuncCraftDirect":
                                 //case "DoodadFuncHunger": // ?
@@ -479,8 +481,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                             case "DoodadFuncRatioChange":
                             case "DoodadFuncGrowth":
                             case "DoodadFuncClout":
-                                DoPhaseFuncs(null, (int)FuncGroupId);
-                                break;
+                                {
+                                    DoPhaseFuncs(null, (int)FuncGroupId);
+                                    break;
+                                }
                         }
                     }
                 }
@@ -490,7 +494,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public override void BroadcastPacket(GamePacket packet, bool self)
         {
             foreach (var character in WorldManager.Instance.GetAround<Character>(this))
+            {
                 character.SendPacket(packet);
+            }
         }
 
         public override void AddVisibleObject(Character character)

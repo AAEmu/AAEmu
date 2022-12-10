@@ -1,4 +1,5 @@
 using System.Linq;
+
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.Framework;
@@ -55,12 +56,12 @@ namespace AAEmu.Game.Models.Game.AI.States
                 return null;
             }
 
-            var ret = npc.AggroTable.Aggregate((i1,i2) => i1.Value.DamageAggro > i2.Value.DamageAggro ? i1 : i2);
+            var ret = npc.AggroTable.Aggregate((i1, i2) => i1.Value.DamageAggro > i2.Value.DamageAggro ? i1 : i2);
             var unit = WorldManager.Instance.GetUnit(ret.Key);
 
             return unit;
         }
-        
+
         public Unit GetTopHealAggro()
         {
             if (!(AI.Owner is Npc npc))
@@ -73,7 +74,7 @@ namespace AAEmu.Game.Models.Game.AI.States
                 return null;
             }
 
-            var ret = npc.AggroTable.Aggregate((i1,i2) => i1.Value.HealAggro > i2.Value.HealAggro ? i1 : i2);
+            var ret = npc.AggroTable.Aggregate((i1, i2) => i1.Value.HealAggro > i2.Value.HealAggro ? i1 : i2);
             var unit = WorldManager.Instance.GetUnit(ret.Key);
 
             return unit;

@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Items.Templates
@@ -42,7 +43,7 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public int ExpOnlineLifetime { get; set; }
         public int ExpDate { get; set; } // DateTime in 1.2, int in 3.0.3.0
         public int LevelRequirement { get; set; }
-        public int AuctionCategoryA {get; set; }
+        public int AuctionCategoryA { get; set; }
         public int AuctionCategoryB { get; set; }
         public int AuctionCategoryC { get; set; }
         public int LevelLimit { get; set; }

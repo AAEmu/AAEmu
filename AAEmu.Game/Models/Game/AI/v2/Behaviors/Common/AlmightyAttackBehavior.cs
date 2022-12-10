@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.V2.Params;
@@ -84,11 +85,11 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         {
             var availableSkills = RequestAvailableSkillList(trgDist);
 
-            if(availableSkills.Count > 0)
+            if (availableSkills.Count > 0)
             {
                 var selectedSkillList = availableSkills.RandomElementByWeight(s => s.Dice);
 
-                foreach(var skill in selectedSkillList.Skills)
+                foreach (var skill in selectedSkillList.Skills)
                 {
                     _skillQueue.Enqueue(skill);
                 }
@@ -97,7 +98,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             }
             else
             {
-                if(Ai.Owner.Template.BaseSkillId != 0)
+                if (Ai.Owner.Template.BaseSkillId != 0)
                 {
                     _skillQueue.Enqueue(new AiSkill
                     {
@@ -116,7 +117,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
         private List<AiSkillList> RequestAvailableSkillList(float trgDist)
         {
-            int healthRatio = (int)(((float)Ai.Owner.Hp / Ai.Owner.MaxHp) * 100);
+            var healthRatio = (int)(((float)Ai.Owner.Hp / Ai.Owner.MaxHp) * 100);
 
             var baseList = _aiParams.AiSkillLists.AsEnumerable();
 

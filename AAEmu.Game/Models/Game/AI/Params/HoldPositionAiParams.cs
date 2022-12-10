@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.RegularExpressions;
+﻿using System.Collections.Generic;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.AI.Params
@@ -10,7 +8,7 @@ namespace AAEmu.Game.Models.Game.AI.Params
     {
         private Logger _log = LogManager.GetCurrentClassLogger();
         public override AiParamType Type => AiParamType.HoldPosition;
-        
+
         public int AlertDuration { get; set; }
         public bool AlertToAttack { get; set; }
         public int AlertSafeTargetRememberTime { get; set; }

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
     public class DoodadFuncCutdowning : DoodadFuncTemplate
     {
         // doodad_funcs
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             if (caster is Character)
             {
@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             //TODO Tree falling effect goes here?
             // DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId);
             //owner.Use(caster, skillId);
-            
+
             owner.ToNextPhase = true;
         }
     }

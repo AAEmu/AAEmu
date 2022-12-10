@@ -1,5 +1,4 @@
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Templates;
+﻿using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Trading
 {
@@ -10,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Trading
         public uint SpecialtyBundleId { get; set; }
         public uint Profit { get; set; }
         public uint Ratio { get; set; }
-        
+
         public ItemTemplate Item { get; set; }
     }
 }

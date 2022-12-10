@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
-using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Slaves;
+
 using Jitter.Dynamics;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -18,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Units
         //public uint Id { get; set; } // moved to BaseUnit
         //public uint TemplateId { get; set; } // moved to BaseUnit
         public uint BondingObjId { get; set; } = 0;
-        
+
         public SlaveTemplate Template { get; set; }
         // public Character Driver { get; set; }
         public Character Summoner { get; set; }
@@ -648,12 +650,12 @@ namespace AAEmu.Game.Models.Game.Units
                 return res;
             }
         }
-        
+
         [UnitAttribute(UnitAttribute.TurnSpeed)]
         public virtual float TurnSpeed { get => (float)CalculateWithBonuses(0, UnitAttribute.TurnSpeed); }
 
         #endregion
-        
+
         public override void AddVisibleObject(Character character)
         {
             character.SendPacket(new SCUnitStatePacket(this));

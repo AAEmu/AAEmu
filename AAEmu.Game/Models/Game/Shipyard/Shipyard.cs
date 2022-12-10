@@ -35,7 +35,8 @@ namespace AAEmu.Game.Models.Game.Shipyard
         }
         private bool IsDirty { get => _isDirty; set => _isDirty = value; }
         public int AllAction { get => _allAction; set { _allAction = value; _isDirty = true; } }
-        public int BaseAction {
+        public int BaseAction
+        {
             get => _baseAction;
             private set
             {
@@ -43,7 +44,8 @@ namespace AAEmu.Game.Models.Game.Shipyard
             }
         }
         public int CurrentAction => BaseAction + NumAction;
-        public int NumAction {
+        public int NumAction
+        {
             get => _numAction;
             private set
             {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
@@ -27,7 +28,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public bool CancelOnBigHit { get; set; }
         public bool UseExeTime { get; set; }
         public bool Fail { get; set; }
-        
+
         private int GetAnimDelay(IEnumerable<PlotEventEffect> effects)
         {
             if (!AddAnimCsTime)
@@ -54,7 +55,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
 
             return 0;
         }
-        
+
         private int GetProjectileDelay(BaseUnit caster, BaseUnit target)
         {
             if (Speed <= 0)
@@ -79,7 +80,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
 
         public int GetDelay(PlotState state, PlotTargetInfo eventInstance, PlotNode node)
         {
-            var animTime = (int)(GetAnimDelay(node.Event.Effects) * (state.Caster.GlobalCooldownMul/100f));
+            var animTime = (int)(GetAnimDelay(node.Event.Effects) * (state.Caster.GlobalCooldownMul / 100f));
             var projectileTime = GetProjectileDelay(eventInstance.Source, eventInstance.Target);
             var skillCtrlTime = GetSkillControllerDelay(node);
             var delay = animTime + projectileTime + skillCtrlTime;

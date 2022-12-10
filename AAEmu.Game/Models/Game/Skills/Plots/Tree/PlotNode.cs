@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using AAEmu.Game.Core.Managers;
+
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Static;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
     public class PlotNode
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-        
+
         // Tree
         public PlotTree Tree;
         public PlotNode Parent;
@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         // Plots
         public PlotEventTemplate Event;
         public PlotNextEvent ParentNextEvent;
-        
+
 
         public PlotNode()
         {
@@ -31,7 +31,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
         private bool IsChannelStart()
         {
-            foreach(var child in Children)
+            foreach (var child in Children)
             {
                 if (child.ParentNextEvent.Channeling == true)
                 {
@@ -45,7 +45,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         {
             return ParentNextEvent.GetDelay(state, targetInfo, Parent);
         }
-        
+
         public bool CheckConditions(PlotState state, PlotTargetInfo targetInfo)
         {
             return Event.Conditions.All(condition => condition.CheckCondition(state, targetInfo));
@@ -112,7 +112,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     targetPlotObj = new PlotObject(targetInfo.Target);
                 }
 
-                byte targetCount = (byte)targetInfo.EffectedTargets.Count();
+                var targetCount = (byte)targetInfo.EffectedTargets.Count();
 
                 var packet = new SCPlotEventPacket(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj,
                     targetPlotObj, unkId, (ushort)castTime, flag, 0, targetCount);

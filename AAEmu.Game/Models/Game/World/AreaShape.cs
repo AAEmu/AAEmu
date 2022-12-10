@@ -46,12 +46,8 @@ namespace AAEmu.Game.Models.Game.World
 
             toCheck = toCheck.Where(o =>
             {
-                var tri1 = MathUtil.PointInTriangle((o.Transform.World.Position.X, o.Transform.World.Position.Y), vertices[0], vertices[1],
-                    vertices[2]);
-
-                var tri2 = MathUtil.PointInTriangle((o.Transform.World.Position.X, o.Transform.World.Position.Y), vertices[1], vertices[2],
-                    vertices[3]);
-
+                var tri1 = vertices != null && MathUtil.PointInTriangle((o.Transform.World.Position.X, o.Transform.World.Position.Y), vertices[0], vertices[1], vertices[2]);
+                var tri2 = vertices != null && MathUtil.PointInTriangle((o.Transform.World.Position.X, o.Transform.World.Position.Y), vertices[1], vertices[2], vertices[3]); // TODO индексы не перепутаны?!
                 return tri1 || tri2;
             }).ToList();
 
@@ -66,8 +62,6 @@ namespace AAEmu.Game.Models.Game.World
         public Doodad Owner { get; set; }
         public Unit Caster { get; set; }
         private List<Unit> Units { get; set; }
-
-
         public uint SkillId { get; set; }
         public uint TlId { get; set; }
         public SkillTargetRelation TargetRelation { get; set; }
@@ -83,7 +77,7 @@ namespace AAEmu.Game.Models.Game.World
 
         public void UpdateUnits()
         {
-            if (Owner == null || !Owner.IsVisible)
+            if (Owner is not { IsVisible: true })
             {
                 AreaTriggerManager.Instance.RemoveAreaTrigger(this);
                 return;
@@ -107,21 +101,23 @@ namespace AAEmu.Game.Models.Game.World
             Units = units;
         }
 
-        public void OnEnter(Unit unit)
+        public void OnEnter(BaseUnit unit)
         {
-            if (Caster == null)
+            var caster = Caster != null ? (BaseUnit)Caster : Owner;
+
+            if (caster == null)
             {
                 return;
             }
 
-            if (SkillTargetingUtil.IsRelationValid(TargetRelation, Caster, unit))
+            if (SkillTargetingUtil.IsRelationValid(TargetRelation, caster, unit))
             {
-                InsideBuffTemplate?.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), null, new EffectSource(), null, DateTime.UtcNow);
+                InsideBuffTemplate?.Apply(caster, new SkillCasterUnit(caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), null, new EffectSource(), null, DateTime.UtcNow);
             }
-            // unit.Effects.AddEffect(new Effect(Owner, Caster, new SkillCasterUnit(Caster.ObjId), InsideBuffTemplate, null, DateTime.UtcNow));
+            // unit.Effects.AddEffect(new Effect(Owner, caster, new SkillCasterUnit(Caster.ObjId), InsideBuffTemplate, null, DateTime.UtcNow));
         }
 
-        public void OnLeave(Unit unit)
+        public void OnLeave(BaseUnit unit)
         {
             if (InsideBuffTemplate != null)
             {
@@ -147,12 +143,14 @@ namespace AAEmu.Game.Models.Game.World
                 return;
             }
 
-            if (Caster == null)
+            var caster = Caster != null ? (BaseUnit)Caster : Owner;
+
+            if (caster == null)
             {
                 return;
             }
 
-            var unitsToApply = SkillTargetingUtil.FilterWithRelation(TargetRelation, Caster, Units);
+            var unitsToApply = SkillTargetingUtil.FilterWithRelation(TargetRelation, caster, Units);
             foreach (var unit in unitsToApply)
             {
                 foreach (var effect in EffectPerTick)
@@ -173,7 +171,7 @@ namespace AAEmu.Game.Models.Game.World
                         castAction = new CastSkill(SkillId, 0);
                     }
 
-                    effect.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), castAction, new EffectSource(), new SkillObject(), DateTime.UtcNow);
+                    effect.Apply(caster, new SkillCasterUnit(caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), castAction, new EffectSource(), new SkillObject(), DateTime.UtcNow);
                 }
             }
         }

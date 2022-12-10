@@ -1,20 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
-using AAEmu.Game.Models.Game.Quests.Static;
-using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Skills.Effects;
-using AAEmu.Game.Models.Game.Skills.Utils;
-using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Spheres;
-using AAEmu.Game.Models.Tasks.Doodads;
 using AAEmu.Game.Utils;
 
 using NLog;
@@ -23,10 +13,10 @@ namespace AAEmu.Game.Models.Game.World
 {
     public enum AreaSphereTriggerCondition
     {
-        INVALID = 0,
-        TRIGGER_ONCE_AT_ALL = 1,
-        TRIGGER_ONCE_IN_RUNTIME = 2,
-        TRIGGER_EVERY_N_TIME_AFTER = 3
+        Invalid = 0,
+        TriggerOnceAtAll = 1,
+        TriggerOnceInRuntime = 2,
+        TriggerEveryNTimeAfter = 3
     }
 
     public class SphereQuest

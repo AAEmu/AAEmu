@@ -451,7 +451,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
-        public void DoSpawnEffect(uint spawnerId, SpawnEffect effect, Unit caster, BaseUnit target)
+        public void DoSpawnEffect(uint spawnerId, SpawnEffect effect, BaseUnit caster, BaseUnit target)
         {
             var template = NpcGameData.Instance.GetNpcSpawnerTemplate(spawnerId);
             if (template.Npcs == null)

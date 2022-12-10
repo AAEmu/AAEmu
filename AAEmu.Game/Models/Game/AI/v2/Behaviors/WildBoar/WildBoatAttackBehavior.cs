@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.v2.Params.WildBoar;
 using AAEmu.Game.Models.Game.Skills;
@@ -15,7 +16,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.WildBoar
 
         private WildBoarAiParams _aiParams;
         private float _prevHealthRatio;
-        
+
         public override void Enter()
         {
             _aiParams = Ai.Param as WildBoarAiParams;
@@ -51,7 +52,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.WildBoar
             }
 
             var healthRatio = (Ai.Owner.Hp / (float)Ai.Owner.MaxHp) * 100;
-            
+
             var target = Ai.Owner.CurrentTarget;
             if (target == null)
             {

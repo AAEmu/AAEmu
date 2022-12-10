@@ -4,10 +4,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Xml;
 
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.XML;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.IO;
@@ -20,8 +22,6 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
-using System.Numerics;
-using AAEmu.Commons.Utils.XML;
 using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
@@ -219,7 +219,9 @@ namespace AAEmu.Game.Core.Managers.World
 
                     // cache zone keys to world reference
                     foreach (var zoneKey in world.ZoneKeys)
+                    {
                         _worldIdByZoneId.Add(zoneKey, world.Id);
+                    }
 
                     world.Water = new WaterBodies();
                 }
@@ -467,7 +469,9 @@ namespace AAEmu.Game.Core.Managers.World
                                                         }
                                                         break;
                                                     default:
-                                                        throw new ArgumentOutOfRangeException();
+                                                        {
+                                                            throw new ArgumentOutOfRangeException();
+                                                        }
                                                 }
 
                                                 world.HeightMaps[oX, oY] = value;
@@ -481,7 +485,6 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                     }
                 }
-            }
 
             _log.Info("{0} heightmap loaded", world.Name);
             return true;
@@ -639,7 +642,7 @@ namespace AAEmu.Game.Core.Managers.World
         public Region GetRegion(GameObject obj)
         {
             obj = GetRootObj(obj);
-            InstanceWorld world = GetWorld(obj.Transform.WorldId);
+            var world = GetWorld(obj.Transform.WorldId);
             return GetRegion(world, obj.Transform.World.Position.X, obj.Transform.World.Position.Y);
         }
 
@@ -717,10 +720,12 @@ namespace AAEmu.Game.Core.Managers.World
         public Character GetCharacter(string name)
         {
             foreach (var player in _characters.Values)
+            {
                 if (name.ToLower().Equals(player.Name.ToLower()))
                 {
                     return player;
                 }
+            }
 
             return null;
         }
@@ -738,7 +743,7 @@ namespace AAEmu.Game.Core.Managers.World
             FirstNonNameArgument = 0;
             if ((TargetName != null) && (TargetName != string.Empty))
             {
-                Character player = WorldManager.Instance.GetCharacter(TargetName);
+                var player = WorldManager.Instance.GetCharacter(TargetName);
                 if (player != null)
                 {
                     FirstNonNameArgument = 1;
@@ -762,10 +767,12 @@ namespace AAEmu.Game.Core.Managers.World
         public Character GetCharacterById(uint id)
         {
             foreach (var player in _characters.Values)
+            {
                 if (player.Id.Equals(id))
                 {
                     return player;
                 }
+            }
 
             return null;
         }
@@ -890,7 +897,9 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 // If no currentRegion, add it (happens on new spawns)
                 foreach (var neighbor in region.GetNeighbors())
+                {
                     neighbor.AddToCharacters(obj);
+                }
 
                 region.AddObject(obj);
                 obj.Region = region;
@@ -906,11 +915,13 @@ namespace AAEmu.Game.Core.Managers.World
                 {
                     var remove = true;
                     foreach (var newNeighbor in newNeighbors)
+                    {
                         if (newNeighbor.Equals(neighbor))
                         {
                             remove = false;
                             break;
                         }
+                    }
 
                     if (remove)
                     {
@@ -923,11 +934,13 @@ namespace AAEmu.Game.Core.Managers.World
                 {
                     var add = true;
                     foreach (var oldNeighbor in oldNeighbors)
+                    {
                         if (oldNeighbor.Equals(neighbor))
                         {
                             add = false;
                             break;
                         }
+                    }
 
                     if (add)
                     {
@@ -948,59 +961,54 @@ namespace AAEmu.Game.Core.Managers.World
             if (obj?.Transform?.Children.Count > 0)
             {
                 foreach (var child in obj.Transform.Children)
+                {
                     AddVisibleObject(child.GameObject);
+                }
             }
         }
 
         public void RemoveVisibleObject(GameObject obj)
         {
-            try
+            if (obj == null)
             {
-                if (obj?.Region == null)
-                {
-                    return;
-                }
-
-                obj.Region.RemoveObject(obj);
-
-                if (obj.Region == null)
-                {
-                    // Also remove children
-                    if (obj?.Transform?.Children.Count > 0)
-                    {
-                        foreach (var child in obj?.Transform.Children)
-                            RemoveVisibleObject(child?.GameObject);
-                    }
-
-                    return;
-                }
-                var neighbours = obj.Region.GetNeighbors();
-                if ((neighbours != null) && (neighbours.Length > 0))
-                {
-                    foreach (var neighbor in neighbours)
-                        neighbor?.RemoveFromCharacters(obj);
-                }
-
-                obj.Region = null;
-
-            }
-            catch (Exception e)
-            {
-                _log.Error($"RemoveVisibleObject: {e}");
+                return;
             }
 
-            try
+            if (obj.Region == null)
             {
-                // Also remove children
-                if (obj?.Transform?.Children.Count > 0)
+                return;
+            }
+
+            var neighbors = obj.Region.GetNeighbors();
+            obj.Region.RemoveObject(obj);
+
+            if (neighbors == null)
+            {
+                return;
+            }
+
+            if (neighbors.Length > 0)
+            {
+                foreach (var neighbor in neighbors)
                 {
-                    foreach (var child in obj?.Transform.Children)
-                        RemoveVisibleObject(child?.GameObject);
+                    neighbor?.RemoveFromCharacters(obj);
                 }
             }
-            catch (Exception e)
+
+            obj.Region = null;
+
+            // Also remove children
+            if (obj.Transform == null)
             {
-                _log.Error($"RemoveVisibleObject.RemoveChildren: {e}");
+                return;
+            }
+
+            if (obj.Transform.Children.Count > 0)
+            {
+                foreach (var child in obj.Transform.Children)
+                {
+                    RemoveVisibleObject(child?.GameObject);
+                }
             }
         }
 
@@ -1013,7 +1021,9 @@ namespace AAEmu.Game.Core.Managers.World
             }
 
             foreach (var neighbor in obj.Region.GetNeighbors())
+            {
                 neighbor.GetList(result, obj.ObjId);
+            }
 
             return result;
         }
@@ -1038,7 +1048,9 @@ namespace AAEmu.Game.Core.Managers.World
             else
             {
                 foreach (var neighbor in obj.Region.GetNeighbors())
+                {
                     neighbor.GetList(result, obj.ObjId, obj.Transform.World.Position.X, obj.Transform.World.Position.Y, radius * radius, useModelSize);
+                }
             }
 
             return result;
@@ -1103,7 +1115,10 @@ namespace AAEmu.Game.Core.Managers.World
             }
 
             foreach (var region in regions)
+            {
                 region.GetList(result, 0);
+            }
+
             return result;
         }
 
@@ -1289,7 +1304,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         public AreaShape GetAreaShapeById(uint id)
         {
-            if (_areaShapes.TryGetValue(id, out AreaShape res))
+            if (_areaShapes.TryGetValue(id, out var res))
             {
                 return res;
             }

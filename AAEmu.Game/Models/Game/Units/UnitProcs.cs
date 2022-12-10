@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Procs;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Units
     {
         private List<ItemProc> _procs;
         private Dictionary<ProcChanceKind, List<ItemProc>> _procsByChanceKind;
-        
+
         public Unit Owner { get; set; }
 
         public UnitProcs(Unit owner)
@@ -50,7 +50,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
 
             var procs = _procsByChanceKind[kind];
-            
+
             foreach (var proc in procs)
             {
                 if (proc.LastProc.AddSeconds(proc.Template.CooldownSec) <= DateTime.UtcNow)

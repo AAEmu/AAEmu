@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.SpawnSlave;
 
-        public override void Execute(Unit caster,
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,

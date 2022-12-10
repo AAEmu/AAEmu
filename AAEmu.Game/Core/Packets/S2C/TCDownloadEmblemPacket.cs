@@ -11,8 +11,8 @@ namespace AAEmu.Game.Core.Packets.S2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((long) 0); // type
-            stream.Write((int) 0); // size
+            stream.Write((long)0); // type
+            stream.Write((int)0); // size
             /*
             if ( *(_DWORD *)(v3 + 8) > 0 )
             {
@@ -28,7 +28,7 @@ namespace AAEmu.Game.Core.Packets.S2C
                 v8("emblem", (char *)(v3 + 12), v5);
             }
             */
-            stream.Write((ulong) 0); // modified
+            stream.Write((ulong)0); // modified
 
             return stream;
         }

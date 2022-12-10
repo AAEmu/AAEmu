@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _hideSpawnEffect;
         private readonly long _unkId;
         private readonly string _creatorName;
-        
+
         public SCSlaveCreatedPacket(uint ownerObjId, ushort tlId, uint slaveObjId, bool hideSpawnEffect, long unkId, string creatorName)
             : base(SCOffsets.SCSlaveCreatedPacket, 5)
         {

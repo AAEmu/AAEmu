@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Utils.DB;
+
 using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.GameData
@@ -12,7 +14,7 @@ namespace AAEmu.Game.GameData
     public class ItemGameData : Singleton<ItemGameData>, IGameDataLoader
     {
         private Dictionary<uint, Dictionary<byte, uint>> _itemGradeBuffs;
-        
+
         public BuffTemplate GetItemBuff(uint itemId, byte gradeId)
         {
             if (_itemGradeBuffs.TryGetValue(itemId, out var itemGradeBuffs))
@@ -25,11 +27,11 @@ namespace AAEmu.Game.GameData
 
             return null;
         }
-        
+
         public void Load(SqliteConnection connection)
         {
             _itemGradeBuffs = new Dictionary<uint, Dictionary<byte, uint>>();
-            
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM item_grade_buffs";

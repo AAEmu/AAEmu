@@ -1,5 +1,4 @@
 ﻿using AAEmu.Commons.Network;
-using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
 {
@@ -79,7 +78,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
                 GcPartId = stream.ReadUInt16(); // actor.gcPartId
                 (X2, Y2, Z2) = stream.ReadPosition(); // ix, iy, iz
                 RotationX2 = stream.ReadSByte();
-                RotationY2 = stream.ReadSByte(); 
+                RotationY2 = stream.ReadSByte();
                 RotationZ2 = stream.ReadSByte();
             }
             if (((ushort)ActorFlags & 0x60) != 0)

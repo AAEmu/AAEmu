@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public uint FakeSkillId { get; set; }
         public bool TargetParent { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             if (caster is Character)
             {

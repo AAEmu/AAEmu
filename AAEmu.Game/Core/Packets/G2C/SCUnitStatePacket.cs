@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
@@ -73,17 +71,21 @@ namespace AAEmu.Game.Core.Packets.G2C
             switch (_baseUnitType)
             {
                 case BaseUnitType.Character:
-                    var character = (Character)_unit;
-                    stream.Write(character.Id); // type(id)
-                    stream.Write(0L);           // v?
-                    break;
+                    {
+                        var character = (Character)_unit;
+                        stream.Write(character.Id); // type(id)
+                        stream.Write(0L);           // v?
+                        break;
+                    }
                 case BaseUnitType.Npc:
-                    var npc = (Npc)_unit;
-                    stream.WriteBc(npc.ObjId);    // objId
-                    stream.Write(npc.TemplateId); // npc templateId
-                    stream.Write(0u);             // type(id)
-                    stream.Write((byte)0);        // clientDriven
-                    break;
+                    {
+                        var npc = (Npc)_unit;
+                        stream.WriteBc(npc.ObjId);    // objId
+                        stream.Write(npc.TemplateId); // npc templateId
+                        stream.Write(0u);             // type(id)
+                        stream.Write((byte)0);        // clientDriven
+                        break;
+                    }
                 case BaseUnitType.Slave:
                     var slave = (Slave)_unit;
                     stream.Write(slave.Id);             // Id ? slave.Id
@@ -92,10 +94,11 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(slave.Summoner.ObjId); // ownerId ? slave.Summoner.ObjId
                     break;
                 case BaseUnitType.Housing:
-                    var house = (House)_unit;
-                    var buildStep = house.CurrentStep == -1
-                        ? 0
-                        : -house.Template.BuildSteps.Count + house.CurrentStep;
+                    {
+                        var house = (House)_unit;
+                        var buildStep = house.CurrentStep == -1
+                            ? 0
+                            : -house.Template.BuildSteps.Count + house.CurrentStep;
 
                     stream.Write(house.TlId);       // tl
                     stream.Write(house.TemplateId); // templateId
@@ -494,14 +497,20 @@ namespace AAEmu.Game.Core.Packets.G2C
             switch (_unit)
             {
                 case Character unit:
-                    stream.Write(unit.RaceGender);
-                    break;
+                    {
+                        stream.Write(unit.RaceGender);
+                        break;
+                    }
                 case Npc npc:
-                    stream.Write(npc.RaceGender);
-                    break;
+                    {
+                        stream.Write(npc.RaceGender);
+                        break;
+                    }
                 default:
-                    stream.Write(_unit.RaceGender);
-                    break;
+                    {
+                        stream.Write(_unit.RaceGender);
+                        break;
+                    }
             }
 
             if (_unit is Character character4)
@@ -856,23 +865,35 @@ namespace AAEmu.Game.Core.Packets.G2C
             switch (baseUnitType)
             {
                 case BaseUnitType.Character:
-                    unit = (Character)unit0;
-                    break;
+                    {
+                        unit = (Character)unit0;
+                        break;
+                    }
                 case BaseUnitType.Npc:
-                    unit = (Npc)unit0;
-                    break;
+                    {
+                        unit = (Npc)unit0;
+                        break;
+                    }
                 case BaseUnitType.Slave:
-                    unit = (Slave)_unit;
-                    break;
+                    {
+                        unit = (Slave)_unit;
+                        break;
+                    }
                 case BaseUnitType.Housing:
-                    unit = (House)_unit;
-                    break;
+                    {
+                        unit = (House)_unit;
+                        break;
+                    }
                 case BaseUnitType.Transfer:
-                    unit = (Transfer)_unit;
-                    break;
+                    {
+                        unit = (Transfer)_unit;
+                        break;
+                    }
                 case BaseUnitType.Mate:
-                    unit = (Mate)_unit;
-                    break;
+                    {
+                        unit = (Mate)_unit;
+                        break;
+                    }
                 case BaseUnitType.Shipyard:
                     unit = (Shipyard)_unit;
                     break;

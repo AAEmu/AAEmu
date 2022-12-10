@@ -1,9 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.GameData.Framework
@@ -18,7 +19,7 @@ namespace AAEmu.Game.GameData.Framework
         {
             _loaders = new List<IGameDataLoader>();
         }
-        
+
         public void LoadGameData()
         {
             if (_loadedGameData)
@@ -61,10 +62,10 @@ namespace AAEmu.Game.GameData.Framework
 
             _postLoadedGameData = true;
         }
-        
+
         private void CreateLoaders()
         {
-            foreach(var type in Assembly.GetAssembly(typeof(GameDataManager)).GetTypes())
+            foreach (var type in Assembly.GetAssembly(typeof(GameDataManager)).GetTypes())
             {
                 if (type.GetCustomAttributes(typeof(GameDataAttribute), true).Length <= 0)
                 {
@@ -81,7 +82,7 @@ namespace AAEmu.Game.GameData.Framework
                 Register((IGameDataLoader)e);
             }
         }
-        
+
         private void Register(IGameDataLoader dataLoader)
         {
             _loaders.Add(dataLoader);

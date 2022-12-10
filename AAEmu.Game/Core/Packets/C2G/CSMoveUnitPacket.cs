@@ -235,8 +235,10 @@ namespace AAEmu.Game.Core.Packets.C2G
                         break;
                     }
                 default:
-                    _log.Warn("Unknown MoveType: {0} by {1} for {2} ", _moveType, character.Name, targetUnit.Name);
-                    break;
+                    {
+                        _log.Warn("Unknown MoveType: {0} by {1} for {2} ", _moveType, character.Name, targetUnit.Name);
+                        break;
+                    }
             }
 
         }

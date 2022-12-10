@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var npcObjId = stream.ReadBc();
             var page = stream.ReadInt32();
-            
+
             _log.Warn("AuctionMyBidList, NpcObjId: {0}, Page: {1}", npcObjId, page);
         }
     }

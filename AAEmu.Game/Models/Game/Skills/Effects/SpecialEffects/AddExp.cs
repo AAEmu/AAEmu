@@ -11,8 +11,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     public class AddExp : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.AddExp;
-        
-        public override void Execute(Unit caster,
+
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -45,11 +45,15 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             switch (target)
             {
                 case Units.Mate mate:
-                    mate.AddExp(expToAdd);
-                    break;
+                    {
+                        mate.AddExp(expToAdd);
+                        break;
+                    }
                 case Character character:
-                    character.AddExp(expToAdd, true);
-                    break;
+                    {
+                        character.AddExp(expToAdd, true);
+                        break;
+                    }
             }
         }
     }

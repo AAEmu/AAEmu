@@ -4,15 +4,13 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 
-using NLog;
-
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class ManaCost : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.ManaCost;
-        
-        public override void Execute(Unit caster,
+
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -32,9 +30,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             {
                 // TODO: Value1 is used by Mana Stars, value2 is used by other skills. They are never used both at once.
                 // I think value1 is fixed, and value2 is based on skill level somehow.
-                var manaCost = character.SkillModifiersCache.ApplyModifiers(skill, SkillAttribute.ManaCost, value1 + (value2)/6.35);
+                var manaCost = character.SkillModifiersCache.ApplyModifiers(skill, SkillAttribute.ManaCost, value1 + (value2) / 6.35);
                 character.ReduceCurrentMp(null, (int)manaCost);
-                
+
                 character.LastCast = DateTime.UtcNow;
                 character.IsInPostCast = true;
                 // TODO / 10

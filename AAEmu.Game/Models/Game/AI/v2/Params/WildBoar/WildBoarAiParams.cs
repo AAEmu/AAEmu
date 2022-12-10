@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Models.Game.AI.V2.Params;
+
 using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Params.WildBoar
@@ -9,17 +11,17 @@ namespace AAEmu.Game.Models.Game.AI.v2.Params.WildBoar
     {
         public float AlertDuration { get; set; } = 3.0f;
         public float AlertSafeTargetRememberTime { get; set; } = 5.0f;
-        
+
         //1047
         // onCombatStartSkill = { 15625 }, 
         // onSpurtSkill = {
         //     { skillType = 14038, healthCondition = 70 },
         // },
-        
+
         public List<uint> OnCombatStartSkills { get; set; }
         public List<WildBoarAiSpurtSkill> OnSpurtSkills { get; set; }
-        
-        
+
+
         public WildBoarAiParams(string aiPramsString)
         {
             Parse(aiPramsString);

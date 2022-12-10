@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.AI.Params;
 using AAEmu.Game.Models.Game.AI.Params.BigMonster;
@@ -38,7 +38,7 @@ namespace AAEmu.Game.Models.Game.AI.States
             OwnerTemplate = npc.Template;
             _lastSkillEnd = DateTime.MinValue;
         }
-        
+
         public override void Tick(TimeSpan delta)
         {
             if (OwnerTemplate == null)
@@ -114,19 +114,24 @@ namespace AAEmu.Game.Models.Game.AI.States
             switch (skill.Template.TargetType)
             {
                 case SkillTargetType.Pos:
-                    var pos = Npc.Transform.World.Position;
-                    skillCastTarget = new SkillCastPositionTarget() {
-                        ObjId = Npc.ObjId,
-                        PosX = pos.X,
-                        PosY = pos.Y,
-                        PosZ = pos.Z,
-                        PosRot = Npc.Transform.World.ToRollPitchYawDegrees().Z
+                    {
+                        var pos = Npc.Transform.World.Position;
+                        skillCastTarget = new SkillCastPositionTarget()
+                        {
+                            ObjId = Npc.ObjId,
+                            PosX = pos.X,
+                            PosY = pos.Y,
+                            PosZ = pos.Z,
+                            PosRot = Npc.Transform.World.ToRollPitchYawDegrees().Z
                         };
-                    break;
+                        break;
+                    }
                 default:
-                    skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
-                    skillCastTarget.ObjId = Target.ObjId;
-                    break;
+                    {
+                        skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+                        skillCastTarget.ObjId = Target.ObjId;
+                        break;
+                    }
             }
 
             var skillObject = SkillObject.GetByType(SkillObjectType.None);
@@ -150,7 +155,7 @@ namespace AAEmu.Game.Models.Game.AI.States
 
             useableSkills = useableSkills.Where(o =>
             {
-                return (hpPercent > o.HealthRangeMin || o.HealthRangeMin == 0) 
+                return (hpPercent > o.HealthRangeMin || o.HealthRangeMin == 0)
                 && (hpPercent < o.HealthRangeMax || o.HealthRangeMax == 0);
             });
 

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using AAEmu.Commons.Network;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items.Templates;

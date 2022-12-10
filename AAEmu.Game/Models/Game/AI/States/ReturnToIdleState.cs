@@ -1,11 +1,12 @@
 ﻿using System;
+
 using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.States
 {
-    public class ReturnToIdleState: State
+    public class ReturnToIdleState : State
     {
         public override void Enter()
         {

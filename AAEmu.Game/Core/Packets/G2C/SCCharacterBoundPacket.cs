@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -41,7 +42,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_resurrectionDistrict);
             stream.Write(_returnDistrictChanged);
             stream.Write(_id);
-            stream.Write(_name,true);
+            stream.Write(_name, true);
             stream.Write(_zoneKey);
             stream.Write(_pos.X);
             stream.Write(_pos.Y);

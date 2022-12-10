@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var y = Helpers.ConvertLongY(stream.ReadInt64());
             var z = stream.ReadSingle();
             // TODO ori? // ((int (__stdcall *)(const char *, char *, _DWORD))a2->Reader->field_5C)("ori", v2 + 40, 0);
-            
+
             // "ori" is byte[16]. No clue how to read it or what it contains.
 
             _log.Debug("EditorGameMode, On: {0}", on);

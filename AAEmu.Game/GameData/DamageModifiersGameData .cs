@@ -1,13 +1,13 @@
-﻿ using System.Collections.Generic;
+﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
-using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
-using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
+
 using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.GameData
@@ -16,16 +16,16 @@ namespace AAEmu.Game.GameData
     public class DamageModifierGameData : Singleton<DamageModifierGameData>, IGameDataLoader
     {
         private Dictionary<uint, List<BonusTemplate>> __damageModifiers;
-        
+
         public List<BonusTemplate> GetModifiersForBuff(uint ownerId)
         {
             return __damageModifiers.ContainsKey(ownerId) ? __damageModifiers[ownerId] : new List<BonusTemplate>();
         }
-        
+
         public void Load(SqliteConnection connection)
         {
             __damageModifiers = new Dictionary<uint, List<BonusTemplate>>();
-            
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type = 'DamageEffect'";
@@ -57,7 +57,7 @@ namespace AAEmu.Game.GameData
 
         public void PostLoad()
         {
-            foreach(var mod in __damageModifiers)
+            foreach (var mod in __damageModifiers)
             {
                 var de = SkillManager.Instance.GetEffectTemplate(mod.Key, "DamageEffect") as DamageEffect;
                 if (de != null)

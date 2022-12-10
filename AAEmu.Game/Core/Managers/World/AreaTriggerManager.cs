@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.Tasks.AreaTriggers;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
@@ -11,11 +11,11 @@ namespace AAEmu.Game.Core.Managers.World
     public class AreaTriggerManager : Singleton<AreaTriggerManager>
     {
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
-        
+
         private readonly List<AreaTrigger> _areaTriggers;
         private List<AreaTrigger> _addQueue;
         private List<AreaTrigger> _removeQueue;
-        
+
         private object _addLock = new object();
         private object _remLock = new object();
 
@@ -25,7 +25,7 @@ namespace AAEmu.Game.Core.Managers.World
             _addQueue = new List<AreaTrigger>();
             _removeQueue = new List<AreaTrigger>();
         }
-        
+
         public void Initialize()
         {
             TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(200), true);
@@ -47,7 +47,7 @@ namespace AAEmu.Game.Core.Managers.World
                 _removeQueue.Add(trigger);
             }
         }
-        
+
         public void Tick(TimeSpan delta)
         {
             try
@@ -65,7 +65,7 @@ namespace AAEmu.Game.Core.Managers.World
                 foreach (var trigger in _areaTriggers)
                 {
                     // if (trigger.Owner.Position)
-                    if(trigger?.Owner?.Region?.HasPlayerActivity() ?? false)
+                    if (trigger?.Owner?.Region?.HasPlayerActivity() ?? false)
                     {
                         trigger?.Tick(delta);
                     }

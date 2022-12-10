@@ -1,12 +1,11 @@
-﻿using AAEmu.Game.Core.Managers.World;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
-using AAEmu.Game.Models.Game.World.Interactions;
+
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Game.World.Xml;
-using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Models.Game.World
 {

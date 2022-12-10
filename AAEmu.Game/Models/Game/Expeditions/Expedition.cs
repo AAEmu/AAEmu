@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
+
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Expeditions
@@ -66,6 +68,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
         public ExpeditionRolePolicy GetPolicyByRole(byte role)
         {
             foreach (var policy in Policies)
+            {
                 if (policy.Role == role)
                 {
                     return policy;
@@ -77,6 +80,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
         public ExpeditionMember GetMember(Character character)
         {
             foreach (var member in Members)
+            {
                 if (member.CharacterId == character.Id)
                 {
                     return member;
@@ -88,6 +92,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
         public ExpeditionMember GetMember(uint characterId)
         {
             foreach (var member in Members)
+            {
                 if (member.CharacterId == characterId)
                 {
                     return member;
@@ -99,7 +104,9 @@ namespace AAEmu.Game.Models.Game.Expeditions
         public void SendPacket(GamePacket packet)
         {
             foreach (var member in Members)
+            {
                 WorldManager.Instance.GetCharacterById(member.CharacterId)?.SendPacket(packet);
+            }
         }
 
         public void Save(MySqlConnection connection, MySqlTransaction transaction)
@@ -179,10 +186,14 @@ namespace AAEmu.Game.Models.Game.Expeditions
                 }
 
                 foreach (var member in Members)
+                {
                     member.Save(connection, transaction);
+                }
 
                 foreach (var policy in Policies)
+                {
                     policy.Save(connection, transaction);
+                }
             }
         }
     }

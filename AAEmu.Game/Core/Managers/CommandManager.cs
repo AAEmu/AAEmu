@@ -3,18 +3,20 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text.RegularExpressions;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
 {
     public class CommandManager : Singleton<CommandManager>
     {
-        public const string CommandPrefix = "/" ;
+        public const string CommandPrefix = "/";
         private Logger _log = LogManager.GetCurrentClassLogger();
         private Dictionary<string, ICommand> _commands;
         private Dictionary<string, string> _commandAliases;
@@ -60,7 +62,7 @@ namespace AAEmu.Game.Core.Managers
 
             _commands.Add(names[0].ToLower(), command);
 
-            for (int i = 1; i < names.Length; i++)
+            for (var i = 1; i < names.Length; i++)
             {
                 if (_commandAliases.ContainsKey(names[i].ToLower()))
                 {
@@ -187,7 +189,7 @@ namespace AAEmu.Game.Core.Managers
                 _log.Error(e.Message);
                 _log.Error(e.StackTrace);
             }
-            
+
             return true;
         }
 

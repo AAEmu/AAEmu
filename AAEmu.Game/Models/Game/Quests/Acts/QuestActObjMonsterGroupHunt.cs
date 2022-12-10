@@ -1,8 +1,5 @@
-﻿using System.ComponentModel;
-
-using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
-using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts
 {

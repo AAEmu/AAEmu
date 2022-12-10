@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -32,15 +33,15 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             var characters = Connection.Characters.Values.ToArray();
 
-//            foreach (var character in characters)
-//            {
-//                Connection.SendPacket(
-//                    new SCResponseUIDataPacket(character.Id, character.Name, "character_option", character.GetOption("character_option"))
-//                );
-//                Connection.SendPacket(
-//                    new SCResponseUIDataPacket(character.Id, character.Name, "key_binding", character.GetOption("key_binding"))
-//                );
-//            }
+            //            foreach (var character in characters)
+            //            {
+            //                Connection.SendPacket(
+            //                    new SCResponseUIDataPacket(character.Id, character.Name, "character_option", character.GetOption("character_option"))
+            //                );
+            //                Connection.SendPacket(
+            //                    new SCResponseUIDataPacket(character.Id, character.Name, "key_binding", character.GetOption("key_binding"))
+            //                );
+            //            }
 
             Connection.SendPacket(new SCRaceCongestionPacket());
 

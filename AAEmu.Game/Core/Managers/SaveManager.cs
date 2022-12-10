@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Diagnostics;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Tasks.SaveTask;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -17,7 +19,7 @@ namespace AAEmu.Game.Core.Managers
         private bool _enabled;
         private bool _isSaving;
         private object _lock = new object();
-        SaveTickStartTask saveTask ;
+        SaveTickStartTask saveTask;
 
         public SaveManager()
         {
@@ -29,7 +31,7 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Info("Initialising Save Manager...");
             _enabled = true;
-            Delay = AppConfiguration.Instance.World.AutoSaveInterval ;
+            Delay = AppConfiguration.Instance.World.AutoSaveInterval;
             SaveTickStart();
         }
 
@@ -170,7 +172,7 @@ namespace AAEmu.Game.Core.Managers
                 }
                 catch (Exception e)
                 {
-                    _log.Error(e,"DoSave Exception\n");
+                    _log.Error(e, "DoSave Exception\n");
                 }
                 stopWatch.Stop();
                 _log.Debug("Saving data took {0}", stopWatch.Elapsed);

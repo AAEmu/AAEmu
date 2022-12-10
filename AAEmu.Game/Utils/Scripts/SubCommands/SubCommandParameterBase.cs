@@ -35,6 +35,6 @@
             return argument.StartsWith(Prefix + "=");
         }
         public abstract ParameterResult Load(string argument);
-        
+
     }
 }

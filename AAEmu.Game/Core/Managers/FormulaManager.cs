@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Utils.DB;
+
 using Jace;
 using Jace.Execution;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -50,7 +53,8 @@ namespace AAEmu.Game.Core.Managers
             return _wearableFormulas.ContainsKey(type) ? _wearableFormulas[type] : null;
         }
 
-        public Formula GetFormula(uint id) {
+        public Formula GetFormula(uint id)
+        {
             return _formulas.ContainsKey(id) ? _formulas[id] : null;
         }
 
@@ -70,7 +74,10 @@ namespace AAEmu.Game.Core.Managers
 
             _unitFormulas = new Dictionary<FormulaOwnerType, Dictionary<UnitFormulaKind, UnitFormula>>();
             foreach (var owner in Enum.GetValues(typeof(FormulaOwnerType)))
-                _unitFormulas.Add((FormulaOwnerType) owner, new Dictionary<UnitFormulaKind, UnitFormula>());
+            {
+                _unitFormulas.Add((FormulaOwnerType)owner, new Dictionary<UnitFormulaKind, UnitFormula>());
+            }
+
             _wearableFormulas = new Dictionary<WearableFormulaType, WearableFormula>();
             _unitVariables =
                 new Dictionary<uint, Dictionary<UnitFormulaVariableType, Dictionary<uint, UnitFormulaVariable>>>();

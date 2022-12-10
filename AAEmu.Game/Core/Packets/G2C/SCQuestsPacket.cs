@@ -17,7 +17,10 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_quests.Length); // count // TODO max 20
             foreach (var quest in _quests)
+            {
                 stream.Write(quest);
+            }
+
             return stream;
         }
     }

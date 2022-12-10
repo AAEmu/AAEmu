@@ -95,10 +95,10 @@ namespace AAEmu.Game.Utils.Converters
         /// <returns></returns>
         public static string ConvertAsChatMessageReference(uint templateId, byte grade, byte durability = 100)
         {
-            
+
             var templateIdBytes = BitConverter.GetBytes(templateId);
 
-            string encryptedItem = Encrypt(192, 384, new byte[]
+            var encryptedItem = Encrypt(192, 384, new byte[]
             {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             templateIdBytes[0], templateIdBytes[1], //template id 

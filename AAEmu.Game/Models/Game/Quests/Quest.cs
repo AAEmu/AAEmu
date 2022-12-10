@@ -18,6 +18,7 @@ using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Quests;
@@ -249,7 +250,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
             }
 
-            EndLoop:
+EndLoop:
             Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
 
             if (Status == QuestStatus.Progress && !supply)
@@ -285,25 +286,29 @@ namespace AAEmu.Game.Models.Game.Quests
                         switch (act.DetailType)
                         {
                             default:
-                                _log.Warn($"[Quest] Start: character {Owner.Name}, default don't do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
-                                break;
+                                {
+                                    _log.Warn($"[Quest] Start: character {Owner.Name}, default don't do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
+                                    break;
+                                }
                             case "QuestActConAcceptItem":
                             case "QuestActConAcceptDoodad": // старт ежедневного квеста (start of the daily quest)
                             case "QuestActConAcceptNpcKill":
-                                res = act.Use(Owner, this, Objectives[componentIndex]);
-                                if (res)
                                 {
-                                    ComponentId = components[componentIndex].Id;
-                                    Status = CalculateQuestStatus(components[componentIndex]);
-                                    _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
+                                    res = act.Use(Owner, this, Objectives[componentIndex]);
+                                    if (res)
+                                    {
+                                        ComponentId = components[componentIndex].Id;
+                                        Status = CalculateQuestStatus(components[componentIndex]);
+                                        _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
+                                    }
+                                    else
+                                    {
+                                        _log.Warn($"[Quest] Start failed: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
+                                        return; // не тот Npc, что нужен по квесту, выход (not the Npc that is needed on the quest, exit)
+                                    }
+                                    UseSkillAndBuff(components[componentIndex]);
+                                    break;
                                 }
-                                else
-                                {
-                                    _log.Warn($"[Quest] Start failed: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
-                                    return; // не тот Npc, что нужен по квесту, выход (not the Npc that is needed on the quest, exit)
-                                }
-                                UseSkillAndBuff(components[componentIndex]);
-                                break;
                             case "QuestActConAcceptNpc":
                                 {
                                     // не проверяем Npc при взятии квеста (do not check the Npc when taking the quest)
@@ -380,7 +385,9 @@ namespace AAEmu.Game.Models.Game.Quests
                             return;
                         }
                     case 0: // пропустим пустые шаги (let's skip the empty steps)
-                        continue;
+                        {
+                            continue;
+                        }
                 }
 
                 var completes = new List<bool>();
@@ -432,14 +439,18 @@ namespace AAEmu.Game.Models.Game.Quests
                                         switch (qa.DetailType)
                                         {
                                             case "QuestActObjItemGather" when questSupplyItem.ItemId == questItemGather.ItemId:
-                                                Owner.Inventory.Bag.GetAllItemsByTemplate(questSupplyItem.ItemId, -1, out _, out Objectives[componentIndex]);
-                                                complete = qa.Use(Owner, this, Objectives[componentIndex]);
-                                                Step = next;
-                                                ComponentId = currentComponent.Id;
-                                                break;
+                                                {
+                                                    Owner.Inventory.Bag.GetAllItemsByTemplate(questSupplyItem.ItemId, -1, out _, out Objectives[componentIndex]);
+                                                    complete = qa.Use(Owner, this, Objectives[componentIndex]);
+                                                    Step = next;
+                                                    ComponentId = currentComponent.Id;
+                                                    break;
+                                                }
                                             default:
-                                                complete = false;
-                                                break;
+                                                {
+                                                    complete = false;
+                                                    break;
+                                                }
                                         }
                                         _log.Warn($"[Quest] Update: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
                                     }
@@ -498,12 +509,12 @@ namespace AAEmu.Game.Models.Game.Quests
                                             var sphereQuestTrigger = new SphereQuestTrigger();
                                             sphereQuestTrigger.Sphere = sphere;
 
-                                        if (sphereQuestTrigger.Sphere == null)
-                                        {
-                                            _log.Warn($"[Quest] QuestActObjSphere: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
-                                            _log.Warn($"[Quest] QuestActObjSphere: Sphere not found with cquest {components[componentIndex].Id} in quest_sign_spheres.json!");
-                                            return;
-                                        }
+                                            if (sphereQuestTrigger.Sphere == null)
+                                            {
+                                                _log.Warn($"[Quest] QuestActObjSphere: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
+                                                _log.Warn($"[Quest] QuestActObjSphere: Sphere not found with cquest {components[componentIndex].Id} in quest_sign_spheres.json!");
+                                                return;
+                                            }
 
                                             sphereQuestTrigger.Owner = Owner;
                                             sphereQuestTrigger.Quest = this;
@@ -512,7 +523,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                             _sphereQuestManager.AddSphereQuestTrigger(sphereQuestTrigger);
                                         }
 
-                                        const int Duration = 500; 
+                                        const int Duration = 500;
                                         // TODO : Add a proper delay in here
                                         Task.Run(async () =>
                                         {
@@ -558,29 +569,39 @@ namespace AAEmu.Game.Models.Game.Quests
                                                     switch (currentComponent.AiPathTypeId)
                                                     {
                                                         case PathType.Remove:
-                                                            npc.Simulation.Cycle = false;
-                                                            npc.Simulation.Remove = true;
-                                                            npc.IsInPatrol = true;
-                                                            npc.Simulation.RunningMode = true;
-                                                            npc.Simulation.MoveToPathEnabled = false;
-                                                            npc.Simulation.MoveFileName = route;
-                                                            npc.Simulation.GoToPath(npc, true);
-                                                            break;
+                                                            {
+                                                                npc.Simulation.Cycle = false;
+                                                                npc.Simulation.Remove = true;
+                                                                npc.IsInPatrol = true;
+                                                                npc.Simulation.RunningMode = true;
+                                                                npc.Simulation.MoveToPathEnabled = false;
+                                                                npc.Simulation.MoveFileName = route;
+                                                                npc.Simulation.GoToPath(npc, true);
+                                                                break;
+                                                            }
                                                         case PathType.None:
-                                                            break;
+                                                            {
+                                                                break;
+                                                            }
                                                         case PathType.Idle:
-                                                            break;
+                                                            {
+                                                                break;
+                                                            }
                                                         case PathType.Loop:
-                                                            npc.Simulation.Cycle = true;
-                                                            npc.Simulation.Remove = false;
-                                                            npc.IsInPatrol = true;
-                                                            npc.Simulation.RunningMode = true;
-                                                            npc.Simulation.MoveToPathEnabled = false;
-                                                            npc.Simulation.MoveFileName = route;
-                                                            npc.Simulation.GoToPath(npc, true);
-                                                            break;
+                                                            {
+                                                                npc.Simulation.Cycle = true;
+                                                                npc.Simulation.Remove = false;
+                                                                npc.IsInPatrol = true;
+                                                                npc.Simulation.RunningMode = true;
+                                                                npc.Simulation.MoveToPathEnabled = false;
+                                                                npc.Simulation.MoveFileName = route;
+                                                                npc.Simulation.GoToPath(npc, true);
+                                                                break;
+                                                            }
                                                         default:
-                                                            throw new ArgumentOutOfRangeException();
+                                                            {
+                                                                throw new ArgumentOutOfRangeException();
+                                                            }
                                                     }
                                                     break;
                                                 }
@@ -588,17 +609,29 @@ namespace AAEmu.Game.Models.Game.Quests
                                                 break;
                                             }
                                         case QuestNpcAiName.None:
-                                            break;
+                                            {
+                                                break;
+                                            }
                                         case QuestNpcAiName.FollowUnit:
-                                            break;
+                                            {
+                                                break;
+                                            }
                                         case QuestNpcAiName.AttackUnit:
-                                            break;
+                                            {
+                                                break;
+                                            }
                                         case QuestNpcAiName.GoAway:
-                                            break;
+                                            {
+                                                break;
+                                            }
                                         case QuestNpcAiName.RunCommandSet:
-                                            break;
+                                            {
+                                                break;
+                                            }
                                         default:
-                                            throw new ArgumentOutOfRangeException();
+                                            {
+                                                throw new ArgumentOutOfRangeException();
+                                            }
                                     }
                                     break;
                                 }
@@ -664,7 +697,9 @@ namespace AAEmu.Game.Models.Game.Quests
                     }
 
                     if (Step == QuestComponentKind.Progress && complete)
+                    {
                         ComponentId = currentComponent.Id;
+                    }
 
                     if (completes[componentIndex] || complete)
                     {
@@ -743,7 +778,7 @@ namespace AAEmu.Game.Models.Game.Quests
             UseSkillAndBuff(currentComponent);
             SetNpcAggro(currentComponent);
         }
-       
+
         private void CheckReportNpcs(IQuestAct[] acts, int componentIndex, QuestComponent currentComponent, ref bool res, ref bool acceptNpc)
         {
             var questActConReportNpc = acts.All(a => a.DetailType == "QuestActConReportNpc");
@@ -783,7 +818,7 @@ namespace AAEmu.Game.Models.Game.Quests
         {
             if (component.BuffId > 0)
             {
-                Owner.Buffs.AddBuff(new Buff(Owner, Owner, SkillCaster.GetByType(SkillCasterType.Unit), _skillManager.GetBuffTemplate(component.BuffId), null, DateTime.UtcNow));
+                Owner.Buffs.AddBuff(new Buff((BaseUnit)Owner, (BaseUnit)Owner, SkillCaster.GetByType(SkillCasterType.Unit), _skillManager.GetBuffTemplate(component.BuffId), null, DateTime.UtcNow));
             }
         }
 
@@ -828,10 +863,12 @@ namespace AAEmu.Game.Models.Game.Quests
                     var mails = MailManager.Instance.CreateQuestRewardMails(Owner, this, QuestRewardItemsPool, QuestRewardCoinsPool);
                     QuestRewardCoinsPool = 0; // Coins will be distributed in mail if any mail needed to be send, so set to zero again
                     foreach (var mail in mails)
+                    {
                         if (!mail.Send())
                         {
                             Owner.SendErrorMessage(ErrorMessageType.MailUnknownFailure);
                         }
+                    }
 
                     Owner.SendPacket(new SCQuestRewardedByMailPacket(new uint[] { TemplateId }));
                 }
@@ -876,7 +913,9 @@ namespace AAEmu.Game.Models.Game.Quests
             for (Step = QuestComponentKind.Ready; Step <= QuestComponentKind.Reward; Step++)
             {
                 if (Step >= QuestComponentKind.Drop)
+                {
                     Status = QuestStatus.Completed;
+                }
 
                 var components = Template.GetComponents(Step);
                 if (components.Length == 0)
@@ -889,9 +928,11 @@ namespace AAEmu.Game.Models.Game.Quests
                     var currentComponent = components[componentIndex];
                     var acts = _questManager.GetActs(currentComponent.Id);
                     CheckReportNpcs(acts, componentIndex, currentComponent, ref res, ref reportNpc);
-                    
+
                     if (Step == QuestComponentKind.Ready)
+                    {
                         ComponentId = currentComponent.Id;
+                    }
 
                     var selective = 0;
                     foreach (var act in acts)
@@ -900,16 +941,21 @@ namespace AAEmu.Game.Models.Game.Quests
                         {
                             case "QuestActConReportJournal":
                             case "QuestActConReportNpc":
-                                if (reportNpc)
                                 {
-                                    // мы уже проверяли этот пункт, поэтому пропускаем (We have already checked this item, so we miss)
+                                    if (reportNpc)
+                                    {
+                                        // мы уже проверяли этот пункт, поэтому пропускаем (We have already checked this item, so we miss)
+                                        break;
+                                    }
+                                    res = act.Use(Owner, this, Objectives[componentIndex]);
+                                    if (ComponentId == 0)
+                                    {
+                                        ComponentId = currentComponent.Id;
+                                    }
+
+                                    _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
                                     break;
                                 }
-                                res = act.Use(Owner, this, Objectives[componentIndex]);
-                                if (ComponentId == 0)
-                                    ComponentId = currentComponent.Id;
-                                _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
-                                break;
                             case "QuestActSupplySelectiveItem":
                                 {
                                     selective++;
@@ -917,31 +963,49 @@ namespace AAEmu.Game.Models.Game.Quests
                                     {
                                         res = act.Use(Owner, this, Objectives[componentIndex]);
                                         if (ComponentId == 0)
+                                        {
                                             ComponentId = currentComponent.Id;
+                                        }
+
                                         _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
                                     }
                                     break;
                                 }
                             case "QuestActSupplyItem":
-                                var prevStep = Step; // сохраним, так как Step изменится на Progress (we will save it, since Step will change to Progress)
-                                res = act.Use(Owner, this, 0); // всегда получаем предметы в конце квеста (always get items at the end of the quest)
-                                Step = prevStep;                               
-                                if (ComponentId == 0)
-                                    ComponentId = currentComponent.Id;
-                                _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
-                                break;
+                                {
+                                    var prevStep = Step; // сохраним, так как Step изменится на Progress (we will save it, since Step will change to Progress)
+                                    res = act.Use(Owner, this, 0); // всегда получаем предметы в конце квеста (always get items at the end of the quest)
+                                    Step = prevStep;
+                                    if (ComponentId == 0)
+                                    {
+                                        ComponentId = currentComponent.Id;
+                                    }
+
+                                    _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
+                                    break;
+                                }
                             case "QuestActConAutoComplete":
-                                res = true;
-                                if (ComponentId == 0)
-                                    ComponentId = currentComponent.Id;
-                                _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
-                                break;
+                                {
+                                    res = true;
+                                    if (ComponentId == 0)
+                                    {
+                                        ComponentId = currentComponent.Id;
+                                    }
+
+                                    _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
+                                    break;
+                                }
                             default:
-                                res = act.Use(Owner, this, Objectives[componentIndex]);
-                                if (ComponentId == 0)
-                                    ComponentId = currentComponent.Id;
-                                _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
-                                break;
+                                {
+                                    res = act.Use(Owner, this, Objectives[componentIndex]);
+                                    if (ComponentId == 0)
+                                    {
+                                        ComponentId = currentComponent.Id;
+                                    }
+
+                                    _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
+                                    break;
+                                }
                         }
                         SupplyItem = 0;
                         // _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
@@ -993,9 +1057,11 @@ namespace AAEmu.Game.Models.Game.Quests
                             break;
                         }
                     default:
-                        value = 0;
-                        _log.Warn("[Quest] GetCustomSupplies: character {0}, wants to do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
-                        break;
+                        {
+                            value = 0;
+                            _log.Warn("[Quest] GetCustomSupplies: character {0}, wants to do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
+                            break;
+                        }
                 }
                 //_log.Warn("[Quest] GetCustomSupplies: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
             }
@@ -1427,8 +1493,10 @@ namespace AAEmu.Game.Models.Game.Quests
                                 break;
                             }
                         default:
-                            _log.Warn($"[Quest] OnInteraction: character {Owner.Name}, wants to do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
-                            break;
+                            {
+                                _log.Warn($"[Quest] OnInteraction: character {Owner.Name}, wants to do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
+                                break;
+                            }
                     }
                 }
             }
@@ -1514,8 +1582,10 @@ namespace AAEmu.Game.Models.Game.Quests
                                     break;
                                 }
                             default:
-                                _log.Warn($"[Quest] OnInteraction: character {Owner.Name}, wants to do it - {TemplateId}, ComponentId {ComponentId}, Step {step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
-                                break;
+                                {
+                                    _log.Warn($"[Quest] OnInteraction: character {Owner.Name}, wants to do it - {TemplateId}, ComponentId {ComponentId}, Step {step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
+                                    break;
+                                }
                         }
                     }
                 }
@@ -1587,9 +1657,11 @@ namespace AAEmu.Game.Models.Game.Quests
                                 break;
                             }
                         default:
-                            // здесь еще есть компоненты, которые не проверили (there are still components here that haven't been tested)
-                            _log.Warn($"[Quest] OnEnterSphere: character {Owner.Name}, wants to do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
-                            break;
+                            {
+                                // здесь еще есть компоненты, которые не проверили (there are still components here that haven't been tested)
+                                _log.Warn($"[Quest] OnEnterSphere: character {Owner.Name}, wants to do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
+                                break;
+                            }
                     }
                 }
             }

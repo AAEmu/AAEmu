@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var mailId = stream.ReadInt64();
             var autoUseAAPoint = stream.ReadBoolean();
-            
+
             _log.Debug("PayChargeMoney, mailId: {0}, autoUseAAPoint: {1}", mailId, autoUseAAPoint);
             if (!MailManager.Instance.PayChargeMoney(Connection.ActiveChar, mailId, autoUseAAPoint))
             {

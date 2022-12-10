@@ -36,7 +36,10 @@ namespace AAEmu.Game.GameData
         public List<AiCommands> GetAiCommands(uint id)
         {
             if (_aiCommands.TryGetValue(id, out var value))
+            {
                 return value;
+            }
+
             return null;
         }
 

@@ -50,7 +50,7 @@ namespace AAEmu.Game.Core.Network.Stream
 
         public void Stop()
         {
-            if (_server.IsStarted)
+            if (_server?.IsStarted ?? false)
             {
                 _server.Stop();
             }

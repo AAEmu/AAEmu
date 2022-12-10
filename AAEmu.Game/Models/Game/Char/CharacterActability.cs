@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.StaticValues;
+
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -100,7 +102,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (expand.ItemId != 0 && expand.ItemCount != 0)
             {
-                Owner.Inventory.Bag.ConsumeItem(ItemTaskType.ExpandExpert, expand.ItemId, expand.ItemCount,null);
+                Owner.Inventory.Bag.ConsumeItem(ItemTaskType.ExpandExpert, expand.ItemId, expand.ItemCount, null);
                 /*
                 var items = Owner.Inventory.RemoveItem(expand.ItemId, expand.ItemCount);
 

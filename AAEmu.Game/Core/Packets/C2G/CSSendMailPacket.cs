@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -39,6 +40,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                     ((SlotType slotType, byte slot))(0, 0)
                     :
                     ((SlotType)slotType, slot));
+                }
             }
 
             var doodadObjId = stream.ReadBc();

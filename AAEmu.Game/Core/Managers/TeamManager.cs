@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -7,9 +8,8 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Team;
-using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -46,7 +46,7 @@ namespace AAEmu.Game.Core.Managers
 
             return null;
         }
-        
+
         public Team GetTeamByObjId(uint objId)
         {
             foreach (var team in _activeTeams.Values)
@@ -320,7 +320,7 @@ namespace AAEmu.Game.Core.Managers
                 ChatManager.Instance.GetRaidChat(newTeam).JoinChannel(character);
             }
 
-            ChatManager.Instance.GetPartyChat(newTeam,character).JoinChannel(character);
+            ChatManager.Instance.GetPartyChat(newTeam, character).JoinChannel(character);
         }
 
         public void AskRiskyTeam(Character unit, uint teamId, uint targetId, RiskyAction riskyAction)
@@ -452,10 +452,12 @@ namespace AAEmu.Game.Core.Managers
             activeTeam.IsParty = false;
             activeTeam.BroadcastPacket(new SCTeamBecameRaidTeamPacket(activeTeam.Id));
             foreach (var m in activeTeam.Members)
+            {
                 if ((m != null) && (m.Character != null))
                 {
                     ChatManager.Instance.GetRaidChat(activeTeam).JoinChannel(m.Character);
                 }
+            }
         }
 
         public void SetTeamMemberRole(Character unit, uint teamId, uint memberId, MemberRole role)
@@ -517,7 +519,7 @@ namespace AAEmu.Game.Core.Managers
         public void SetPingPos(Character unit, uint teamId, bool hasPing, WorldSpawnPosition position, uint insId)
         {
             var activeTeam = GetActiveTeam(teamId);
-            if ( (activeTeam.OwnerId != unit.Id) && (activeTeam == null || !activeTeam.IsMarked(unit.Id)) )
+            if ((activeTeam.OwnerId != unit.Id) && (activeTeam == null || !activeTeam.IsMarked(unit.Id)))
             {
                 return;
             }
@@ -574,7 +576,7 @@ namespace AAEmu.Game.Core.Managers
                 ChatManager.Instance.GetRaidChat(activeTeam).LeaveChannel(unit);
             }
 
-            ChatManager.Instance.GetPartyChat(activeTeam,unit).LeaveChannel(unit);
+            ChatManager.Instance.GetPartyChat(activeTeam, unit).LeaveChannel(unit);
             AskRiskyTeam(source, activeTeam.Id, unit.Id, leaveType);
         }
 
@@ -593,7 +595,7 @@ namespace AAEmu.Game.Core.Managers
             }
 
             // TODO - MAYBE USE TASK FOR BETTER PERFORMANCE
-            activeTeam.BroadcastPacket(new SCTeamRemoteMembersExPacket(new[] {activeTeam.Members[index]}), id);
+            activeTeam.BroadcastPacket(new SCTeamRemoteMembersExPacket(new[] { activeTeam.Members[index] }), id);
         }
 
         public void UpdateAtLogin(Character unit)

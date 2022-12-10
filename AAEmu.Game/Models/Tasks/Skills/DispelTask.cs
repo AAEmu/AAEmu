@@ -1,7 +1,7 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Skills.Buffs;
 
 namespace AAEmu.Game.Models.Tasks.Skills
 {

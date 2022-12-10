@@ -80,11 +80,15 @@ namespace AAEmu.Game.Core.Network.Connections
             if (ActiveChar != null)
             {
                 foreach (var subscriber in ActiveChar.Subscribers)
+                {
                     subscriber.Dispose();
+                }
             }
 
             foreach (var subscriber in Subscribers)
+            {
                 subscriber.Dispose();
+            }
 
             SaveAndRemoveFromWorld();
         }

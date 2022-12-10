@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -15,6 +16,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Utils;
+
 using static AAEmu.Game.Models.Game.Skills.SkillControllers.SkillController;
 
 namespace AAEmu.Game.Models.Game.NPChar
@@ -821,30 +823,31 @@ namespace AAEmu.Game.Models.Game.NPChar
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }
 
-        public void AddUnitAggro(AggroKind kind, Unit unit, int amount)
+        public void AddUnitAggro(AggroKind kind, BaseUnit unit, int amount)
         {
-            amount = (int)(amount * (unit.AggroMul / 100.0f));
+            var caster = (Unit)unit;
+            amount = (int)(amount * (caster.AggroMul / 100.0f));
             amount = (int)(amount * (IncomingAggroMul / 100.0f));
 
-            if (AggroTable.TryGetValue(unit.ObjId, out var aggro))
+            if (AggroTable.TryGetValue(caster.ObjId, out var aggro))
             {
                 aggro.AddAggro(kind, amount);
             }
             else
             {
-                aggro = new Aggro(unit);
+                aggro = new Aggro(caster);
                 aggro.AddAggro(AggroKind.Heal, amount);
-                if (AggroTable.TryAdd(unit.ObjId, aggro))
+                if (AggroTable.TryAdd(caster.ObjId, aggro))
                 {
-                    unit.Events.OnHealed += OnAbuserHealed;
-                    unit.Events.OnDeath += OnAbuserDied;
+                    caster.Events.OnHealed += OnAbuserHealed;
+                    caster.Events.OnDeath += OnAbuserDied;
                 }
             }
         }
 
         public void ClearAggroOfUnit(Unit unit)
         {
-            if(AggroTable.TryRemove(unit.ObjId, out var value))
+            if (AggroTable.TryRemove(unit.ObjId, out var value))
             {
                 unit.Events.OnHealed -= OnAbuserHealed;
                 unit.Events.OnDeath -= OnAbuserDied;
@@ -857,7 +860,7 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         public void ClearAllAggro()
         {
-            foreach(var table in AggroTable)
+            foreach (var table in AggroTable)
             {
                 var unit = WorldManager.Instance.GetUnit(table.Key);
                 if (unit != null)
@@ -941,8 +944,8 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.X = Transform.Local.Position.X;
             moveType.Y = Transform.Local.Position.Y;
             moveType.Z = Transform.Local.Position.Z;
-            moveType.VelX = (short) velX;
-            moveType.VelY = (short) velY;
+            moveType.VelX = (short)velX;
+            moveType.VelY = (short)velY;
             moveType.RotationX = rx;
             moveType.RotationY = ry;
             moveType.RotationZ = rz;
@@ -961,7 +964,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             //SetPosition(Position);
             BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
         }
-        
+
         public void LookTowards(Vector3 other, byte flags = 4)
         {
             var oldPosition = Transform.Local.ClonePosition();
@@ -996,7 +999,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             //SetPosition(Position);
             BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
         }
-        
+
         public void StopMovement()
         {
             var oldPosition = Transform.Local.ClonePosition();
@@ -1031,7 +1034,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             SendPacket(new SCAggroTargetChangedPacket(ObjId, other?.ObjId ?? 0));
             BroadcastPacket(new SCTargetChangedPacket(ObjId, other?.ObjId ?? 0), true);
         }
-    
+
         public void DoDespawn(Npc npc)
         {
             Spawner.DoDespawn(npc);

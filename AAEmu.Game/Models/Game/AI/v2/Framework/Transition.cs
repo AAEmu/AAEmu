@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
         OnNoAggroTarget,
         ReturnToIdlePos,
     }
-    
+
     public class Transition
     {
         public TransitionEvent On { get; set; }

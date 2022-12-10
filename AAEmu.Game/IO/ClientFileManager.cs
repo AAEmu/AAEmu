@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Text.RegularExpressions;
-using System.Xml;
+
 using AAEmu.Game.Models;
-using AAEmu.Commons.Utils.AAPak;
+
 using NLog;
-using SQLitePCL;
 
 namespace AAEmu.Game.IO
 {
@@ -76,7 +73,7 @@ namespace AAEmu.Game.IO
         {
             for (var i = Sources.Count - 1; i >= 0; i--)
             {
-                var source = Sources[i] ;
+                var source = Sources[i];
                 source.Close();
                 Sources.Remove(source);
             }
@@ -86,7 +83,10 @@ namespace AAEmu.Game.IO
         {
             var list = new List<string>();
             foreach (var source in Sources)
+            {
                 list.Add(source.PathName);
+            }
+
             return list;
         }
 
@@ -106,7 +106,7 @@ namespace AAEmu.Game.IO
             }
             return null;
         }
-        
+
         /// <summary>
         /// Checks if target file exists in any of the sources
         /// </summary>
@@ -117,7 +117,7 @@ namespace AAEmu.Game.IO
             var source = GetFileSource(fileName);
             return (source != null);
         }
-        
+
         /// <summary>
         /// Grabs the target fileName as a Stream
         /// </summary>

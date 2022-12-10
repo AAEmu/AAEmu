@@ -96,7 +96,10 @@ namespace AAEmu.Game.Models.Game.World
         public virtual void BroadcastPacket(GamePacket packet, bool self)
         {
             foreach (var character in WorldManager.Instance.GetAround<Character>(this))
+            {
                 character.SendPacket(packet);
+            }
+
             if ((self) && (this is Character chr))
             {
                 chr.SendPacket(packet);
@@ -109,7 +112,9 @@ namespace AAEmu.Game.Models.Game.World
             {
                 foreach (var child in Transform.Children.ToArray())
                     //if (child?.GameObject != character) // Never send to self, or the client crashes
+                {
                     child?.GameObject?.AddVisibleObject(character);
+                }
             }
         }
 
@@ -124,7 +129,9 @@ namespace AAEmu.Game.Models.Game.World
             {
                 foreach (var child in Transform.Children.ToArray())
                     //if (child?.GameObject != character) // Never send to self, or the client crashes
+                {
                     child?.GameObject?.RemoveVisibleObject(character);
+                }
             }
         }
 

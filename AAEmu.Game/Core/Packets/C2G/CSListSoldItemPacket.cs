@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;

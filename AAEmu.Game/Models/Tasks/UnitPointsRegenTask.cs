@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Units;
 
@@ -15,7 +16,7 @@ namespace AAEmu.Game.Models.Tasks
 
         public override void Execute()
         {
-            if (_unit.Hp < _unit.MaxHp && _unit.Hp>0)
+            if (_unit.Hp < _unit.MaxHp && _unit.Hp > 0)
             {
                 _unit.Hp += _unit.HpRegen; // TODO at battle _unit.PersistentHpRegen
             }

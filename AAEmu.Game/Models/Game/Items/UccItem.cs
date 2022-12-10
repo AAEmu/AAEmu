@@ -9,13 +9,13 @@ namespace AAEmu.Game.Models.Game.Items
 
         public UccItem()
         {
-            
+
         }
-        
+
         public UccItem(ulong id, ItemTemplate template, int count) : base(id, template, count)
         {
         }
-        
+
         public override void ReadDetails(PacketStream stream)
         {
             UccId = stream.ReadUInt64();

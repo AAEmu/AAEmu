@@ -26,14 +26,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public bool UseSummonerFaction { get; set; }
         public float LifeTime { get; set; }
         public bool DespawnOnCreatorDeath { get; set; }
-
         public bool UseSummonerAggroTarget { get; set; }
         public uint MateStateId { get; set; }
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             _log.Trace("SpawnEffect");
 

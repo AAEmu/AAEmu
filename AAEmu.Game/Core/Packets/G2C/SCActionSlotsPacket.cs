@@ -43,6 +43,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                         _log.Error("SCActionSlotsPacket, Unknown ActionSlotType!");
                         break;
                 }
+                }
             }
 
 

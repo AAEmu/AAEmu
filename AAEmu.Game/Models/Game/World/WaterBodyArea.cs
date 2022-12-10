@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
+
 using Newtonsoft.Json;
 
 namespace AAEmu.Game.Models.Game.World;
@@ -9,25 +10,25 @@ public class WaterBodyArea
 {
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public uint Id { get; set; }
-    
+
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public float Height { get; set; }
-    
+
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public string Name { get; set; }
-    
+
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public string Guid { get; set; }
 
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public int WaterType { get; set; }
-    
+
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public Vector3 Direction { get; set; } = Vector3.Zero;
-    
+
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public List<Vector3> Points { get; set; }
-    
+
     [JsonIgnore]
     public RectangleF _boundingBox = RectangleF.Empty;
     [JsonIgnore]
@@ -79,7 +80,7 @@ public class WaterBodyArea
             return false;
         }
 
-        surfacePoint = new Vector3(point.X, point.Y,_heighest + Height);
+        surfacePoint = new Vector3(point.X, point.Y, _heighest + Height);
         return true;
     }
 
@@ -93,7 +94,7 @@ public class WaterBodyArea
         var yMin = 0f;
         var xMax = 0f;
         var yMax = 0f;
-        
+
         foreach (var point in Points)
         {
             // Just take the first point
@@ -143,7 +144,7 @@ public class WaterBodyArea
         }
         _boundingBox = new RectangleF(xMin, yMin, xMax - xMin, yMax - yMin);
     }
-    
+
     private bool AreLinesIntersecting(Vector2 v1Start, Vector2 v1End, Vector2 v2Start, Vector2 v2End)
     {
         float d1, d2;

@@ -1,19 +1,19 @@
 ﻿using System;
 using System.Linq;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Units;
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     class FishingLoot : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.FishingLoot;
-        
-        public override void Execute(Unit caster,
+
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -30,8 +30,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
             var lootTableId = new uint();
             var zoneId = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId).GroupId;
-            
-            if(target.Transform.World.Position.Z > 101)
+
+            if (target.Transform.World.Position.Z > 101)
             {
                 lootTableId = ZoneManager.Instance.GetZoneGroupById(zoneId).FishingLandLootPackId;
             }
@@ -45,7 +45,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (lootPacks != null)
             {
                 var totalDropRate = (int)lootPacks.Sum(c => c.DropRate); //Adds the total drop rate of all possible items from a skill
-                Random rand = new Random();
+                var rand = new Random();
                 var randChoice = rand.Next(totalDropRate);
 
                 LootPacks lootpack = null;

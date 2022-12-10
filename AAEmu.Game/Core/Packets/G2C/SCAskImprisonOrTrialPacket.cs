@@ -2,7 +2,7 @@
 using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C
 {
-    public class SCAskImprisonOrTrialPacket :GamePacket
+    public class SCAskImprisonOrTrialPacket : GamePacket
     {
         private readonly uint _crimeValue;
         private readonly uint _jailMinutes;

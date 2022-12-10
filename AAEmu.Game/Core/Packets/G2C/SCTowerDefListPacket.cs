@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.TowerDefs;
@@ -18,7 +19,10 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_towerDefInfoList.Count);
             foreach (var towerDefInfo in _towerDefInfoList)
+            {
                 towerDefInfo.Write(stream);
+            }
+
             return stream;
         }
     }

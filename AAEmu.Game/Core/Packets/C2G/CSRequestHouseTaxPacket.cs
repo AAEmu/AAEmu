@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var tl = stream.ReadUInt16();
 
             _log.Debug("RequestHouseTax, Tl: {0}", tl);
-            
+
             HousingManager.Instance.HouseTaxInfo(Connection, tl);
         }
     }

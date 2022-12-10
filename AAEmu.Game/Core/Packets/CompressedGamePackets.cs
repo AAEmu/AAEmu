@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+
 using Ionic.Zlib;
 
 namespace AAEmu.Game.Core.Packets
@@ -54,7 +56,10 @@ namespace AAEmu.Game.Core.Packets
             }
 
             foreach (var packet in Packets)
+            {
                 _log.Trace("DD04 - GamePacket: S->C type {0:X3} {1}", packet.TypeId, packet.ToString().Substring(23));
+            }
+
             return ps;
         }
 

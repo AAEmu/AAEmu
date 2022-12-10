@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
@@ -70,56 +71,64 @@ namespace AAEmu.Game.Models.Game.Units
 
         public bool CheckDamageImmune(DamageType damageType)
         {
-            try
+            foreach (var effect in _effects.ToList())
             {
-                foreach (var effect in _effects.ToList())
+                if (effect == null)
                 {
-                    if (effect == null)
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    var template = effect.Template;
+                var template = effect.Template;
 
-                    if (template == null)
-                    {
-                        continue;
-                    }
+                if (template == null)
+                {
+                    continue;
+                }
 
-                    switch (damageType)
-                    {
-                        case DamageType.Melee:
+                switch (damageType)
+                {
+                    case DamageType.Melee:
+                        {
                             if (template.MeleeImmune)
                             {
                                 return true;
                             }
 
                             continue;
-                        case DamageType.Magic:
+                        }
+                    case DamageType.Magic:
+                        {
                             if (template.SpellImmune)
                             {
                                 return true;
                             }
 
                             continue;
-                        case DamageType.Ranged:
+                        }
+                    case DamageType.Ranged:
+                        {
                             if (template.RangedImmune)
                             {
                                 return true;
                             }
 
                             continue;
-                        case DamageType.Siege:
+                        }
+                    case DamageType.Siege:
+                        {
                             if (template.SiegeImmune)
                             {
                                 return true;
                             }
 
                             continue;
-                        default:
+                        }
+                    default:
+                        {
                             continue;
-                    }
+                        }
                 }
+            }
 
                 return false;
             }
@@ -134,10 +143,12 @@ namespace AAEmu.Game.Models.Game.Units
         {
             var temp = new List<Buff>();
             foreach (var effect in _effects.ToList())
+            {
                 if (effect.Template.GetType() == effectType)
                 {
                     temp.Add(effect);
                 }
+            }
 
             return temp;
         }
@@ -145,10 +156,12 @@ namespace AAEmu.Game.Models.Game.Units
         public Buff GetEffectByIndex(uint index)
         {
             foreach (var effect in _effects.ToList())
+            {
                 if (effect.Index == index)
                 {
                     return effect;
                 }
+            }
 
             return null;
         }
@@ -156,10 +169,12 @@ namespace AAEmu.Game.Models.Game.Units
         public Buff GetEffectByTemplate(BuffTemplate template)
         {
             foreach (var effect in _effects.ToList())
+            {
                 if (effect.Template == template)
                 {
                     return effect;
                 }
+            }
 
             return null;
         }
@@ -167,10 +182,12 @@ namespace AAEmu.Game.Models.Game.Units
         public bool CheckBuff(uint id)
         {
             foreach (var effect in _effects.ToList())
+            {
                 if (effect != null && effect.Template.BuffId > 0 && effect.Template.BuffId == id)
                 {
                     return true;
                 }
+            }
 
             return false;
         }
@@ -180,10 +197,12 @@ namespace AAEmu.Game.Models.Game.Units
             var buffs = SkillManager.Instance.GetBuffsByTagId(tagId);
 
             foreach (var effect in _effects.ToList())
+            {
                 if (effect != null && buffs.Contains(effect.Template.BuffId))
                 {
                     return true;
                 }
+            }
 
             return false;
         }
@@ -191,10 +210,12 @@ namespace AAEmu.Game.Models.Game.Units
         public Buff GetEffectFromBuffId(uint id)
         {
             foreach (var effect in _effects.ToList())
+            {
                 if (effect != null && effect.Template.BuffId > 0 && effect.Template.BuffId == id)
                 {
                     return effect;
                 }
+            }
 
             return null;
         }
@@ -212,10 +233,12 @@ namespace AAEmu.Game.Models.Game.Units
             }
 
             foreach (var effect in _effects.ToList())
+            {
                 if (effect != null && effect.Template.BuffId > 0 && ids.Contains(effect.Template.BuffId))
                 {
                     return true;
                 }
+            }
 
             return false;
         }
@@ -224,10 +247,12 @@ namespace AAEmu.Game.Models.Game.Units
         {
             var count = 0;
             foreach (var effect in _effects.ToList())
+            {
                 if (effect.Template.BuffId == buffId)
                 {
                     count++;
                 }
+            }
 
             return count;
         }
@@ -244,21 +269,29 @@ namespace AAEmu.Game.Models.Game.Units
                 switch (buff.Template.Kind)
                 {
                     case BuffKind.Good:
-                        goodBuffs.Add(buff);
-                        break;
+                        {
+                            goodBuffs.Add(buff);
+                            break;
+                        }
                     case BuffKind.Bad:
-                        badBuffs.Add(buff);
-                        break;
+                        {
+                            badBuffs.Add(buff);
+                            break;
+                        }
                     case BuffKind.Hidden:
-                        hiddenBuffs.Add(buff);
-                        break;
+                        {
+                            hiddenBuffs.Add(buff);
+                            break;
+                        }
                     default:
-                        throw new ArgumentOutOfRangeException();
+                        {
+                            throw new ArgumentOutOfRangeException();
+                        }
                 }
             }
         }
 
-        public void AddBuff(uint buffId, Unit caster)
+        public void AddBuff(uint buffId, BaseUnit caster)
         {
             var buff = SkillManager.Instance.GetBuffTemplate(buffId);
             var casterObj = new SkillCasterUnit(caster.ObjId);
@@ -360,49 +393,61 @@ namespace AAEmu.Game.Models.Game.Units
                 switch (buff.Template.StackRule)
                 {
                     case BuffStackRule.Refresh:
-                        foreach (var e in new List<Buff>(_effects))
-                            if (e != null && e.InUse && e.Template.BuffId == buff.Template.BuffId)
-                            {
-                                if (buff.GetTimeLeft() < e.GetTimeLeft())
-                                {
-                                    return;
-                                }
-                                else
-                                {
-                                    last = e;
-                                }
-                            }
-
-                        break;
-                    case BuffStackRule.ChargeRefresh:
-                        foreach (var e in new List<Buff>(_effects))
-                            if (e != null && e.InUse && e.Template.BuffId == buff.Template.BuffId)
-                            {
-                                if (buff.Charge < e.Charge)
-                                {
-                                    return;
-                                }
-                                else
-                                {
-                                    last = e;
-                                }
-                            }
-
-                        break;
-                    default:
-                        if (buff.Template.MaxStack > 0 && GetBuffCountById(buff.Template.BuffId) >= buff.Template.MaxStack)
                         {
                             foreach (var e in new List<Buff>(_effects))
+                            {
                                 if (e != null && e.InUse && e.Template.BuffId == buff.Template.BuffId)
                                 {
-                                    if (e.GetTimeLeft() < buff.GetTimeLeft())
+                                    if (buff.GetTimeLeft() < e.GetTimeLeft())
+                                    {
+                                        return;
+                                    }
+                                    else
                                     {
                                         last = e;
                                     }
                                 }
-                        }
+                            }
 
-                        break;
+                            break;
+                        }
+                    case BuffStackRule.ChargeRefresh:
+                        {
+                            foreach (var e in new List<Buff>(_effects))
+                            {
+                                if (e != null && e.InUse && e.Template.BuffId == buff.Template.BuffId)
+                                {
+                                    if (buff.Charge < e.Charge)
+                                    {
+                                        return;
+                                    }
+                                    else
+                                    {
+                                        last = e;
+                                    }
+                                }
+                            }
+
+                            break;
+                        }
+                    default:
+                        {
+                            if (buff.Template.MaxStack > 0 && GetBuffCountById(buff.Template.BuffId) >= buff.Template.MaxStack)
+                            {
+                                foreach (var e in new List<Buff>(_effects))
+                                {
+                                    if (e != null && e.InUse && e.Template.BuffId == buff.Template.BuffId)
+                                    {
+                                        if (e.GetTimeLeft() < buff.GetTimeLeft())
+                                        {
+                                            last = e;
+                                        }
+                                    }
+                                }
+                            }
+
+                            break;
+                        }
                 }
                 last?.Exit(index > 0 && last.Template.Id == buff.Template.Id);
 
@@ -569,6 +614,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
 
             foreach (var buff in _effects.ToList())
+            {
                 if (buff != null)
                 {
                     var buffTemplate = buff.Template;
@@ -600,6 +646,7 @@ namespace AAEmu.Game.Models.Game.Units
                         return;
                     }
                 }
+            }
         }
 
         public void RemoveBuffs(uint buffTagId, int count)
@@ -617,6 +664,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             var buffIds = SkillManager.Instance.GetBuffsByTagId(buffTagId);
             foreach (var e in _effects.ToList())
+            {
                 if (e != null)
                 {
                     if (!buffIds.Contains(e.Template.BuffId))
@@ -631,6 +679,7 @@ namespace AAEmu.Game.Models.Game.Units
                         return;
                     }
                 }
+            }
         }
 
         public void RemoveAllEffects()
@@ -642,10 +691,12 @@ namespace AAEmu.Game.Models.Game.Units
             }
 
             foreach (var e in _effects.ToList())
+            {
                 if (e != null /* && (e.Template.Skill == null || e.Template.Skill.Type != SkillTypes.Passive)*/)
                 {
                     e.Exit();
                 }
+            }
         }
 
         public void TriggerRemoveOn(BuffRemoveOn on, uint value = 0)
@@ -794,10 +845,12 @@ namespace AAEmu.Game.Models.Game.Units
             }
 
             foreach (var e in _effects.ToList())
+            {
                 if (e != null && e.Template.RemoveOnDeath)
                 {
                     e.Exit();
                 }
+            }
         }
 
         public void SetOwner(BaseUnit owner)
@@ -814,10 +867,12 @@ namespace AAEmu.Game.Models.Game.Units
             }
 
             foreach (var e in _effects.ToList())
+            {
                 if (e != null && e.Template.Stealth)
                 {
                     e.Exit();
                 }
+            }
         }
 
         private BaseUnit GetOwner()

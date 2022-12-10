@@ -101,7 +101,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
                 var skillTemplateSelf = SkillManager.Instance.GetSkillTemplate(skillSelfId);
                 var skillSelf = new Skill(skillTemplateSelf);
 
-                var delay1 = (int) (Ai.Owner.Template.BaseSkillDelay * 1000);
+                var delay1 = (int)(Ai.Owner.Template.BaseSkillDelay * 1000);
                 if (Ai.Owner.Template.BaseSkillDelay == 0)
                 {
                     const uint Delay1 = 10000u;
@@ -109,7 +109,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
                     delay1 = (int)Rand.Next(Delay1, Delay2);
                 }
 
-                if(this.CheckInterval(delay1))
+                if (this.CheckInterval(delay1))
                 {
                     _log.Warn("PickSkillAndUseIt:UseSelfSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplateSelf.Id);
                     UseSkill(skillSelf, target);
@@ -143,7 +143,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(pickedSkillId);
             var skill = new Skill(skillTemplate);
 
-            var delay2 = (int) (Ai.Owner.Template.BaseSkillDelay * 1000);
+            var delay2 = (int)(Ai.Owner.Template.BaseSkillDelay * 1000);
             if (Ai.Owner.Template.BaseSkillDelay == 0)
             {
                 const uint Delay1 = 1500u;
@@ -151,7 +151,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
                 delay2 = (int)Rand.Next(Delay1, Delay2);
             }
 
-            if(this.CheckInterval(delay2))
+            if (this.CheckInterval(delay2))
             {
                 _log.Warn("PickSkillAndUseIt:UseSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2} on Target {3}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplate.Id, target.ObjId);
                 UseSkill(skill, target);
@@ -187,20 +187,24 @@ namespace AAEmu.Game.Models.Game.AI.v2
             switch (skill.Template.TargetType)
             {
                 case SkillTargetType.Pos:
-                    var pos = Ai.Owner.Transform.World.Position;
-                    skillCastTarget = new SkillCastPositionTarget()
                     {
-                        ObjId = Ai.Owner.ObjId,
-                        PosX = pos.X,
-                        PosY = pos.Y,
-                        PosZ = pos.Z,
-                        PosRot = Ai.Owner.Transform.World.ToRollPitchYawDegrees().Z // (float)MathUtil.ConvertDirectionToDegree(pos.RotationZ) //Is this rotation right?
-                    };
-                    break;
+                        var pos = Ai.Owner.Transform.World.Position;
+                        skillCastTarget = new SkillCastPositionTarget()
+                        {
+                            ObjId = Ai.Owner.ObjId,
+                            PosX = pos.X,
+                            PosY = pos.Y,
+                            PosZ = pos.Z,
+                            PosRot = Ai.Owner.Transform.World.ToRollPitchYawDegrees().Z // (float)MathUtil.ConvertDirectionToDegree(pos.RotationZ) //Is this rotation right?
+                        };
+                        break;
+                    }
                 default:
-                    skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
-                    skillCastTarget.ObjId = target.ObjId;
-                    break;
+                    {
+                        skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+                        skillCastTarget.ObjId = target.ObjId;
+                        break;
+                    }
             }
 
             var skillObject = SkillObject.GetByType(SkillObjectType.None);

@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+
 using MySql.Data.MySqlClient;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -137,7 +140,7 @@ namespace AAEmu.Game.Models.Game.Char
                 }
             }
         }
-               
+
 
         public void AddBlockedUser(string name)
         {

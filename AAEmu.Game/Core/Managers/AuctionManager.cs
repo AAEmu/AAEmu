@@ -1,17 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
-using NLog;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
-using MySql.Data.MySqlClient;
 using AAEmu.Game.Models.Game.Mails;
+
+using MySql.Data.MySqlClient;
+
+using NLog;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -79,10 +82,10 @@ namespace AAEmu.Game.Core.Managers
                 if (itemToRemove.ClientName != "")
                 {
                     var sellMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, (int)recalculatedFee);
-                    sellMail.FinalizeForSaleSeller((int)moneyAfterFee, (uint)(soldAmount - moneyAfterFee));
-                    sellMail.Send();   
+                    sellMail.FinalizeForSaleSeller((int)moneyAfterFee, (int)(soldAmount - moneyAfterFee));
+                    sellMail.Send();
                 }
-                
+
                 var buyMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, (int)recalculatedFee);
                 var buyerId = NameManager.Instance.GetCharacterId(buyer);
                 buyMail.FinalizeForSaleBuyer(buyerId);
@@ -122,7 +125,7 @@ namespace AAEmu.Game.Core.Managers
                 {
                     var failMail = new MailForAuction(newItem, itemToRemove.ClientId, itemToRemove.DirectMoney, (int)recalculatedFee);
                     failMail.FinalizeForFail();
-                    failMail.Send();   
+                    failMail.Send();
                 }
 
                 RemoveAuctionItem(itemToRemove);
@@ -178,14 +181,14 @@ namespace AAEmu.Game.Core.Managers
                         newMail.FinalizeForBidFail(auctionItem.BidderId, auctionItem.BidMoney);
                         newMail.Send();
                     }
-                    
+
                     player.SubtractMoney(SlotType.Inventory, (int)auctionItem.DirectMoney);
                     RemoveAuctionItemSold(auctionItem, player.Name, auctionItem.DirectMoney);
                 }
 
-                else if(bidAmount > auctionItem.BidMoney) //Bid
+                else if (bidAmount > auctionItem.BidMoney) //Bid
                 {
-                    if(auctionItem.BidderName != "") //Send mail to old bidder. 
+                    if (auctionItem.BidderName != "") //Send mail to old bidder. 
                     {
                         var moneyArray = new int[3];
                         moneyArray[0] = (int)auctionItem.BidMoney;
@@ -215,24 +218,24 @@ namespace AAEmu.Game.Core.Managers
 
         public List<AuctionItem> GetAuctionItems(AuctionSearchTemplate searchTemplate)
         {
-            List<AuctionItem> auctionItemsFound = new List<AuctionItem>();
-            bool myListing = false;
+            var auctionItemsFound = new List<AuctionItem>();
+            var myListing = false;
 
             if (searchTemplate.ItemName == "" && searchTemplate.CategoryA == 0 && searchTemplate.CategoryB == 0 && searchTemplate.CategoryC == 0)
             {
                 myListing = true;
                 auctionItemsFound = _auctionItems.Where(c => c.ClientId == searchTemplate.PlayerId).ToList();
             }
-            
-            if(!myListing)
+
+            if (!myListing)
             {
                 var itemTemplateList = ItemManager.Instance.GetAllItems();
                 var query = from item in itemTemplateList
-                    where ((searchTemplate.ItemName != "") ? item.searchString.Contains(searchTemplate.ItemName.ToLower()) : true)
-                    where ((searchTemplate.CategoryA != 0) ? searchTemplate.CategoryA == item.AuctionCategoryA : true)
-                    where ((searchTemplate.CategoryB != 0) ? searchTemplate.CategoryB == item.AuctionCategoryB : true)
-                    where ((searchTemplate.CategoryC != 0) ? searchTemplate.CategoryC == item.AuctionCategoryC : true)
-                    select item;
+                            where ((searchTemplate.ItemName != "") ? item.searchString.Contains(searchTemplate.ItemName.ToLower()) : true)
+                            where ((searchTemplate.CategoryA != 0) ? searchTemplate.CategoryA == item.AuctionCategoryA : true)
+                            where ((searchTemplate.CategoryB != 0) ? searchTemplate.CategoryB == item.AuctionCategoryB : true)
+                            where ((searchTemplate.CategoryC != 0) ? searchTemplate.CategoryC == item.AuctionCategoryC : true)
+                            select item;
 
                 var selectedItemList = query.ToList();
 
@@ -284,11 +287,11 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
 
-            if(auctionItemsFound.Count > 9)
+            if (auctionItemsFound.Count > 9)
             {
                 var tempList = new List<AuctionItem>();
 
-                for (int i = 0; i < 9; i++)
+                for (var i = 0; i < 9; i++)
                 {
                     tempList.Add(auctionItemsFound[i]);
                 }
@@ -396,22 +399,32 @@ namespace AAEmu.Game.Core.Managers
             switch (duration)
             {
                 case 0:
-                    timeLeft = 6; //6 hours
-                    break;
+                    {
+                        timeLeft = 6; //6 hours
+                        break;
+                    }
                 case 1:
-                    timeLeft = 12; //12 hours
-                    break;
+                    {
+                        timeLeft = 12; //12 hours
+                        break;
+                    }
                 case 2:
-                    timeLeft = 24; //24 hours
-                    break;
+                    {
+                        timeLeft = 24; //24 hours
+                        break;
+                    }
                 case 3:
-                    timeLeft = 48; //48 hours
-                    break;
+                    {
+                        timeLeft = 48; //48 hours
+                        break;
+                    }
                 default:
-                    timeLeft = 6; //default to 6 hours
-                    break;
+                    {
+                        timeLeft = 6; //default to 6 hours
+                        break;
+                    }
             }
-            
+
             var newAuctionItem = new AuctionItem
             {
                 Id = GetNextId(),
@@ -540,7 +553,7 @@ namespace AAEmu.Game.Core.Managers
                     command.Parameters.AddWithValue("@stack_size", mtbs.StackSize);
                     command.Parameters.AddWithValue("@detail_type", mtbs.DetailType);
                     command.Parameters.AddWithValue("@creation_time", mtbs.CreationTime);
-                    command.Parameters.AddWithValue("@end_time",mtbs.EndTime);
+                    command.Parameters.AddWithValue("@end_time", mtbs.EndTime);
                     command.Parameters.AddWithValue("@lifespan_mins", mtbs.LifespanMins);
                     command.Parameters.AddWithValue("@type_1", mtbs.Type1);
                     command.Parameters.AddWithValue("@world_id", mtbs.WorldId);

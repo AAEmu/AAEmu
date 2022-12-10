@@ -1009,14 +1009,20 @@ namespace AAEmu.Game.Models.Game.Char
                     switch (item)
                     {
                         case Armor armor:
-                            res += armor.BaseArmor;
-                            break;
+                            {
+                                res += armor.BaseArmor;
+                                break;
+                            }
                         case Weapon weapon:
-                            res += weapon.Armor;
-                            break;
+                            {
+                                res += weapon.Armor;
+                                break;
+                            }
                         case Accessory accessory:
-                            res += accessory.BaseArmor;
-                            break;
+                            {
+                                res += accessory.BaseArmor;
+                                break;
+                            }
                     }
                 }
 
@@ -1047,11 +1053,15 @@ namespace AAEmu.Game.Models.Game.Char
                     switch (item)
                     {
                         case Armor armor:
-                            res += armor.BaseMagicResistance;
-                            break;
+                            {
+                                res += armor.BaseMagicResistance;
+                                break;
+                            }
                         case Accessory accessory:
-                            res += accessory.BaseMagicResistance;
-                            break;
+                            {
+                                res += accessory.BaseMagicResistance;
+                                break;
+                            }
                     }
                 }
 
@@ -1378,34 +1388,42 @@ namespace AAEmu.Game.Models.Game.Char
             switch (typeFrom)
             {
                 case SlotType.Inventory:
-                    if (amount > Money)
                     {
-                        SendErrorMessage(ErrorMessageType.NotEnoughMoney);
-                        return false;
+                        if (amount > Money)
+                        {
+                            SendErrorMessage(ErrorMessageType.NotEnoughMoney);
+                            return false;
+                        }
+                        Money -= amount;
+                        itemTasks.Add(new MoneyChange(-amount));
+                        break;
                     }
-                    Money -= amount;
-                    itemTasks.Add(new MoneyChange(-amount));
-                    break;
                 case SlotType.Bank:
-                    if (amount > Money2)
                     {
-                        SendErrorMessage(ErrorMessageType.NotEnoughMoney);
-                        return false;
+                        if (amount > Money2)
+                        {
+                            SendErrorMessage(ErrorMessageType.NotEnoughMoney);
+                            return false;
+                        }
+                        Money2 -= amount;
+                        itemTasks.Add(new MoneyChangeBank(-amount));
+                        break;
                     }
-                    Money2 -= amount;
-                    itemTasks.Add(new MoneyChangeBank(-amount));
-                    break;
             }
             switch (typeTo)
             {
                 case SlotType.Inventory:
-                    Money += amount;
-                    itemTasks.Add(new MoneyChange(amount));
-                    break;
+                    {
+                        Money += amount;
+                        itemTasks.Add(new MoneyChange(amount));
+                        break;
+                    }
                 case SlotType.Bank:
-                    Money2 += amount;
-                    itemTasks.Add(new MoneyChangeBank(amount));
-                    break;
+                    {
+                        Money2 += amount;
+                        itemTasks.Add(new MoneyChangeBank(amount));
+                        break;
+                    }
             }
             SendPacket(new SCItemTaskSuccessPacket(itemTaskType, itemTasks, new List<ulong>()));
             return true;
@@ -2054,6 +2072,7 @@ namespace AAEmu.Game.Models.Game.Char
                                 if (slot.Type != ActionSlotType.None)
                                 {
                                     slot.ActionId = slots.ReadUInt64();
+                                }
                                 }
                             }
                         }

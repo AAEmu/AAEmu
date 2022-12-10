@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public WorldInteractionType WorldInteractionId { get; set; }
         public uint QuestId { get; set; }
 
-        public override bool Use(Unit caster, Doodad owner)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
             _log.Trace("DoodadFuncRequireQuest QuestId: {0}, WorldIntId {1}", QuestId, WorldInteractionId);
 

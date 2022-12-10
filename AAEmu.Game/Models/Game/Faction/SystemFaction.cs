@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 
@@ -46,7 +47,7 @@ namespace AAEmu.Game.Models.Game.Faction
             if (MotherId != 0)
             {
                 var motherFaction = FactionManager.Instance.GetFaction(MotherId);
-                if(motherFaction != null)
+                if (motherFaction != null)
                 {
                     var motherRelations = motherFaction.Relations;
                     if (motherRelations.ContainsKey(otherFactionId))

@@ -4,6 +4,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -37,7 +38,7 @@ namespace AAEmu.Game.Core.Managers
     public class HousingManager : Singleton<HousingManager>
     {
         private const uint ForSaleMarkerDoodadId = 6760;
-        
+
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private Dictionary<uint, HousingTemplate> _housingTemplates;
         private Dictionary<uint, House> _houses;
@@ -58,10 +59,12 @@ namespace AAEmu.Game.Core.Managers
         public int GetByAccountId(Dictionary<uint, House> values, ulong accountId)
         {
             foreach (var (id, house) in _houses)
+            {
                 if (house.AccountId == accountId)
                 {
                     values.Add(id, house);
                 }
+            }
 
             return values.Count;
         }
@@ -75,10 +78,12 @@ namespace AAEmu.Game.Core.Managers
         public int GetByCharacterId(Dictionary<uint, House> values, uint characterId)
         {
             foreach (var (id, house) in _houses)
+            {
                 if (house.OwnerId == characterId)
                 {
                     values.Add(id, house);
                 }
+            }
 
             return values.Count;
         }
@@ -187,7 +192,7 @@ namespace AAEmu.Game.Core.Managers
                             template.GardenRadius = reader.GetFloat("garden_radius");
                             template.Family = reader.GetString("family");
                             var taxationId = reader.GetUInt32("taxation_id");
-                            template.Taxation = TaxationsManager.Instance.taxations.ContainsKey(taxationId) ? TaxationsManager.Instance.taxations[taxationId] : null; 
+                            template.Taxation = TaxationsManager.Instance.taxations.ContainsKey(taxationId) ? TaxationsManager.Instance.taxations[taxationId] : null;
                             template.GuardTowerSettingId = reader.GetUInt32("guard_tower_setting_id", 0);
                             template.CinemaRadius = reader.GetFloat("cinema_radius");
                             template.AutoZOffsetX = reader.GetFloat("auto_z_offset_x");
@@ -222,6 +227,13 @@ namespace AAEmu.Game.Core.Managers
                                         if (templateBindings != null && templateBindings.AttachPointId.ContainsKey(bindingDoodad.AttachPointId))
                                         {
                                             bindingDoodad.Position = templateBindings.AttachPointId[bindingDoodad.AttachPointId].Clone();
+                                        }
+
+                                        if (templateBindings != null &&
+                                            templateBindings.AttachPointId.ContainsKey(bindingDoodad.AttachPointId))
+                                        {
+                                            bindingDoodad.Position = templateBindings
+                                                .AttachPointId[bindingDoodad.AttachPointId].Clone();
                                         }
 
                                         if (bindingDoodad.Position == null)
@@ -393,10 +405,12 @@ namespace AAEmu.Game.Core.Managers
 
             var updateCount = 0;
             foreach (var house in _houses.Values)
+            {
                 if (house.Save(connection, transaction))
                 {
                     updateCount++;
                 }
+            }
 
             return (updateCount, deleteCount);
         }
@@ -404,7 +418,9 @@ namespace AAEmu.Game.Core.Managers
         public void SpawnAll()
         {
             foreach (var house in _houses.Values)
+            {
                 house.Spawn();
+            }
         }
 
         /// <summary>
@@ -725,16 +741,24 @@ namespace AAEmu.Game.Core.Managers
             {
                 case HousingPermission.Guild when connection.ActiveChar.Expedition == null:
                 case HousingPermission.Family when connection.ActiveChar.Family == 0:
-                    return;
+                    {
+                        return;
+                    }
                 case HousingPermission.Guild:
-                    house.CoOwnerId = connection.ActiveChar.Expedition.Id;
-                    break;
+                    {
+                        house.CoOwnerId = connection.ActiveChar.Expedition.Id;
+                        break;
+                    }
                 case HousingPermission.Family:
-                    house.CoOwnerId = connection.ActiveChar.Family;
-                    break;
+                    {
+                        house.CoOwnerId = connection.ActiveChar.Family;
+                        break;
+                    }
                 default:
-                    house.CoOwnerId = connection.ActiveChar.Id;
-                    break;
+                    {
+                        house.CoOwnerId = connection.ActiveChar.Id;
+                        break;
+                    }
             }
 
             house.Permission = permission;
@@ -813,9 +837,9 @@ namespace AAEmu.Game.Core.Managers
                 ownerChar?.SendPacket(new SCHouseRemovedPacket(house.TlId));
                 // Make killable
                 UpdateHouseFaction(house, (uint)FactionsEnum.Monstrosity);
-                
+
                 SetForSaleMarkers(house, false);
-                
+
                 house.IsDirty = true;
 
                 // TODO: better house killing handling
@@ -864,7 +888,7 @@ namespace AAEmu.Game.Core.Managers
             hostileTaxRate = 0; // NOTE: When castles are added, this needs to be updated depending on ruling guild's settings
             oneWeekTaxCount = 0;
 
-            Dictionary<uint, House> userHouses = new Dictionary<uint, House>();
+            var userHouses = new Dictionary<uint, House>();
             if (GetByAccountId(userHouses, AccountId) <= 0)
             {
                 return false;
@@ -1007,10 +1031,12 @@ namespace AAEmu.Game.Core.Managers
             var myHouses = new Dictionary<uint, House>();
             GetByCharacterId(myHouses, characterId);
             foreach (var h in myHouses)
+            {
                 if ((h.Value.Faction == null) || (h.Value.Faction.Id != factionId))
                 {
                     UpdateHouseFaction(h.Value, factionId);
                 }
+            }
         }
 
         /// <summary>
@@ -1038,7 +1064,7 @@ namespace AAEmu.Game.Core.Managers
                 var designItemId = GetItemIdByDesign(house.Template.Id);
                 var designItem = ItemManager.Instance.Create(designItemId, 1, 0);
                 var designTemplate = ItemManager.Instance.GetTemplate(designItemId);
-                designItem.Grade = (designTemplate.FixedGrade >= 0) ? (byte)designTemplate.FixedGrade : (byte)0 ;
+                designItem.Grade = (designTemplate.FixedGrade >= 0) ? (byte)designTemplate.FixedGrade : (byte)0;
                 designItem.OwnerId = house.OwnerId;
                 designItem.SlotType = SlotType.Mail;
                 returnedItems.Add(designItem);
@@ -1117,7 +1143,7 @@ namespace AAEmu.Game.Core.Managers
                         wantReturned = true;
                     }
                 }
-                
+
                 // If this doodad is a Coffer and has a ItemContainer attached, also return all item of that container
                 if ((f is DoodadCoffer coffer) && (f.GetItemContainerId() > 0))
                 {
@@ -1168,7 +1194,7 @@ namespace AAEmu.Game.Core.Managers
 
                     continue;
                 }
-                
+
                 // Item needs to be actually returned, so let's do that
                 if (f.ItemId > 0)
                 {
@@ -1194,7 +1220,7 @@ namespace AAEmu.Game.Core.Managers
                         // It's a new one, add a item slot
                         var furnitureItem = ItemManager.Instance.Create(f.ItemTemplateId, 1, 0);
                         var furnitureTemplate = ItemManager.Instance.GetTemplate(f.ItemTemplateId);
-                        furnitureItem.Grade = (furnitureTemplate.FixedGrade >= 0) ? (byte)furnitureTemplate.FixedGrade : (byte)0 ;
+                        furnitureItem.Grade = (furnitureTemplate.FixedGrade >= 0) ? (byte)furnitureTemplate.FixedGrade : (byte)0;
                         furnitureItem.OwnerId = house.OwnerId;
                         furnitureItem.SlotType = SlotType.Mail;
                         returnedItems.Add(furnitureItem);
@@ -1324,12 +1350,12 @@ namespace AAEmu.Game.Core.Managers
         {
             if (isForSale)
             {
-                for (int postId = 0; postId < 4; postId++)
+                for (var postId = 0; postId < 4; postId++)
                 {
                     var xMultiplier = (postId % 2) == 0 ? -1 : 1f;
                     var yMultiplier = (postId / 2) == 0 ? -1 : 1f;
-                    var zRot = ((135f + (90f * postId) % 360)).DegToRad(); 
-                    
+                    var zRot = ((135f + (90f * postId) % 360)).DegToRad();
+
                     var doodad = DoodadManager.Instance.Create(0, ForSaleMarkerDoodadId);
                     // location
                     doodad.Transform.Local.SetPosition(
@@ -1351,13 +1377,13 @@ namespace AAEmu.Game.Core.Managers
 
                     doodad.Spawn();
                 }
-                
+
             }
             else
             {
                 // Get all doodads related to this house
                 var thisHouseSalePosts = WorldManager.Instance.GetDoodadByHouseDbId(house.Id);
-                for(var c = thisHouseSalePosts.Count-1 ; c >= 0; c--)
+                for (var c = thisHouseSalePosts.Count - 1; c >= 0; c--)
                 {
                     var doodad = thisHouseSalePosts[c];
                     // If it's a for sale sign, remove it
@@ -1369,7 +1395,7 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
         }
-        
+
         public bool SetForSale(ushort houseTlId, uint price, uint buyerId, Character seller) =>
             SetForSale(GetHouseByTlId(houseTlId), price, buyerId, seller);
 
@@ -1421,12 +1447,12 @@ namespace AAEmu.Game.Core.Managers
 
             house.BroadcastPacket(new SCHouseSetForSalePacket(house.TlId, price, house.SellToPlayerId, buyerName, house.Name), false);
             SetForSaleMarkers(house, true);
-            
+
             return true;
         }
-        
+
         public bool CancelForSale(ushort houseTlId, bool returnCertificates = true) =>
-            CancelForSale(GetHouseByTlId(houseTlId),returnCertificates);
+            CancelForSale(GetHouseByTlId(houseTlId), returnCertificates);
 
         /// <summary>
         /// Cancels a sale
@@ -1443,7 +1469,7 @@ namespace AAEmu.Game.Core.Managers
 
             var certAmount = CalculateSaleCertifcates(house, house.SellPrice);
             var owner = WorldManager.Instance.GetCharacterById(house.OwnerId);
-            
+
             house.SellPrice = 0;
             house.SellToPlayerId = 0;
             // Can only return certificates if owner is online and is the one resetting the sale
@@ -1497,7 +1523,7 @@ namespace AAEmu.Game.Core.Managers
                 }
 
                 furniture.OwnerId = characterId;
-                furniture.BroadcastPacket(new SCDoodadOriginatorPacket(furniture.ObjId, characterId, 0),true);
+                furniture.BroadcastPacket(new SCDoodadOriginatorPacket(furniture.ObjId, characterId, 0), true);
                 res++;
             }
             return res;
@@ -1572,7 +1598,7 @@ namespace AAEmu.Game.Core.Managers
             newOwnerMail.Body.SendDate = DateTime.UtcNow;
             newOwnerMail.Body.RecvDate = DateTime.UtcNow.AddMilliseconds(1);
             newOwnerMail.Send();
-            
+
             // Send sales money to previous owner
             var profitMail = new BaseMail();
             profitMail.MailType = MailType.HousingSale;
@@ -1585,9 +1611,9 @@ namespace AAEmu.Game.Core.Managers
             profitMail.Body.SendDate = DateTime.UtcNow;
             profitMail.Body.RecvDate = DateTime.UtcNow.AddMilliseconds(1);
             profitMail.Send();
-            
+
             ReturnHouseItemsToOwner(house, false, false, character);
-            
+
             // Set new owner info
             house.SellPrice = 0;
             house.SellToPlayerId = 0;
@@ -1611,9 +1637,10 @@ namespace AAEmu.Game.Core.Managers
             {
                 oldOwner.SendPacket(new SCHouseRemovedPacket(house.TlId));
             }
+            }
 
             UpdateFurnitureOwner(house, character.Id);
-            
+
             house.IsDirty = true;
 
             return true;
@@ -1737,7 +1764,7 @@ namespace AAEmu.Game.Core.Managers
             doodad.OwnerType = DoodadOwnerType.Housing;
             doodad.UccId = itemUcc?.Id ?? 0;
             doodad.IsPersistent = true;
-            
+
             if (doodad is DoodadCoffer coffer)
             {
                 coffer.InitializeCoffer(player.Id);
@@ -1757,7 +1784,7 @@ namespace AAEmu.Game.Core.Managers
                 // Non-stackables are stored in the owner's system container as to retain crafter information and such 
                 res = player.Inventory.SystemContainer.AddOrMoveExistingItem(ItemTaskType.DoodadCreate, item);
             }
-            
+
             // _log.Debug("DecorateHouse => DoodadTemplate: {0} , DoodadId {1}, Pos: {2}", doodad.TemplateId, doodad.ObjId, doodad.Transform.ToString());
 
             return res;

@@ -22,6 +22,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
@@ -422,7 +423,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
 
             _log.Info("Loading persistent doodads...");
-            List<Doodad> newCoffers = new List<Doodad>();
+            var newCoffers = new List<Doodad>();
             using (var connection = MySQL.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
@@ -541,7 +542,9 @@ namespace AAEmu.Game.Core.Managers.World
 
             // Save Coffer Doodads that had a new ItemContainer created for them (should only happen on first run if there were already coffers placed)
             foreach (var coffer in newCoffers)
+            {
                 coffer.Save();
+            }
 
             _loaded = true;
         }
@@ -700,10 +703,12 @@ namespace AAEmu.Game.Core.Managers.World
 
             var res = new HashSet<GameObject>();
             foreach (var npc in temp)
+            {
                 if (npc.Respawn <= DateTime.UtcNow)
                 {
                     res.Add(npc);
                 }
+            }
 
             return res;
         }
@@ -718,10 +723,12 @@ namespace AAEmu.Game.Core.Managers.World
 
             var res = new HashSet<GameObject>();
             foreach (var item in temp)
+            {
                 if (item.Despawn <= DateTime.UtcNow)
                 {
                     res.Add(item);
                 }
+            }
 
             return res;
         }

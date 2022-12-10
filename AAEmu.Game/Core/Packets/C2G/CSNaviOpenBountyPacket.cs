@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var objId = stream.ReadBc();
-            
+
             _log.Warn("NaviOpenBounty, ObjId: {0}", objId);
         }
     }

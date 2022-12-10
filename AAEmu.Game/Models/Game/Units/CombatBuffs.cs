@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -18,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Units
             _owner = owner;
             _cbuffsByHitType = new Dictionary<SkillHitType, List<CombatBuffTemplate>>();
         }
-        
+
         public void AddCombatBuffs(uint buffId)
         {
             var buffsToAdd = SkillManager.Instance.GetCombatBuffs(buffId);

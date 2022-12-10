@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -16,7 +17,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public bool ShowEndTime { get; set; }
         public string Tip { get; set; }
 
-        public override bool Use(Unit caster, Doodad owner)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
             if (NextPhase > 0)
             {

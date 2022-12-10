@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
-using System.Threading.Tasks;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -118,7 +119,7 @@ namespace AAEmu.Game.Core.Managers
                             var template = new PlotCondition();
                             template.Id = reader.GetUInt32("id");
                             template.NotCondition = reader.GetBoolean("not_condition", true);
-                            template.Kind = (PlotConditionType) reader.GetInt32("kind_id");
+                            template.Kind = (PlotConditionType)reader.GetInt32("kind_id");
                             template.Param1 = reader.GetInt32("param1");
                             template.Param2 = reader.GetInt32("param2");
                             template.Param3 = reader.GetInt32("param3");
@@ -217,8 +218,8 @@ namespace AAEmu.Game.Core.Managers
                             var id = reader.GetUInt32("event_id");
                             var template = new PlotEventEffect();
                             template.Position = reader.GetInt32("position");
-                            template.SourceId = (PlotEffectSource) reader.GetInt32("source_id");
-                            template.TargetId = (PlotEffectTarget) reader.GetInt32("target_id");
+                            template.SourceId = (PlotEffectSource)reader.GetInt32("source_id");
+                            template.TargetId = (PlotEffectTarget)reader.GetInt32("target_id");
                             template.ActualId = reader.GetUInt32("actual_id");
                             template.ActualType = reader.GetString("actual_type");
                             var evnt = _eventTemplates[id];
@@ -298,8 +299,8 @@ namespace AAEmu.Game.Core.Managers
                 }
 
                 _log.Info("Loaded {0} plot events", _eventTemplates.Count);
-                
-                foreach(var plot in _plots.Values)
+
+                foreach (var plot in _plots.Values)
                 {
                     if (plot.EventTemplate != null)
                     {
@@ -308,7 +309,7 @@ namespace AAEmu.Game.Core.Managers
                 }
                 // Task.Run(() => flameboltTree.Execute(new PlotState()));
             }
-            
+
             _loaded = true;
         }
     }

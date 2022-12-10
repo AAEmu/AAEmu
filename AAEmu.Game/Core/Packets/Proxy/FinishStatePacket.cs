@@ -1,5 +1,4 @@
-﻿using System;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -45,23 +44,33 @@ namespace AAEmu.Game.Core.Packets.Proxy
                     Connection.SendPacket(new SCTaxItemConfig2Packet(0));
                     break;
                 case 1:
-                    Connection.SendPacket(new ChangeStatePacket(2));
-                    break;
+                    {
+                        Connection.SendPacket(new ChangeStatePacket(2));
+                        break;
+                    }
                 case 2:
-                    Connection.SendPacket(new ChangeStatePacket(3));
-                    break;
+                    {
+                        Connection.SendPacket(new ChangeStatePacket(3));
+                        break;
+                    }
                 case 3:
                 case 4:
                 case 5:
                 case 6:
-                    Connection.SendPacket(new ChangeStatePacket(state + 1));
-                    break;
+                    {
+                        Connection.SendPacket(new ChangeStatePacket(state + 1));
+                        break;
+                    }
                 case 7:
-                    Connection.SendPacket(new SCUpdatePremiumPointPacket(1, 1, 1));
-                    break;
+                    {
+                        Connection.SendPacket(new SCUpdatePremiumPointPacket(1, 1, 1));
+                        break;
+                    }
                 default:
-                    _log.Info("Unknown state: {0}", state);
-                    break;
+                    {
+                        _log.Info("Unknown state: {0}", state);
+                        break;
+                    }
             }
         }
     }

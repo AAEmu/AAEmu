@@ -1,5 +1,7 @@
-using System;
+﻿using System;
+
 using AAEmu.Commons.Network;
+
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Stream
@@ -9,15 +11,15 @@ namespace AAEmu.Game.Models.Stream
         public override UccType Type => UccType.Simple;
         public uint Pattern1 { get; set; }
         public uint Pattern2 { get; set; }
-        
+
         public uint Color1R { get; set; }
         public uint Color1G { get; set; }
         public uint Color1B { get; set; }
-        
+
         public uint Color2R { get; set; }
         public uint Color2G { get; set; }
         public uint Color2B { get; set; }
-        
+
         public uint Color3R { get; set; }
         public uint Color3G { get; set; }
         public uint Color3B { get; set; }

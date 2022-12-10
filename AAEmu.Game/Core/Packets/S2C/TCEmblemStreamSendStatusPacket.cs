@@ -16,10 +16,11 @@ namespace AAEmu.Game.Core.Packets.S2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((long) _ucc.Id); // type
+            stream.Write((long)_ucc.Id); // type
             if (_ucc is CustomUcc customUcc)
             {
                 stream.Write(customUcc.Data.Count); // total data bytes 
+            }
             }
             else
             {
@@ -27,8 +28,8 @@ namespace AAEmu.Game.Core.Packets.S2C
             }
 
             _ucc.Write(stream);
-            
-            stream.Write((byte) _emblemStreamStatus); // status
+
+            stream.Write((byte)_emblemStreamStatus); // status
 
             return stream;
         }

@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.AI.v2.Params.BigMonster;
 using AAEmu.Game.Models.Game.AI.V2.Params.BigMonster;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
 {
@@ -31,7 +30,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
                 Ai.GoToReturn();
                 return;
             }
-            
+
             if (CanStrafe && !IsUsingSkill)
             {
                 MoveInRange(Ai.Owner.CurrentTarget, delta);
@@ -71,8 +70,8 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
 
         private List<BigMonsterCombatSkill> RequestAvailableSkills(BigMonsterAiParams aiParams, float trgDist)
         {
-            int healthRatio = (int)(((float)Ai.Owner.Hp / Ai.Owner.MaxHp) * 100);
-            
+            var healthRatio = (int)(((float)Ai.Owner.Hp / Ai.Owner.MaxHp) * 100);
+
             var baseList = aiParams.CombatSkills.AsEnumerable();
 
             baseList = baseList.Where(s => s.HealthRangeMin <= healthRatio && healthRatio <= s.HealthRangeMax);
@@ -93,7 +92,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
                 return skills[Rand.Next(0, skills.Count)];
             }
 
-            if (!Ai.Owner.Cooldowns.CheckCooldown((uint) Ai.Owner.Template.BaseSkillId))
+            if (!Ai.Owner.Cooldowns.CheckCooldown((uint)Ai.Owner.Template.BaseSkillId))
             {
                 return new BigMonsterCombatSkill
                 {
@@ -105,7 +104,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
 
             return null;
         }
-        
+
         public override void Exit()
         {
             // Clear combat state here

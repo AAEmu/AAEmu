@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Items;
@@ -65,14 +66,18 @@ namespace AAEmu.Game.Models.Game.Char
                     }
                     break;
                 case WeaponWieldKind.TwoHanded:
-                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EquipTwoHanded);
-                    break;
+                    {
+                        buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EquipTwoHanded);
+                        break;
+                    }
                 case WeaponWieldKind.DuelWielded:
-                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EquipDualwield);
-                    break;
+                    {
+                        buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EquipDualwield);
+                        break;
+                    }
             }
 
-            if(buffTemplate != null)
+            if (buffTemplate != null)
             {
                 var effect = new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.UtcNow);
                 Buffs.AddBuff(effect);
@@ -84,7 +89,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var setNumPieces = new Dictionary<uint, int>();
             var itemLevels = new Dictionary<uint, uint>();
-            foreach(var item in Equipment.Items)
+            foreach (var item in Equipment.Items)
             {
                 if (item.Template is EquipItemTemplate template)
                 {
@@ -114,7 +119,7 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var setCount in setNumPieces)
             {
                 var equipItemSet = ItemManager.Instance.GetEquippedItemSet(setCount.Key);
-                foreach(var bonus in equipItemSet.Bonuses)
+                foreach (var bonus in equipItemSet.Bonuses)
                 {
                     if (setCount.Value >= bonus.NumPieces)
                     {
@@ -164,7 +169,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             // Clear any existing armor grade buffs
-            Buffs.RemoveBuffs((uint) BuffConstants.ArmorBuffTag, 10);
+            Buffs.RemoveBuffs((uint)BuffConstants.ArmorBuffTag, 10);
 
             // Get armor pieces by kind
             var armorPieces = new Dictionary<ArmorType, List<Armor>>();
@@ -227,16 +232,22 @@ namespace AAEmu.Game.Models.Game.Char
                 switch ((ArmorType)finalArmorTemplate.WearableTemplate.TypeId)
                 {
                     case ArmorType.Cloth:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Cloth7P);
-                        break;
+                        {
+                            templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Cloth7P);
+                            break;
+                        }
                     case ArmorType.Leather:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Leather7P);
-                        break;
+                        {
+                            templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Leather7P);
+                            break;
+                        }
                     case ArmorType.Metal:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Plate7P);
-                        break;
+                        {
+                            templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Plate7P);
+                            break;
+                        }
                 }
-                
+
                 if (templ != null)
                 {
                     Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.UtcNow));
@@ -248,16 +259,22 @@ namespace AAEmu.Game.Models.Game.Char
                 switch ((ArmorType)finalArmorTemplate.WearableTemplate.TypeId)
                 {
                     case ArmorType.Cloth:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Cloth4P);
-                        break;
+                        {
+                            templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Cloth4P);
+                            break;
+                        }
                     case ArmorType.Leather:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Leather4P);
-                        break;
+                        {
+                            templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Leather4P);
+                            break;
+                        }
                     case ArmorType.Metal:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Plate4P);
-                        break;
+                        {
+                            templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Plate4P);
+                            break;
+                        }
                 }
-                
+
                 if (templ != null)
                 {
                     Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.UtcNow));
@@ -324,7 +341,7 @@ namespace AAEmu.Game.Models.Game.Char
                 }
             }
 
-            if(itemAdded != null)
+            if (itemAdded != null)
             {
                 // Static Buffs
                 var itemAddedBuff = ItemGameData.Instance.GetItemBuff(itemAdded?.TemplateId ?? 0, itemAdded?.Grade ?? 0);
@@ -353,7 +370,7 @@ namespace AAEmu.Game.Models.Game.Char
                         ? equipItem.UnpackTime
                         : equipItem.ChargeStartTime;
                     checkExpireTime = checkExpireTime.AddMinutes(equipItemTemplate.ChargeLifetime);
-                    
+
                     // Check against timer
                     if ((equipItemTemplate.ChargeLifetime > 0) && (checkExpireTime > DateTime.UtcNow))
                     {
@@ -385,13 +402,13 @@ namespace AAEmu.Game.Models.Game.Char
                 }
             }
 
-            if(itemAdded == null && itemRemoved == null) // This is the first load check to apply buffs for equipped items. 
+            if (itemAdded == null && itemRemoved == null) // This is the first load check to apply buffs for equipped items. 
             {
                 Buffs.RemoveBuffs((uint)BuffConstants.EquipmentBuffTag, 20);
                 foreach (var item in Equipment.Items)
                 {
                     // Static Buffs
-                    if(item.Template.BuffId != 0)
+                    if (item.Template.BuffId != 0)
                     {
                         var buffTemplate = ItemGameData.Instance.GetItemBuff(item?.TemplateId ?? 0, item?.Grade ?? 0);
                         if (buffTemplate == null)
@@ -407,7 +424,7 @@ namespace AAEmu.Game.Models.Game.Char
 
                         Buffs.AddBuff(newEffect);
                     }
-                    
+
                     // Charged Item Buffs
                     if ((item is EquipItem equipItem) && (equipItem.Template is EquipItemTemplate equipItemTemplate) &&
                         (equipItemTemplate.RechargeBuffId > 0))
@@ -417,7 +434,7 @@ namespace AAEmu.Game.Models.Game.Char
                             ? equipItem.UnpackTime
                             : equipItem.ChargeStartTime;
                         checkExpireTime = checkExpireTime.AddMinutes(equipItemTemplate.ChargeLifetime);
-                    
+
                         // Check against timer
                         if ((equipItemTemplate.ChargeLifetime > 0) && (checkExpireTime > DateTime.UtcNow))
                         {

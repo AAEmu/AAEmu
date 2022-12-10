@@ -10,12 +10,10 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Utils.DB;
 
 using MySql.Data.MySqlClient;
 
@@ -137,7 +135,7 @@ namespace AAEmu.Game.Models.Game.Char
                         {
                             // Добавим|убавим за перевыполнение|недовыполнение плана, если позволено квестом (Add [reduce] for overfulfilling [underperformance] of the plan, if allowed by the quest)
                             // TODO: Verify if the bonus only applies to the level-based XP/Gold, or if it also applies to the rewards parts in quest_act_supply_xxx
-                            quest.QuestRewardExpPool += (levelBasedRewards.Exp * quest.OverCompletionPercent / 100); 
+                            quest.QuestRewardExpPool += (levelBasedRewards.Exp * quest.OverCompletionPercent / 100);
                             quest.QuestRewardCoinsPool += (levelBasedRewards.Copper * quest.OverCompletionPercent / 100);
 
                             if (!quest.ExtraCompletion)
@@ -156,7 +154,7 @@ namespace AAEmu.Game.Models.Game.Char
                     }
                 }
                 quest.DistributeRewards();
-                
+
                 var completeId = (ushort)(quest.TemplateId / 64);
                 if (!CompletedQuests.ContainsKey(completeId))
                 {

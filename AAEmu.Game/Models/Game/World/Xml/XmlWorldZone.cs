@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Xml;
+
 using AAEmu.Game.Models.Game.World.Transform;
+
 using XmlH = AAEmu.Commons.Utils.XML.XmlHelper;
 
 namespace AAEmu.Game.Models.Game.World.Xml
@@ -16,7 +15,7 @@ namespace AAEmu.Game.Models.Game.World.Xml
         public string Name { get; set; }
         public int OriginX { get; set; }
         public int OriginY { get; set; }
-        public ConcurrentDictionary<(int,int),XmlWorldCell> Cells { get; set; }
+        public ConcurrentDictionary<(int, int), XmlWorldCell> Cells { get; set; }
         public XmlWorld Parent { get; set; }
         public WorldSpawnPosition SpawnPosition { get; set; } = new WorldSpawnPosition(); // координаты для Zones
 

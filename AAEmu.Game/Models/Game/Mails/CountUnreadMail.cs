@@ -56,6 +56,6 @@ namespace AAEmu.Game.Models.Game.Mails
                 UnreadReceived += amount;
             }
         }
-        
+
     }
 }

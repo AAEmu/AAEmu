@@ -17,7 +17,10 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_members.Length); // TODO max length 50
             foreach (var member in _members)
+            {
                 member.WritePerson(stream);
+            }
+
             return stream;
         }
     }

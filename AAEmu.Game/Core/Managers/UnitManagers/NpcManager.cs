@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -8,16 +9,17 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.AI.Params;
 using AAEmu.Game.Models.Game.AI.Utils;
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Merchant;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Merchant;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
@@ -133,10 +135,14 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             for (var i = 0; i < 7; i++)
             {
                 var slot = (EquipmentItemSlot)(i + 19);
-                if (slot == EquipmentItemSlot.Hair && template.ModelParams != null)
+                if ((slot == EquipmentItemSlot.Hair) && (template.ModelParams != null))
+                {
                     SetEquipItemTemplate(npc, template.HairId, EquipmentItemSlot.Hair);
+                }
                 else
+                {
                     SetEquipItemTemplate(npc, template.BodyItems[i].ItemId, slot, 0, template.BodyItems[i].NpcOnly);
+                }
             }
 
             foreach (var buffId in template.Buffs)
@@ -201,29 +207,47 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             {
                 case Race.None:
                 case Race.Nuian: // Nuian male
-                    modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)10 : (byte)11;
-                    break;
+                    {
+                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)10 : (byte)11;
+                        break;
+                    }
                 case Race.Dwarf: // Dwarf male
-                    modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)14 : (byte)15;
-                    break;
+                    {
+                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)14 : (byte)15;
+                        break;
+                    }
                 case Race.Elf: // Elf male
-                    modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)16 : (byte)17;
-                    break;
+                    {
+                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)16 : (byte)17;
+                        break;
+                    }
                 case Race.Hariharan: // Hariharan male
-                    modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)18 : (byte)19;
-                    break;
+                    {
+                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)18 : (byte)19;
+                        break;
+                    }
                 case Race.Ferre: // Ferre male
-                    modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)20 : (byte)21;
-                    break;
+                    {
+                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)20 : (byte)21;
+                        break;
+                    }
                 case Race.Warborn: // Warborn male
-                    modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)24 : (byte)25;
-                    break;
+                    {
+                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)24 : (byte)25;
+                        break;
+                    }
                 case Race.Fairy:
-                    break;
+                    {
+                        break;
+                    }
                 case Race.Returned:
-                    break;
+                    {
+                        break;
+                    }
                 default:
-                    break;
+                    {
+                        break;
+                    }
             }
 
             var modelType = ModelManager.Instance.GetModelType(template.ModelId);
@@ -234,17 +258,19 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 // Get all possible hair item_ids that match this model
                 var hairsForThisModel = new List<uint>();
                 foreach (var item in ItemManager.Instance.GetAllItems())
-                    if (item is BodyPartTemplate bpt && bpt.ModelId == template.ModelId && bpt.SlotTypeId == (uint)EquipmentItemSlotType.Hair)
+                {
+                    if ((item is BodyPartTemplate bpt) && (bpt.ModelId == template.ModelId) && (bpt.SlotTypeId == (uint)EquipmentItemSlotType.Hair))
                     {
                         hairsForThisModel.Add(bpt.ItemId);
                     }
+                }
 
                 if (hairsForThisModel.Count > 0)
                 {
                     // TODO: Slow, but I don't know of a better way to do this atm
                     var possibleTotalCustoms = (from tc in _totalCharacterCustoms
-                        where tc.Value.ModelId == modelParamsId && hairsForThisModel.Contains(tc.Value.HairId)
-                        select tc.Value.Id).ToList();
+                                                where (tc.Value.ModelId == modelParamsId) && (hairsForThisModel.Contains(tc.Value.HairId))
+                                                select tc.Value.Id).ToList();
 
                     // If anything in result, pick something random from it
                     if (possibleTotalCustoms.Count > 0)
@@ -329,6 +355,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     switch (slotTypeId)
                     {
                         case (byte)EquipmentItemSlotType.Face:
+                        {
                             if (template.Race == (byte)Race.Dwarf || template.Race == (byte)Race.Warborn)
                             {
                                 rbp = bp[0]; // для гномов всегда 0 itemBodyParts
@@ -339,28 +366,34 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                 // для остальных всегда последнее itemBodyParts
                                 _template.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
                             }
-                            break;
-                        case (byte)EquipmentItemSlotType.Hair:
-                            if (rbp.ItemId == template.HairId)
-                            {
-                                _template.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
-                            }
-                            else
-                            {
-                                if (template.HairId != 0)
-                                {
-                                    _template.BodyItems[rbp.SlotTypeId - 23] = (template.HairId, rbp.NpcOnly);
-                                }
-                            }
 
                             break;
+                        }
+                        case (byte)EquipmentItemSlotType.Hair:
+                            {
+                                if (rbp.ItemId == template.HairId)
+                                {
+                                    _template.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
+                                }
+                                else
+                                {
+                                    if (template.HairId != 0)
+                                    {
+                                        _template.BodyItems[rbp.SlotTypeId - 23] = (template.HairId, rbp.NpcOnly);
+                                    }
+                                }
+
+                                break;
+                            }
                         case (byte)EquipmentItemSlotType.Beard:
                         case (byte)EquipmentItemSlotType.Body:
                         case (byte)EquipmentItemSlotType.Glasses:
                         case (byte)EquipmentItemSlotType.Horns:
                         case (byte)EquipmentItemSlotType.Tail:
-                            _template.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
-                            break;
+                            {
+                                _template.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
+                                break;
+                            }
                     }
                 }
             }
@@ -442,6 +475,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             //object blob = reader.GetValue("modifier");
                             //if (blob != null)
                             //    custom.Modifier = (byte[])blob;
+                            }
+
                             custom.OwnerTypeId = reader.GetUInt32("owner_type_id");
                             custom.FaceMovableDecalWeight = reader.GetFloat("face_movable_decal_weight");
                             //custom.FaceFixedDecalAsset0Weight = reader.GetFloat("face_fixed_decal_asset_0_weight");

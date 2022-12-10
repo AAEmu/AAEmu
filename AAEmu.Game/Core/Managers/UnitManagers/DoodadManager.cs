@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
@@ -17,6 +17,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -61,6 +62,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             _funcTemplates = new Dictionary<string, Dictionary<uint, DoodadFuncTemplate>>();
             _phaseFuncTemplates = new Dictionary<string, Dictionary<uint, DoodadPhaseFuncTemplate>>();
             foreach (var type in Helpers.GetTypesInNamespace(Assembly.GetAssembly(GetType()), "AAEmu.Game.Models.Game.DoodadObj.Funcs"))
+            {
                 if (type.BaseType == typeof(DoodadFuncTemplate))
                 {
                     _funcTemplates.Add(type.Name, new Dictionary<uint, DoodadFuncTemplate>());
@@ -69,6 +71,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 {
                     _phaseFuncTemplates.Add(type.Name, new Dictionary<uint, DoodadPhaseFuncTemplate>());
                 }
+            }
 
             using (var connection = SQLite.CreateConnection())
             {
@@ -145,7 +148,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     {
                         while (reader.Read())
                         {
-                           var func = new DoodadPhaseFunc();
+                            var func = new DoodadPhaseFunc();
                             func.GroupId = reader.GetUInt32("doodad_func_group_id");
                             func.FuncId = reader.GetUInt32("actual_func_id");
                             func.FuncType = reader.GetString("actual_func_type");
@@ -439,7 +442,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_clout_effects";
@@ -2182,11 +2185,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 }
 
                 _log.Info("Finished loading doodad functions ...");
-               
+
                 #endregion
-                
+
                 #region doodads_and_func_groups
-                
+
                 _log.Info("Loading doodad templates...");
 
                 // First load all doodad_func_groups
@@ -2204,7 +2207,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             funcGroups.Almighty = reader.GetUInt32("doodad_almighty_id");
                             funcGroups.GroupKindId = (DoodadFuncGroups.DoodadFuncGroupKind)reader.GetUInt32("doodad_func_group_kind_id");
                             funcGroups.SoundId = reader.GetUInt32("sound_id", 0);
-                            
+
                             if (!_allFuncGroups.TryAdd(funcGroups.Id, funcGroups))
                             {
                                 _log.Fatal($"Failed to add FuncGroups: {funcGroups.Id}");
@@ -2212,7 +2215,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-                
+
                 // Then Load actual doodads
                 using (var command = connection.CreateCommand())
                 {
@@ -2224,9 +2227,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         while (reader.Read())
                         {
                             var templateId = reader.GetUInt32("id");
-                            
+
                             var cofferCapacity = IsCofferTemplate(templateId);
-                            
+
                             DoodadTemplate template;
                             if (cofferCapacity > 0)
                             {
@@ -2270,8 +2273,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             _templates.Add(template.Id, template);
                         }
                     }
-                }                
-                
+                }
+
                 // Bind FuncGroups to Template
                 foreach (var (_, funcGroups) in _allFuncGroups)
                 {
@@ -2285,7 +2288,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 _log.Info("Loaded {0} doodad templates", _templates.Count);
                 #endregion
             }
-                        
+
             _loaded = true;
         }
 
@@ -2362,21 +2365,27 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             switch (obj)
             {
                 case Character character:
-                    doodad.OwnerId = character.Id;
-                    doodad.OwnerType = DoodadOwnerType.Character;
-                    break;
+                    {
+                        doodad.OwnerId = character.Id;
+                        doodad.OwnerType = DoodadOwnerType.Character;
+                        break;
+                    }
                 case House house:
-                    doodad.OwnerObjId = 0;
-                    doodad.ParentObjId = house.ObjId;
-                    doodad.OwnerId = house.OwnerId;
-                    doodad.OwnerType = DoodadOwnerType.Housing;
-                    doodad.DbHouseId = house.Id;
-                    break;
+                    {
+                        doodad.OwnerObjId = 0;
+                        doodad.ParentObjId = house.ObjId;
+                        doodad.OwnerId = house.OwnerId;
+                        doodad.OwnerType = DoodadOwnerType.Housing;
+                        doodad.DbHouseId = house.Id;
+                        break;
+                    }
                 case Transfer transfer:
-                    doodad.OwnerId = 0;
-                    doodad.ParentObjId = transfer.ObjId;
-                    doodad.OwnerType = DoodadOwnerType.System;
-                    break;
+                    {
+                        doodad.OwnerId = 0;
+                        doodad.ParentObjId = transfer.ObjId;
+                        doodad.OwnerType = DoodadOwnerType.System;
+                        break;
+                    }
             }
 
             return doodad;
@@ -2587,8 +2596,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
 
             foreach (var item in items)
+            {
                 character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1, preferredItem);
-            
+            }
+
             doodad.Spawn();
             doodad.Save();
 
@@ -2711,11 +2722,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     return false;
                 }
             }
-            
+
             doodad.Data = data;
 
             doodad.BroadcastPacket(new SCDoodadChangedPacket(doodad.ObjId, doodad.Data), false);
-            
+
             return true;
         }
         // }

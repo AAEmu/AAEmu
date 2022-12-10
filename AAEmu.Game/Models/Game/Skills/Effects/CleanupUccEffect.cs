@@ -1,6 +1,6 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
     {
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
@@ -51,7 +51,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 // Consume the Bleach
                 //bleachItem._holdingContainer.ConsumeItem(ItemTaskType.ImprintUcc, bleachItem.TemplateId,1, bleachItem);
             }
-            
+
         }
     }
 }

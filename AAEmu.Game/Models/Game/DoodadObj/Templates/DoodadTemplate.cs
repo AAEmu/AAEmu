@@ -58,9 +58,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Templates
                 case 39: //Interaction - Excavation
                 case 40: // Agriculture - Marine Crops
                 case 65: // Fish (sports fishing ?)
-                    return true;
+                    {
+                        return true;
+                    }
                 default:
-                    return false;
+                    {
+                        return false;
+                    }
             }
         }
     }

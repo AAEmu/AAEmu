@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var teamId = stream.ReadUInt32();
-            
+
             _log.Warn("LeaveTeam, TeamId: {0}", teamId);
         }
     }

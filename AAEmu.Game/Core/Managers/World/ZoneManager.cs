@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Numerics;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
@@ -41,10 +42,12 @@ namespace AAEmu.Game.Core.Managers.World
         {
             var res = new List<uint>();
             foreach (var z in _zones)
+            {
                 if (z.Value.GroupId == zoneGroupId)
                 {
                     res.Add(z.Value.ZoneKey);
                 }
+            }
 
             return res;
         }
@@ -93,7 +96,7 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                     }
                 }
-                
+
                 _log.Info("Loaded {0} zones", _zones.Count);
 
                 using (var command = connection.CreateCommand())
@@ -234,7 +237,7 @@ namespace AAEmu.Game.Core.Managers.World
         public Vector3 ConvertToWorldCoordinates(uint zoneId, Vector3 point)
         {
             var origin = GetZoneOriginCell(zoneId);
-        
+
             var newX = origin.X * 1024f + point.X;
             var newY = origin.Y * 1024f + point.Y;
 

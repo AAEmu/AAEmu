@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public int HighlightDoodadPhase { get; set; }
         public uint QuestActObjAliasId { get; set; }
         public uint Phase { get; set; }
-        
+
         public static int InteractionStatus = 0;
 
         public override bool Use(ICharacter character, Quest quest, int objective)

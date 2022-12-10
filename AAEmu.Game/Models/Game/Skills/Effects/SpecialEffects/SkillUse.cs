@@ -1,18 +1,18 @@
 ﻿using System;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Skills;
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class SkillUse : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.SkillUse;
-        
-        public override void Execute(Unit caster,
+
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -26,24 +26,25 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value4)
         {
             // TODO ...
+            var unit = (Unit)caster;
             if (caster is Character) { _log.Debug("Special effects: SkillUse skillId {0}, delay {1}, value3 {2}, value4 {3}", skillId, delay, chance, value4); }
 
             if (Rand.Next(0, 100) > chance && chance != 0)
             {
-                caster.ConditionChance = false;
+                unit.ConditionChance = false;
                 return;
             }
             else
             {
-                caster.ConditionChance = true;
+                unit.ConditionChance = true;
             }
 
-            target = caster.CurrentTarget;
+            target = unit.CurrentTarget;
             var useSkill = new Skill(SkillManager.Instance.GetSkillTemplate((uint)skillId));
             targetObj = new SkillCastUnitTarget(target?.ObjId ?? 0);
-            caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.UseSkill);//Not sure if it belongs here.
-            TaskManager.Instance.Schedule(new UseSkillTask(useSkill, caster, casterObj, target, targetObj, skillObject), TimeSpan.FromMilliseconds(delay));
-            //useSkill.ApplyEffects(caster, casterObj, target, targetObj, skillObject);
+            unit.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.UseSkill); // Not sure if it belongs here.
+            TaskManager.Instance.Schedule(new UseSkillTask(useSkill, unit, casterObj, target, targetObj, skillObject), TimeSpan.FromMilliseconds(delay));
+            //useSkill.ApplyEffects(unit, casterObj, target, targetObj, skillObject);
         }
     }
 }

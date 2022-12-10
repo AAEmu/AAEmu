@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
-    public class CSRequestSecondPasswordKeyTablesPacket :GamePacket
+    public class CSRequestSecondPasswordKeyTablesPacket : GamePacket
     {
         public CSRequestSecondPasswordKeyTablesPacket() : base(CSOffsets.CSRequestSecondPasswordKeyTablesPacket, 5)
         {

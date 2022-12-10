@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var returnPointId = stream.ReadUInt32();
             var moneyAmount = stream.ReadInt32();
             var npcUnitId = stream.ReadBc();
-            
+
             _log.Warn("CSUseTeleport, ReturnPointId: {0}, MoneyAmount: {1}, NpcUnitId: {2}", returnPointId, moneyAmount, npcUnitId);
         }
     }

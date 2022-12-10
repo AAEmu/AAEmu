@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var iid = stream.ReadUInt64();
-            
+
             _log.Warn("LootCloseBag, IId: {0}", iid);
         }
     }

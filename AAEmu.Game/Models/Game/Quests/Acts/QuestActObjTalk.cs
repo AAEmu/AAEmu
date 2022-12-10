@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public override bool Use(ICharacter character, Quest quest, int objective)
         {
             _log.Warn("QuestActObjTalk");
-            if(!(character.CurrentTarget is Npc npc))
+            if (!(character.CurrentTarget is Npc npc))
             {
                 return false;
             }

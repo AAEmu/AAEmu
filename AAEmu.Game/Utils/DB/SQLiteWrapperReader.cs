@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.Utils.DB
@@ -84,7 +85,7 @@ namespace AAEmu.Game.Utils.DB
             return _reader.GetInt16(GetOrdinal(column));
         }
 
-        public ushort GetUInt16(string column) => (ushort) GetInt16(column);
+        public ushort GetUInt16(string column) => (ushort)GetInt16(column);
 
         public int GetInt32(string column)
         {
@@ -104,7 +105,7 @@ namespace AAEmu.Game.Utils.DB
             return (int)_reader.GetInt64(ordinal);
         }
 
-        public uint GetUInt32(string column) => (uint) GetInt32(column);
+        public uint GetUInt32(string column) => (uint)GetInt32(column);
 
         public uint GetUInt32(string column, uint defaultValue)
         {
@@ -114,7 +115,7 @@ namespace AAEmu.Game.Utils.DB
                 return defaultValue;
             }
 
-            return (uint) GetInt32(column);
+            return (uint)GetInt32(column);
         }
 
         public long GetInt64(string column)
@@ -122,7 +123,7 @@ namespace AAEmu.Game.Utils.DB
             return _reader.GetInt64(GetOrdinal(column));
         }
 
-        public ulong GetUInt64(string column) => (ulong) GetInt64(column);
+        public ulong GetUInt64(string column) => (ulong)GetInt64(column);
 
         public float GetFloat(string column)
         {

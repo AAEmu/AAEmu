@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
             CompressedGamePackets packetBuilder = null)
         {
@@ -34,7 +34,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.Interaction);
 
             var action = (IWorldInteraction)Activator.CreateInstance(classType);
-            if (source is {Skill: { }} && casterObj != null && target != null && targetObj != null && source.Skill.Template != null)
+            if (source is { Skill: { } } && casterObj != null && target != null && targetObj != null && source.Skill.Template != null)
             {
                 action?.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId);
             }

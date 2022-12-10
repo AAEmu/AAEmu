@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCUserNotesLoadedPacket : GamePacket
     {
-        private readonly uint _songId ;
+        private readonly uint _songId;
         private readonly SongData _song;
 
         public SCUserNotesLoadedPacket(uint songId) : base(SCOffsets.SCUserNotesLoadedPacket, 5)
@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write((byte)1); // Observed as 1
                 stream.Write(_song.Song.Length);
                 stream.Write(_song.Title);
-                stream.Write(_song.Song+"\0");
+                stream.Write(_song.Song + "\0");
             }
             return stream;
         }

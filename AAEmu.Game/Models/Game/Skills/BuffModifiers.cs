@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -21,7 +22,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public double ApplyModifiers(BuffTemplate buff, BuffAttribute attribute, double baseValue)
         {
-            double endValue = baseValue;
+            var endValue = baseValue;
 
             var modifiers = GetModifiersForBuffIdWithAttribute(buff.Id, attribute).OrderBy(mod => mod.UnitModifierType).ToList();
 
@@ -35,11 +36,15 @@ namespace AAEmu.Game.Models.Game.Skills
                 switch (modifier.UnitModifierType)
                 {
                     case UnitModifierType.Percent:
-                        endValue += (endValue * (modifier.Value / 100.0f));
-                        break;
+                        {
+                            endValue += (endValue * (modifier.Value / 100.0f));
+                            break;
+                        }
                     case UnitModifierType.Value:
-                        endValue += modifier.Value;
-                        break;
+                        {
+                            endValue += modifier.Value;
+                            break;
+                        }
                 }
             }
 

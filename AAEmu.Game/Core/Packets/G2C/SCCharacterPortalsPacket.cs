@@ -17,7 +17,10 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_portals.Length);
             foreach (var portal in _portals)
+            {
                 stream.Write(portal);
+            }
+
             return stream;
         }
     }

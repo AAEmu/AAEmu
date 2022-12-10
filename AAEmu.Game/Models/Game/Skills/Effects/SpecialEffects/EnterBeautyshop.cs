@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
@@ -7,9 +8,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class EnterBeautyShop : SpecialEffectAction
     {
-        protected override SpecialType SpecialEffectActionType => SpecialType.EnterBeautyShop;
-        
-        public override void Execute(Unit caster,
+        protected override SpecialType SpecialEffectActionType => SpecialType.EnterBeautyshop;
+
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,

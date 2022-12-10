@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers

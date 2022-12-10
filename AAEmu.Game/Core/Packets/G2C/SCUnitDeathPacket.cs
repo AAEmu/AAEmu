@@ -25,18 +25,18 @@ namespace AAEmu.Game.Core.Packets.G2C
             // ---------------
             stream.Write(15000u); // resurrectionWaitingTime
             stream.Write(0); // lostExp
-            stream.Write((byte) 0); // deathDurabilityLossRatio
+            stream.Write((byte)0); // deathDurabilityLossRatio
             // ---------------
             stream.WriteBc(_killer?.ObjId ?? 0);
             if (_killer != null)
             {
                 // ---------------
-                stream.Write((byte) 0); // GameType
+                stream.Write((byte)0); // GameType
                 // ---------------
-                stream.Write((ushort) 0); // killStreak
-                stream.Write((byte) 0); // param1
-                stream.Write((byte) 0); // param2
-                stream.Write((byte) 0); // param3
+                stream.Write((ushort)0); // killStreak
+                stream.Write((byte)0); // param1
+                stream.Write((byte)0); // param2
+                stream.Write((byte)0); // param3
                 stream.Write(_killer.Name);
 
             }

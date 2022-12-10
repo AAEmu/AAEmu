@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Models.Game.AI.V2.Params;
 using AAEmu.Game.Models.Game.AI.V2.Params.BigMonster;
+
 using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Params.BigMonster
@@ -23,7 +25,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Params.BigMonster
             using (var aiParams = new AiLua())
             {
                 aiParams.DoString($"data = {{\n{data}\n}}");
-                
+
                 if (aiParams.GetObjectFromPath("data.alertDuration") != null)
                 {
                     AlertDuration = Convert.ToSingle(aiParams.GetObjectFromPath("data.alertDuration"));

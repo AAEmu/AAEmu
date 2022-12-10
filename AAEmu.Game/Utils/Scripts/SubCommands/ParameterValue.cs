@@ -19,7 +19,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             _value = value;
         }
-        
+
         public T As<T>()
         {
             if (_value is T)

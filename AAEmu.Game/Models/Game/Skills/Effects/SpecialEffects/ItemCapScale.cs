@@ -9,17 +9,14 @@ using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
-
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class ItemCapScale : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.ItemCapScale;
-        
-        public override void Execute(Unit caster,
+
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -70,7 +67,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
             equipItem.TemperPhysical = physicalScale;
             equipItem.TemperMagical = magicalScale;
-            
+
             // The item appears to be consumed as a skill reagent
             // temperItem._holdingContainer.ConsumeItem(ItemTaskType.EnchantPhysical, temperItem.TemplateId, 1, temperItem);
             owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantPhysical, new List<ItemTask>() { new ItemUpdate(equipItem) }, new List<ulong>()));

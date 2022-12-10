@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
@@ -103,7 +105,7 @@ namespace AAEmu.Game.Core.Managers.World
 
                 _log.Info("Loaded {0} faction relations", _relations.Count);
             }
-            
+
             _loaded = true;
         }
 

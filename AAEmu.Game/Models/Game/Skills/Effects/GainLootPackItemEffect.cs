@@ -24,8 +24,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj,
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             var character = (Character)caster;
@@ -192,7 +191,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             _log.Warn("GainLootPackItemEffect {0}", LootPackId);
         }
 
-        private void AddGold(Unit caster, int goldMin, int goldMax)
+        private void AddGold(BaseUnit caster, int goldMin, int goldMax)
         {
             var character = (Character)caster;
             if (character == null)
@@ -217,7 +216,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 new List<ItemTask> { new MoneyChange(goldAdd) }, new List<ulong>()));
         }
 
-        private void AddItem(Unit caster, uint itemId, byte gradeId, int minAmount, int maxAmount,
+        private void AddItem(BaseUnit caster, uint itemId, byte gradeId, int minAmount, int maxAmount,
             Item sourceItem = null)
         {
             var character = (Character)caster;

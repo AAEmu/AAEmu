@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Buffs;
@@ -25,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public Skill Skill { get; set; }
         // public EffectTemplate Template { get; set; }
         public BuffTemplate Template { get; set; }
-        public Unit Caster { get; set; }
+        public BaseUnit Caster { get; set; }
         public SkillCaster SkillCaster { get; set; }
         public BaseUnit Owner { get; set; }
         public EffectState State { get; set; }
@@ -41,10 +42,10 @@ namespace AAEmu.Game.Models.Game.Skills
         public BuffTriggersHandler Triggers { get; }
         public Dictionary<uint, uint> saveFactions { get; set; }
 
-        public Buff(IBaseUnit owner, IUnit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
+        public Buff(BaseUnit owner, BaseUnit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
         {
             Owner = (BaseUnit)owner;
-            Caster = (Unit)caster;
+            Caster = (BaseUnit)caster;
             SkillCaster = skillCaster;
             Template = template;
             Skill = skill;
@@ -62,6 +63,8 @@ namespace AAEmu.Game.Models.Game.Skills
             if (Duration == 0)
             {
                 Duration = Template.GetDuration((uint)AbLevel);
+            }
+
             }
 
             if (StartTime == DateTime.MinValue)
@@ -105,6 +108,8 @@ namespace AAEmu.Game.Models.Game.Skills
                         if (Duration == 0)
                         {
                             Duration = Template.GetDuration((uint)AbLevel);
+                        }
+
                         }
 
                         if (StartTime == DateTime.MinValue)

@@ -28,7 +28,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public bool UseOriginSource { get; set; }
         public List<uint> Effects { get; set; }
 
-        public override bool Use(Unit caster, Doodad owner)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
             if (caster is Character)
             {
@@ -43,7 +43,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 Shape = WorldManager.Instance.GetAreaShapeById(AoeShapeId),
                 Owner = owner,
-                Caster = caster,
+                Caster = (Unit)caster,
                 InsideBuffTemplate = SkillManager.Instance.GetBuffTemplate(BuffId),
                 TargetRelation = TargetRelation,
                 TickRate = Tick,

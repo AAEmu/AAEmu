@@ -20,7 +20,10 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_total);
             stream.Write(_blocked.Length); // TODO max length 500
             foreach (var blocked in _blocked)
+            {
                 stream.Write(blocked);
+            }
+
             return stream;
         }
     }

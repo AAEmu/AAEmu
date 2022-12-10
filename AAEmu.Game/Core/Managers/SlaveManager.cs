@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
@@ -43,7 +44,7 @@ namespace AAEmu.Game.Core.Managers
         {
             return _slaveTemplates.ContainsKey(templateId);
         }
-        
+
         public SlaveTemplate GetSlaveTemplate(uint id)
         {
             return _slaveTemplates.ContainsKey(id) ? _slaveTemplates[id] : null;
@@ -159,8 +160,10 @@ namespace AAEmu.Game.Core.Managers
             switch (attachPoint)
             {
                 case AttachPointKind.Driver:
-                    character.BroadcastPacket(new SCSlaveBoundPacket(character.Id, objId), true);
-                    break;
+                    {
+                        character.BroadcastPacket(new SCSlaveBoundPacket(character.Id, objId), true);
+                        break;
+                    }
             }
 
             slave.AttachedCharacters.Add(attachPoint, character);
@@ -189,10 +192,12 @@ namespace AAEmu.Game.Core.Managers
             }
 
             foreach (var character in activeSlaveInfo.AttachedCharacters.Values.ToList())
+            {
                 UnbindSlave(character, activeSlaveInfo.TlId, AttachUnitReason.SlaveBinding);
+            }
 
-            var despawnDelayedTime = DateTime.UtcNow.AddSeconds(activeSlaveInfo.Template.PortalTime - 0.5f); 
-            
+            var despawnDelayedTime = DateTime.UtcNow.AddSeconds(activeSlaveInfo.Template.PortalTime - 0.5f);
+
             activeSlaveInfo.Transform.DetachAll();
 
             foreach (var doodad in activeSlaveInfo.AttachedDoodads)
@@ -258,12 +263,12 @@ namespace AAEmu.Game.Core.Managers
 
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
             var objId = ObjectIdManager.Instance.GetNextId();
-            
+
             var spawnPos = owner.Transform.CloneDetached();
             var spawnOffsetPos = new Vector3();
-            
+
             // Replacing the position with the new coordinates from the method call parameters
-            
+
             if (positionOverride != null)
             {
                 // If manually defined a spawn location (i.e. created from ShipYard), use that location instead
@@ -287,17 +292,17 @@ namespace AAEmu.Game.Core.Managers
                         _log.Fatal($"Unable to find world to spawn in {spawnPos.WorldId}");
                         return;
                     }
-                    
+
                     var worldWaterLevel = world.Water.GetWaterSurface(spawnPos.World.Position);
                     spawnPos.Local.SetHeight(worldWaterLevel);
 
                     // temporary grab ship information so that we can use it to find a suitable spot in front to summon it
                     var tempShipModel = ModelManager.Instance.GetShipModel(slaveTemplate.ModelId);
                     var minDepth = tempShipModel.MassBoxSizeZ - tempShipModel.MassCenterZ + 1f;
-                    
+
                     // Somehow take into account where the ship will end up related to it's mass center (also check boat physics)
                     spawnOffsetPos.Z += (tempShipModel.MassCenterZ < 0f ? (tempShipModel.MassCenterZ / 2f) : 0f) - tempShipModel.KeelHeight;
-                    
+
                     for (var inFront = 0f; inFront < (50f + tempShipModel.MassBoxSizeX); inFront += 1f)
                     {
                         var depthCheckPos = spawnPos.CloneDetached();
@@ -305,7 +310,7 @@ namespace AAEmu.Game.Core.Managers
                         var floorHeight = WorldManager.Instance.GetHeight(depthCheckPos);
                         if (floorHeight > 0f)
                         {
-                            var surfaceHeight = world.Water.GetWaterSurface(depthCheckPos.World.Position); 
+                            var surfaceHeight = world.Water.GetWaterSurface(depthCheckPos.World.Position);
                             var delta = surfaceHeight - floorHeight;
                             if (delta > minDepth)
                             {
@@ -329,7 +334,7 @@ namespace AAEmu.Game.Core.Managers
                 }
 
                 // Always spawn horizontal(level) and 90° CCW of the player
-                spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.Rotation.Z + (MathF.PI / 2)); 
+                spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.Rotation.Z + (MathF.PI / 2));
             }
 
             // TODO
@@ -363,7 +368,10 @@ namespace AAEmu.Game.Core.Managers
             }
 
             foreach (var buff in template.Template.InitialBuffs)
+            {
                 template.Buffs.AddBuff(buff.BuffId, template);
+            }
+
             template.Hp = template.MaxHp;
             template.Mp = template.MaxMp;
 
@@ -510,7 +518,7 @@ namespace AAEmu.Game.Core.Managers
 
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
             var objId = ObjectIdManager.Instance.GetNextId();
-            
+
             var slave = new Slave();
             slave.TlId = tlId;
             slave.ObjId = objId;
@@ -535,9 +543,9 @@ namespace AAEmu.Game.Core.Managers
             }
 
             var spawnPos = slave.Transform;
-            
+
             // Replacing the position with the new coordinates from the method call parameters
-            
+
             if (positionOverride != null)
             {
                 // If manually defined a spawn location (i.e. created from ShipYard), use that location instead
@@ -971,7 +979,7 @@ namespace AAEmu.Game.Core.Managers
             Dictionary<uint, Slave> slaveList = null;
             lock (_slaveListLock)
                 slaveList = _activeSlaves;
-            
+
             foreach (var (ownerObjId, slave) in slaveList)
             {
                 var owner = WorldManager.Instance.GetCharacterByObjId(ownerObjId);
@@ -988,12 +996,14 @@ namespace AAEmu.Game.Core.Managers
             lock (_slaveListLock)
             {
                 foreach (var slave in _activeSlaves.Values)
-                foreach (var unit in slave.AttachedCharacters)
                 {
-                    if (unit.Value.ObjId == objId)
+                    foreach (var unit in slave.AttachedCharacters)
                     {
-                        attachPoint = unit.Key;
-                        return slave;
+                        if (unit.Value.ObjId == objId)
+                        {
+                            attachPoint = unit.Key;
+                            return slave;
+                        }
                     }
                 }
             }

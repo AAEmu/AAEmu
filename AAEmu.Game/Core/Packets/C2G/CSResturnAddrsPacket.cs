@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var codeBase = stream.ReadUInt32();
             var codeSize = stream.ReadUInt32();
             var fn = stream.ReadUInt32();
-            
+
             _log.Warn("ResturnAddrs, CodeBase: {0}, CodeSize: {1}, Fn: {2}", codeBase, codeSize, fn);
         }
     }

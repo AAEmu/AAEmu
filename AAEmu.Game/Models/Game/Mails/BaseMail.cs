@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -125,7 +126,7 @@ namespace AAEmu.Game.Models.Game.Mails
 
         protected void RenumberSlots()
         {
-            for(var i = 0;i < Body.Attachments.Count;i++)
+            for (var i = 0; i < Body.Attachments.Count; i++)
             {
                 Body.Attachments[i].SlotType = SlotType.Mail;
                 Body.Attachments[i].Slot = i;

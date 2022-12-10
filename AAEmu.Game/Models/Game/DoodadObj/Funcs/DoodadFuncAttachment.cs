@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public BondKind BondKindId { get; set; }
         public uint AnimActionId { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Trace("DoodadFuncAttachment");
             if (caster is Character character)

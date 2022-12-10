@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
@@ -71,7 +72,7 @@ namespace AAEmu.Game.Models.Game.Mails
          * 
          */
 
-        public MailForSpeciality(Character seller, uint crafterId, uint tradepackTemplate, int tradeRate, uint itemRewardTemplateId, 
+        public MailForSpeciality(Character seller, uint crafterId, uint tradepackTemplate, int tradeRate, uint itemRewardTemplateId,
             int itemCountBase, int itemCountBonus, int itemCountForSeller, int itemCountForCrafter, int interestRate) : base()
         {
             _sender = seller;
@@ -200,7 +201,7 @@ namespace AAEmu.Game.Models.Game.Mails
             Header.SenderId = 0;
             Header.SenderName = TradeDeliveryName;
 
-            Header.ReceiverId = _crafterId ;
+            Header.ReceiverId = _crafterId;
             ReceiverName = crafterName;
 
             var payout = (int)(_itemCountBase * _tradedRate / 100f) + _itemCountBonus;

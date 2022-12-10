@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.Threading;
 
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -21,7 +18,6 @@ using Jitter.Dynamics;
 using Jitter.LinearMath;
 
 using NLog;
-using NLog.Config;
 
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 

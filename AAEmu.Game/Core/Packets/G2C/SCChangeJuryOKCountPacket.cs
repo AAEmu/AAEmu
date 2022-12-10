@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             _count = count;
             _total = total;
-        
+
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -21,5 +21,5 @@ namespace AAEmu.Game.Core.Packets.G2C
             return stream;
         }
     }
-    
+
 }

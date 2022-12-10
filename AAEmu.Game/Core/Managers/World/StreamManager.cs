@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.S2C;
 using AAEmu.Game.Models.Game.DoodadObj;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World

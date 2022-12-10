@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using AAEmu.Commons.Network;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items.Templates;
 
@@ -212,7 +212,7 @@ namespace AAEmu.Game.Models.Game.Items
                 return formulaRes;
             }
         }
-        
+
         public double HDps
         {
             get
@@ -244,7 +244,7 @@ namespace AAEmu.Game.Models.Game.Items
                 var parameters = new Dictionary<string, double>();
                 parameters["item_level"] = template.Level;
                 parameters["item_grade"] = grade.HoldableArmor;
-                
+
                 var formulaResult = formula.Evaluate(parameters);
                 if (TemperPhysical > 100)
                 {

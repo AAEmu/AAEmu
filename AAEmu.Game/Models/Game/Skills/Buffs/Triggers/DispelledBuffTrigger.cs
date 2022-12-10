@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using AAEmu.Game.Core.Managers;
+
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 

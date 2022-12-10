@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var buffId = stream.ReadUInt32();
-            
+
             Connection.ActiveChar.Skills.AddBuff(buffId);
         }
     }

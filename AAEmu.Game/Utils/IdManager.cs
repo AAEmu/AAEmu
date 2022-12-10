@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Utils
@@ -35,7 +37,7 @@ namespace AAEmu.Game.Utils
             _objTables = objTables;
             _exclude = exclude;
             _distinct = distinct;
-            _freeIdSize = (int) (_lastId - _firstId);
+            _freeIdSize = (int)(_lastId - _firstId);
             PrimeFinder.Init();
         }
 
@@ -169,7 +171,7 @@ namespace AAEmu.Game.Utils
 
         public void ReleaseId(uint usedObjectId)
         {
-            var objectId = (int) (usedObjectId - _firstId);
+            var objectId = (int)(usedObjectId - _firstId);
             if (objectId > -1)
             {
                 _freeIds.Clear(objectId);
@@ -189,7 +191,9 @@ namespace AAEmu.Game.Utils
         public void ReleaseId(IEnumerable<uint> usedObjectIds)
         {
             foreach (var id in usedObjectIds)
+            {
                 ReleaseId(id);
+            }
         }
 
         public uint GetNextId()
@@ -219,7 +223,7 @@ namespace AAEmu.Game.Utils
                 }
 
                 _nextFreeId = nextFree;
-                return (uint) newId + _firstId;
+                return (uint)newId + _firstId;
             }
         }
 

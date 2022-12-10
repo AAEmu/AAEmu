@@ -1,5 +1,7 @@
 ﻿using System.Threading.Tasks;
+
 using AAEmu.Game.Core.Managers;
+
 using Quartz;
 
 namespace AAEmu.Game.Models.Tasks

@@ -2,15 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Reactive;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Network.Connections;
-using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
@@ -34,11 +31,9 @@ namespace AAEmu.Game.Models.Game.Units
     {
         public virtual UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.None;
 
-        public UnitEvents Events { get; }
         private Task _regenTask;
         public uint ModelId { get; set; }
         public SkillController ActiveSkillController { get; set; }
-
         public override float ModelSize
         {
             get
@@ -46,9 +41,9 @@ namespace AAEmu.Game.Models.Game.Units
                 return (ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0) * Scale;
             }
         }
-
-        public byte Level { get; set; }
         public int Hp { get; set; }
+
+        #region UnitAttribute
 
         [UnitAttribute(UnitAttribute.MoveSpeedMul)]
         public virtual float MoveSpeedMul { get => (float)CalculateWithBonuses(1000f, UnitAttribute.MoveSpeedMul) / 1000f; }
@@ -168,6 +163,9 @@ namespace AAEmu.Game.Models.Game.Units
             get => (float)CalculateWithBonuses(100d, UnitAttribute.AggroMul);
         }
         [UnitAttribute(UnitAttribute.IncomingAggroMul)]
+
+        #endregion UnitAttribute
+
         public float IncomingAggroMul
         {
             get => (float)CalculateWithBonuses(100d, UnitAttribute.IncomingAggroMul);
@@ -197,7 +195,6 @@ namespace AAEmu.Game.Models.Game.Units
         public uint SkillId;
         public ushort TlId { get; set; }
         public ItemContainer Equipment { get; set; }
-        public GameConnection Connection { get; set; }
 
         /// <summary>
         /// Unit巡逻
@@ -207,10 +204,8 @@ namespace AAEmu.Game.Models.Game.Units
         /// </summary>
         public Patrol Patrol { get; set; }
         public Simulation Simulation { get; set; }
-
         public UnitProcs Procs { get; set; }
         public object ChargeLock { get; set; }
-
         public bool ConditionChance { get; set; }
 
         public Unit()
@@ -506,16 +501,6 @@ namespace AAEmu.Game.Models.Game.Units
             return value;
         }
 
-        public void SendPacket(GamePacket packet)
-        {
-            Connection?.SendPacket(packet);
-        }
-
-        public void SendErrorMessage(ErrorMessageType type)
-        {
-            SendPacket(new SCErrorMsgPacket(type, 0, true));
-        }
-
         /// <summary>
         /// Get distance between two units taking into account their model sizes
         /// </summary>
@@ -623,11 +608,15 @@ namespace AAEmu.Game.Models.Game.Units
             switch (SkillTask)
             {
                 case EndChannelingTask ect:
-                    ect.Skill.Stop(this, ect._channelDoodad);
-                    break;
+                    {
+                        ect.Skill.Stop(this, ect._channelDoodad);
+                        break;
+                    }
                 default:
-                    SkillTask.Skill.Stop(this);
-                    break;
+                    {
+                        SkillTask.Skill.Stop(this);
+                        break;
+                    }
             }
         }
 
@@ -742,19 +731,21 @@ namespace AAEmu.Game.Models.Game.Units
                     stream.Write((byte)0xF); // flags Byte (2 - door, 6 - window)
                     break;
                 case ModelPostureType.ActorModelState: // npc
-                    var npc = (Npc)unit;
-                    stream.Write(animActionId == 0xFFFFFFFF ? npc.Template.AnimActionId : animActionId); // TODO to check for AnimActionId substitution
-                    if (animActionId == 0xFFFFFFFF)
                     {
-                        _log.Warn($"npc.Template.AnimActionId={npc.Template.AnimActionId}");
-                    }
-                    else
-                    {
-                        _log.Warn($"npc.Template.AnimActionId={animActionId}");
-                    }
+                        var npc = (Npc)unit;
+                        stream.Write(animActionId == 0xFFFFFFFF ? npc.Template.AnimActionId : animActionId); // TODO to check for AnimActionId substitution
+                        if (animActionId == 0xFFFFFFFF)
+                        {
+                            _log.Warn($"npc.Template.AnimActionId={npc.Template.AnimActionId}");
+                        }
+                        else
+                        {
+                            _log.Warn($"npc.Template.AnimActionId={animActionId}");
+                        }
 
-                    stream.Write(true); // activate
-                    break;
+                        stream.Write(true); // activate
+                        break;
+                    }
                 case ModelPostureType.FarmfieldState:
                     stream.Write(0u);    // type(id)
                     stream.Write(0f);    // growRate

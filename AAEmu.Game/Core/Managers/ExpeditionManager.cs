@@ -1,22 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text.RegularExpressions;
+
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items.Actions;
-using NLog;
 using AAEmu.Game.Models.Game.Team;
-using System.Numerics;
-using AAEmu.Commons.Utils.DB;
-using AAEmu.Game.Models;
-using AAEmu.Game.Models.Game;
+
+using NLog;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -188,11 +190,13 @@ namespace AAEmu.Game.Core.Managers
             }
 
             foreach (var exp in _expeditions.Values)
+            {
                 if (name.Equals(exp.Name))
                 {
                     connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionNameExist);
                     return;
                 }
+            }
 
             // ----------------- Conditions, can change this...
             var team = TeamManager.Instance.GetActiveTeamByUnit(owner.Id);
@@ -204,8 +208,8 @@ namespace AAEmu.Game.Core.Managers
             }
 
             // Check the number of members in the party that meet the requirements
-            List<TeamMember> validMembers = new List<TeamMember>();
-            List<TeamMember> teamMembers = new List<TeamMember>();
+            var validMembers = new List<TeamMember>();
+            var teamMembers = new List<TeamMember>();
             teamMembers.AddRange(team.Members.ToList());
 
             foreach (var m in teamMembers)
@@ -271,7 +275,7 @@ namespace AAEmu.Game.Core.Managers
             SendExpeditionInfo(owner);
             // owner.Save(); // Moved to SaveMananger
 
-            foreach(var m in validMembers)
+            foreach (var m in validMembers)
             {
                 if (m.Character.Id == owner.Id)
                 {
@@ -304,6 +308,11 @@ namespace AAEmu.Game.Core.Managers
 
             var invited = WorldManager.Instance.GetCharacter(invitedName);
             if (invited == null)
+            {
+                return;
+            }
+
+            if (invited.Expedition != null)
             {
                 return;
             }
@@ -490,7 +499,7 @@ namespace AAEmu.Game.Core.Managers
                 owner.SendErrorMessage(ErrorMessageType.OnlyExpeditionOwner);
                 return false;
             }
-            for (int i = guild.Members.Count - 1; i >= 0; i--)
+            for (var i = guild.Members.Count - 1; i >= 0; i--)
             {
                 var c = WorldManager.Instance.GetCharacterById(guild.Members[i].CharacterId);
                 if (c != null)
@@ -535,7 +544,7 @@ namespace AAEmu.Game.Core.Managers
             member.Level = character.Level;
             member.Role = (byte)(owner ? 255 : 0);
             member.Memo = "";
-            member.Position = new Vector3(character.Transform.World.Position.X,character.Transform.World.Position.Y,character.Transform.World.Position.Z);
+            member.Position = new Vector3(character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z);
             member.ZoneId = character.Transform.ZoneId;
             member.Abilities = new[] {(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3};
             member.ExpeditionId = expedition.Id;

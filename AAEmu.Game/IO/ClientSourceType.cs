@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace AAEmu.Game.IO
+﻿namespace AAEmu.Game.IO
 {
     public enum ClientSourceType
     {

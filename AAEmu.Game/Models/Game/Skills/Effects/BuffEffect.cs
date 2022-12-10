@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Char;
@@ -17,10 +18,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public override uint BuffId => Buff.Id;
         public override bool OnActionTime => Buff.Tick > 0;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj,
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
+            var unit = (Unit)caster;
             if (target is Unit trg)
             {
                 var hitType = SkillHitType.Invalid;
@@ -31,13 +32,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 }
             }
             if (Rand.Next(0, 101) > Chance)
-            {                
-                caster.ConditionChance = false;
+            {
+                unit.ConditionChance = false;
                 return;
             }
             else
             {
-                caster.ConditionChance = true;
+                unit.ConditionChance = true;
             }
 
             if (Buff.RequireBuffId > 0 && !target.Buffs.CheckBuff(Buff.RequireBuffId))
@@ -62,9 +63,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     {
                         abLevel = (ushort)((abilityLevel / template.LevelStep) * template.LevelStep);
                     }
+                    }
                     else
                     {
                         abLevel = (ushort)template.AbilityLevel;
+                    }
                     }
 
                     //Dont allow lower than minimum ablevel for skill or infinite debuffs can happen
@@ -77,7 +80,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
             else
             {
-                if(source.Skill != null)
+                if (source.Skill != null)
                 {
                     abLevel = (ushort)source.Skill.Template.AbilityLevel;
                 }
@@ -87,12 +90,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             ////Safeguard to prevent accidental flagging
             //if (Buff.Kind == BuffKind.Bad && !caster.CanAttack(target) && caster != target)
             //    return;
-            target.Buffs.AddBuff(new Buff(target, caster, casterObj, Buff, source.Skill, time) { AbLevel = abLevel });
-            
-            if (Buff.Kind == BuffKind.Bad && caster.GetRelationStateTo(target) == RelationState.Friendly 
-                && caster != target && !target.Buffs.CheckBuff((uint)BuffConstants.Retribution))
+            target.Buffs.AddBuff(new Buff(target, unit, casterObj, Buff, source.Skill, time) { AbLevel = abLevel });
+
+            if (Buff.Kind == BuffKind.Bad && unit.GetRelationStateTo(target) == RelationState.Friendly
+                && unit != target && !target.Buffs.CheckBuff((uint)BuffConstants.Retribution))
             {
-                caster.SetCriminalState(true);
+                unit.SetCriminalState(true);
             }
         }
     }

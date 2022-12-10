@@ -22,5 +22,10 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_type);
             return stream;
         }
+
+        public override string Verbose()
+        {
+            return " - " + (_type?.Type.ToString() ?? "none") + " " + (WorldManager.Instance.GetGameObject(_id)?.DebugName() ?? "(" + _id.ToString() + ")");
+        }
     }
 }

@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (pid != 0 && Connection.ActiveChar.ActivePlotState != null)
             {
-                if(Connection.ActiveChar.ActivePlotState.ActiveSkill.TlId == pid)
+                if (Connection.ActiveChar.ActivePlotState.ActiveSkill.TlId == pid)
                 {
                     Connection.ActiveChar.ActivePlotState.RequestCancellation();
                 }

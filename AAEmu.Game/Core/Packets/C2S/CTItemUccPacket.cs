@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.Core.Packets.S2C;
@@ -19,7 +20,7 @@ namespace AAEmu.Game.Core.Packets.C2S
             for (var i = 0; i < count; i++)
                 items.Add(stream.ReadUInt64());
 
-            Connection.SendPacket(new TCItemUccDataPacket(player,count,items));
+            Connection.SendPacket(new TCItemUccDataPacket(player, count, items));
         }
     }
 }

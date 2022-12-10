@@ -25,7 +25,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 objId > 0
                 && Connection.ActiveChar.CurrentTarget != null
                 && Connection.ActiveChar.CurrentTarget.ObjId != objId
-            )
+               )
             {
                 return;
             }

@@ -1,4 +1,5 @@
 ﻿using System.Text;
+
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Features
@@ -41,8 +42,8 @@ namespace AAEmu.Game.Models.Game.Features
 
         private (byte byteIndex, byte bitIndex) GetIndexes(Feature feature)
         {
-            byte byteIndex = (byte)((byte)feature / 8);
-            byte bitIndex = (byte)((byte)feature % 8);
+            var byteIndex = (byte)((byte)feature / 8);
+            var bitIndex = (byte)((byte)feature % 8);
 
             return (byteIndex, bitIndex);
         }
@@ -50,7 +51,7 @@ namespace AAEmu.Game.Models.Game.Features
         public bool Check(Feature feature)
         {
 
-            (byte byteIndex, byte bitIndex) = GetIndexes(feature);
+            (var byteIndex, var bitIndex) = GetIndexes(feature);
 
             try
             {
@@ -61,7 +62,7 @@ namespace AAEmu.Game.Models.Game.Features
 
         public bool Set(Feature feature, bool enabled)
         {
-            (byte byteIndex, byte bitIndex) = GetIndexes(feature);
+            (var byteIndex, var bitIndex) = GetIndexes(feature);
 
             try
             {
@@ -96,9 +97,12 @@ namespace AAEmu.Game.Models.Game.Features
 
         public override string ToString()
         {
-            StringBuilder hex = new StringBuilder(_fset.Length * 2);
-            foreach (byte b in _fset)
+            var hex = new StringBuilder(_fset.Length * 2);
+            foreach (var b in _fset)
+            {
                 hex.AppendFormat("{0:x2} ", b);
+            }
+
             return hex.ToString();
         }
 

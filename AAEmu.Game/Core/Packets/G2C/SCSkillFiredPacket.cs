@@ -66,6 +66,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.WritePisc(_id, 2);
                 }
             }
+            }
             else
             {
                 stream.WritePisc(_id, 2); // added skill type here in 3.0.3.0

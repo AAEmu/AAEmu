@@ -15,10 +15,10 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             _cofferDoodad = cofferDoodad;
             _firstSlot = firstSlot;
-            var lastSlot = _firstSlot + MaxSlotsToSend ;
+            var lastSlot = _firstSlot + MaxSlotsToSend;
             if (lastSlot >= _cofferDoodad.Capacity)
             {
-                lastSlot = _cofferDoodad.Capacity ;
+                lastSlot = _cofferDoodad.Capacity;
             }
 
             var slotCount = lastSlot - _firstSlot;

@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             // Empty struct
             // TODO Debug
-            
+
             Connection.SendPacket(new SCUnitStatePacket(Connection.ActiveChar));
             // Connection.SendPacket(new SCCooldownsPacket(Connection.ActiveChar));
             var curTime = TimeManager.Instance.GetTime();

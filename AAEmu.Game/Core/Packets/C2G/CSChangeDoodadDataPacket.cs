@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var objId = stream.ReadBc();
             var data = stream.ReadInt32();
-            
+
             _log.Warn($"ChangeDoodadData, ObjId: {objId}, Data: {data}");
             var doodad = WorldManager.Instance.GetDoodad(objId);
             if (doodad != null)

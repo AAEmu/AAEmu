@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -50,7 +51,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Id = MateIdManager.Instance.GetNextId(),
                 ItemId = itemId,
                 Level = npctemplate.Level,
-                Name = LocalizationManager.Instance.Get("npcs","name",npctemplate.Id,npctemplate.Name), // npctemplate.Name,
+                Name = LocalizationManager.Instance.Get("npcs", "name", npctemplate.Id, npctemplate.Name), // npctemplate.Name,
                 Owner = Owner.Id,
                 Mileage = 0,
                 Xp = ExpirienceManager.Instance.GetExpForLevel(npctemplate.Level, true),
@@ -126,13 +127,13 @@ namespace AAEmu.Game.Models.Game.Char
                 var obj = new SkillCasterUnit(mount.ObjId);
                 buff.Apply(mount, obj, mount, null, null, new EffectSource(), null, DateTime.UtcNow);
             }
-            
+
             // TODO: Load Pet Gear
-            
+
             // Cap stats to their max
             mount.Hp = Math.Min(mount.Hp, mount.MaxHp);
             mount.Mp = Math.Min(mount.Mp, mount.MaxMp);
-            
+
             mount.Transform.Local.AddDistanceToFront(3f);
             MateManager.Instance.AddActiveMateAndSpawn(Owner, mount, item);
         }

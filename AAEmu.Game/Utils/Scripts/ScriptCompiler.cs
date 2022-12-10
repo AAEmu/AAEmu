@@ -5,10 +5,13 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
+
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+
 using NLog;
 
 namespace AAEmu.Game.Utils.Scripts
@@ -99,7 +102,9 @@ namespace AAEmu.Game.Utils.Scripts
 
             var references = new List<MetadataReference>();
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies().Where(p => !p.IsDynamic && !string.IsNullOrEmpty(p.Location)))
+            {
                 references.Add(MetadataReference.CreateFromFile(asm.Location));
+            }
 
             var compilation = CSharpCompilation.Create(
                 assemblyName,
@@ -127,7 +132,7 @@ namespace AAEmu.Game.Utils.Scripts
 
         private static bool Display(ImmutableArray<Diagnostic> diagnostics)
         {
-            bool res = true;
+            var res = true;
             if (diagnostics.Length == 0)
             {
                 _log.Info("Compile done (0 errors, 0 warnings)");
@@ -186,7 +191,9 @@ namespace AAEmu.Game.Utils.Scripts
         private static void GetScripts(List<string> list, string path, string filter)
         {
             foreach (var dir in Directory.GetDirectories(path))
+            {
                 GetScripts(list, dir, filter);
+            }
 
             list.AddRange(Directory.GetFiles(path, filter));
         }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -7,7 +8,6 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.CashShop;
 using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mails;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -25,7 +25,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var thisChar = Connection.ActiveChar;
             byte buyMode = 1; // No idea what this means
             var cashShopItems = CashShopManager.Instance.GetCashShopItems();
-            
+
             var numBuys = stream.ReadByte();
             for (var i = 0; i < numBuys; i++)
             {
@@ -48,7 +48,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var targetChar = thisChar;
             if (receiverName != string.Empty)
             {
-                targetChar =  WorldManager.Instance.GetCharacter(receiverName);
+                targetChar = WorldManager.Instance.GetCharacter(receiverName);
             }
 
             if (targetChar == null)
@@ -76,7 +76,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 return;
             }
 
-            foreach(var ci in buyList)
+            foreach (var ci in buyList)
             {
                 if (CashShopManager.Instance.RemoveCredits(Connection.AccountId, (int)ci.Price))
                 {
