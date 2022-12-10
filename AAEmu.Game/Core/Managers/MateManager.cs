@@ -151,6 +151,8 @@ namespace AAEmu.Game.Core.Managers
                     character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPoint, reason, mateInfo.ObjId), true);
                     seatInfo._objId = character.ObjId;
                     seatInfo._reason = reason;
+                    character.Transform.Parent = mateInfo.Transform.Parent;
+                    character.Transform.Local.SetPosition(mateInfo.Transform.Local.Position);
                     character.Transform.StickyParent = mateInfo.Transform;
                 }
             }
