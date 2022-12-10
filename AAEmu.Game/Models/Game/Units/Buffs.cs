@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -16,7 +17,7 @@ namespace AAEmu.Game.Models.Game.Units
     public class Buffs : IBuffs
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-        
+
         private readonly object _lock = new object();
         private uint _nextIndex;
 
@@ -130,13 +131,7 @@ namespace AAEmu.Game.Models.Game.Units
                 }
             }
 
-                return false;
-            }
-            catch (Exception e)
-            {
-                _log.Debug($"Error in CheckDamageImmune: damageType = {damageType}, {e}");
-                return false;
-            }
+            return false;
         }
 
         public List<Buff> GetEffectsByType(Type effectType)

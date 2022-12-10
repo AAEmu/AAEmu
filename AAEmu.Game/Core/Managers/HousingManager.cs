@@ -1637,7 +1637,6 @@ namespace AAEmu.Game.Core.Managers
             {
                 oldOwner.SendPacket(new SCHouseRemovedPacket(house.TlId));
             }
-            }
 
             UpdateFurnitureOwner(house, character.Id);
 

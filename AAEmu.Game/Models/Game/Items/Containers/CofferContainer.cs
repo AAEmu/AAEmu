@@ -1,6 +1,4 @@
-﻿using System;
-
-using AAEmu.Game.Models.Game.Items.Actions;
+﻿using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Items.Containers
@@ -25,9 +23,9 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         private bool CanAcceptTemplate(ItemTemplate itemTemplate)
         {
             // All Chests will not accept timed items 
-            if ((itemTemplate.ExpAbsLifetime > 0) ||
-                (itemTemplate.ExpOnlineLifetime > 0) ||
-                (itemTemplate.ExpDate > DateTime.MinValue))
+            if (itemTemplate.ExpAbsLifetime > 0 ||
+                itemTemplate.ExpOnlineLifetime > 0 ||
+                itemTemplate.ExpDate > 0)
             {
                 return false;
             }

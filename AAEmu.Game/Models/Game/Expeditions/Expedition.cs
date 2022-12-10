@@ -73,6 +73,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
                 {
                     return policy;
                 }
+            }
 
             return null;
         }
@@ -85,6 +86,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
                 {
                     return member;
                 }
+            }
 
             return null;
         }
@@ -97,6 +99,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
                 {
                     return member;
                 }
+            }
 
             return null;
         }

@@ -509,7 +509,6 @@ namespace AAEmu.Game.Models.Game.Char
 
                 if (isMain2H && sourceContainer?.ContainerType == SlotType.Equipment && fromSlot == (int)EquipmentItemSlot.Offhand)
                 {
-                {
                     doUnEquipMainHand = true;
                 }
 

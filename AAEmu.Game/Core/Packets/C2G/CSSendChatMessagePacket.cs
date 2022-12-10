@@ -29,7 +29,8 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (message.StartsWith(CommandManager.CommandPrefix))
             {
-                if (CommandManager.Instance.Handle(Connection.ActiveChar, message.Substring(CommandManager.CommandPrefix.Length).Trim()))
+                if (CommandManager.Instance.Handle(Connection.ActiveChar,
+                        message.Substring(CommandManager.CommandPrefix.Length).Trim()))
                 {
                     return;
                 }
@@ -39,25 +40,29 @@ namespace AAEmu.Game.Core.Packets.C2G
             switch (type)
             {
                 case ChatType.Whisper: //whisper
-                    var target = WorldManager.Instance.GetCharacter(targetName);
-                    if (target == null || !target.IsOnline)
                     {
-                        Connection.ActiveChar.SendErrorMessage(ErrorMessageType.WhisperNoTarget);
+                        var target = WorldManager.Instance.GetCharacter(targetName);
+                        if (target == null || !target.IsOnline)
+                        {
+                            Connection.ActiveChar.SendErrorMessage(ErrorMessageType.WhisperNoTarget);
+                        }
+                        else if (target.Faction.MotherId != Connection.ActiveChar.Faction.MotherId)
+                        {
+                            // TODO: proper hostile check
+                            Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatCannotWhisperToHostile);
+                        }
+                        else
+                        {
+                            var packet = new SCChatMessagePacket(ChatType.Whisper, Connection.ActiveChar, message,
+                                ability, languageType);
+                            target.SendPacket(packet);
+                            var packet_me = new SCChatMessagePacket(ChatType.Whispered, target, message, ability,
+                                languageType);
+                            Connection.SendPacket(packet_me);
+                        }
+
+                        break;
                     }
-                    else
-                    if (target.Faction.MotherId != Connection.ActiveChar.Faction.MotherId)
-                    {
-                        // TODO: proper hostile check
-                        Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatCannotWhisperToHostile);
-                    }
-                    else
-                    {
-                        var packet = new SCChatMessagePacket(ChatType.Whisper, Connection.ActiveChar, message, ability, languageType);
-                        target?.SendPacket(packet);
-                        var packet_me = new SCChatMessagePacket(ChatType.Whispered, target, message, ability, languageType);
-                        Connection.SendPacket(packet_me);
-                    }
-                    break;
                 case ChatType.White: //say
                     {
                         Connection.ActiveChar.BroadcastPacket(
@@ -69,33 +74,38 @@ namespace AAEmu.Game.Core.Packets.C2G
                     {
                         var teamRaid = TeamManager.Instance.GetActiveTeamByUnit(Connection.ActiveChar.Id);
 
-                    if (teamRaid != null)
-                    {
-                        if (type == ChatType.RaidLeader && teamRaid.OwnerId != Connection.ActiveChar.Id)
+                        if (teamRaid != null)
                         {
-                            Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotRaidOwner);
+                            if (type == ChatType.RaidLeader && teamRaid.OwnerId != Connection.ActiveChar.Id)
+                            {
+                                Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotRaidOwner);
+                            }
+                            else
+                            {
+                                ChatManager.Instance.GetRaidChat(teamRaid).SendPacket(new SCChatMessagePacket(type,
+                                    Connection.ActiveChar, message, ability, languageType));
+                            }
                         }
                         else
                         {
-                            ChatManager.Instance.GetRaidChat(teamRaid).SendPacket(new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType));
+                            Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotInRaid);
                         }
+
+                        break;
                     }
-                    else
-                    {
-                        Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotInRaid);
-                    }
-                    break;
                 case ChatType.Party:
                     {
                         var partyRaid = TeamManager.Instance.GetActiveTeamByUnit(Connection.ActiveChar.Id);
                         if (partyRaid != null)
                         {
-                            ChatManager.Instance.GetPartyChat(partyRaid, Connection.ActiveChar).SendMessage(Connection.ActiveChar, message, ability, languageType);
+                            ChatManager.Instance.GetPartyChat(partyRaid, Connection.ActiveChar)
+                                .SendMessage(Connection.ActiveChar, message, ability, languageType);
                         }
                         else
                         {
                             Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotInParty);
                         }
+
                         break;
                     }
                 case ChatType.Trade: //trade
@@ -112,13 +122,15 @@ namespace AAEmu.Game.Core.Packets.C2G
                     {
                         if (Connection.ActiveChar.Expedition != null)
                         {
-                            ChatManager.Instance.GetGuildChat(Connection.ActiveChar.Expedition).SendMessage(Connection.ActiveChar, message, ability, languageType);
+                            ChatManager.Instance.GetGuildChat(Connection.ActiveChar.Expedition)
+                                .SendMessage(Connection.ActiveChar, message, ability, languageType);
                         }
                         else
                         {
                             // Looks like the client blocks the chat even before it can get to the server, but let's intercept it anyway
                             Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotInExpedition);
                         }
+
                         break;
                     }
                 /*
@@ -128,15 +140,17 @@ namespace AAEmu.Game.Core.Packets.C2G
                         new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType)
                         );
                     break;
-                    */
+                */
                 case ChatType.Region: //nation (birth place/race, includes pirates etc)
                     {
-                        ChatManager.Instance.GetNationChat(Connection.ActiveChar.Race).SendMessage(Connection.ActiveChar, message, ability, languageType);
+                        ChatManager.Instance.GetNationChat(Connection.ActiveChar.Race)
+                            .SendMessage(Connection.ActiveChar, message, ability, languageType);
                         break;
                     }
                 case ChatType.Ally: //faction (by current allegiance)
                     {
-                        ChatManager.Instance.GetFactionChat(Connection.ActiveChar.Faction.MotherId).SendMessage(Connection.ActiveChar, message, ability, languageType);
+                        ChatManager.Instance.GetFactionChat(Connection.ActiveChar.Faction.MotherId)
+                            .SendMessage(Connection.ActiveChar, message, ability, languageType);
                         break;
                     }
                 default:

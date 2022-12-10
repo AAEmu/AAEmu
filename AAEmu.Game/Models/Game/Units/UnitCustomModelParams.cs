@@ -96,7 +96,6 @@ namespace AAEmu.Game.Models.Game.Units
             FixedDecalAsset[1].AssetId = (uint)mAssets[1];
             FixedDecalAsset[2].AssetId = (uint)mAssets[2];
             FixedDecalAsset[3].AssetId = (uint)mAssets[3];
-            }
 
             // --- begin pish
             mAssets = stream.ReadPisc(2);

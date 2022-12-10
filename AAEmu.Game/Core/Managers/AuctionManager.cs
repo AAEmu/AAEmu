@@ -82,7 +82,7 @@ namespace AAEmu.Game.Core.Managers
                 if (itemToRemove.ClientName != "")
                 {
                     var sellMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, (int)recalculatedFee);
-                    sellMail.FinalizeForSaleSeller((int)moneyAfterFee, (int)(soldAmount - moneyAfterFee));
+                    sellMail.FinalizeForSaleSeller((int)moneyAfterFee, (uint)(soldAmount - moneyAfterFee));
                     sellMail.Send();
                 }
 

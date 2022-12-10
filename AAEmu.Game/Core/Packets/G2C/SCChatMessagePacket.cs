@@ -87,7 +87,6 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_character != null ? (byte)_character.Race : (byte)0);
             stream.Write(_character?.Faction.Id ?? 0); //type
             stream.Write(_character != null ? _character.Name : "");
-            }
 
             stream.Write(_message);
 

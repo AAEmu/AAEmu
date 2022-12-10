@@ -91,7 +91,6 @@ namespace AAEmu.Game.Models.Game.Items
             stream.Write(ChargeTime);     // chargeTime
             stream.Write(TemperPhysical); // scaledA
             stream.Write(TemperMagical);  // scaledB
-            }
 
             stream.WritePisc(GemIds[0], GemIds[1], GemIds[2], GemIds[3]);
             stream.WritePisc(GemIds[4], GemIds[5], GemIds[6], GemIds[7]);

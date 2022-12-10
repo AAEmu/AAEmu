@@ -17,6 +17,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Static;
+using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Tasks.World;

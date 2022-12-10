@@ -10,6 +10,7 @@ using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Static;
+using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Json;
 
 using Newtonsoft.Json;

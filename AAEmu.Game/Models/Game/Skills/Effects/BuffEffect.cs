@@ -63,11 +63,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     {
                         abLevel = (ushort)((abilityLevel / template.LevelStep) * template.LevelStep);
                     }
-                    }
                     else
                     {
                         abLevel = (ushort)template.AbilityLevel;
-                    }
                     }
 
                     //Dont allow lower than minimum ablevel for skill or infinite debuffs can happen

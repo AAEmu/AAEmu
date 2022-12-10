@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class EnterBeautyShop : SpecialEffectAction
     {
-        protected override SpecialType SpecialEffectActionType => SpecialType.EnterBeautyshop;
+        protected override SpecialType SpecialEffectActionType => SpecialType.EnterBeautyShop;
 
         public override void Execute(BaseUnit caster,
             SkillCaster casterObj,

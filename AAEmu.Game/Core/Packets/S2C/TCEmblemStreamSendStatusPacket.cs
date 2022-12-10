@@ -21,7 +21,6 @@ namespace AAEmu.Game.Core.Packets.S2C
             {
                 stream.Write(customUcc.Data.Count); // total data bytes 
             }
-            }
             else
             {
                 stream.Write(0); // total

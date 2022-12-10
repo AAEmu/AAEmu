@@ -2073,7 +2073,6 @@ namespace AAEmu.Game.Models.Game.Char
                                 {
                                     slot.ActionId = slots.ReadUInt64();
                                 }
-                                }
                             }
                         }
                     }

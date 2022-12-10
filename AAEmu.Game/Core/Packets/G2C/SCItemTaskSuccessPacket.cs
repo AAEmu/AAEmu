@@ -41,7 +41,6 @@ namespace AAEmu.Game.Core.Packets.G2C
             foreach (var remove in _forceRemove)
             {
                 stream.Write(remove);
-                }
             }
 
             stream.Write(0u); // type(id)

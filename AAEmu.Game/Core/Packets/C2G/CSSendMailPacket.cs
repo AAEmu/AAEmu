@@ -36,11 +36,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var slotType = stream.ReadByte(); // type
                 var slot = stream.ReadByte();     // index
                 itemSlots.Add(slotType == 0
-                    ?
-                    ((SlotType slotType, byte slot))(0, 0)
-                    :
-                    ((SlotType)slotType, slot));
-                }
+                    ? ((SlotType slotType, byte slot))(0, 0)
+                    : ((SlotType)slotType, slot));
             }
 
             var doodadObjId = stream.ReadBc();

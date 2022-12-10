@@ -29,23 +29,29 @@ namespace AAEmu.Game.Core.Packets.G2C
                 switch (s.Type)
                 {
                     case ActionSlotType.None:
-                        break;
+                        {
+                            break;
+                        }
                     case ActionSlotType.ItemType:
                     case ActionSlotType.Spell:
                     case ActionSlotType.RidePetSpell:
                     case ActionSlotType.BattlePetSpell:
-                        stream.Write((uint)s.ActionId);
-                        break;
+                        {
+                            stream.Write((uint)s.ActionId);
+                            break;
+                        }
                     case ActionSlotType.ItemId:
-                        stream.Write(s.ActionId); // itemId
-                        break;
+                        {
+                            stream.Write(s.ActionId); // itemId
+                            break;
+                        }
                     default:
-                        _log.Error("SCActionSlotsPacket, Unknown ActionSlotType!");
-                        break;
-                }
+                        {
+                            _log.Error("SCActionSlotsPacket, Unknown ActionSlotType!");
+                            break;
+                        }
                 }
             }
-
 
             return stream;
         }

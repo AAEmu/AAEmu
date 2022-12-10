@@ -398,7 +398,8 @@ namespace AAEmu.Game.Core.Managers.World
                 for (var cellX = 0; cellX < world.CellX; cellX++)
                 {
                     var cellFileName = $"{cellX:000}_{cellY:000}";
-                    var heightMapFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client", "terrain", "heightmap.dat");
+                    var heightMapFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client",
+                        "terrain", "heightmap.dat");
                     if (ClientFileManager.FileExists(heightMapFile))
                     {
                         using (var stream = ClientFileManager.GetFileStream(heightMapFile))
@@ -434,13 +435,17 @@ namespace AAEmu.Game.Core.Managers.World
                                 {
                                     for (ushort sectorY = 0; sectorY < SECTORS_PER_CELL; sectorY++)
                                     {
-                                        for (ushort unitX = 0; unitX < SECTOR_HMAP_RESOLUTION; unitX++) // sector = 32x32 unit size
+                                        for (ushort unitX = 0;
+                                             unitX < SECTOR_HMAP_RESOLUTION;
+                                             unitX++) // sector = 32x32 unit size
                                         {
                                             for (ushort unitY = 0; unitY < SECTOR_HMAP_RESOLUTION; unitY++)
                                             {
                                                 var node = nodes[sectorX * SECTORS_PER_CELL + sectorY];
-                                                var oX = cellX * CELL_HMAP_RESOLUTION + sectorX * SECTOR_HMAP_RESOLUTION + unitX;
-                                                var oY = cellY * CELL_HMAP_RESOLUTION + sectorY * SECTOR_HMAP_RESOLUTION + unitY;
+                                                var oX = cellX * CELL_HMAP_RESOLUTION +
+                                                         sectorX * SECTOR_HMAP_RESOLUTION + unitX;
+                                                var oY = cellY * CELL_HMAP_RESOLUTION +
+                                                         sectorY * SECTOR_HMAP_RESOLUTION + unitY;
 
                                                 ushort value;
                                                 switch (version)
@@ -453,7 +458,8 @@ namespace AAEmu.Game.Core.Managers.World
                                                             value = (ushort)((doubleValue / 1.52604335620711f) *
                                                                              world.HeightMaxCoefficient /
                                                                              ushort.MaxValue * rawValue +
-                                                                             node.BoxHeightmap.Min.Z * world.HeightMaxCoefficient);
+                                                                             node.BoxHeightmap.Min.Z *
+                                                                             world.HeightMaxCoefficient);
                                                         }
                                                         break;
                                                     case VersionCalc.V2:
@@ -485,11 +491,11 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                     }
                 }
+            }
 
             _log.Info("{0} heightmap loaded", world.Name);
             return true;
         }
-
         public void LoadHeightmaps()
         {
             if (AppConfiguration.Instance.HeightMapsEnable) // TODO fastboot if HeightMapsEnable = false!

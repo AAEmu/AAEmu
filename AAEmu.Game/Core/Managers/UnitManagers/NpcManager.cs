@@ -355,20 +355,20 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     switch (slotTypeId)
                     {
                         case (byte)EquipmentItemSlotType.Face:
-                        {
-                            if (template.Race == (byte)Race.Dwarf || template.Race == (byte)Race.Warborn)
                             {
-                                rbp = bp[0]; // для гномов всегда 0 itemBodyParts
-                                _template.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
-                            }
-                            else
-                            {
-                                // для остальных всегда последнее itemBodyParts
-                                _template.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
-                            }
+                                if (template.Race == (byte)Race.Dwarf || template.Race == (byte)Race.Warborn)
+                                {
+                                    rbp = bp[0]; // для гномов всегда 0 itemBodyParts
+                                    _template.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
+                                }
+                                else
+                                {
+                                    // для остальных всегда последнее itemBodyParts
+                                    _template.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
+                                }
 
-                            break;
-                        }
+                                break;
+                            }
                         case (byte)EquipmentItemSlotType.Hair:
                             {
                                 if (rbp.ItemId == template.HairId)
@@ -475,7 +475,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             //object blob = reader.GetValue("modifier");
                             //if (blob != null)
                             //    custom.Modifier = (byte[])blob;
-                            }
 
                             custom.OwnerTypeId = reader.GetUInt32("owner_type_id");
                             custom.FaceMovableDecalWeight = reader.GetFloat("face_movable_decal_weight");
@@ -641,7 +640,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.TotalCustomId = reader.GetUInt32("total_custom_id", 0);
                             using (var command2 = connection.CreateCommand())
                             {
-                                command2.CommandText = "SELECT char_race_id, char_gender_id FROM characters WHERE model_id = @model_id";
+                                command2.CommandText ="SELECT char_race_id, char_gender_id FROM characters WHERE model_id = @model_id";
                                 command2.Parameters.AddWithValue("model_id", template.ModelId);
                                 command2.Prepare();
                                 using (var sqliteReader2 = command2.ExecuteReader())
@@ -725,7 +724,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                 }
                             }
 
-                            if (template.TotalCustomId > 0 && _totalCharacterCustoms.TryGetValue(template.TotalCustomId, out var tc))
+                            if (template.TotalCustomId > 0 &&
+                                _totalCharacterCustoms.TryGetValue(template.TotalCustomId, out var tc))
                             {
                                 template.HairId = tc.HairId;
                                 template.HornId = tc.HornId;
@@ -808,7 +808,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                     {
                                         case (byte)EquipmentItemSlotType.Face:
                                             {
-                                                if (template.Race == (byte)Race.Dwarf || template.Race == (byte)Race.Warborn)
+                                                if (template.Race == (byte)Race.Dwarf ||
+                                                    template.Race == (byte)Race.Warborn)
                                                 {
                                                     rbp = bp[0]; // для гномов всегда 0 itemBodyParts
                                                     template.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
@@ -818,6 +819,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                                     // для остальных всегда последнее itemBodyParts
                                                     template.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
                                                 }
+
                                                 break;
                                             }
                                         case (byte)EquipmentItemSlotType.Hair:

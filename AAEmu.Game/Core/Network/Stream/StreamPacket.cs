@@ -2,6 +2,7 @@
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.Core.Packets.S2C;
 
 namespace AAEmu.Game.Core.Network.Stream
 {

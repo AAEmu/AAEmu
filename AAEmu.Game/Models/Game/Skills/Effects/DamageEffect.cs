@@ -438,7 +438,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 unit.Hp = Math.Min(unit.MaxHp, unit.Hp + healthStolen);
                 unit.Mp = Math.Min(unit.MaxMp, unit.Mp + manaStolen);
-                unit.BroadcastPacket(new SCUnitPointsPacket(unit.ObjId, unit.Hp, unit.Mp), true);
+                unit.BroadcastPacket(new SCUnitPointsPacket(unit.ObjId, unit.Hp, unit.Mp, unit.HighAbilityRsc), true);
             }
 
             if (Bonuses != null)
@@ -494,7 +494,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             if (trg is Npc)
             {
-                trg.BroadcastPacket(new SCUnitAiAggroPacket(trg.ObjId, 1, caster.ObjId, caster.SummarizeDamage), true);
+                trg.BroadcastPacket(new SCUnitAiAggroPacket(trg.ObjId, 1, caster.ObjId, unit.SummarizeDamage), true);
             }
             if (trg is Npc npc/* && npc.CurrentTarget != caster*/)
             {

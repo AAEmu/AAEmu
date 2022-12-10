@@ -65,8 +65,6 @@ namespace AAEmu.Game.Models.Game.Skills
                 Duration = Template.GetDuration((uint)AbLevel);
             }
 
-            }
-
             if (StartTime == DateTime.MinValue)
             {
                 StartTime = DateTime.UtcNow;
@@ -108,8 +106,6 @@ namespace AAEmu.Game.Models.Game.Skills
                         if (Duration == 0)
                         {
                             Duration = Template.GetDuration((uint)AbLevel);
-                        }
-
                         }
 
                         if (StartTime == DateTime.MinValue)

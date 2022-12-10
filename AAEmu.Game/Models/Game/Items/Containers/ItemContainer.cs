@@ -696,9 +696,9 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                     syncPackets.Add(ItemManager.Instance.SetItemOnlineExpirationTime(newItem, newItem.Template.ExpOnlineLifetime));
                 }
 
-                if (newItem.Template.ExpDate > DateTime.MinValue)
+                if (newItem.Template.ExpDate > 0)
                 {
-                    syncPackets.Add(ItemManager.Instance.SetItemExpirationTime(newItem, newItem.Template.ExpDate));
+                    syncPackets.Add(ItemManager.Instance.SetItemExpirationTime(newItem, DateTime.UtcNow.AddMinutes(newItem.Template.ExpDate)));
                 }
 
                 if ((newItem is EquipItem equipItem) && (newItem.Template is EquipItemTemplate equipItemTemplate))
