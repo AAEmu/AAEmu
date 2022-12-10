@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -19,28 +20,32 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 var aroundDoodads = WorldManager.Instance.GetAround<Doodad>(caster);
                 var doodads = new List<Doodad>();
-                foreach (var relatedId in owner.Spawner.RelatedIds)
+                if (owner?.Spawner != null)
                 {
-                    foreach (var doodad in aroundDoodads)
+                    foreach (var relatedId in owner.Spawner.RelatedIds)
                     {
-                        if (doodad.TemplateId == relatedId)
+                        if (aroundDoodads != null)
                         {
-                            doodads.Add(doodad);
+                            doodads.AddRange(aroundDoodads.Where(doodad => doodad.TemplateId == relatedId));
                         }
                     }
-                }
 
-                if (doodads.Count > 0)
-                {
-                    foreach (var doodad in doodads)
+                    if (doodads.Count > 0)
                     {
-                        var funcGroup = DoodadManager.Instance.GetPhaseFunc(doodad.FuncGroupId);
-                        foreach (var func in funcGroup)
+                        foreach (var doodad in doodads)
                         {
-                            if (func.FuncType == "DoodadFuncPulseTrigger")
+                            var funcGroup = DoodadManager.Instance.GetPhaseFunc(doodad.FuncGroupId);
+                            foreach (var func in funcGroup)
                             {
-                                DoodadFuncPulseTrigger.Halt = false; // разрешаем однократное выполнение // allow one-time execution
-                                doodad.DoPhaseFuncs(caster, (int)doodad.FuncGroupId);
+                                switch (func.FuncType)
+                                {
+                                    case "DoodadFuncPulseTrigger":
+                                        {
+                                            DoodadFuncPulseTrigger.Halt = false; // разрешаем однократное выполнение // allow one-time execution
+                                            doodad.DoPhaseFuncs(caster, (int)doodad.FuncGroupId);
+                                            break;
+                                        }
+                                }
                             }
                         }
                     }
