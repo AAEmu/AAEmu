@@ -35,8 +35,7 @@ namespace AAEmu.Game.Models.Game.Shipyard
         }
         private bool IsDirty { get => _isDirty; set => _isDirty = value; }
         public int AllAction { get => _allAction; set { _allAction = value; _isDirty = true; } }
-        public int BaseAction
-        {
+        public int BaseAction {
             get => _baseAction;
             private set
             {
@@ -44,8 +43,7 @@ namespace AAEmu.Game.Models.Game.Shipyard
             }
         }
         public int CurrentAction => BaseAction + NumAction;
-        public int NumAction
-        {
+        public int NumAction {
             get => _numAction;
             private set
             {
@@ -445,25 +443,19 @@ namespace AAEmu.Game.Models.Game.Shipyard
         public void AddBuildAction()
         {
             if (CurrentStep == -1)
-            {
                 return;
-            }
 
             lock (_lock)
             {
                 var nextAction = NumAction + 1;
                 if (Template.ShipyardSteps[CurrentStep].NumActions > nextAction)
-                {
                     NumAction = nextAction;
-                }
                 else
                 {
                     NumAction = 0;
                     var nextStep = CurrentStep + 1;
                     if (Template.ShipyardSteps.Count > nextStep)
-                    {
                         CurrentStep = nextStep;
-                    }
                     else
                     {
                         CurrentStep = -1;

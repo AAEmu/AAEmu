@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public uint EventOnPhaseChangeId { get; set; }
         public uint EventOnVisibleId { get; set; }
 
-        public override bool Use(BaseUnit caster, Doodad owner)
+        public override bool Use(Unit caster, Doodad owner)
         {
             _log.Trace("DoodadFuncPlayFlowGraph");
             return false;

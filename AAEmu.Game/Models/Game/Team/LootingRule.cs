@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Team
 {
@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.Team
             Id = 0;
             RollForBop = true;
         }
-
+        
         public override void Read(PacketStream stream)
         {
             LootMethod = stream.ReadByte();

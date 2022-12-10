@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Reactive;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
@@ -31,9 +34,11 @@ namespace AAEmu.Game.Models.Game.Units
     {
         public virtual UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.None;
 
+        public UnitEvents Events { get; }
         private Task _regenTask;
         public uint ModelId { get; set; }
         public SkillController ActiveSkillController { get; set; }
+
         public override float ModelSize
         {
             get
@@ -41,9 +46,9 @@ namespace AAEmu.Game.Models.Game.Units
                 return (ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0) * Scale;
             }
         }
-        public int Hp { get; set; }
 
-        #region UnitAttribute
+        public byte Level { get; set; }
+        public int Hp { get; set; }
 
         [UnitAttribute(UnitAttribute.MoveSpeedMul)]
         public virtual float MoveSpeedMul { get => (float)CalculateWithBonuses(1000f, UnitAttribute.MoveSpeedMul) / 1000f; }
@@ -162,9 +167,6 @@ namespace AAEmu.Game.Models.Game.Units
             get => (float)CalculateWithBonuses(100d, UnitAttribute.AggroMul);
         }
         [UnitAttribute(UnitAttribute.IncomingAggroMul)]
-
-        #endregion UnitAttribute
-
         public float IncomingAggroMul
         {
             get => (float)CalculateWithBonuses(100d, UnitAttribute.IncomingAggroMul);
@@ -194,6 +196,7 @@ namespace AAEmu.Game.Models.Game.Units
         public uint SkillId;
         public ushort TlId { get; set; }
         public ItemContainer Equipment { get; set; }
+        public GameConnection Connection { get; set; }
 
         /// <summary>
         /// Unit巡逻
@@ -203,8 +206,10 @@ namespace AAEmu.Game.Models.Game.Units
         /// </summary>
         public Patrol Patrol { get; set; }
         public Simulation Simulation { get; set; }
+
         public UnitProcs Procs { get; set; }
         public object ChargeLock { get; set; }
+
         public bool ConditionChance { get; set; }
 
         public Unit()
@@ -241,9 +246,7 @@ namespace AAEmu.Game.Models.Game.Units
                 Events.OnMovement(this, new OnMovementArgs());
             }
             if (DisabledSetPosition)
-            {
                 return moved;
-            }
 
             WorldManager.Instance.AddVisibleObject(this);
             // base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
@@ -269,9 +272,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
 
             if (Hp <= 0)
-            {
                 return;
-            }
 
             var absorptionEffects = Buffs.GetAbsorptionEffects().ToList();
             if (absorptionEffects.Count > 0)
@@ -300,20 +301,13 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual void ReduceCurrentMp(Unit unit, int value)
         {
             if (Hp == 0)
-            {
                 return;
-            }
 
             Mp = Math.Max(Mp - value, 0);
             if (Mp == 0)
-            {
                 StopRegen();
-            }
             else
-            {
                 StartRegen();
-            }
-
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
         }
 
@@ -325,9 +319,7 @@ namespace AAEmu.Game.Models.Game.Units
             Buffs.RemoveEffectsOnDeath();
             killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, killer), true);
             if (killer == this)
-            {
                 return;
-            }
 
             var lootDropItems = ItemManager.Instance.CreateLootDropItems(ObjId);
             if (lootDropItems.Count > 0)
@@ -488,15 +480,21 @@ namespace AAEmu.Game.Models.Game.Units
             foreach (var bonus in GetBonuses(attr))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                {
                     value += (value * bonus.Value / 100f);
-                }
                 else
-                {
                     value += bonus.Value;
-                }
             }
             return value;
+        }
+
+        public void SendPacket(GamePacket packet)
+        {
+            Connection?.SendPacket(packet);
+        }
+
+        public void SendErrorMessage(ErrorMessageType type)
+        {
+            SendPacket(new SCErrorMsgPacket(type, 0, true));
         }
 
         /// <summary>
@@ -508,14 +506,10 @@ namespace AAEmu.Game.Models.Game.Units
         public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
         {
             if (baseUnit == null)
-            {
                 return 0.0f;
-            }
 
             if (Transform.World.Position.Equals(baseUnit.Transform.World.Position))
-            {
                 return 0.0f;
-            }
 
             var rawDist = MathUtil.CalculateDistance(Transform.World.Position, baseUnit.Transform.World.Position, includeZAxis);
             if (baseUnit is Shipyard.Shipyard shipyard)
@@ -533,9 +527,7 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 // If target is a Unit, then use it's model for radius
                 if (baseUnit is Unit unit)
-                {
                     rawDist -= ModelManager.Instance.GetActorModel(unit.ModelId)?.Radius ?? 0 * unit.Scale;
-                }
             }
             // Subtract own radius
             rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
@@ -555,13 +547,9 @@ namespace AAEmu.Game.Models.Game.Units
                     .Any(a => a.Attributes.Contains(attr)));
 
             if (props.Count() > 0)
-            {
                 return props.ElementAt(0).GetValue(this).ToString();
-            }
             else
-            {
                 return "NotFound";
-            }
         }
 
         public T GetAttribute<T>(UnitAttribute attr, T defaultVal)
@@ -574,9 +562,7 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 var ElementValue = props.ElementAt(0).GetValue(this);
                 if (ElementValue is T ret)
-                {
                     return ret;
-                }
             }
             return defaultVal;
         }
@@ -599,22 +585,15 @@ namespace AAEmu.Game.Models.Game.Units
         {
             ActivePlotState?.RequestCancellation();
             if (SkillTask == null)
-            {
                 return;
-            }
-
             switch (SkillTask)
             {
                 case EndChannelingTask ect:
-                    {
-                        ect.Skill.Stop(this, ect._channelDoodad);
-                        break;
-                    }
+                    ect.Skill.Stop(this, ect._channelDoodad);
+                    break;
                 default:
-                    {
-                        SkillTask.Skill.Stop(this);
-                        break;
-                    }
+                    SkillTask.Skill.Stop(this);
+                    break;
             }
         }
 
@@ -670,9 +649,7 @@ namespace AAEmu.Game.Models.Game.Units
                     Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.UtcNow), 0, duration);
 
                     if (Hp > minHpLeft)
-                    {
                         ReduceCurrentHp(this, maxDmgLeft); // Leaves you at 5% hp no matter what
-                    }
                 }
             }
 
@@ -748,50 +725,42 @@ namespace AAEmu.Game.Models.Game.Units
             switch (modelPostureType)
             {
                 case ModelPostureType.HouseState: // build
+                    for (var i = 0; i < 2; i++)
                     {
-                        for (var i = 0; i < 2; i++)
-                        {
-                            stream.Write(true); // door
-                        }
-
-                        for (var i = 0; i < 6; i++)
-                        {
-                            stream.Write(true); // window
-                        }
-
-                        break;
+                        stream.Write(true); // door
                     }
+
+                    for (var i = 0; i < 6; i++)
+                    {
+                        stream.Write(true); // window
+                    }
+
+                    break;
                 case ModelPostureType.ActorModelState: // npc
+                    var npc = (Npc)unit;
+                    stream.Write(animActionId == 0xFFFFFFFF ? npc.Template.AnimActionId : animActionId); // TODO to check for AnimActionId substitution
+                    if (animActionId == 0xFFFFFFFF)
                     {
-                        var npc = (Npc)unit;
-                        stream.Write(animActionId == 0xFFFFFFFF ? npc.Template.AnimActionId : animActionId); // TODO to check for AnimActionId substitution
-                        if (animActionId == 0xFFFFFFFF)
-                        {
-                            _log.Warn($"npc.Template.AnimActionId={npc.Template.AnimActionId}");
-                        }
-                        else
-                        {
-                            _log.Warn($"npc.Template.AnimActionId={animActionId}");
-                        }
+                        _log.Warn($"npc.Template.AnimActionId={npc.Template.AnimActionId}");
+                    }
+                    else
+                    {
+                        _log.Warn($"npc.Template.AnimActionId={animActionId}");
+                    }
 
-                        stream.Write(true); // activate
-                        break;
-                    }
+                    stream.Write(true); // activate
+                    break;
                 case ModelPostureType.FarmfieldState:
-                    {
-                        stream.Write(0u); // type(id)
-                        stream.Write(0f); // growRate
-                        stream.Write(0); // randomSeed
-                        stream.Write(false); // isWithered
-                        stream.Write(false); // isHarvested
-                        break;
-                    }
+                    stream.Write(0u); // type(id)
+                    stream.Write(0f); // growRate
+                    stream.Write(0); // randomSeed
+                    stream.Write(false); // isWithered
+                    stream.Write(false); // isHarvested
+                    break;
                 case ModelPostureType.TurretState: // slave
-                    {
-                        stream.Write(0f); // pitch
-                        stream.Write(0f); // yaw
-                        break;
-                    }
+                    stream.Write(0f); // pitch
+                    stream.Write(0f); // yaw
+                    break;
             }
         }
     }

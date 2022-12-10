@@ -50,9 +50,7 @@ namespace AAEmu.Game.GameData
                     };
 
                     if (!_skillsForNpc.ContainsKey(template.OwnerId))
-                    {
                         _skillsForNpc.Add(template.OwnerId, new List<NpcSkill>());
-                    }
 
                     _skillsForNpc[template.OwnerId].Add(template);
                 }
@@ -75,9 +73,7 @@ namespace AAEmu.Game.GameData
                     };
 
                     if (!_passivesForNpc.ContainsKey(template.OwnerId))
-                    {
                         _passivesForNpc.Add(template.OwnerId, new List<NpcPassiveBuff>());
-                    }
 
                     _passivesForNpc[template.OwnerId].Add(template);
                 }
@@ -144,10 +140,7 @@ namespace AAEmu.Game.GameData
             foreach (var passiveBuff in _passivesForNpc.Values.SelectMany(i => i))
             {
                 if (passiveBuff.PassiveBuff != null)
-                {
                     continue;
-                }
-
                 passiveBuff.PassiveBuff = SkillManager.Instance.GetPassiveBuffTemplate(passiveBuff.PassiveBuffId);
             }
 

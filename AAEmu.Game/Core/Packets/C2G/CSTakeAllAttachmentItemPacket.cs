@@ -1,4 +1,6 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Net.Mail;
+using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Mails;
@@ -22,9 +24,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.Mails.SendUnreadMailCount();
             }
             else
-            {
                 _log.Debug($"CSTakeAllAttachmentItemPacket - Failed for: {mailId} -> {Connection.ActiveChar.Name}");
-            }
         }
     }
 }

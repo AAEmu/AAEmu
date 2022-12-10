@@ -133,13 +133,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         public override void Despawn(Doodad doodad)
         {
+            doodad.Delete();
             if (doodad.Respawn == DateTime.MinValue)
             {
                 ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
             }
 
             Last = null;
-            doodad.Delete();
         }
 
         public void DecreaseCount(Doodad doodad)

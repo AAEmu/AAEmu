@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 namespace AAEmu.Game.Models.Game.Merchant
-{
+{   
     public class MerchantGoods
     {
         public uint Id { get; set; }
@@ -17,23 +17,15 @@ namespace AAEmu.Game.Models.Game.Merchant
         public bool SellsItem(uint itemTemplateId)
         {
             foreach (var i in Items)
-            {
                 if (i.ItemTemplateId == itemTemplateId)
-                {
                     return true;
-                }
-            }
-
             return false;
         }
 
         public void AddItemToStock(uint itemTemplateId, byte itemGrade)
         {
             if (SellsItem(itemTemplateId))
-            {
                 return;
-            }
-
             var newItem = new MerchantGoodsItem();
             newItem.ItemTemplateId = itemTemplateId;
             newItem.Grade = itemGrade;

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly long _mailId;
         private readonly MailHeader _mail;
-
+        
         public SCMailReturnedPacket(long mailId, MailHeader mail) : base(SCOffsets.SCMailReturnedPacket, 1)
         {
             _mailId = mailId;

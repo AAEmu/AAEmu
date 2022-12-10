@@ -1,11 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.StaticValues;
-
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -25,18 +23,14 @@ namespace AAEmu.Game.Models.Game.Char
         public void AddPoint(uint id, int point)
         {
             if (!Actabilities.ContainsKey(id))
-            {
                 return;
-            }
-
+            
             var actability = Actabilities[id];
             actability.Point += point;
 
             var template = CharacterManager.Instance.GetExpertLimit(actability.Step);
             if (actability.Point > template.UpLimit)
-            {
                 actability.Point = template.UpLimit;
-            }
         }
 
         public void Regrade(uint id, bool isUpgrade)
@@ -49,14 +43,10 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var template = CharacterManager.Instance.GetExpertLimit(actability.Step);
                 if (template == null)
-                {
                     return; // TODO ... send msg error?
-                }
 
                 if (actability.Point < template.UpLimit)
-                {
                     return; // TODO ... send msg error?
-                }
 
                 actability.Step++;
             }
@@ -64,9 +54,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var template = CharacterManager.Instance.GetExpertLimit(actability.Step - 1);
                 if (template == null)
-                {
                     return; // TODO ... send msg error?
-                }
 
                 actability.Step--;
                 actability.Point = template.UpLimit;
@@ -79,9 +67,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var expand = CharacterManager.Instance.GetExpandExpertLimit(Owner.ExpandedExpert);
             if (expand == null)
-            {
                 return; // TODO ... send msg error?
-            }
 
             if (expand.LifePoint > Owner.VocationPoint)
             {
@@ -102,7 +88,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (expand.ItemId != 0 && expand.ItemCount != 0)
             {
-                Owner.Inventory.Bag.ConsumeItem(ItemTaskType.ExpandExpert, expand.ItemId, expand.ItemCount, null);
+                Owner.Inventory.Bag.ConsumeItem(ItemTaskType.ExpandExpert, expand.ItemId, expand.ItemCount,null);
                 /*
                 var items = Owner.Inventory.RemoveItem(expand.ItemId, expand.ItemCount);
 

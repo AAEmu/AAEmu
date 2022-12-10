@@ -20,5 +20,5 @@ namespace AAEmu.Game.Models.StaticValues
         StandingOnObject = 0x20, // same as moveTypeFlag 0x40
         HangingFromObject = 0x40 // When we are somehow "sticking" to another object, but don't have it as a parent object
     }
-
+   
 }

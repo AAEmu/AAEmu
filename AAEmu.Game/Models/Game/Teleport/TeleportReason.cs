@@ -1,4 +1,4 @@
-﻿namespace AAEmu.Game.Models.Game.Teleport
+﻿namespace AAEmu.Game.Models.Game.Static
 {
     public enum TeleportReason
     {

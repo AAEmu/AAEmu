@@ -7,6 +7,6 @@ namespace AAEmu.Game.Models.Tasks.Housing
         public override void Execute()
         {
             HousingManager.Instance.CheckHousingTaxes();
-        }
+        }        
     }
 }

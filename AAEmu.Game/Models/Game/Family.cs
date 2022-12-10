@@ -1,9 +1,7 @@
-﻿using System.Collections.Generic;
-
+using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
-
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game
@@ -25,19 +23,14 @@ namespace AAEmu.Game.Models.Game
             stream.Write(Id);
             stream.Write(Members.Count); // TODO max length 8
             foreach (var member in Members)
-            {
                 stream.Write(member);
-            }
-
             return stream;
         }
 
         public void AddMember(FamilyMember member)
         {
             if (Members == null)
-            {
                 Members = new List<FamilyMember>();
-            }
 
             Members.Add(member);
         }
@@ -57,12 +50,8 @@ namespace AAEmu.Game.Models.Game
         public FamilyMember GetMember(Character character)
         {
             foreach (var member in Members)
-            {
                 if (member.Id == character.Id)
-                {
                     return member;
-                }
-            }
 
             return null;
         }
@@ -70,12 +59,8 @@ namespace AAEmu.Game.Models.Game
         public void SendPacket(GamePacket packet, uint exclude = 0)
         {
             foreach (var member in Members)
-            {
                 if (member.Id != exclude)
-                {
                     member.Character?.SendPacket(packet);
-                }
-            }
         }
 
         public void Load(MySqlConnection connection)
@@ -156,7 +141,7 @@ namespace AAEmu.Game.Models.Game
     public class FamilyMember : PacketMarshaler
     {
         public Character Character { get; set; }
-
+        
         public uint Id { get; set; }
         public string Name { get; set; }
         public byte Role { get; set; }

@@ -1,5 +1,4 @@
-﻿using System;
-
+using System;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 
@@ -34,7 +33,7 @@ namespace AAEmu.Game.Models.Game
         public DominionSiegeTimers SiegeTimers { get; set; } // TODO mb not correct namings
         public DateTime NonPvPStart { get; set; }
         public ushort NonPvPDuration { get; set; }
-
+        
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(ZoneId);
@@ -99,19 +98,16 @@ namespace AAEmu.Game.Models.Game
         public DateTime Started { get; set; }
         public DateTime Fixed { get; set; }
         public int Bdm { get; set; }
-
+        
         public byte SiegePeriod { get; set; }
-
+        
         public DominionUnkData UnkData { get; set; }
         public DominionUnkData Unk2Data { get; set; }
 
         public override PacketStream Write(PacketStream stream)
         {
             foreach (var duration in Durations)
-            {
                 stream.Write(duration);
-            }
-
             stream.Write(Started);
             stream.Write(Fixed);
             stream.Write(Bdm);
@@ -133,10 +129,10 @@ namespace AAEmu.Game.Models.Game
         public float Z { get; set; }
         public byte Ni { get; set; }
         public byte Nr { get; set; }
-
+        
         public byte Limit { get; set; }
         public uint[] UnkIds { get; set; }
-
+        
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(Id);
@@ -150,10 +146,7 @@ namespace AAEmu.Game.Models.Game
             stream.Write(Limit);
             stream.Write((byte)UnkIds.Length);
             foreach (var unkId in UnkIds)
-            {
                 stream.Write(unkId);
-            }
-
             return stream;
         }
     }

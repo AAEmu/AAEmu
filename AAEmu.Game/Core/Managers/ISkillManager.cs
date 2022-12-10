@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;

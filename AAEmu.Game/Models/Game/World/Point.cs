@@ -10,7 +10,7 @@
         public sbyte RotationX { get; set; }
         public sbyte RotationY { get; set; }
         public sbyte RotationZ { get; set; }
-
+        
         public Point()
         {
         }

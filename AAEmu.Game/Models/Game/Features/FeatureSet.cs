@@ -1,5 +1,4 @@
 ﻿using System.Text;
-
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Features
@@ -9,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Features
         //default fsets
         //private byte[] _fset = { 0x7F, 0x37, 0x34, 0x0F, 0x79, 0x08, 0x7D, 0xCB, 0x37, 0x65, 0x03 };
         private byte[] _fset = { 0x11, 0x37, 0x0F, 0x0F, 0x79, 0x69, 0xb3, 0x8d, 0x32, 0x0c, 0x1a };
-
+        
         private const int PlayerLevelLimitIndex = 1;
         private const int MateLevelLimitIndex = 8;
 
@@ -37,8 +36,8 @@ namespace AAEmu.Game.Models.Game.Features
 
         private (byte byteIndex, byte bitIndex) GetIndexes(Feature feature)
         {
-            var byteIndex = (byte)((byte)feature / 8);
-            var bitIndex = (byte)((byte)feature % 8);
+            byte byteIndex = (byte)((byte)feature / 8);
+            byte bitIndex = (byte)((byte)feature % 8);
 
             return (byteIndex, bitIndex);
         }
@@ -46,7 +45,7 @@ namespace AAEmu.Game.Models.Game.Features
         public bool Check(Feature feature)
         {
 
-            (var byteIndex, var bitIndex) = GetIndexes(feature);
+            (byte byteIndex, byte bitIndex) = GetIndexes(feature);
 
             try
             {
@@ -57,19 +56,14 @@ namespace AAEmu.Game.Models.Game.Features
 
         public bool Set(Feature feature, bool enabled)
         {
-            (var byteIndex, var bitIndex) = GetIndexes(feature);
+            (byte byteIndex, byte bitIndex) = GetIndexes(feature);
 
             try
             {
                 if (enabled)
-                {
                     _fset[byteIndex] |= (byte)(1 << bitIndex);
-                }
                 else
-                {
                     _fset[byteIndex] &= (byte)~(1 << bitIndex);
-                }
-
                 return true;
             }
             //Catch if feature is out of bounds of array and does not exist.
@@ -92,12 +86,9 @@ namespace AAEmu.Game.Models.Game.Features
 
         public override string ToString()
         {
-            var hex = new StringBuilder(_fset.Length * 2);
-            foreach (var b in _fset)
-            {
+            StringBuilder hex = new StringBuilder(_fset.Length * 2);
+            foreach (byte b in _fset)
                 hex.AppendFormat("{0:x2} ", b);
-            }
-
             return hex.ToString();
         }
 

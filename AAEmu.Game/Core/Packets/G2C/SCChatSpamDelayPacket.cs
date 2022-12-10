@@ -15,10 +15,10 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             for (var i = 0; i < 15; i++)
                 stream.Write((byte)0); // chatTypeGroup
-
+            
             for (var i = 0; i < 15; i++)
                 stream.Write(0f); // chatGroupDelay
-
+            
             stream.Write(""); // applyConfig
             stream.Write(""); // detectConfig
             return stream;

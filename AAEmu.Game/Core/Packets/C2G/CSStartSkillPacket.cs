@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -26,16 +25,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                 await Task.Delay(TimeSpan.FromMilliseconds(100), source.Token);
                 return 0;
             });
-            try
-            {
+            try {
                 t.Wait();
             }
-            catch (AggregateException ae)
-            {
+            catch (AggregateException ae) {
                 foreach (var e in ae.InnerExceptions)
-                {
                     _log.Trace("{0}: {1}", e.GetType().Name, e.Message);
-                }
             }
 
             var skillId = stream.ReadUInt32();
@@ -53,10 +48,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var flag = stream.ReadByte();
             var flagType = flag & 15;
             var skillObject = SkillObject.GetByType((SkillObjectType)flagType);
-            if (flagType > 0)
-            {
-                skillObject.Read(stream);
-            }
+            if (flagType > 0) skillObject.Read(stream);
 
             _log.Trace("StartSkill: Id {0}, flag {1}", skillId, flag);
 
@@ -78,10 +70,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 var item = Connection.ActiveChar.Inventory.GetItemById(((SkillItem)skillCaster).ItemId);
                 if (item == null || skillId != item.Template.UseSkillId)
-                {
                     return;
-                }
-
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
                 skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
@@ -102,9 +91,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 //If its a valid skill cast it. This fixes interactions with quest items/doodads.
                 var unskill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
                 if (unskill != null)
-                {
                     unskill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
-                }
             }
         }
     }

@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
-
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Tasks.SaveTask;
-
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -19,7 +17,7 @@ namespace AAEmu.Game.Core.Managers
         private bool _enabled;
         private bool _isSaving;
         private object _lock = new object();
-        SaveTickStartTask saveTask;
+        SaveTickStartTask saveTask ;
 
         public SaveManager()
         {
@@ -31,7 +29,7 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Info("Initialising Save Manager...");
             _enabled = true;
-            Delay = AppConfiguration.Instance.World.AutoSaveInterval;
+            Delay = AppConfiguration.Instance.World.AutoSaveInterval ;
             SaveTickStart();
         }
 
@@ -61,10 +59,7 @@ namespace AAEmu.Game.Core.Managers
         public bool DoSave()
         {
             if (_isSaving)
-            {
                 return false;
-            }
-
             var saved = false;
             lock (_lock)
             {
@@ -93,13 +88,9 @@ namespace AAEmu.Game.Core.Managers
                             foreach (var c in WorldManager.Instance.GetAllCharacters())
                             {
                                 if (c.Save(connection, transaction))
-                                {
                                     savedCharacters++;
-                                }
                                 else
-                                {
                                     _log.Error("Failed to get save data for character {0} - {1}", c.Id, c.Name);
-                                }
                             }
 
                             var totalCommits = 0;
@@ -121,34 +112,17 @@ namespace AAEmu.Game.Core.Managers
                                     transaction.Commit();
 
                                     if ((savedHouses.Item1 + savedHouses.Item2) > 0)
-                                    {
                                         _log.Debug("Updated {0} and deleted {1} houses ...", savedHouses.Item1, savedHouses.Item2);
-                                    }
-
                                     if ((savedMails.Item1 + savedMails.Item2) > 0)
-                                    {
                                         _log.Debug("Updated {0} and deleted {1} mails ...", savedMails.Item1, savedMails.Item2);
-                                    }
-
                                     if ((saveItems.Item1 + saveItems.Item2) > 0)
-                                    {
                                         _log.Debug("Updated {0} and deleted {1} items in {2} containers ...", saveItems.Item1, saveItems.Item2, saveItems.Item3);
-                                    }
-
                                     if ((saveItems.Item3) > 0)
-                                    {
                                         _log.Debug("Updated {0} item containers ...", saveItems.Item3);
-                                    }
-
                                     if ((savedAuctionHouse.Item1 + savedAuctionHouse.Item2) > 0)
-                                    {
                                         _log.Debug("Updated {0} and deleted {1} auction items ...", savedAuctionHouse.Item1, savedAuctionHouse.Item2);
-                                    }
-
                                     if (savedCharacters > 0)
-                                    {
                                         _log.Debug("Updated {0} characters ...", savedCharacters);
-                                    }
 
                                     saved = true;
                                 }
@@ -172,7 +146,7 @@ namespace AAEmu.Game.Core.Managers
                 }
                 catch (Exception e)
                 {
-                    _log.Error(e, "DoSave Exception\n");
+                    _log.Error(e,"DoSave Exception\n");
                 }
                 stopWatch.Stop();
                 _log.Debug("Saving data took {0}", stopWatch.Elapsed);

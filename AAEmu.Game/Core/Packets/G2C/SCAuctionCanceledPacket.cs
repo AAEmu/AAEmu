@@ -1,5 +1,6 @@
 ﻿using System;
-
+using System.Collections.Generic;
+using System.Text;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Auction;
@@ -9,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     class SCAuctionCanceledPacket : GamePacket
     {
         private readonly AuctionItem item;
-        public SCAuctionCanceledPacket(AuctionItem auctionItem) : base(SCOffsets.SCAuctionCanceledPacket, 1)
+        public SCAuctionCanceledPacket(AuctionItem auctionItem) : base(SCOffsets.SCAuctionCanceledPacket,1)
         {
             item = auctionItem;
         }

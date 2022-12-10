@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Type
     }
 
     // Information about parameters :
-
+    
     // ORIGINAL SOURCE
     // Param1 = Unknown
     // Param2 = Unknown
@@ -27,16 +27,16 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Type
     // Param7 = Unknown (NOT USED)
     // Param8 = Unknown (USED ONLY ON PLOT EVENT 1635)
     // Param9 = Unknown (USED ONLY ON PLOT EVENT 1635)
-
+    
     // ORIGINAL TARGET
-
+    
     // PREVIOUS SOURCE
-
+    
     // PREVIOUS TARGET
-
+    
     // AREA
-
+    
     // RANDOM UNIT
-
+    
     // RANDOM AREA
 }

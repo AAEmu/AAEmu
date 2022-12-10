@@ -1,9 +1,7 @@
 ﻿using System.Collections.Generic;
-
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
-
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -58,10 +56,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void Send()
         {
-            if (FriendsIdList.Count <= 0)
-            {
-                return;
-            }
+            if (FriendsIdList.Count <= 0) return;
 
             var allFriends = FriendMananger.Instance.GetFriendInfo(new List<uint>(FriendsIdList.Keys));
             var allFriendsArray = new Friend[allFriends.Count];

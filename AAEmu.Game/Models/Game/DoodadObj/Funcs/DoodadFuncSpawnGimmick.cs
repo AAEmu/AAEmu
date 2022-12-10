@@ -20,7 +20,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public float AngleZ { get; set; }
         public int NextPhase { get; set; }
 
-        public override bool Use(BaseUnit caster, Doodad owner)
+        public override bool Use(Unit caster, Doodad owner)
         {
             _log.Trace("DoodadFuncSpawnGimmick");
             if (caster is Character)

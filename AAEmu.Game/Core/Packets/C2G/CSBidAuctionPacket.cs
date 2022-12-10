@@ -36,7 +36,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var directMoney = stream.ReadUInt32();
             var timeLeft = stream.ReadUInt64();
             var bidWorld = stream.ReadByte();
-            var type3 = stream.ReadUInt32();
+            var type3 = stream.ReadUInt32(); 
             var bidderName = stream.ReadString();
             var bidMoney = stream.ReadUInt32();
             var extra = stream.ReadUInt32();

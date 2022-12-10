@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
@@ -8,7 +7,6 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -38,23 +36,18 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var familyId = reader.GetUInt32("family");
                             if (familyId == 0)
-                            {
                                 continue;
-                            }
 
                             var family = new Family();
                             family.Id = familyId;
                             _families.Add(family.Id, family);
 
-                            using (var connection2 = MySQL.CreateConnection())
-                            {
+                            using (var connection2 = MySQL.CreateConnection()) {
                                 family.Load(connection2); // TODO : Maybe find a prettier way
                             }
 
                             foreach (var member in family.Members)
-                            {
                                 _familyMembers.Add(member.Id, member);
-                            }
                         }
                     }
                 }
@@ -69,9 +62,7 @@ namespace AAEmu.Game.Core.Managers
             using (var transaction = connection.BeginTransaction())
             {
                 foreach (var family in _families.Values)
-                {
                     family.Save(connection, transaction);
-                }
 
                 transaction.Commit(); // TODO try/catch
             }
@@ -92,29 +83,22 @@ namespace AAEmu.Game.Core.Managers
         {
             var invited = WorldManager.Instance.GetCharacter(invitedCharacterName);
             if (invited != null && invited.Family == 0)
-            {
                 invited.SendPacket(new SCFamilyInvitationPacket(inviter.Id, inviter.Name, 1, title));
-            }
         }
 
         public void ReplyToInvite(uint invitorId, Character invitedChar, bool join, string title)
         {
             if (!join)
-            {
                 return;
-            }
 
             var invitor = WorldManager.Instance.GetCharacterById(invitorId);
-            if (invitor == null)
-            {
-                return;
-            }
+            if (invitor == null) return;
 
             if (invitor.Family == 0)
             {
                 var newFamily = new Family();
                 newFamily.Id = FamilyIdManager.Instance.GetNextId();
-                var owner = GetMemberForCharacter(invitor, 1, "");
+                FamilyMember owner = GetMemberForCharacter(invitor, 1, "");
                 newFamily.AddMember(owner);
                 _familyMembers.Add(owner.Id, owner);
 
@@ -124,7 +108,7 @@ namespace AAEmu.Game.Core.Managers
             }
 
             var family = _families[invitor.Family];
-            var member = GetMemberForCharacter(invitedChar, 0, title);
+            FamilyMember member = GetMemberForCharacter(invitedChar, 0, title);
             family.AddMember(member);
             _familyMembers.Add(member.Id, member);
             invitedChar.Family = invitor.Family;
@@ -176,13 +160,9 @@ namespace AAEmu.Game.Core.Managers
             family.SendPacket(new SCFamilyMemberRemovedPacket(family.Id, false, character.Id));
 
             if (family.Members.Count < 2)
-            {
                 DisbandFamily(family);
-            }
             else
-            {
                 SaveFamily(family); // TODO need to think how to do right
-            }
         }
 
         /// <summary>
@@ -215,44 +195,32 @@ namespace AAEmu.Game.Core.Managers
         /// </summary>
         /// <param name="kicker"></param>
         /// <param name="kickedId"></param>
-        public void KickMember(Character kicker, uint kickedId)
+        public void KickMember(Character kicker, uint kickedId) 
         {
-            if (kicker.Family == 0)
-            {
-                return;
-            }
+            if (kicker.Family == 0) return;
+            Family family = _families[kicker.Family];
 
-            var family = _families[kicker.Family];
-
-            var kickerMember = family.GetMember(kicker);
-            if (kickerMember.Role != 1)
-            {
-                return; // Only the steward can kick
-            }
+            FamilyMember kickerMember = family.GetMember(kicker);
+            if (kickerMember.Role != 1) return; // Only the steward can kick
 
             // Load kicked character
-            var kickedCharacter = WorldManager.Instance.GetCharacterById(kickedId);
-            var isOnline = false;
-            if (kickedCharacter != null)
+            Character kickedCharacter = WorldManager.Instance.GetCharacterById(kickedId);
+            bool isOnline = false;
+            if (kickedCharacter != null) 
             {
                 isOnline = true;
-            }
-            else
-            {
+            } else {
                 kickedCharacter = Character.Load(kickedId);
             }
 
-            if (kickedCharacter == null)
-            {
-                return;
-            }
+            if (kickedCharacter == null) return;
 
             // Remove kicked character (if online, packet)
             kickedCharacter.Family = 0;
             family.RemoveMember(kickedCharacter);
             _familyMembers.Remove(kickedCharacter.Id);
 
-            if (isOnline)
+            if (isOnline) 
             {
                 kickedCharacter.SendPacket(new SCFamilyRemovedPacket(family.Id));
             }
@@ -260,31 +228,20 @@ namespace AAEmu.Game.Core.Managers
             family.SendPacket(new SCFamilyMemberRemovedPacket(family.Id, true, kickedCharacter.Id));
 
             if (family.Members.Count < 2)
-            {
                 DisbandFamily(family);
-            }
             else
-            {
                 SaveFamily(family);
-            }
         }
 
         public void ChangeTitle(Character owner, uint memberId, string newTitle)
         {
-            if (owner.Family == 0)
-            {
-                return;
-            }
+            if (owner.Family == 0) return;
+            Family family = _families[owner.Family];
 
-            var family = _families[owner.Family];
+            FamilyMember ownerMember = family.GetMember(owner);
+            if (ownerMember.Role != 1) return; // Only the steward can change titles
 
-            var ownerMember = family.GetMember(owner);
-            if (ownerMember.Role != 1)
-            {
-                return; // Only the steward can change titles
-            }
-
-            var member = _familyMembers[memberId];
+            FamilyMember member = _familyMembers[memberId];
             member.Title = newTitle;
 
             family.SendPacket(new SCFamilyTitleChangedPacket(family.Id, memberId, newTitle));
@@ -292,20 +249,13 @@ namespace AAEmu.Game.Core.Managers
 
         public void ChangeOwner(Character previousOwner, uint memberId)
         {
-            if (previousOwner.Family == 0)
-            {
-                return;
-            }
+            if (previousOwner.Family == 0) return;
+            Family family = _families[previousOwner.Family];
 
-            var family = _families[previousOwner.Family];
+            FamilyMember previousOwnerMember = family.GetMember(previousOwner);
+            if (previousOwnerMember.Role != 1) return; // Only the steward can change owner
 
-            var previousOwnerMember = family.GetMember(previousOwner);
-            if (previousOwnerMember.Role != 1)
-            {
-                return; // Only the steward can change owner
-            }
-
-            var member = _familyMembers[memberId];
+            FamilyMember member = _familyMembers[memberId];
             member.Role = 1;
             previousOwnerMember.Role = 0;
 
@@ -313,7 +263,7 @@ namespace AAEmu.Game.Core.Managers
             family.SendPacket(new SCFamilyDescPacket(family));
         }
 
-        public Family GetFamily(uint id)
+        public Family GetFamily(uint id) 
         {
             return _families[id];
         }

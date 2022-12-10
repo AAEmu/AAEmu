@@ -10,13 +10,13 @@ namespace AAEmu.Game.Models.Game.Items
 
         public MusicSheetItem()
         {
-
+            
         }
-
+        
         public MusicSheetItem(ulong id, ItemTemplate template, int count) : base(id, template, count)
         {
         }
-
+        
         public override void ReadDetails(PacketStream stream)
         {
             var id64 = stream.ReadUInt64();

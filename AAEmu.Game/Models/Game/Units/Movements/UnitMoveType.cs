@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
+using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
 {
@@ -37,29 +38,21 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             Stance = stream.ReadSByte();
             Alertness = stream.ReadSByte();
             ActorFlags = stream.ReadByte();
-            if ((ActorFlags & 0x80) == 0x80)
-            {
+            if((ActorFlags & 0x80) == 0x80)
                 FallVel = stream.ReadUInt16(); // actor.fallVel
-            }
-
-            if ((ActorFlags & 0x20) == 0x20)
+            if((ActorFlags & 0x20) == 0x20)
             {
                 GcFlags = stream.ReadByte(); // actor.gcFlags
                 GcPartId = stream.ReadUInt16(); // actor.gcPartId
                 (X2, Y2, Z2) = stream.ReadPosition(); // ix, iy, iz
                 RotationX2 = stream.ReadSByte();
-                RotationY2 = stream.ReadSByte();
+                RotationY2 = stream.ReadSByte(); 
                 RotationZ2 = stream.ReadSByte();
             }
-            if ((ActorFlags & 0x60) != 0)
-            {
+            if((ActorFlags & 0x60) != 0)
                 GcId = stream.ReadUInt32(); // actor.gcId
-            }
-
-            if ((ActorFlags & 0x40) == 0x40)
-            {
+            if((ActorFlags & 0x40) == 0x40)
                 ClimbData = stream.ReadUInt32(); // actor.climbData
-            }
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -79,12 +72,9 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             stream.Write(Stance);
             stream.Write(Alertness);
             stream.Write(ActorFlags);
-            if ((ActorFlags & 0x80) == 0x80)
-            {
+            if((ActorFlags & 0x80) == 0x80)
                 stream.Write(FallVel);
-            }
-
-            if ((ActorFlags & 0x20) == 0x20)
+            if((ActorFlags & 0x20) == 0x20)
             {
                 stream.Write(GcFlags);
                 stream.Write(GcPartId);
@@ -93,16 +83,10 @@ namespace AAEmu.Game.Models.Game.Units.Movements
                 stream.Write(RotationY2);
                 stream.Write(RotationZ2);
             }
-            if ((ActorFlags & 0x60) != 0)
-            {
+            if((ActorFlags & 0x60) != 0)
                 stream.Write(GcId);
-            }
-
-            if ((ActorFlags & 0x40) == 0x40)
-            {
+            if((ActorFlags & 0x40) == 0x40)
                 stream.Write(ClimbData);
-            }
-
             return stream;
         }
     }

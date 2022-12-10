@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-
 using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.Params.BigMonster
@@ -19,7 +18,7 @@ namespace AAEmu.Game.Models.Game.AI.Params.BigMonster
             using (var aiParams = new AiLua())
             {
                 aiParams.DoString($"data = {{\n{data}\n}}");
-
+                
                 AlertDuration = aiParams.GetInteger("data.alertDuration");
                 AlertSafeTargetRememberTime = aiParams.GetInteger("data.alertSafeTargetRememberTime");
                 AlertToAttack = Convert.ToBoolean(aiParams.GetString("data.alertToAttack"));

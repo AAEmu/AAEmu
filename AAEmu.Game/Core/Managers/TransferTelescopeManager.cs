@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.G2C;
@@ -63,10 +64,8 @@ namespace AAEmu.Game.Core.Managers
 
         public async System.Threading.Tasks.Task StopTransferTelescopeTickAsync()
         {
-            if (transferTelescopeTickStartTask == null)
-            {
+            if (transferTelescopeTickStartTask == null) 
                 return;
-            }
 
             await transferTelescopeTickStartTask.CancelAsync();
             transferTelescopeTickStartTask = null;

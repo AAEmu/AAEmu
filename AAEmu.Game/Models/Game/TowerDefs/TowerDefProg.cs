@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace AAEmu.Game.Models.Game.TowerDefs
 {
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.TowerDefs
         public float CondToNextTime { get; set; }
         // This probably is to know wether the conditions have been completed by NextTime ?
         public bool CondCompByAnd { get; set; }
-
+        
         public List<TowerDefProgKillTarget> KillTargets { get; set; }
         public List<TowerDefProgSpawnTarget> SpawnTargets { get; set; }
     }

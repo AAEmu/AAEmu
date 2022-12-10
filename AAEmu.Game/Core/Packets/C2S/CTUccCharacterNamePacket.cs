@@ -17,9 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2S
 
             var name = NameManager.Instance.GetCharacterName(id);
             if (name != null)
-            {
                 Connection.SendPacket(new TCUccCharNamePacket(id, name));
-            }
 
             _log.Debug("UccCharacterName, Id: {0}, Name: {1}", id, name);
         }

@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public int NextPhase { get; set; }
         public int ProjectileDelay { get; set; }
 
-        public override bool Use(BaseUnit caster, Doodad owner)
+        public override bool Use(Unit caster, Doodad owner)
         {
             _log.Trace("DoodadFuncPuzzleOut");
             if (caster is Character)

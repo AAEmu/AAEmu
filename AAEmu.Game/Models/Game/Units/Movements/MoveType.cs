@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.World;
 
@@ -66,42 +65,27 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             switch (type)
             {
                 case MoveTypeEnum.Unit:
-                    {
-                        mType = new UnitMoveType();
-                        break;
-                    }
+                    mType = new UnitMoveType();
+                    break;
                 case MoveTypeEnum.Vehicle:
-                    {
-                        mType = new VehicleMoveType();
-                        break;
-                    }
+                    mType = new VehicleMoveType();
+                    break;
                 case MoveTypeEnum.Ship:
-                    {
-                        mType = new ShipMoveType();
-                        break;
-                    }
+                    mType = new ShipMoveType();
+                    break;
                 case MoveTypeEnum.ShipRequest:
-                    {
-                        mType = new ShipRequestMoveType();
-                        break;
-                    }
+                    mType = new ShipRequestMoveType();
+                    break;
                 case MoveTypeEnum.Transfer:
-                    {
-                        mType = new TransferData();
-                        break;
-                    }
+                    mType = new TransferData();
+                    break;
                 default:
-                    {
-                        mType = new DefaultMoveType();
-                        break;
-                    }
+                    mType = new DefaultMoveType();
+                    break;
             }
 
             if (mType != null)
-            {
                 mType.Type = type;
-            }
-
             return mType;
         }
     }

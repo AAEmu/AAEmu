@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
@@ -16,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var id64 = stream.ReadUInt64(); // songId
             // value2: Observed 1 after creating (request item info ?), 256 when requesting playing (create buff?)
             var value2 = stream.ReadUInt16();
-
+            
             _log.Warn("Request Song, id: {0}, value2:{1}", id64, value2);
             if (value2 == 1)
             {

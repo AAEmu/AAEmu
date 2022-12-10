@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly int _cashShopId;
         private readonly int _remainCount;
-
+        
         public SCICSSyncGoodPacket(int cashShopId, int remainCount) : base(SCOffsets.SCICSSyncGoodPacket, 1)
         {
             _cashShopId = cashShopId;

@@ -70,9 +70,7 @@ namespace AAEmu.Game.Models.Game.Units
         public bool SetFixedDecalAsset(byte index, uint id, float weight)
         {
             if (FixedDecalAsset.Length <= index)
-            {
                 return false;
-            }
 
             FixedDecalAsset[index].AssetId = id;
             FixedDecalAsset[index].AssetWeight = weight;
@@ -90,9 +88,7 @@ namespace AAEmu.Game.Models.Game.Units
             MovableDecalMoveY = stream.ReadInt16();
 
             foreach (var asset in FixedDecalAsset)
-            {
                 asset.Read(stream);
-            }
 
             DiffuseMapId = stream.ReadUInt32();
             NormalMapId = stream.ReadUInt32();
@@ -117,9 +113,7 @@ namespace AAEmu.Game.Models.Game.Units
             stream.Write(MovableDecalMoveY);
 
             foreach (var asset in FixedDecalAsset)
-            {
                 stream.Write(asset);
-            }
 
             stream.Write(DiffuseMapId);
             stream.Write(NormalMapId);
@@ -159,10 +153,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             _type = type;
             if (_type == UnitCustomModelType.Face)
-            {
                 Face = new FaceModel();
-            }
-
             return this;
         }
         public UnitCustomModelParams SetModelId(uint modelId)
@@ -191,53 +182,41 @@ namespace AAEmu.Game.Models.Game.Units
 
         public override void Read(PacketStream stream)
         {
-            SetType((UnitCustomModelType)stream.ReadByte()); // ext
+            SetType((UnitCustomModelType) stream.ReadByte()); // ext
 
             if (_type == UnitCustomModelType.None)
-            {
                 return;
-            }
 
             HairColorId = stream.ReadUInt32();
 
             if (_type == UnitCustomModelType.Hair)
-            {
                 return;
-            }
 
             SkinColorId = stream.ReadUInt32();
             ModelId = stream.ReadUInt32();
 
             if (_type == UnitCustomModelType.Skin)
-            {
                 return;
-            }
 
             Face.Read(stream);
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((byte)_type); // ext
+            stream.Write((byte) _type); // ext
             if (_type == UnitCustomModelType.None)
-            {
                 return stream;
-            }
 
             stream.Write(HairColorId);
 
             if (_type == UnitCustomModelType.Hair)
-            {
                 return stream;
-            }
 
             stream.Write(SkinColorId);
             stream.Write(ModelId);
 
             if (_type == UnitCustomModelType.Skin)
-            {
                 return stream;
-            }
 
             stream.Write(Face);
 

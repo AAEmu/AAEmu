@@ -14,10 +14,10 @@ namespace AAEmu.Game.Core.Packets.S2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((ulong)_ucc.Id); // type
-            stream.Write((ulong)0); // type unk
-            stream.Write((ulong)0); // type unk
-            stream.Write((ulong)_ucc.Id); // type
+            stream.Write((ulong) _ucc.Id); // type
+            stream.Write((ulong) 0); // type unk
+            stream.Write((ulong) 0); // type unk
+            stream.Write((ulong) _ucc.Id); // type
             stream.Write(_ucc.Modified); // modified
 
             return stream;

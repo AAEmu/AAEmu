@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
@@ -21,14 +20,14 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             _auctionItems = auctionItems;
             _count = (uint)_auctionItems.Count();
-            _page = page;
+            _page = page; 
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_page);
             stream.Write(_count);
-            var random = new Random();
+            Random random = new Random();
 
             if (_count > 0)
             {

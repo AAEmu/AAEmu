@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
-
 using NLog;
 
 namespace AAEmu.Game.Models.Game.NPChar
@@ -37,17 +35,11 @@ namespace AAEmu.Game.Models.Game.NPChar
             switch (MemberType)
             {
                 case "Npc":
-                    {
-                        return SpawnNpc(npcSpawner, maxPopulation);
-                    }
+                    return SpawnNpc(npcSpawner, maxPopulation);
                 case "NpcGroup":
-                    {
-                        return SpawnNpcGroup(npcSpawner, maxPopulation);
-                    }
+                    return SpawnNpcGroup(npcSpawner, maxPopulation);
                 default:
-                    {
-                        throw new InvalidOperationException($"Tried spawning an unsupported line from NpcSpawnerNpc - Id: {Id}");
-                    }
+                    throw new InvalidOperationException($"Tried spawning an unsupported line from NpcSpawnerNpc - Id: {Id}");
             }
         }
 
@@ -91,7 +83,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
 
             //_log.Warn($"Spawned Npcs id={MemberId}, maxPopulation={maxPopulation}...");
-
+            
             return npcs;
         }
 

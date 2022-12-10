@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             _slot = (byte)item.Slot;
         }
 
-        public ItemRemoveSlot(ulong itemId, SlotType slotType, byte slot)
+        public ItemRemoveSlot(ulong itemId,SlotType slotType,byte slot)
         {
             _type = ItemAction.Seize; // 13
 

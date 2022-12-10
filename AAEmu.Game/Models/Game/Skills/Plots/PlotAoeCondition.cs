@@ -1,4 +1,9 @@
-﻿namespace AAEmu.Game.Models.Game.Skills.Plots
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using AAEmu.Game.Models.Game.Skills.Plots.Type;
+
+namespace AAEmu.Game.Models.Game.Skills.Plots
 {
     public class PlotAoeCondition
     {

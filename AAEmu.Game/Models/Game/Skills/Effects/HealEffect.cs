@@ -1,5 +1,4 @@
 ﻿using System;
-
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -31,50 +30,43 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             _log.Trace("HealEffect {0}", Id);
 
-            var unit = (Unit)caster;
-            if (target is not Unit trg)
-            {
+            if (!(target is Unit))
                 return;
-            }
+            var trg = (Unit)target;
 
             if (trg.Hp <= 0)
-            {
                 return;
-            }
 
             var min = 0.0f;
             var max = 0.0f;
 
             var levelMin = 0.0f;
             var levelMax = 0.0f;
-
-            if (UseLevelHeal)
+            
+            if (UseLevelHeal) 
             {
-                var lvlMd = unit.LevelDps * LevelMd;
-                var levelModifier = (((source.Skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
-
+                var lvlMd = caster.LevelDps * LevelMd;
+                var levelModifier = (( (source.Skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
+            
                 levelMin += (lvlMd - levelModifier * lvlMd) + 0.5f;
                 levelMax += (levelModifier + 1) * lvlMd + 0.5f;
             }
 
-            max += ((unit.HDps * 0.001f) * DpsMultiplier);
-
+            max += ((caster.HDps * 0.001f) * DpsMultiplier);
+            
             var minCastBonus = 1000f;
             // Hack null-check on skill
-            var castTimeMod = source.Skill?.Template.CastingTime ?? 0; // This mod depends on casting_inc too!
+            var castTimeMod = source.Skill?.Template.CastingTime ?? 0 ; // This mod depends on casting_inc too!
             if (castTimeMod <= 1000)
-            {
                 minCastBonus = min > 0 ? min : minCastBonus;
-            }
             else
-            {
                 minCastBonus = castTimeMod;
-            }
 
             var variableDamage = (max * minCastBonus * 0.001f);
             min = variableDamage + levelMin;
@@ -83,15 +75,15 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var tickModifier = 1.0f;
             if (source.Buff?.TickEffects.Count > 0)
             {
-                tickModifier = (float)(source.Buff.Tick / source.Buff.Duration);
+                tickModifier = (float) (source.Buff.Tick / source.Buff.Duration);
             }
-
+            
             min *= tickModifier;
             max *= tickModifier;
 
             if (UseChargedBuff)
             {
-                var effect = unit.Buffs.GetEffectFromBuffId(ChargedBuffId);
+                var effect = caster.Buffs.GetEffectFromBuffId(ChargedBuffId);
                 if (effect != null)
                 {
                     min += ChargedMul * effect.Charge;
@@ -100,50 +92,43 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 }
             }
 
-            var criticalHeal = Rand.Next(0f, 100f) < unit.HealCritical;
-
+            bool criticalHeal = Rand.Next(0f, 100f) < caster.HealCritical;
+            
             var value = (int)Rand.Next(min, max);
 
             if (criticalHeal)
             {
-                value = (int)(value * (1 + (unit.HealCriticalBonus / 100)));
-                unit.CombatBuffs.TriggerCombatBuffs(unit, trg, SkillHitType.SpellCritical, true);
+                value = (int)(value * (1 + (caster.HealCriticalBonus / 100)));
+                caster.CombatBuffs.TriggerCombatBuffs(caster, trg, SkillHitType.SpellCritical, true);
             }
 
-            value = (int)(value * trg.IncomingHealMul);
-
+            value = (int) (value * trg.IncomingHealMul);
+            
             if (UseFixedHeal)
             {
                 value = Rand.Next(FixedMin, FixedMax);
                 if (source.Buff != null && source.IsTrigger)
                 {
                     value = (int)((value / 1000.0f) * source.Amount);
-                }
-                else
-                {
-                    value = (int)(value * tickModifier);
-                }
+                } else 
+                    value = (int) (value * tickModifier);
             }
+            
+            value = (int) (value * caster.HealMul);
 
-            value = (int)(value * unit.HealMul);
+            byte healHitType = criticalHeal ? (byte)11 : (byte)13;
 
-            var healHitType = criticalHeal ? SkillHitType.RangedCritical : SkillHitType.SpellHit;
-
-            var packet = new SCUnitHealedPacket(castObj, casterObj, trg.ObjId, HealType.Health, healHitType, value);
+            var packet = new SCUnitHealedPacket(castObj, casterObj, target.ObjId, 0, healHitType, value);
             if (packetBuilder != null)
-            {
                 packetBuilder.AddPacket(packet);
-            }
             else
-            {
                 trg.BroadcastPacket(packet, true);
-            }
 
             trg.Hp += value;
             trg.Hp = Math.Min(trg.Hp, trg.MaxHp);
             trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);
 
-            trg.Events.OnHealed(this, new OnHealedArgs { Healer = unit, HealAmount = value });
+            trg.Events.OnHealed(this, new OnHealedArgs { Healer = caster, HealAmount = value });
         }
     }
 }

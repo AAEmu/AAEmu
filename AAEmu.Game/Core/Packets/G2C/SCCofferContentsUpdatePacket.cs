@@ -15,28 +15,20 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             _cofferDoodad = cofferDoodad;
             _firstSlot = firstSlot;
-            var lastSlot = _firstSlot + MaxSlotsToSend;
+            var lastSlot = _firstSlot + MaxSlotsToSend ;
             if (lastSlot >= _cofferDoodad.Capacity)
-            {
-                lastSlot = _cofferDoodad.Capacity;
-            }
-
+                lastSlot = _cofferDoodad.Capacity ;
             var slotCount = lastSlot - _firstSlot;
             if (slotCount >= MaxSlotsToSend)
-            {
                 slotCount = MaxSlotsToSend;
-            }
-
             _slotCount = (byte)slotCount;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             if (_cofferDoodad?.ItemContainer == null)
-            {
                 _log.Warn($"No ItemContainer assigned to Coffer, objId: {_cofferDoodad?.ObjId} dbId: {_cofferDoodad?.DbId}");
-            }
-
+            
             stream.WriteBc(_cofferDoodad?.ObjId ?? 0);
             stream.Write(_cofferDoodad?.GetItemContainerId() ?? 0);
             stream.Write(_slotCount);
@@ -46,13 +38,9 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(slot);
                 var item = _cofferDoodad?.ItemContainer?.GetItemBySlot(slot);
                 if (item == null)
-                {
                     stream.Write(0u); // uint
-                }
                 else
-                {
                     stream.Write(item);
-                }
             }
 
             return stream;

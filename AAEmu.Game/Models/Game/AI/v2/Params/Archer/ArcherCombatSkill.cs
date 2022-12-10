@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-
 using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.V2.Params.Archer
@@ -11,13 +10,13 @@ namespace AAEmu.Game.Models.Game.AI.V2.Params.Archer
         public List<uint> MakeAGap { get; set; }
         public List<uint> RangedDef { get; set; }
         public List<uint> RangedStrong { get; set; }
-
+        
         public void ParseLua(LuaTable table)
         {
             Melee = new List<uint>();
             if (table["melee"] is LuaTable meleeSkills)
             {
-                foreach (var value in meleeSkills.Values)
+                foreach(var value in meleeSkills.Values)
                 {
                     Melee.Add(Convert.ToUInt32(value));
                 }

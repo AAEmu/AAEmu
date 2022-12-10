@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.DoodadObj;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -17,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var objId = stream.ReadBc();
             var data = stream.ReadInt32();
-
+            
             _log.Warn($"ChangeDoodadData, ObjId: {objId}, Data: {data}");
             var doodad = WorldManager.Instance.GetDoodad(objId);
             if (doodad != null)
@@ -26,9 +27,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var doodadType = doodad.Template.GetType().ToString();
                 _log.Warn($"Doodad: {doodad.Name} ({doodad.TemplateId} - {doodadName} - {doodadType})");
                 if (!DoodadManager.Instance.ChangeDoodadData(Connection.ActiveChar, doodad, data))
-                {
                     Connection.ActiveChar.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
-                }
             }
         }
     }

@@ -15,9 +15,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
             _log.Warn("QuestActConAcceptNpcEmotion: NpcId {0}, Emotion {1}", NpcId, Emotion);
 
             if (!(character.CurrentTarget is Npc))
-            {
                 return false;
-            }
 
             quest.QuestAcceptorType = QuestAcceptorType.Npc;
             quest.AcceptorType = NpcId;

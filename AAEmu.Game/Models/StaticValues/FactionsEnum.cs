@@ -13,5 +13,5 @@
         public const uint PcFriendly = 165;
         public const uint Fish = 172;
     }
-
+ 
 }

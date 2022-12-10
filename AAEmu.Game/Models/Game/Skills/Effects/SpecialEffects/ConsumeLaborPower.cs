@@ -1,15 +1,15 @@
 ﻿using System;
-
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     class ConsumeLaborPower : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.ConsumeLaborPower;
-
-        public override void Execute(BaseUnit caster,
+        
+        public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,

@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.TeleportToUnit;
 
-        public override void Execute(BaseUnit caster,
+        public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -41,16 +41,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             switch (caster)
             {
                 case Character character:
-                    {
-                        character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, 0f, 0f, endX, endY, pos.Z));
-                        break;
-                    }
+                    character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, 0f, 0f, endX, endY, pos.Z));
+                    break;
                 case Npc npc:
-                    {
-                        npc.MoveTowards(pos, 10000);
-                        npc.StopMovement();
-                        break;
-                    }
+                    npc.MoveTowards(pos, 10000);
+                    npc.StopMovement();
+                    break;
             }
         }
     }

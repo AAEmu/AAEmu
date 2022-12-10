@@ -1,5 +1,4 @@
 ﻿using System;
-
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 
@@ -32,39 +31,25 @@ namespace AAEmu.Game.Models.Game.Skills
             switch (type)
             {
                 case SkillCastTargetType.Unit:
-                    {
-                        obj = new SkillCastUnitTarget();
-                        break;
-                    }
+                    obj = new SkillCastUnitTarget();
+                    break;
                 case SkillCastTargetType.Position:
-                    {
-                        obj = new SkillCastPositionTarget();
-                        break;
-                    }
+                    obj = new SkillCastPositionTarget();
+                    break;
                 case SkillCastTargetType.Position2:
-                    {
-                        obj = new SkillCastPosition2Target();
-                        break;
-                    }
+                    obj = new SkillCastPosition2Target();
+                    break;
                 case SkillCastTargetType.Item:
-                    {
-                        obj = new SkillCastItemTarget();
-                        break;
-                    }
+                    obj = new SkillCastItemTarget();
+                    break;
                 case SkillCastTargetType.Doodad:
-                    {
-                        obj = new SkillCastDoodadTarget();
-                        break;
-                    }
+                    obj = new SkillCastDoodadTarget();
+                    break;
                 case SkillCastTargetType.Position3:
-                    {
-                        obj = new SkillCastPosition3Target();
-                        break;
-                    }
+                    obj = new SkillCastPosition3Target();
+                    break;
                 default:
-                    {
-                        throw new ArgumentOutOfRangeException(nameof(type), type, null);
-                    }
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
 
             obj.Type = type;

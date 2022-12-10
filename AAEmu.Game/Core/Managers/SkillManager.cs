@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.Skills;
@@ -13,7 +12,6 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
-
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -54,21 +52,14 @@ namespace AAEmu.Game.Core.Managers
                 while (_skillIds.Contains(id))
                 {
                     if (id == ushort.MaxValue)
-                    {
                         id = 1;
-                    }
                     else
-                    {
                         id++;
-                    }
                 }
                 _skillIds.Add(id);
                 _skillIdIndex = (ushort)(id + 1u);
                 if (_skillIdIndex == 0)
-                {
                     _skillIdIndex = 1;
-                }
-
                 return id;
             }
         }
@@ -84,10 +75,7 @@ namespace AAEmu.Game.Core.Managers
         public SkillTemplate GetSkillTemplate(uint id)
         {
             if (_skills.ContainsKey(id))
-            {
                 return _skills[id];
-            }
-
             return null;
         }
 
@@ -117,16 +105,13 @@ namespace AAEmu.Game.Core.Managers
             //     return (BuffTemplate)_effects["Buff"][id];
             // return null;
             if (_buffs.ContainsKey(id))
-            {
                 return _buffs[id];
-            }
-
             return null;
         }
 
         public List<BuffTriggerTemplate> GetBuffTriggerTemplates(uint buffId)
         {
-            if (_buffTriggers.TryGetValue(buffId, out var triggers))
+            if (_buffTriggers.TryGetValue(buffId, out List<BuffTriggerTemplate> triggers))
             {
                 return triggers;
             }
@@ -171,84 +156,61 @@ namespace AAEmu.Game.Core.Managers
         public List<uint> GetBuffTags(uint buffId)
         {
             if (_buffTags.ContainsKey(buffId))
-            {
                 return _buffTags[buffId];
-            }
-
             return new List<uint>();
         }
 
         public List<uint> GetBuffsByTagId(uint tagId)
         {
             if (_taggedBuffs.ContainsKey(tagId))
-            {
                 return _taggedBuffs[tagId];
-            }
-
             return null;
         }
 
         public List<uint> GetSkillTags(uint skillId)
         {
             if (_skillTags.ContainsKey(skillId))
-            {
                 return _skillTags[skillId];
-            }
-
             return new List<uint>();
         }
 
         public List<uint> GetSkillsByTag(uint tagId)
         {
             if (_taggedSkills.ContainsKey(tagId))
-            {
                 return _taggedSkills[tagId];
-            }
-
             return new List<uint>();
         }
 
         public PassiveBuffTemplate GetPassiveBuffTemplate(uint id)
         {
             if (_passiveBuffs.ContainsKey(id))
-            {
                 return _passiveBuffs[id];
-            }
-
             return null;
         }
 
         public List<SkillModifier> GetModifiersByOwnerId(uint id)
         {
             if (_skillModifiers.ContainsKey(id))
-            {
                 return _skillModifiers[id];
-            }
-
             return new List<SkillModifier>();
         }
 
         public List<CombatBuffTemplate> GetCombatBuffs(uint reqBuffId)
         {
             if (_combatBuffs.ContainsKey(reqBuffId))
-            {
                 return _combatBuffs[reqBuffId];
-            }
-
             return new List<CombatBuffTemplate>();
         }
 
 
         public List<SkillReagent> GetSkillReagentsBySkillId(uint id)
         {
-            var reagents = new List<SkillReagent>();
+            List<SkillReagent> reagents = new List<SkillReagent>();
 
             foreach (var reagent in _skillReagents)
             {
                 if (reagent.Value.SkillId == id)
-                {
                     reagents.Add(reagent.Value);
-                }
             }
 
             return reagents;
@@ -256,14 +218,12 @@ namespace AAEmu.Game.Core.Managers
 
         public List<SkillProduct> GetSkillProductsBySkillId(uint id)
         {
-            var products = new List<SkillProduct>();
+            List<SkillProduct> products = new List<SkillProduct>();
 
             foreach (var product in _skillProducts)
             {
                 if (product.Value.SkillId == id)
-                {
                     products.Add(product.Value);
-                }
             }
 
             return products;
@@ -272,9 +232,7 @@ namespace AAEmu.Game.Core.Managers
         public void Load()
         {
             if (_loaded)
-            {
                 return;
-            }
 
             _skills = new Dictionary<uint, SkillTemplate>();
             _defaultSkills = new Dictionary<uint, DefaultSkill>();
@@ -710,10 +668,7 @@ namespace AAEmu.Game.Core.Managers
                             template.Id = reader.GetUInt32("id");
                             var buffId = reader.GetUInt32("buff_id");
                             if (_buffs.ContainsKey(buffId))
-                            {
                                 template.Buff = _buffs[buffId];
-                            }
-
                             template.Chance = reader.GetInt32("chance");
                             template.Stack = reader.GetInt32("stack");
                             template.AbLevel = reader.GetInt32("ab_level");
@@ -749,10 +704,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var buffId = reader.GetUInt32("owner_id");
                             if (!_buffs.ContainsKey(buffId))
-                            {
                                 continue;
-                            }
-
                             var buff = _buffs[buffId];
                             var template = new BonusTemplate();
                             template.Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id");
@@ -773,10 +725,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var buffId = reader.GetUInt32("buff_id");
                             if (!_buffs.ContainsKey(buffId))
-                            {
                                 continue;
-                            }
-
                             var buff = _buffs[buffId];
                             var template = new DynamicBonusTemplate();
                             template.Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id");
@@ -1586,9 +1535,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var skillId = reader.GetUInt32("skill_id");
                             if (!_skills.ContainsKey(skillId))
-                            {
                                 continue;
-                            }
 
                             var template = new SkillEffect();
                             var effectId = reader.GetUInt32("effect_id");
@@ -1598,10 +1545,7 @@ namespace AAEmu.Game.Core.Managers
 
                             var type = _types[effectId];
                             if (_effects.ContainsKey(type.Type))
-                            {
                                 template.Template = _effects[type.Type][type.ActualId];
-                            }
-
                             template.Weight = reader.GetInt32("weight");
                             template.StartLevel = reader.GetByte("start_level");
                             template.EndLevel = reader.GetByte("end_level");
@@ -1639,17 +1583,11 @@ namespace AAEmu.Game.Core.Managers
                             var buffId = reader.GetUInt32("buff_id");
 
                             if (!_buffTags.ContainsKey(buffId))
-                            {
                                 _buffTags.Add(buffId, new List<uint>());
-                            }
-
                             _buffTags[buffId].Add(tagId);
 
                             if (!_taggedBuffs.ContainsKey(tagId))
-                            {
                                 _taggedBuffs.Add(tagId, new List<uint>());
-                            }
-
                             _taggedBuffs[tagId].Add(buffId);
                         }
                     }
@@ -1678,10 +1616,7 @@ namespace AAEmu.Game.Core.Managers
                             };
 
                             if (!_skillModifiers.ContainsKey(template.OwnerId))
-                            {
                                 _skillModifiers.Add(template.OwnerId, new List<SkillModifier>());
-                            }
-
                             _skillModifiers[template.OwnerId].Add(template);
                         }
                     }
@@ -1700,17 +1635,11 @@ namespace AAEmu.Game.Core.Managers
 
                             //I guess we need this
                             if (!_skillTags.ContainsKey(skillId))
-                            {
                                 _skillTags.Add(skillId, new List<uint>());
-                            }
-
                             _skillTags[skillId].Add(tagId);
 
                             if (!_taggedSkills.ContainsKey(tagId))
-                            {
                                 _taggedSkills.Add(tagId, new List<uint>());
-                            }
-
                             _taggedSkills[tagId].Add(skillId);
                         }
                     }
@@ -1738,10 +1667,7 @@ namespace AAEmu.Game.Core.Managers
                             };
 
                             if (!_combatBuffs.ContainsKey(combatBuffTemplate.ReqBuffId))
-                            {
                                 _combatBuffs.Add(combatBuffTemplate.ReqBuffId, new List<CombatBuffTemplate>());
-                            }
-
                             _combatBuffs[combatBuffTemplate.ReqBuffId].Add(combatBuffTemplate);
                         }
                     }
@@ -1836,22 +1762,13 @@ namespace AAEmu.Game.Core.Managers
             {
                 if (!skillTemplate.NeedLearn && skillTemplate.AbilityId == 0 &&
                     !_defaultSkills.ContainsKey(skillTemplate.Id))
-                {
                     _commonSkills.Add(skillTemplate.Id);
-                }
-
                 if (!skillTemplate.NeedLearn || skillTemplate.AbilityId == 0 || skillTemplate.AbilityLevel > 1 ||
                     !skillTemplate.Show)
-                {
                     continue;
-                }
-
                 var ability = (AbilityType)skillTemplate.AbilityId;
                 if (!_startAbilitySkills.ContainsKey(ability))
-                {
                     _startAbilitySkills.Add(ability, new List<SkillTemplate>());
-                }
-
                 _startAbilitySkills[ability].Add(skillTemplate);
             }
 

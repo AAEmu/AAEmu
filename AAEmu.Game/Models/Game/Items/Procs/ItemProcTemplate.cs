@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Items.Procs
         public uint CooldownSec { get; set; }
         public bool Finisher { get; set; }
         public uint ItemLevelBasedChanceBonus { get; set; }
-
+        
         public SkillTemplate SkillTemplate { get; set; }
 
     }

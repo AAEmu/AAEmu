@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
-
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 

@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
@@ -11,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly List<Item> _items;
         private readonly bool _lootAll;
 
-        public SCLootBagDataPacket(List<Item> items, bool lootAll) : base(SCOffsets.SCLootBagDataPacket, 1)
+        public SCLootBagDataPacket(List<Item> items, bool lootAll) : base(SCOffsets.SCLootBagDataPacket,1)
         {
             _items = items;
             _lootAll = lootAll;
@@ -21,7 +20,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write((byte)_items.Count);
 
-            foreach (var item in _items)
+            foreach(var item in _items)
             {
                 stream.Write(item.TemplateId);
                 stream.Write(item.Id);

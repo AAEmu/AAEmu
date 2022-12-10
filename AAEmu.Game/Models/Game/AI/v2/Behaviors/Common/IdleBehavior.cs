@@ -1,5 +1,4 @@
 ﻿using System;
-
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
@@ -15,9 +14,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         public override void Tick(TimeSpan delta)
         {
             if (!Ai.Owner.Template.Aggression)
-            {
                 return;//Remove this if we need non-aggressive npcs to search for targetsegion.IsEmpty())
-            }
 
             var nearbyUnits = WorldManager.Instance.GetAround<Unit>(Ai.Owner, 10 * Ai.Owner.Template.SightRangeScale);
 

@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Net;
-
 using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.Proxy;
 using AAEmu.Game.Models;
-
 using NLog;
 
 namespace AAEmu.Game.Core.Network.Game
@@ -271,11 +269,11 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSICSGoodsListPacket, 1, typeof(CSICSGoodsListPacket));
             RegisterPacket(CSOffsets.CSICSBuyGoodPacket, 1, typeof(CSICSBuyGoodPacket));
             RegisterPacket(CSOffsets.CSICSMoneyRequestPacket, 1, typeof(CSICSMoneyRequestPacket));
-            RegisterPacket(CSOffsets.CSSaveUserMusicNotesPacket, 1, typeof(CSSaveUserMusicNotesPacket));
-            RegisterPacket(CSOffsets.CSRequestMusicNotesPacket, 1, typeof(CSRequestMusicNotesPacket));
-            RegisterPacket(CSOffsets.CSSendUserMusicPacket, 1, typeof(CSSendUserMusicPacket));
-            RegisterPacket(CSOffsets.CSEndMusicPacket, 1, typeof(CSEndMusicPacket));
-
+            RegisterPacket(CSOffsets.CSSaveUserMusicNotesPacket,1,typeof(CSSaveUserMusicNotesPacket));
+            RegisterPacket(CSOffsets.CSRequestMusicNotesPacket,1,typeof(CSRequestMusicNotesPacket));
+            RegisterPacket(CSOffsets.CSSendUserMusicPacket,1,typeof(CSSendUserMusicPacket));
+            RegisterPacket(CSOffsets.CSEndMusicPacket,1,typeof(CSEndMusicPacket));
+            
             RegisterPacket(CSOffsets.CSExitBeautySalonPacket, 1, typeof(CSExitBeautySalonPacket));
             RegisterPacket(CSOffsets.CSBeautyshopDataPacket, 1, typeof(CSBeautyshopDataPacket));
             RegisterPacket(CSOffsets.CSEnterBeautySalonPacket, 1, typeof(CSEnterBeautySalonPacket));
@@ -340,9 +338,7 @@ namespace AAEmu.Game.Core.Network.Game
         public void Stop()
         {
             if (_server?.IsStarted ?? false)
-            {
                 _server.Stop();
-            }
 
             _log.Info("Network stoped");
         }

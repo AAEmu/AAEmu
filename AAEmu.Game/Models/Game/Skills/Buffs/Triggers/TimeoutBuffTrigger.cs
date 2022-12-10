@@ -1,5 +1,4 @@
 ﻿using System;
-
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
@@ -20,13 +19,13 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
             }
 
             var target = _buff.Owner;
-            var source = _buff.Owner;
-
+            var source = (Unit)_buff.Owner;
+            
             if (Template.UseOriginalSource)
             {
                 source = _buff.Caster;
             }
-
+            
             if (Template.EffectOnSource)
             {
                 target = source;

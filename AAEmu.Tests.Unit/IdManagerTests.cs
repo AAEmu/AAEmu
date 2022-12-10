@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Utils;
 using Xunit;
 
 namespace AAEmu.Tests

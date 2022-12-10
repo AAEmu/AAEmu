@@ -27,7 +27,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
             }
 
             var target = _buff?.Owner;
-            var source = _buff?.Owner;
+            var source = (Unit)_buff?.Owner;
 
             if (Template.UseOriginalSource)
             {
@@ -42,16 +42,12 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
             if (Template.TargetBuffTagId != 0)
             {
                 if (target != null && !target.Buffs.CheckBuffTag(Template.TargetBuffTagId))
-                {
                     return;
-                }
             }
             if (Template.TargetNoBuffTagId != 0)
             {
                 if (target != null && target.Buffs.CheckBuffTag(Template.TargetNoBuffTagId))
-                {
                     return;
-                }
             }
 
             if (target == null) { return; }

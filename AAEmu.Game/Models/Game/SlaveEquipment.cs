@@ -1,10 +1,10 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Models.Game
 {
     public class SlaveEquipment : PacketMarshaler
-    {
+    { 
         public uint Id { get; set; }
         public ushort Tl { get; set; }
         public uint DbSlaveId { get; set; }
@@ -24,12 +24,12 @@ namespace AAEmu.Game.Models.Game
             stream.Write(Bts);
             stream.Write(Item);
             stream.Write(Item2);
-
+            
             stream.Write((byte)0);
             stream.Write((byte)SlotType);
             stream.Write((byte)0);
             stream.Write(Slot);
-
+            
             stream.Write((byte)0);
             stream.Write((byte)SlotType2);
             stream.Write((byte)0);

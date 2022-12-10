@@ -21,9 +21,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             if (Ai.Owner.CurrentTarget == null) { return; }
             MoveInRange(Ai.Owner.CurrentTarget, delta);
             if (!CanUseSkill)
-            {
                 return;
-            }
 
             PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget);
         }

@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text;
-
 using AAEmu.Game.Models.Game.Char;
-
 using NLog;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands
@@ -18,9 +16,9 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
 
         protected void AddParameter(SubCommandParameterBase parameter)
         {
-            if (parameter.Prefix is null &&
-                parameter.IsRequired &&
-                _parameters.Any() &&
+            if (parameter.Prefix is null && 
+                parameter.IsRequired && 
+                _parameters.Any() && 
                 _parameters.LastOrDefault(x => !x.IsRequired && x.Prefix is null) is not null)
             {
                 throw new InvalidOperationException("Cannot add a required parameter after an optional parameter");
@@ -36,7 +34,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
 
             _parameters.Add(parameter);
         }
-
+        
         protected List<string> SupportedCommands => _subCommands.Keys.ToList();
         protected string Title { get; set; }
         public string Description { get; protected set; }
@@ -121,7 +119,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
 
             var nonPrefixArguments = args.Where(a => a.IndexOf('=') == -1).ToArray();
             var parameterCount = 0;
-            foreach (var parameter in _parameters.Where(p => p.Prefix is null))
+            foreach(var parameter in _parameters.Where(p => p.Prefix is null))
             {
                 ParameterResult parameterValue = null;
                 if (parameterCount < nonPrefixArguments.Length)
@@ -147,7 +145,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             foreach (var parameterPrefix in _parameters.Where(p => p.Prefix is not null))
             {
                 string foundPrefixArgument = null;
-                var duplicatedPrefixValue = false;
+                bool duplicatedPrefixValue = false;
                 foreach (var argument in prefixArguments)
                 {
                     if (parameterPrefix.MatchPrefix(argument))
@@ -164,7 +162,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
                     {
                         parameterValue = new ParameterResult<object>(parameterPrefix.Name, null, $"Parameter prefix {parameterPrefix.Prefix} is duplicated");
                     }
-                    else
+                    else 
                     {
                         parameterValue = parameterPrefix.Load(foundPrefixArgument);
                     }
@@ -181,11 +179,11 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
 
             return parametersValue;
         }
-
+        
         protected bool PreValidate(ICharacter character, ICollection<ParameterResult> parameters)
         {
             var isValid = true;
-            foreach (var parameter in parameters.Where(p => !p.IsValid))
+            foreach (var parameter in parameters.Where(p => !p.IsValid)) 
             {
                 isValid = false;
                 SendColorMessage(character, Color.Red, parameter.InvalidMessage);
@@ -199,7 +197,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             {
                 SendColorMessage(character, Color.LawnGreen, GetCallExample());
             }
-            if (SupportedCommands.Count > 0)
+            if (SupportedCommands.Count > 0) 
             {
                 SendColorMessage(character, Color.LawnGreen, $"Supported subcommands: <{string.Join("||", SupportedCommands)}>");
                 SendColorMessage(character, Color.LawnGreen, $"For more details use /<command> <subcommand> help.");
@@ -213,14 +211,14 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             {
                 foreach (var parameter in _parameters.OrderBy(p => p.Prefix is not null).ThenBy(p => !p.IsRequired))
                 {
-                    callExampleMessage.Append(parameter.IsRequired
-                        ? $" <{parameter.CallExample}>"
+                    callExampleMessage.Append(parameter.IsRequired 
+                        ? $" <{parameter.CallExample}>" 
                         : $" [{parameter.CallExample}]");
                 }
             }
             return callExampleMessage.ToString();
         }
-
+        
         /// <summary>
         /// Implementation related to this command level
         /// </summary>
@@ -242,7 +240,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         {
             SendHelpMessage(character);
         }
-
+        
         /// <summary>
         /// Adds the subcommand prefix to the message
         /// </summary>
@@ -298,10 +296,8 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         protected T GetOptionalParameterValue<T>(IDictionary<string, ParameterValue> parameters, string parameterName, T defaultArgumentValue)
         {
             if (!parameters.ContainsKey(parameterName))
-            {
                 return defaultArgumentValue;
-            }
-
+            
             return parameters[parameterName].As<T>();
         }
     }

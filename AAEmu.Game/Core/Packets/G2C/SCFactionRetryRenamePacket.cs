@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _xpdt;
         private readonly short _errorMessage;
         private readonly string _name;
-
+        
         public SCFactionRetryRenamePacket(bool xpdt, short errorMessage, string name) : base(SCOffsets.SCFactionRetryRenamePacket, 1)
         {
             _xpdt = xpdt;

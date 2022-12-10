@@ -6,8 +6,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
     public class DoodadFuncConsumeChangerModel : DoodadPhaseFuncTemplate
     {
         public string Name { get; set; }
-
-        public override bool Use(BaseUnit caster, Doodad owner)
+        
+        public override bool Use(Unit caster, Doodad owner)
         {
             _log.Trace("DoodadFuncConsumeChangerModel");
             return false;

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _size;
         private readonly PremiumDetail _detail;
         private readonly int _exchangeRatio;
-
+        
         public SCPremiumServiceListPacket(bool isEnd, byte size, PremiumDetail detail, int exchangeRatio) : base(SCOffsets.SCPremiumServiceListPacket, 1)
         {
             _isEnd = isEnd;

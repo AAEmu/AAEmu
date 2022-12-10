@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var cofferObjId = stream.ReadBc();
             var opening = stream.ReadBoolean();
-
+            
             _log.Warn("CofferInteraction, cofferObjId: {0}, opening: {1}", cofferObjId, opening);
             if (opening)
             {
@@ -29,9 +29,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             else
             {
                 if (!DoodadManager.Instance.CloseCofferDoodad(Connection.ActiveChar, cofferObjId))
-                {
                     _log.Warn($"{Connection.ActiveChar.Name} failed to Close coffer objId {cofferObjId}");
-                }
             }
         }
     }

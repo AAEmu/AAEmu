@@ -28,22 +28,18 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public bool UseOriginSource { get; set; }
         public List<uint> Effects { get; set; }
 
-        public override bool Use(BaseUnit caster, Doodad owner)
+        public override bool Use(Unit caster, Doodad owner)
         {
             if (caster is Character)
-            {
                 _log.Debug("DoodadFuncClout : Duration {0}, Tick {1}, TargetRelationId {2}, BuffId {3}, ProjectileId {4}, ShowToFriendlyOnly {5}, NextPhase {6}, AoeShapeId {7}, TargetBuffTagId {8}, TargetNoBuffTagId {9}, UseOriginSource {10}", Duration, Tick, TargetRelation, BuffId, ProjectileId, ShowToFriendlyOnly, NextPhase, AoeShapeId, TargetBuffTagId, TargetNoBuffTagId, UseOriginSource);
-            }
             else
-            {
                 _log.Trace("DoodadFuncClout : Duration {0}, Tick {1}, TargetRelationId {2}, BuffId {3}, ProjectileId {4}, ShowToFriendlyOnly {5}, NextPhase {6}, AoeShapeId {7}, TargetBuffTagId {8}, TargetNoBuffTagId {9}, UseOriginSource {10}", Duration, Tick, TargetRelation, BuffId, ProjectileId, ShowToFriendlyOnly, NextPhase, AoeShapeId, TargetBuffTagId, TargetNoBuffTagId, UseOriginSource);
-            }
 
             var areaTrigger = new AreaTrigger()
             {
                 Shape = WorldManager.Instance.GetAreaShapeById(AoeShapeId),
                 Owner = owner,
-                Caster = (Unit)caster,
+                Caster = caster,
                 InsideBuffTemplate = SkillManager.Instance.GetBuffTemplate(BuffId),
                 TargetRelation = TargetRelation,
                 TickRate = Tick,
@@ -60,10 +56,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 {
                     await Task.Delay(Duration);
                     if (NextPhase == -1)
-                    {
                         owner.Delete();
-                    }
-
                     owner.DoPhaseFuncs(caster, NextPhase);
                     AreaTriggerManager.Instance.RemoveAreaTrigger(areaTrigger);
                 });

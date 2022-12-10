@@ -1,10 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Utils.DB;
-
 using NLog;
 
 namespace AAEmu.Game.GameData.Framework
@@ -19,14 +18,12 @@ namespace AAEmu.Game.GameData.Framework
         {
             _loaders = new List<IGameDataLoader>();
         }
-
+        
         public void LoadGameData()
         {
             if (_loadedGameData)
-            {
                 return;
-            }
-
+            
             _logger.Info("Loading game data");
             CreateLoaders();
             using (var connection = SQLite.CreateConnection())
@@ -47,10 +44,8 @@ namespace AAEmu.Game.GameData.Framework
         public void PostLoadGameData()
         {
             if (_postLoadedGameData)
-            {
                 return;
-            }
-
+            
             _logger.Info("Post loading game data");
             foreach (var loader in _loaders)
             {
@@ -62,15 +57,13 @@ namespace AAEmu.Game.GameData.Framework
 
             _postLoadedGameData = true;
         }
-
+        
         private void CreateLoaders()
         {
-            foreach (var type in Assembly.GetAssembly(typeof(GameDataManager)).GetTypes())
+            foreach(var type in Assembly.GetAssembly(typeof(GameDataManager)).GetTypes())
             {
                 if (type.GetCustomAttributes(typeof(GameDataAttribute), true).Length <= 0)
-                {
                     continue;
-                }
 
                 if (!type.GetInterfaces().Contains(typeof(IGameDataLoader)))
                 {
@@ -82,7 +75,7 @@ namespace AAEmu.Game.GameData.Framework
                 Register((IGameDataLoader)e);
             }
         }
-
+        
         private void Register(IGameDataLoader dataLoader)
         {
             _loaders.Add(dataLoader);

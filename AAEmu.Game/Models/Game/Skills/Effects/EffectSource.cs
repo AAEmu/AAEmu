@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public EffectSource()
         {
         }
-
+        
         public EffectSource(Skill skill)
         {
             Skill = skill;

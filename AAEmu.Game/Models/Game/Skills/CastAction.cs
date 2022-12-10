@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((byte)Type);
+            stream.Write((byte) Type);
             return stream;
         }
     }
@@ -26,10 +26,10 @@ namespace AAEmu.Game.Models.Game.Skills
     {
         private uint _skillId;
         private ushort _tlId;
-
+        
         public uint SkillId { get => _skillId; }
         public ushort TlId { get => _tlId; }
-
+        
         public CastSkill(uint skillId, ushort tlId)
         {
             Type = CastType.Skill;

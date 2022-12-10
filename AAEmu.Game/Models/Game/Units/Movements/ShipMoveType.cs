@@ -1,5 +1,4 @@
 ﻿using System;
-
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
@@ -27,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             RotationX = stream.ReadInt16();
             RotationY = stream.ReadInt16();
             RotationZ = stream.ReadInt16();
-
+            
             AngVelX = stream.ReadSingle();
             AngVelY = stream.ReadSingle();
             AngVelZ = stream.ReadSingle();
@@ -41,11 +40,11 @@ namespace AAEmu.Game.Models.Game.Units.Movements
         {
             base.Write(stream);
             stream.WritePosition(X, Y, Z);
-
+            
             stream.Write(VelX);
             stream.Write(VelY);
             stream.Write(VelZ);
-
+            
             stream.Write(RotationX);
             stream.Write(RotationY);
             stream.Write(RotationZ);
@@ -53,16 +52,16 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             stream.Write(AngVelX);
             stream.Write(AngVelY);
             stream.Write(AngVelZ);
-
+            
             stream.Write(Steering);
             stream.Write(Throttle);
-
+            
             stream.Write(ZoneId);
             stream.Write(Stuck);
 
             return stream;
         }
-
+        
         public void UseSlaveBase(Slave slave)
         {
             X = slave.Transform.World.Position.X;
@@ -75,7 +74,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             AngVelX = 0;
             AngVelY = 0;
             AngVelZ = 0;
-            ZoneId = (ushort)slave.Transform.ZoneId;
+            ZoneId = (ushort) slave.Transform.ZoneId;
             Time = (uint)(DateTime.UtcNow - slave.SpawnTime).TotalMilliseconds;
             Stuck = false;
             Throttle = slave.ThrottleRequest;

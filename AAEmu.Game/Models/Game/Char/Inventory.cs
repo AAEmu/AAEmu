@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
@@ -8,9 +7,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
-
 using MySql.Data.MySqlClient;
-
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -34,7 +31,7 @@ namespace AAEmu.Game.Models.Game.Char
             Owner = owner;
             // Create all container types
             _itemContainers = new Dictionary<SlotType, ItemContainer>();
-
+            
             // Override Unit's created equipment container with a persistent one
             Owner.Equipment = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, SlotType.Equipment);
 
@@ -48,7 +45,7 @@ namespace AAEmu.Game.Models.Game.Char
                     Equipment = Owner.Equipment;
                     Equipment.Owner = Owner;
                     Equipment.PartOfPlayerInventory = true;
-                    _itemContainers.Add(st, Equipment);
+                    _itemContainers.Add(st,Equipment);
                     continue;
                 }
 
@@ -65,29 +62,21 @@ namespace AAEmu.Game.Models.Game.Char
                         break;
                     */
                     case SlotType.Inventory:
-                        {
-                            newContainer.ContainerSize = Owner.NumInventorySlots;
-                            Bag = newContainer;
-                            break;
-                        }
+                        newContainer.ContainerSize = Owner.NumInventorySlots;
+                        Bag = newContainer;
+                        break;
                     case SlotType.Bank:
-                        {
-                            newContainer.ContainerSize = Owner.NumBankSlots;
-                            Warehouse = newContainer;
-                            break;
-                        }
+                        newContainer.ContainerSize = Owner.NumBankSlots;
+                        Warehouse = newContainer;
+                        break;
                     case SlotType.Mail:
-                        {
-                            newContainer.PartOfPlayerInventory = false;
-                            MailAttachments = newContainer;
-                            break;
-                        }
+                        newContainer.PartOfPlayerInventory = false;
+                        MailAttachments = newContainer;
+                        break;
                     case SlotType.System:
-                        {
-                            newContainer.PartOfPlayerInventory = false;
-                            SystemContainer = newContainer;
-                            break;
-                        }
+                        newContainer.PartOfPlayerInventory = false;
+                        SystemContainer = newContainer;
+                        break;
                 }
             }
 
@@ -162,14 +151,9 @@ namespace AAEmu.Game.Models.Game.Char
         {
             SlotType[] containerList;
             if (containersToCheck != null)
-            {
                 containerList = containersToCheck;
-            }
             else
-            {
-                containerList = new SlotType[3] { SlotType.Inventory, SlotType.Equipment, SlotType.Bank };
-            }
-
+                containerList = new SlotType[3] {SlotType.Inventory, SlotType.Equipment, SlotType.Bank};
             var res = 0;
             foreach (var cli in containerList)
             {
@@ -195,10 +179,8 @@ namespace AAEmu.Game.Models.Game.Char
             var totalCount = 0;
             if (_itemContainers.TryGetValue(slotType, out var c))
             {
-                if (c.GetAllItemsByTemplate(templateId, -1, out _, out var itemCount))
-                {
+                if (c.GetAllItemsByTemplate(templateId, -1, out _, out int itemCount))
                     totalCount += itemCount;
-                }
             }
             return (totalCount >= count);
         }
@@ -212,13 +194,9 @@ namespace AAEmu.Game.Models.Game.Char
         public int GetItemsCount(uint templateId, int gradeToCount = -1)
         {
             if (GetAllItemsByTemplate(null, templateId, gradeToCount, out var _, out var counted))
-            {
                 return counted;
-            }
             else
-            {
                 return 0;
-            }
         }
 
         /// <summary>
@@ -231,13 +209,9 @@ namespace AAEmu.Game.Models.Game.Char
         public int GetItemsCount(SlotType slotType, uint templateId, int gradeToCount = -1)
         {
             if (GetAllItemsByTemplate(new SlotType[1] { slotType }, templateId, gradeToCount, out var _, out var counted))
-            {
                 return counted;
-            }
             else
-            {
                 return 0;
-            }
         }
 
         /// <summary>
@@ -251,14 +225,14 @@ namespace AAEmu.Game.Models.Game.Char
         /// <returns>True if any item was found</returns>
         public bool GetAllItemsByTemplate(SlotType[] inContainerTypes, uint templateId, int gradeToCheck, out List<Item> foundItems, out int unitsOfItemFound)
         {
-            var res = false;
+            bool res = false;
             foundItems = new List<Item>();
             unitsOfItemFound = 0;
             if ((inContainerTypes == null) || (inContainerTypes.Length <= 0))
             {
-                inContainerTypes = new SlotType[3] { SlotType.Inventory, SlotType.Equipment, SlotType.Bank };
+                inContainerTypes = new SlotType[3] { SlotType.Inventory, SlotType.Equipment, SlotType.Bank};
             }
-            foreach (var ct in inContainerTypes)
+            foreach(var ct in inContainerTypes)
             {
                 if (_itemContainers.TryGetValue(ct, out var c))
                 {
@@ -314,8 +288,8 @@ namespace AAEmu.Game.Models.Game.Char
 
             return SplitOrMoveItemEx(taskType, sourceContainer, targetContainer, fromItemId, fromType, fromSlot, toItemId, toType, toSlot, count);
         }
-
-        public bool SplitOrMoveItemEx(ItemTaskType taskType, ItemContainer sourceContainer, ItemContainer targetContainer, ulong fromItemId, SlotType fromType, byte fromSlot,
+        
+        public bool SplitOrMoveItemEx(ItemTaskType taskType, ItemContainer sourceContainer, ItemContainer targetContainer,  ulong fromItemId, SlotType fromType, byte fromSlot,
             ulong toItemId, SlotType toType, byte toSlot, int count = 0)
         {
             var info = $"SplitOrMoveItem({fromItemId} {fromType}:{fromSlot} => {toItemId} {toType}:{toSlot} - {count})";
@@ -330,9 +304,7 @@ namespace AAEmu.Game.Models.Game.Char
             var itemInTargetSlot = ItemManager.Instance.GetItemByItemId(toItemId);
             var action = SwapAction.doNothing;
             if ((count <= 0) && (fromItem != null))
-            {
                 count = fromItem.Count;
-            }
 
             // Grab target container for easy manipulation
             /*
@@ -348,9 +320,7 @@ namespace AAEmu.Game.Models.Game.Char
             */
 
             if (itemInTargetSlot == null)
-            {
                 itemInTargetSlot = targetContainer.GetItemBySlot(toSlot);
-            }
 
             // Check if containers can accept the items
             if ((targetContainer != null) && !targetContainer.CanAccept(fromItem, toSlot))
@@ -363,7 +333,7 @@ namespace AAEmu.Game.Models.Game.Char
                 _log.Error($"SplitOrMoveItem - toItemId {toItemId} is not welcome in this container {sourceContainer?.ContainerType}.");
                 return false;
             }
-
+            
             // Are we equipping into a empty slot ? For whatever reason the client will send FROM empty equipment slot => TO item to equip
             if ((fromItemId == 0) && (fromType == SlotType.Equipment) && (toType != SlotType.Equipment) &&
                 (itemInTargetSlot != null))
@@ -424,21 +394,13 @@ namespace AAEmu.Game.Models.Game.Char
             if (action != SwapAction.doEquipInEmptySlot)
             {
                 if ((itemInTargetSlot == null) && (fromItem?.Count > count))
-                {
                     action = SwapAction.doSplit;
-                }
                 else if ((itemInTargetSlot == null) && (fromItem?.Count == count))
-                {
                     action = SwapAction.doMoveAllToEmpty;
-                }
                 else if ((itemInTargetSlot != null) && (itemInTargetSlot.TemplateId == fromItem?.TemplateId) && (itemInTargetSlot.Template.MaxCount > 1))
-                {
                     action = SwapAction.doMerge;
-                }
                 else
-                {
                     action = SwapAction.doSwap;
-                }
             }
 
             var doUnEquipOffhand = false;
@@ -458,22 +420,16 @@ namespace AAEmu.Game.Models.Game.Char
                     switch ((EquipmentItemSlotType)weaponFrom.HoldableTemplate.SlotTypeId)
                     {
                         case EquipmentItemSlotType.TwoHanded:
-                            {
-                                isFrom2H = true;
-                                break;
-                            }
+                            isFrom2H = true;
+                            break;
                         case EquipmentItemSlotType.Mainhand:
                         case EquipmentItemSlotType.Offhand:
                         case EquipmentItemSlotType.Shield:
                         case EquipmentItemSlotType.OneHanded:
-                            {
-                                //isFromNon2HWeapon = true;
-                                break;
-                            }
+                            //isFromNon2HWeapon = true;
+                            break;
                         default:
-                            {
-                                break;
-                            }
+                            break;
                     }
                 }
 
@@ -484,35 +440,27 @@ namespace AAEmu.Game.Models.Game.Char
                     switch ((EquipmentItemSlotType)weaponTo.HoldableTemplate.SlotTypeId)
                     {
                         case EquipmentItemSlotType.TwoHanded:
-                            {
-                                isTo2H = true;
-                                break;
-                            }
+                            isTo2H = true;
+                            break;
                         case EquipmentItemSlotType.Mainhand:
                         case EquipmentItemSlotType.Offhand:
                         case EquipmentItemSlotType.Shield:
                         case EquipmentItemSlotType.OneHanded:
-                            {
-                                //isToNon2HWeapon = true;
-                                break;
-                            }
+                            //isToNon2HWeapon = true;
+                            break;
                         default:
-                            {
-                                break;
-                            }
+                            break;
                     }
                 }
-
+                
                 var isMain2H = false;
                 if ((mainHandWeapon != null) && (mainHandWeapon.Template is WeaponTemplate mainWeapon))
                 {
                     switch ((EquipmentItemSlotType)mainWeapon.HoldableTemplate.SlotTypeId)
                     {
                         case EquipmentItemSlotType.TwoHanded:
-                            {
-                                isMain2H = true;
-                                break;
-                            }
+                            isMain2H = true;
+                            break;
                         /*
                         case EquipmentItemSlotType.Mainhand:
                         case EquipmentItemSlotType.Offhand:
@@ -522,32 +470,20 @@ namespace AAEmu.Game.Models.Game.Char
                             break;
                         */
                         default:
-                            {
-                                break;
-                            }
+                            break;
                     }
                 }
-
+                
                 if (isTo2H && (sourceContainer?.ContainerType == SlotType.Equipment) && (fromSlot == (int)EquipmentItemSlot.Mainhand))
-                {
                     doUnEquipOffhand = true;
-                }
-
                 if (isMain2H && (sourceContainer?.ContainerType == SlotType.Equipment) && (fromSlot == (int)EquipmentItemSlot.Offhand))
-                {
                     doUnEquipMainHand = true;
-                }
 
                 // Client actually always sends from equipment => inventory no matter how you click it, this is just a safety if it ever changes
                 if (isFrom2H && (targetContainer?.ContainerType == SlotType.Equipment) && (toSlot == (int)EquipmentItemSlot.Mainhand))
-                {
                     doUnEquipOffhand = true;
-                }
-
                 if (isMain2H && (targetContainer?.ContainerType == SlotType.Equipment) && (toSlot == (int)EquipmentItemSlot.Offhand))
-                {
                     doUnEquipMainHand = true;
-                }
             }
 
             if ((doUnEquipOffhand) && (offHandWeapon != null))
@@ -555,15 +491,10 @@ namespace AAEmu.Game.Models.Game.Char
                 //_log.Trace("SplitOrMoveItem - UnEquip OffHand required!");
                 // Check if we have enough space to unequip the offhand
                 if (Bag.FreeSlotCount < 1)
-                {
                     return false;
-                }
-
                 // If we can't move it to bag for whatever reason, abort
                 if (!Bag.AddOrMoveExistingItem(taskType, offHandWeapon))
-                {
                     return false;
-                }
             }
 
             if (doUnEquipMainHand)
@@ -571,15 +502,10 @@ namespace AAEmu.Game.Models.Game.Char
                 //_log.Trace("SplitOrMoveItem - UnEquip MainHand required!");
                 // Check if we have enough space to unequip the mainhand
                 if (Bag.FreeSlotCount < 1)
-                {
                     return false;
-                }
-
                 // If we can't move it to bag for whatever reason, abort
                 if (!Bag.AddOrMoveExistingItem(taskType, mainHandWeapon))
-                {
                     return false;
-                }
             }
 
             // Actually execute what we need to do
@@ -587,121 +513,96 @@ namespace AAEmu.Game.Models.Game.Char
             switch (action)
             {
                 case SwapAction.doEquipInEmptySlot:
+                    itemInTargetSlot.SlotType = sourceContainer.ContainerType;
+                    itemInTargetSlot.Slot = fromSlot;
+                    itemTasks.Add(new ItemMove(fromType, fromSlot, fromItemId, toType, toSlot, toItemId));
+                    if (targetContainer != sourceContainer)
                     {
-                        itemInTargetSlot.SlotType = sourceContainer.ContainerType;
-                        itemInTargetSlot.Slot = fromSlot;
-                        itemTasks.Add(new ItemMove(fromType, fromSlot, fromItemId, toType, toSlot, toItemId));
-                        if (targetContainer != sourceContainer)
-                        {
-                            sourceContainer.Items.Add(itemInTargetSlot);
-                            targetContainer.Items.Remove(itemInTargetSlot);
-                            itemInTargetSlot._holdingContainer = sourceContainer;
-                            sourceContainer.UpdateFreeSlotCount();
-                            targetContainer.UpdateFreeSlotCount();
-                        }
-                        break;
+                        sourceContainer.Items.Add(itemInTargetSlot);
+                        targetContainer.Items.Remove(itemInTargetSlot);
+                        itemInTargetSlot._holdingContainer = sourceContainer;
+                        sourceContainer.UpdateFreeSlotCount();
+                        targetContainer.UpdateFreeSlotCount();
                     }
+                    break;
                 case SwapAction.doSplit:
-                    {
-                        fromItem.Count -= count;
-                        itemTasks.Add(new ItemCountUpdate(fromItem, -count));
-                        var ni = ItemManager.Instance.Create(fromItem.TemplateId, count, fromItem.Grade, true);
-                        ni.SlotType = toType;
-                        ni.Slot = toSlot;
-                        ni._holdingContainer = targetContainer;
-                        targetContainer.Items.Add(ni);
-                        itemTasks.Add(new ItemAdd(ni));
-                        if (targetContainer != sourceContainer)
-                        {
-                            targetContainer.UpdateFreeSlotCount();
-                        }
-                        else
-                        {
-                            sourceContainer.UpdateFreeSlotCount();
-                        }
-
-                        break;
-                    }
+                    fromItem.Count -= count;
+                    itemTasks.Add(new ItemCountUpdate(fromItem, -count));
+                    var ni = ItemManager.Instance.Create(fromItem.TemplateId, count, fromItem.Grade, true);
+                    ni.SlotType = toType;
+                    ni.Slot = toSlot;
+                    ni._holdingContainer = targetContainer;
+                    targetContainer.Items.Add(ni);
+                    itemTasks.Add(new ItemAdd(ni));
+                    if (targetContainer != sourceContainer)
+                        targetContainer.UpdateFreeSlotCount();
+                    else
+                        sourceContainer.UpdateFreeSlotCount();
+                    break;
                 case SwapAction.doMoveAllToEmpty:
+                    fromItem.SlotType = targetContainer.ContainerType;
+                    fromItem.Slot = toSlot;
+                    itemTasks.Add(new ItemMove(fromType, fromSlot, fromItem.Id, toType, toSlot, toItemId));
+                    if (targetContainer != sourceContainer)
                     {
-                        fromItem.SlotType = targetContainer.ContainerType;
-                        fromItem.Slot = toSlot;
-                        itemTasks.Add(new ItemMove(fromType, fromSlot, fromItem.Id, toType, toSlot, toItemId));
-                        if (targetContainer != sourceContainer)
-                        {
-                            sourceContainer.Items.Remove(fromItem);
-                            targetContainer.Items.Add(fromItem);
-                            fromItem._holdingContainer = targetContainer;
-                            sourceContainer.UpdateFreeSlotCount();
-                            targetContainer.UpdateFreeSlotCount();
-                        }
-                        break;
+                        sourceContainer.Items.Remove(fromItem);
+                        targetContainer.Items.Add(fromItem);
+                        fromItem._holdingContainer = targetContainer;
+                        sourceContainer.UpdateFreeSlotCount();
+                        targetContainer.UpdateFreeSlotCount();
                     }
+                    break;
                 case SwapAction.doMerge:
+                    // Merge x amount into target
+                    var toAddCount = Math.Min(count, itemInTargetSlot.Template.MaxCount - itemInTargetSlot.Count);
+                    if (toAddCount < count)
+                        _log.Trace(string.Format("SplitOrMoveItem supplied more than target can take, changed {0} to {1}",count,toAddCount));
+                    itemInTargetSlot.Count += toAddCount;
+                    fromItem.Count -= toAddCount;
+                    if (fromItem.Count > 0)
                     {
-                        // Merge x amount into target
-                        var toAddCount = Math.Min(count, itemInTargetSlot.Template.MaxCount - itemInTargetSlot.Count);
-                        if (toAddCount < count)
-                        {
-                            _log.Trace(string.Format("SplitOrMoveItem supplied more than target can take, changed {0} to {1}", count, toAddCount));
-                        }
-
-                        itemInTargetSlot.Count += toAddCount;
-                        fromItem.Count -= toAddCount;
-                        if (fromItem.Count > 0)
-                        {
-                            itemTasks.Add(new ItemCountUpdate(fromItem, -toAddCount));
-                        }
-                        else
-                        {
-                            itemTasks.Add(new ItemRemove(fromItem));
-                            sourceContainer.RemoveItem(ItemTaskType.Invalid, fromItem, true);
-                        }
-                        itemTasks.Add(new ItemCountUpdate(itemInTargetSlot, toAddCount));
-                        break;
+                        itemTasks.Add(new ItemCountUpdate(fromItem, -toAddCount));
                     }
+                    else
+                    {
+                        itemTasks.Add(new ItemRemove(fromItem));
+                        sourceContainer.RemoveItem(ItemTaskType.Invalid, fromItem, true);
+                    }
+                    itemTasks.Add(new ItemCountUpdate(itemInTargetSlot, toAddCount));
+                    break;
                 case SwapAction.doSwap:
+                    // Swap both item slots
+                    itemTasks.Add(new ItemMove(fromType, fromSlot, fromItem.Id, toType, toSlot, itemInTargetSlot.Id));
+                    fromItem.SlotType = targetContainer.ContainerType;
+                    fromItem.Slot = toSlot;
+                    if (sourceContainer != targetContainer)
                     {
-                        // Swap both item slots
-                        itemTasks.Add(new ItemMove(fromType, fromSlot, fromItem.Id, toType, toSlot, itemInTargetSlot.Id));
-                        fromItem.SlotType = targetContainer.ContainerType;
-                        fromItem.Slot = toSlot;
-                        if (sourceContainer != targetContainer)
-                        {
-                            sourceContainer.Items.Remove(fromItem);
-                            targetContainer.Items.Add(fromItem);
-                            fromItem._holdingContainer = targetContainer;
-                            targetContainer.UpdateFreeSlotCount();
-                        }
-                        itemInTargetSlot.SlotType = sourceContainer.ContainerType;
-                        itemInTargetSlot.Slot = fromSlot;
-                        if (sourceContainer != targetContainer)
-                        {
-                            targetContainer.Items.Remove(itemInTargetSlot);
-                            sourceContainer.Items.Add(itemInTargetSlot);
-                            itemInTargetSlot._holdingContainer = sourceContainer;
-                            sourceContainer.UpdateFreeSlotCount();
-                        }
-                        break;
+                        sourceContainer.Items.Remove(fromItem);
+                        targetContainer.Items.Add(fromItem);
+                        fromItem._holdingContainer = targetContainer;
+                        targetContainer.UpdateFreeSlotCount();
                     }
+                    itemInTargetSlot.SlotType = sourceContainer.ContainerType;
+                    itemInTargetSlot.Slot = fromSlot;
+                    if (sourceContainer != targetContainer)
+                    {
+                        targetContainer.Items.Remove(itemInTargetSlot);
+                        sourceContainer.Items.Add(itemInTargetSlot);
+                        itemInTargetSlot._holdingContainer = sourceContainer;
+                        sourceContainer.UpdateFreeSlotCount();
+                    }
+                    break;
                 default:
-                    {
-                        Owner.SendMessage("|cFFFF0000SplitOrMoveItem swap action not implemented " + action.ToString() + "|r");
-                        _log.Error("SplitOrMoveItem swap action not implemented " + action.ToString());
-                        break;
-                    }
+                    Owner.SendMessage("|cFFFF0000SplitOrMoveItem swap action not implemented " + action.ToString() + "|r");
+                    _log.Error("SplitOrMoveItem swap action not implemented " + action.ToString());
+                    break;
             }
-
+            
             // Force-assign item owners for safety
             if (fromItem != null)
-            {
                 fromItem.OwnerId = sourceContainer?.OwnerId ?? 0;
-            }
-
             if (itemInTargetSlot != null)
-            {
                 itemInTargetSlot.OwnerId = targetContainer?.OwnerId ?? 0;
-            }
 
             // Handle Equipment Broadcasting
             if (fromType == SlotType.Equipment)
@@ -715,7 +616,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Owner.BroadcastPacket(
                     new SCUnitEquipmentsChangedPacket(Owner.ObjId, toSlot, Equipment.GetItemBySlot(toSlot)), false);
             }
-
+            
             // Send ItemContainer events
             if (sourceContainer != targetContainer)
             {
@@ -730,19 +631,15 @@ namespace AAEmu.Game.Models.Game.Char
                     targetContainer?.OnLeaveContainer(itemInTargetSlot, sourceContainer);
                     sourceContainer?.OnEnterContainer(itemInTargetSlot, targetContainer);
                 }
-            }
-
+            }            
+            
             if (itemTasks.Count > 0)
-            {
                 Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
-            }
 
             sourceContainer.ApplyBindRules(taskType);
             if (targetContainer != sourceContainer)
-            {
                 targetContainer.ApplyBindRules(taskType);
-            }
-
+            
             return (itemTasks.Count > 0);
         }
 
@@ -753,16 +650,12 @@ namespace AAEmu.Game.Models.Game.Char
         public bool CanReplaceGliderInBackpackSlot()
         {
             var backpack = GetEquippedBySlot(EquipmentItemSlot.Backpack);
-            if (backpack == null)
-            {
+            if (backpack == null) 
                 return true; // Nothing equipped, so we're good
-            }
 
             // Check if a glider is equipped, and if we have at least 1 free space
             if ((backpack.Template is BackpackTemplate bt) && (bt.BackpackType == BackpackType.Glider) && (Bag.FreeSlotCount > 0))
-            {
                 return true;
-            }
 
             // Something other than a glider is equipped in the backpack slot, don't allow replacing check
             return false;
@@ -774,35 +667,24 @@ namespace AAEmu.Game.Models.Game.Char
         /// <param name="taskType"></param>
         /// <param name="glidersOnly">When true, only allow for gliders</param>
         /// <returns></returns>
-        public bool TakeoffBackpack(ItemTaskType taskType, bool glidersOnly = false)
+        public bool TakeoffBackpack(ItemTaskType taskType,bool glidersOnly = false)
         {
             var backpack = GetEquippedBySlot(EquipmentItemSlot.Backpack);
-            if (backpack == null)
-            {
-                return true;
-            }
+            if (backpack == null) return true;
 
             // Check glider if needed
             if ((glidersOnly) && (backpack.Template is BackpackTemplate bt) && (bt.BackpackType != BackpackType.Glider))
-            {
                 return false;
-            }
 
             // Move to first available slot
-            if (Bag.FreeSlotCount <= 0)
-            {
+            if (Bag.FreeSlotCount <= 0) 
                 return false;
-            }
 
             if (!SplitOrMoveItem(taskType, backpack.Id, backpack.SlotType, (byte)backpack.Slot, 0, SlotType.Inventory, (byte)Bag.GetUnusedSlot(-1)))
-            {
                 return false;
-            }
-
+            
             if (glidersOnly)
-            {
-                PreviousBackPackItemId = backpack.Id;
-            }
+                PreviousBackPackItemId = backpack.Id ;
 
             return true;
         }
@@ -839,10 +721,8 @@ namespace AAEmu.Game.Models.Game.Char
         public bool TryAddNewItem(ItemTaskType taskType, uint itemId, int itemCount, int gradeToAdd = -1, uint crafterId = 0)
         {
             if (ItemManager.Instance.IsAutoEquipTradePack(itemId))
-            {
                 return TryEquipNewBackPack(taskType, itemId, itemCount, gradeToAdd, crafterId);
-            }
-
+            
             return Bag.AcquireDefaultItem(taskType, itemId, itemCount, gradeToAdd, crafterId);
         }
 
@@ -853,16 +733,14 @@ namespace AAEmu.Game.Models.Game.Char
         /// <returns></returns>
         public Item GetItemById(ulong id)
         {
-            foreach (var c in _itemContainers)
+            foreach(var c in _itemContainers)
             {
                 if ((c.Key == SlotType.Equipment) || (c.Key == SlotType.Inventory) || (c.Key == SlotType.Bank))
                 {
-                    foreach (var i in c.Value.Items)
+                    foreach(var i in c.Value.Items)
                     {
                         if ((i != null) && (i.Id == id))
-                        {
-                            return i;
-                        }
+                            return i ;
                     }
                 }
             }
@@ -891,35 +769,23 @@ namespace AAEmu.Game.Models.Game.Char
             switch (type)
             {
                 case SlotType.None:
-                    {
-                        // TODO ...
-                        break;
-                    }
+                    // TODO ...
+                    break;
                 case SlotType.Equipment:
-                    {
-                        item = Equipment.GetItemBySlot(slot);
-                        break;
-                    }
+                    item = Equipment.GetItemBySlot(slot);
+                    break;
                 case SlotType.Inventory:
-                    {
-                        item = Bag.GetItemBySlot(slot);
-                        break;
-                    }
+                    item = Bag.GetItemBySlot(slot);
+                    break;
                 case SlotType.Bank:
-                    {
-                        item = Warehouse.GetItemBySlot(slot);
-                        break;
-                    }
+                    item = Warehouse.GetItemBySlot(slot);
+                    break;
                 case SlotType.Trade:
-                    {
-                        // TODO ...
-                        break;
-                    }
+                    // TODO ...
+                    break;
                 case SlotType.Mail:
-                    {
-                        // TODO ...
-                        break;
-                    }
+                    // TODO ...
+                    break;
             }
 
             return item;
@@ -933,13 +799,9 @@ namespace AAEmu.Game.Models.Game.Char
         public int FreeSlotCount(SlotType type)
         {
             if (_itemContainers.TryGetValue(type, out var c))
-            {
                 return c.FreeSlotCount;
-            }
             else
-            {
                 return 0;
-            }
         }
 
         private void SetInitialItemExpirationTimers(Item[] bag)
@@ -948,14 +810,9 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var item in bag)
             {
                 if (item?.ExpirationTime > DateTime.MinValue)
-                {
                     Owner.SendPacket(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, item.ExpirationTime));
-                }
-
                 if (item?.ExpirationOnlineMinutesLeft > 0.0)
-                {
                     Owner.SendPacket(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, DateTime.UtcNow.AddMinutes(item.ExpirationOnlineMinutesLeft)));
-                }
             }
         }
 
@@ -964,14 +821,9 @@ namespace AAEmu.Game.Models.Game.Char
             var tempItem = new Item[10];
 
             if ((numItems % 10) != 0)
-            {
                 _log.Warn($"SendFragmentedInventory: Inventory Size not a multiple of 10 ({numItems})");
-            }
-
             if (bag.Length != numItems)
-            {
                 _log.Warn($"SendFragmentedInventory: Inventory Size Mismatch; expected {numItems} got {bag.Length}");
-            }
 
             for (byte chunk = 0; chunk < (numItems / 10); chunk++)
             {
@@ -992,16 +844,10 @@ namespace AAEmu.Game.Models.Game.Char
             var step = ((isBank ? Owner.NumBankSlots : Owner.NumInventorySlots) - 50) / 10;
             var expands = CharacterManager.Instance.GetExpands(step);
             if (expands == null)
-            {
                 return;
-            }
-
             var index = expands.FindIndex(e => e.IsBank == isBank);
             if (index == -1)
-            {
                 return;
-            }
-
             var expand = expands[index];
             if (expand.Price != 0 && Owner.Money < expand.Price)
             {
@@ -1024,7 +870,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (expand.ItemId != 0 && expand.ItemCount != 0)
             {
-                Bag.ConsumeItem(isBank ? ItemTaskType.ExpandBank : ItemTaskType.ExpandBag, expand.ItemId, expand.ItemCount, null);
+                Bag.ConsumeItem(isBank ? ItemTaskType.ExpandBank : ItemTaskType.ExpandBag, expand.ItemId, expand.ItemCount,null);
             }
 
             if (isBank)
@@ -1052,7 +898,7 @@ namespace AAEmu.Game.Models.Game.Char
         /// <param name="item"></param>
         /// <param name="count"></param>
         /// <param name="onlyUpdatedCount"></param>
-        public void OnAcquiredItem(Item item, int count, bool onlyUpdatedCount = false)
+        public void OnAcquiredItem(Item item,int count,bool onlyUpdatedCount = false)
         {
             // Quests
             //if ((item?.Template.LootQuestId > 0) && (count != 0))
@@ -1084,12 +930,8 @@ namespace AAEmu.Game.Models.Game.Char
         public void OnItemManuallyDestroyed(Item item, int count)
         {
             if (item?.Template.LootQuestId > 0)
-            {
                 if (Owner.Quests.HasQuest(item.Template.LootQuestId))
-                {
                     Owner.Quests.Drop(item.Template.LootQuestId, true);
-                }
-            }
         }
         public bool SwapCofferItems(ulong fromItemId, ulong toItemId, SlotType fromSlotType, byte fromSlot, SlotType toSlotType, byte toSlot, ulong dbId)
         {
@@ -1099,31 +941,23 @@ namespace AAEmu.Game.Models.Game.Char
 
             ItemContainer sourceContainer = null;
             ItemContainer targetContainer = null;
-
+            
             if (fromSlotType == SlotType.Trade)
-            {
                 sourceContainer = relatedCoffer;
-            }
             else if (_itemContainers.TryGetValue(fromSlotType, out var sC))
-            {
                 sourceContainer = sC;
-            }
 
             if (toSlotType == SlotType.Trade)
-            {
                 targetContainer = relatedCoffer;
-            }
             else if (_itemContainers.TryGetValue(toSlotType, out var tC))
-            {
                 targetContainer = tC;
-            }
 
             if ((sourceContainer == null) || (targetContainer == null))
             {
                 _log.Error("SwapCofferItems, not all of the targetted containers exist");
                 return false;
             }
-
+            
             return SplitOrMoveItemEx(ItemTaskType.SwapCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot,
                 toItemId, toSlotType, toSlot);
         }
@@ -1136,31 +970,23 @@ namespace AAEmu.Game.Models.Game.Char
 
             ItemContainer sourceContainer = null;
             ItemContainer targetContainer = null;
-
+            
             if (fromSlotType == SlotType.Trade)
-            {
                 sourceContainer = relatedCoffer;
-            }
             else if (_itemContainers.TryGetValue(fromSlotType, out var sC))
-            {
                 sourceContainer = sC;
-            }
 
             if (toSlotType == SlotType.Trade)
-            {
                 targetContainer = relatedCoffer;
-            }
             else if (_itemContainers.TryGetValue(toSlotType, out var tC))
-            {
                 targetContainer = tC;
-            }
 
             if ((sourceContainer == null) || (targetContainer == null))
             {
                 _log.Error("SwapCofferItems, not all of the targetted containers exist");
                 return false;
             }
-
+            
             return SplitOrMoveItemEx(ItemTaskType.SplitCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot,
                 toItemId, toSlotType, toSlot, count);
         }

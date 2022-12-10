@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots
 {
@@ -46,10 +46,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public bool HasSpecialEffects()
         {
             if (_computedHasSpecialEffects)
-            {
                 return _hasSpecialEffects;
-            }
-
+            
             _hasSpecialEffects = Effects
                 .Select(eff =>
                     SkillManager.Instance.GetEffectTemplate(eff.ActualId, eff.ActualType))

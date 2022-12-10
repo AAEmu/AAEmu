@@ -8,7 +8,6 @@ using AAEmu.Game.Models.Game.Schedules;
 using AAEmu.Game.Utils.DB;
 
 using Microsoft.Data.Sqlite;
-
 using DayOfWeek = AAEmu.Game.Models.Game.Schedules.DayOfWeek;
 
 namespace AAEmu.Game.GameData
@@ -40,7 +39,7 @@ namespace AAEmu.Game.GameData
                         var template = new GameSchedules();
                         template.Id = reader.GetInt32("id");
                         template.Name = reader.GetString("name");
-                        template.DayOfWeekId = (DayOfWeek)reader.GetInt32("day_of_week_id");
+                        template.DayOfWeekId = (DayOfWeek) reader.GetInt32("day_of_week_id");
                         template.StartTime = reader.GetInt32("start_time");
                         template.EndTime = reader.GetInt32("end_time");
                         template.StYear = reader.GetInt32("st_year");

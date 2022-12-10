@@ -22,7 +22,6 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
-
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
@@ -103,9 +102,7 @@ namespace AAEmu.Game.Core.Managers.World
         public void Load()
         {
             if (_loaded)
-            {
                 return;
-            }
 
             _respawns = new HashSet<GameObject>();
             _despawns = new HashSet<GameObject>();
@@ -149,9 +146,7 @@ namespace AAEmu.Game.Core.Managers.World
                     var contents = FileManager.GetFileContents(jsonFileName);
 
                     if (string.IsNullOrWhiteSpace(contents))
-                    {
                         _log.Warn($"File {jsonFileName} is empty.");
-                    }
                     else
                     {
                         if (JsonHelper.TryDeserializeObject(contents, out List<NpcSpawner> npcSpawnersFromFile, out _))
@@ -178,9 +173,7 @@ namespace AAEmu.Game.Core.Managers.World
                             }
                         }
                         else
-                        {
                             throw new Exception($"SpawnManager: Parse {jsonFileName} file");
-                        }
                     }
                 }
 
@@ -196,9 +189,7 @@ namespace AAEmu.Game.Core.Managers.World
                     var contents = FileManager.GetFileContents(jsonFileName);
 
                     if (string.IsNullOrWhiteSpace(contents))
-                    {
                         _log.Warn($"File {jsonFileName} is empty.");
-                    }
                     else
                     {
                         if (JsonHelper.TryDeserializeObject(contents, out List<DoodadSpawner> spawners, out _))
@@ -227,9 +218,7 @@ namespace AAEmu.Game.Core.Managers.World
                             }
                         }
                         else
-                        {
                             throw new Exception($"SpawnManager: Parse {jsonFileName} file");
-                        }
                     }
                 }
 
@@ -380,7 +369,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
 
             _log.Info("Loading persistent doodads...");
-            var newCoffers = new List<Doodad>();
+            List<Doodad> newCoffers = new List<Doodad>();
             using (var connection = MySQL.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
@@ -472,13 +461,9 @@ namespace AAEmu.Game.Core.Managers.World
                                 {
                                     var itemContainer = ItemManager.Instance.GetItemContainerByDbId(itemContainerId);
                                     if (itemContainer is CofferContainer cofferContainer)
-                                    {
                                         coffer.ItemContainer = cofferContainer;
-                                    }
                                     else
-                                    {
                                         _log.Error($"Unable to attach ItemContainer {itemContainerId} to DoodadCoffer, objId: {doodad.ObjId}, DbId: {doodad.DbId}");
-                                    }
                                 }
                                 else
                                 {
@@ -499,9 +484,7 @@ namespace AAEmu.Game.Core.Managers.World
 
             // Save Coffer Doodads that had a new ItemContainer created for them (should only happen on first run if there were already coffers placed)
             foreach (var coffer in newCoffers)
-            {
                 coffer.Save();
-            }
 
             _loaded = true;
         }
@@ -660,13 +643,8 @@ namespace AAEmu.Game.Core.Managers.World
 
             var res = new HashSet<GameObject>();
             foreach (var npc in temp)
-            {
                 if (npc.Respawn <= DateTime.UtcNow)
-                {
                     res.Add(npc);
-                }
-            }
-
             return res;
         }
 
@@ -680,13 +658,8 @@ namespace AAEmu.Game.Core.Managers.World
 
             var res = new HashSet<GameObject>();
             foreach (var item in temp)
-            {
                 if (item.Despawn <= DateTime.UtcNow)
-                {
                     res.Add(item);
-                }
-            }
-
             return res;
         }
 
@@ -700,30 +673,15 @@ namespace AAEmu.Game.Core.Managers.World
                     foreach (var obj in respawns)
                     {
                         if (obj.Respawn >= DateTime.UtcNow)
-                        {
                             continue;
-                        }
-
                         if (obj is Npc npc)
-                        {
                             npc.Spawner.Respawn(npc);
-                        }
-
                         if (obj is Doodad doodad)
-                        {
                             doodad.Spawner.Respawn(doodad);
-                        }
-
                         if (obj is Transfer transfer)
-                        {
                             transfer.Spawner.Respawn(transfer);
-                        }
-
                         if (obj is Gimmick gimmick)
-                        {
                             gimmick.Spawner.Respawn(gimmick);
-                        }
-
                         RemoveRespawn(obj);
                     }
                 }
@@ -734,34 +692,19 @@ namespace AAEmu.Game.Core.Managers.World
                     foreach (var obj in despawns)
                     {
                         if (obj.Despawn >= DateTime.UtcNow)
-                        {
                             continue;
-                        }
-
                         if (obj is Npc npc && npc.Spawner != null)
-                        {
                             npc.Spawner.Despawn(npc);
-                        }
                         else if (obj is Doodad doodad && doodad.Spawner != null)
-                        {
                             doodad.Spawner.Despawn(doodad);
-                        }
                         else if (obj is Transfer transfer && transfer.Spawner != null)
-                        {
                             transfer.Spawner.Despawn(transfer);
-                        }
                         else if (obj is Gimmick gimmick && gimmick.Spawner != null)
-                        {
                             gimmick.Spawner.Despawn(gimmick);
-                        }
                         else if (obj is Slave slave) // slaves don't have a spawner, but this is used for delayed despawn of un-summoned boats
-                        {
                             slave.Delete();
-                        }
                         else if (obj is Doodad doodad2)
-                        {
                             doodad2.Delete();
-                        }
                         else
                         {
                             ObjectIdManager.Instance.ReleaseId(obj.ObjId);

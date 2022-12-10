@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.AiCharacters
         protected override void Build()
         {
             AddBehavior(BehaviorKind.Spawning, new SpawningBehavior());
-
+            
             AddBehavior(BehaviorKind.Idle, new IdleBehavior())
                 .AddTransition(TransitionEvent.OnAggroTargetChanged, BehaviorKind.AlmightyAttack)
                 .AddTransition(TransitionEvent.ReturnToIdlePos, BehaviorKind.ReturnState)

@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World.Transform;
-
 using NLog;
 
 namespace AAEmu.Game.Models.Game.AI.v2
@@ -16,11 +14,11 @@ namespace AAEmu.Game.Models.Game.AI.v2
     public abstract class NpcAi
     {
         private Logger _log = LogManager.GetCurrentClassLogger();
-
+        
         // Test
         public bool ShouldTick { get; set; }
         public bool AlreadyTargetted { get; set; }
-
+        
         public Npc Owner { get; set; }
         public Transform IdlePosition { get; set; }
         public AiParams Param { get; set; }
@@ -41,7 +39,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
             CheckValid();
             // GoToSpawn();
         }
-
+        
         protected abstract void Build();
 
         private void CheckValid()
@@ -72,7 +70,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
 
         private void SetCurrentBehavior(Behavior behavior)
         {
-            _log.Trace("{0} leaving behavior {1}, Entering behavior {2}", Owner.Name, _currentBehavior?.GetType().Name ?? "none", behavior?.GetType().Name ?? "none");
+            _log.Trace("{0} leaving behavior {1}, Entering behavior {2}", Owner.Name,  _currentBehavior?.GetType().Name ?? "none", behavior?.GetType().Name ?? "none");
             _currentBehavior?.Exit();
             _currentBehavior = behavior;
             _currentBehavior?.Enter();
@@ -85,17 +83,14 @@ namespace AAEmu.Game.Models.Game.AI.v2
                 _log.Warn("Trying to set current behavior, but it is not valid. Missing behavior: {0}", kind);
                 return;
             }
-
+            
             SetCurrentBehavior(_behaviors[kind]);
         }
 
         public Behavior AddTransition(Behavior source, Transition target)
         {
             if (!_transitions.ContainsKey(source))
-            {
                 _transitions.Add(source, new List<Transition>());
-            }
-
             _transitions[source].Add(target);
             return source;
         }
@@ -104,29 +99,24 @@ namespace AAEmu.Game.Models.Game.AI.v2
         {
             /*if ((!Owner?.Region?.IsEmpty() ?? false)
                 || (Owner?.Region?.AreNeighborsEmpty() ?? false))*/
-            if (Owner?.Region?.HasPlayerActivity() ?? false)
+            if(Owner?.Region?.HasPlayerActivity() ?? false)
             {
                 _currentBehavior?.Tick(delta);
             }
         }
-
+        
         private void Transition(TransitionEvent on)
         {
             if (!_transitions.ContainsKey(_currentBehavior))
-            {
                 return;
-            }
-
             var transition = _transitions[_currentBehavior].SingleOrDefault(t => t.On == on);
             if (transition == null)
-            {
                 return;
-            }
-
+            
             var newBehavior = GetBehavior(transition.Kind);
             SetCurrentBehavior(newBehavior);
         }
-
+        
         #region Events
         public void OnNoAggroTarget()
         {
@@ -138,7 +128,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
             Transition(TransitionEvent.OnAggroTargetChanged);
         }
         #endregion
-
+        
         /// <summary>
         /// These appear to be ways to force a state change, ignoring existing transitions. 
         /// </summary>
@@ -147,27 +137,27 @@ namespace AAEmu.Game.Models.Game.AI.v2
         {
             SetCurrentBehavior(BehaviorKind.Spawning);
         }
-
+        
         public virtual void GoToIdle()
         {
             SetCurrentBehavior(BehaviorKind.Idle);
         }
-
+        
         public virtual void GoToRunCommandSet()
         {
             SetCurrentBehavior(BehaviorKind.RunCommandSet);
         }
-
+        
         public virtual void GoToTalk()
         {
             SetCurrentBehavior(BehaviorKind.Talk);
         }
-
+        
         public virtual void GoToAlert()
         {
             SetCurrentBehavior(BehaviorKind.Alert);
         }
-
+        
         public virtual void GoToCombat()
         {
             SetCurrentBehavior(BehaviorKind.Attack);
@@ -176,22 +166,22 @@ namespace AAEmu.Game.Models.Game.AI.v2
         {
             SetCurrentBehavior(BehaviorKind.FollowPath);
         }
-
+        
         public virtual void GoToFollowUnit()
         {
             SetCurrentBehavior(BehaviorKind.FollowUnit);
         }
-
+        
         public virtual void GoToReturn()
         {
             SetCurrentBehavior(BehaviorKind.ReturnState);
         }
-
+        
         public virtual void GoToDead()
         {
             SetCurrentBehavior(BehaviorKind.Dead);
         }
-
+        
         public virtual void GoToDespawn()
         {
             SetCurrentBehavior(BehaviorKind.Despawning);

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _iId;
         private readonly bool _isLootable;
-
+        
         public SCLootableStatePacket(uint unitId, bool isLootable) : base(SCOffsets.SCLootableStatePacket, 1)
         {
             _iId = unitId;
@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(((ulong)_iId << 32) + 65536);
+            stream.Write(((ulong)_iId<<32)+65536);
             stream.Write(_isLootable);
             return stream;
         }

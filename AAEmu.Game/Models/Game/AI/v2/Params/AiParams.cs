@@ -1,7 +1,8 @@
-﻿using AAEmu.Game.Models.Game.AI.v2.Params.Archer;
+﻿using System.Collections.Generic;
+using AAEmu.Game.Models.Game.AI.v2.Params.Archer;
 using AAEmu.Game.Models.Game.AI.v2.Params.BigMonster;
-using AAEmu.Game.Models.Game.AI.v2.Params.WildBoar;
 using AAEmu.Game.Models.Game.AI.V2.Params;
+using AAEmu.Game.Models.Game.AI.v2.Params.WildBoar;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Params
 {
@@ -33,30 +34,20 @@ namespace AAEmu.Game.Models.Game.AI.v2.Params
             switch (type)
             {
                 //case AiParamType.HoldPosition:
-                //return new HoldPositionAiParams();
+                    //return new HoldPositionAiParams();
                 case AiParamType.AlmightyNpc:
-                    {
-                        return new AlmightyNpcAiParams(aiParamsString);
-                    }
+                    return new AlmightyNpcAiParams(aiParamsString);
                 case AiParamType.BigMonsterHoldPosition:
                 case AiParamType.BigMonsterRoaming:
-                    {
-                        return new BigMonsterAiParams(aiParamsString);
-                    }
+                    return new BigMonsterAiParams(aiParamsString);
                 case AiParamType.ArcherHoldPosition:
                 case AiParamType.ArcherRoaming:
-                    {
-                        return new ArcherAiParams(aiParamsString);
-                    }
+                    return new ArcherAiParams(aiParamsString);
                 case AiParamType.WildBoarRoaming:
                 case AiParamType.WildBoarHoldPosition:
-                    {
-                        return new WildBoarAiParams(aiParamsString);
-                    }
+                    return new WildBoarAiParams(aiParamsString);
                 default:
-                    {
-                        return null;
-                    }
+                    return null;
             }
         }
     }

@@ -56,14 +56,10 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             }
 
             if (_targetRoamPosition.Equals(Vector3.Zero) && DateTime.UtcNow > _nextRoaming)
-            {
                 UpdateRoaming();
-            }
 
             if (_targetRoamPosition.Equals(Vector3.Zero))
-            {
                 return;
-            }
 
             Ai.Owner.MoveTowards(_targetRoamPosition, 1.8f * (delta.Milliseconds / 1000.0f), 5);
             var dist = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, _targetRoamPosition, true);

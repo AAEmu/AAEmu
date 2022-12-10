@@ -3,6 +3,7 @@ using System.Linq;
 
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -19,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             _log.Trace("KillNpcWithoutCorpseEffect");
@@ -41,10 +42,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
         }
 
-        private void RemoveEffectsAndDelete(BaseUnit unit)
+        private void RemoveEffectsAndDelete(Unit unit)
         {
             unit.Buffs.RemoveAllEffects();
-            if (unit is Npc { Spawner: { } } npc)
+            if (unit is Npc npc && npc.Spawner != null)
             {
                 npc.Spawner.DespawnWithRespawn(npc);
             }

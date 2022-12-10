@@ -1,5 +1,7 @@
 ﻿using System;
-
+using System.Collections.Generic;
+using System.Text;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
@@ -16,15 +18,13 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
             if (!(_owner is Unit owner))
             {
                 _log.Warn("AttackTrigger owner is not a Unit");
-                return;
+                return;   
             }
 
             var target = owner;
             if (Template.EffectOnSource)
-            {
                 target = args.Attacker;
-            }
-
+            
             Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
                 new EffectSource(), // TODO : EffectSource Type trigger 
                 null, DateTime.UtcNow);

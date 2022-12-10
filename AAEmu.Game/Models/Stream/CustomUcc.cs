@@ -1,16 +1,16 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-
+using System.Data;
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Stream
 {
     public class CustomUcc : DefaultUcc
     {
-        public override UccType Type => UccType.Complex;
+        public override UccType Type => UccType.Complex ;
         public virtual List<byte> Data { get; set; } = new List<byte>();
         public bool SaveDataInDB = true;
-
+        
         public override void Save(MySqlCommand command)
         {
             if (SaveDataInDB)
@@ -44,12 +44,9 @@ namespace AAEmu.Game.Models.Stream
             command.Parameters.AddWithValue("@color3B", Color3B);
             command.Parameters.AddWithValue("@modified", DateTime.UtcNow);
             if (SaveDataInDB)
-            {
                 command.Parameters.AddWithValue("@data", Data.ToArray());
-            }
-
             command.ExecuteNonQuery();
         }
-
+        
     }
 }

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -10,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Units
     public interface IBuffs
     {
         void AddBuff(Buff buff, uint index = 0, int forcedDuration = 0);
-        void AddBuff(uint buffId, BaseUnit caster);
+        void AddBuff(uint buffId, Unit caster);
         bool CheckBuff(uint id);
         bool CheckBuffImmune(uint buffId);
         bool CheckBuffs(List<uint> ids);

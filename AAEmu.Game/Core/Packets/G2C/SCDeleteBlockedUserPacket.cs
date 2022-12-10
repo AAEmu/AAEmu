@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _success;
         private readonly string _blockedName;
         private readonly short _errorMessage;
-
+        
         public SCDeleteBlockedUserPacket(uint characterId, bool success, string blockedName, short errorMessage) : base(SCOffsets.SCDeleteBlockedUserPacket, 1)
         {
             _characterId = characterId;

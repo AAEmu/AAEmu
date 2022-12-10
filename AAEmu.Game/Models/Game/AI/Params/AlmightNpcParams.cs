@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
-
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.Params
@@ -42,11 +43,11 @@ namespace AAEmu.Game.Models.Game.AI.Params
 
                 //aiPhase not seem to be used?
                 AiSkillLists = new List<AiSkillList>();
-                if (aiParams.GetTable("data.aiSkillLists") is LuaTable table)
+                if(aiParams.GetTable("data.aiSkillLists") is LuaTable table)
                 {
-                    foreach (var skillList in table.Values)
+                    foreach(var skillList in table.Values)
                     {
-                        if (skillList is LuaTable skillListTable)
+                        if(skillList is LuaTable skillListTable)
                         {
                             var aiSkillList = new AiSkillList();
                             aiSkillList.ParseLua(skillListTable);

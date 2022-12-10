@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         // doodad_funcs
         public uint ReturnPointId { get; set; }
 
-        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Debug("DoodadFuncExitIndun, ReturnPointId: {0}", ReturnPointId);
 

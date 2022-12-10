@@ -1,5 +1,4 @@
 ﻿using System;
-
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
@@ -11,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     public class ItemConversion : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.ItemConversion;
-        public override void Execute(BaseUnit caster,
+        public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -75,8 +74,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             {
                 // give product
                 // TODO: add in weights
-                var value = Rand.Next(product.MinOutput, product.MaxOutput + 1);
-                if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Conversion, (uint)product.OuputItemId, value))
+                int value = Rand.Next(product.MinOutput, product.MaxOutput + 1);
+                if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Conversion, (uint) product.OuputItemId, value))
                 {
                     skill.Cancelled = true;
                     character.SendErrorMessage(ErrorMessageType.BagFull);

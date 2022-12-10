@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.Models.Stream;
@@ -19,7 +20,7 @@ namespace AAEmu.Game.Core.Packets.C2S
             // -----------------------
 
             _log.Warn("Create UCC Crest, printer bc:{0}, UccId:{1}, dataSize:{2}", bc, UccId, dataSize);
-
+            
             // TODO: check if bc points to a Crest Printer (and you are nearby)
 
             if (dataSize == 0) // simple

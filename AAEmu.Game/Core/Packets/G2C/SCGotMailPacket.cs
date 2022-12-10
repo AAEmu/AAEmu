@@ -27,10 +27,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_count);
             stream.Write(_hasBody);
             if (_hasBody)
-            {
                 stream.Write(_body);
-            }
-
             stream.Write(_isCancel);
             return stream;
         }

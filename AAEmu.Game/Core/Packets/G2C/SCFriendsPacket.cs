@@ -20,10 +20,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_total);
             stream.Write(_friends.Length); // TODO max length 200
             foreach (var friend in _friends)
-            {
                 stream.Write(friend);
-            }
-
             return stream;
         }
     }

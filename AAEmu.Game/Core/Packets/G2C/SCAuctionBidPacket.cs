@@ -1,4 +1,7 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Auction;
 

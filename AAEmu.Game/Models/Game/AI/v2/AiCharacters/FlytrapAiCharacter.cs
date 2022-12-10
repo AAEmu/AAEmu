@@ -1,4 +1,5 @@
 using AAEmu.Game.Models.Game.AI.v2.Behaviors;
+using AAEmu.Game.Models.Game.AI.v2.Behaviors.Archer;
 using AAEmu.Game.Models.Game.AI.v2.Behaviors.Flytrap;
 
 namespace AAEmu.Game.Models.Game.AI.v2.AiCharacters
@@ -8,7 +9,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.AiCharacters
         protected override void Build()
         {
             AddBehavior(BehaviorKind.Spawning, new SpawningBehavior());
-
+            
             AddBehavior(BehaviorKind.HoldPosition, new HoldPositionBehavior())
                 .AddTransition(TransitionEvent.OnAggroTargetChanged, BehaviorKind.FlytrapAttack)
                 .AddTransition(TransitionEvent.ReturnToIdlePos, BehaviorKind.ReturnState)
@@ -26,7 +27,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.AiCharacters
                 .AddTransition(TransitionEvent.OnAggroTargetChanged, BehaviorKind.FlytrapAttack);
 
             AddBehavior(BehaviorKind.FlytrapAttack, new FlytrapAttackBehavior());
-
+            
             AddBehavior(BehaviorKind.ReturnState, new ReturnStateBehavior());
             AddBehavior(BehaviorKind.Dead, new DeadBehavior());
             AddBehavior(BehaviorKind.Despawning, new DespawningBehavior());

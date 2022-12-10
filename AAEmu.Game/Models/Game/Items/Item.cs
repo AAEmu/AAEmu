@@ -1,5 +1,4 @@
 ﻿using System;
-
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -116,21 +115,16 @@ namespace AAEmu.Game.Models.Game.Items
             {
                 _uccId = value;
                 if (value > 0)
-                {
                     SetFlag(ItemFlag.HasUCC);
-                }
                 else
-                {
                     RemoveFlag(ItemFlag.HasUCC);
-                }
-
                 _isDirty = true;
             }
         }
 
         public DateTime ChargeStartTime { get; set; } = DateTime.MinValue;
         public int ChargeCount { get; set; }
-
+        
         public virtual ItemDetailType DetailType => 0; // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
 
         // Helper
@@ -152,11 +146,7 @@ namespace AAEmu.Game.Models.Game.Items
         /// <returns></returns>
         public int CompareTo(Item otherItem)
         {
-            if (otherItem == null)
-            {
-                return 1;
-            }
-
+            if (otherItem == null) return 1;
             return this.Slot.CompareTo(otherItem.Slot);
         }
 

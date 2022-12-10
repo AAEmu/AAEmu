@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs
         public uint FinalStepBuffId { get; set; }
         // Reduction in % for sleep etc.. in PVP
         public uint CharacterTimeReduction { get; set; }
-
+        
         public List<BuffToleranceStep> Steps { get; set; }
 
         public BuffToleranceStep GetFirstStep()
@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs
         public BuffToleranceStep GetStepAfter(BuffToleranceStep step)
         {
             // TODO: Handle no more
-            return Steps.First(st => st.Id > step.Id);
+            return Steps.First(st => st.Id > step.Id); 
         }
     }
 }

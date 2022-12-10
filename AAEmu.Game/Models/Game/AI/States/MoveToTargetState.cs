@@ -1,6 +1,7 @@
 ﻿using System;
-
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.Framework;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
@@ -21,9 +22,7 @@ namespace AAEmu.Game.Models.Game.AI.States
         public override void Tick(TimeSpan delta)
         {
             if (!(AI.Owner is Npc npc))
-            {
                 return;
-            }
 
             // if (PreviousDistance > AI.Params.CombatRange)
             if (PreviousDistance > 2.5f)
@@ -36,7 +35,7 @@ namespace AAEmu.Game.Models.Game.AI.States
                 npc.StopMovement();
                 // Go in combat 
             }
-
+            
             PreviousDistance = MathUtil.CalculateDistance(AI.Owner, Target, true);
         }
     }

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.Proxy;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 {
@@ -13,18 +13,18 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             var existingNextEvents = new Dictionary<uint, PlotNode>();
 
             var firstEvent = PlotManager.Instance.GetEventByPlotId(plotId);
-
+            
             // Create RootNode
             var rootNode = new PlotNode
             {
                 Tree = tree,
                 Event = firstEvent
             };
-
+            
             tree.RootNode = rootNode;
             // Start the recursion
             BuildChildren(rootNode, existingNextEvents);
-
+            
             return tree;
         }
 
@@ -40,15 +40,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 }
                 else
                 {
-                    var childNode = new PlotNode()
-                    {
-                        Tree = parent.Tree,
+                    var childNode = new PlotNode() {
+                        Tree = parent.Tree, 
                         Parent = parent,
-                        Event = childNextEvent.Event,
+                        Event = childNextEvent.Event, 
                         ParentNextEvent = childNextEvent
                     };
                     parent.Children.Add(childNode);
-
+                    
                     existingNextEvents.Add(childNextEvent.Id, childNode);
 
                     BuildChildren(childNode, existingNextEvents);

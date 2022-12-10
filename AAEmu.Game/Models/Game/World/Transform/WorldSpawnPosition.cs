@@ -100,13 +100,9 @@ namespace AAEmu.Game.Models.Game.World.Transform
                         return Math.Abs(vector3.X - X) < Tolerance && Math.Abs(vector3.Y - Y) < Tolerance && Math.Abs(vector3.Z - Z) < Tolerance;
                     }
                 case WorldSpawnPosition other:
-                    {
-                        return X.Equals(other.X) && Y.Equals(other.Y) && Z.Equals(other.Z);
-                    }
+                    return X.Equals(other.X) && Y.Equals(other.Y) && Z.Equals(other.Z);
                 default:
-                    {
-                        return false;
-                    }
+                    return false;
             }
         }
 

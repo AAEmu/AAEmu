@@ -53,13 +53,9 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write((short)(_skill.Template.ChannelingTime / 10 + 10));
             stream.Write((byte)0); // f
             if (_skill.Template.Id != 2) // TODO: rotate between mainhand and offhand animation?
-            {
                 stream.Write(_skill.Template.FireAnim?.Id ?? 0); // fire_anim_id 
-            }
             else
-            {
                 stream.Write(2);
-            }
 
             stream.Write((byte)0); // flag
 

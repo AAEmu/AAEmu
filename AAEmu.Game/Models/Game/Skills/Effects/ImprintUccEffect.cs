@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Packets;
@@ -17,26 +17,17 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             _log.Trace("ImprintUccEffect");
             if (!(target is Character player))
-            {
                 return;
-            }
-
             if (!(casterObj is SkillItem skillItem))
-            {
                 return;
-            }
-
             if (!(targetObj is SkillCastItemTarget scit))
-            {
                 return;
-            }
-
             var stampItem = ItemManager.Instance.GetItemByItemId(skillItem.ItemId);
             var targetItem = ItemManager.Instance.GetItemByItemId(scit.Id);
 

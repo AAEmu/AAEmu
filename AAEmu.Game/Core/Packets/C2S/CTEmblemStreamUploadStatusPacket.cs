@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.C2S
         public override void Read(PacketStream stream)
         {
             var status = stream.ReadByte();
-
+            
             UccManager.Instance.ConfirmDefaultUcc(Connection);
         }
     }

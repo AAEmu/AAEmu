@@ -8,6 +8,6 @@ namespace AAEmu.Game.Models.Game.Items
         Bank = 3,
         Trade = 4,
         Mail = 5,
-        System = 0xFF
+        System = 0xFF 
     }
 }

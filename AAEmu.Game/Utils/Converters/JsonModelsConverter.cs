@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
 using AAEmu.Game.Models.Json;
-
 using Newtonsoft.Json;
 
 namespace AAEmu.Game.Utils.Converters

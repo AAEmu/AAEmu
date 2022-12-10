@@ -1,5 +1,4 @@
 ﻿using System;
-
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
@@ -8,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class UserMusicSaveNotes : SpecialEffectAction
     {
-        public override void Execute(BaseUnit caster,
+        public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -30,9 +29,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             {
                 var item = ItemManager.Instance.GetItemByItemId(si.ItemId);
                 if (!MusicManager.Instance.CreateSheetMusic(player, item))
-                {
                     _log.Error("Special effects: UserMusicSaveNotes - Error saving music for {0} !", player.Name);
-                }
             }
             else
             {

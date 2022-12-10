@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Items
         public int AddBreakMul { get; set; }
         public int AddDowngradeRatio { get; set; }
         public int AddDowngradeMul { get; set; }
-
+        
         public int AddGreatSuccessGrade { get; set; }
     }
 }

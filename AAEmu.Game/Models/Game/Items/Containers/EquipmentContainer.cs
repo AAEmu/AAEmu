@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Items.Containers
@@ -20,166 +20,108 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             switch (slotTypeId)
             {
                 case EquipmentItemSlotType.Head:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Head);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Head);
+                    break;
                 case EquipmentItemSlotType.Neck:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Neck);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Neck);
+                    break;
                 case EquipmentItemSlotType.Chest:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Chest);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Chest);
+                    break;
                 case EquipmentItemSlotType.Waist:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Waist);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Waist);
+                    break;
                 case EquipmentItemSlotType.Legs:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Legs);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Legs);
+                    break;
                 case EquipmentItemSlotType.Hands:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Hands);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Hands);
+                    break;
                 case EquipmentItemSlotType.Feet:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Feet);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Feet);
+                    break;
                 case EquipmentItemSlotType.Arms:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Arms);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Arms);
+                    break;
                 case EquipmentItemSlotType.Back:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Back);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Back);
+                    break;
                 case EquipmentItemSlotType.Ear:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Ear1);
-                        allowedSlots.Add(EquipmentItemSlot.Ear2);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Ear1);
+                    allowedSlots.Add(EquipmentItemSlot.Ear2);
+                    break;
                 case EquipmentItemSlotType.Finger:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Finger1);
-                        allowedSlots.Add(EquipmentItemSlot.Finger2);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Finger1);
+                    allowedSlots.Add(EquipmentItemSlot.Finger2);
+                    break;
                 case EquipmentItemSlotType.Undershirt:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Undershirt);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Undershirt);
+                    break;
                 case EquipmentItemSlotType.Underpants:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Underpants);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Underpants);
+                    break;
                 case EquipmentItemSlotType.Mainhand:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Mainhand);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Mainhand);
+                    break;
                 case EquipmentItemSlotType.Offhand:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Offhand);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Offhand);
+                    break;
                 case EquipmentItemSlotType.TwoHanded:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Mainhand);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Mainhand);
+                    break;
                 case EquipmentItemSlotType.OneHanded:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Mainhand);
-                        allowedSlots.Add(EquipmentItemSlot.Offhand);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Mainhand);
+                    allowedSlots.Add(EquipmentItemSlot.Offhand);
+                    break;
                 case EquipmentItemSlotType.Ranged:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Ranged);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Ranged);
+                    break;
                 /*
                 case EquipmentItemSlotType.Ammunition:
                     allowedSlots.Add(EquipmentItemSlot.Ammunition);
                     break;
                 */
                 case EquipmentItemSlotType.Shield:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Offhand);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Offhand);
+                    break;
                 case EquipmentItemSlotType.Instrument:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Musical);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Musical);
+                    break;
                 /*
                 case EquipmentItemSlotType.Bag:
                     // allowedSlots.Add(EquipmentItemSlot.Bag);
                     break;
                 */
                 case EquipmentItemSlotType.Face:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Face);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Face);
+                    break;
                 case EquipmentItemSlotType.Hair:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Hair);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Hair);
+                    break;
                 case EquipmentItemSlotType.Glasses:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Glasses);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Glasses);
+                    break;
                 case EquipmentItemSlotType.Reserved:
-                    {
-                        // maybe for Warborn horns or other race specifics ? I dunno
-                        allowedSlots.Add(EquipmentItemSlot.Reserved);
-                        break;
-                    }
+                    // maybe for Warborn horns or other race specifics ? I dunno
+                    allowedSlots.Add(EquipmentItemSlot.Reserved); 
+                    break;
                 case EquipmentItemSlotType.Tail:
-                    {
-                        // Firran and Warborn tails ?
-                        allowedSlots.Add(EquipmentItemSlot.Tail);
-                        break;
-                    }
+                    // Firran and Warborn tails ?
+                    allowedSlots.Add(EquipmentItemSlot.Tail); 
+                    break;
                 case EquipmentItemSlotType.Body:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Body);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Body);
+                    break;
                 case EquipmentItemSlotType.Beard:
-                    {
-                        // Mostly for Dwarves I'd assume
-                        allowedSlots.Add(EquipmentItemSlot.Beard);
-                        break;
-                    }
+                    // Mostly for Dwarves I'd assume
+                    allowedSlots.Add(EquipmentItemSlot.Beard); 
+                    break;
                 case EquipmentItemSlotType.Backpack:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Backpack);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Backpack);
+                    break;
                 case EquipmentItemSlotType.Cosplay:
-                    {
-                        allowedSlots.Add(EquipmentItemSlot.Cosplay);
-                        break;
-                    }
+                    allowedSlots.Add(EquipmentItemSlot.Cosplay);
+                    break;
             }
             return allowedSlots;
         }
@@ -189,25 +131,15 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             var slotTypeId = (EquipmentItemSlotType)255; // Dummy value for invalid
 
             if (itemTemplate is BodyPartTemplate bodyPartTemplate)
-            {
                 slotTypeId = (EquipmentItemSlotType)bodyPartTemplate.SlotTypeId;
-            }
             else if (itemTemplate is WeaponTemplate weaponTemplate)
-            {
                 slotTypeId = (EquipmentItemSlotType)weaponTemplate.HoldableTemplate.SlotTypeId;
-            }
             else if (itemTemplate is ArmorTemplate armorTemplate)
-            {
                 slotTypeId = (EquipmentItemSlotType)armorTemplate.WearableTemplate.SlotTypeId;
-            }
             else if (itemTemplate is AccessoryTemplate accessoryTemplate)
-            {
                 slotTypeId = (EquipmentItemSlotType)accessoryTemplate.WearableTemplate.SlotTypeId;
-            }
             else if (itemTemplate is BackpackTemplate _)
-            {
                 slotTypeId = EquipmentItemSlotType.Backpack;
-            }
             else
             {
                 return new List<EquipmentItemSlot>(); // must be a equip-able item
@@ -219,14 +151,10 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         public override bool CanAccept(Item item, int targetSlot)
         {
             if (item == null)
-            {
                 return true; // always allow empty item slot (un-equip a item)
-            }
 
             if (Owner == null)
-            {
                 return true; // Not applicable to NPCs, they can hold whatever they want anywhere
-            }
 
             if ((targetSlot < 0) || (targetSlot >= ContainerSize))
             {
@@ -237,25 +165,15 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             var slotTypeId = (EquipmentItemSlotType)255; // Dummy value for invalid
 
             if (item.Template is BodyPartTemplate bodyPartTemplate)
-            {
                 slotTypeId = (EquipmentItemSlotType)bodyPartTemplate.SlotTypeId;
-            }
             else if (item.Template is WeaponTemplate weaponTemplate)
-            {
                 slotTypeId = (EquipmentItemSlotType)weaponTemplate.HoldableTemplate.SlotTypeId;
-            }
             else if (item.Template is ArmorTemplate armorTemplate)
-            {
                 slotTypeId = (EquipmentItemSlotType)armorTemplate.WearableTemplate.SlotTypeId;
-            }
             else if (item.Template is AccessoryTemplate accessoryTemplate)
-            {
                 slotTypeId = (EquipmentItemSlotType)accessoryTemplate.WearableTemplate.SlotTypeId;
-            }
             else if (item.Template is BackpackTemplate _)
-            {
                 slotTypeId = EquipmentItemSlotType.Backpack;
-            }
             else
             {
                 _log.Warn($"{Owner?.Name} ({OwnerId}) tried to equip a non-equipable item {item.Template.Name} ({item.TemplateId}), Id:{item.Id}");
@@ -271,7 +189,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
 
             var equipSlot = (EquipmentItemSlot)targetSlot;
             var allowedSlots = GetAllowedGearSlots(slotTypeId);
-
+            
             if (!allowedSlots.Contains(equipSlot))
             {
                 _log.Warn($"{Owner?.Name} ({OwnerId}) tried to equip a item in the wrong slot {item.Template.Name} ({item.TemplateId}), Id:{item.Id}, SlotType: {equipSlot}, TargetSlot:{(EquipmentItemSlot)targetSlot}");

@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -33,13 +32,9 @@ namespace AAEmu.Game.Core.Packets.G2C
                 for (byte j = 1; j <= 7; j++)
                 {
                     if (_tabs[i].subTabs.IndexOf(j) > -1)
-                    {
                         stream.Write(j); // subTab
-                    }
                     else
-                    {
                         stream.Write((byte)0);
-                    }
                 }
             }
 

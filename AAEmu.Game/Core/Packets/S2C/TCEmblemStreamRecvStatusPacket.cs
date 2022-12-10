@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.S2C
     public class TCEmblemStreamRecvStatusPacket : StreamPacket
     {
         private EmblemStreamStatus _status;
-
+        
         public TCEmblemStreamRecvStatusPacket(EmblemStreamStatus status) : base(TCOffsets.TCEmblemStreamRecvStatusPacket)
         {
             _status = status;
@@ -14,8 +14,8 @@ namespace AAEmu.Game.Core.Packets.S2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((byte)_status); // status
-            stream.Write((int)0);
+            stream.Write((byte) _status); // status
+            stream.Write((int) 0);
 
             return stream;
         }

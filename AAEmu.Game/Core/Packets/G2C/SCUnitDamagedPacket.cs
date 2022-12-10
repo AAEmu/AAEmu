@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _damage;
         private readonly int _absorbed;
         public int _manaBurn;
-
+        
         public byte HoldableId { get; set; }
         public SkillHitType HitType { get; set; }
 

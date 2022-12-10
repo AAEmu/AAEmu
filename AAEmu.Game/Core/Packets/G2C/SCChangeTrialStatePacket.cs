@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _curJury;
         private readonly uint _remainTime;
 
-        public SCChangeTrialStatePacket(uint trialId, byte state, int curJury, uint remainTime) :
+        public SCChangeTrialStatePacket(uint trialId, byte state, int curJury, uint remainTime) : 
             base(SCOffsets.SCChangeTrialStatePacket, 1)
         {
             _trialId = trialId;

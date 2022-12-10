@@ -1,11 +1,8 @@
 ﻿using System.Collections.Generic;
-
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-
 using MySql.Data.MySqlClient;
-
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -42,10 +39,7 @@ namespace AAEmu.Game.Models.Game.Char
                 blockedList.Add(newBlocked);
             }
 
-            if (offlineIds.Count <= 0)
-            {
-                return blockedList;
-            }
+            if (offlineIds.Count <= 0) return blockedList;
 
             using (var connection = MySQL.CreateConnection())
             {
@@ -73,11 +67,7 @@ namespace AAEmu.Game.Models.Game.Char
         public void Send()
         {
 
-            if (BlockedList.Count <= 0)
-            {
-                return;
-            }
-
+            if (BlockedList.Count <= 0) return;
             var allBlocked = GetBlockedInfo(new List<uint>(BlockedList.Keys));
             var allBlockedArray = new Blocked[allBlocked.Count];
             allBlocked.CopyTo(allBlockedArray, 0);
@@ -138,17 +128,13 @@ namespace AAEmu.Game.Models.Game.Char
                 }
             }
         }
-
+               
 
         public void AddBlockedUser(string name)
         {
             var blocked = WorldManager.Instance.GetCharacter(name);
 
-            if (blocked == null || BlockedList.ContainsKey(blocked.Id))
-            {
-                return; // already blocked
-            }
-
+            if (blocked == null || BlockedList.ContainsKey(blocked.Id)) return; // already blocked
             var template = new BlockedTemplate()
             {
                 BlockedId = blocked.Id,
@@ -162,11 +148,7 @@ namespace AAEmu.Game.Models.Game.Char
         public void RemoveBlockedUser(string name)
         {
             var blocked = WorldManager.Instance.GetCharacter(name);
-            if (blocked == null || !BlockedList.ContainsKey(blocked.Id))
-            {
-                return; // not blocked
-            }
-
+            if (blocked == null || !BlockedList.ContainsKey(blocked.Id)) return; // not blocked
             BlockedList.Remove(blocked.Id);
             _removedBlocked.Add(blocked.Id);
             Owner.SendPacket(new SCDeleteBlockedUserPacket(blocked.Id, true, name, 0));

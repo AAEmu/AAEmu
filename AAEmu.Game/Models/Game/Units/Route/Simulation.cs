@@ -216,7 +216,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
         public void StopRecord(Simulation sim)
         {
             // записываем в файл
-            using (var sw = new StreamWriter(GetRecordFileName()))
+            using (StreamWriter sw = new StreamWriter(GetRecordFileName()))
             {
                 foreach (var b in RecordPath)
                 {
@@ -549,15 +549,11 @@ namespace AAEmu.Game.Models.Game.Units.Route
             switch (unit)
             {
                 case Character ch:
-                    {
-                        Character = ch;
-                        break;
-                    }
+                    Character = ch;
+                    break;
                 case Npc np:
-                    {
-                        Npc = np;
-                        break;
-                    }
+                    Npc = np;
+                    break;
             }
 
             TargetPosition = new Transform(unit, unit.ParentObj?.Transform);

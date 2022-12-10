@@ -41,9 +41,7 @@ namespace AAEmu.Game.Models.Game.World
         public virtual void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
         {
             if (DisabledSetPosition)
-            {
                 return;
-            }
 
             //var rX = MathUtil.ConvertDirectionToRadian((sbyte)MathF.Round(rotationX));
             //var rY = MathUtil.ConvertDirectionToRadian((sbyte)MathF.Round(rotationY));
@@ -96,26 +94,17 @@ namespace AAEmu.Game.Models.Game.World
         public virtual void BroadcastPacket(GamePacket packet, bool self)
         {
             foreach (var character in WorldManager.Instance.GetAround<Character>(this))
-            {
                 character.SendPacket(packet);
-            }
-
             if ((self) && (this is Character chr))
-            {
                 chr.SendPacket(packet);
-            }
         }
 
         public virtual void AddVisibleObject(Character character)
         {
             if ((Transform != null) && (Transform.Children.Count > 0))
-            {
                 foreach (var child in Transform.Children.ToArray())
                     //if (child?.GameObject != character) // Never send to self, or the client crashes
-                {
                     child?.GameObject?.AddVisibleObject(character);
-                }
-            }
         }
 
         public virtual void RemoveVisibleObject(Character character)
@@ -126,13 +115,9 @@ namespace AAEmu.Game.Models.Game.World
                 character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
             }
             if ((Transform != null) && (Transform.Children.Count > 0))
-            {
                 foreach (var child in Transform.Children.ToArray())
                     //if (child?.GameObject != character) // Never send to self, or the client crashes
-                {
                     child?.GameObject?.RemoveVisibleObject(character);
-                }
-            }
         }
 
         public virtual string DebugName()

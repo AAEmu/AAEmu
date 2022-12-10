@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-
 using NLog;
 
 namespace AAEmu.Game.Models.Game.AI.Framework
@@ -15,7 +14,7 @@ namespace AAEmu.Game.Models.Game.AI.Framework
         ReturnToIdle = 5,
         BigMonsterAttack = 6
     }
-
+    
     public class State
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
@@ -29,8 +28,8 @@ namespace AAEmu.Game.Models.Game.AI.Framework
     {
         protected Dictionary<States, State> _states = new Dictionary<States, State>();
         protected State _currentState;
-
-        public FSM() { }
+        
+        public FSM() {}
 
         public void Tick(TimeSpan delta)
         {
@@ -41,7 +40,7 @@ namespace AAEmu.Game.Models.Game.AI.Framework
         {
             return _currentState;
         }
-
+        
         public void SetCurrentState(State state)
         {
             _currentState?.Exit();

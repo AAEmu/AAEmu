@@ -17,9 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2S
 
             var name = NameManager.Instance.GetCharacterName(id);
             if (name != null)
-            {
                 Connection.SendPacket(new TCCharNameQueriedPacket(id, name));
-            }
 
             _log.Debug("QueryCharName, Id: {0}, Name: {1}", id, name);
         }

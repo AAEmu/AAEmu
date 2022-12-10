@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
-
 using AAEmu.Commons.Utils.AAPak;
 
 namespace AAEmu.Game.IO
@@ -17,19 +16,13 @@ namespace AAEmu.Game.IO
             switch (SourceType)
             {
                 case ClientSourceType.Directory when (Directory.Exists(PathName)):
-                    {
-                        return true;
-                    }
+                    return true;
                 case ClientSourceType.GamePak:
-                    {
-                        GamePak = new AAPak(PathName);
-                        // GamePak.GenerateFolderList();
-                        return GamePak.isOpen;
-                    }
+                    GamePak = new AAPak(PathName);
+                    // GamePak.GenerateFolderList();
+                    return GamePak.isOpen;
                 default:
-                    {
-                        return false;
-                    }
+                    return false;
             }
         }
 
@@ -56,23 +49,19 @@ namespace AAEmu.Game.IO
                         return File.Exists(fn);
                     }
                 case ClientSourceType.GamePak:
-                    {
-                        return GamePak.FileExists(fileName);
-                    }
+                    return GamePak.FileExists(fileName);
                 default:
-                    {
-                        return false;
-                    }
+                    return false;
             }
         }
-
+        
         public static string WildcardToRegex(string pattern)
         {
             return "^" + Regex.Escape(pattern).
                 Replace("\\*", ".*").
                 Replace("\\?", ".") + "$";
-        }
-
+        }        
+        
         /// <summary>
         /// Create a list of filenames found in target directory
         /// </summary>
@@ -102,7 +91,7 @@ namespace AAEmu.Game.IO
                     }
                 case ClientSourceType.GamePak:
                     {
-                        var rootDir = directory.Replace('/', Path.DirectorySeparatorChar).Replace(Path.DirectorySeparatorChar, '/').ToLower();
+                        var rootDir = directory.Replace('/',Path.DirectorySeparatorChar).Replace(Path.DirectorySeparatorChar, '/').ToLower();
                         var wildCard = WildcardToRegex("*" + searchPattern.ToLower() + "*");// Hopefully this behaves the same as the Directory.GetFiles pattern
                         if (includeSubDirectories)
                         {
@@ -112,9 +101,7 @@ namespace AAEmu.Game.IO
                                 {
                                     if ((string.IsNullOrWhiteSpace(searchPattern) ||
                                          (Regex.Match(pfi.name.ToLower(), wildCard).Success)))
-                                    {
                                         list.Add(pfi.name);
-                                    }
                                 }
                             }
                         }
@@ -122,17 +109,13 @@ namespace AAEmu.Game.IO
                         {
                             var files = GamePak.GetFilesInDirectory(rootDir);
                             foreach (var pfi in files)
-                            {
                                 if ((string.IsNullOrWhiteSpace(searchPattern) || (Regex.Match(pfi.name, wildCard).Success)))
-                                {
                                     list.Add(pfi.name);
-                                }
-                            }
                         }
                         break;
                     }
             }
-
+            
             return list;
         }
 
@@ -152,13 +135,9 @@ namespace AAEmu.Game.IO
                         return fStream;
                     }
                 case ClientSourceType.GamePak:
-                    {
-                        return GamePak.ExportFileAsStreamCloned(fileName);
-                    }
+                    return GamePak.ExportFileAsStreamCloned(fileName);
                 default:
-                    {
-                        return null;
-                    }
+                    return null;
             }
         }
 
@@ -202,5 +181,5 @@ namespace AAEmu.Game.IO
             return fileName;
         }
     }
-
+    
 }

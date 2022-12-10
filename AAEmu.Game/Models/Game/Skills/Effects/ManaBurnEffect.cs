@@ -1,5 +1,4 @@
 ﻿using System;
-
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -19,42 +18,41 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             _log.Trace("ManaBurnEffect");
-
-            var unit = (Unit)caster;
             var min = 0.0f;
             var max = 0.0f;
-
+            
             min += BaseMin;
             max += BaseMax;
 
             //var levelMin = 0.0f;
             //var levelMax = 0.0f;
-
-            var lvlMd = unit.LevelDps * LevelMd;
+            
+            var lvlMd = caster.LevelDps * LevelMd;
             // Hack null-check on skill
             var levelModifier = (((source.Skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
-
+            
             min += (lvlMd - levelModifier * lvlMd) + 0.5f;
             max += (levelModifier + 1) * lvlMd + 0.5f;
-
+            
             if (source.Buff?.TickEffects.Count > 0)
             {
-                min = (float)(min * (source.Buff.Tick / source.Buff.Duration));
-                max = (float)(max * (source.Buff.Tick / source.Buff.Duration));
+                min = (float) (min * (source.Buff.Tick / source.Buff.Duration));
+                max = (float) (max * (source.Buff.Tick / source.Buff.Duration));
             }
 
             var finalDamage = Rand.Next(min, max);
 
             if (target is Unit targetUnit)
             {
-                targetUnit.ReduceCurrentMp(unit, (int)finalDamage);
-                var packet = new SCUnitDamagedPacket(castObj, casterObj, unit.ObjId, target.ObjId, 0, 0)
+                targetUnit.ReduceCurrentMp(caster, (int) finalDamage);
+                var packet = new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, 0, 0)
                 {
-                    _manaBurn = (int)finalDamage
+                    _manaBurn = (int) finalDamage
                 };
                 target.BroadcastPacket(packet, true);
             }

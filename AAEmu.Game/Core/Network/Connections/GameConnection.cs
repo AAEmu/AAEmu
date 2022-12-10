@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
-
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils.DB;
@@ -29,17 +28,17 @@ namespace AAEmu.Game.Core.Network.Connections
         public uint AccountId { get; set; }
         public IPAddress Ip => _session.Ip;
         public PacketStream LastPacket { get; set; }
-
+        
         public AccountPayment Payment { get; set; }
-
+        
         public int PacketCount { get; set; }
-
+        
         public List<IDisposable> Subscribers { get; set; }
         public GameState State { get; set; }
         public Character ActiveChar { get; set; }
         public Dictionary<uint, Character> Characters;
         public Dictionary<uint, House> Houses;
-
+        
         public Task LeaveTask { get; set; }
         public DateTime LastPing { get; set; }
 
@@ -47,7 +46,7 @@ namespace AAEmu.Game.Core.Network.Connections
         {
             _session = session;
             Subscribers = new List<IDisposable>();
-
+            
             Characters = new Dictionary<uint, Character>();
             Houses = new Dictionary<uint, House>();
             Payment = new AccountPayment(this);
@@ -72,19 +71,13 @@ namespace AAEmu.Game.Core.Network.Connections
         public void OnDisconnect()
         {
             AccountManager.Instance.Remove(AccountId);
-
+            
             if (ActiveChar != null)
-            {
                 foreach (var subscriber in ActiveChar.Subscribers)
-                {
                     subscriber.Dispose();
-                }
-            }
 
             foreach (var subscriber in Subscribers)
-            {
                 subscriber.Dispose();
-            }
 
             SaveAndRemoveFromWorld();
         }
@@ -131,10 +124,7 @@ namespace AAEmu.Game.Core.Network.Connections
                 {
                     var character = Character.Load(connection, id, AccountId);
                     if (character == null)
-                    {
                         continue; // TODO ...
-                    }
-
                     if (!CharacterManager.Instance.CheckForDeletedCharactersDeletion(character, this, connection))
                     {
                         Characters.Add(character.Id, character);
@@ -158,9 +148,7 @@ namespace AAEmu.Game.Core.Network.Connections
         {
             // TODO: this needs a rewrite
             if (ActiveChar == null)
-            {
                 return;
-            }
 
             // stopping the TransferTelescopeTickStartTask if character disconnected
             TransferTelescopeManager.Instance.StopTransferTelescopeTickAsync().GetAwaiter().GetResult();

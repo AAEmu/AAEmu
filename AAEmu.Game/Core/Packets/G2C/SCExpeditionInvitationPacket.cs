@@ -9,8 +9,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _invitorName;
         private readonly uint _factionId;
         private readonly string _factionName;
-
-        public SCExpeditionInvitationPacket(uint invitorId, string invitorName, uint factionId, string factionName)
+        
+        public SCExpeditionInvitationPacket(uint invitorId, string invitorName, uint factionId, string factionName) 
             : base(SCOffsets.SCExpeditionInvitationPacket, 1)
         {
             _invitorId = invitorId;

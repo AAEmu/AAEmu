@@ -1,5 +1,4 @@
 ﻿using System;
-
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.World.Zones;
@@ -22,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_zoneId);
-            stream.Write((byte)_hpws);
+            stream.Write((byte) _hpws);
             stream.Write(_endTime);
             return stream;
         }

@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
@@ -11,7 +12,6 @@ using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
-
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
@@ -47,31 +47,23 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             UpdateSource(template, state);
             UpdateTargets(template, state);
         }
-
+        
         public void UpdateSource(PlotEventTemplate template, PlotState state)
         {
             switch ((PlotSourceUpdateMethodType)template.SourceUpdateMethodId)
             {
                 case PlotSourceUpdateMethodType.OriginalSource:
-                    {
-                        Source = state.Caster;
-                        break;
-                    }
+                    Source = state.Caster;
+                    break;
                 case PlotSourceUpdateMethodType.OriginalTarget:
-                    {
-                        Source = state.Target;
-                        break;
-                    }
+                    Source = state.Target;
+                    break;
                 case PlotSourceUpdateMethodType.PreviousSource:
-                    {
-                        Source = PreviousSource;
-                        break;
-                    }
+                    Source = PreviousSource;
+                    break;
                 case PlotSourceUpdateMethodType.PreviousTarget:
-                    {
-                        Source = PreviousTarget;
-                        break;
-                    }
+                    Source = PreviousTarget;
+                    break;
             }
         }
 
@@ -80,61 +72,47 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             switch ((PlotTargetUpdateMethodType)template.TargetUpdateMethodId)
             {
                 case PlotTargetUpdateMethodType.OriginalSource:
-                    {
-                        Target = state.Caster;
-                        EffectedTargets.Add(Target);
-                        break;
-                    }
+                    Target = state.Caster;
+                    EffectedTargets.Add(Target);
+                    break;
                 case PlotTargetUpdateMethodType.OriginalTarget:
-                    {
-                        Target = state.Target;
-                        EffectedTargets.Add(Target);
-                        break;
-                    }
+                    Target = state.Target;
+                    EffectedTargets.Add(Target);
+                    break;
                 case PlotTargetUpdateMethodType.PreviousSource:
-                    {
-                        Target = PreviousSource;
-                        EffectedTargets.Add(Target);
-                        break;
-                    }
+                    Target = PreviousSource;
+                    EffectedTargets.Add(Target);
+                    break;
                 case PlotTargetUpdateMethodType.PreviousTarget:
-                    {
-                        Target = PreviousTarget;
-                        EffectedTargets.Add(Target);
-                        break;
-                    }
+                    Target = PreviousTarget;
+                    EffectedTargets.Add(Target);
+                    break;
                 case PlotTargetUpdateMethodType.Area:
-                    {
-                        Target = UpdateAreaTarget(new PlotTargetAreaParams(template), state, template);
-                        break;
-                    }
+                    Target = UpdateAreaTarget(new PlotTargetAreaParams(template), state, template);
+                    break;
                 case PlotTargetUpdateMethodType.RandomUnit:
-                    {
-                        Target = UpdateRandomUnitTarget(new PlotTargetRandomUnitParams(template), state, template);
-                        break;
-                    }
+                    Target = UpdateRandomUnitTarget(new PlotTargetRandomUnitParams(template), state, template);
+                    break;
                 case PlotTargetUpdateMethodType.RandomArea:
-                    {
-                        Target = UpdateRandomAreaTarget(new PlotTargetRandomAreaParams(template), state, template);
-                        break;
-                    }
+                    Target = UpdateRandomAreaTarget(new PlotTargetRandomAreaParams(template), state, template);
+                    break;
             }
         }
 
         private BaseUnit UpdateAreaTarget(PlotTargetAreaParams args, PlotState state, PlotEventTemplate plotEvent)
         {
-            var posUnit = new BaseUnit();
+            BaseUnit posUnit = new BaseUnit();
             posUnit.ObjId = uint.MaxValue;
             posUnit.Region = PreviousTarget.Region;
             posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
             var degrees = (float)(args.Angle);
-            posUnit.Transform.Local.Rotate(0, 0, degrees.DegToRad() * -1f);
+            posUnit.Transform.Local.Rotate(0,0,degrees.DegToRad() * -1f);
             // posUnit.Transform.Local.Rotate(Quaternion.CreateFromYawPitchRoll(((float)args.Angle).DegToRad() * -1f, 0f, 0f));
             if (args.Distance != 0)
             {
                 posUnit.Transform.Local.AddDistanceToFront((args.Distance / 1000f) - 0.01f);
             }
-            posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + (args.HeightOffset / 1000f), WorldManager.Instance.GetHeight(posUnit.Transform)));
+            posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + (args.HeightOffset / 1000f),WorldManager.Instance.GetHeight(posUnit.Transform)));
             // posUnit.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(posUnit.Transform));
 
             if (args.MaxTargets == 0)
@@ -142,7 +120,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 EffectedTargets.Add(posUnit);
                 return posUnit;
             }
-
+            
             // posUnit.Position.Z = get heightmap value for x:y     
             //TODO: Get Targets around posUnit?
             var unitsInRange = FilterTargets(WorldManager.Instance.GetAroundByShape<Unit>(posUnit, args.Shape), state, args, plotEvent);
@@ -172,16 +150,12 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
             var filteredUnits = FilterTargets(randomUnits, state, args, plotEvent);
             if (args.HitOnce)
-            {
                 filteredUnits = filteredUnits.Where(unit => unit.ObjId != PreviousTarget.ObjId);
-            }
 
             var index = Rand.Next(0, filteredUnits.Count());
 
             if (filteredUnits.Count() == 0)
-            {
                 return null;
-            }
 
             var randomUnit = filteredUnits.ElementAt(index);
 
@@ -192,7 +166,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             }
             else
             {
-                state.HitObjects.Add(plotEvent.Id, new List<GameObject> { randomUnit });
+                state.HitObjects.Add(plotEvent.Id, new List<GameObject>{ randomUnit });
             }
 
             return randomUnit;
@@ -200,7 +174,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
         private BaseUnit UpdateRandomAreaTarget(PlotTargetRandomAreaParams args, PlotState state, PlotEventTemplate plotEvent)
         {
-            var posUnit = new BaseUnit();
+            BaseUnit posUnit = new BaseUnit();
             posUnit.ObjId = uint.MaxValue;
             posUnit.Region = PreviousTarget.Region;
             posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
@@ -208,7 +182,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             posUnit.Transform.WorldId = PreviousTarget.Transform.WorldId;
             posUnit.Transform.Local.SetZRotation(((float)Rand.Next(-180, 180)).DegToRad());
             posUnit.Transform.Local.AddDistanceToFront(args.Distance / 1000f);
-            posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + (args.HeightOffset / 1000f), WorldManager.Instance.GetHeight(posUnit.Transform)));
+            posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + (args.HeightOffset / 1000f),WorldManager.Instance.GetHeight(posUnit.Transform)));
             //posUnit.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(posUnit.Transform));
 
             if (args.MaxTargets == 0)
@@ -245,42 +219,29 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             var template = state.ActiveSkill.Template;
             var filtered = units;
             if (!template.TargetAlive)
-            {
                 filtered = filtered.Where(o => o.Hp == 0);
-            }
-
             if (!template.TargetDead)
-            {
                 filtered = filtered.Where(o => o.Hp > 0);
-            }
-
             if (args.HitOnce)
             {
                 filtered = filtered.Where(o =>
                 {
                     if (state.HitObjects.ContainsKey(plotEvent.Id))
-                    {
                         return !state.HitObjects[plotEvent.Id].Contains(o);
-                    }
                     else
-                    {
                         return true;
-                    }
                 });
             }
-
-            filtered = filtered
+            
+            filtered = filtered 
                 .Where(o =>
                 {
                     var relationState = state.Caster.GetRelationStateTo(o);
                     if (relationState == RelationState.Neutral) // TODO ?
-                    {
                         return false;
-                    }
-
                     return true;
                 });
-
+            
             filtered = SkillTargetingUtil.FilterWithRelation(args.UnitRelationType, state.Caster, filtered);
             filtered = filtered.Where(o => ((byte)o.TypeFlag & args.UnitTypeFlag) != 0);
 

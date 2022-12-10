@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             _log.Debug($"NpcControllEffect: CategoryId={CategoryId}, ParamString={ParamString}, ParamInt={ParamInt}");
@@ -35,13 +35,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 switch (CategoryId)
                 {
                     case NpcControlCategory.Signal:
-                        {
-                            break;
-                        }
+                        break;
                     case NpcControlCategory.FollowUnit:
-                        {
-                            break;
-                        }
+                        break;
                     case NpcControlCategory.FollowPath:
                         {
                             if (npc.IsInPatrol) { break; }
@@ -53,14 +49,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                             break;
                         }
                     case NpcControlCategory.AttackUnit:
-                        {
-                            npc.SetFaction(FactionsEnum.Monstrosity);
-                            return;
-                        }
+                        npc.SetFaction(FactionsEnum.Monstrosity);
+                        return;
                     case NpcControlCategory.GoAway:
-                        {
-                            break;
-                        }
+                        break;
                     case NpcControlCategory.RunCommandSet:
                         {
                             var cmds = AiGameData.Instance.GetAiCommands(ParamInt);
@@ -71,32 +63,21 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                                     switch (aiCommands.CmdId)
                                     {
                                         case AiCommandCategory.FollowUnit:
-                                            {
-                                                break;
-                                            }
+                                            break;
                                         case AiCommandCategory.FollowPath:
                                             {
                                                 if (aiCommands.Param1 == 1) // TODO может быть несколько маршрутов, используем первый // there may be several routes, we use the first one
-                                                {
                                                     fileName = aiCommands.Param2;
-                                                }
-
                                                 break;
                                             }
                                         case AiCommandCategory.UseSkill:
-                                            {
-                                                skillId = aiCommands.Param1;
-                                                break;
-                                            }
+                                            skillId = aiCommands.Param1;
+                                            break;
                                         case AiCommandCategory.Timeout:
-                                            {
-                                                timeout = aiCommands.Param1;
-                                                break;
-                                            }
+                                            timeout = aiCommands.Param1;
+                                            break;
                                         default:
-                                            {
-                                                throw new ArgumentOutOfRangeException();
-                                            }
+                                            throw new ArgumentOutOfRangeException();
                                     }
                                 }
                                 if (!string.IsNullOrEmpty(fileName))
@@ -114,9 +95,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                             break;
                         }
                     default:
-                        {
-                            throw new ArgumentOutOfRangeException();
-                        }
+                        throw new ArgumentOutOfRangeException();
                 }
             }
             if (caster is Character && target is Npc npc2)
@@ -124,13 +103,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 switch (CategoryId)
                 {
                     case NpcControlCategory.Signal:
-                        {
-                            break;
-                        }
+                        break;
                     case NpcControlCategory.FollowUnit:
-                        {
-                            break;
-                        }
+                        break;
                     case NpcControlCategory.FollowPath:
                         {
                             if (npc2.IsInPatrol) { break; }
@@ -142,14 +117,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                             break;
                         }
                     case NpcControlCategory.AttackUnit:
-                        {
-                            npc2.SetFaction(FactionsEnum.Monstrosity);
-                            break;
-                        }
+                        npc2.SetFaction(FactionsEnum.Monstrosity);
+                        break;
                     case NpcControlCategory.GoAway:
-                        {
-                            break;
-                        }
+                        break;
                     case NpcControlCategory.RunCommandSet:
                         {
                             var cmds = AiGameData.Instance.GetAiCommands(ParamInt);
@@ -160,28 +131,18 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                                     switch (aiCommands.CmdId)
                                     {
                                         case AiCommandCategory.FollowUnit:
-                                            {
-                                                break;
-                                            }
+                                            break;
                                         case AiCommandCategory.FollowPath:
-                                            {
-                                                fileName = aiCommands.Param2;
-                                                break;
-                                            }
+                                            fileName = aiCommands.Param2;
+                                            break;
                                         case AiCommandCategory.UseSkill:
-                                            {
-                                                skillId = aiCommands.Param1;
-                                                break;
-                                            }
+                                            skillId = aiCommands.Param1;
+                                            break;
                                         case AiCommandCategory.Timeout:
-                                            {
-                                                timeout = aiCommands.Param1;
-                                                break;
-                                            }
+                                            timeout = aiCommands.Param1;
+                                            break;
                                         default:
-                                            {
-                                                throw new ArgumentOutOfRangeException();
-                                            }
+                                            throw new ArgumentOutOfRangeException();
                                     }
                                 }
                                 if (!string.IsNullOrEmpty(fileName))
@@ -198,9 +159,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                             break;
                         }
                     default:
-                        {
-                            throw new ArgumentOutOfRangeException();
-                        }
+                        throw new ArgumentOutOfRangeException();
                 }
             }
         }

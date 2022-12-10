@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Managers.Id
         private const uint FirstId = 0x00002710; // 10000, no special reason
         private const uint LastId = 0xFFFFFFFF;
         private static readonly uint[] Exclude = { };
-        private static readonly string[,] ObjTables = { { "mails", "id" } };
+        private static readonly string[,] ObjTables = {{"mails", "id"}};
 
         public static MailIdManager Instance => _instance ?? (_instance = new MailIdManager());
 

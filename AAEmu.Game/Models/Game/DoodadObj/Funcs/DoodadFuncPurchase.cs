@@ -15,13 +15,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public int CoinCount { get; set; }
         public uint CurrencyId { get; set; }
 
-        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             if (!(caster is Character character))
-            {
                 return;
-            }
-
             if (character.Inventory.Bag.SpaceLeftForItem(ItemId) < Count)
             {
                 character.SendErrorMessage(ErrorMessageType.BagFull);

@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Items.Templates;
+﻿using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Tests.Unit.Utils.Mocks;
 
 namespace AAEmu.Tests.Unit.Utils

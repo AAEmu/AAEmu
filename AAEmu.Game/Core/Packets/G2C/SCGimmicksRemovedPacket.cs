@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((ushort)_ids.Length); // TODO max 500 elements
+            stream.Write((ushort) _ids.Length); // TODO max 500 elements
             foreach (var id in _ids)
             {
                 stream.WriteBc(id);

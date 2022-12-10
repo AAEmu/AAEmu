@@ -10,10 +10,12 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils.DB;
 
 using MySql.Data.MySqlClient;
 
@@ -54,10 +56,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             var template = QuestManager.Instance.GetTemplate(questId);
             if (template == null)
-            {
                 return;
-            }
-
             var quest = new Quest(template);
             quest.Id = QuestIdManager.Instance.GetNextId();
             quest.Status = QuestStatus.Progress;
@@ -67,20 +66,14 @@ namespace AAEmu.Game.Models.Game.Char
             if (QuestManager.Instance.QuestTimeoutTask.Count != 0)
             {
                 if (QuestManager.Instance.QuestTimeoutTask.ContainsKey(quest.Owner.Id) && QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].ContainsKey(questId))
-                {
                     QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].Remove(questId);
-                }
             }
 
             var res = quest.Start();
             if (!res)
-            {
                 Drop(questId, true);
-            }
             else
-            {
                 quest.Owner.SendMessage("[Quest] {0}, quest {1} added.", Owner.Name, questId);
-            }
         }
 
         /// <summary>
@@ -97,10 +90,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             var template = QuestManager.Instance.GetTemplate(questId);
             if (template == null)
-            {
                 return;
-            }
-
             var quest = new Quest(template);
             quest.Id = QuestIdManager.Instance.GetNextId();
             quest.Status = QuestStatus.Progress;
@@ -135,7 +125,7 @@ namespace AAEmu.Game.Models.Game.Char
                         {
                             // Добавим|убавим за перевыполнение|недовыполнение плана, если позволено квестом (Add [reduce] for overfulfilling [underperformance] of the plan, if allowed by the quest)
                             // TODO: Verify if the bonus only applies to the level-based XP/Gold, or if it also applies to the rewards parts in quest_act_supply_xxx
-                            quest.QuestRewardExpPool += (levelBasedRewards.Exp * quest.OverCompletionPercent / 100);
+                            quest.QuestRewardExpPool += (levelBasedRewards.Exp * quest.OverCompletionPercent / 100); 
                             quest.QuestRewardCoinsPool += (levelBasedRewards.Copper * quest.OverCompletionPercent / 100);
 
                             if (!quest.ExtraCompletion)
@@ -154,13 +144,10 @@ namespace AAEmu.Game.Models.Game.Char
                     }
                 }
                 quest.DistributeRewards();
-
+                
                 var completeId = (ushort)(quest.TemplateId / 64);
                 if (!CompletedQuests.ContainsKey(completeId))
-                {
                     CompletedQuests.Add(completeId, new CompletedQuest(completeId));
-                }
-
                 var complete = CompletedQuests[completeId];
                 complete.Body.Set((int)(quest.TemplateId - completeId * 64), true);
                 var body = new byte[8];
@@ -174,10 +161,7 @@ namespace AAEmu.Game.Models.Game.Char
         public void Drop(uint questId, bool update)
         {
             if (!Quests.ContainsKey(questId))
-            {
                 return;
-            }
-
             var quest = Quests[questId];
             quest.Drop(update);
             Quests.Remove(questId);
@@ -201,14 +185,10 @@ namespace AAEmu.Game.Models.Game.Char
         public bool SetStep(uint questContextId, uint step)
         {
             if (step > 8)
-            {
                 return false;
-            }
 
             if (!Quests.ContainsKey(questContextId))
-            {
                 return false;
-            }
 
             var quest = Quests[questContextId];
             quest.Step = (QuestComponentKind)step;
@@ -218,17 +198,13 @@ namespace AAEmu.Game.Models.Game.Char
         public void OnReportToNpc(uint objId, uint questId, int selected)
         {
             if (!Quests.ContainsKey(questId))
-            {
                 return;
-            }
 
             var quest = Quests[questId];
 
             var npc = WorldManager.Instance.GetNpc(objId);
             if (npc == null)
-            {
                 return;
-            }
 
             //if (npc.GetDistanceTo(Owner) > 8.0f)
             //    return;
@@ -239,17 +215,13 @@ namespace AAEmu.Game.Models.Game.Char
         public void OnReportToDoodad(uint objId, uint questId, int selected)
         {
             if (!Quests.ContainsKey(questId))
-            {
                 return;
-            }
 
             var quest = Quests[questId];
 
             var doodad = WorldManager.Instance.GetDoodad(objId);
             if (doodad == null)
-            {
                 return;
-            }
 
             // if (npc.GetDistanceTo(Owner) > 8.0f)
             //     return;
@@ -261,19 +233,13 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var npc = WorldManager.Instance.GetNpc(npcObjId);
             if (npc == null)
-            {
                 return;
-            }
 
             if (npc.GetDistanceTo(Owner) > 8.0f)
-            {
                 return;
-            }
 
             if (!Quests.ContainsKey(questContextId))
-            {
                 return;
-            }
 
             var quest = Quests[questContextId];
 
@@ -283,9 +249,7 @@ namespace AAEmu.Game.Models.Game.Char
         public void OnKill(Npc npc)
         {
             foreach (var quest in Quests.Values.ToList())
-            {
                 quest.OnKill(npc);
-            }
         }
 
         /// <summary>
@@ -299,9 +263,7 @@ namespace AAEmu.Game.Models.Game.Char
             //    return;
             //var quest = Quests[item.Template.LootQuestId];
             foreach (var quest in Quests.Values.ToList())
-            {
                 quest.OnItemGather(item, count);
-            }
         }
 
         /// <summary>
@@ -311,9 +273,7 @@ namespace AAEmu.Game.Models.Game.Char
         public void OnItemUse(Item item)
         {
             foreach (var quest in Quests.Values.ToList())
-            {
                 quest.OnItemUse(item);
-            }
         }
 
         /// <summary>
@@ -324,59 +284,45 @@ namespace AAEmu.Game.Models.Game.Char
         public void OnInteraction(WorldInteractionType type, Units.BaseUnit target)
         {
             foreach (var quest in Quests.Values)
-            {
                 quest.OnInteraction(type, target);
-            }
         }
 
         public void OnExpressFire(uint emotionId, uint objId, uint obj2Id)
         {
             var npc = WorldManager.Instance.GetNpc(obj2Id);
             if (npc == null)
-            {
                 return;
-            }
 
             //if (npc.GetDistanceTo(Owner) > 8.0f)
             //    return;
 
             foreach (var quest in Quests.Values)
-            {
                 quest.OnExpressFire(npc, emotionId);
-            }
         }
 
         public void OnLevelUp()
         {
             foreach (var quest in Quests.Values)
-            {
                 quest.OnLevelUp();
-            }
         }
 
         public void OnQuestComplete(uint questId)
         {
             foreach (var quest in Quests.Values)
-            {
                 quest.OnQuestComplete(questId);
-            }
         }
 
         public void OnEnterSphere(SphereQuest sphereQuest)
         {
             foreach (var quest in Quests.Values.ToList())
-            {
                 quest.OnEnterSphere(sphereQuest);
-            }
         }
 
         public void OnCraft(Craft craft)
         {
             // TODO added for quest Id=6024
             foreach (var quest in Quests.Values.ToList())
-            {
                 quest.OnCraft(craft);
-            }
         }
 
         public void AddCompletedQuest(CompletedQuest quest)
@@ -393,10 +339,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var completeId = (ushort)(questId / 64);
             if (!CompletedQuests.ContainsKey(completeId))
-            {
                 return false;
-            }
-
             return CompletedQuests[completeId].Body[(int)(questId - completeId * 64)];
         }
 

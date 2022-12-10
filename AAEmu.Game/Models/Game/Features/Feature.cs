@@ -14,7 +14,7 @@
         flag_0_7 = 7,
         // 8 -> 15 is MaxPlayerLevel
         flag_2_0 = 16,
-        flag_2_1 = 17,
+        flag_2_1 = 17, 
         flag_2_2 = 18,
         flag_2_3 = 19,
         flag_2_4 = 20,

@@ -15,9 +15,7 @@ namespace AAEmu.Game.Models.Tasks.Skills
         public override void Execute()
         {
             if (_caster is not Npc npc)
-            {
                 return;
-            }
 
             ObjectIdManager.Instance.ReleaseId(npc.ObjId);
             npc.Delete();

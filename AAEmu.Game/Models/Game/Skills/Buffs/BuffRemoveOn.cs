@@ -1,4 +1,8 @@
-﻿namespace AAEmu.Game.Models.Game.Skills.Buffs
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace AAEmu.Game.Models.Game.Skills.Buffs
 {
     public enum BuffRemoveOn
     {

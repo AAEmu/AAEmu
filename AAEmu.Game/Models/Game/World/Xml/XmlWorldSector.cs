@@ -1,7 +1,9 @@
-﻿using System.Xml;
-
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Xml;
+using System.Xml.Resolvers;
 using AAEmu.Game.Core.Managers.World;
-
 using XmlH = AAEmu.Commons.Utils.XML.XmlHelper;
 
 namespace AAEmu.Game.Models.Game.World.Xml
@@ -16,7 +18,7 @@ namespace AAEmu.Game.Models.Game.World.Xml
         public void ReadNode(XmlNode node, World world, XmlWorldCell xmlWorldCell)
         {
             Parent = xmlWorldCell;
-
+            
             // Read XML
             var a = XmlH.ReadNodeAttributes(node);
             X = XmlH.ReadAttribute<int>(a, "x", 0);
@@ -36,7 +38,7 @@ namespace AAEmu.Game.Models.Game.World.Xml
         {
             return Y + (Parent.Y * WorldManager.SECTORS_PER_CELL);
         }
-
+        
         public override string ToString()
         {
             return $"{X},{Y}";

@@ -54,21 +54,15 @@ namespace AAEmu.Login.Core.Network.Connections
         {
             var res = new List<LoginCharacterInfo>();
             foreach (var characters in Characters.Values)
-            {
                 if (characters != null)
                     res.AddRange(characters);
-            }
-
             return res;
         }
 
         public void AddCharacters(byte gsId, List<LoginCharacterInfo> characterInfos)
         {
             foreach (var character in characterInfos)
-            {
                 character.GsId = gsId;
-            }
-
             Characters.Add(gsId, characterInfos);
         }
     }

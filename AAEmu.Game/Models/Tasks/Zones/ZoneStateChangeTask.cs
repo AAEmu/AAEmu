@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Models.Game.World.Zones;
+﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.World.Zones;
+using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Models.Tasks.Zones
 {

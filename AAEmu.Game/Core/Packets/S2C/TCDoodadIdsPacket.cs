@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.S2C
         private readonly int _nextId;
         private readonly int _total;
         private readonly uint[] _objIds;
-
+        
         public TCDoodadIdsPacket(int id, int nextId, int total, uint[] objIds) : base(TCOffsets.TCDoodadIdsPacket)
         {
             _id = id;
@@ -25,9 +25,7 @@ namespace AAEmu.Game.Core.Packets.S2C
             stream.Write(_total);
             stream.Write(_objIds.Length);
             foreach (var objId in _objIds)
-            {
                 stream.WriteBc(objId);
-            }
 
             return stream;
         }

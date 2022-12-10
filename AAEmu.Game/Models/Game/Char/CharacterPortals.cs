@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
@@ -35,10 +34,7 @@ namespace AAEmu.Game.Models.Game.Char
         public Portal GetPortalInfo(uint id)
         {
             if (DistrictPortals.ContainsKey(id))
-            {
                 return DistrictPortals[id];
-            }
-
             return PrivatePortals.ContainsKey(id) ? PrivatePortals[id] : null;
         }
 

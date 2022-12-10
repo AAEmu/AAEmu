@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Numerics;
-
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.G2C;
@@ -34,10 +33,10 @@ namespace AAEmu.Game.Models.Game.Gimmicks
         /// <summary>
         /// MoveZ
         /// </summary>
-        public bool moveDown { get; set; } = false;
+        public bool moveDown  { get; set; } = false;
         public DateTime WaitTime { get; set; }
         public uint TimeLeft => WaitTime > DateTime.UtcNow ? (uint)(WaitTime - DateTime.UtcNow).TotalMilliseconds : 0;
-
+        
         public Gimmick()
         {
         }
@@ -71,11 +70,11 @@ namespace AAEmu.Game.Models.Game.Gimmicks
             stream.Write(GrasperUnitId);    // grasperUnitId
             stream.Write(Transform.ZoneId);
             stream.Write((short)0);         // ModelPath
-
+            
             stream.Write(Helpers.ConvertLongX(Transform.World.Position.X)); // WorldPosition qx,qx,fz
             stream.Write(Helpers.ConvertLongY(Transform.World.Position.Y));
             stream.Write(Transform.World.Position.Z);
-
+            
             stream.Write(Rot.X); // Quaternion Rotation
             stream.Write(Rot.Y);
             stream.Write(Rot.Z);

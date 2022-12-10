@@ -10,12 +10,12 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
 
         public override string CallExample => DisplayName;
 
-        public NumericSubCommandParameter(string name, string displayName, bool required, T minValue, T maxValue)
+        public NumericSubCommandParameter(string name, string displayName, bool required, T minValue, T maxValue) 
             : this(name, displayName, required, null, minValue, maxValue)
         {
         }
 
-        public NumericSubCommandParameter(string name, string displayName, bool required, string prefix, T minValue, T maxValue)
+        public NumericSubCommandParameter(string name, string displayName, bool required, string prefix, T minValue, T maxValue) 
             : base(name, displayName, required)
         {
             EnsureValidRanges(minValue, maxValue);
@@ -23,114 +23,82 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             _maxValue = maxValue;
             Prefix = prefix;
         }
-        public NumericSubCommandParameter(string name, string displayName, bool required, string prefix)
+        public NumericSubCommandParameter(string name, string displayName, bool required, string prefix) 
             : this(name, displayName, required)
         {
             Prefix = prefix;
         }
-
-        public NumericSubCommandParameter(string name, string displayName, bool required)
+        
+        public NumericSubCommandParameter(string name, string displayName, bool required) 
             : base(name, displayName, required)
         {
             switch (typeof(T).Name)
             {
                 case "Int32":
-                    {
-                        _minValue = (T)Convert.ChangeType(int.MinValue, typeof(T));
-                        _maxValue = (T)Convert.ChangeType(int.MaxValue, typeof(T));
-                        break;
-                    }
+                    _minValue = (T)Convert.ChangeType(int.MinValue, typeof(T));
+                    _maxValue = (T)Convert.ChangeType(int.MaxValue, typeof(T));
+                    break;
                 case "Int64":
-                    {
-                        _minValue = (T)Convert.ChangeType(long.MinValue, typeof(T));
-                        _maxValue = (T)Convert.ChangeType(long.MaxValue, typeof(T));
-                        break;
-                    }
+                    _minValue = (T)Convert.ChangeType(long.MinValue, typeof(T));
+                    _maxValue = (T)Convert.ChangeType(long.MaxValue, typeof(T));
+                    break;
                 case "UInt64":
-                    {
-                        _minValue = (T)Convert.ChangeType(ulong.MinValue, typeof(T));
-                        _maxValue = (T)Convert.ChangeType(ulong.MaxValue, typeof(T));
-                        break;
-                    }
+                    _minValue = (T)Convert.ChangeType(ulong.MinValue, typeof(T));
+                    _maxValue = (T)Convert.ChangeType(ulong.MaxValue, typeof(T));
+                    break;
                 case "Single":
-                    {
-                        _minValue = (T)Convert.ChangeType(float.MinValue, typeof(T));
-                        _maxValue = (T)Convert.ChangeType(float.MaxValue, typeof(T));
-                        break;
-                    }
+                    _minValue = (T)Convert.ChangeType(float.MinValue, typeof(T));
+                    _maxValue = (T)Convert.ChangeType(float.MaxValue, typeof(T));
+                    break;
                 case "UInt32":
-                    {
-                        _minValue = (T)Convert.ChangeType(uint.MinValue, typeof(T));
-                        _maxValue = (T)Convert.ChangeType(uint.MaxValue, typeof(T));
-                        break;
-                    }
+                    _minValue = (T)Convert.ChangeType(uint.MinValue, typeof(T));
+                    _maxValue = (T)Convert.ChangeType(uint.MaxValue, typeof(T));
+                    break;
                 case "Byte":
-                    {
-                        _minValue = (T)Convert.ChangeType(byte.MinValue, typeof(T));
-                        _maxValue = (T)Convert.ChangeType(byte.MaxValue, typeof(T));
-                        break;
-                    }
+                    _minValue = (T)Convert.ChangeType(byte.MinValue, typeof(T));
+                    _maxValue = (T)Convert.ChangeType(byte.MaxValue, typeof(T));
+                    break;
                 case "Float":
-                    {
-                        _minValue = (T)Convert.ChangeType(float.MinValue, typeof(T));
-                        _maxValue = (T)Convert.ChangeType(float.MaxValue, typeof(T));
-                        break;
-                    }
+                    _minValue = (T)Convert.ChangeType(float.MinValue, typeof(T));
+                    _maxValue = (T)Convert.ChangeType(float.MaxValue, typeof(T));
+                    break;
                 case "Double":
-                    {
-                        _minValue = (T)Convert.ChangeType(double.MinValue, typeof(T));
-                        _maxValue = (T)Convert.ChangeType(double.MaxValue, typeof(T));
-                        break;
-                    }
+                    _minValue = (T)Convert.ChangeType(double.MinValue, typeof(T));
+                    _maxValue = (T)Convert.ChangeType(double.MaxValue, typeof(T));
+                    break;
             }
         }
 
         private void EnsureValidRanges(T minValue, T maxValue)
         {
-            var isValidRange = false;
-
+            bool isValidRange = false;
+            
             switch (typeof(T).Name)
             {
                 case "Int32":
-                    {
-                        isValidRange = Convert.ToInt32(minValue) <= Convert.ToInt32(maxValue);
-                        break;
-                    }
+                    isValidRange = Convert.ToInt32(minValue) <= Convert.ToInt32(maxValue);
+                    break;
                 case "Int64":
-                    {
-                        isValidRange = Convert.ToInt64(minValue) <= Convert.ToInt64(maxValue);
-                        break;
-                    }
+                    isValidRange = Convert.ToInt64(minValue) <= Convert.ToInt64(maxValue);
+                    break;
                 case "UInt64":
-                    {
-                        isValidRange = Convert.ToUInt64(minValue) <= Convert.ToUInt64(maxValue);
-                        break;
-                    }
+                    isValidRange = Convert.ToUInt64(minValue) <= Convert.ToUInt64(maxValue);
+                    break;
                 case "Single":
-                    {
-                        isValidRange = Convert.ToSingle(minValue) <= Convert.ToSingle(maxValue);
-                        break;
-                    }
+                    isValidRange = Convert.ToSingle(minValue) <= Convert.ToSingle(maxValue);
+                    break;
                 case "UInt32":
-                    {
-                        isValidRange = Convert.ToUInt32(minValue) <= Convert.ToUInt32(maxValue);
-                        break;
-                    }
+                    isValidRange = Convert.ToUInt32(minValue) <= Convert.ToUInt32(maxValue);
+                    break;
                 case "Byte":
-                    {
-                        isValidRange = Convert.ToByte(minValue) <= Convert.ToByte(maxValue);
-                        break;
-                    }
+                    isValidRange = Convert.ToByte(minValue) <= Convert.ToByte(maxValue);
+                    break;
                 case "Float":
-                    {
-                        isValidRange = Convert.ToSingle(minValue) <= Convert.ToSingle(maxValue);
-                        break;
-                    }
+                    isValidRange = Convert.ToSingle(minValue) <= Convert.ToSingle(maxValue);
+                    break;
                 case "Double":
-                    {
-                        isValidRange = Convert.ToDouble(minValue) <= Convert.ToDouble(maxValue);
-                        break;
-                    }
+                    isValidRange = Convert.ToDouble(minValue) <= Convert.ToDouble(maxValue);
+                    break;
             }
 
             if (!isValidRange)
@@ -143,7 +111,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
             T result;
             var textValue = GetValueWithoutPrefix(argumentValue);
             bool isValidNumber;
-            var isValidRange = false;
+            bool isValidRange = false;
             string invalidMessage = null;
 
             switch (typeof(T).Name)

@@ -1,5 +1,4 @@
 ﻿using System;
-
 using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Models.Tasks.AreaTriggers

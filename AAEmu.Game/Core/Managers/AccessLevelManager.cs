@@ -1,8 +1,11 @@
+using System;
 using System.Collections.Generic;
-
+using Newtonsoft.Json;
+using System.IO;
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models;
-
+using AAEmu.Game.Models.Game;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -17,9 +20,7 @@ namespace AAEmu.Game.Core.Managers
             _log.Info("Loading CommandAccessLevels...");
 
             foreach (var (cmdName, cmdLevel) in AppConfiguration.Instance.AccessLevel)
-            {
                 CMD.Add(new Command { CommandName = cmdName, CommandLevel = cmdLevel });
-            }
 
             _log.Info($"Loaded {CMD.Count} CommandAccessLevels");
         }
@@ -28,9 +29,7 @@ namespace AAEmu.Game.Core.Managers
         {
             var result = CMD.Find(o => o.CommandName == commandStr);
             if (result != null)
-            {
                 return result.CommandLevel;
-            }
 
             return 100;
         }

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.S2C
         public TCHouseFarmPacket() : base(TCOffsets.TCHouseFarmPacket)
         {
         }
-
+        
         public override PacketStream Write(PacketStream stream)
         {
             /*

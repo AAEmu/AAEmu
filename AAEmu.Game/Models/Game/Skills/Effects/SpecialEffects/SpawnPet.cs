@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.SpawnPet;
 
-        public override void Execute(BaseUnit caster,
+        public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -33,10 +33,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 // TODO - maybe not hardcoded
                 case 4944: // land
                 case 3466: // sea
-                    {
-                        //owner.Mates.SpawnMount(skillData);
-                        break;
-                    }
+                    //owner.Mates.SpawnMount(skillData);
+                    break;
             }
             owner.Mates.SpawnMount(skillData);
         }

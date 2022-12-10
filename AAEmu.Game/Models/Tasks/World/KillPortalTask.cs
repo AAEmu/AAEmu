@@ -5,7 +5,7 @@ namespace AAEmu.Game.Models.Tasks.World
     public class KillPortalTask : Task
     {
         private readonly Portal _portal;
-
+        
         public KillPortalTask(Portal portal)
         {
             _portal = portal;

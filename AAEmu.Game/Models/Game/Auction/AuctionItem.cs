@@ -1,6 +1,6 @@
 ﻿using System;
-
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Auction
 {

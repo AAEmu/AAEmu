@@ -1,5 +1,4 @@
 ﻿using System;
-
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.C2G;
@@ -16,12 +15,12 @@ namespace AAEmu.Game.Core.Network.Game
         {
             Level = level;
         }
-
+        
         /// <summary>
         /// This is called in Encode after Read() in the case of GamePackets
         /// The purpose is to separate packet data from packet behavior
         /// </summary>
-        public virtual void Execute() { }
+        public virtual void Execute(){}
 
         public override PacketStream Encode()
         {
@@ -81,7 +80,7 @@ namespace AAEmu.Game.Core.Network.Game
                 {
                     //_log.Debug("GamePacket: C->S type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
                     //_log.Trace("GamePacket: C->S type {0:X3} {1}", TypeId, this.ToString().Substring(23));
-                    _log.Debug("GamePacket: C->S type {0:X3} {1}{2}", TypeId, ToString()?.Substring(23), Verbose());
+                    _log.Debug("GamePacket: C->S type {0:X3} {1}{2}", TypeId, ToString()?.Substring(23),Verbose());
                 }
                 Execute();
             }

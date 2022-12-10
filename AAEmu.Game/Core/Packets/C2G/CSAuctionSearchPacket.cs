@@ -1,8 +1,10 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Auction.Templates;
+using NLog;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -34,7 +36,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             _sTemplate.SortOrder = stream.ReadByte();
 
             var foundItems = AuctionManager.Instance.GetAuctionItems(_sTemplate);
-
+            
             Connection.SendPacket(new SCAuctionSearchedPacket(foundItems, _sTemplate.Page));
         }
     }

@@ -18,6 +18,6 @@
         WhiteFishingBoat = 7,
         GreenFishingBoat = 8,
         PirateShip = 9,
-        DafutaSmallSailingBoat = 10
+        DafutaSmallSailingBoat = 10 
     }
 }

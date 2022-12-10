@@ -1,5 +1,4 @@
-﻿using System;
-
+using System;
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Skills
@@ -25,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((byte)Type);
+            stream.Write((byte) Type);
             stream.WriteBc(ObjId);
             return stream;
         }
@@ -36,34 +35,22 @@ namespace AAEmu.Game.Models.Game.Skills
             switch (type)
             {
                 case SkillCasterType.Unit:
-                    {
-                        obj = new SkillCasterUnit();
-                        break;
-                    }
+                    obj = new SkillCasterUnit();
+                    break;
                 case SkillCasterType.Unk1:
-                    {
-                        obj = new SkillCasterUnk1();
-                        break;
-                    }
+                    obj = new SkillCasterUnk1();
+                    break;
                 case SkillCasterType.Item:
-                    {
-                        obj = new SkillItem();
-                        break;
-                    }
+                    obj = new SkillItem();
+                    break;
                 case SkillCasterType.Unk3:
-                    {
-                        obj = new SkillCasterUnk3();
-                        break;
-                    }
+                    obj = new SkillCasterUnk3();
+                    break;
                 case SkillCasterType.Doodad:
-                    {
-                        obj = new SkillDoodad();
-                        break;
-                    }
+                    obj = new SkillDoodad();
+                    break;
                 default:
-                    {
-                        throw new ArgumentOutOfRangeException(nameof(type), type, null);
-                    }
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
 
             obj.Type = type;

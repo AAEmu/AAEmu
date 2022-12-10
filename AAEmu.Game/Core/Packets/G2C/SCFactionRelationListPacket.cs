@@ -21,15 +21,15 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(false); // uiRequest
-            stream.Write((byte)_relations.Length); // TODO max length 200
+            stream.Write((byte) _relations.Length); // TODO max length 200
             foreach (var relation in _relations)
             {
                 stream.Write(relation.Id);
                 stream.Write(relation.Id2);
-                stream.Write((byte)relation.State);
+                stream.Write((byte) relation.State);
                 stream.Write(relation.ExpTime);
                 stream.Write(0L); // type(id)
-                stream.Write((byte)0); // nState
+                stream.Write((byte) 0); // nState
             }
 
             return stream;

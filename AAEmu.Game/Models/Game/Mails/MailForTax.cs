@@ -1,9 +1,14 @@
 ﻿using System;
-
+using System.Collections.Generic;
+using System.Text;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Models.Game.Mails
 {
@@ -27,7 +32,7 @@ namespace AAEmu.Game.Models.Game.Mails
             _house = house;
 
             MailType = MailType.Billing;
-            Body.RecvDate = DateTime.UtcNow;
+            Body.RecvDate = DateTime.UtcNow ;
         }
 
         public static bool UpdateTaxInfo(BaseMail mail, House house)
@@ -35,29 +40,22 @@ namespace AAEmu.Game.Models.Game.Mails
             // Check if owner is still valid
             var ownerName = NameManager.Instance.GetCharacterName(house.OwnerId);
             if (ownerName == null)
-            {
                 return false;
-            }
-
             mail.Header.ReceiverId = house.OwnerId;
             mail.ReceiverName = ownerName;
-
+            
             // Grab the zone the house is in
             var zone = ZoneManager.Instance.GetZoneByKey(house.Transform.ZoneId);
             if (zone == null)
-            {
                 return false;
-            }
 
             // Set mail title
             mail.Title = "title(" + zone.GroupId.ToString() + ")"; // Title calls a function to call zone group name
 
             // Get Tax info
             if (!HousingManager.Instance.CalculateBuildingTaxInfo(house.AccountId, house.Template, false, out var totalTaxAmountDue, out var heavyTaxHouseCount, out var normalTaxHouseCount, out var hostileTaxRate, out _))
-            {
                 return false;
-            }
-
+            
             // Note: I'm sure this can be done better, but it works and displays correctly
             var lateFees = 0;
             var paymentDeadLine = house.TaxDueDate;
@@ -102,10 +100,8 @@ namespace AAEmu.Game.Models.Game.Mails
             Header.SenderId = 0;
             Header.SenderName = TaxSenderName;
 
-            if (!UpdateTaxInfo(this, _house))
-            {
+            if (!UpdateTaxInfo(this,_house))
                 return false;
-            }
 
             return true;
         }

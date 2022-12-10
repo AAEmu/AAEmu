@@ -1,5 +1,4 @@
 ﻿using System;
-
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -10,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class PauseUserMusic : SpecialEffectAction
     {
-        public override void Execute(BaseUnit caster,
+        public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -41,12 +40,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 foreach (var buff in allMusicBuffs)
                 {
                     if (b.CheckBuff(buff))
-                    {
                         b.RemoveBuff(buff);
-                    }
                 }
             }
-
+            
         }
     }
 }

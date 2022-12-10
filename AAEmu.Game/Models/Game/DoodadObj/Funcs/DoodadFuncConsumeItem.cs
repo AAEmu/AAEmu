@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public uint ItemId { get; set; }
         public int Count { get; set; }
 
-        public override bool Use(BaseUnit caster, Doodad owner)
+        public override bool Use(Unit caster, Doodad owner)
         {
             _log.Trace("DoodadFuncConsumeItem");
             return false;

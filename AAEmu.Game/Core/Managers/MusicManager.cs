@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
@@ -9,7 +8,6 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Music;
-
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -24,10 +22,10 @@ namespace AAEmu.Game.Core.Managers
 
         public void Load()
         {
-            _uploadQueue = new Dictionary<uint, SongData>();
+            _uploadQueue = new Dictionary<uint, SongData>();            
             _allSongs = new Dictionary<uint, SongData>();
             _midiCache = new Dictionary<uint, byte[]>();
-
+            
             using (var connection = MySQL.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
@@ -76,11 +74,11 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
             }
-            _allSongs.Add(songData.Id, songData);
+            _allSongs.Add(songData.Id,songData);
 
             return true;
         }
-
+        
         public void UploadSong(uint charId, string title, string song, ulong itemId)
         {
             if (!_uploadQueue.TryGetValue(charId, out var q))
@@ -125,9 +123,9 @@ namespace AAEmu.Game.Core.Managers
                 sheet.OwnerId = player.Id;
                 sheet.MadeUnitId = player.Id;
                 sheet.SongId = sud.Id;
-
+                
                 // Add Sheet Music to inventory
-                if (!player.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.SaveMusicNotes, sheet))
+                if (!player.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.SaveMusicNotes,sheet))
                 {
                     _log.Warn("Player {0} ({1}) had a unknown error when adding Sheet Music to inventory {2} ({3})",
                         player.Name, player.Id, sud.Title, sud.Id);
@@ -149,30 +147,21 @@ namespace AAEmu.Game.Core.Managers
         public SongData GetSongById(uint songId)
         {
             if (_allSongs.TryGetValue(songId, out var song))
-            {
                 return song;
-            }
-
             return null;
         }
 
         public void CacheMidi(uint playerId, byte[] midiData)
         {
             if (_midiCache.ContainsKey(playerId))
-            {
                 _midiCache.Remove(playerId);
-            }
-
-            _midiCache.Add(playerId, midiData);
+            _midiCache.Add(playerId,midiData);
         }
 
         public byte[] GetMidiCache(uint playerId)
         {
             if (_midiCache.TryGetValue(playerId, out var data))
-            {
                 return data;
-            }
-
             return Array.Empty<byte>();
         }
     }

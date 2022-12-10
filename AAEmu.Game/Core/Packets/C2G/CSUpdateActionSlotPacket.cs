@@ -13,44 +13,36 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var slot = stream.ReadByte();
-            var type = (ActionSlotType)stream.ReadByte();
+            var type = (ActionSlotType) stream.ReadByte();
 
             switch (type)
             {
                 case ActionSlotType.None:
-                    {
-                        Connection.ActiveChar.SetAction(slot, ActionSlotType.None, 0);
-                        break;
-                    }
+                    Connection.ActiveChar.SetAction(slot, ActionSlotType.None, 0);
+                    break;
                 case ActionSlotType.Item:
                 case ActionSlotType.Skill:
-                    {
-                        // TODO убрать что бы найти что это ... case ActionSlotType.Unk5:
-                        var actionId = stream.ReadUInt32();
-                        Connection.ActiveChar.SetAction(slot, type, actionId);
-                        break;
-                    }
+                    // TODO убрать что бы найти что это ... case ActionSlotType.Unk5:
+                    var actionId = stream.ReadUInt32();
+                    Connection.ActiveChar.SetAction(slot, type, actionId);
+                    break;
                 case ActionSlotType.Unk4:
-                    {
-                        var itemId = stream.ReadUInt64();
-                        // TODO
-                        break;
-                    }
+                    var itemId = stream.ReadUInt64();
+                    // TODO
+                    break;
                 default:
-                    {
-                        _log.Error("UpdateActionSlot, Unknown packet type!");
-                        break;
-                    }
+                    _log.Error("UpdateActionSlot, Unknown packet type!");
+                    break;
             }
 
-            //            if (type == 1 || type == 2 || type == 5)
-            //            {
-            //                stream.ReadUInt32();
-            //            }
-            //            else if (type == 4)
-            //            {
-            //                stream.ReadUInt64();
-            //            }
+//            if (type == 1 || type == 2 || type == 5)
+//            {
+//                stream.ReadUInt32();
+//            }
+//            else if (type == 4)
+//            {
+//                stream.ReadUInt64();
+//            }
         }
     }
 }

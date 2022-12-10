@@ -1,8 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -28,11 +31,9 @@ namespace AAEmu.Game.Core.Packets.G2C
             switch (_unit)
             {
                 case Character _:
-                    {
-                        _baseUnitType = BaseUnitType.Character;
-                        _modelPostureType = ModelPostureType.None;
-                        break;
-                    }
+                    _baseUnitType = BaseUnitType.Character;
+                    _modelPostureType = ModelPostureType.None;
+                    break;
                 case Npc npc:
                     {
                         _baseUnitType = BaseUnitType.Npc;
@@ -48,35 +49,25 @@ namespace AAEmu.Game.Core.Packets.G2C
                         break;
                     }
                 case Slave _:
-                    {
-                        _baseUnitType = BaseUnitType.Slave;
-                        _modelPostureType = ModelPostureType.None; // was TurretState = 8
-                        break;
-                    }
+                    _baseUnitType = BaseUnitType.Slave;
+                    _modelPostureType = ModelPostureType.None; // was TurretState = 8
+                    break;
                 case House _:
-                    {
-                        _baseUnitType = BaseUnitType.Housing;
-                        _modelPostureType = ModelPostureType.HouseState;
-                        break;
-                    }
+                    _baseUnitType = BaseUnitType.Housing;
+                    _modelPostureType = ModelPostureType.HouseState;
+                    break;
                 case Transfer _:
-                    {
-                        _baseUnitType = BaseUnitType.Transfer;
-                        _modelPostureType = ModelPostureType.TurretState;
-                        break;
-                    }
+                    _baseUnitType = BaseUnitType.Transfer;
+                    _modelPostureType = ModelPostureType.TurretState;
+                    break;
                 case Mate _:
-                    {
-                        _baseUnitType = BaseUnitType.Mate;
-                        _modelPostureType = ModelPostureType.None;
-                        break;
-                    }
+                    _baseUnitType = BaseUnitType.Mate;
+                    _modelPostureType = ModelPostureType.None;
+                    break;
                 case Shipyard _:
-                    {
-                        _baseUnitType = BaseUnitType.Shipyard;
-                        _modelPostureType = ModelPostureType.None;
-                        break;
-                    }
+                    _baseUnitType = BaseUnitType.Shipyard;
+                    _modelPostureType = ModelPostureType.None;
+                    break;
             }
         }
 
@@ -89,64 +80,50 @@ namespace AAEmu.Game.Core.Packets.G2C
             switch (_baseUnitType)
             {
                 case BaseUnitType.Character:
-                    {
-                        var character = (Character)_unit;
-                        stream.Write(character.Id); // type(id)
-                        stream.Write(0L);           // v?
-                        break;
-                    }
+                    var character = (Character)_unit;
+                    stream.Write(character.Id); // type(id)
+                    stream.Write(0L);           // v?
+                    break;
                 case BaseUnitType.Npc:
-                    {
-                        var npc = (Npc)_unit;
-                        stream.WriteBc(npc.ObjId);    // objId
-                        stream.Write(npc.TemplateId); // npc templateId
-                        stream.Write(0u);             // type(id)
-                        stream.Write((byte)0);        // clientDriven
-                        break;
-                    }
+                    var npc = (Npc)_unit;
+                    stream.WriteBc(npc.ObjId);    // objId
+                    stream.Write(npc.TemplateId); // npc templateId
+                    stream.Write(0u);             // type(id)
+                    stream.Write((byte)0);        // clientDriven
+                    break;
                 case BaseUnitType.Slave:
-                    {
-                        var slave = (Slave)_unit;
-                        stream.Write(slave.Id);         // Id ?
-                        stream.Write(slave.TlId);       // tl
-                        stream.Write(slave.TemplateId); // templateId
-                        stream.Write(slave.Summoner.ObjId); // ownerId
-                        break;
-                    }
+                    var slave = (Slave)_unit;
+                    stream.Write(slave.Id);         // Id ?
+                    stream.Write(slave.TlId);       // tl
+                    stream.Write(slave.TemplateId); // templateId
+                    stream.Write(slave.Summoner.ObjId); // ownerId
+                    break;
                 case BaseUnitType.Housing:
-                    {
-                        var house = (House)_unit;
-                        var buildStep = house.CurrentStep == -1
-                            ? 0
-                            : -house.Template.BuildSteps.Count + house.CurrentStep;
+                    var house = (House)_unit;
+                    var buildStep = house.CurrentStep == -1
+                        ? 0
+                        : -house.Template.BuildSteps.Count + house.CurrentStep;
 
-                        stream.Write(house.TlId);       // tl
-                        stream.Write(house.TemplateId); // house templateId
-                        stream.Write((short)buildStep); // buildstep
-                        break;
-                    }
+                    stream.Write(house.TlId);       // tl
+                    stream.Write(house.TemplateId); // house templateId
+                    stream.Write((short)buildStep); // buildstep
+                    break;
                 case BaseUnitType.Transfer:
-                    {
-                        var transfer = (Transfer)_unit;
-                        stream.Write(transfer.TlId);       // tl
-                        stream.Write(transfer.TemplateId); // transfer templateId
-                        break;
-                    }
+                    var transfer = (Transfer)_unit;
+                    stream.Write(transfer.TlId);       // tl
+                    stream.Write(transfer.TemplateId); // transfer templateId
+                    break;
                 case BaseUnitType.Mate:
-                    {
-                        var mount = (Mate)_unit;
-                        stream.Write(mount.TlId); // tl
-                        stream.Write(mount.TemplateId); // npc templateId
-                        stream.Write(mount.OwnerId); // characterId (masterId)
-                        break;
-                    }
+                    var mount = (Mate)_unit;
+                    stream.Write(mount.TlId); // tl
+                    stream.Write(mount.TemplateId); // npc templateId
+                    stream.Write(mount.OwnerId); // characterId (masterId)
+                    break;
                 case BaseUnitType.Shipyard:
-                    {
-                        var shipyard = (Shipyard)_unit;
-                        stream.Write(shipyard.ShipyardData.Id); // type(id)
-                        stream.Write(shipyard.ShipyardData.TemplateId); // type(id)
-                        break;
-                    }
+                    var shipyard = (Shipyard)_unit;
+                    stream.Write(shipyard.ShipyardData.Id); // type(id)
+                    stream.Write(shipyard.ShipyardData.TemplateId); // type(id)
+                    break;
             }
 
             if (_unit.OwnerId > 0) // master
@@ -179,37 +156,23 @@ namespace AAEmu.Game.Core.Packets.G2C
             {
                 case Character _:
                 case Npc _:
-                    {
-                        stream.Write((byte)AttachPointKind.System); // point
-                        break;
-                    }
+                    stream.Write((byte)AttachPointKind.System); // point
+                    break;
                 case Slave unit:
-                    {
-                        stream.Write(unit.AttachPointId);
-                        if (unit.AttachPointId > -1)
-                        {
-                            stream.WriteBc(unit.OwnerObjId);
-                        }
-
-                        break;
-                    }
+                    stream.Write(unit.AttachPointId);
+                    if (unit.AttachPointId > -1)
+                        stream.WriteBc(unit.OwnerObjId);
+                    break;
                 case House _:
                 case Mate _:
                 case Shipyard _:
-                    {
-                        stream.Write((byte)AttachPointKind.System);   // point
-                        break;
-                    }
+                    stream.Write((byte)AttachPointKind.System);   // point
+                    break;
                 case Transfer unit:
-                    {
-                        stream.Write((byte)unit.AttachPointId);  // point
-                        if (unit.AttachPointId != AttachPointKind.System)
-                        {
-                            stream.WriteBc(unit.BondingObjId); // point to the owner where to attach
-                        }
-
-                        break;
-                    }
+                    stream.Write((byte)unit.AttachPointId);  // point
+                    if (unit.AttachPointId != AttachPointKind.System)
+                        stream.WriteBc(unit.BondingObjId); // point to the owner where to attach
+                    break;
             }
             #endregion AttachPoint1
 
@@ -217,42 +180,34 @@ namespace AAEmu.Game.Core.Packets.G2C
             switch (_unit)
             {
                 case Character unit:
-                    {
-                        if (unit.Bonding == null)
-                        {
-                            stream.Write((sbyte)-1); // point
-                        }
-                        else
-                        {
-                            stream.Write(unit.Bonding);
-                        }
-                        break;
-                    }
-                case Npc _:
+                    if (unit.Bonding == null)
                     {
                         stream.Write((sbyte)-1); // point
-                        break;
                     }
-                case Slave unit:
+                    else
                     {
-                        if (unit.BondingObjId > 0)
-                        {
-                            stream.WriteBc(unit.BondingObjId);
-                        }
-                        else
-                        {
-                            stream.Write((sbyte)-1);
-                        }
-                        break;
+                        stream.Write(unit.Bonding);
                     }
+                    break;
+                case Npc _:
+                    stream.Write((sbyte)-1); // point
+                    break;
+                case Slave unit:
+                    if (unit.BondingObjId > 0)
+                    {
+                        stream.WriteBc(unit.BondingObjId);
+                    }
+                    else
+                    {
+                        stream.Write((sbyte)-1);
+                    }
+                    break;
                 case House _:
                 case Mate _:
                 case Shipyard _:
                 case Transfer _:
-                    {
-                        stream.Write((sbyte)-1); // point
-                        break;
-                    }
+                    stream.Write((sbyte)-1); // point
+                    break;
             }
             #endregion AttachPoint2
 
@@ -296,20 +251,14 @@ namespace AAEmu.Game.Core.Packets.G2C
             switch (_unit)
             {
                 case Character unit:
-                    {
-                        stream.Write(unit.RaceGender);
-                        break;
-                    }
+                    stream.Write(unit.RaceGender);
+                    break;
                 case Npc npc:
-                    {
-                        stream.Write(npc.RaceGender);
-                        break;
-                    }
+                    stream.Write(npc.RaceGender);
+                    break;
                 default:
-                    {
-                        stream.Write(_unit.RaceGender);
-                        break;
-                    }
+                    stream.Write(_unit.RaceGender);
+                    break;
             }
 
             if (_unit is Character)
@@ -437,40 +386,26 @@ namespace AAEmu.Game.Core.Packets.G2C
             switch (baseUnitType)
             {
                 case BaseUnitType.Character:
-                    {
-                        unit = (Character)unit0;
-                        break;
-                    }
+                    unit = (Character)unit0;
+                    break;
                 case BaseUnitType.Npc:
-                    {
-                        unit = (Npc)unit0;
-                        break;
-                    }
+                    unit = (Npc)unit0;
+                    break;
                 case BaseUnitType.Slave:
-                    {
-                        unit = (Slave)_unit;
-                        break;
-                    }
+                    unit = (Slave)_unit;
+                    break;
                 case BaseUnitType.Housing:
-                    {
-                        unit = (House)_unit;
-                        break;
-                    }
+                    unit = (House)_unit;
+                    break;
                 case BaseUnitType.Transfer:
-                    {
-                        unit = (Transfer)_unit;
-                        break;
-                    }
+                    unit = (Transfer)_unit;
+                    break;
                 case BaseUnitType.Mate:
-                    {
-                        unit = (Mate)_unit;
-                        break;
-                    }
+                    unit = (Mate)_unit;
+                    break;
                 case BaseUnitType.Shipyard:
-                    {
-                        unit = (Shipyard)_unit;
-                        break;
-                    }
+                    unit = (Shipyard)_unit;
+                    break;
             }
 
             // calculate validFlags
@@ -504,36 +439,30 @@ namespace AAEmu.Game.Core.Packets.G2C
                             case BaseUnitType.Housing:   // Housing
                             case BaseUnitType.Mate:      // Mate
                             case BaseUnitType.Slave:     // Slave
+                                if (item != null)
                                 {
-                                    if (item != null)
-                                    {
-                                        stream.Write(item);
-                                    }
-                                    else
-                                    {
-                                        stream.Write(0);
-                                    }
-                                    break;
+                                    stream.Write(item);
                                 }
+                                else
+                                {
+                                    stream.Write(0);
+                                }
+                                break;
                             case BaseUnitType.Npc:       // Npc
+                                if (item != null)
                                 {
-                                    if (item != null)
-                                    {
-                                        stream.Write(item.TemplateId);
-                                        stream.Write(item.Id);
-                                        stream.Write(item.Grade);
-                                    }
-                                    else
-                                    {
-                                        stream.Write(0);
-                                    }
-                                    break;
+                                    stream.Write(item.TemplateId);
+                                    stream.Write(item.Id);
+                                    stream.Write(item.Grade);
                                 }
+                                else
+                                {
+                                    stream.Write(0);
+                                }
+                                break;
                             case BaseUnitType.Transfer:
                             case BaseUnitType.Shipyard:
-                                {
-                                    break;
-                                }
+                                break;
                         }
                     }
                     else
@@ -667,13 +596,11 @@ namespace AAEmu.Game.Core.Packets.G2C
                     }
                 case Shipyard _:
                 case Transfer _:
+                    for (var i = 0; i < 7; i++)
                     {
-                        for (var i = 0; i < 7; i++)
-                        {
-                            stream.Write(0); // somehow_special [19..26]
-                        }
-                        break;
+                        stream.Write(0); // somehow_special [19..26]
                     }
+                    break;
             }
         }
         #endregion Inventory_Equip

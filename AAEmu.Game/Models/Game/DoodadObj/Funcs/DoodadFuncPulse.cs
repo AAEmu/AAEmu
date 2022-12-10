@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
     {
         public bool Flag { get; set; }
 
-        public override bool Use(BaseUnit caster, Doodad owner)
+        public override bool Use(Unit caster, Doodad owner)
         {
             _log.Debug($"DoodadFuncPulse: Flag {Flag}");
 
@@ -23,10 +23,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 {
                     foreach (var doodad in aroundDoodads)
                     {
-                        if (doodad.TemplateId == relatedId)
-                        {
-                            doodads.Add(doodad);
-                        }
+                        if (doodad.TemplateId == relatedId) doodads.Add(doodad);
                     }
                 }
 

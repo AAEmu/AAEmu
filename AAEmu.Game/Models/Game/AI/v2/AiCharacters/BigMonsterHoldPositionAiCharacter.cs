@@ -1,4 +1,5 @@
 using AAEmu.Game.Models.Game.AI.v2.Behaviors;
+using AAEmu.Game.Models.Game.AI.v2.Behaviors.Archer;
 using AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster;
 
 namespace AAEmu.Game.Models.Game.AI.v2.AiCharacters
@@ -8,7 +9,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.AiCharacters
         protected override void Build()
         {
             AddBehavior(BehaviorKind.Spawning, new SpawningBehavior());
-
+            
             AddBehavior(BehaviorKind.HoldPosition, new HoldPositionBehavior())
                 .AddTransition(TransitionEvent.OnAggroTargetChanged, BehaviorKind.BigMonsterAttack)
                 .AddTransition(TransitionEvent.ReturnToIdlePos, BehaviorKind.ReturnState)

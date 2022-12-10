@@ -24,18 +24,14 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.WriteBc(_characterId);
-            stream.Write((byte)_items.Length); // TODO max 28
+            stream.Write((byte) _items.Length); // TODO max 28
             foreach (var (slot, item) in _items)
             {
                 stream.Write(slot);
                 if (item == null)
-                {
                     stream.Write(0);
-                }
                 else
-                {
                     stream.Write(item);
-                }
             }
 
             return stream;

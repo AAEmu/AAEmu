@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -38,10 +39,7 @@ namespace AAEmu.Game.Core.Managers
         {
             foreach (var mate in _activeMates.Values)
             {
-                if (mate.TlId == tlId)
-                {
-                    return mate;
-                }
+                if (mate.TlId == tlId) return mate;
             }
 
             return null;
@@ -51,10 +49,7 @@ namespace AAEmu.Game.Core.Managers
         {
             foreach (var mate in _activeMates.Values)
             {
-                if (mate.ObjId == mateObjId)
-                {
-                    return mate;
-                }
+                if (mate.ObjId == mateObjId) return mate;
             }
 
             return null;
@@ -64,16 +59,12 @@ namespace AAEmu.Game.Core.Managers
         {
             attachPoint = AttachPointKind.System;
             foreach (var mate in _activeMates.Values)
-            {
-                foreach (var ati in mate.Passengers)
+            foreach (var ati in mate.Passengers)
+                if (ati.Value._objId == objId)
                 {
-                    if (ati.Value._objId == objId)
-                    {
-                        attachPoint = ati.Key;
-                        return mate;
-                    }
+                    attachPoint = ati.Key;
+                    return mate;
                 }
-            }
 
             return null;
         }
@@ -82,10 +73,7 @@ namespace AAEmu.Game.Core.Managers
         {
             var owner = connection.ActiveChar;
             var mateInfo = GetActiveMate(owner.ObjId);
-            if (mateInfo?.TlId != tlId)
-            {
-                return;
-            }
+            if (mateInfo?.TlId != tlId) return;
 
             mateInfo.UserState = newState; // TODO - Maybe verify range
             //owner.BroadcastPacket(new SCMateStatePacket(), );
@@ -95,11 +83,7 @@ namespace AAEmu.Game.Core.Managers
         {
             var owner = connection.ActiveChar;
             var mateInfo = GetActiveMateByTlId(tlId);
-            if (mateInfo == null)
-            {
-                return;
-            }
-
+            if (mateInfo == null) return;
             mateInfo.CurrentTarget = objId > 0 ? WorldManager.Instance.GetUnit(objId) : null;
             owner.BroadcastPacket(new SCTargetChangedPacket(mateInfo.ObjId, mateInfo.CurrentTarget?.ObjId ?? 0), true);
 
@@ -109,17 +93,9 @@ namespace AAEmu.Game.Core.Managers
         public Mate RenameMount(GameConnection connection, uint tlId, string newName)
         {
             var owner = connection.ActiveChar;
-            if (string.IsNullOrWhiteSpace(newName) || newName.Length == 0 || !_nameRegex.IsMatch(newName))
-            {
-                return null;
-            }
-
+            if (string.IsNullOrWhiteSpace(newName) || newName.Length == 0 || !_nameRegex.IsMatch(newName)) return null;
             var mateInfo = GetActiveMate(owner.ObjId);
-            if (mateInfo == null || mateInfo.TlId != tlId)
-            {
-                return null;
-            }
-
+            if (mateInfo == null || mateInfo.TlId != tlId) return null;
             mateInfo.Name = newName.FirstCharToUpper();
             owner.BroadcastPacket(new SCUnitNameChangedPacket(mateInfo.ObjId, newName), true);
             return mateInfo;
@@ -129,10 +105,7 @@ namespace AAEmu.Game.Core.Managers
         {
             var character = connection.ActiveChar;
             var mateInfo = GetActiveMateByTlId(tlId);
-            if (mateInfo == null)
-            {
-                return;
-            }
+            if (mateInfo == null) return;
 
             // Request seat position
             if (mateInfo.Passengers.TryGetValue(attachPoint, out var seatInfo))
@@ -144,7 +117,7 @@ namespace AAEmu.Game.Core.Managers
                         character.Name, character.ObjId, mateInfo.Name, mateInfo.ObjId);
                     return;
                 }
-
+                
                 // Check if seat is empty
                 if (seatInfo._objId == 0)
                 {
@@ -160,21 +133,18 @@ namespace AAEmu.Game.Core.Managers
                     character.Name, character.ObjId, mateInfo.Name, mateInfo.ObjId, attachPoint);
                 return;
             }
-
+                
             character.Buffs.TriggerRemoveOn(BuffRemoveOn.Mount);
-            _log.Debug("MountMate. mountTlId: {0}, attachPoint: {1}, reason: {3}, seats: {4}",
-                mateInfo.TlId, attachPoint, reason, string.Join(", ", mateInfo.Passengers.Values.ToList()));
+            _log.Debug("MountMate. mountTlId: {0}, attachPoint: {1}, reason: {3}, seats: {4}", 
+                mateInfo.TlId, attachPoint, reason, string.Join(", ",mateInfo.Passengers.Values.ToList()));
         }
 
         public void UnMountMate(Character character, uint tlId, AttachPointKind attachPoint, AttachUnitReason reason)
         {
             var mateInfo = GetActiveMateByTlId(tlId);
-            if (mateInfo == null)
-            {
-                return;
-            }
+            if (mateInfo == null) return;
 
-
+            
             // Request seat position
             Character targetObj = null;
             if (mateInfo.Passengers.TryGetValue(attachPoint, out var seatInfo))
@@ -191,7 +161,7 @@ namespace AAEmu.Game.Core.Managers
             if (targetObj != null)
             {
                 targetObj.Transform.StickyParent = null;
-
+                
                 character.BroadcastPacket(new SCUnitDetachedPacket(targetObj.ObjId, reason), true);
 
                 character.Events.OnUnmount(character, new OnUnmountArgs { });
@@ -227,21 +197,12 @@ namespace AAEmu.Game.Core.Managers
 
         public void RemoveActiveMateAndDespawn(Character owner, uint tlId)
         {
-            if (!_activeMates.TryGetValue(owner.ObjId, out var mateInfo))
-            {
-                return;
-            }
-
-            if (mateInfo.TlId != tlId)
-            {
-                return; // skip if invalid tlId
-            }
+            if (!_activeMates.TryGetValue(owner.ObjId,out var mateInfo)) return; 
+            if (mateInfo.TlId != tlId) return; // skip if invalid tlId
 
             foreach (var ati in mateInfo.Passengers)
-            {
                 UnMountMate(WorldManager.Instance.GetCharacterByObjId(ati.Value._objId), mateInfo.TlId, ati.Key, AttachUnitReason.SlaveBinding);
-            }
-
+            
             _activeMates[owner.ObjId].Delete();
             _activeMates.Remove(owner.ObjId);
             ObjectIdManager.Instance.ReleaseId(mateInfo.ObjId);
@@ -256,18 +217,10 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="character"></param>
         public void RemoveAndDespawnAllActiveOwnedMates(Character character)
         {
-            if (character == null)
-            {
-                return;
-            }
-
+            if (character == null) return;
             foreach (var mate in _activeMates)
-            {
                 if (mate.Value.OwnerObjId == character.ObjId)
-                {
-                    RemoveActiveMateAndDespawn(character, mate.Value.TlId);
-                }
-            }
+                    RemoveActiveMateAndDespawn(character,mate.Value.TlId);
         }
 
         public List<uint> GetMateSkills(uint id)
@@ -275,12 +228,8 @@ namespace AAEmu.Game.Core.Managers
             var template = new List<uint>();
 
             foreach (var value in _slaveMountSkills.Values)
-            {
                 if (value.NpcId == id && !template.Contains(value.MountSkillId))
-                {
                     template.Add(value.MountSkillId);
-                }
-            }
 
             return template;
         }

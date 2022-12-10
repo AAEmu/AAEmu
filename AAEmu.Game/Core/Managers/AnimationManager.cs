@@ -1,11 +1,12 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-
+using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game.Animation;
 using AAEmu.Game.Utils.DB;
-
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -74,9 +75,7 @@ namespace AAEmu.Game.Core.Managers
                     else if (props[0] == "total_time")
                     {
                         if (int.TryParse(props[1], out var totTime))
-                        {
                             lastAnimDuration.total_time = totTime;
-                        }
                         else
                         {
                             _log.Warn($"int parse error in {gFileName} at line {n + 1} : {line}");
@@ -86,9 +85,7 @@ namespace AAEmu.Game.Core.Managers
                     else if (props[0] == "combat_sync_time")
                     {
                         if (int.TryParse(props[1], out var syncTime))
-                        {
                             lastAnimDuration.combat_sync_time = syncTime;
-                        }
                         else
                         {
                             _log.Warn($"int parse error in {gFileName} at line {n + 1} : {line}");
@@ -149,7 +146,7 @@ namespace AAEmu.Game.Core.Managers
             }
 
             // Load animation durations from client data
-            var gFileName = "game/combat_sync_event_list.g";
+            var gFileName = "game/combat_sync_event_list.g"; 
             var combatSyncEvents = ParseGFile(gFileName);
 
             if (combatSyncEvents == null)
@@ -157,14 +154,14 @@ namespace AAEmu.Game.Core.Managers
                 _log.Fatal($"Error reading {gFileName}");
                 return;
             }
-
+            
             // Apply values to our animation manager (only takes nuian_male into account as a base value)
             foreach (var cse in combatSyncEvents)
             {
                 if (cse.ModelName == "nuian_male")
                 {
                     // Copy stuff
-                    foreach (var (animKey, animVal) in cse.Animations)
+                    foreach (var (animKey,animVal) in cse.Animations)
                     {
                         if (_animationsByName.TryGetValue(animKey, out var anim))
                         {

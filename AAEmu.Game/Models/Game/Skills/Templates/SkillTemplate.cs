@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-
 using AAEmu.Game.Models.Game.Animation;
 using AAEmu.Game.Models.Game.Skills.Plots;
 

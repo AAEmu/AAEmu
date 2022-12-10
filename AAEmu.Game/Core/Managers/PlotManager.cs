@@ -1,11 +1,10 @@
 ﻿using System.Collections.Generic;
-
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Utils.DB;
-
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -23,30 +22,22 @@ namespace AAEmu.Game.Core.Managers
         public Plot GetPlot(uint id)
         {
             if (_plots.ContainsKey(id))
-            {
                 return _plots[id];
-            }
-
             return null;
         }
 
         public PlotEventTemplate GetEventByPlotId(uint plotId)
         {
             if (_plots.ContainsKey(plotId))
-            {
                 return _plots[plotId].EventTemplate;
-            }
-
             return null;
         }
 
         public void Load()
         {
             if (_loaded)
-            {
                 return;
-            }
-
+            
             _plots = new Dictionary<uint, Plot>();
             _eventTemplates = new Dictionary<uint, PlotEventTemplate>();
             _conditions = new Dictionary<uint, PlotCondition>();
@@ -101,9 +92,7 @@ namespace AAEmu.Game.Core.Managers
                             _eventTemplates.Add(template.Id, template);
 
                             if (template.Position == 1 && _plots.ContainsKey(template.PlotId))
-                            {
                                 _plots[template.PlotId].EventTemplate = template;
-                            }
                         }
                     }
                 }
@@ -119,7 +108,7 @@ namespace AAEmu.Game.Core.Managers
                             var template = new PlotCondition();
                             template.Id = reader.GetUInt32("id");
                             template.NotCondition = reader.GetBoolean("not_condition", true);
-                            template.Kind = (PlotConditionType)reader.GetInt32("kind_id");
+                            template.Kind = (PlotConditionType) reader.GetInt32("kind_id");
                             template.Param1 = reader.GetInt32("param1");
                             template.Param2 = reader.GetInt32("param2");
                             template.Param3 = reader.GetInt32("param3");
@@ -157,14 +146,10 @@ namespace AAEmu.Game.Core.Managers
                                     }
 
                                 if (!res)
-                                {
                                     plotEvent.Conditions.AddLast(template);
-                                }
                             }
                             else
-                            {
                                 plotEvent.Conditions.AddFirst(template);
-                            }
                         }
                     }
                 }
@@ -195,14 +180,10 @@ namespace AAEmu.Game.Core.Managers
                                     }
 
                                 if (!res)
-                                {
                                     plotEvent.AoeConditions.AddLast(template);
-                                }
                             }
                             else
-                            {
                                 plotEvent.AoeConditions.AddFirst(template);
-                            }
                         }
                     }
                 }
@@ -218,8 +199,8 @@ namespace AAEmu.Game.Core.Managers
                             var id = reader.GetUInt32("event_id");
                             var template = new PlotEventEffect();
                             template.Position = reader.GetInt32("position");
-                            template.SourceId = (PlotEffectSource)reader.GetInt32("source_id");
-                            template.TargetId = (PlotEffectTarget)reader.GetInt32("target_id");
+                            template.SourceId = (PlotEffectSource) reader.GetInt32("source_id");
+                            template.TargetId = (PlotEffectTarget) reader.GetInt32("target_id");
                             template.ActualId = reader.GetUInt32("actual_id");
                             template.ActualType = reader.GetString("actual_type");
                             var evnt = _eventTemplates[id];
@@ -235,14 +216,10 @@ namespace AAEmu.Game.Core.Managers
                                     }
 
                                 if (!res)
-                                {
                                     evnt.Effects.AddLast(template);
-                                }
                             }
                             else
-                            {
                                 evnt.Effects.AddFirst(template);
-                            }
                         }
                     }
                 }
@@ -286,30 +263,24 @@ namespace AAEmu.Game.Core.Managers
                                     }
 
                                 if (!res)
-                                {
                                     plotEvent.NextEvents.AddLast(template);
-                                }
                             }
                             else
-                            {
                                 plotEvent.NextEvents.AddFirst(template);
-                            }
                         }
                     }
                 }
 
                 _log.Info("Loaded {0} plot events", _eventTemplates.Count);
-
-                foreach (var plot in _plots.Values)
+                
+                foreach(var plot in _plots.Values)
                 {
                     if (plot.EventTemplate != null)
-                    {
                         plot.Tree = PlotBuilder.BuildTree(plot.Id);
-                    }
                 }
                 // Task.Run(() => flameboltTree.Execute(new PlotState()));
             }
-
+            
             _loaded = true;
         }
     }

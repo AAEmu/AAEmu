@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly SystemFaction _faction;
         private readonly bool _success;
-
+        
         public SCExpeditionSponsorChangedPacket(SystemFaction faction, bool success) : base(SCOffsets.SCExpeditionSponsorChangedPacket, 1)
         {
             _faction = faction;

@@ -1,5 +1,4 @@
 ﻿using System;
-
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -34,10 +33,7 @@ namespace AAEmu.Game.Models.Game.Items
                 cost = cost * grade.RefundMultiplier * 0.0099999998f;
                 cost = (float)Math.Ceiling(cost);
                 if (cost < 0 || cost < int.MinValue || cost > int.MaxValue)
-                {
                     cost = 0;
-                }
-
                 return (int)cost;
             }
         }
@@ -78,11 +74,9 @@ namespace AAEmu.Game.Models.Game.Items
 
             stream.Write(Template.BindType == ItemBindType.BindOnUnpack ? UnpackTime : ChargeStartTime);
             stream.Write((uint)0);
-
+            
             foreach (var gemId in GemIds)
-            {
                 stream.Write(gemId);
-            }
 
             stream.Write(TemperPhysical);
             stream.Write(TemperMagical);

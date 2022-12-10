@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _total;
         private readonly Friend[] _friends;
         private readonly bool _success;
-
+        
         public SCSearchListPacket(int total, Friend[] friends, bool success) : base(SCOffsets.SCSearchListPacket, 1)
         {
             _total = total;
@@ -22,10 +22,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_total);
             stream.Write(_friends.Length); // TODO max length 200
             foreach (var friend in _friends)
-            {
                 stream.Write(friend);
-            }
-
             stream.Write(_success);
             return stream;
         }

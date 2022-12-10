@@ -1,10 +1,13 @@
 ﻿using System;
-
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.AI.Params;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.States
 {
@@ -19,7 +22,7 @@ namespace AAEmu.Game.Models.Game.AI.States
         private float _currentDelay = 0.0f;
         private float _nextDelay = 0.0f;
         private int _sequenceIndex = 0;
-
+        
         public override void Enter()
         {
             base.Enter();
@@ -116,9 +119,7 @@ namespace AAEmu.Game.Models.Game.AI.States
         private AiSkillList GetNextAiSkills()
         {
             if (_sequenceIndex >= AiParams.AiSkillLists.Count)
-            {
                 _sequenceIndex = 0;
-            }
 
             var aiSkill = AiParams.AiSkillLists[_sequenceIndex];
 
@@ -126,17 +127,13 @@ namespace AAEmu.Game.Models.Game.AI.States
 
             var hpPercent = (Npc.Hp / (float)Npc.MaxHp) * 100.0f;
 
-            if ((hpPercent < aiSkill.HealthRangeMin && aiSkill.HealthRangeMin != 0)
+            if ((hpPercent < aiSkill.HealthRangeMin && aiSkill.HealthRangeMin != 0) 
                 || (hpPercent > aiSkill.HealthRangeMax && aiSkill.HealthRangeMax != 0))
-            {
                 return null;
-            }
 
             if (aiSkill.Dice > 0 && Rand.Next(0, 1000) > aiSkill.Dice)
-            {
                 return null;
-            }
-
+            
             return aiSkill;
         }
 

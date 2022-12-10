@@ -1,11 +1,10 @@
 ﻿using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Numerics;
-
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
-
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
@@ -42,24 +41,15 @@ namespace AAEmu.Game.Core.Managers.World
         {
             var res = new List<uint>();
             foreach (var z in _zones)
-            {
                 if (z.Value.GroupId == zoneGroupId)
-                {
                     res.Add(z.Value.ZoneKey);
-                }
-            }
-
             return res;
         }
 
         public uint GetTargetIdByZoneId(uint zoneId)
         {
             var zone = GetZoneByKey(zoneId);
-            if (zone == null)
-            {
-                return 0;
-            }
-
+            if (zone == null) return 0;
             var zoneGroup = GetZoneGroupById(zone.GroupId);
             return zoneGroup?.TargetId ?? 0;
         }
@@ -96,7 +86,7 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                     }
                 }
-
+                
                 _log.Info("Loaded {0} zones", _zones.Count);
 
                 using (var command = connection.CreateCommand())
@@ -164,15 +154,11 @@ namespace AAEmu.Game.Core.Managers.World
 
                                 // Only do intial setup when the zone isn't closed
                                 if (!template.Closed)
-                                {
                                     template.SetState(ZoneConflictType
                                         .Conflict); // Set to Conflict for testing, normally it should start at Tension
-                                }
                             }
                             else
-                            {
                                 _log.Warn("ZoneGroupId: {1} doesn't exist for conflict", zoneGroupId);
-                            }
                         }
                     }
                 }
@@ -237,7 +223,7 @@ namespace AAEmu.Game.Core.Managers.World
         public Vector3 ConvertToWorldCoordinates(uint zoneId, Vector3 point)
         {
             var origin = GetZoneOriginCell(zoneId);
-
+        
             var newX = origin.X * 1024f + point.X;
             var newY = origin.Y * 1024f + point.Y;
 

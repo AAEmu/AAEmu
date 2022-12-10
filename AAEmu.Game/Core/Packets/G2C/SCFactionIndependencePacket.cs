@@ -1,5 +1,4 @@
 using System;
-
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -11,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id2;
         private readonly string _name;
         private readonly DateTime _cTime; // TODO createTime?
-
+        
         public SCFactionIndependencePacket(uint id, uint id2, string name, DateTime cTime) : base(SCOffsets.SCFactionIndependencePacket, 1)
         {
             _id = id;

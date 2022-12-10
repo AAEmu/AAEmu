@@ -1,5 +1,6 @@
-﻿using System.Text;
-
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.V2.Params
@@ -9,7 +10,7 @@ namespace AAEmu.Game.Models.Game.AI.V2.Params
         public AiLua() : base()
         {
             //Define constants - Pseudo Values are used here
-            var aiConsts = new StringBuilder();
+            StringBuilder aiConsts = new StringBuilder();
             //UseTypes
             aiConsts.Append("USE_SEQUENCE = 1;");
             aiConsts.Append("USE_RANDOM = 2;");

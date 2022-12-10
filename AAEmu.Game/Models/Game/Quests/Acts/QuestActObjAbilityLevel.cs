@@ -1,10 +1,9 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game.Char;
+﻿using System.Linq;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
+using System.Collections.Generic;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts
 {

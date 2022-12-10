@@ -51,10 +51,7 @@ namespace AAEmu.Game.Core.Network.Stream
         public void Stop()
         {
             if (_server?.IsStarted ?? false)
-            {
                 _server.Stop();
-            }
-
             _log.Info("StreamNetwork stoped");
         }
 

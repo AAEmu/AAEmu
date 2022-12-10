@@ -16,9 +16,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var doodadObjId = stream.ReadBc();
 
             if (Connection.ActiveChar.ObjId != characterObjId || Connection.ActiveChar.Bonding == null || Connection.ActiveChar.Bonding.ObjId != doodadObjId)
-            {
                 return;
-            }
 
             var doodad = Connection.ActiveChar.Bonding.GetOwner();
             doodad.Seat.UnLoadPassenger(Connection.ActiveChar, doodad.ObjId); // we free up the place where we were sitting
