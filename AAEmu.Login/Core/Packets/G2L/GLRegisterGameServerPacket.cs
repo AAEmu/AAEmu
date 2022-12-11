@@ -35,7 +35,7 @@ namespace AAEmu.Login.Core.Packets.G2L
             }
             else
             {
-                _log.Error("Connection {0}, bad secret key", Connection.Ip);
+                _log.Error($"Connection {Connection.Ip}, bad secret key");
                 Task.Run(() => SendPacketWithDelay(5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)));
                 // Connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
             }
