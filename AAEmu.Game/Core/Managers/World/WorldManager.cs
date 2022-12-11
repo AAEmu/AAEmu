@@ -55,6 +55,7 @@ namespace AAEmu.Game.Core.Managers.World
         private readonly ConcurrentDictionary<uint, Gimmick> _gimmicks;
         private readonly ConcurrentDictionary<uint, Slave> _slaves;
         private readonly ConcurrentDictionary<uint, IndunZone> _indunZones;
+        private object _lock = new object();
 
         public const int CELL_SIZE = 1024;
         /// <summary>
@@ -955,33 +956,36 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void RemoveVisibleObject(GameObject obj)
         {
-            if (obj == null)
+            lock (_lock)
             {
-                return;
-            }
-
-            if (obj.Region == null)
-            {
-                return;
-            }
-
-            var neighbors = obj.Region.GetNeighbors();
-            obj.Region.RemoveObject(obj);
-
-            if (neighbors == null)
-            {
-                return;
-            }
-
-            if (neighbors.Length > 0)
-            {
-                foreach (var neighbor in neighbors)
+                if (obj == null)
                 {
-                    neighbor?.RemoveFromCharacters(obj);
+                    return;
                 }
-            }
 
-            obj.Region = null;
+                if (obj.Region == null)
+                {
+                    return;
+                }
+
+                var neighbors = obj.Region.GetNeighbors();
+                obj.Region?.RemoveObject(obj);
+
+                if (neighbors == null)
+                {
+                    return;
+                }
+
+                if (neighbors.Length > 0)
+                {
+                    foreach (var neighbor in neighbors)
+                    {
+                        neighbor?.RemoveFromCharacters(obj);
+                    }
+                }
+
+                obj.Region = null;
+            }
 
             // Also remove children
             if (obj.Transform == null)
