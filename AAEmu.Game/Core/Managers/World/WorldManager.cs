@@ -34,6 +34,7 @@ namespace AAEmu.Game.Core.Managers.World
 {
     public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
+        private object _lock = new object();
         // Default World and Instance ID that will be assigned to all Transforms as a Default value
         public static uint DefaultWorldId = 0; // This will get reset to it's proper value when loading world data (which is usually 0)
         public static uint DefaultInstanceId = 0;
@@ -975,33 +976,36 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void RemoveVisibleObject(GameObject obj)
         {
-            if (obj == null)
+            lock (_lock)
             {
-                return;
-            }
-
-            if (obj.Region == null)
-            {
-                return;
-            }
-
-            var neighbors = obj.Region.GetNeighbors();
-            obj.Region.RemoveObject(obj);
-
-            if (neighbors == null)
-            {
-                return;
-            }
-
-            if (neighbors.Length > 0)
-            {
-                foreach (var neighbor in neighbors)
+                if (obj == null)
                 {
-                    neighbor?.RemoveFromCharacters(obj);
+                    return;
                 }
-            }
 
-            obj.Region = null;
+                if (obj.Region == null)
+                {
+                    return;
+                }
+
+                var neighbors = obj.Region.GetNeighbors();
+                obj.Region?.RemoveObject(obj);
+
+                if (neighbors == null)
+                {
+                    return;
+                }
+
+                if (neighbors.Length > 0)
+                {
+                    foreach (var neighbor in neighbors)
+                    {
+                        neighbor?.RemoveFromCharacters(obj);
+                    }
+                }
+
+                obj.Region = null;
+            }
 
             // Also remove children
             if (obj.Transform == null)
@@ -1234,10 +1238,10 @@ namespace AAEmu.Game.Core.Managers.World
                     questId = 6840;
                     break;
                 case Race.Hariharan: // Hariharan
-                    questId = 6841;
+                    questId = 6842;
                     break;
                 case Race.Ferre: // Ferre
-                    questId = 6842;
+                    questId = 6841;
                     break;
                 case Race.Warborn: // Warborn
                     questId = 8228;
