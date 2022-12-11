@@ -8,6 +8,7 @@ namespace AAEmu.Login.Core.Packets.C2L
     {
         public CAListWorldPacket() : base(CLOffsets.CAListWorldPacket)
         {
+            // Nothing
         }
 
         public override void Read(PacketStream stream)
