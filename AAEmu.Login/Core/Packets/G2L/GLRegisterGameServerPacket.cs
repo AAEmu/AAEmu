@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Internal;
@@ -11,6 +13,12 @@ namespace AAEmu.Login.Core.Packets.G2L
     {
         public GLRegisterGameServerPacket() : base(GLOffsets.GLRegisterGameServerPacket)
         {
+        }
+
+        async Task SendPacketWithDelay(int delay, InternalPacket message)
+        {
+            await Task.Delay(delay);
+            Connection.SendPacket(message);
         }
 
         public override void Read(PacketStream stream)
