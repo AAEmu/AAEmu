@@ -1757,7 +1757,7 @@ namespace AAEmu.Game.Core.Managers
                                 }
                                 else
                                 {
-                                    _log.Fatal($"Failed to add owned item {item} to new container!");
+                                    _log.Fatal($"Failed to add owned item ({item.Id}){item} to new container (Id:{cContainer.ContainerId}) !");
                                     item.Slot = thisItemSlot;
                                     item.IsDirty = false;
                                 }

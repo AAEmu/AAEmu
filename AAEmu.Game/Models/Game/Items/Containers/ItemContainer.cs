@@ -729,6 +729,11 @@ namespace AAEmu.Game.Models.Game.Items.Containers
 
         public virtual bool CanAccept(Item item, int targetSlot)
         {
+            if (item == null)
+                return true;
+            // When it's a backpack, allow only gliders by default
+            if (PartOfPlayerInventory && (item.Template is BackpackTemplate backpackTemplate))
+                return (backpackTemplate.BackpackType == BackpackType.Glider) || (backpackTemplate.BackpackType == BackpackType.ToyFlag);
             return true;
         }
 

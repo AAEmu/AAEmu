@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         SiegeDeclare = 4,
         NationFlag = 5,
         Fish = 6,
-        Unk7 = 7
+        ToyFlag = 7
     }
 
     public class BackpackTemplate : ItemTemplate
