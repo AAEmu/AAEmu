@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -38,6 +40,23 @@ namespace AAEmu.Login.Core.Controllers
             connection.SendPacket(message);
         }
 
+        private string ResolveHostName(string host)
+        {
+            try
+            {
+                var parsedHost = Dns.GetHostEntry(host);
+                if (parsedHost.AddressList.Length > 0)
+                    return parsedHost.AddressList[0].ToString();
+                
+                return host;
+            }
+            catch (Exception e)
+            {
+                // in case of errors, just return it un-parsed
+                return host;
+            }
+        }
+
         public void Load()
         {
             using (var connection = MySQL.CreateConnection())
@@ -50,12 +69,16 @@ namespace AAEmu.Login.Core.Controllers
                     {
                         while (reader.Read())
                         {
-                            var gameServer = new GameServer(
-                                reader.GetByte("id"),
-                                reader.GetString("name"),
-                                reader.GetString("host"),
-                                reader.GetUInt16("port"));
+                            var id = reader.GetByte("id");
+                            var name = reader.GetString("name");
+                            var loadedHost = reader.GetString("host");
+                            var host = ResolveHostName(loadedHost);
+                            var port = reader.GetUInt16("port");
+                            var gameServer = new GameServer(id,name,host,port);
                             _gameServers.Add(gameServer.Id, gameServer);
+                            
+                            var extraInfo = host != loadedHost ? "from " + loadedHost : "";
+                            _log.Info($"Game Server {id}: {name} -> {host}:{port} {extraInfo}");
                         }
                     }
                 }
@@ -67,17 +90,16 @@ namespace AAEmu.Login.Core.Controllers
                 }
             }
 
-            _log.Info("Loaded {0} gs", _gameServers.Count);
+            _log.Info($"Loaded {_gameServers.Count} game server(s)");
         }
 
         public void Add(byte gsId, List<byte> mirrorsId, InternalConnection connection)
         {
             if (!_gameServers.ContainsKey(gsId))
             {
-                _log.Error("GameServer connection from {0} is requesting an invalid WorldId {1}", connection.Ip, gsId);
+                _log.Error($"GameServer connection from {connection.Ip} is requesting an invalid WorldId {gsId}");
 
-                Task.Run(() =>
-                    SendPacketWithDelay(connection, 5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)));
+                Task.Run(() => SendPacketWithDelay(connection, 5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)));
                 // connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
                 return;
             }
@@ -94,8 +116,7 @@ namespace AAEmu.Login.Core.Controllers
                 _gameServers[mirrorId].Connection = connection;
                 _mirrorsId.Add(mirrorId, gsId);
             }
-
-            _log.Info("Registered GameServer {0}", gameServer.Id);
+            _log.Info($"Registered GameServer {gameServer.Id} ({gameServer.Name}) from {connection.Ip}");
         }
 
         public void Remove(byte gsId)
@@ -168,7 +189,7 @@ namespace AAEmu.Login.Core.Controllers
             {
                 if (_gameServers.ContainsKey(gsId))
                 {
-                    connection.SendPacket(new ACWorldCookiePacket((int)connection.Id, _gameServers[gsId]));
+                    connection.SendPacket(new ACWorldCookiePacket(connection, _gameServers[gsId]));
                 }
                 else
                 {

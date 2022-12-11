@@ -21,7 +21,7 @@ namespace AAEmu.Login.Core.Network.Login
 
         public override void OnConnect(Session session)
         {
-            _log.Info("Connection from {0} established, session id: {1}", session.Ip.ToString(), session.SessionId.ToString());
+            _log.Debug($"Connection from {session.Ip} established, session id: {session.SessionId}");
             try
             {
                 var con = new LoginConnection(session);
@@ -54,7 +54,7 @@ namespace AAEmu.Login.Core.Network.Login
                 _log.Error(e);
             }
 
-            _log.Info("Client from {0} disconnected", session.Ip.ToString());
+            _log.Debug($"Client from {session.Ip} disconnected");
         }
 
         public override void OnReceive(Session session, byte[] buf, int bytes)
