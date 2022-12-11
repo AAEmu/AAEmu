@@ -55,6 +55,7 @@ namespace AAEmu.Game.Core.Managers.World
         private readonly ConcurrentDictionary<uint, Gimmick> _gimmicks;
         private readonly ConcurrentDictionary<uint, Slave> _slaves;
         private readonly ConcurrentDictionary<uint, IndunZone> _indunZones;
+        private object _lock = new object();
 
         public const int CELL_SIZE = 1024;
         /// <summary>
@@ -954,53 +955,49 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void RemoveVisibleObject(GameObject obj)
         {
-            try
+            lock (_lock)
             {
-                if (obj?.Region == null)
+                if (obj == null)
                 {
                     return;
                 }
-
-                obj.Region.RemoveObject(obj);
 
                 if (obj.Region == null)
                 {
-                    // Also remove children
-                    if (obj?.Transform?.Children.Count > 0)
-                    {
-                        foreach (var child in obj?.Transform.Children)
-                            RemoveVisibleObject(child?.GameObject);
-                    }
-
                     return;
                 }
-                var neighbours = obj.Region.GetNeighbors();
-                if ((neighbours != null) && (neighbours.Length > 0))
+
+                var neighbors = obj.Region.GetNeighbors();
+                obj.Region?.RemoveObject(obj);
+
+                if (neighbors == null)
                 {
-                    foreach (var neighbor in neighbours)
+                    return;
+                }
+
+                if (neighbors.Length > 0)
+                {
+                    foreach (var neighbor in neighbors)
+                    {
                         neighbor?.RemoveFromCharacters(obj);
+                    }
                 }
 
                 obj.Region = null;
-
-            }
-            catch (Exception e)
-            {
-                _log.Error($"RemoveVisibleObject: {e}");
             }
 
-            try
+            // Also remove children
+            if (obj.Transform == null)
             {
-                // Also remove children
-                if (obj?.Transform?.Children.Count > 0)
+                return;
+            }
+
+            if (obj.Transform.Children.Count > 0)
+            {
+                foreach (var child in obj.Transform.Children)
                 {
-                    foreach (var child in obj?.Transform.Children)
-                        RemoveVisibleObject(child?.GameObject);
+                    RemoveVisibleObject(child?.GameObject);
                 }
-            }
-            catch (Exception e)
-            {
-                _log.Error($"RemoveVisibleObject.RemoveChildren: {e}");
             }
         }
 
