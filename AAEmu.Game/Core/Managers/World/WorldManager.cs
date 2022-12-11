@@ -855,19 +855,15 @@ namespace AAEmu.Game.Core.Managers.World
             // Also remove children
             if (obj.Transform == null)
             {
-                _log.Error($"RemoveVisibleObject: {e}");
+                return;
             }
 
-            try
+            if (obj.Transform.Children.Count > 0)
             {
-                // Also remove children
-                if (obj?.Transform?.Children.Count > 0)
-                    foreach (var child in obj?.Transform.Children)
-                        RemoveVisibleObject(child?.GameObject);
-            }
-            catch (Exception e)
-            {
-                _log.Error($"RemoveVisibleObject.RemoveChildren: {e}");
+                foreach (var child in obj.Transform.Children)
+                {
+                    RemoveVisibleObject(child?.GameObject);
+                }
             }
         }
 
