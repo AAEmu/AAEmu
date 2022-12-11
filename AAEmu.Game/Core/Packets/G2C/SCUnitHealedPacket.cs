@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly SkillCaster _skillCaster;
         private readonly uint _targetId;
         private readonly byte _healType;
-        private readonly byte _hkillHitType;
+        private readonly byte _skillHitType;
         private readonly int _value;
 
         public SCUnitHealedPacket(CastAction castAction, SkillCaster skillCaster, uint targetId, HealType healType, SkillHitType skillHitType, int value)
@@ -20,7 +20,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             _skillCaster = skillCaster;
             _targetId = targetId;
             _healType = (byte)healType; // 0 = Health, 1 = Mana
-            _hkillHitType = (byte)skillHitType; // 11 = CriticalHealHit, 13 = HealHit, enum missing?
+            _skillHitType = (byte)skillHitType; // 11 = CriticalHealHit, 13 = HealHit, enum missing?
             _value = value;
         }
 
@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_skillCaster);
             stream.WriteBc(_targetId);
             stream.Write(_healType);     // h
-            stream.Write(_hkillHitType); // h
+            stream.Write(_skillHitType); // h
             stream.Write(_value);        // a
             stream.Write(0);             // o
             stream.Write((byte)1);       // result -> to debug into
