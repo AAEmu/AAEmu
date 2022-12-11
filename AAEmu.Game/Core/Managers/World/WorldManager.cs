@@ -34,6 +34,7 @@ namespace AAEmu.Game.Core.Managers.World
 {
     public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
+        private object _lock = new object();
         // Default World and Instance ID that will be assigned to all Transforms as a Default value
         public static uint DefaultWorldId = 0; // This will get reset to it's proper value when loading world data (which is usually 0)
         public static uint DefaultInstanceId = 0;
@@ -820,22 +821,39 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void RemoveVisibleObject(GameObject obj)
         {
-            try
+            lock (_lock)
             {
-                if (obj?.Region == null)
+                if (obj == null)
+                {
                     return;
+                }
 
-                obj.Region.RemoveObject(obj);
+                if (obj.Region == null)
+                {
+                    return;
+                }
 
-                var neighbours = obj.Region.GetNeighbors();
-                if ((neighbours != null) && (neighbours.Length > 0))
-                    foreach (var neighbor in neighbours)
+                var neighbors = obj.Region.GetNeighbors();
+                obj.Region?.RemoveObject(obj);
+
+                if (neighbors == null)
+                {
+                    return;
+                }
+
+                if (neighbors.Length > 0)
+                {
+                    foreach (var neighbor in neighbors)
+                    {
                         neighbor?.RemoveFromCharacters(obj);
+                    }
+                }
 
                 obj.Region = null;
-            
             }
-            catch (Exception e)
+
+            // Also remove children
+            if (obj.Transform == null)
             {
                 _log.Error($"RemoveVisibleObject: {e}");
             }

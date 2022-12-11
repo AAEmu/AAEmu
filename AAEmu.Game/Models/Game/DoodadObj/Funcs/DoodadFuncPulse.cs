@@ -19,25 +19,32 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 var aroundDoodads = WorldManager.Instance.GetAround<Doodad>(caster);
                 var doodads = new List<Doodad>();
-                foreach (var relatedId in owner.Spawner.RelatedIds)
+                if (owner?.Spawner != null)
                 {
-                    foreach (var doodad in aroundDoodads)
+                    if (owner.Spawner.RelatedIds != null)
                     {
-                        if (doodad.TemplateId == relatedId) doodads.Add(doodad);
+                        foreach (var relatedId in owner.Spawner.RelatedIds)
+                        {
+                            if (aroundDoodads != null)
+                            {
+                                doodads.AddRange(aroundDoodads.Where(doodad => doodad.TemplateId == relatedId));
+                            }
+                        }
                     }
-                }
 
-                if (doodads.Count > 0)
-                {
                     foreach (var doodad in doodads)
                     {
                         var funcGroup = DoodadManager.Instance.GetPhaseFunc(doodad.FuncGroupId);
                         foreach (var func in funcGroup)
                         {
-                            if (func.FuncType == "DoodadFuncPulseTrigger")
+                            switch (func.FuncType)
                             {
-                                DoodadFuncPulseTrigger.Halt = false; // разрешаем однократное выполнение // allow one-time execution
-                                doodad.DoPhaseFuncs(caster, (int)doodad.FuncGroupId);
+                                case "DoodadFuncPulseTrigger":
+                                    {
+                                        DoodadFuncPulseTrigger.Halt = false; // разрешаем однократное выполнение // allow one-time execution
+                                        doodad.DoPhaseFuncs(caster, (int)doodad.FuncGroupId);
+                                        break;
+                                    }
                             }
                         }
                     }
