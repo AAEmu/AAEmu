@@ -94,21 +94,30 @@ namespace AAEmu.Game.Core.Managers
                 return new List<bool>();
             }
 
-            var res = (from gameScheduleId in _gameScheduleSpawnerIds[spawnerId]
-                       where _gameSchedules.ContainsKey(gameScheduleId)
-                       select _gameSchedules[gameScheduleId]
-                into gs
-                       select CheckData(gs)).ToList();
+            var res = new List<bool>();
+            foreach (var gameScheduleId in _gameScheduleSpawnerIds[spawnerId])
+            {
+                if (_gameSchedules.ContainsKey(gameScheduleId))
+                {
+                    var gs = _gameSchedules[gameScheduleId];
+                    res.Add(CheckData(gs));
+                }
+            }
+
             return res;
         }
 
         private List<bool> CheckScheduler()
         {
-            var res = (from gameScheduleId in GameScheduleId
-                       where _gameSchedules.ContainsKey(gameScheduleId)
-                       select _gameSchedules[gameScheduleId]
-                into gs
-                       select CheckData(gs)).ToList();
+            var res = new List<bool>();
+            foreach (var gameScheduleId in GameScheduleId)
+            {
+                if (_gameSchedules.ContainsKey(gameScheduleId))
+                {
+                    var gs = _gameSchedules[gameScheduleId];
+                    res.Add(CheckData(gs));
+                }
+            }
 
             return res;
         }
