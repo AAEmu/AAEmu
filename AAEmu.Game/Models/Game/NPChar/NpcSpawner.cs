@@ -219,14 +219,14 @@ namespace AAEmu.Game.Models.Game.NPChar
             if (Template == null)
             {
                 // no spawner for TemplateId
-                _log.Error($"Can't spawn npc {UnitId} from spawn {Id}, npcSpawnerId {Template.Id}");
+                _log.Warn($"Can't spawn npc {UnitId} from spawn {Id}, npcSpawnerId {Id}");
                 return true;
             }
 
             // Check if population is within bounds
             if (_spawnCount >= Template.MaxPopulation)
             {
-                _log.Error($"DoSpawn: Npc TemplateId {UnitId}, NpcSpawnerId {Id} достигли максимальной популяции...");
+                _log.Warn($"DoSpawn: Npc TemplateId {UnitId}, NpcSpawnerId {Id} достигли максимальной популяции...");
                 return true;
             }
 
@@ -259,9 +259,9 @@ namespace AAEmu.Game.Models.Game.NPChar
                     }
                     //if (UnitId == 3321)
                     //{
-                    //    _log.Debug($"DoSpawnSchedule: Npc TemplateId {UnitId}, NpcSpawnerId {Id} spawn reschedule next time...");
-                    //    _log.Debug($"DoSpawnSchedule: delay {delay} sec");
-                    //    _log.Debug($"DoSpawnSchedule: curTime {curTime}, StartTime {Template.StartTime}, EndTime {Template.EndTime}");
+                    //_log.Warn($"DoSpawnSchedule: Npc TemplateId {UnitId}, NpcSpawnerId {Id}, spawner {Template.Id} spawn reschedule next time...");
+                    //_log.Warn($"DoSpawnSchedule: delay {delay} sec");
+                    //_log.Warn($"DoSpawnSchedule: curTime {curTime}, StartTime {Template.StartTime}, EndTime {Template.EndTime}");
                     //}
                     _isScheduled = true; // Npc is on the schedule
                     TaskManager.Instance.Schedule(new NpcSpawnerDoSpawnTask(this), TimeSpan.FromSeconds(delay));
@@ -272,25 +272,32 @@ namespace AAEmu.Game.Models.Game.NPChar
             // First, let's check if the schedule has such an spawnerId
             else if (GameScheduleManager.Instance.CheckSpawnerInScheduleSpawners((int)Template.Id))
             {
+                _isScheduled = true; // Npc is on the schedule
+                
                 // if there is, we'll check the time for the spawning
                 if (GameScheduleManager.Instance.CheckSpawnerInGameSchedules((int)Template.Id))
                 {
+                    // есть в расписании, надо спавнить сейчас
+                    return false;
+                }
+                else
+                {
+                    // есть в расписании, надо запланировать
                     var cronExpression = GameScheduleManager.Instance.GetCronRemainingTime((int)Template.Id, true);
 
                     if (cronExpression == String.Empty || cronExpression == "0 0 0 0 0 ?")
                     {
-                        _log.Error($"DoSpawnSchedule: Can't reschedule spawn npc {UnitId} from spawn {Id}, spawner {Template.Id}");
-                        _log.Error($"DoSpawnSchedule: cronExpression {cronExpression}");
+                        _log.Warn($"DoSpawnSchedule: Can't reschedule spawn npc {UnitId} from spawn {Id}, spawner {Template.Id}");
+                        _log.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
                         return false;
                     }
-                    _isScheduled = true; // Npc is on the schedule
 
                     TaskManager.Instance.CronSchedule(new NpcSpawnerDoSpawnTask(this), cronExpression);
 
                     ////if (UnitId == 3321)
                     //{
-                    //    _log.Debug($"DoSpawnSchedule: Npc TemplateId {UnitId}, NpcSpawnerId {Id} spawn reschedule next time...");
-                    //    _log.Debug($"DoSpawnSchedule: cronExpression {cronExpression}");
+                    //_log.Warn($"DoSpawnSchedule: Npc TemplateId {UnitId}, NpcSpawnerId {Id}, spawner {Template.Id} spawn reschedule next time...");
+                    //_log.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
                     //}
                     return true; // Reschedule when OK
                 }
@@ -362,16 +369,16 @@ namespace AAEmu.Game.Models.Game.NPChar
 
                 if (cronExpression == String.Empty || cronExpression == "0 0 0 0 0 ?")
                 {
-                    _log.Error($"DoDespawnSchedule: Can't reschedule despawn npc {UnitId} from spawn {Id}, spawner {Template.Id}");
-                    _log.Error($"DoDespawnSchedule: cronExpression {cronExpression}");
+                    _log.Warn($"DoDespawnSchedule: Can't reschedule despawn npc {UnitId} from spawn {Id}, spawner {Template.Id}");
+                    _log.Warn($"DoDespawnSchedule: cronExpression {cronExpression}");
                     return;
                 }
                 TaskManager.Instance.CronSchedule(new NpcSpawnerDoDespawnTask(npc), cronExpression);
 
                 ////if (UnitId == 3321)
                 //{
-                //    _log.Debug($"DoDespawnSchedule: Npc TemplateId {UnitId}, NpcSpawnerId {Id} despawn reschedule next time...");
-                //    _log.Debug($"DoDespawnSchedule: cronExpression {cronExpression}");
+                //_log.Warn($"DoDespawnSchedule: Npc TemplateId {UnitId}, NpcSpawnerId {Id}, spawner {Template.Id} despawn reschedule next time...");
+                //_log.Warn($"DoDespawnSchedule: cronExpression {cronExpression}");
                 //}
                 return; // Reschedule when OK
             }
