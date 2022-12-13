@@ -84,6 +84,12 @@ namespace AAEmu.Game.Models.Game.World
             }
 
             var units = WorldManager.Instance.GetAroundByShape<Unit>(Owner, Shape);
+            if (units is { Count: 0 })
+            {
+                _log.Warn("AreaShape with no size values was remove");
+                AreaTriggerManager.Instance.RemoveAreaTrigger(this);
+                return;
+            }
 
             var leftUnits = Units.Where(u => units.All(u2 => u.ObjId != u2.ObjId));
             var newUnits = units.Where(u => Units.All(u2 => u.ObjId != u2.ObjId));
