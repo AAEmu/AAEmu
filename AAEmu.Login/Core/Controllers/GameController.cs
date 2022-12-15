@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -10,6 +11,7 @@ using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Packets.L2C;
 using AAEmu.Login.Core.Packets.L2G;
 using AAEmu.Login.Models;
+using Microsoft.Extensions.Hosting;
 using NLog;
 
 namespace AAEmu.Login.Core.Controllers
@@ -40,21 +42,50 @@ namespace AAEmu.Login.Core.Controllers
             connection.SendPacket(message);
         }
 
-        private string ResolveHostName(string host)
+        private string ResolveHostName(string host,int port) //Assume the host retrieved from aaemu_login.gameservers table is correct, but test for validity anyway
         {
             try
             {
-                var parsedHost = Dns.GetHostEntry(host);
-                if (parsedHost.AddressList.Length > 0)
-                    return parsedHost.AddressList[0].ToString();
-                
-                return host;
+                var parsedHost = Dns.GetHostEntry(host, AddressFamily.InterNetwork); //enforce IPv4 methodology
+                if (parsedHost.AddressList.Length > 1) //Dns.GetHostEntry will always return at least 1 item, unless there is no IP on your system. Not worth coding for the case of NOIP, so assume multi-IP if > 1 return
+                {
+                    foreach (IPAddress entry in parsedHost.AddressList)
+                    {
+                        if (TestForListeningGameServer(entry, port)) { return entry.MapToIPv4().ToString(); }
+                    }
+                }
+                else
+                {
+                    if (TestForListeningGameServer(parsedHost.AddressList[0], port)) { return host; }
+                    else 
+                    {
+                        _log.Warn("No listening gameserver was found at IP {0}:{1}", host, port);
+                        return host;
+                    }
+                }
             }
             catch (Exception e)
             {
                 // in case of errors, just return it un-parsed
                 return host;
             }
+            _log.Warn("No listening gameserver was found at IP {0}:{1}", host, port);
+            return host;
+        }
+
+        public bool TestForListeningGameServer(IPAddress gameServerAddress, int port)
+        {
+            TcpClient testConnection = new TcpClient();
+            try { testConnection.Connect(gameServerAddress, port); }
+            catch { return false; }
+            if (testConnection.Connected)
+            {
+                _log.Info("Found a listening gameserver at IP {0}:{1}", gameServerAddress, port);
+                testConnection.Close();
+                testConnection.Dispose();
+                return true;
+            }
+            else { return false; } //should never get here, but who knows
         }
 
         public void Load()
@@ -72,8 +103,8 @@ namespace AAEmu.Login.Core.Controllers
                             var id = reader.GetByte("id");
                             var name = reader.GetString("name");
                             var loadedHost = reader.GetString("host");
-                            var host = ResolveHostName(loadedHost);
                             var port = reader.GetUInt16("port");
+                            var host = ResolveHostName(loadedHost, port);
                             var gameServer = new GameServer(id,name,host,port);
                             _gameServers.Add(gameServer.Id, gameServer);
                             
