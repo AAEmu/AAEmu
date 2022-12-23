@@ -51,7 +51,7 @@ namespace AAEmu.Login.Core.Controllers
                     // if (ipAddress.IsIPv4)
                     //     return ipAddress.ToString();
                     var ipString = ipAddress.ToString();
-                    if (ipString.Split(':').Length == 4)
+                    if (ipString.Split('.').Length == 4)
                     {
                         _log.Debug($"Resolved {host} to {ipString}");
                         return ipString;
