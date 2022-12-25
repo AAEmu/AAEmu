@@ -105,11 +105,6 @@ namespace AAEmu.Game.Models.Game.Char
                 DbInfo = mateDbInfo
             };
             
-            if (mount.Hp < mount.MaxHp || mount.Mp < mount.MaxMp)
-            {
-                mount.StartRegen();
-            }
-            
             mount.Transform = Owner.Transform.CloneDetached(mount);
 
             foreach (var skill in MateManager.Instance.GetMateSkills(npcId))

@@ -1,21 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
-using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.Units.Route;
-using AAEmu.Game.Models.Tasks.UnitMove;
-using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects
 {
@@ -391,7 +387,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var attacker = caster as Character;
             if (trgCharacter != null)
             {
-                trgCharacter.IsInCombat = true;
+                //trgCharacter.IsInCombat = true;
                 trgCharacter.LastCombatActivity = DateTime.UtcNow;
                 if (attacker != null)
                 {
@@ -401,10 +397,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }    
             if (attacker != null)
             {
-                attacker.IsInCombat = true;
+                //attacker.IsInCombat = true;
                 attacker.LastCombatActivity = DateTime.UtcNow;
                 attacker.Procs.RollProcsForKind(ProcChanceKind.HitAny);
             }
+
+            // set for all combatants, for RegenTick
+            trg.IsInBattle = true;
+            caster.IsInBattle = true;
 
             // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
             caster.CombatBuffs.TriggerCombatBuffs(caster, target as Unit, hitType, false);

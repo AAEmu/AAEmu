@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
@@ -84,7 +84,7 @@ namespace AAEmu.Game.Core.Managers.World
                         int logoutTime = 10000; // in ms
 
                         // Make it 5 minutes if you're still in combat
-                        if (connection.ActiveChar?.IsInCombat ?? false)
+                        if (connection.ActiveChar?.IsInBattle ?? false)
                             logoutTime *= 30;
                         
                         connection.SendPacket(new SCPrepareLeaveWorldPacket(logoutTime, type, false));
