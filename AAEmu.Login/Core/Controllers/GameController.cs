@@ -48,14 +48,25 @@ namespace AAEmu.Login.Core.Controllers
             try
             {
                 var parsedHost = Dns.GetHostEntry(host);
-                if (parsedHost.AddressList.Length > 0)
-                    return parsedHost.AddressList[0].ToString();
-                
+                foreach (var ipAddress in parsedHost.AddressList)
+                {
+                    // For whatever reason, we can't just access the IsIPv4 property here
+                    // if (ipAddress.IsIPv4)
+                    //     return ipAddress.ToString();
+                    var ipString = ipAddress.ToString();
+                    if (ipString.Split('.').Length == 4)
+                    {
+                        _log.Debug($"Resolved {host} to {ipString}");
+                        return ipString;
+                    }
+                }
+                _log.Warn($"Unable to resolved {host}");
                 return host;
             }
             catch (Exception e)
             {
                 // in case of errors, just return it un-parsed
+                _log.Error($"Exception resolving {host}: {e.Message}");
                 return host;
             }
         }
