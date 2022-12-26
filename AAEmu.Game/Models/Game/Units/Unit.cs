@@ -203,8 +203,10 @@ namespace AAEmu.Game.Models.Game.Units
         /// </summary>
         public Patrol Patrol { get; set; }
         public Simulation Simulation { get; set; }
+
         public UnitProcs Procs { get; set; }
         public object ChargeLock { get; set; }
+
         public bool ConditionChance { get; set; }
 
         public Unit()
@@ -326,6 +328,7 @@ namespace AAEmu.Game.Models.Game.Units
             killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, killer), true);
             if (killer == this)
             {
+                DespawMate((Character)this);
                 return;
             }
 
@@ -352,15 +355,34 @@ namespace AAEmu.Game.Models.Game.Units
                 {
                     character.StopAutoSkill(character);
                     character.IsInBattle = false; // we need the character to be "not in battle"
+                    DespawMate(character);
                 }
                 else if (killer.CurrentTarget is Character character2)
                 {
                     character2.StopAutoSkill(character2);
                     character2.IsInBattle = false; // we need the character to be "not in battle"
                     character2.DeadTime = DateTime.UtcNow;
+                    DespawMate(character2);
                 }
 
                 killer.CurrentTarget = null;
+            }
+            else
+            {
+                this.IsInBattle = false; // we need the character to be "not in battle"
+                DespawMate((Character)this);
+            }
+        }
+
+        private void DespawMate(Character character)
+        {
+            // if we died sitting on a horse
+            if (character.Hp > 0) { return; }
+
+            var mate = MateManager.Instance.GetActiveMate(character.ObjId);
+            if (mate != null)
+            {
+                character.Mates.DespawnMate(mate.TlId);
             }
         }
 
@@ -377,6 +399,93 @@ namespace AAEmu.Game.Models.Game.Units
             character.BroadcastPacket(new SCSkillEndedPacket(character.TlId), true);
             character.BroadcastPacket(new SCSkillStoppedPacket(character.ObjId, character.SkillId), true);
             TlIdManager.Instance.ReleaseId(character.TlId);
+        }
+
+        public static void CombatTick(TimeSpan delta)
+        {
+            foreach (var character in WorldManager.Instance.GetAllCharacters())
+            {
+                // TODO: Make it so you can also become out of combat if you are not on any aggro lists
+                if (character.IsInBattle && character.LastCombatActivity.AddSeconds(30) < DateTime.UtcNow)
+                {
+                    character.BroadcastPacket(new SCCombatClearedPacket(character.ObjId), true);
+                    character.IsInBattle = false;
+                }
+
+                if (character.IsInPostCast && character.LastCast.AddSeconds(5) < DateTime.UtcNow)
+                {
+                    character.IsInPostCast = false;
+                }
+            }
+        }
+
+        public static void RegenTick(TimeSpan delta)
+        {
+            foreach (var character in WorldManager.Instance.GetAllCharacters())
+            {
+                if (character.IsDead || !character.NeedsRegen || character.IsDrowning)
+                {
+                    continue;
+                }
+
+                if (character.IsInBattle)
+                {
+                    character.Hp += character.PersistentHpRegen;
+                }
+                else
+                {
+                    character.Hp += character.HpRegen;
+                }
+
+                if (character.IsInPostCast)
+                {
+                    character.Mp += character.PersistentMpRegen;
+                }
+                else
+                {
+                    character.Mp += character.MpRegen;
+                }
+
+                character.Hp = Math.Min(character.Hp, character.MaxHp);
+                character.Mp = Math.Min(character.Mp, character.MaxMp);
+                character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
+            }
+
+            foreach (var slave in WorldManager.Instance.GetAllMates())
+            {
+                if (slave.IsDead || !slave.NeedsRegen)
+                {
+                    continue;
+                }
+
+                if (slave.IsInBattle)
+                {
+                    slave.Hp += slave.PersistentHpRegen;
+                    slave.Mp += slave.PersistentMpRegen;
+                }
+                else
+                {
+                    slave.Hp += slave.HpRegen;
+                    slave.Mp += slave.MpRegen;
+                }
+
+                slave.Hp = Math.Min(slave.Hp, slave.MaxHp);
+                slave.Mp = Math.Min(slave.Mp, slave.MaxMp);
+                slave.BroadcastPacket(new SCUnitPointsPacket(slave.ObjId, slave.Hp, slave.Mp), false);
+            }
+        }
+
+        public static void BreathTick(TimeSpan delta)
+        {
+            foreach (var character in WorldManager.Instance.GetAllCharacters())
+            {
+                if (character.IsDead || !character.IsUnderWater)
+                {
+                    continue;
+                }
+
+                character.DoChangeBreath();
+            }
         }
 
         public void StartRegen()

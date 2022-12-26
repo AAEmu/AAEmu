@@ -460,7 +460,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var attacker = unit as Character;
             if (trgCharacter != null)
             {
-                trgCharacter.IsInCombat = true;
+                //trgCharacter.IsInCombat = true;
                 trgCharacter.LastCombatActivity = DateTime.UtcNow;
                 if (attacker != null)
                 {
@@ -470,10 +470,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
             if (attacker != null)
             {
-                attacker.IsInCombat = true;
+                //attacker.IsInCombat = true;
                 attacker.LastCombatActivity = DateTime.UtcNow;
                 attacker.Procs.RollProcsForKind(ProcChanceKind.HitAny);
             }
+
+            // set for all combatants, for RegenTick
+            trg.IsInBattle = true;
+            caster.IsInBattle = true;
 
             // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
             unit.CombatBuffs.TriggerCombatBuffs(unit, target as Unit, hitType, false);
