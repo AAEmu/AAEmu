@@ -14,6 +14,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         {
             if (!UpdateTarget() || ShouldReturn)
             {
+                Ai.Owner.IsInBattle = false;
                 Ai.GoToReturn();
                 return;
             }
@@ -23,6 +24,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             if (!CanUseSkill)
                 return;
 
+            Ai.Owner.IsInBattle = true;
             PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget);
         }
 

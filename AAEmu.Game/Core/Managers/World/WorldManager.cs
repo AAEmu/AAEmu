@@ -55,6 +55,7 @@ namespace AAEmu.Game.Core.Managers.World
         private readonly ConcurrentDictionary<uint, Transfer> _transfers;
         private readonly ConcurrentDictionary<uint, Gimmick> _gimmicks;
         private readonly ConcurrentDictionary<uint, Slave> _slaves;
+        private readonly ConcurrentDictionary<uint, Mate> _mates;
         private readonly ConcurrentDictionary<uint, IndunZone> _indunZones;
 
         public const int CELL_SIZE = 1024;
@@ -85,6 +86,7 @@ namespace AAEmu.Game.Core.Managers.World
             _transfers = new ConcurrentDictionary<uint, Transfer>();
             _gimmicks = new ConcurrentDictionary<uint, Gimmick>();
             _slaves = new ConcurrentDictionary<uint, Slave>();
+            _mates = new ConcurrentDictionary<uint, Mate>();
             _indunZones = new ConcurrentDictionary<uint, IndunZone>();
         }
 
@@ -290,6 +292,11 @@ namespace AAEmu.Game.Core.Managers.World
             #endregion
 
             //TickManager.Instance.OnLowFrequencyTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(5));
+
+            TickManager.Instance.OnTick.Subscribe(Unit.BreathTick, TimeSpan.FromSeconds(1));
+            TickManager.Instance.OnTick.Subscribe(Unit.CombatTick, TimeSpan.FromSeconds(1));
+            TickManager.Instance.OnTick.Subscribe(Unit.RegenTick, TimeSpan.FromSeconds(1));
+
             _loaded = true;
         }
 
@@ -720,6 +727,8 @@ namespace AAEmu.Game.Core.Managers.World
                 _gimmicks.TryAdd(gimmick.ObjId, gimmick);
             if (obj is Slave slave)
                 _slaves.TryAdd(slave.ObjId, slave);
+            if (obj is Mate mate)
+                _mates.TryAdd(mate.ObjId, mate);
         }
 
         public void RemoveObject(GameObject obj)
@@ -745,6 +754,8 @@ namespace AAEmu.Game.Core.Managers.World
                 _gimmicks.TryRemove(obj.ObjId, out _);
             if (obj is Slave)
                 _slaves.TryRemove(obj.ObjId, out _);
+            if (obj is Mate mate)
+                _mates.TryAdd(mate.ObjId, mate);
         }
 
         public void AddVisibleObject(GameObject obj)
@@ -1069,14 +1080,22 @@ namespace AAEmu.Game.Core.Managers.World
         {
             return _npcs.Values.ToList();
         }
+       
         public List<Npc> GetAllNpcsFromWorld(uint worldId)
         {
             return _npcs.Values.Where(n => n.Transform.WorldId == worldId).ToList();
         }
+        
         public List<Slave> GetAllSlaves()
         {
             return _slaves.Values.ToList();
         }
+        
+        public List<Mate> GetAllMates()
+        {
+            return _mates.Values.ToList();
+        }
+        
         public List<Slave> GetAllSlavesFromWorld(uint worldId)
         {
             return _slaves.Values.Where(n => n.Transform.WorldId == worldId).ToList();
