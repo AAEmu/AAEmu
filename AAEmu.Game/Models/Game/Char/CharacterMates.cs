@@ -109,6 +109,7 @@ namespace AAEmu.Game.Models.Game.Char
                 SpawnDelayTime = 0, // TODO
                 DbInfo = mateDbInfo
             };
+            
             mount.Transform = Owner.Transform.CloneDetached(mount);
 
             foreach (var skill in MateManager.Instance.GetMateSkills(npcId))
