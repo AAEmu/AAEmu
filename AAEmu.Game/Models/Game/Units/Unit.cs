@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Reactive;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
@@ -49,6 +48,8 @@ namespace AAEmu.Game.Models.Game.Units
 
         public byte Level { get; set; }
         public int Hp { get; set; }
+
+        #region UnitAttribute
 
         [UnitAttribute(UnitAttribute.MoveSpeedMul)]
         public virtual float MoveSpeedMul { get => (float)CalculateWithBonuses(1000f, UnitAttribute.MoveSpeedMul) / 1000f; }
@@ -172,6 +173,9 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get => (float)CalculateWithBonuses(100d, UnitAttribute.IncomingAggroMul);
         }
+
+        #endregion UnitAttribute
+
         public BaseUnit CurrentTarget { get; set; }
         public virtual byte RaceGender => 0;
         public virtual UnitCustomModelParams ModelParams { get; set; }
@@ -453,7 +457,7 @@ namespace AAEmu.Game.Models.Game.Units
 
                 character.Hp = Math.Min(character.Hp, character.MaxHp);
                 character.Mp = Math.Min(character.Mp, character.MaxMp);
-                character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
+                character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp, character.HighAbilityRsc), true);
             }
 
             foreach (var slave in WorldManager.Instance.GetAllMates())
@@ -476,7 +480,7 @@ namespace AAEmu.Game.Models.Game.Units
 
                 slave.Hp = Math.Min(slave.Hp, slave.MaxHp);
                 slave.Mp = Math.Min(slave.Mp, slave.MaxMp);
-                slave.BroadcastPacket(new SCUnitPointsPacket(slave.ObjId, slave.Hp, slave.Mp), false);
+                slave.BroadcastPacket(new SCUnitPointsPacket(slave.ObjId, slave.Hp, slave.Mp, slave.HighAbilityRsc), false);
             }
         }
 
