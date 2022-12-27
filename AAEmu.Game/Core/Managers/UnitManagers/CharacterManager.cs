@@ -98,78 +98,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             return null;
         }
 
-        public void CombatTick(TimeSpan delta)
-        {
-            // Not sure if we should put this here or world
-            foreach (var character in WorldManager.Instance.GetAllCharacters())
-            {
-                // TODO: Make it so you can also become out of combat if you are not on any aggro lists
-                if (character.IsInCombat && character.LastCombatActivity.AddSeconds(30) < DateTime.UtcNow)
-                {
-                    character.BroadcastPacket(new SCCombatClearedPacket(character.ObjId), true);
-                    character.IsInCombat = false;
-                }
-
-                if (character.IsInPostCast && character.LastCast.AddSeconds(5) < DateTime.UtcNow)
-                {
-                    character.IsInPostCast = false;
-                }
-            }
-        }
-
-        public void RegenTick(TimeSpan delta)
-        {
-            foreach (var character in WorldManager.Instance.GetAllCharacters())
-            {
-                if (character.IsDead || !character.NeedsRegen || character.IsDrowning)
-                {
-                    continue;
-                }
-
-                if (character.IsInCombat)
-                {
-                    character.Hp += character.PersistentHpRegen;
-                }
-                else
-                {
-                    character.Hp += character.HpRegen;
-                }
-
-                if (character.IsInPostCast)
-                {
-                    character.Mp += character.PersistentMpRegen;
-                }
-                else
-                {
-                    character.Mp += character.MpRegen;
-                }
-
-                character.Hp = Math.Min(character.Hp, character.MaxHp);
-                character.Mp = Math.Min(character.Mp, character.MaxMp);
-                character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
-            }
-        }
-
-        public void BreathTick(TimeSpan delta)
-        {
-            foreach (var character in WorldManager.Instance.GetAllCharacters())
-            {
-                if (character.IsDead || !character.IsUnderWater)
-                {
-                    continue;
-                }
-
-                character.DoChangeBreath();
-            }
-        }
-
         public void Load()
         {
             Log.Info("Loading character templates...");
 
-            TickManager.Instance.OnTick.Subscribe(BreathTick, TimeSpan.FromMilliseconds(1000));
-            TickManager.Instance.OnTick.Subscribe(CombatTick, TimeSpan.FromMilliseconds(1000));
-            TickManager.Instance.OnTick.Subscribe(RegenTick, TimeSpan.FromMilliseconds(1000));
             using (var connection = SQLite.CreateConnection())
             {
                 var temp = new Dictionary<uint, byte>();
@@ -495,8 +427,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
         }
 
-        public void Create(GameConnection connection, string name, byte race, byte gender, uint[] body,
-            UnitCustomModelParams customModel, byte ability1)
+        public void Create(GameConnection connection, string name, byte race, byte gender, uint[] body, UnitCustomModelParams customModel, byte ability1)
         {
             var nameValidationCode = NameManager.Instance.ValidationCharacterName(name);
             if (nameValidationCode == 0)
