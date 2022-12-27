@@ -53,6 +53,8 @@ namespace AAEmu.Game.Models.Game.Units
         public BuffModifiers BuffModifiersCache { get; set; }
         public CombatBuffs CombatBuffs { get; set; }
         public GameConnection Connection { get; set; }
+        public bool IsInBattle { get; set; }
+        public bool IsInPatrol { get; set; } // so as not to run the route a second time
 
         public BaseUnit()
         {
