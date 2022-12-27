@@ -188,8 +188,6 @@ namespace AAEmu.Game.Models.Game.Units
         public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
         public UnitCooldowns Cooldowns { get; set; }
         public Expedition Expedition { get; set; }
-        public bool IsInBattle { get; set; }
-        public bool IsInPatrol { get; set; } // so as not to run the route a second time
         public int SummarizeDamage { get; set; }
         public bool IsAutoAttack = false;
         public uint SkillId;
@@ -450,7 +448,7 @@ namespace AAEmu.Game.Models.Game.Units
 
                 character.Hp = Math.Min(character.Hp, character.MaxHp);
                 character.Mp = Math.Min(character.Mp, character.MaxMp);
-                character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
+                character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp, character.HighAbilityRsc), true);
             }
 
             foreach (var slave in WorldManager.Instance.GetAllMates())
@@ -473,7 +471,7 @@ namespace AAEmu.Game.Models.Game.Units
 
                 slave.Hp = Math.Min(slave.Hp, slave.MaxHp);
                 slave.Mp = Math.Min(slave.Mp, slave.MaxMp);
-                slave.BroadcastPacket(new SCUnitPointsPacket(slave.ObjId, slave.Hp, slave.Mp), false);
+                slave.BroadcastPacket(new SCUnitPointsPacket(slave.ObjId, slave.Hp, slave.Mp, slave.HighAbilityRsc), false);
             }
         }
 
