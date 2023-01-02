@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Reactive;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
@@ -49,6 +48,8 @@ namespace AAEmu.Game.Models.Game.Units
 
         public byte Level { get; set; }
         public int Hp { get; set; }
+
+        #region Attributes
 
         [UnitAttribute(UnitAttribute.MoveSpeedMul)]
         public virtual float MoveSpeedMul { get => (float)CalculateWithBonuses(1000f, UnitAttribute.MoveSpeedMul) / 1000f; }
@@ -167,6 +168,9 @@ namespace AAEmu.Game.Models.Game.Units
             get => (float)CalculateWithBonuses(100d, UnitAttribute.AggroMul);
         }
         [UnitAttribute(UnitAttribute.IncomingAggroMul)]
+
+        #endregion Attributes
+        
         public float IncomingAggroMul
         {
             get => (float)CalculateWithBonuses(100d, UnitAttribute.IncomingAggroMul);
@@ -301,13 +305,18 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual void ReduceCurrentMp(Unit unit, int value)
         {
             if (Hp == 0)
+            {
                 return;
+            }
 
             Mp = Math.Max(Mp - value, 0);
-            if (Mp == 0)
-                StopRegen();
-            else
-                StartRegen();
+            //if (Mp == 0)
+            //{
+            //    StopRegen();
+            //}
+
+            //else
+                //StartRegen();
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
         }
 
@@ -340,7 +349,7 @@ namespace AAEmu.Game.Models.Game.Units
                     killer.BroadcastPacket(new SCCombatClearedPacket(killer.CurrentTarget.ObjId), true);
                 }
                 killer.BroadcastPacket(new SCCombatClearedPacket(killer.ObjId), true);
-                killer.StartRegen();
+                //killer.StartRegen();
                 killer.BroadcastPacket(new SCTargetChangedPacket(killer.ObjId, 0), true);
 
                 if (killer is Character character)
@@ -480,6 +489,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
+        [Obsolete("This method is deprecated", false)]
         public void StartRegen()
         {
             if (_regenTask != null || Hp >= MaxHp && Mp >= MaxMp || Hp == 0)
@@ -490,6 +500,7 @@ namespace AAEmu.Game.Models.Game.Units
             TaskManager.Instance.Schedule(_regenTask, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
         }
 
+        [Obsolete("This method is deprecated", false)]
         public async void StopRegen()
         {
             if (_regenTask == null)

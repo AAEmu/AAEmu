@@ -5,7 +5,6 @@ using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Core.Packets.Proxy;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
-using AAEmu.Game.Models.Game.Units.Static;
 
 namespace AAEmu.Game.Models.Tasks
 {
@@ -52,7 +51,7 @@ namespace AAEmu.Game.Models.Tasks
                 // ObjectIdManager.Instance.ReleaseId(_connection.ActiveChar.ObjId);
 
                 // Cancel auto-regen
-                _connection.ActiveChar.StopRegen();
+                //_connection.ActiveChar.StopRegen();
 
                 // Clear Buyback table
                 _connection.ActiveChar.BuyBackItems.Wipe();

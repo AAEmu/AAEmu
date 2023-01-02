@@ -1,6 +1,5 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
@@ -22,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             Connection.ActiveChar.IsOnline = true;
             
             Connection.ActiveChar.Spawn();
-            Connection.ActiveChar.StartRegen();
+            //Connection.ActiveChar.StartRegen();
             
             // Joining channel 1 (shout) will automatically also join /lfg and /trade for that zone on the client-side
             // Back in 1.x /trade was zone base, not faction based

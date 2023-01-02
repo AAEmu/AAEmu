@@ -155,7 +155,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                         npc.BroadcastPacket(new SCCombatClearedPacket(npc.CurrentTarget.ObjId), true);
                         npc.BroadcastPacket(new SCCombatClearedPacket(npc.ObjId), true);
                         npc.CurrentTarget = null;
-                        npc.StartRegen();
+                        //npc.StartRegen();
                         npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, 0), true);
                     }
                     // 距离超过指定长度 放弃追踪 停止移动
