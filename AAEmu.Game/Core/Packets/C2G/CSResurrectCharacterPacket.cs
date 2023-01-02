@@ -1,6 +1,5 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 
@@ -69,7 +68,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 true
             );
             Connection.ActiveChar.IsUnderWater = false;
-            Connection.ActiveChar.StartRegen();
+            //Connection.ActiveChar.StartRegen();
             Connection.ActiveChar.Breath = Connection.ActiveChar.LungCapacity;
         }
     }
