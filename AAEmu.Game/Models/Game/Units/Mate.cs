@@ -530,5 +530,29 @@ namespace AAEmu.Game.Models.Game.Units
 
             return fallDmg;
         }
+
+        public void Regenerate()
+        {
+            if (IsDead || !NeedsRegen)
+            {
+                return;
+            }
+
+            if (IsInBattle)
+            {
+                Hp += PersistentHpRegen;
+                Mp += PersistentMpRegen;
+            }
+            else
+            {
+                Hp += HpRegen;
+                Mp += MpRegen;
+            }
+
+            Hp = Math.Min(Hp, MaxHp);
+            Mp = Math.Min(Mp, MaxMp);
+            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
+        }
+
     }
 }

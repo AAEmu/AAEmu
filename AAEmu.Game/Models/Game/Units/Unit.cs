@@ -311,7 +311,7 @@ namespace AAEmu.Game.Models.Game.Units
             //}
 
             //else
-                //StartRegen();
+            //StartRegen();
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
         }
 
@@ -395,93 +395,6 @@ namespace AAEmu.Game.Models.Game.Units
             character.BroadcastPacket(new SCSkillEndedPacket(character.TlId), true);
             character.BroadcastPacket(new SCSkillStoppedPacket(character.ObjId, character.SkillId), true);
             TlIdManager.Instance.ReleaseId(character.TlId);
-        }
-
-        public static void CombatTick(TimeSpan delta)
-        {
-            foreach (var character in WorldManager.Instance.GetAllCharacters())
-            {
-                // TODO: Make it so you can also become out of combat if you are not on any aggro lists
-                if (character.IsInBattle && character.LastCombatActivity.AddSeconds(30) < DateTime.UtcNow)
-                {
-                    character.BroadcastPacket(new SCCombatClearedPacket(character.ObjId), true);
-                    character.IsInBattle = false;
-                }
-
-                if (character.IsInPostCast && character.LastCast.AddSeconds(5) < DateTime.UtcNow)
-                {
-                    character.IsInPostCast = false;
-                }
-            }
-        }
-
-        public static void RegenTick(TimeSpan delta)
-        {
-            foreach (var character in WorldManager.Instance.GetAllCharacters())
-            {
-                if (character.IsDead || !character.NeedsRegen || character.IsDrowning)
-                {
-                    continue;
-                }
-
-                if (character.IsInBattle)
-                {
-                    character.Hp += character.PersistentHpRegen;
-                }
-                else
-                {
-                    character.Hp += character.HpRegen;
-                }
-
-                if (character.IsInPostCast)
-                {
-                    character.Mp += character.PersistentMpRegen;
-                }
-                else
-                {
-                    character.Mp += character.MpRegen;
-                }
-
-                character.Hp = Math.Min(character.Hp, character.MaxHp);
-                character.Mp = Math.Min(character.Mp, character.MaxMp);
-                character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
-            }
-
-            foreach (var slave in WorldManager.Instance.GetAllMates())
-            {
-                if (slave.IsDead || !slave.NeedsRegen)
-                {
-                    continue;
-                }
-
-                if (slave.IsInBattle)
-                {
-                    slave.Hp += slave.PersistentHpRegen;
-                    slave.Mp += slave.PersistentMpRegen;
-                }
-                else
-                {
-                    slave.Hp += slave.HpRegen;
-                    slave.Mp += slave.MpRegen;
-                }
-
-                slave.Hp = Math.Min(slave.Hp, slave.MaxHp);
-                slave.Mp = Math.Min(slave.Mp, slave.MaxMp);
-                slave.BroadcastPacket(new SCUnitPointsPacket(slave.ObjId, slave.Hp, slave.Mp), false);
-            }
-        }
-
-        public static void BreathTick(TimeSpan delta)
-        {
-            foreach (var character in WorldManager.Instance.GetAllCharacters())
-            {
-                if (character.IsDead || !character.IsUnderWater)
-                {
-                    continue;
-                }
-
-                character.DoChangeBreath();
-            }
         }
 
         [Obsolete("This method is deprecated", false)]

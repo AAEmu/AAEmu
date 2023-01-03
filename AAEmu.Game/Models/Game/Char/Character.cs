@@ -1465,7 +1465,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var parameters = new Dictionary<string, double>();
                 parameters.Add("labor_power", -change);
-                parameters.Add("pc_level", this.Level);
+                parameters.Add("pc_level", Level);
                 var formula = FormulaManager.Instance.GetFormula((uint)FormulaKind.ExpByLaborPower);
                 var xpToAdd = (int)formula.Evaluate(parameters);
                 AddExp(xpToAdd, true);
@@ -1621,7 +1621,7 @@ namespace AAEmu.Game.Models.Game.Char
                     if (buffTemplate != null)
                     {
                         var casterObj = new SkillCasterUnit(ObjId);
-                        var newZoneBuff = new Buff(this, this, casterObj, buffTemplate, null, System.DateTime.UtcNow);
+                        var newZoneBuff = new Buff(this, this, casterObj, buffTemplate, null, DateTime.UtcNow);
                         Buffs.AddBuff(newZoneBuff);
                     }
                 }
@@ -1779,6 +1779,36 @@ namespace AAEmu.Game.Models.Game.Char
                 Breath -= 1000; //1 second
                 SendPacket(new SCSetBreathPacket(Breath));
             }
+        }
+
+        public void Regenerate()
+        {
+            if (IsDead || !NeedsRegen || IsDrowning)
+            {
+                return;
+            }
+
+            if (IsInBattle)
+            {
+                Hp += PersistentHpRegen;
+            }
+            else
+            {
+                Hp += HpRegen;
+            }
+
+            if (IsInPostCast)
+            {
+                Mp += PersistentMpRegen;
+            }
+            else
+            {
+                Mp += MpRegen;
+            }
+
+            Hp = Math.Min(Hp, MaxHp);
+            Mp = Math.Min(Mp, MaxMp);
+            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
         }
 
         /// <summary>
@@ -2086,7 +2116,7 @@ namespace AAEmu.Game.Models.Game.Char
             Mails = new CharacterMails(this);
             MailManager.Instance.GetCurrentMailList(this); //Doesn't need a connection, but does need to load after the inventory
             // Update sync housing factions on login
-            HousingManager.Instance.UpdateOwnedHousingFaction(this.Id, this.Faction.Id);
+            HousingManager.Instance.UpdateOwnedHousingFaction(Id, Faction.Id);
         }
 
         public bool SaveDirectlyToDatabase()
