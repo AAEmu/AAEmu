@@ -90,9 +90,8 @@ namespace AAEmu.Game.Core.Managers.World
             _indunZones = new ConcurrentDictionary<uint, IndunZone>();
         }
 
-        public void ActiveRegionTick(TimeSpan delta)
+        private void ActiveRegionTick(TimeSpan delta)
         {
-            //Unused right now. Make this a sanity check?
             var sw = new Stopwatch();
             sw.Start();
             var activeRegions = new HashSet<Region>();
@@ -104,19 +103,56 @@ namespace AAEmu.Game.Core.Managers.World
                         continue;
                     if (activeRegions.Contains(region))
                         continue;
-                    //region.HasPlayerActivity = false;
-                    if (!region.IsEmpty())
+                    if (region.IsEmpty())
+                        continue;
+                    foreach (var activeRegion in region.GetNeighbors())
                     {
-                        foreach (var activeRegion in region.GetNeighbors())
+                        activeRegions.Add(activeRegion);
+                        var units = activeRegion.GetList(new List<Unit>(), 0);
+                        foreach (var unit in units)
                         {
-                            //activeRegion.HasPlayerActivity = true;
-                            activeRegions.Add(activeRegion);
+                            if (unit is not Character character) { continue; }
+                            CombatTick(character);
+                            RegenTick(character);
+                            BreathTick(character);
                         }
                     }
                 }
             }
             sw.Stop();
             _log.Warn("ActiveRegionTick took {0}ms", sw.ElapsedMilliseconds);
+        }
+
+        private static void CombatTick(Character character)
+        {
+            // TODO: Make it so you can also become out of combat if you are not on any aggro lists
+            if (character.IsInBattle && character.LastCombatActivity.AddSeconds(30) < DateTime.UtcNow)
+            {
+                character.BroadcastPacket(new SCCombatClearedPacket(character.ObjId), true);
+                character.IsInBattle = false;
+            }
+
+            if (character.IsInPostCast && character.LastCast.AddSeconds(5) < DateTime.UtcNow)
+            {
+                character.IsInPostCast = false;
+            }
+        }
+
+        private static void RegenTick(Character character)
+        {
+            character.Regenerate();
+            var mate = MateManager.Instance.GetActiveMate(character.ObjId);
+            mate?.Regenerate();
+        }
+
+        private static void BreathTick(Character character)
+        {
+            if (character.IsDead || !character.IsUnderWater)
+            {
+                return;
+            }
+
+            character.DoChangeBreath();
         }
 
         public WorldInteractionGroup? GetWorldInteractionGroup(uint worldInteractionType)
@@ -201,7 +237,7 @@ namespace AAEmu.Game.Core.Managers.World
 
                     // cache zone keys to world reference
                     foreach (var zoneKey in world.ZoneKeys)
-                        _worldIdByZoneId.Add(zoneKey,world.Id);
+                        _worldIdByZoneId.Add(zoneKey, world.Id);
 
                     world.Water = new WaterBodies();
                 }
@@ -291,11 +327,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
             #endregion
 
-            //TickManager.Instance.OnLowFrequencyTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(5));
-
-            TickManager.Instance.OnTick.Subscribe(Unit.BreathTick, TimeSpan.FromSeconds(1));
-            TickManager.Instance.OnTick.Subscribe(Unit.CombatTick, TimeSpan.FromSeconds(1));
-            TickManager.Instance.OnTick.Subscribe(Unit.RegenTick, TimeSpan.FromSeconds(1));
+            TickManager.Instance.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1));
 
             _loaded = true;
         }
@@ -480,7 +512,7 @@ namespace AAEmu.Game.Core.Managers.World
             foreach (var world in _worlds.Values)
             {
                 var loadFromClient = true;
-                
+
                 // Try to load from saved json data
                 var customFile = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "water_bodies.json");
                 if (File.Exists(customFile))
@@ -656,7 +688,7 @@ namespace AAEmu.Game.Core.Managers.World
         {
             _npcs[objId] = npc;
         }
-        
+
         public Character GetCharacter(string name)
         {
             foreach (var player in _characters.Values)
@@ -1080,22 +1112,22 @@ namespace AAEmu.Game.Core.Managers.World
         {
             return _npcs.Values.ToList();
         }
-       
+
         public List<Npc> GetAllNpcsFromWorld(uint worldId)
         {
             return _npcs.Values.Where(n => n.Transform.WorldId == worldId).ToList();
         }
-        
+
         public List<Slave> GetAllSlaves()
         {
             return _slaves.Values.ToList();
         }
-        
+
         public List<Mate> GetAllMates()
         {
             return _mates.Values.ToList();
         }
-        
+
         public List<Slave> GetAllSlavesFromWorld(uint worldId)
         {
             return _slaves.Values.Where(n => n.Transform.WorldId == worldId).ToList();
@@ -1118,7 +1150,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void StartPhysics()
         {
-            foreach (var (key,world) in _worlds)
+            foreach (var (key, world) in _worlds)
             {
                 world.Physics = new BoatPhysicsManager();
                 world.Physics.SimulationWorld = world;
@@ -1126,7 +1158,7 @@ namespace AAEmu.Game.Core.Managers.World
                 world.Physics.StartPhysics();
             }
         }
-        
+
         public bool LoadWaterBodiesFromClientData(InstanceWorld world)
         {
             // Use world.xml to check if we have client data enabled
@@ -1135,84 +1167,84 @@ namespace AAEmu.Game.Core.Managers.World
                 return false;
 
             var bodiesLoaded = 0;
-            
+
             // TODO: The data loaded here is incorrect !!!
 
             for (var cellY = 0; cellY < world.CellY; cellY++)
-            for (var cellX = 0; cellX < world.CellX; cellX++)
-            {
-                var cellFileName = $"{cellX:000}_{cellY:000}";
-                var entityFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client", "entities.xml");
-                if (ClientFileManager.FileExists(entityFile))
+                for (var cellX = 0; cellX < world.CellX; cellX++)
                 {
-                    var xmlString = ClientFileManager.GetFileAsString(entityFile);
-                    var xmlDoc = new XmlDocument();
-                    xmlDoc.LoadXml(xmlString);
-
-                    var _allEntityBlocks = xmlDoc.SelectNodes("/Mission/Objects/Entity");
-                    var cellPos = new Vector3(cellX * 1024, cellY * 1024, 0);
-
-                    for (var i = 0; i < _allEntityBlocks?.Count; i++)
+                    var cellFileName = $"{cellX:000}_{cellY:000}";
+                    var entityFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client", "entities.xml");
+                    if (ClientFileManager.FileExists(entityFile))
                     {
-                        var block = _allEntityBlocks[i];
-                        var attribs = XmlHelper.ReadNodeAttributes(block);
-                        
-                        if (!attribs.TryGetValue("Name", out var entityName))
-                            continue;
+                        var xmlString = ClientFileManager.GetFileAsString(entityFile);
+                        var xmlDoc = new XmlDocument();
+                        xmlDoc.LoadXml(xmlString);
 
-                        // Is this Entity named like a water body ?
-                        // TODO: More sophisticated way of determining if it's water
-                        var isWaterBody = entityName.Contains("_water") || entityName.Contains("_pond") || entityName.Contains("_lake") || entityName.Contains("_river");
-                        if (isWaterBody == false)
-                            continue;
-                        
-                        if (attribs.TryGetValue("EntityClass", out var entityClass))
+                        var _allEntityBlocks = xmlDoc.SelectNodes("/Mission/Objects/Entity");
+                        var cellPos = new Vector3(cellX * 1024, cellY * 1024, 0);
+
+                        for (var i = 0; i < _allEntityBlocks?.Count; i++)
                         {
-                            // Is it a AreaShape ?
-                            if (entityClass == "AreaShape")
+                            var block = _allEntityBlocks[i];
+                            var attribs = XmlHelper.ReadNodeAttributes(block);
+
+                            if (!attribs.TryGetValue("Name", out var entityName))
+                                continue;
+
+                            // Is this Entity named like a water body ?
+                            // TODO: More sophisticated way of determining if it's water
+                            var isWaterBody = entityName.Contains("_water") || entityName.Contains("_pond") || entityName.Contains("_lake") || entityName.Contains("_river");
+                            if (isWaterBody == false)
+                                continue;
+
+                            if (attribs.TryGetValue("EntityClass", out var entityClass))
                             {
-                                var areaBlock = block.SelectSingleNode("Area");
-                                if (areaBlock == null)
-                                    continue; // this shape has no area defined
-
-                                // Create WaterBody here
-                                var newWaterBodyArea = new WaterBodyArea(entityName);
-                                newWaterBodyArea.Id = XmlHelper.ReadAttribute<uint>(attribs, "EntityId", 0u);
-                                newWaterBodyArea.Guid = XmlHelper.ReadAttribute<string>(attribs, "Guid", "");
-
-                                var entityPosString = XmlHelper.ReadAttribute<string>(attribs, "Pos", "0,0,0");
-                                var areaPos = XmlHelper.StringToVector3(entityPosString);
-                                
-                                // Read Area Data (height)
-                                var areaAttribs = XmlHelper.ReadNodeAttributes(areaBlock);
-                                newWaterBodyArea.Height = XmlHelper.ReadAttribute<float>(areaAttribs, "Height", 0f);
-
-                                // Get Points within the Area
-                                var pointBlocks = areaBlock.SelectNodes("Points/Point");
-
-                                var firstPos = Vector3.Zero;
-                                for (var p = 0; p < pointBlocks.Count; p++)
+                                // Is it a AreaShape ?
+                                if (entityClass == "AreaShape")
                                 {
-                                    var pointAttribs = XmlHelper.ReadNodeAttributes(pointBlocks[p]);
-                                    var pointPosString = XmlHelper.ReadAttribute<string>(pointAttribs, "Pos", "0,0,0");
-                                    var pointPos = XmlHelper.StringToVector3(pointPosString);
-                                    var pos = cellPos + areaPos + pointPos;
-                                    newWaterBodyArea.Points.Add(pos);
-                                    if (p == 0)
-                                        firstPos = pos;
+                                    var areaBlock = block.SelectSingleNode("Area");
+                                    if (areaBlock == null)
+                                        continue; // this shape has no area defined
+
+                                    // Create WaterBody here
+                                    var newWaterBodyArea = new WaterBodyArea(entityName);
+                                    newWaterBodyArea.Id = XmlHelper.ReadAttribute<uint>(attribs, "EntityId", 0u);
+                                    newWaterBodyArea.Guid = XmlHelper.ReadAttribute<string>(attribs, "Guid", "");
+
+                                    var entityPosString = XmlHelper.ReadAttribute<string>(attribs, "Pos", "0,0,0");
+                                    var areaPos = XmlHelper.StringToVector3(entityPosString);
+
+                                    // Read Area Data (height)
+                                    var areaAttribs = XmlHelper.ReadNodeAttributes(areaBlock);
+                                    newWaterBodyArea.Height = XmlHelper.ReadAttribute<float>(areaAttribs, "Height", 0f);
+
+                                    // Get Points within the Area
+                                    var pointBlocks = areaBlock.SelectNodes("Points/Point");
+
+                                    var firstPos = Vector3.Zero;
+                                    for (var p = 0; p < pointBlocks.Count; p++)
+                                    {
+                                        var pointAttribs = XmlHelper.ReadNodeAttributes(pointBlocks[p]);
+                                        var pointPosString = XmlHelper.ReadAttribute<string>(pointAttribs, "Pos", "0,0,0");
+                                        var pointPos = XmlHelper.StringToVector3(pointPosString);
+                                        var pos = cellPos + areaPos + pointPos;
+                                        newWaterBodyArea.Points.Add(pos);
+                                        if (p == 0)
+                                            firstPos = pos;
+                                    }
+
+                                    if (pointBlocks.Count > 2)
+                                        newWaterBodyArea.Points.Add(firstPos);
+
+                                    newWaterBodyArea.UpdateBounds();
+                                    world.Water.Areas.Add(newWaterBodyArea);
+                                    bodiesLoaded++;
                                 }
-
-                                if (pointBlocks.Count > 2)
-                                    newWaterBodyArea.Points.Add(firstPos);
-
-                                newWaterBodyArea.UpdateBounds();
-                                world.Water.Areas.Add(newWaterBodyArea);
-                                bodiesLoaded++;
                             }
                         }
                     }
                 }
-            }
 
             if (bodiesLoaded > 0)
                 _log.Info($"{bodiesLoaded} waters bodies loaded for {world.Name}");
