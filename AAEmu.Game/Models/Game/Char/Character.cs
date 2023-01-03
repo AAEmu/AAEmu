@@ -25,7 +25,6 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.World.Transform;
 using MySql.Data.MySqlClient;
-using NLog;
 using System.Drawing;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -1282,7 +1281,7 @@ namespace AAEmu.Game.Models.Game.Char
             if (change)
             {
                 BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
-                StartRegen();
+                //StartRegen();
             }
         }
 

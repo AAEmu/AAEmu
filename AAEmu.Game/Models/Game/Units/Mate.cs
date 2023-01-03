@@ -424,7 +424,7 @@ namespace AAEmu.Game.Models.Game.Units
             if (change)
             {
                 BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
-                StartRegen();
+                //StartRegen();
             }
 
             DbInfo.Xp = Experience;
