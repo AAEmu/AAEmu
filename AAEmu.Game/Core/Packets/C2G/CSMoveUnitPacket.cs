@@ -1,8 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -10,9 +6,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
-using AAEmu.Game.Models.Tasks.Mails;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -214,6 +208,16 @@ namespace AAEmu.Game.Core.Packets.C2G
                         else if (targetUnit is Mate pet)
                         {
                             // TODO: Check if we're the owner, or allowed to otherwise control this pet
+                            if (dmt.VelX != 0 || dmt.VelY != 0)
+                            {
+                                pet.StartUpdateXp(character);
+                                _log.Warn("pet is moving...");
+                            }
+                            else
+                            {
+                                pet.StopUpdateXp();
+                                _log.Warn("pet stands still...");
+                            }
                         }
 
                         // Actually update the position
