@@ -53,7 +53,7 @@ namespace AAEmu.Game.Models.Tasks
                 // ObjectIdManager.Instance.ReleaseId(_connection.ActiveChar.ObjId);
 
                 // Cancel auto-regen
-                _connection.ActiveChar.StopRegen();
+                //_connection.ActiveChar.StopRegen();
 
                 // Clear Buyback table
                 _connection.ActiveChar.BuyBackItems.Wipe();
