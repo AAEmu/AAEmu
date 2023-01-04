@@ -100,12 +100,9 @@ namespace AAEmu.Game.Core.Managers.World
                 foreach (var region in world.Regions)
                 {
                     if (region == null)
-                    {
                         continue;
-                    }
 
                     if (activeRegions.Contains(region))
-                    {
                         continue;
                     if (region.IsEmpty())
                         continue;
@@ -202,7 +199,7 @@ namespace AAEmu.Game.Core.Managers.World
                 _log.Error($"File {spawnPositionFile} doesn't exists or is empty.");
             }
             else
-                if (!JsonHelper.TryDeserializeObject(contents, out List<WorldSpawnLocation> worldSpawnLookupFromJson, out _))
+            if (!JsonHelper.TryDeserializeObject(contents, out List<WorldSpawnLocation> worldSpawnLookupFromJson, out _))
             {
                 _log.Error($"Error in {spawnPositionFile}.");
             }
@@ -431,8 +428,7 @@ namespace AAEmu.Game.Core.Managers.World
                 for (var cellX = 0; cellX < world.CellX; cellX++)
                 {
                     var cellFileName = $"{cellX:000}_{cellY:000}";
-                    var heightMapFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client",
-                        "terrain", "heightmap.dat");
+                    var heightMapFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client", "terrain", "heightmap.dat");
                     if (ClientFileManager.FileExists(heightMapFile))
                     {
                         using (var stream = ClientFileManager.GetFileStream(heightMapFile))
@@ -849,7 +845,7 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 _slaves.TryAdd(slave.ObjId, slave);
             }
-            
+
             if (obj is Mate mate)
             {
                 _mates.TryAdd(mate.ObjId, mate);
