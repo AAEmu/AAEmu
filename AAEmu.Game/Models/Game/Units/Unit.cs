@@ -606,11 +606,6 @@ namespace AAEmu.Game.Models.Game.Units
             return value;
         }
 
-        public void SendPacket(GamePacket packet)
-        {
-            Connection?.SendPacket(packet);
-        }
-
         public void SendErrorMessage(ErrorMessageType type)
         {
             SendPacket(new SCErrorMsgPacket(type, 0, true));

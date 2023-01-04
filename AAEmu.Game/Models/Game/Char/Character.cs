@@ -25,6 +25,8 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.StaticValues;
+
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char
