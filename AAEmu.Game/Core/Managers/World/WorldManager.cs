@@ -92,8 +92,8 @@ namespace AAEmu.Game.Core.Managers.World
 
         private void ActiveRegionTick(TimeSpan delta)
         {
-            var sw = new Stopwatch();
-            sw.Start();
+            //var sw = new Stopwatch();
+            //sw.Start();
             var activeRegions = new HashSet<Region>();
             foreach (var world in _worlds.Values)
             {
@@ -119,8 +119,8 @@ namespace AAEmu.Game.Core.Managers.World
                     }
                 }
             }
-            sw.Stop();
-            _log.Warn("ActiveRegionTick took {0}ms", sw.ElapsedMilliseconds);
+            //sw.Stop();
+            //_log.Warn("ActiveRegionTick took {0}ms", sw.ElapsedMilliseconds);
         }
 
         private static void CombatTick(Character character)

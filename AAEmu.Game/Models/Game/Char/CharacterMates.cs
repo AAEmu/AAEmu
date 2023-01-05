@@ -4,12 +4,9 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Items.Templates;
-using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
-using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -49,7 +46,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Id = MateIdManager.Instance.GetNextId(),
                 ItemId = itemId,
                 Level = npctemplate.Level,
-                Name = LocalizationManager.Instance.Get("npcs","name",npctemplate.Id,npctemplate.Name), // npctemplate.Name,
+                Name = LocalizationManager.Instance.Get("npcs","name", npctemplate.Id,npctemplate.Name), // npctemplate.Name,
                 Owner = Owner.Id,
                 Mileage = 0,
                 Xp = ExpirienceManager.Instance.GetExpForLevel(npctemplate.Level, true),
