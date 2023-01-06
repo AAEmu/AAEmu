@@ -9,6 +9,8 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Tasks;
+using AAEmu.Game.Models.Tasks.Mates;
 
 namespace AAEmu.Game.Models.Game.Units
 {
@@ -39,6 +41,7 @@ namespace AAEmu.Game.Models.Game.Units
         public uint SpawnDelayTime { get; set; }
         public List<uint> Skills { get; set; }
         public MateDb DbInfo { get; set; }
+        public Task MateXpUpdateTask { get; set; }
 
         #region Attributes
 
@@ -552,6 +555,24 @@ namespace AAEmu.Game.Models.Game.Units
             Hp = Math.Min(Hp, MaxHp);
             Mp = Math.Min(Mp, MaxMp);
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc), false);
+        }
+
+        public void StartUpdateXp(Character Owner)
+        {
+            if (MateXpUpdateTask != null)
+            {
+                return;
+            }
+            MateXpUpdateTask = new MateXpUpdateTask(Owner, this);
+            TaskManager.Instance.Schedule(MateXpUpdateTask, TimeSpan.FromSeconds(60));
+            _log.Debug("[StartUpdateXp] The current timer has been started...");
+        }
+
+        public void StopUpdateXp()
+        {
+            _ = MateXpUpdateTask?.CancelAsync();
+            MateXpUpdateTask = null;
+            _log.Debug("[StopUpdateXp] The current timer has been canceled...");
         }
     }
 }
