@@ -21,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             Connection.ActiveChar.IsOnline = true;
 
             Connection.ActiveChar.Spawn();
-            Connection.ActiveChar.StartRegen();
+            //Connection.ActiveChar.StartRegen();
 
             // Joining channel 1 (shout) will automatically also join /lfg and /trade for that zone on the client-side
             // Back in 1.x /trade was zone base, not faction based

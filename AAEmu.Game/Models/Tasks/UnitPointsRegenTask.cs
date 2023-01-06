@@ -29,10 +29,10 @@ namespace AAEmu.Game.Models.Tasks
             _unit.Hp = Math.Min(_unit.Hp, _unit.MaxHp);
             _unit.Mp = Math.Min(_unit.Mp, _unit.MaxMp);
             _unit.BroadcastPacket(new SCUnitPointsPacket(_unit.ObjId, _unit.Hp, _unit.Mp, _unit.HighAbilityRsc), true);
-            if (_unit.Hp >= _unit.MaxHp && _unit.Mp >= _unit.MaxMp)
-            {
-                _unit.StopRegen();
-            }
+            //if (_unit.Hp >= _unit.MaxHp && _unit.Mp >= _unit.MaxMp)
+            //{
+            //    _unit.StopRegen();
+            //}
         }
     }
 }

@@ -285,7 +285,7 @@ namespace AAEmu.Game.Models.Game.NPChar
                     // есть в расписании, надо запланировать
                     var cronExpression = GameScheduleManager.Instance.GetCronRemainingTime((int)Template.Id, true);
 
-                    if (cronExpression == String.Empty || cronExpression == "0 0 0 0 0 ?")
+                    if (cronExpression == string.Empty)
                     {
                         _log.Warn($"DoSpawnSchedule: Can't reschedule spawn npc {UnitId} from spawn {Id}, spawner {Template.Id}");
                         _log.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
@@ -367,7 +367,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             {
                 var cronExpression = GameScheduleManager.Instance.GetCronRemainingTime((int)Template.Id, true);
 
-                if (cronExpression == String.Empty || cronExpression == "0 0 0 0 0 ?")
+                if (cronExpression == string.Empty)
                 {
                     _log.Warn($"DoDespawnSchedule: Can't reschedule despawn npc {UnitId} from spawn {Id}, spawner {Template.Id}");
                     _log.Warn($"DoDespawnSchedule: cronExpression {cronExpression}");

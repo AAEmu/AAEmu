@@ -90,39 +90,69 @@ namespace AAEmu.Game.Core.Managers.World
             _indunZones = new ConcurrentDictionary<uint, IndunZone>();
         }
 
-        public void ActiveRegionTick(TimeSpan delta)
+        private void ActiveRegionTick(TimeSpan delta)
         {
-            //Unused right now. Make this a sanity check?
-            var sw = new Stopwatch();
-            sw.Start();
+            //var sw = new Stopwatch();
+            //sw.Start();
             var activeRegions = new HashSet<Region>();
             foreach (var world in _worlds.Values)
             {
                 foreach (var region in world.Regions)
                 {
                     if (region == null)
-                    {
                         continue;
-                    }
-
                     if (activeRegions.Contains(region))
-                    {
                         continue;
-                    }
-
-                    //region.HasPlayerActivity = false;
-                    if (!region.IsEmpty())
+                    if (region.IsEmpty())
+                        continue;
+                    foreach (var activeRegion in region.GetNeighbors())
                     {
-                        foreach (var activeRegion in region.GetNeighbors())
+                        activeRegions.Add(activeRegion);
+                        var units = activeRegion.GetList(new List<Unit>(), 0);
+                        foreach (var unit in units)
                         {
-                            //activeRegion.HasPlayerActivity = true;
-                            activeRegions.Add(activeRegion);
+                            if (unit is not Character character) { continue; }
+                            CombatTick(character);
+                            RegenTick(character);
+                            BreathTick(character);
                         }
                     }
                 }
             }
-            sw.Stop();
-            _log.Warn("ActiveRegionTick took {0}ms", sw.ElapsedMilliseconds);
+            //sw.Stop();
+            //_log.Warn("ActiveRegionTick took {0}ms", sw.ElapsedMilliseconds);
+        }
+
+        private static void CombatTick(Character character)
+        {
+            // TODO: Make it so you can also become out of combat if you are not on any aggro lists
+            if (character.IsInBattle && character.LastCombatActivity.AddSeconds(30) < DateTime.UtcNow)
+            {
+                character.BroadcastPacket(new SCCombatClearedPacket(character.ObjId), true);
+                character.IsInBattle = false;
+            }
+
+            if (character.IsInPostCast && character.LastCast.AddSeconds(5) < DateTime.UtcNow)
+            {
+                character.IsInPostCast = false;
+            }
+        }
+
+        private static void RegenTick(Character character)
+        {
+            character.Regenerate();
+            var mate = MateManager.Instance.GetActiveMate(character.ObjId);
+            mate?.Regenerate();
+        }
+
+        private static void BreathTick(Character character)
+        {
+            if (character.IsDead || !character.IsUnderWater)
+            {
+                return;
+            }
+
+            character.DoChangeBreath();
         }
 
         public WorldInteractionGroup? GetWorldInteractionGroup(uint worldInteractionType)
@@ -314,11 +344,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
             #endregion
 
-            //TickManager.Instance.OnLowFrequencyTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(5));
-
-            TickManager.Instance.OnTick.Subscribe(Unit.BreathTick, TimeSpan.FromSeconds(1));
-            TickManager.Instance.OnTick.Subscribe(Unit.CombatTick, TimeSpan.FromSeconds(1));
-            TickManager.Instance.OnTick.Subscribe(Unit.RegenTick, TimeSpan.FromSeconds(1));
+            TickManager.Instance.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1));
 
             _loaded = true;
         }

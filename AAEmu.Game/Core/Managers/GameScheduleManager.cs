@@ -126,7 +126,7 @@ namespace AAEmu.Game.Core.Managers
 
         public string GetCronRemainingTime(int spawnerId, bool start = true)
         {
-            var cronExpression = String.Empty;
+            var cronExpression = string.Empty;
             if (!_gameScheduleSpawnerIds.ContainsKey(spawnerId))
             {
                 return cronExpression;
@@ -463,7 +463,7 @@ namespace AAEmu.Game.Core.Managers
             var endTime = value.EndTime;
             var endTimeMin = value.EndTimeMin;
 
-            var cronExpression = String.Empty;
+            var cronExpression = string.Empty;
 
             /*
                1.Секунды
@@ -521,9 +521,12 @@ namespace AAEmu.Game.Core.Managers
                     }
                     if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth > 0 && value.StDay > 0)
                     {
-                        cronExpression = $"0 {stMinute} {stHour} {edDay} {edMonth} {dayOfWeek} *"; // not verified
+                        cronExpression = $"0 {stMinute} {stHour} ? * {dayOfWeek} *"; // not verified
                     }
-                    //cronExpression = $"0 {stMinute} {stHour} {stDay} {stMonth} {dayOfWeek}";
+                    if (value.StartTime > 0 && value.EndTime == 0 && value.StMonth > 0 && value.StDay > 0)
+                    {
+                        cronExpression = $"0 {stMinute} {stHour} ? {stMonth} {dayOfWeek} *"; // not verified
+                    }
                 }
             }
             else
@@ -571,13 +574,13 @@ namespace AAEmu.Game.Core.Managers
                     }
                     if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth > 0 && value.EdDay > 0)
                     {
-                        cronExpression = $"0 {edMinute} {edHour} {edDay} {edMonth} {dayOfWeek} *"; // not verified
+                        cronExpression = $"0 {edMinute} {edHour} ? * {dayOfWeek} *"; // not verified
+                    }
+                    if (value.StartTime > 0 && value.EndTime == 0 && value.EdMonth > 0 && value.EdDay > 0)
+                    {
+                        cronExpression = $"0 {edMinute} {edHour} ? {edMonth} {dayOfWeek} *"; // not verified
                     }
                 }
-                //cronExpression = start ?
-                //    $"0 {stMinute} {stHour} {stDay} {stMonth} {dayOfWeek}"
-                //    :
-                //    $"0 {edMinute} {edHour} {edDay} {edMonth} ?";
             }
 
             return cronExpression;

@@ -214,11 +214,25 @@ namespace AAEmu.Game.Core.Managers
 
             if (task.Scheduler == null)
             {
-                triggerBuild.WithCronSchedule(cronExpression);
+                try
+                {
+                    triggerBuild.WithCronSchedule(cronExpression);
+                }
+                catch (Exception e)
+                {
+                    _log.Error($"Not correctly formed Cron Expression: {e}, cronExpression: {cronExpression}");
+                }
             }
             else
             {
-                triggerBuild.WithSchedule(CronScheduleBuilder.CronSchedule(cronExpression));
+                try
+                {
+                    triggerBuild.WithSchedule(CronScheduleBuilder.CronSchedule(cronExpression));
+                }
+                catch (Exception e)
+                {
+                    _log.Error($"Not correctly formed Cron Expression: {e}, cronExpression: {cronExpression}");
+                }
             }
 
             triggerBuild.ForJob(task.JobDetail.Key);

@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Units
                 npc.BroadcastPacket(new SCCombatClearedPacket(npc.ObjId), true);
                 npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, 0), true);
                 npc.CurrentTarget = null;
-                npc.StartRegen();
+                //npc.StartRegen();
 
                 // Abandon tracking to stop moving beyond specified length
                 Stop(npc);

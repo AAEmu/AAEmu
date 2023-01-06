@@ -292,10 +292,10 @@ namespace AAEmu.Game.Models.Game.Units
                 DoDie(attacker, killReason);
                 //StopRegen();
             }
-            else
-            {
-                //StartRegen();
-            }
+            //else
+            //{
+            //    StartRegen();
+            //}
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0, HighAbilityRsc), true);
         }
 
@@ -307,14 +307,14 @@ namespace AAEmu.Game.Models.Game.Units
             }
 
             Mp = Math.Max(Mp - value, 0);
-            if (Mp == 0)
-            {
-                StopRegen();
-            }
-            else
-            {
-                StartRegen();
-            }
+            //if (Mp == 0)
+            //{
+            //    StopRegen();
+            //}
+            //else
+            //{
+            //    StartRegen();
+            //}
 
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc), true);
         }
@@ -348,7 +348,7 @@ namespace AAEmu.Game.Models.Game.Units
                     killer.BroadcastPacket(new SCCombatClearedPacket(killer.CurrentTarget.ObjId), true);
                 }
                 killer.BroadcastPacket(new SCCombatClearedPacket(killer.ObjId), true);
-                killer.StartRegen();
+                //killer.StartRegen();
                 killer.BroadcastPacket(new SCTargetChangedPacket(killer.ObjId, 0), true);
 
                 if (killer is Character character)
@@ -488,6 +488,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
+        [Obsolete("This method is deprecated", false)]
         public void StartRegen()
         {
             // if (_regenTask != null || Hp >= MaxHp && Mp >= MaxMp || Hp == 0)
@@ -498,6 +499,7 @@ namespace AAEmu.Game.Models.Game.Units
             // TaskManager.Instance.Schedule(_regenTask, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
         }
 
+        [Obsolete("This method is deprecated", false)]
         public async void StopRegen()
         {
             if (_regenTask == null)

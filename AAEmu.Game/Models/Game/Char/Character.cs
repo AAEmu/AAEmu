@@ -1360,7 +1360,7 @@ namespace AAEmu.Game.Models.Game.Char
             if (change)
             {
                 BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
-                StartRegen();
+                //StartRegen();
             }
         }
 
@@ -1778,6 +1778,36 @@ namespace AAEmu.Game.Models.Game.Char
                 Breath -= 1000; //1 second
                 SendPacket(new SCSetBreathPacket(Breath));
             }
+        }
+
+        public void Regenerate()
+        {
+            if (IsDead || !NeedsRegen || IsDrowning)
+            {
+                return;
+            }
+
+            if (IsInBattle)
+            {
+                Hp += PersistentHpRegen;
+            }
+            else
+            {
+                Hp += HpRegen;
+            }
+
+            if (IsInPostCast)
+            {
+                Mp += PersistentMpRegen;
+            }
+            else
+            {
+                Mp += MpRegen;
+            }
+
+            Hp = Math.Min(Hp, MaxHp);
+            Mp = Math.Min(Mp, MaxMp);
+            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc), true);
         }
 
         /// <summary>

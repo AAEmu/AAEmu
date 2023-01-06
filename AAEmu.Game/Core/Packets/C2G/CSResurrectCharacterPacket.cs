@@ -69,7 +69,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 true
             );
             Connection.ActiveChar.IsUnderWater = false;
-            Connection.ActiveChar.StartRegen();
+            //Connection.ActiveChar.StartRegen();
             Connection.ActiveChar.Breath = Connection.ActiveChar.LungCapacity;
         }
     }
