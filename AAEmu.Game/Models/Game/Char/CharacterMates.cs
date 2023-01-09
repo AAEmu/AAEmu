@@ -8,6 +8,8 @@ using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Units.Static;
+
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -38,42 +40,33 @@ namespace AAEmu.Game.Models.Game.Char
             return _mates.ContainsKey(itemId) ? _mates[itemId] : null;
         }
 
-        private MateDb CreateNewMate(ulong itemId, NpcTemplate npctemplate)
+        private MateDb CreateNewMate(ulong itemId, NpcTemplate npcTemplate)
         {
             if (_mates.ContainsKey(itemId))
             {
                 return null;
             }
 
-            var template = new MateDb
-            {
-                // TODO
-                Id = MateIdManager.Instance.GetNextId(),
-                ItemId = itemId,
-                Level = npctemplate.Level,
-                Name = LocalizationManager.Instance.Get("npcs", "name", npctemplate.Id, npctemplate.Name), // npctemplate.Name,
-                Owner = Owner.Id,
-                Mileage = 0,
-                Xp = ExpirienceManager.Instance.GetExpForLevel(npctemplate.Level, true),
-                Hp = 9999,
-                Mp = 9999,
-                UpdatedAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow
-            };
+            var template = new MateDb();
+            template.Id = MateIdManager.Instance.GetNextId();
+            template.ItemId = itemId;
+            template.Level = npcTemplate.Level;
+            template.Name = LocalizationManager.Instance.Get("npcs", "name", npcTemplate.Id, npcTemplate.Name);
+            template.Owner = Owner.Id;
+            template.Mileage = 0;
+            template.Xp = ExpirienceManager.Instance.GetExpForLevel(npcTemplate.Level, true);
+            template.Hp = 9999;
+            template.Mp = 9999;
+            template.UpdatedAt = DateTime.UtcNow;
+            template.CreatedAt = DateTime.UtcNow;
+
             _mates.Add(template.ItemId, template);
+
             return template;
         }
 
         public void SpawnMount(SkillItem skillData)
         {
-            // Check if we had already spawned something
-            var oldMate = MateManager.Instance.GetActiveMate(Owner.ObjId);
-            if (oldMate != null)
-            {
-                DespawnMate(oldMate.TlId);
-                return;
-            }
-
             var item = Owner.Inventory.GetItemById(skillData.ItemId);
             if (item == null)
             {
@@ -85,31 +78,52 @@ namespace AAEmu.Game.Models.Game.Char
             var template = NpcManager.Instance.GetTemplate(npcId);
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
             var objId = ObjectIdManager.Instance.GetNextId();
+
+            // check if there already is such an object or if there is an object of this type
+            var oldMates = MateManager.Instance.GetActiveMates(Owner.ObjId);
+            if (oldMates != null)
+            {
+                foreach (var oldMate in oldMates)
+                {
+                    var mateDb = GetMateInfo(skillData.ItemId);
+                    if (mateDb != null && oldMate.DbInfo.Id == mateDb.Id)
+                    {
+                        DespawnMate(oldMate.TlId); // such an object already exists
+                        return;
+                    }
+
+                    if (oldMate.MateType == (MateType)(item.Template.Category_Id == 92 ? 1 : 2)) // 92 - Mount, 95 - Battle)
+                    {
+                        DespawnMate(oldMate.TlId); // there is an object of this type
+                    }
+                }
+            }
+
             var mateDbInfo = GetMateInfo(skillData.ItemId) ?? CreateNewMate(skillData.ItemId, template);
 
-            var mount = new Units.Mate
-            {
-                ObjId = objId,
-                TlId = tlId,
-                OwnerId = Owner.Id,
-                Name = mateDbInfo.Name,
-                TemplateId = template.Id,
-                Template = template,
-                ModelId = template.ModelId,
-                Faction = Owner.Faction,
-                Level = (byte)mateDbInfo.Level,
-                Hp = mateDbInfo.Hp > 0 ? mateDbInfo.Hp : 100,
-                Mp = mateDbInfo.Mp > 0 ? mateDbInfo.Mp : 100,
-                OwnerObjId = Owner.ObjId,
-                Id = mateDbInfo.Id,
-                ItemId = mateDbInfo.ItemId,
-                UserState = 1, // TODO
-                Experience = mateDbInfo.Xp,
-                Mileage = mateDbInfo.Mileage,
-                SpawnDelayTime = 0, // TODO
-                DbInfo = mateDbInfo
-            };
-            
+
+            var mount = new Units.Mate();
+            mount.ObjId = objId;
+            mount.TlId = tlId;
+            mount.OwnerId = Owner.Id;
+            mount.Name = mateDbInfo.Name;
+            mount.TemplateId = template.Id;
+            mount.Template = template;
+            mount.ModelId = template.ModelId;
+            mount.Faction = Owner.Faction;
+            mount.Level = (byte)mateDbInfo.Level;
+            mount.Hp = mount.MaxHp;
+            mount.Mp = mount.MaxMp;
+            mount.OwnerObjId = Owner.ObjId;
+            mount.Id = mateDbInfo.Id;
+            mount.ItemId = mateDbInfo.ItemId;
+            mount.UserState = 1; // TODO
+            mount.Experience = mateDbInfo.Xp;
+            mount.Mileage = mateDbInfo.Mileage;
+            mount.SpawnDelayTime = 0; // TODO
+            mount.DbInfo = mateDbInfo;
+            mount.MateType = (MateType)(item.Template.Category_Id == 92 ? 1 : 2); // 92 - Mount, 95 - Battle
+
             mount.Transform = Owner.Transform.CloneDetached(mount);
 
             foreach (var skill in MateManager.Instance.GetMateSkills(npcId))
@@ -141,7 +155,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void DespawnMate(uint tlId)
         {
-            var mateInfo = MateManager.Instance.GetActiveMateByTlId(tlId);
+            var mateInfo = MateManager.Instance.GetActiveMateByTlId(Owner.ObjId, tlId);
             if (mateInfo != null)
             {
                 var mateDbInfo = GetMateInfo(mateInfo.ItemId);

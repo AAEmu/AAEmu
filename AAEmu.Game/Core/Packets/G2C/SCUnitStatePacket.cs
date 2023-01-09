@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -165,9 +166,14 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             stream.Write(_unit.ModelId); // modelRef
 
-            //Inventory_Equip(stream, _unit); // Equip character
-            Inventory_Equip2(stream, _unit, _baseUnitType); // Equip character
+            #region CharacterInfo_3EB0
+
+            //Inventory_Equip1(stream, _unit); // Equip character
+            //            Inventory_Equip2(stream, _unit, _baseUnitType); // Equip character
             //Inventory_Equip0(stream, _unit); // Equip character
+            Inventory_Equip3(stream, _unit); // Equip character
+
+            #endregion CharacterInfo_3EB0
 
             stream.Write(_unit.ModelParams); // CustomModel_3570
 
@@ -732,24 +738,17 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.WritePisc(buff.Template.BuffId, 1, 0, 0u);  // add in 3.0.3.0
         }
 
+        #region CharacterInfo_3EB0
+
         private void Inventory_Equip0(PacketStream stream, Unit unit)
         {
-            #region Inventory_Equip
             var index = 0;
             var validFlags = 0;
             if (unit is Character character1)
             {
                 // calculate validFlags
                 var items = character1.Inventory.Equipment.GetSlottedItemsList();
-                foreach (var item in items)
-                {
-                    if (item != null)
-                    {
-                        validFlags |= 1 << index;
-                    }
-
-                    index++;
-                }
+                validFlags = CalculateValidFlags(items);
                 stream.Write((uint)validFlags); // validFlags for 3.0.3.0
                 var itemSlot = EquipmentItemSlot.Head;
                 foreach (var item in items)
@@ -776,6 +775,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                         case EquipmentItemSlot.Offhand:
                         case EquipmentItemSlot.Ranged:
                         case EquipmentItemSlot.Musical:
+                        case EquipmentItemSlot.Stabilizer:
                         case EquipmentItemSlot.Cosplay:
                             {
                                 stream.Write(item);
@@ -797,7 +797,6 @@ namespace AAEmu.Game.Core.Packets.G2C
                         case EquipmentItemSlot.Finger1:
                         case EquipmentItemSlot.Finger2:
                         case EquipmentItemSlot.Backpack:
-                        case EquipmentItemSlot.Stabilizer:
                             {
                                 break;
                             }
@@ -885,7 +884,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     itemSlot++;
                 }
             }
-            else // for transfer and other
+            else // for transfer and Shipyard
             {
                 stream.Write(0u); // validFlags for 3.0.3.0
             }
@@ -906,12 +905,9 @@ namespace AAEmu.Game.Core.Packets.G2C
                 }
                 stream.Write(ItemFlags); //  ItemFlags flags for 3.0.3.0
             }
-            #endregion Inventory_Equip
         }
-        private void Inventory_Equip(PacketStream stream, Unit unit0, BaseUnitType baseUnitType)
+        private void Inventory_Equip1(PacketStream stream, Unit unit0, BaseUnitType baseUnitType)
         {
-            #region Inventory_Equip
-
             var unit = new Unit();
             switch (baseUnitType)
             {
@@ -956,20 +952,8 @@ namespace AAEmu.Game.Core.Packets.G2C
                     }
             }
 
-            // calculate validFlags
-            var index = 0;
-            var validFlags = 0;
             var items = unit.Equipment.GetSlottedItemsList();
-            foreach (var item in items)
-            {
-                if (item != null)
-                {
-                    validFlags |= 1 << index;
-                }
-
-                index++;
-            }
-
+            var validFlags = CalculateValidFlags(items);
             stream.Write((uint)validFlags); // validFlags for 3.0.3.0
 
             if (validFlags <= 0)
@@ -978,7 +962,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 return;
             }
 
-            index = 0;
+            var index = 0;
             do
             {
                 if (((validFlags >> index) & 1) != 0)
@@ -1038,24 +1022,11 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             if (baseUnitType != BaseUnitType.Character) { return; }
 
-            index = 0;
-            validFlags = 0;
-            foreach (var tmp in unit.Equipment.GetSlottedItemsList()
-                .Where(item => item != null)
-                .Select(item => (int)item.ItemFlags << index))
-            {
-                ++index;
-                validFlags |= tmp;
-            }
-
-            stream.Write(validFlags); //  ItemFlags flags for 3.0.3.0
-
-            #endregion Inventory_Equip
+            var itemFlags = CalculateItemFlags(items);
+            stream.Write(itemFlags); // ItemFlags flags for 3.0.3.0
         }
         private void Inventory_Equip2(PacketStream stream, Unit unit0, BaseUnitType baseUnitType)
         {
-            #region Inventory_Equip
-
             var unit = new Unit();
             switch (baseUnitType)
             {
@@ -1101,19 +1072,8 @@ namespace AAEmu.Game.Core.Packets.G2C
             }
 
             // calculate validFlags
-            var index = 0;
-            var validFlags = 0;
             var items = unit.Equipment.GetSlottedItemsList();
-            foreach (var item in items)
-            {
-                if (item != null)
-                {
-                    validFlags |= 1 << index;
-                }
-
-                index++;
-            }
-
+            var validFlags = CalculateValidFlags(items);
             stream.Write((uint)validFlags); // validFlags for 3.0.3.0
 
             if (validFlags <= 0)
@@ -1122,7 +1082,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 return;
             }
 
-            index = 0;
+            var index = 0;
             do
             {
                 if (((validFlags >> index) & 1) != 0)
@@ -1206,71 +1166,55 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             if (baseUnitType != BaseUnitType.Character) { return; }
 
-            index = 0;
-            validFlags = 0;
-            foreach (var tmp in unit.Equipment.GetSlottedItemsList()
-                .Where(item => item != null)
-                .Select(item => (int)item.ItemFlags << index))
-            {
-                ++index;
-                validFlags |= tmp;
-            }
-
-            stream.Write(validFlags); //  ItemFlags flags for 3.0.3.0
-
-            #endregion Inventory_Equip
+            var itemFlags = CalculateItemFlags(items);
+            stream.Write(itemFlags); // ItemFlags flags for 3.0.3.0
         }
 
-        private void Inventory_Equip(PacketStream stream, Unit unit)
+        private void Inventory_Equip3(PacketStream stream, Unit unit)
         {
-            #region Inventory_Equip
+            var items = new List<Item>();
 
-            var index = 0;
-            var validFlags = 0;
             switch (unit)
             {
                 case Character character:
                     {
-                        // calculate validFlags
-                        var items = character.Inventory.Equipment.GetSlottedItemsList();
-                        foreach (var item in items)
-                        {
-                            if (item != null)
-                            {
-                                validFlags |= 1 << index;
-                            }
-
-                            index++;
-                        }
-
-                        stream.Write((uint)validFlags); // validFlags for 3.0.3.0
-                        foreach (var item in items)
-                        {
-                            if (item != null)
-                            {
-                                stream.Write(item);
-                            }
-                        }
-
+                        items = character.Inventory.Equipment.GetSlottedItemsList();
+                        WriteEquip(stream, items);
+                        var itemFlags = CalculateItemFlags(items);
+                        stream.Write(itemFlags); // ItemFlags flags for 3.0.3.0
+                        break;
+                    }
+                case House house:
+                    {
+                        items = house.Equipment.GetSlottedItemsList();
+                        WriteEquip(stream, items);
+                        break;
+                    }
+                case Mate mate:
+                    {
+                        items = mate.Equipment.GetSlottedItemsList();
+                        WriteEquip(stream, items);
+                        break;
+                    }
+                case Slave slave:
+                    {
+                        items = slave.Equipment.GetSlottedItemsList();
+                        WriteEquip(stream, items);
                         break;
                     }
                 case Npc npc:
                     {
-                        // calculate validFlags for 3.0.3.0
-                        var items = npc.Equipment.GetSlottedItemsList();
-                        foreach (var item in items)
+                        items = npc.Equipment.GetSlottedItemsList();
+                        var validFlags = CalculateValidFlags(items);
+                        stream.Write((uint)validFlags);
+
+                        if (validFlags <= 0)
                         {
-                            if (item != null)
-                            {
-                                validFlags |= 1 << index;
-                            }
-
-                            index++;
+                            unit.ModelParams.SetType(UnitCustomModelType.Skin); // дополнительная проверка, что у NPC нет тела и лица
+                            return;
                         }
-
-                        stream.Write((uint)validFlags); // validFlags for 3.0.3.0
-
-                        for (var i = 0; i < npc.Equipment.GetSlottedItemsList().Count; i++)
+                        
+                        for (var i = 0; i < items.Count; i++)
                         {
                             var item = npc.Equipment.GetItemBySlot(i);
 
@@ -1292,34 +1236,70 @@ namespace AAEmu.Game.Core.Packets.G2C
                                 }
                             }
                         }
-
                         break;
                     }
-                // for transfer and other
+                // for transfer and Shipyard
                 default:
                     {
                         stream.Write(0u); // validFlags for 3.0.3.0
                         break;
                     }
             }
+        }
 
-            index = 0;
-            validFlags = 0;
-            if (_unit is Character chrUnit)
+        private static void WriteEquip(PacketStream stream, List<Item> items)
+        {
+            var validFlags = CalculateValidFlags(items);
+            stream.Write((uint)validFlags); // validFlags for 3.0.3.0
+            WriteItems(stream, items);
+        }
+
+        private static void WriteItems(PacketStream stream, List<Item> items)
+        {
+            foreach (var item in items)
             {
-                foreach (var item in chrUnit.Inventory.Equipment.GetSlottedItemsList())
+                if (item != null)
                 {
-                    if (item == null) { continue; }
-
-                    var _tmp = (int)item.ItemFlags << index;
-                    ++index;
-                    validFlags |= _tmp;
+                    stream.Write(item);
                 }
             }
-            stream.Write(validFlags); //  ItemFlags flags for 3.0.3.0
-
-            #endregion Inventory_Equip
         }
+
+        private static int CalculateValidFlags(List<Item> items)
+        {
+            var validFlags = 0;
+            var index = 0;
+            foreach (var item in items)
+            {
+                if (item != null)
+                {
+                    validFlags |= 1 << index;
+                }
+
+                index++;
+            }
+
+            return validFlags;
+        }
+
+        private static int CalculateItemFlags(List<Item> items)
+        {
+            var itemFlags = 0;
+            var index = 0;
+
+            foreach (var tmp in items
+                         .Where(item => item != null)
+                         .Select(item => (int)item.ItemFlags << index))
+            {
+                ++index;
+                itemFlags |= tmp;
+            }
+
+            return itemFlags;
+        }
+
+        #endregion CharacterInfo_3EB0
+
 
         public override string Verbose()
         {

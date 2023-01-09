@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Mates;
 
@@ -42,6 +43,7 @@ namespace AAEmu.Game.Models.Game.Units
         public List<uint> Skills { get; set; }
         public MateDb DbInfo { get; set; }
         public Task MateXpUpdateTask { get; set; }
+        public MateType MateType { get; set; }  // added in 3+
 
         #region Attributes
 
@@ -557,22 +559,22 @@ namespace AAEmu.Game.Models.Game.Units
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc), false);
         }
 
-        public void StartUpdateXp(Character Owner)
+        public void StartUpdateXp(Character owner)
         {
             if (MateXpUpdateTask != null)
             {
                 return;
             }
-            MateXpUpdateTask = new MateXpUpdateTask(Owner, this);
+            MateXpUpdateTask = new MateXpUpdateTask(owner, this);
             TaskManager.Instance.Schedule(MateXpUpdateTask, TimeSpan.FromSeconds(60));
-            _log.Debug("[StartUpdateXp] The current timer has been started...");
+            //_log.Debug("[StartUpdateXp] The current timer has been started...");
         }
 
         public void StopUpdateXp()
         {
             _ = MateXpUpdateTask?.CancelAsync();
             MateXpUpdateTask = null;
-            _log.Debug("[StopUpdateXp] The current timer has been canceled...");
+            //_log.Debug("[StopUpdateXp] The current timer has been canceled...");
         }
     }
 }

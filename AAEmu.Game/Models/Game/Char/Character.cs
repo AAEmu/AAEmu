@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
-
+using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -16,10 +16,12 @@ using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Static;
@@ -1687,10 +1689,16 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        public void SetAction(byte slot, ActionSlotType type, ulong actionId)
+        public void SetAction(byte slot, ActionSlotType type, uint actionId)
         {
             Slots[slot].Type = type;
             Slots[slot].ActionId = actionId;
+        }
+
+        public void SetAction(byte slot, ActionSlotType type, ulong itemId)
+        {
+            Slots[slot].Type = type;
+            Slots[slot].ActionId = itemId;
         }
 
         public void SetOption(ushort key, string value)
@@ -2367,14 +2375,39 @@ namespace AAEmu.Game.Models.Game.Char
             return stream;
         }
 
-        private void Inventory_Equip(PacketStream stream)
-        {
-            #region Inventory_Equip
+        #region Inventory_Equip
 
-            var index = 0;
-            var validFlags = 0;
-            // calculate validFlags
+        public void Inventory_Equip(PacketStream stream)
+        {
             var items = Inventory.Equipment.GetSlottedItemsList();
+            WriteEquip(stream, items);
+            var itemFlags = CalculateItemFlags(items);
+            stream.Write(itemFlags); // ItemFlags flags for 3.0.3.0
+        }
+        private static void WriteEquip(PacketStream stream, List<Item> items)
+        {
+            var validFlags = CalculateValidFlags(items);
+            stream.Write((uint)validFlags); // validFlags for 3.0.3.0
+            WriteItems(stream, items);
+        }
+
+        private static void WriteItems(PacketStream stream, List<Item> items)
+        {
+            foreach (var item in items.Where(item => item != null))
+            {
+                stream.Write(item);
+            }
+        }
+
+        /// <summary>
+        /// calculate validFlags
+        /// </summary>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        private static int CalculateValidFlags(List<Item> items)
+        {
+            var validFlags = 0;
+            var index = 0;
             foreach (var item in items)
             {
                 if (item != null)
@@ -2385,30 +2418,31 @@ namespace AAEmu.Game.Models.Game.Char
                 index++;
             }
 
-            stream.Write((uint)validFlags); // validFlags for 3.0.3.0
-            foreach (var item in items)
-            {
-                if (item != null)
-                {
-                    stream.Write(item);
-                }
-            }
-
-            index = 0;
-            validFlags = 0;
-
-            foreach (var item in Inventory.Equipment.GetSlottedItemsList())
-            {
-                if (item == null) { continue; }
-
-                var _tmp = (int)item.ItemFlags << index;
-                ++index;
-                validFlags |= _tmp;
-            }
-            stream.Write(validFlags); //  ItemFlags flags for 3.0.3.0
-
-            #endregion Inventory_Equip
+            return validFlags;
         }
+
+        /// <summary>
+        /// calculate ItemFlags
+        /// </summary>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        private static int CalculateItemFlags(List<Item> items)
+        {
+            var itemFlags = 0;
+            var index = 0;
+
+            foreach (var tmp in items
+                         .Where(item => item != null)
+                         .Select(item => (int)item.ItemFlags << index))
+            {
+                ++index;
+                itemFlags |= tmp;
+            }
+
+            return itemFlags;
+        }
+
+        #endregion Inventory_Equip
 
         public override string DebugName()
         {

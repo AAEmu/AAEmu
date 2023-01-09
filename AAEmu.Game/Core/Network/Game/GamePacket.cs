@@ -104,18 +104,18 @@ namespace AAEmu.Game.Core.Network.Game
                     //_log.Debug("GamePacket: S->C type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
                     if (Level == 5)
                     {
-                        _log.Debug("GamePacket: S->C type {0:X3} {1}. C: {2}{3}", TypeId, ToString().Substring(23), count, Verbose());
+                        _log.Debug("GamePacket: S->C type {0:X3} {1}. C: {2}{3}", TypeId, ToString()?.Substring(23), count, Verbose());
                     }
                     else
                     {
-                        _log.Debug("GamePacket: S->C type {0:X3} {1}", TypeId, ToString().Substring(23));
+                        _log.Debug("GamePacket: S->C type {0:X3} {1}", TypeId, ToString()?.Substring(23));
                     }
                 }
 
                 if (TypeId == 0xFFF)
                 {
                     _log.Error("UNKNOWN OPCODE FOR PACKET");
-                    _log.Debug("GamePacket: S->C type {0:X3} {1}", TypeId, ToString().Substring(23));
+                    _log.Debug("GamePacket: S->C type {0:X3} {1}", TypeId, ToString()?.Substring(23));
                     throw new SystemException();
                 }
 
@@ -146,7 +146,7 @@ namespace AAEmu.Game.Core.Network.Game
                 if (TypeId == 0xFFF)
                 {
                     _log.Error("UNKNOWN OPCODE FOR PACKET");
-                    _log.Debug("GamePacket: S->C type {0:X3} {1}", TypeId, ToString().Substring(23));
+                    _log.Debug("GamePacket: S->C type {0:X3} {1}", TypeId, ToString()?.Substring(23));
                     throw new SystemException();
                 }
                 try

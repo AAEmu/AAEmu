@@ -13,6 +13,7 @@ namespace AAEmu.Game.Models.Game
         public float Z { get; set; }
         public float ZRot { get; set; }
         public float Yaw { get; set; }
+        public bool IsFavorite { get; set; }
 
         public uint SubZoneId { get; set; }
         public uint Owner { get; set; }
@@ -29,6 +30,8 @@ namespace AAEmu.Game.Models.Game
             stream.Write(offY);
             stream.Write(Z);
             stream.Write(ZRot);
+            stream.Write(IsFavorite); // isFavorite added in 3+
+
             return stream;
         }
     }

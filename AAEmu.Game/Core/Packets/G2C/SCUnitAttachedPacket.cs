@@ -24,7 +24,10 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.WriteBc(_childUnitObjId);
             stream.Write(_point);
-            stream.WriteBc(_objId);
+            if (_point != 255)
+            {
+                stream.WriteBc(_objId);
+            }
             stream.Write(_reason);
 
             return stream;

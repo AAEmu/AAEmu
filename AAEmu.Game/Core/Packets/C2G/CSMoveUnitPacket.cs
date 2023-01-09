@@ -218,12 +218,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                             if (dmt.VelX != 0 || dmt.VelY != 0)
                             {
                                 pet.StartUpdateXp(character);
-                                _log.Warn("pet is moving...");
+                                //_log.Warn("pet is moving...");
                             }
                             else
                             {
                                 pet.StopUpdateXp();
-                                _log.Warn("pet stands still...");
+                                //_log.Warn("pet stands still...");
                             }
                         }
 

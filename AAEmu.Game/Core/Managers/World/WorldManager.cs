@@ -141,8 +141,14 @@ namespace AAEmu.Game.Core.Managers.World
         private static void RegenTick(Character character)
         {
             character.Regenerate();
-            var mate = MateManager.Instance.GetActiveMate(character.ObjId);
-            mate?.Regenerate();
+            var mates = MateManager.Instance.GetActiveMates(character.ObjId);
+            if (mates != null)
+            {
+                foreach (var mate in mates)
+                {
+                    mate?.Regenerate();
+                }
+            }
         }
 
         private static void BreathTick(Character character)

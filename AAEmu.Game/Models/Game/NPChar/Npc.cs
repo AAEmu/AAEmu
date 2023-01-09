@@ -795,11 +795,14 @@ namespace AAEmu.Game.Models.Game.NPChar
             if (killer is Character character)
             {
                 character.AddExp(KillExp, true);
-                var mate = MateManager.Instance.GetActiveMate(character.ObjId);
-                if (mate != null)
+                var mates = MateManager.Instance.GetActiveMates(character.ObjId);
+                if (mates != null)
                 {
-                    mate.AddExp(KillExp);
-                    character.SendMessage($"Pet gained {KillExp} XP");
+                    foreach (var mate in mates)
+                    {
+                        mate.AddExp(KillExp);
+                        character.SendMessage($"Pet gained {KillExp} XP");
+                    }
                 }
                 character.Quests.OnKill(this);
             }

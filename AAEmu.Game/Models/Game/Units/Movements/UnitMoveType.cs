@@ -89,7 +89,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             if (((ushort)ActorFlags & 0x40) == 0x40)
             {
                 ClimbData = stream.ReadUInt32(); // actor.climbData
-        }
+            }
             if (((ushort)ActorFlags & 0x100) == 0x100)
             {
                 MaxPushedUnitId = stream.ReadUInt32(); // actor.maxPushedUnitId

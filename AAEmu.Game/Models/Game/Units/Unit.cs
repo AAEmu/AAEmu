@@ -378,12 +378,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             // if we died sitting on a horse
             if (character.Hp > 0) { return; }
-
-            var mate = MateManager.Instance.GetActiveMate(character.ObjId);
-            if (mate != null)
-            {
-                character.Mates.DespawnMate(mate.TlId);
-            }
+            MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(character);
         }
 
         private async void StopAutoSkill(Unit character)

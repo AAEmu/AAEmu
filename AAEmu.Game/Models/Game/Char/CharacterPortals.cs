@@ -254,14 +254,19 @@ namespace AAEmu.Game.Models.Game.Char
 
                 if (portals.Count == 0) { continue; }
 
+                var isFavorite = true; // сделаем первый портал фаворитом
+
                 foreach (var portal in portals)
                 {
                     //if (portal.Id != returnPointsId) { continue; }
+                    
+                    portal.IsFavorite = isFavorite;
 
                     if (!DistrictPortals.ContainsKey(portal.Id))
                     {
                         DistrictPortals.Add(portal.Id, portal);
                     }
+                    isFavorite = false;
                 }
             }
         }

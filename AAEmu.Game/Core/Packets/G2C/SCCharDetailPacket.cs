@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Reactive;
 
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
@@ -32,22 +34,16 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(Helpers.ConvertLongY(_character.Transform.Local.Position.Y));
             stream.Write(_character.Transform.Local.Position.Z);
             stream.Write(_character.Transform.ZoneId);
-            stream.Write(DateTime.UtcNow); // lastWorldLeaveTime
+            stream.Write(_character.LeaveTime); // lastWorldLeaveTime
 
-            var items = _character.Inventory.Equipment.GetSlottedItemsList();
-            foreach (var item in items)
-            {
-                if (item == null)
-                {
-                    stream.Write(0);
-                }
-                else
-                {
-                    stream.Write(item);
-                }
-            }
+            #region CharacterInfo_3EB0
+
+            _character.Inventory_Equip(stream);
+
+            #endregion CharacterInfo_3EB0
 
             stream.Write(_success);
+
             return stream;
         }
     }
