@@ -282,12 +282,12 @@ namespace AAEmu.Game.Core.Packets.G2C
                         stream.Write((byte)character.Skills.Skills.Count);       // learnedSkillCount
                         if (character.Skills.Skills.Count >= 0)
                         {
-                            _log.Warn($"Warning! character.learnedSkillCount = {character.Skills.Skills.Count}");
+                            _log.Trace($"Warning! character.learnedSkillCount = {character.Skills.Skills.Count}");
                         }
                         stream.Write((byte)character.Skills.PassiveBuffs.Count); // passiveBuffCount
                         if (character.Skills.PassiveBuffs.Count >= 0)
                         {
-                            _log.Warn($"Warning! character.passiveBuffCount = {character.Skills.PassiveBuffs.Count}");
+                            _log.Trace($"Warning! character.passiveBuffCount = {character.Skills.PassiveBuffs.Count}");
                         }
                         stream.Write(character.HighAbilityRsc);                  // highAbilityRsc
 
@@ -405,7 +405,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                         stream.Write((byte)npc.Template.Skills.Count);    // learnedSkillCount
                         if (npc.Template.Skills.Count >= 0)
                         {
-                            _log.Warn($"Warning! npc.Template.Skills.Count = {npc.Template.Skills.Count}");
+                            _log.Trace($"Warning! npc.Template.Skills.Count = {npc.Template.Skills.Count}");
                         }
                         stream.Write((byte)npc.Template.PassiveBuffs.Count); // passiveBuffCount
                         stream.Write(npc.HighAbilityRsc);                    // highAbilityRsc

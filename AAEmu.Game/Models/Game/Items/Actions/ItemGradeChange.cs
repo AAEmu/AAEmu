@@ -9,9 +9,9 @@ namespace AAEmu.Game.Models.Game.Items.Actions
 
         public ItemGradeChange(Item item, byte newGrade)
         {
+            _type = ItemAction.ChangeGrade; // 14
             _item = item;
             _grade = newGrade;
-            _type = ItemAction.ChangeGrade; // 14
         }
 
         public override PacketStream Write(PacketStream stream)

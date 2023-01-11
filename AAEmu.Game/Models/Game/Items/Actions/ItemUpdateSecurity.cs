@@ -12,12 +12,12 @@ namespace AAEmu.Game.Models.Game.Items.Actions
 
         public ItemUpdateSecurity(Item item, byte bits, bool isUnsecureExcess, bool isUnsecureSet, bool isUnpack)
         {
+            _type = ItemAction.UpdateFlags; // 11
             _item = item;
             _bits = bits;
             _isUnsecureExcess = isUnsecureExcess;
             _isUnsecureSet = isUnsecureSet;
             _isUnpack = isUnpack;
-            _type = ItemAction.UpdateFlags; // 11
         }
 
         public override PacketStream Write(PacketStream stream)

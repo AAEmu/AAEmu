@@ -8,8 +8,8 @@ namespace AAEmu.Game.Models.Game.Items.Actions
 
         public ItemRemoveCrafting(ulong id)
         {
-            _id = id;
             _type = ItemAction.RemoveCrafting; // 12
+            _id = id;
         }
 
         public override PacketStream Write(PacketStream stream)

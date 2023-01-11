@@ -347,12 +347,12 @@ Label_32:
             int mDetailLength;
             switch (DetailType)
             {
-                case ItemDetailType.Equipment:
-                    stream.Write(Durability);  // durability
-                    stream.Write(ChargeCount); // chargeCount int in 1.2, short in 3+
-                    stream.Write(ChargeTime);  // chargeTime
-                    stream.Write(TemperPhysical);     // scaledA
-                    stream.Write(TemperMagical);     // scaledB
+                case ItemDetailType.Equipment: // есть расшифровка в items/Equipment
+                    stream.Write(Durability);     // durability
+                    stream.Write(ChargeCount);    // chargeCount int in 1.2, short in 3+
+                    stream.Write(ChargeTime);     // chargeTime
+                    stream.Write(TemperPhysical); // scaledA
+                    stream.Write(TemperMagical);  // scaledB
 
                     stream.WritePisc(GemIds[0], GemIds[1], GemIds[2], GemIds[3]);
                     stream.WritePisc(GemIds[4], GemIds[5], GemIds[6], GemIds[7]);
@@ -363,10 +363,10 @@ Label_32:
                     mDetailLength = 30;
                     goto Label_32;
                 case ItemDetailType.Mate:
-                    mDetailLength = 21;
+                    mDetailLength = 21; // есть расшифровка в items/Summon
                     goto Label_32;
                 case ItemDetailType.Ucc:
-                    mDetailLength = 10;
+                    mDetailLength = 10; // есть расшифровка в items/UccItem
                     goto Label_32;
                 case ItemDetailType.Treasure:
                 case ItemDetailType.Location:
@@ -377,7 +377,7 @@ Label_32:
                     mDetailLength = 17;
                     goto Label_32;
                 case ItemDetailType.MusicSheet:
-                    mDetailLength = 9;
+                    mDetailLength = 9; // есть расшифровка в items/MusicSheetItem
                     goto Label_32;
                 case ItemDetailType.Glider:
                     mDetailLength = 5;
@@ -388,7 +388,7 @@ Label_32:
                     mDetailLength -= 1;
                     if (mDetailLength > 0)
                     {
-                        //Detail = new byte[mDetailLength];
+                        Detail = new byte[mDetailLength];
                         stream.Write(Detail);
                     }
                     break;

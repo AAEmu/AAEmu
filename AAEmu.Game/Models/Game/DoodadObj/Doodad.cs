@@ -181,7 +181,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
             while (true)
             {
-                _log.Debug("Use: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                _log.Trace("Use: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
                 ToNextPhase = false;
                 if (!ListFuncGroupId.Contains(FuncGroupId))
                 {
@@ -189,7 +189,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 }
                 else
                 {
-                    _log.Debug("Use: Finished execution with recurse: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                    _log.Trace("Use: Finished execution with recurse: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
                     return;
                 }
 
@@ -248,7 +248,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 if (stop)
                 {
                     // did not pass the quest conditions check or there is no phase function
-                    _log.Debug("Use:DoPhaseFuncs Did not pass the conditions check! TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                    _log.Trace("Use:DoPhaseFuncs Did not pass the conditions check! TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
                     return;
                 }
 
@@ -268,7 +268,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             // if there is no function, complete the cycle
             if (func == null)
             {
-                _log.Debug("Use:DoFunc Finished execution with func = null: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                _log.Trace("Use:DoFunc Finished execution with func = null: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
                 return true;
             }
 
@@ -295,7 +295,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
             else
             {
-                _log.Debug("Use:DoFunc Finished execution with ToNextPhase = {3}: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId, ToNextPhase);
+                _log.Trace("Use:DoFunc Finished execution with ToNextPhase = {3}: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId, ToNextPhase);
                 return true;
             }
 

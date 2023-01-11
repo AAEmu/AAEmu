@@ -8,8 +8,8 @@ namespace AAEmu.Game.Models.Game.Items.Actions
 
         public ChangeAutoUseAAPoint(byte change)
         {
-            _change = change;
             _type = ItemAction.ChangeAutoUseAaPoint; // 18
+            _change = change;
         }
 
         public override PacketStream Write(PacketStream stream)

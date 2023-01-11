@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             base.Write(stream);
             stream.Write((byte)_item.SlotType); // type
             stream.Write((byte)_item.Slot);     // index
-            stream.Write(_item.Id);             // id
+            stream.Write(_item.Id);             // itemId
             stream.Write(_item.ChargeUseSkillTime); // chargeUseSkillTime
             return stream;
         }

@@ -18,11 +18,11 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             stream.Write((byte)_item.SlotType); // type
             stream.Write((byte)_item.Slot);     // index
             stream.Write(_item.Id);             // item
-            var details = new PacketStream();   // detail
-            //details.Write((byte)_item.DetailType);
-            //_item.WriteDetails(details);
+            var details = new PacketStream();
+            details.Write((byte)_item.DetailType);
+            _item.WriteDetails(details);
             stream.Write((short)128);
-            stream.Write(details, false);
+            stream.Write(details, false);   // detail
             stream.Write(new byte[128 - details.Count]);
             return stream;
         }

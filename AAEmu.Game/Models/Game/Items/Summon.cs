@@ -21,6 +21,8 @@ namespace AAEmu.Game.Models.Game.Items
             stream.ReadInt32(); // exp
             stream.ReadByte();
             stream.ReadByte(); // level
+
+            stream.ReadBytes(14);
         }
 
         public override void WriteDetails(PacketStream stream)
@@ -28,6 +30,8 @@ namespace AAEmu.Game.Models.Game.Items
             stream.Write(0); // exp
             stream.Write((byte)0);
             stream.Write((byte)1); // level
+
+            stream.Write(new byte[14]); // дополняем до 20
         }
     }
 }

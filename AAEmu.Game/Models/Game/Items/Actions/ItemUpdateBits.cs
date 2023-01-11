@@ -1,22 +1,23 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+
+using AAEmu.Commons.Network;
+
+using Discord;
 
 namespace AAEmu.Game.Models.Game.Items.Actions
 {
     public class ItemUpdateBits : ItemTask
     {
-        private readonly ulong _itemId;
-        private readonly SlotType _slotType;
-        private readonly byte _slot;
-        private readonly byte _bits;
-        //private readonly byte _oldBits;
+        private readonly Item _item;
 
         public ItemUpdateBits(Item item)
         {
-            _itemId = item.Id;
-            _slotType = item.SlotType;
-            _slot = (byte)item.Slot;
-            _bits = (byte)item.ItemFlags;
             _type = ItemAction.SetFlagsBits; // 10
+            _item = item;
+            //_itemId = item.Id;
+            //_slotType = item.SlotType;
+            //_slot = (byte)item.Slot;
+            //_bits = (byte)item.ItemFlags;
             // 10 image
             // 20 unwrapp
             //_oldBits = oldBits;
@@ -25,11 +26,11 @@ namespace AAEmu.Game.Models.Game.Items.Actions
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
-            stream.Write((byte)_slotType); // type
-            stream.Write(_slot);           // index
-            stream.Write(_itemId);         // id
-            stream.Write(_bits);           // bits
-            stream.Write((ulong)0);        // soulBindChargeTime
+            stream.Write((byte)_item.SlotType);  // type
+            stream.Write((byte)_item.Slot);      // index
+            stream.Write(_item.Id);              // id
+            stream.Write((byte)_item.ItemFlags); // bits
+            stream.Write(DateTime.MinValue);     // soulBindChargeTime
             return stream;
         }
     }
