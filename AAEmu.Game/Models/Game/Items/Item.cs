@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -126,6 +127,7 @@ namespace AAEmu.Game.Models.Game.Items
         public int ChargeCount { get; set; }
         
         public virtual ItemDetailType DetailType => 0; // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
+        public byte[] Detail { get; set; }
 
         // Helper
         public ItemContainer _holdingContainer { get; set; }
@@ -221,10 +223,87 @@ namespace AAEmu.Game.Models.Game.Items
 
         public virtual void ReadDetails(PacketStream stream)
         {
+            int mDetailLength;
+            switch ((byte)DetailType)
+            {
+                case 1: // Equipment // есть расшифровка в items/Equipment
+                    mDetailLength = 56;
+                    goto Label_32;
+                case 2: // Slave
+                    mDetailLength = 30;
+                    goto Label_32;
+                case 3: // Mate
+                    mDetailLength = 7; // есть расшифровка в items/Summon
+                    goto Label_32;
+                case 4: // Ucc
+                    mDetailLength = 10; // есть расшифровка в items/UccItem
+                    goto Label_32;
+                case 5:  // Treasure
+                case 11: // Location
+                    mDetailLength = 25;
+                    goto Label_32;
+                case 6: // BigFish
+                case 7: // Decoration
+                    mDetailLength = 17;
+                    goto Label_32;
+                case 8: // MusicSheet
+                    mDetailLength = 9; // есть расшифровка в items/MusicSheetItem
+                    goto Label_32;
+                case 9: // Glider
+                    mDetailLength = 5;
+                    goto Label_32;
+                case 10: // SlaveEquipment
+                    mDetailLength = 13;
+Label_32:
+                    mDetailLength -= 1;
+                    Detail = stream.ReadBytes(mDetailLength);
+                    break;
+                default:
+                    break;
+            }
         }
 
         public virtual void WriteDetails(PacketStream stream)
         {
+            int mDetailLength;
+            switch (DetailType)
+            {
+                case ItemDetailType.Equipment:
+                    mDetailLength = 56; // есть расшифровка в items/Equipment
+                    goto Label_32;
+                case ItemDetailType.Slave:
+                    mDetailLength = 30;
+                    goto Label_32;
+                case ItemDetailType.Mate:
+                    mDetailLength = 7; // есть расшифровка в items/Summon
+                    goto Label_32;
+                case ItemDetailType.Ucc:
+                    mDetailLength = 10; // есть расшифровка в items/UccItem
+                    goto Label_32;
+                case ItemDetailType.Treasure:
+                //case ItemDetailType.Location: // нет в 1.2
+                    mDetailLength = 25;
+                    goto Label_32;
+                case ItemDetailType.BigFish:
+                case ItemDetailType.Decoration:
+                    mDetailLength = 17;
+                    goto Label_32;
+                case ItemDetailType.MusicSheet:
+                    mDetailLength = 9; // есть расшифровка в items/MusicSheetItem
+                    goto Label_32;
+                case ItemDetailType.Glider:
+                    mDetailLength = 5;
+                //    goto Label_32;
+                //case ItemDetailType.SlaveEquipment: // нет в 1.2
+                //    mDetailLength = 13;
+Label_32:
+                    mDetailLength -= 1;
+                    Detail = new byte[mDetailLength];
+                    stream.Write(Detail);
+                    break;
+                default:
+                    break;
+            }
         }
 
         public virtual bool HasFlag(ItemFlag flag)
