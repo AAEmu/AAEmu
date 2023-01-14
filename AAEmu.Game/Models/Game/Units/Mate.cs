@@ -513,14 +513,14 @@ namespace AAEmu.Game.Models.Game.Units
             }
             MateXpUpdateTask = new MateXpUpdateTask(Owner, this);
             TaskManager.Instance.Schedule(MateXpUpdateTask, TimeSpan.FromSeconds(60));
-            _log.Debug("[StartUpdateXp] The current timer has been started...");
+            //_log.Trace("[StartUpdateXp] The current timer has been started...");
         }
 
         public void StopUpdateXp()
         {
             _ = MateXpUpdateTask?.CancelAsync();
             MateXpUpdateTask = null;
-            _log.Debug("[StopUpdateXp] The current timer has been canceled...");
+            //_log.Trace("[StopUpdateXp] The current timer has been canceled...");
         }
     }
 }

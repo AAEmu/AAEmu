@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -124,8 +125,9 @@ namespace AAEmu.Game.Models.Game.Items
 
         public DateTime ChargeStartTime { get; set; } = DateTime.MinValue;
         public int ChargeCount { get; set; }
-        
+
         public virtual ItemDetailType DetailType => 0; // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
+        public byte[] Detail { get; set; }
 
         // Helper
         public ItemContainer _holdingContainer { get; set; }
@@ -221,10 +223,92 @@ namespace AAEmu.Game.Models.Game.Items
 
         public virtual void ReadDetails(PacketStream stream)
         {
+            var mDetailLength = 0;
+            switch ((byte)DetailType)
+            {
+                case 1: // Equipment // есть расшифровка в items/Equipment
+                    mDetailLength = 56;
+                    break;
+                case 2: // Slave
+                    mDetailLength = 30;
+                    break;
+                case 3: // Mate
+                    mDetailLength = 7; // есть расшифровка в items/Summon
+                    break;
+                case 4: // Ucc
+                    mDetailLength = 10; // есть расшифровка в items/UccItem
+                    break;
+                case 5:  // Treasure
+                case 11: // Location
+                    mDetailLength = 25;
+                    break;
+                case 6: // BigFish
+                case 7: // Decoration
+                    mDetailLength = 17;
+                    break;
+                case 8: // MusicSheet
+                    mDetailLength = 9; // есть расшифровка в items/MusicSheetItem
+                    break;
+                case 9: // Glider
+                    mDetailLength = 5;
+                    break;
+                case 10: // SlaveEquipment
+                    mDetailLength = 13;
+                    break;
+                default:
+                    break;
+            }
+
+            mDetailLength -= 1;
+            if (mDetailLength > 0)
+            {
+                Detail = stream.ReadBytes(mDetailLength);
+            }
         }
 
         public virtual void WriteDetails(PacketStream stream)
         {
+            var mDetailLength = 0;
+            switch (DetailType)
+            {
+                case ItemDetailType.Equipment:
+                    mDetailLength = 56; // есть расшифровка в items/Equipment
+                    break;
+                case ItemDetailType.Slave:
+                    mDetailLength = 30;
+                    break;
+                case ItemDetailType.Mate:
+                    mDetailLength = 7; // есть расшифровка в items/Summon
+                    break;
+                case ItemDetailType.Ucc:
+                    mDetailLength = 10; // есть расшифровка в items/UccItem
+                    break;
+                case ItemDetailType.Treasure:
+                    //case ItemDetailType.Location: // нет в 1.2
+                    mDetailLength = 25;
+                    break;
+                case ItemDetailType.BigFish:
+                case ItemDetailType.Decoration:
+                    mDetailLength = 17;
+                    break;
+                case ItemDetailType.MusicSheet:
+                    mDetailLength = 9; // есть расшифровка в items/MusicSheetItem
+                    break;
+                case ItemDetailType.Glider:
+                    mDetailLength = 5;
+                    break;
+                //case ItemDetailType.SlaveEquipment: // нет в 1.2
+                //    mDetailLength = 13;
+                //    break;
+                default:
+                    break;
+            }
+            mDetailLength -= 1;
+            if (mDetailLength > 0)
+            {
+                Detail = new byte[mDetailLength];
+                stream.Write(Detail);
+            }
         }
 
         public virtual bool HasFlag(ItemFlag flag)
