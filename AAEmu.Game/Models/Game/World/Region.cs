@@ -14,7 +14,8 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Route;
-
+using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Utils;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.World
@@ -224,6 +225,42 @@ namespace AAEmu.Game.Models.Game.World
             // remove the object from all players in the region
             foreach (var character in GetList(new List<Character>(), obj.ObjId))
             {
+                switch (obj)
+                {
+                    case Units.Mate mate:
+                        {
+                            // check if it's the owner
+                            if (mate.OwnerObjId == character.ObjId)
+                            {
+                                var distance = MathUtil.CalculateDistance(mate, character);
+                                if (distance < 50)
+                                {
+                                    return;
+                                }
+                            }
+                            break;
+                        }
+                    case Transfer transfer:
+                        {
+                            var distance = MathUtil.CalculateDistance(transfer, character);
+                            // Are we a passenger
+                            if (distance < 50)
+                            {
+                                return;
+                            }
+                            break;
+                        }
+                    case Slave slave:
+                        {
+                            var distance = MathUtil.CalculateDistance(slave, character);
+                            // Are we a passenger
+                            if (distance < 50)
+                            {
+                                return;
+                            }
+                            break;
+                        }
+                }
                 obj.RemoveVisibleObject(character);
             }
         }
