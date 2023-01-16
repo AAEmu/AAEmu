@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
 using NLog;
 
@@ -231,7 +232,11 @@ namespace AAEmu.Game.Models.Game.World
                             // check if it's the owner
                             if (mate.OwnerObjId == character.ObjId)
                             {
-                                return;
+                                var distance = MathUtil.CalculateDistance(mate, character);
+                                if (distance < 50)
+                                {
+                                    return;
+                                }
                             }
                             break;
                         }
