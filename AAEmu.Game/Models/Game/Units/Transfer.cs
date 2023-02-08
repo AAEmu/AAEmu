@@ -647,6 +647,14 @@ namespace AAEmu.Game.Models.Game.Units
                 transfer.SetPosition(moveTypeTr.X, moveTypeTr.Y, moveTypeTr.Z, 0, 0, (float)transfer.Angle);
                 // Added so whatever riding this, doesn't clip out of existence when moving
                 transfer.Transform.FinalizeTransform(true);
+                //if (transfer.TemplateId == 49)
+                //{
+                //    _log.Info($"transfer:{transfer.TemplateId}-{transfer.ObjId} is moving X={transfer.Transform.World.Position.X} Y={transfer.Transform.World.Position.Y}");
+                //    var region = WorldManager.Instance.GetRegion(transfer); // Get region of Object or it's Root object if it has one
+                //    var currentRegion = transfer.Region; // Current Region this object is in
+                //    _log.Info($"transfer is moving from region={currentRegion.Id} to region={region.Id}");
+                //    _log.Warn("----------");
+                //}
                 // Only send movement of the main vehicle motor, client will drag carriage on it's own
                 if ((transfer.Bounded != null) || (transfer.ParentObj == null)) 
                 {

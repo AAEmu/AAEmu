@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
                     var levelname = string.Empty;
                     if (Connection.ActiveChar != null)
                     {
-                        levelname = ZoneManager.Instance.GetZoneByKey(Connection.ActiveChar.Transform.ZoneId).Name;
+                        levelname = ZoneManager.Instance.GetZoneByKey(Connection.ActiveChar.Transform.ZoneId)?.Name ?? "w_hanuimaru_1";
                     }
                     else
                     {
