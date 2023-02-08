@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Numerics;
+
 using System.Threading;
 using System.Xml;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -15,12 +16,14 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Tasks;
-using AAEmu.Game.Models.Tasks.Transfers;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Models.Tasks;
+
 using AAEmu.Game.Utils.DB;
+
 using NLog;
+
 using XmlHelper = AAEmu.Commons.Utils.XML.XmlHelper;
 
 namespace AAEmu.Game.Core.Managers
@@ -178,11 +181,7 @@ namespace AAEmu.Game.Core.Managers
             owner.Bounded = null;
             owner.Transform.ApplyWorldSpawnPosition(spawner.Position);
             owner.Transform.ResetFinalizeTransform();
-            //owner.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(spawner.RotationZ));
-            //var quat = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
-
             owner.Faction = FactionManager.Instance.GetFaction(FactionsEnum.PcFriendly); // formerly set to 164
-            
             owner.Patrol = null;
             // BUFF: Untouchable (Unable to attack this target)
             var buffId = (uint)BuffConstants.Untouchable; 
@@ -212,11 +211,11 @@ namespace AAEmu.Game.Core.Managers
             transfer.Mp = transfer.MaxMp;
             transfer.ModelParams = new UnitCustomModelParams();
             transfer.Transform.ApplyWorldSpawnPosition(spawner.Position);
-            //transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(spawner.RotationZ));
-            //var quat2 = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
             transfer.Transform.Local.AddDistanceToFront(-9.24417f);
             transfer.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(transfer.Transform));
             transfer.Transform.StickyParent = owner.Transform; // stick it to the driver/motor
+            transfer.Transform.Parent = null;
+            owner.Transform.Parent = transfer.Transform;
             transfer.Transform.ResetFinalizeTransform();
 
             transfer.Faction = FactionManager.Instance.GetFaction(FactionsEnum.PcFriendly); // used to be 164
@@ -237,7 +236,6 @@ namespace AAEmu.Game.Core.Managers
                 doodad.Transform.StickyParent = null;
                 doodad.Transform.Parent = transfer.Transform;
                 doodad.ParentObjId = transfer.ObjId;
-                //doodad.Spawner = new DoodadSpawner();
                 doodad.AttachPoint = doodadBinding.AttachPointId;
                 switch (doodadBinding.AttachPointId)
                 {

@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -23,6 +24,8 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             Connection.ActiveChar.Bonding.SetOwner(null);
             Connection.ActiveChar.Bonding = null;
+            Connection.ActiveChar.Transform.Parent = null;
+
             Connection.ActiveChar.BroadcastPacket(new SCUnbondDoodadPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.Id, doodadObjId), true);
         }
     }

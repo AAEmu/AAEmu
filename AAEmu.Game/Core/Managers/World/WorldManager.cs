@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Xml;
 
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.XML;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.IO;
@@ -20,8 +21,6 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
-using System.Numerics;
-using AAEmu.Commons.Utils.XML;
 using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
@@ -34,7 +33,7 @@ namespace AAEmu.Game.Core.Managers.World
 {
     public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
-        private object _lock = new object();
+        private object _lock = new();
         // Default World and Instance ID that will be assigned to all Transforms as a Default value
         public static uint DefaultWorldId = 0; // This will get reset to it's proper value when loading world data (which is usually 0)
         public static uint DefaultInstanceId = 0;
@@ -620,7 +619,7 @@ namespace AAEmu.Game.Core.Managers.World
         public Region GetRegion(GameObject obj)
         {
             obj = GetRootObj(obj);
-            InstanceWorld world = GetWorld(obj.Transform.WorldId);
+            var world = GetWorld(obj.Transform.WorldId);
             return GetRegion(world, obj.Transform.World.Position.X, obj.Transform.World.Position.Y);
         }
 
@@ -710,7 +709,7 @@ namespace AAEmu.Game.Core.Managers.World
             FirstNonNameArgument = 0;
             if ((TargetName != null) && (TargetName != string.Empty))
             {
-                Character player = WorldManager.Instance.GetCharacter(TargetName);
+                var player = WorldManager.Instance.GetCharacter(TargetName);
                 if (player != null)
                 {
                     FirstNonNameArgument = 1;
@@ -792,132 +791,97 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void AddVisibleObject(GameObject obj)
         {
-            if (obj == null || !obj.IsVisible)
-                return;
-
-            var region = GetRegion(obj); // Get region of Object or it's Root object if it has one
-            var currentRegion = obj.Region; // Current Region this object is in
-
-            // If region didn't change, ignore
-            if (region == null || currentRegion != null && currentRegion.Equals(region))
-                return;
-
-            if (currentRegion == null)
+            lock (_lock)
             {
-                // If no currentRegion, add it (happens on new spawns)
-                foreach (var neighbor in region.GetNeighbors())
-                    neighbor.AddToCharacters(obj);
+                if (obj == null)
+                    return;
+                var region = GetRegion(obj); // Get region of Object or it's Root object if it has one
+                var currentRegion = obj.Region; // Current Region this object is in
 
-                region.AddObject(obj);
-                obj.Region = region;
-            }
-            else
-            {
-                // No longer in the same region, update things
-                var oldNeighbors = currentRegion.GetNeighbors();
-                var newNeighbors = region.GetNeighbors();
+                // If region didn't change, ignore
+                if (region == null || currentRegion != null && currentRegion.Equals(region))
+                    return;
 
-                // Remove visibility from oldNeighbors
-                foreach (var neighbor in oldNeighbors)
+                if (currentRegion == null)
                 {
-                    var remove = true;
-                    foreach (var newNeighbor in newNeighbors)
-                        if (newNeighbor.Equals(neighbor))
-                        {
-                            remove = false;
-                            break;
-                        }
-
-                    if (remove)
-                        neighbor.RemoveFromCharacters(obj);
-                }
-
-                // Add visibility to newNeighbours
-                foreach (var neighbor in newNeighbors)
-                {
-                    var add = true;
-                    foreach (var oldNeighbor in oldNeighbors)
-                        if (oldNeighbor.Equals(neighbor))
-                        {
-                            add = false;
-                            break;
-                        }
-
-                    if (add)
+                    // If no currentRegion, add it (happens on new spawns)
+                    foreach (var neighbor in region.GetNeighbors())
                         neighbor.AddToCharacters(obj);
+
+                    region.AddObject(obj);
+                    obj.Region = region;
                 }
+                else
+                {
+                    // No longer in the same region, update things
+                    // Remove visibility from oldNeighbors
+                    var diffs = currentRegion.FindDifferenceBetweenRegions(region);
+                    if (diffs != null)
+                        foreach (var diff in diffs)
+                            diff?.RemoveFromCharacters(obj);
 
-                // Add this obj to the new region
-                region.AddObject(obj);
-                // Update it's region
-                obj.Region = region;
+                    // Add visibility to newNeighbours
+                    diffs = region.FindDifferenceBetweenRegions(currentRegion);
+                    if (diffs != null)
+                        foreach (var diff in diffs)
+                            if (obj.IsVisible)
+                                diff?.AddToCharacters(obj);
 
-                // remove the obj from the old region
-                currentRegion.RemoveObject(obj);
+                    // Add this obj to the new region
+                    region.AddObject(obj);
+                    // Update it's region
+                    obj.Region = region;
+
+                    // remove the obj from the old region
+                    currentRegion.RemoveObject(obj);
+                }
             }
 
             // Also show children
-            if (obj?.Transform?.Children.Count > 0)
+            if (obj.Transform?.Children?.Count > 0)
                 foreach (var child in obj.Transform.Children)
-                    AddVisibleObject(child.GameObject);
+                    if (child != null)
+                        AddVisibleObject(child.GameObject);
         }
 
         public void RemoveVisibleObject(GameObject obj)
         {
             lock (_lock)
             {
-                if (obj == null)
-                {
+                if (obj?.Region == null)
                     return;
-                }
-
-                if (obj.Region == null)
-                {
-                    return;
-                }
 
                 var neighbors = obj.Region.GetNeighbors();
                 obj.Region?.RemoveObject(obj);
 
                 if (neighbors == null)
-                {
                     return;
-                }
 
                 if (neighbors.Length > 0)
-                {
                     foreach (var neighbor in neighbors)
-                    {
                         neighbor?.RemoveFromCharacters(obj);
-                    }
-                }
 
                 obj.Region = null;
+
+                // Also remove children
+                if (obj.Transform == null)
+                    return;
             }
 
-            // Also remove children
-            if (obj.Transform == null)
-            {
-                return;
-            }
-
-            if (obj.Transform.Children.Count > 0)
-            {
+            if (obj.Transform?.Children?.Count > 0)
                 foreach (var child in obj.Transform.Children)
-                {
-                    RemoveVisibleObject(child?.GameObject);
-                }
-            }
+                    if (child != null)
+                        RemoveVisibleObject(child.GameObject);
         }
 
         public List<T> GetAround<T>(GameObject obj) where T : class
         {
             var result = new List<T>();
-            if (obj.Region == null)
+            if (obj?.Region == null)
                 return result;
 
             foreach (var neighbor in obj.Region.GetNeighbors())
-                neighbor.GetList(result, obj.ObjId);
+                neighbor?.GetList(result, obj.ObjId);
 
             return result;
         }
@@ -925,7 +889,7 @@ namespace AAEmu.Game.Core.Managers.World
         public List<T> GetAround<T>(GameObject obj, float radius, bool useModelSize = false) where T : class
         {
             var result = new List<T>();
-            if (obj.Region == null)
+            if (obj?.Region == null)
                 return result;
 
             if (useModelSize)
@@ -938,7 +902,7 @@ namespace AAEmu.Game.Core.Managers.World
             else
             {
                 foreach (var neighbor in obj.Region.GetNeighbors())
-                    neighbor.GetList(result, obj.ObjId, obj.Transform.World.Position.X, obj.Transform.World.Position.Y, radius * radius, useModelSize);
+                    neighbor?.GetList(result, obj.ObjId, obj.Transform.World.Position.X, obj.Transform.World.Position.Y, radius * radius, useModelSize);
             }
 
             return result;
@@ -946,11 +910,11 @@ namespace AAEmu.Game.Core.Managers.World
 
         private bool RadiusFitsCurrentRegion(GameObject obj, float radius)
         {
-            var xMod = obj.Transform.World.Position.X % REGION_SIZE;
+            var xMod = obj?.Transform?.World?.Position.X % REGION_SIZE;
             if (xMod - radius < 0 || xMod + radius > REGION_SIZE)
                 return false;
 
-            var yMod = obj.Transform.World.Position.Y % REGION_SIZE;
+            var yMod = obj?.Transform?.World?.Position.Y % REGION_SIZE;
             if (yMod - radius < 0 || yMod + radius > REGION_SIZE)
                 return false;
             return true;
@@ -1135,7 +1099,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         public AreaShape GetAreaShapeById(uint id)
         {
-            if (_areaShapes.TryGetValue(id, out AreaShape res))
+            if (_areaShapes.TryGetValue(id, out var res))
                 return res;
             return null;
         }
