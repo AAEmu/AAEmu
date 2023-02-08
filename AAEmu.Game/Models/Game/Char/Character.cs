@@ -1568,6 +1568,12 @@ namespace AAEmu.Game.Models.Game.Char
             Slots[slot].ActionId = actionId;
         }
 
+        public void SetAction(byte slot, ActionSlotType type, ulong itemId)
+        {
+            Slots[slot].Type = type;
+            Slots[slot].ActionId = itemId;
+        }
+
         public void SetOption(ushort key, string value)
         {
             if (_options.ContainsKey(key))
@@ -1954,7 +1960,9 @@ namespace AAEmu.Game.Models.Game.Char
                             {
                                 slot.Type = (ActionSlotType)slots.ReadByte();
                                 if (slot.Type != ActionSlotType.None)
-                                    slot.ActionId = slots.ReadUInt32();
+                                {
+                                    slot.ActionId = slots.ReadUInt64();
+                                }
                             }
                         }
                     }

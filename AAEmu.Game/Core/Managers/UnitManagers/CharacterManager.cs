@@ -472,7 +472,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     //var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
                     //character.Inventory.AddItem(Models.Game.Items.Actions.ItemTaskType.Invalid, createdItem);
 
-                    character.SetAction(slot, ActionSlotType.Item, item.Id);
+                    character.SetAction(slot, ActionSlotType.ItemType, item.Id);
                     slot++;
                 }
 
@@ -484,7 +484,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         //var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
                         //character.Inventory.AddItem(ItemTaskType.Invalid, createdItem);
 
-                        character.SetAction(slot, ActionSlotType.Item, item.Id);
+                        character.SetAction(slot, ActionSlotType.ItemType, item.Id);
                         slot++;
                     }
 
@@ -500,7 +500,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 {
                     if (!skill.AddToSlot)
                         continue;
-                    character.SetAction(skill.Slot, ActionSlotType.Skill, skill.Template.Id);
+                    character.SetAction(skill.Slot, ActionSlotType.Spell, skill.Template.Id);
                 }
 
                 slot = 1;
@@ -509,7 +509,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 foreach (var skill in SkillManager.Instance.GetStartAbilitySkills(character.Ability1))
                 {
                     character.Skills.AddSkill(skill, 1, false);
-                    character.SetAction(slot, ActionSlotType.Skill, skill.Id);
+                    character.SetAction(slot, ActionSlotType.Spell, skill.Id);
                     slot++;
                 }
                 
