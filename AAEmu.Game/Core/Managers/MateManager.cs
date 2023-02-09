@@ -124,8 +124,8 @@ namespace AAEmu.Game.Core.Managers
                     seatInfo._objId = character.ObjId;
                     seatInfo._reason = reason;
 
-                    character.Transform.Parent = mateInfo.Transform;
                     character.Transform.Local.SetPosition(mateInfo.Transform.Local.Position); // correct the position of the character
+                    character.Transform.Parent = mateInfo.Transform;
                     //character.Transform.StickyParent = mateInfo.Transform;
 
                     character.IsVisible = true; // When we're on a horse, you can see us

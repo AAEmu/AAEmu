@@ -143,7 +143,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                         {
                             //_log.Warn($"No longer standing on object {targetUnit.Transform.Parent.GameObject}...");
                             // No longer standing on object ?
-                            if (targetUnit.Transform.Parent.GameObject is Doodad or Mate)
+                            if (targetUnit.Transform.Parent.GameObject is Doodad/* or Mate*/)
                             {
                                 // if we are sitting on a transport seat or on a pet, we will not change the Parent
                             }
@@ -206,22 +206,22 @@ namespace AAEmu.Game.Core.Packets.C2G
                         }
                         */
 
-                        if (targetUnit is Character owner)
-                        {
-                            var pet = MateManager.Instance.GetActiveMate(owner.ObjId);
-                            if (pet != null)
-                            {
-                                _log.Warn($"PC :{owner.ObjId} is moving X={owner.Transform.Local.Position.X} Y={owner.Transform.Local.Position.Y}");
-                                _log.Warn($"pet:{pet.ObjId} is moving X={pet.Transform.Local.Position.X} Y={pet.Transform.Local.Position.Y}");
-                                _log.Warn($"Для Mate: Переместились {owner.Name}, регион {owner.Region.Id}:{pet.Region.Id} объект {owner.ObjId}:{pet.ObjId}");
-                            }
-                            else
-                            {
+                        //if (targetUnit is Character owner)
+                        //{
+                        //    var pet = MateManager.Instance.GetActiveMate(owner.ObjId);
+                        //    if (pet != null)
+                        //    {
+                        //        _log.Warn($"PC :{owner.ObjId} is moving X={owner.Transform.Local.Position.X} Y={owner.Transform.Local.Position.Y}");
+                        //        _log.Warn($"pet:{pet.ObjId} is moving X={pet.Transform.Local.Position.X} Y={pet.Transform.Local.Position.Y}");
+                        //        _log.Warn($"Для Mate: Переместились {owner.Name}, регион {owner.Region.Id}:{pet.Region.Id} объект {owner.ObjId}:{pet.ObjId}");
+                        //    }
+                        //    else
+                        //    {
 
-                                _log.Warn($"PC :{owner.ObjId} is moving X={owner.Transform.Local.Position.X} Y={owner.Transform.Local.Position.Y}");
-                                _log.Warn($"Для Character: Переместились {owner.Name}, регион {owner.Region.Id} объект {owner.ObjId}");
-                            }
-                        }
+                        //        _log.Warn($"PC :{owner.ObjId} is moving X={owner.Transform.Local.Position.X} Y={owner.Transform.Local.Position.Y}");
+                        //        _log.Warn($"Для Character: Переместились {owner.Name}, регион {owner.Region.Id} объект {owner.ObjId}");
+                        //    }
+                        //}
                         if ((targetUnit is Character player) && (player.ObjId != character.ObjId))
                         {
                             // TODO : check target has Telekinesis buff if target is a player
