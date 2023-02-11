@@ -33,7 +33,6 @@ namespace AAEmu.Game.Models.Game.World.Transform
         private Vector3 _lastFinalizePos; // Might use this later for cheat detection or delta movement
         public List<Character> _debugTrackers;
         private object _lock = new();
-        private object _lockFinalyze = new();
 
         /// <summary>
         /// Parent Transform this Transform is attached to, leave null for World
