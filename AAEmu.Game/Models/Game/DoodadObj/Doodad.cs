@@ -331,13 +331,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 return false; // no phase functions for FuncGroupId
             }
 
-            PhaseRatio = Rand.Next(0, 10000);
             CumulativePhaseRatio = 0;
             var stop = false;
             // perform the phase functions one after the other
             foreach (var phaseFunc in phaseFuncs)
             {
                 if (phaseFunc == null) { continue; }
+
+                PhaseRatio = Rand.Next(0, 10000);
 
                 stop = phaseFunc.Use(caster, this);
                 if (stop)
@@ -349,6 +350,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (OverridePhase != 0 && stop && FuncGroupId != OverridePhase)
             {
                 nextPhase = OverridePhase;
+                OverridePhase = 0;
                 return DoPhase(caster, nextPhase);
             }
 
