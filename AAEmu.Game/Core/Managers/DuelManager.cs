@@ -26,7 +26,7 @@ namespace AAEmu.Game.Core.Managers
         private DoodadSpawner _combatFlag;
         private const double Delay = 1000; // 1 sec
         private const float DistanceForSurrender = 75; // square 75 meters
-        private const double DuelDurationTime = 1;    // 5 min
+        private const double DuelDurationTime = 5;    // 5 min
 
         // there can be several duels at the same time
         private ConcurrentDictionary<uint, Duel> _duels;
