@@ -26,6 +26,8 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.World.Transform;
 using MySql.Data.MySqlClient;
 using System.Drawing;
+using AAEmu.Game.Models.Game.NPChar;
+using System.Linq;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -1605,6 +1607,7 @@ namespace AAEmu.Game.Models.Game.Char
             message = $"|c{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}{message}";
             SendMessage(message, parameters);
         }
+        
         public void SendMessage(string message, params object[] parameters)
         {
             SendMessage(ChatType.System, message, parameters);
@@ -1943,13 +1946,10 @@ namespace AAEmu.Game.Models.Game.Char
                 Mates = new CharacterMates(this);
                 Mates.Load(connection);
 
-                
-
                 using (var command = connection.CreateCommand())
                 {
                     command.Connection = connection;
-                    command.CommandText =
-                        "SELECT slots FROM `characters` WHERE `id` = @id AND `account_id` = @account_id";
+                    command.CommandText = "SELECT slots FROM `characters` WHERE `id` = @id AND `account_id` = @account_id";
                     command.Parameters.AddWithValue("@id", Id);
                     command.Parameters.AddWithValue("@account_id", AccountId);
                     using (var reader = command.ExecuteReader())

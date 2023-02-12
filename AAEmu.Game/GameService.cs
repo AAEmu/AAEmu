@@ -171,7 +171,8 @@ namespace AAEmu.Game
 
             TimeManager.Instance.Start();
             TaskManager.Instance.Start();
-            
+
+            DuelManager.Instance.Initialize();
             SaveManager.Instance.Initialize();
             AreaTriggerManager.Instance.Initialize();
             SpecialtyManager.Instance.Initialize();

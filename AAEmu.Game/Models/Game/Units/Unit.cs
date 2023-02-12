@@ -194,6 +194,7 @@ namespace AAEmu.Game.Models.Game.Units
         public UnitCooldowns Cooldowns { get; set; }
         public Expedition Expedition { get; set; }
         public bool IsInBattle { get; set; }
+        public bool IsInDuel { get; set; }
         public bool IsInPatrol { get; set; } // so as not to run the route a second time
         public int SummarizeDamage { get; set; }
         public bool IsAutoAttack = false;
