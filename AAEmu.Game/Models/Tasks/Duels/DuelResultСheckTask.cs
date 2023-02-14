@@ -26,15 +26,15 @@ namespace AAEmu.Game.Models.Tasks.Duels
             var res = DuelManager.Instance.DuelResultСheck(_challengerId);
             if (res)
             {
-                if (_duel.Challenger.Hp <= 0)
+                if (_duel.Challenger.Hp <= 1)
                 {
                     DuelManager.Instance.DuelStop(_challengedId, DuelDetType.Win, _challengerId);
                 }
-                else if (_duel.Challenged.Hp <= 0)
+                else if (_duel.Challenged.Hp <= 1)
                 {
                     DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Win, _challengedId);
                 }
-                else if (_duel.Challenger.Hp <= 0 && _duel.Challenged.Hp <= 0)
+                else if (_duel.Challenger.Hp <= 1 && _duel.Challenged.Hp <= 1)
                 {
                     DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Draw, _challengedId);
                 }
