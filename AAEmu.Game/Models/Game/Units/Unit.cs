@@ -268,12 +268,6 @@ namespace AAEmu.Game.Models.Game.Units
         {
             if (attacker.CurrentTarget is Character character)
             {
-                if (Hp <= 0 && character.IsInDuel)
-                {
-                    Hp = 1; // we don't let you die during a duel
-                    return;
-                }
-
                 if (AppConfiguration.Instance.World.GodMode)
                 {
                     _log.Debug("{1}:{0}'s Damage disabled because of GM or Admin flag", character.Name, character.Id);
@@ -298,6 +292,12 @@ namespace AAEmu.Game.Models.Game.Units
             Hp = Math.Max(Hp - value, 0);
             if (Hp <= 0)
             {
+                if (attacker.CurrentTarget is Character attacked && attacked.IsInDuel)
+                {
+                    Hp = 1; // we don't let you die during a duel
+                    return;
+                }
+
                 attacker.Events.OnKill(attacker, new OnKillArgs { target = attacker });
                 DoDie(attacker, killReason);
                 //StopRegen();
