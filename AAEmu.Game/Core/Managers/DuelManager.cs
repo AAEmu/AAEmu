@@ -281,7 +281,7 @@ namespace AAEmu.Game.Core.Managers
             try
             {
                 var duel = _duels[id];
-                if (duel.Challenger.Hp <= 0 || duel.Challenged.Hp <= 0)
+                if (duel.Challenger.Hp <= 1 || duel.Challenged.Hp <= 1)
                 {
                     _ = duel.DuelResultСheckTask.CancelAsync();
                     duel.DuelResultСheckTask = null;
