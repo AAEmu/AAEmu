@@ -1,21 +1,21 @@
-using System;
-using System.Collections.Generic;
+﻿using System;
+using System.Collections.Concurrent;
 
 namespace AAEmu.Game.Models.Game.Units
 {
     public class UnitCooldowns
     {
-        public Dictionary<uint, DateTime> Cooldowns { get; set; }
+        public ConcurrentDictionary<uint, DateTime> Cooldowns { get; set; }
 
         public UnitCooldowns()
         {
-            Cooldowns = new Dictionary<uint, DateTime>();
+            Cooldowns = new ConcurrentDictionary<uint, DateTime>();
         }
 
         public void AddCooldown(uint skillId, uint duration)
         {
             if (!Cooldowns.ContainsKey(skillId))
-                Cooldowns.Add(skillId, DateTime.UtcNow + TimeSpan.FromMilliseconds(duration)); 
+                Cooldowns.TryAdd(skillId, DateTime.UtcNow + TimeSpan.FromMilliseconds(duration)); 
         }
 
         public bool CheckCooldown(uint skillId)
@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public void RemoveCooldown(uint skillId)
         {
-            Cooldowns.Remove(skillId);
+            Cooldowns.TryRemove(skillId, out _);
         }
     }
 }

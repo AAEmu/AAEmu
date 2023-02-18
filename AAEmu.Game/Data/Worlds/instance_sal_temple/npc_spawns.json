@@ -1,11 +1,223 @@
 [
   {
-    "UnitId": 502,
+    "Id": 120553,
+    "UnitId": 10075,
+    "Title": "Salphira Pyromancer",
     "Position": {
-      "X": 441.3,
-      "Y": 302.4,
-      "Z": 153.4,
-      "Yaw": -253.125
+      "X": 505.5366,
+      "Y": 299.5462,
+      "Z": 147.8094,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "Id": 98442,
+    "UnitId": 9839,
+    "Title": "Hellhound Trainer",
+    "Position": {
+      "X": 590.0,
+      "Y": 337.0,
+      "Z": 147.3993,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "Id": 69410,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 564.606,
+      "Y": 421.68,
+      "Z": 159.0248,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -160.3125
+    }
+  },
+  {
+    "Id": 23638,
+    "UnitId": 9844,
+    "Title": "Salphira Assassin",
+    "Position": {
+      "X": 599.838,
+      "Y": 354.294,
+      "Z": 146.9521,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 53.4375
+    }
+  },
+  {
+    "Id": 96583,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 577.988,
+      "Y": 341.38,
+      "Z": 147.4103,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "Id": 95517,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 587.614,
+      "Y": 315.538,
+      "Z": 147.3993,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "Id": 55538,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 594.606,
+      "Y": 367.106,
+      "Z": 147.0161,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "Id": 63797,
+    "UnitId": 9857,
+    "Title": "Salphira Disciple",
+    "Position": {
+      "X": 562.88,
+      "Y": 246.138,
+      "Z": 143.5527,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    }
+  },
+  {
+    "Id": 89934,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 514.47,
+      "Y": 251.076,
+      "Z": 144.0569,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "Id": 89175,
+    "UnitId": 9838,
+    "Title": "Salphira Monk",
+    "Position": {
+      "X": 618.992,
+      "Y": 448.818,
+      "Z": 148.5927,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -67.5
+    }
+  },
+  {
+    "Id": 18097,
+    "UnitId": 9844,
+    "Title": "Salphira Assassin",
+    "Position": {
+      "X": 621.322,
+      "Y": 449.368,
+      "Z": 148.5697,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 101.25
+    }
+  },
+  {
+    "Id": 53404,
+    "UnitId": 10681,
+    "Title": "Bennid Zims",
+    "Position": {
+      "X": 639.728,
+      "Y": 449.052,
+      "Z": 169.8009,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 70.3125
+    }
+  },
+  {
+    "Id": 127787,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 637.108,
+      "Y": 452.538,
+      "Z": 169.7879,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 154.6875
+    }
+  },
+  {
+    "Id": 75863,
+    "UnitId": 10680,
+    "Title": "Akmit Armor Sample",
+    "Position": {
+      "X": 637.092,
+      "Y": 452.668,
+      "Z": 169.7659,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 123.75
+    }
+  },
+  {
+    "Id": 54502,
+    "UnitId": 10724,
+    "Title": "Salphira Assassin",
+    "Position": {
+      "X": 512.782,
+      "Y": 310.416,
+      "Z": 147.5183,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 151.875
+    }
+  },
+  {
+    "Id": 98818,
+    "UnitId": 9810,
+    "Title": "Giant Fire Elemental",
+    "Position": {
+      "X": 576.16,
+      "Y": 251.532,
+      "Z": 144.0429,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "Id": 29883,
+    "UnitId": 502,
+    "Title": "Temple Priestess",
+    "Position": {
+      "X": 441.7,
+      "Y": 302.582,
+      "Z": 153.0264,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 120.9375
     }
   },
   {
@@ -15,24 +227,6 @@
       "Y": 297.2,
       "Z": 150.0,
       "Yaw": -253.125
-    }
-  },
-  {
-    "UnitId": 9838,
-    "Position": {
-      "X": 466.0,
-      "Y": 302.6,
-      "Z": 150.0,
-      "Yaw": 168.75
-    }
-  },
-  {
-    "UnitId": 9844,
-    "Position": {
-      "X": 513.3,
-      "Y": 310.2,
-      "Z": 147.1,
-      "Yaw": 188.4375
     }
   },
   {
@@ -72,10 +266,89 @@
   },
   {
     "UnitId": 12189,
+    "Title": "Salphira's Avatar Akmit",
     "Position": {
       "X": 609.7,
       "Y": 423.5,
       "Z": 148.7
+    }
+  },
+  {
+    "Id": 75972,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 457.16,
+      "Y": 301.074,
+      "Z": 149.6801,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    }
+  },
+  {
+    "Id": 39758,
+    "UnitId": 10799,
+    "Title": "Bennid Zims",
+    "Position": {
+      "X": 624.12,
+      "Y": 447.894,
+      "Z": 148.9599,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 154.6875
+    }
+  },
+  {
+    "Id": 44958,
+    "UnitId": 10799,
+    "Title": "Bennid Zims",
+    "Position": {
+      "X": 624.12,
+      "Y": 447.894,
+      "Z": 148.9599,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 154.6875
+    }
+  },
+  {
+    "Id": 33063,
+    "UnitId": 10799,
+    "Title": "Bennid Zims",
+    "Position": {
+      "X": 624.12,
+      "Y": 447.894,
+      "Z": 148.9599,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 154.6875
+    }
+  },
+  {
+    "Id": 77622,
+    "UnitId": 10799,
+    "Title": "Bennid Zims",
+    "Position": {
+      "X": 624.12,
+      "Y": 447.894,
+      "Z": 148.9599,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 154.6875
+    }
+  },
+  {
+    "Id": 97485,
+    "UnitId": 10576,
+    "Title": "Salphira",
+    "Position": {
+      "X": 612.83,
+      "Y": 434.166,
+      "Z": 149.241,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 151.875
     }
   }
 ]
