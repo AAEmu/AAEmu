@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
@@ -12,15 +13,38 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
     {
         protected bool _strafeDuringDelay;
 
+        private const int decreaseMoveSpeed = 161;
+        private const int shackle = 160;
+        private const int snare = 27;
+
         public void MoveInRange(BaseUnit target, TimeSpan delta)
         {
-            if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e => e.Template.Stun || e.Template.Sleep))
-                return;
-            if ((Ai.Owner?.ActiveSkillController?.State ?? SCState.Ended) == SCState.Running)
+            if (Ai == null || Ai.Owner == null)
                 return;
 
+            if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e =>
+                    e.Template.Stun ||
+                    e.Template.Sleep ||
+                    e.Template.Root ||
+                    e.Template.Knockdown ||
+                    e.Template.Fastened))
+            {
+                return;
+            }
+
+            if ((Ai.Owner.ActiveSkillController?.State ?? SCState.Ended) == SCState.Running)
+                return;
+
+            if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(shackle)) ||
+                Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(decreaseMoveSpeed)) ||
+                Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(snare)))
+            {
+                return;
+            }
+
             //Ai.Owner.Template.AttackStartRangeScale * 4, 
-            var range = 2f;// Ai.Owner.Template.AttackStartRangeScale * 6;
+            //var range = 2f;// Ai.Owner.Template.AttackStartRangeScale * 6;
+            var range = Ai.Owner.Template.AttackStartRangeScale;
             var speed = 5.4f * (delta.Milliseconds / 1000.0f);
             var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
             // var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
@@ -73,14 +97,14 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
             foreach (var abuser in abusers)
             {
-                if (Ai.AlreadyTargetted)
-                    return true;
+                //if (Ai.AlreadyTargetted)
+                //    return true;
 
-                if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead && !Ai.AlreadyTargetted)
+                if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead/* && !Ai.AlreadyTargetted*/)
                 {
                     Ai.Owner.CurrentAggroTarget = abuser.ObjId;
                     Ai.Owner.SetTarget(abuser);
-                    Ai.AlreadyTargetted = true;
+                    //Ai.AlreadyTargetted = true;
                     return true;
                 }
                 else
@@ -89,7 +113,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 }
             }
             Ai.Owner.SetTarget(null);
-            Ai.AlreadyTargetted = false;
+            //Ai.AlreadyTargetted = false;
             return false;
         }
     }

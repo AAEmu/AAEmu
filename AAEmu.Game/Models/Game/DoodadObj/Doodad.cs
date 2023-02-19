@@ -202,7 +202,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                         //           id=5095 Explosive Keg - 2 функции с разными skill и с разными NextPhase != -1
                         //           id=901 ??? - 3 функции с разными func_skill и одним и тем же NextPhase = 2221
                         //           id=1549 Logic -lamp bit 1 - 2 функции с skill=0 и с разными NextPhase, один из них = -1
-                        
+
                         //           id=6749 Nachashgar Room 9 - 4 функции с разными skill и одним и тем же NextPhase = 18123
                         var res = true;
                         var prev = 0;
@@ -264,7 +264,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             // if there is no function, complete the cycle
             if (func == null)
             {
-                _log.Debug("Use:DoFunc Finished execution with func = null: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                _log.Trace("Use:DoFunc Finished execution with func = null: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
                 return true;
             }
 
@@ -291,7 +291,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
             else
             {
-                _log.Debug("Use:DoFunc Finished execution with ToNextPhase = {3}: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId, ToNextPhase);
+                _log.Trace("Use:DoFunc Finished execution with ToNextPhase = {3}: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId, ToNextPhase);
                 return true;
             }
 
@@ -384,6 +384,22 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             var stop = DoPhase(caster, nextPhase);
             // the phase change packet call must be after the phase functions to have the correct TimeLeft in the packet
             BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
+
+            // the phase state does not allow us to interact with the object, so we will automatically
+            // get items from ID=6121 & ID=6125, "Treasure Chest" in Palace Celler Dungeon
+            var doodadFuncs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
+            if (doodadFuncs != null && doodadFuncs.Count > 0)
+            {
+                foreach (var doodadFunc in doodadFuncs)
+                {
+                    switch (doodadFunc.FuncType)
+                    {
+                        case "DoodadFuncLootItem":
+                            DoFunc(caster, 0, doodadFunc);
+                            break;
+                    }
+                }
+            }
 
             return stop; // if true, it did not pass the check for the quest (it must be aborted)
         }

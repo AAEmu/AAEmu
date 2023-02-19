@@ -39,11 +39,10 @@ namespace AAEmu.Game.Models.Game.World
 
         public void AddObject(GameObject obj)
         {
+            if (obj == null)
+                return;
             lock (_objectsLock)
             {
-                if (obj == null)
-                    return;
-
                 if (_objects == null)
                 {
                     _objects = new GameObject[50];
@@ -58,24 +57,23 @@ namespace AAEmu.Game.Models.Game.World
 
                 _objects[_objectsSize] = obj;
                 _objectsSize++;
-
-                if (obj.Transform != null)
-                {
-                    obj.Transform.WorldId = _worldId;
-                    var zoneId = WorldManager.Instance.GetZoneId(_worldId, obj.Transform.World.Position.X, obj.Transform.World.Position.Y);
-                    if (zoneId > 0)
-                        obj.Transform.ZoneId = zoneId;
-                }
-
-                if (obj is Character)
-                {
-                    _charactersSize++;
-                    foreach (var region in GetNeighbors())
-                        if (region != null)
-                            Interlocked.Increment(ref region._playerCount);
-                }
             }
 
+            if (obj.Transform != null)
+            {
+                obj.Transform.WorldId = _worldId;
+                var zoneId = WorldManager.Instance.GetZoneId(_worldId, obj.Transform.World.Position.X, obj.Transform.World.Position.Y);
+                if (zoneId > 0)
+                    obj.Transform.ZoneId = zoneId;
+            }
+
+            if (obj is Character)
+            {
+                _charactersSize++;
+                foreach (var region in GetNeighbors())
+                    if (region != null)
+                        Interlocked.Increment(ref region._playerCount);
+            }
             // Show debug info to subscribed players
             if (obj.Transform?._debugTrackers?.Count > 0)
                 foreach (var chr in obj.Transform._debugTrackers)
@@ -84,10 +82,10 @@ namespace AAEmu.Game.Models.Game.World
 
         public void RemoveObject(GameObject obj) // TODO Нужно доделать =_+
         {
+            if (obj == null)
+                return;
             lock (_objectsLock)
             {
-                if (obj == null)
-                    return;
                 if (_objects == null || _objectsSize == 0)
                     return;
 
@@ -122,9 +120,7 @@ namespace AAEmu.Game.Models.Game.World
                         if (region != null)
                             Interlocked.Decrement(ref region._playerCount);
                 }
-
             }
-
             // Show debug info to subscribed players
             if (obj.Transform?._debugTrackers?.Count > 0)
                 foreach (var chr in obj.Transform._debugTrackers)

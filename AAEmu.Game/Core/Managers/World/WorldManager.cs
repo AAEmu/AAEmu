@@ -791,50 +791,47 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void AddVisibleObject(GameObject obj)
         {
-            lock (_lock)
+            if (obj == null)
+                return;
+            var region = GetRegion(obj); // Get region of Object or it's Root object if it has one
+            var currentRegion = obj.Region; // Current Region this object is in
+
+            // If region didn't change, ignore
+            if (region == null || currentRegion != null && currentRegion.Equals(region))
+                return;
+
+            if (currentRegion == null)
             {
-                if (obj == null)
-                    return;
-                var region = GetRegion(obj); // Get region of Object or it's Root object if it has one
-                var currentRegion = obj.Region; // Current Region this object is in
+                // If no currentRegion, add it (happens on new spawns)
+                foreach (var neighbor in region.GetNeighbors())
+                    neighbor.AddToCharacters(obj);
 
-                // If region didn't change, ignore
-                if (region == null || currentRegion != null && currentRegion.Equals(region))
-                    return;
+                region.AddObject(obj);
+                obj.Region = region;
+            }
+            else
+            {
+                // No longer in the same region, update things
+                // Remove visibility from oldNeighbors
+                var diffs = currentRegion.FindDifferenceBetweenRegions(region);
+                if (diffs != null)
+                    foreach (var diff in diffs)
+                        diff?.RemoveFromCharacters(obj);
 
-                if (currentRegion == null)
-                {
-                    // If no currentRegion, add it (happens on new spawns)
-                    foreach (var neighbor in region.GetNeighbors())
-                        neighbor.AddToCharacters(obj);
+                // Add visibility to newNeighbours
+                diffs = region.FindDifferenceBetweenRegions(currentRegion);
+                if (diffs != null)
+                    foreach (var diff in diffs)
+                        if (obj.IsVisible)
+                            diff?.AddToCharacters(obj);
 
-                    region.AddObject(obj);
-                    obj.Region = region;
-                }
-                else
-                {
-                    // No longer in the same region, update things
-                    // Remove visibility from oldNeighbors
-                    var diffs = currentRegion.FindDifferenceBetweenRegions(region);
-                    if (diffs != null)
-                        foreach (var diff in diffs)
-                            diff?.RemoveFromCharacters(obj);
+                // Add this obj to the new region
+                region.AddObject(obj);
+                // Update it's region
+                obj.Region = region;
 
-                    // Add visibility to newNeighbours
-                    diffs = region.FindDifferenceBetweenRegions(currentRegion);
-                    if (diffs != null)
-                        foreach (var diff in diffs)
-                            if (obj.IsVisible)
-                                diff?.AddToCharacters(obj);
-
-                    // Add this obj to the new region
-                    region.AddObject(obj);
-                    // Update it's region
-                    obj.Region = region;
-
-                    // remove the obj from the old region
-                    currentRegion.RemoveObject(obj);
-                }
+                // remove the obj from the old region
+                currentRegion.RemoveObject(obj);
             }
 
             // Also show children
@@ -846,27 +843,24 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void RemoveVisibleObject(GameObject obj)
         {
-            lock (_lock)
-            {
-                if (obj?.Region == null)
-                    return;
+            if (obj?.Region == null)
+                return;
 
-                var neighbors = obj.Region.GetNeighbors();
-                obj.Region?.RemoveObject(obj);
+            var neighbors = obj.Region.GetNeighbors();
+            obj.Region?.RemoveObject(obj);
 
-                if (neighbors == null)
-                    return;
+            if (neighbors == null)
+                return;
 
-                if (neighbors.Length > 0)
-                    foreach (var neighbor in neighbors)
-                        neighbor?.RemoveFromCharacters(obj);
+            if (neighbors.Length > 0)
+                foreach (var neighbor in neighbors)
+                    neighbor?.RemoveFromCharacters(obj);
 
-                obj.Region = null;
+            obj.Region = null;
 
-                // Also remove children
-                if (obj.Transform == null)
-                    return;
-            }
+            // Also remove children
+            if (obj.Transform == null)
+                return;
 
             if (obj.Transform?.Children?.Count > 0)
                 foreach (var child in obj.Transform.Children)
