@@ -819,16 +819,38 @@ namespace AAEmu.Game.Models.Game.NPChar
             }*/
         }
 
+        private const int decreaseMoveSpeed = 161;
+        private const int shackle = 160;
+        private const int snare = 27;
+
         public void MoveTowards(Vector3 other, float distance, byte flags = 4)
         {
-            if (ActiveSkillController != null && ActiveSkillController.State != SCState.Ended)
+            if (Buffs.HasEffectsMatchingCondition(e =>
+                    e.Template.Stun ||
+                    e.Template.Sleep ||
+                    e.Template.Root ||
+                    e.Template.Knockdown ||
+                    e.Template.Fastened))
+            {
                 return;
+            }
+
+            if ((ActiveSkillController?.State ?? SCState.Ended) == SCState.Running)
+                return;
+
+            if (Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(shackle)) ||
+                Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(decreaseMoveSpeed)) ||
+                Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(snare)))
+            {
+                return;
+            }
 
             var oldPosition = Transform.Local.ClonePosition();
 
             var targetDist = MathUtil.CalculateDistance(Transform.Local.Position, other, true);
-            if (targetDist <= 0.05f)
+            if (targetDist <= 0.5f)
                 return;
+
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
             var travelDist = Math.Min(targetDist, distance);
