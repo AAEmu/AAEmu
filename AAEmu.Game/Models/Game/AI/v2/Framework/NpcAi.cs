@@ -70,7 +70,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
 
         private void SetCurrentBehavior(Behavior behavior)
         {
-            _log.Trace("{0} leaving behavior {1}, Entering behavior {2}", Owner.Name,  _currentBehavior?.GetType().Name ?? "none", behavior?.GetType().Name ?? "none");
+            //_log.Trace($"Npc {Owner.Name}:{Owner.ObjId} leaving behavior {_currentBehavior?.GetType().Name ?? "none"}, Entering behavior {behavior?.GetType().Name ?? "none"}");
             _currentBehavior?.Exit();
             _currentBehavior = behavior;
             _currentBehavior?.Enter();
@@ -80,10 +80,11 @@ namespace AAEmu.Game.Models.Game.AI.v2
         {
             if (!_behaviors.ContainsKey(kind))
             {
-                _log.Warn("Trying to set current behavior, but it is not valid. Missing behavior: {0}", kind);
+                _log.Trace($"Trying to set Npc {Owner.Name}:{Owner.ObjId} current behavior, but it is not valid. Missing behavior: {kind}");
                 return;
             }
-            
+
+            //_log.Trace($"Set Npc {Owner.Name}:{Owner.ObjId} current behavior: {kind}");
             SetCurrentBehavior(_behaviors[kind]);
         }
 

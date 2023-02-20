@@ -5,6 +5,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.V2.Params;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 {
@@ -38,6 +39,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 return;
 
             _strafeDuringDelay = false;
+
             #region Pick a skill
 
             var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
@@ -63,6 +65,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             }
             // If skill list is empty, get Base skill
             #endregion
+
+            //PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner);
+
         }
 
         public override void Exit()

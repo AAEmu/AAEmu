@@ -115,21 +115,6 @@ namespace AAEmu.Game.Models.Game.AI.v2
                     UseSkill(skillSelf, target);
                 }
                 return;
-                //if (!Ai.Owner.Cooldowns.CheckCooldown(skillTemplateSelf.Id))
-                //{
-                //    _log.Warn("PickSkillAndUseIt:UseSelfSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplateSelf.Id);
-                //    // TODO how to eliminate spam with skills? The following solution breaks the Npc attack
-                //    if (Ai.Owner.Template.BaseSkillDelay == 0)
-                //    {
-                //        const uint Delay1 = 10000u;
-                //        const uint Delay2 = 13000u;
-                //        UseSkill(skillSelf, target, Ai.Owner.Template.BaseSkillDelay);
-                //        Ai.Owner.Cooldowns.AddCooldown(skillSelf.Template.Id, (uint)Rand.Next(Delay1, Delay2));
-                //        return;
-                //    }
-                //    UseSkill(skillSelf, target, Ai.Owner.Template.BaseSkillDelay);
-                //    return;
-                //}
             }
 
             // This SkillUseConditionKind.InCombat
@@ -156,21 +141,6 @@ namespace AAEmu.Game.Models.Game.AI.v2
                 _log.Warn("PickSkillAndUseIt:UseSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2} on Target {3}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplate.Id, target.ObjId);
                 UseSkill(skill, target);
             }
-
-            //if (!Ai.Owner.Cooldowns.CheckCooldown(skillTemplate.Id))
-            //{
-            //    _log.Warn("PickSkillAndUseIt:UseSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2} on Target {3}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplate.Id, target.ObjId);
-            //    // TODO how to eliminate spam with skills? The following solution breaks the Npc attack
-            //    if (Ai.Owner.Template.BaseSkillDelay == 0)
-            //    {
-            //        const uint Delay1 = 1500u;
-            //        const uint Delay2 = 1550u;
-            //        UseSkill(skill, target, Ai.Owner.Template.BaseSkillDelay);
-            //        Ai.Owner.Cooldowns.AddCooldown(skill.Template.Id, (uint)Rand.Next(Delay1, Delay2));
-            //        return;
-            //    }
-            //    UseSkill(skill, target, Ai.Owner.Template.BaseSkillDelay);
-            //}
         }
 
         // UseSkill (delay)
@@ -225,5 +195,22 @@ namespace AAEmu.Game.Models.Game.AI.v2
         }
 
         // Check if can pick a new skill (delay, already casting)
+
+        public float CheckSightRangeScale(float value)
+        {
+            var sightRangeScale = value * Ai.Owner.Template.SightRangeScale;
+            if (sightRangeScale < value)
+            {
+                sightRangeScale = value;
+            }
+
+            return sightRangeScale;
+        }
+
+        public void OnEnemySeen(Unit target)
+        {
+            Ai.Owner.AddUnitAggro(NPChar.AggroKind.Damage, target, 1);
+            Ai.GoToCombat();
+        }
     }
 }
