@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 {

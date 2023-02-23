@@ -8,6 +8,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
     {
         public override void Enter()
         {
+            Ai.Owner.StopMovement();
         }
         public override void Tick(TimeSpan delta)
         {
