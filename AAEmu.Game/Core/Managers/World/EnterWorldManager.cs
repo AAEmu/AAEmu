@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Login;
@@ -8,8 +10,8 @@ using AAEmu.Game.Core.Packets.G2L;
 using AAEmu.Game.Core.Packets.Proxy;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Chat;
-using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Tasks;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Team;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
@@ -89,8 +91,16 @@ namespace AAEmu.Game.Core.Managers.World
                         
                         connection.SendPacket(new SCPrepareLeaveWorldPacket(logoutTime, type, false));
 
-                        connection.LeaveTask = new LeaveWorldTask(connection, type);
-                        TaskManager.Instance.Schedule(connection.LeaveTask, TimeSpan.FromMilliseconds(logoutTime));
+                        connection.CancelTokenSource = new CancellationTokenSource();
+                        var token = connection.CancelTokenSource.Token;
+                        connection.LeaveTask = new Task(() =>
+                        {
+                                Thread.Sleep(TimeSpan.FromMilliseconds(logoutTime));
+                                if (token.IsCancellationRequested)
+                                    return;
+                                LeaveWorldTask(connection, type);
+                        }, token);
+                        connection.LeaveTask.Start();
                     }
 
                     break;
@@ -109,6 +119,55 @@ namespace AAEmu.Game.Core.Managers.World
                     _log.Warn("[Leave] Unknown type: {0}", type);
                     break;
             }
+        }
+
+        public void LeaveWorldTask(GameConnection connection, byte target)
+        {
+            if (connection.ActiveChar != null)
+            {
+                connection.ActiveChar.DisabledSetPosition = true;
+                connection.ActiveChar.IsOnline = false;
+                connection.ActiveChar.LeaveTime = DateTime.UtcNow;
+
+                // Despawn and unmount everybody from owned Mates
+                MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(connection.ActiveChar);
+
+                // Check if still mounted on somebody else's mount and dismount that if needed
+                connection.ActiveChar.ForceDismount(AttachUnitReason.PrefabChanged); // Dismounting a mount because of unsummoning sends "10" for this
+
+                // Remove from Team (raid/party)
+                TeamManager.Instance.MemberRemoveFromTeam(connection.ActiveChar, connection.ActiveChar, RiskyAction.Leave);
+
+                // Remove from all Chat
+                ChatManager.Instance.LeaveAllChannels(connection.ActiveChar);
+
+                // Handle Family
+                if (connection.ActiveChar.Family > 0)
+                    FamilyManager.Instance.OnCharacterLogout(connection.ActiveChar);
+
+                // Handle Guild
+                connection.ActiveChar.Expedition?.OnCharacterLogout(connection.ActiveChar);
+
+                // Remove player from world (hides and release Id)
+                connection.ActiveChar.Delete();
+                // ObjectIdManager.Instance.ReleaseId(_connection.ActiveChar.ObjId);
+
+                // Cancel auto-regen
+                //_connection.ActiveChar.StopRegen();
+
+                // Clear Buyback table
+                connection.ActiveChar.BuyBackItems.Wipe();
+
+                // Remove subscribers
+                foreach (var subscriber in connection.ActiveChar.Subscribers)
+                    subscriber.Dispose();
+            }
+
+            connection.SaveAndRemoveFromWorld();
+            connection.State = GameState.Lobby;
+            connection.LeaveTask = null;
+            connection.SendPacket(new SCLeaveWorldGrantedPacket(target));
+            connection.SendPacket(new ChangeStatePacket(0));
         }
     }
 }
