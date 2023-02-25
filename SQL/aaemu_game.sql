@@ -310,6 +310,21 @@ CREATE TABLE `housings` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Player buildings';
 
+-- ----------------------------
+-- Records of housings
+-- ----------------------------
+INSERT INTO `housings` VALUES (1, 0, 0, 0, 139, 'Archeum Lodestone', 19643., 24385.4, 168.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (2, 0, 0, 0, 184, 'Archeum Lodestone', 19952.6, 24275.5, 140.4, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (3, 0, 0, 0, 185, 'Archeum Lodestone', 20379.4, 24126.2, 123.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (4, 0, 0, 0, 186, 'Archeum Lodestone', 21235.7, 23918.5, 165.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (5, 0, 0, 0, 187, 'Archeum Lodestone', 21441.7, 24211.7, 154.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (6, 0, 0, 0, 188, 'Archeum Lodestone', 22048.2, 24241.1, 154.8, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (7, 0, 0, 0, 189, 'Archeum Lodestone', 19644.0, 25077.6, 164.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (8, 0, 0, 0, 190, 'Archeum Lodestone', 20325.6, 25174.6, 172.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (9, 0, 0, 0, 191, 'Archeum Lodestone', 20890.8, 25238.5, 193.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (10, 0, 0, 0, 192, 'Archeum Lodestone', 21956, 24881.7, 206.3, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (11, 0, 0, 0, 271, 'Archeum Lodestone', 23060.8, 25148.3, 142.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (12, 0, 0, 0, 272, 'Archeum Lodestone', 21800.3, 26893.9, 137.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
 
 DROP TABLE IF EXISTS `items`;
 CREATE TABLE `items` (
