@@ -195,7 +195,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 {
                     var delay = GameScheduleManager.Instance.GetRemainingTime((int)UnitId, true);
                     _permanent = false; // Doodad on the schedule.
-                    _log.Debug("DoSpawn: Doodad TemplateId {0}, objId {1} FuncGroupId {2} despawn [1] reschedule next time...", UnitId, Last.ObjId, Last.FuncGroupId);
+                    _log.Debug("DoSpawn: Doodad TemplateId {0}, objId {1} FuncGroupId {2} spawn [1] reschedule next time...", UnitId, Last.ObjId, Last.FuncGroupId);
                     _log.Debug("DoSpawn: delay {0}", delay.ToString());
                     TaskManager.Instance.Schedule(new DoodadSpawnerDoSpawnTask(this), delay);
                     return; // Reschedule when OK

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
@@ -78,6 +79,32 @@ namespace AAEmu.Game.Models.Game.NPChar
                 npc.Spawner.Template = npcSpawner.Template;
                 npc.Spawner.RespawnTime = (int)Rand.Next(npc.Spawner.Template.SpawnDelayMin, npc.Spawner.Template.SpawnDelayMax);
                 npc.Spawn();
+
+                #region CheckOnce
+                // check that the position does not contain the same object
+                if (npc.Region == null)
+                {
+                    _log.Trace("We will not create a npc {1} from the spawn {0}, since there is region = null", Id, npc.TemplateId);
+                    npc.Delete();
+                    ObjectIdManager.Instance.ReleaseId(npc.ObjId);
+                    return null;
+                }
+                var result = npc?.Region?.GetList<Npc>(new List<Npc>(), npc.ObjId, npc.Transform.World.Position.X, npc.Transform.World.Position.Y, 36);
+                if (result != null && result.Count > 0)
+                {
+                    foreach (var n in result)
+                    {
+                        if (n.TemplateId == npc.TemplateId && n.Spawner._spawned.Count >= npc.Spawner.Template.MaxPopulation)
+                        {
+                            _log.Trace("We will not create a npc {1} from the spawn {0}, since there is already a similar one in this place", Id, npc.TemplateId);
+                            npc.Delete();
+                            ObjectIdManager.Instance.ReleaseId(npc.ObjId);
+                            return null;  // exclude duplication of objects
+                        }
+                    }
+                }
+
+                #endregion
                 npc.Simulation = new Simulation(npc);
                 npcs.Add(npc);
             }

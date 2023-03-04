@@ -24,8 +24,8 @@ namespace AAEmu.Game.Models.Game.NPChar
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        private List<Npc> _spawned; // the list of Npc's that have been shown
-        public Npc _lastSpawn;      // the last of the displayed Npc
+        internal List<Npc> _spawned; // the list of Npc's that have been shown
+        private Npc _lastSpawn;      // the last of the displayed Npc
         private int _scheduledCount; // already scheduled to show Npc
         private int _spawnCount;     // have already shown so many Npc
 
@@ -164,47 +164,54 @@ namespace AAEmu.Game.Models.Game.NPChar
                 npcs = nsn.Spawn(this, all ? Template.MaxPopulation : 1);
                 break;
             }
-            _spawned.AddRange(npcs);
-            if (npcs.Count == 0)
-            {
-                _log.Error($"Can't spawn npc {UnitId} from spawn {Id}, spawner {Template.Id}");
-                return;
-            }
-            if (_scheduledCount > 0)
-            {
-                _scheduledCount -= npcs.Count;
-            }
-            _spawnCount = npcs.Count;
-            if (_spawnCount < 0)
-            {
-                _spawnCount = 0;
-            }
-            _lastSpawn = _spawned[^1];
-            for (var i = 0; i < _spawnCount; i++)
-            {
-                _spawned[i].Spawner = this;
-            }
 
-            if (_isScheduled)
+            if (npcs != null)
             {
-                //if (UnitId == 3321) // 13126
-                //{
-                //    _log.Debug($"DoSpawn: Npc TemplateId {UnitId}, NpcSpawnerId {Id}, MaxPopulation {Template.MaxPopulation} spawned...");
-                //}
-                DoDespawnSchedule(_lastSpawn, all);
-            }
-
-            if (!string.IsNullOrEmpty(FollowPath))
-            {
-                foreach (var npc in npcs)
+                _spawned.AddRange(npcs);
+                if (npcs.Count == 0)
                 {
-                    if (npc.IsInPatrol) { return; }
-                    npc.IsInPatrol = true;
-                    npc.Simulation.RunningMode = false;
-                    npc.Simulation.Cycle = true;
-                    npc.Simulation.MoveToPathEnabled = false;
-                    npc.Simulation.MoveFileName = FollowPath;
-                    npc.Simulation.GoToPath(npc, true);
+                    _log.Error($"Can't spawn npc {UnitId} from spawn {Id}, spawner {Template.Id}");
+                    return;
+                }
+
+                if (_scheduledCount > 0)
+                {
+                    _scheduledCount -= npcs.Count;
+                }
+
+                _spawnCount = npcs.Count;
+                if (_spawnCount < 0)
+                {
+                    _spawnCount = 0;
+                }
+
+                _lastSpawn = _spawned[^1];
+                for (var i = 0; i < _spawnCount; i++)
+                {
+                    _spawned[i].Spawner = this;
+                }
+
+                if (_isScheduled)
+                {
+                    //if (UnitId == 3321) // 13126
+                    //{
+                    //    _log.Debug($"DoSpawn: Npc TemplateId {UnitId}, NpcSpawnerId {Id}, MaxPopulation {Template.MaxPopulation} spawned...");
+                    //}
+                    DoDespawnSchedule(_lastSpawn, all);
+                }
+
+                if (!string.IsNullOrEmpty(FollowPath))
+                {
+                    foreach (var npc in npcs)
+                    {
+                        if (npc.IsInPatrol) { return; }
+                        npc.IsInPatrol = true;
+                        npc.Simulation.RunningMode = false;
+                        npc.Simulation.Cycle = true;
+                        npc.Simulation.MoveToPathEnabled = false;
+                        npc.Simulation.MoveFileName = FollowPath;
+                        npc.Simulation.GoToPath(npc, true);
+                    }
                 }
             }
         }
@@ -273,7 +280,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             else if (GameScheduleManager.Instance.CheckSpawnerInScheduleSpawners((int)Template.Id))
             {
                 _isScheduled = true; // Npc is on the schedule
-                
+
                 // if there is, we'll check the time for the spawning
                 if (GameScheduleManager.Instance.CheckSpawnerInGameSchedules((int)Template.Id))
                 {
