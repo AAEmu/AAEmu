@@ -428,44 +428,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public override void Spawn()
         {
             base.Spawn();
-
-            #region CheckOnce
-            // check that the position does not contain the same object
-            if (Region == null)
-            {
-                _log.Trace("We will not create a doodad {1} from the spawn {0}, since there is region = null", Id, TemplateId);
-                Respawn = DateTime.MinValue;
-                Spawner.Despawn(this);
-                return;
-            }
-            var doodads = Region?.GetList<Doodad>(new List<Doodad>(), ObjId, Transform.World.Position.X, Transform.World.Position.Y, 1);
-            if (doodads != null && doodads.Count > 0)
-            {
-                foreach (var d in doodads)
-                {
-                    if (d.TemplateId == TemplateId || d.Transform.World.Position == Transform.World.Position)
-                        //if (d.Transform.World.Position == Transform.World.Position)
-                    {
-                        _log.Trace($"We will not create a doodad {TemplateId} from the spawn {Id}, since there is already a similar one in this place");
-                        Respawn = DateTime.MinValue;
-                        if (Spawner == null)
-                        {
-                            Delete();
-                            ObjectIdManager.Instance.ReleaseId(ObjId);
-                        }
-                        else
-                        {
-                            Spawner.Despawn(this);
-                        }
-
-                        return;
-                    }
-                }
-            }
-            #endregion
-
             // TODO has already been called in Create() - this eliminates re-initialization of plants/trees/animals
-            //FuncGroupId = GetFuncGroupId();  // Start phase
             _log.Trace("Doing phase {0} for WorldDoodad TemplateId {1}, objId {2}", FuncGroupId, TemplateId, ObjId);
             var unit = WorldManager.Instance.GetUnit(OwnerObjId);
             if (unit is not null) // Initialize the seats on the vehicle
@@ -477,47 +440,36 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
                 var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(FuncGroupId);
 
-                if (phaseFuncs.Length > 0)
+                foreach (var doodadFunc in funcs)
                 {
-                    foreach (var doodadPhaseFunc in phaseFuncs)
+                    switch (doodadFunc.FuncType)
                     {
-                        switch (doodadPhaseFunc.FuncType)
-                        {
-                            case "DoodadFuncTimer":
-                            case "DoodadFuncTod":
-                            case "DoodadFuncRatioChange":
-                            case "DoodadFuncGrowth":
-                            case "DoodadFuncClout":
-                                DoPhaseFuncs(null, (int)FuncGroupId);
-                                break;
-                                //case "DoodadFuncClimateReact":
-                                //case "DoodadFuncCraftDirect":
-                                //case "DoodadFuncHunger": // ?
-                                //case "DoodadFuncPulseTrigger":
-                                //case "DoodadFuncPuzzleOut": // ?
-                                //case "DoodadFuncSiegePeriod":
-                                //case "DoodadFuncSpawnGimmick":
-                                //case "DoodadFuncZoneReact":
-                                //    DoPhaseFuncs(null, (int)FuncGroupId);
-                                //    break;
-                        }
+                        case "DoodadFuncQuest":
+                            // if a quest doodad, we will not start phase functions
+                            return;
                     }
                 }
-
-                if (funcs.Count <= 0 && phaseFuncs.Length > 0) // Initialize anything that does not require interaction immediately after spawning
+                // Initialize anything that does not require interaction immediately after spawning
+                foreach (var doodadPhaseFunc in phaseFuncs)
                 {
-                    foreach (var doodadPhaseFunc in phaseFuncs)
+                    switch (doodadPhaseFunc.FuncType)
                     {
-                        switch (doodadPhaseFunc.FuncType)
-                        {
-                            case "DoodadFuncTimer":
-                            case "DoodadFuncTod":
-                            case "DoodadFuncRatioChange":
-                            case "DoodadFuncGrowth":
-                            case "DoodadFuncClout":
-                                DoPhaseFuncs(null, (int)FuncGroupId);
-                                break;
-                        }
+                        case "DoodadFuncTimer":
+                        case "DoodadFuncTod":
+                        case "DoodadFuncRatioChange":
+                        case "DoodadFuncGrowth":
+                        case "DoodadFuncClout":
+                            DoPhaseFuncs(null, (int)FuncGroupId);
+                            break;
+                        case "DoodadFuncClimateReact":
+                        case "DoodadFuncCraftDirect":
+                        case "DoodadFuncHunger": // ?
+                        case "DoodadFuncPulseTrigger":
+                        case "DoodadFuncPuzzleOut": // ?
+                        case "DoodadFuncSiegePeriod":
+                        case "DoodadFuncSpawnGimmick":
+                        case "DoodadFuncZoneReact":
+                            break;
                     }
                 }
             }
