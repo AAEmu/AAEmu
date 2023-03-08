@@ -1258,6 +1258,28 @@
         "Owner": 0
     },
     //----------------- Auroria continent ----------------------
+	{
+        "Id": 559,
+        "Name": "Calmlands ",
+        "X": 21135.0,
+        "Y": 24737.0,
+        "Z": 253.6,
+        "ZoneId": 234,
+        "ZRot": 0.0,
+        "SubZoneId": 1110,
+        "Owner": 0
+    },
+	{
+        "Id": 555,
+        "Name": "Marcalan",
+        "X": 20135.3,
+        "Y": 24766.1,
+        "Z": 188.7,
+        "ZoneId": 233,
+        "ZRot": 0.0,
+        "SubZoneId": 1110,
+        "Owner": 0
+    },
     {
         "Id": 556, // 357 (101,103,109,113) 556
         "Name": "Heedmar",
@@ -1266,18 +1288,18 @@
         "Z": 155.1,
         "ZoneId": 204,
         "ZRot": 0.0,
-        "SubZoneId": 0,
+        "SubZoneId": 1110,
         "Owner": 0
     },
     {
         "Id": 557, // 358 (101,103,109,113) 557
-        "Name": "Calmlands",
+        "Name": "Exeloch",
         "X": 22349.9,
         "Y": 24945.2,
         "Z": 188.7,
         "ZoneId": 276,
         "ZRot": 0.0,
-        "SubZoneId": 0,
+        "SubZoneId": 1110,
         "Owner": 0
     },
     {
@@ -1288,7 +1310,7 @@
         "Z": 145.0,
         "ZoneId": 205,
         "ZRot": 0,
-        "SubZoneId": 0,
+        "SubZoneId": 1110,
         "Owner": 0
     },
     {
@@ -1299,7 +1321,7 @@
         "Z": 163.5,
         "ZoneId": 275,
         "ZRot": 0,
-        "SubZoneId": 0,
+        "SubZoneId": 1110,
         "Owner": 0
     },
     {
