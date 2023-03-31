@@ -839,6 +839,8 @@ namespace AAEmu.Game.Core.Managers.World
                 foreach (var child in obj.Transform.Children)
                     if (child != null)
                         AddVisibleObject(child.GameObject);
+            
+            //_log.Warn($" objects={_objects.Count}, doodads={_doodads.Count}, npcs={_npcs.Count}, characters={_characters.Count}");
         }
 
         public void RemoveVisibleObject(GameObject obj)

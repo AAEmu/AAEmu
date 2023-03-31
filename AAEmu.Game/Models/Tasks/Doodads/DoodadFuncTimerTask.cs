@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using System.Linq;
+using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Units;
 
@@ -30,6 +32,20 @@ namespace AAEmu.Game.Models.Tasks.Doodads
 
             _owner.FuncTask = null;
             _owner.DoPhaseFuncs(_caster, _nextPhase);
+
+            // the phase state does not allow us to interact with the object, so we will automatically
+            // get items from ID=6121 & ID=6125, "Treasure Chest" in Palace Celler Dungeon
+            var doodadFuncs = DoodadManager.Instance.GetFuncsForGroup((uint)_nextPhase);
+            if (doodadFuncs.Count > 0)
+            {
+                foreach (var f in doodadFuncs.Where(f => f.FuncType is "DoodadFuncLootItem" or "DoodadFuncLootPack"))
+                {
+                    if (!_owner.IsGroupKindStart((uint)_nextPhase))
+                    {
+                        _owner.DoFunc(_caster, 0, f);
+                    }
+                }
+            }
         }
     }
 }

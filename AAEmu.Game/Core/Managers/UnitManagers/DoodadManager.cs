@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -2341,6 +2342,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     break;
             }
 
+            Task.Run(() => doodad.InitDoodad());
+            
+            //_log.Debug($"Create: TemplateId {doodad.TemplateId}, ObjId {doodad.ObjId}, FuncGroupId {doodad.FuncGroupId}");
+            
             return doodad;
         }
 
@@ -2515,7 +2520,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             foreach (var item in items)
                 character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1, preferredItem);
-            
+
             doodad.Spawn();
             doodad.Save();
 
