@@ -50,6 +50,16 @@ namespace AAEmu.Game.Core.Managers
             new Thread(Tick) {Name = "TimeManagerThread"}.Start();
         }
 
+        public float Get()
+        {
+            return _time;
+        }
+
+        public void Set(int hour)
+        {
+            _time = hour * 3600f;
+        }
+
         public void Stop()
         {
             _work = false;

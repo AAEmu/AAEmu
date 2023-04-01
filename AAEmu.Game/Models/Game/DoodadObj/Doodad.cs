@@ -13,6 +13,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Doodads;
 
@@ -164,33 +165,44 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             _data = data;
         }
 
-        // public void DoFirstPhase(Unit unit)
-        // {
-        //     
-        // }
-
-        public void Use(Unit caster, uint skillId)
+        public void Use(Unit caster, uint skillId = 0, int funcGroupId = 0)
         {
-            if (caster == null) { return; }
+            if (caster == null)
+            {
+                ListFuncGroupId = new List<uint>();
+                return;
+            }
 
-            ListFuncGroupId = new List<uint>();
+            if (funcGroupId > 0)
+            {
+                FuncGroupId = (uint)funcGroupId;
+            }
 
             while (true)
             {
                 _log.Debug("Use: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+
                 ToNextPhase = false;
-                if (!ListFuncGroupId.Contains(FuncGroupId))
-                {
-                    ListFuncGroupId.Add(FuncGroupId); // to check CheckPhase()
-                }
-                else
-                {
-                    _log.Debug("Use: Finished execution with recurse: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
-                    return;
-                }
+                ListGroupId = new List<uint>();
+
+                //if (!ListFuncGroupId.Contains(FuncGroupId))
+                //{
+                //    ListFuncGroupId.Add(FuncGroupId); // to check CheckPhase()
+                //}
+                //else
+                //{
+                //    _log.Debug("Use: Finished execution with recurse: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                //    return;
+                //}
 
                 //  first we find the functions, then we execute
                 var func = DoodadManager.Instance.GetFunc(FuncGroupId, skillId); // if skillId > 0
+                if (func == null)
+                {
+                    DoPhaseFuncs(caster, (int)FuncGroupId);
+                    return;
+                }
+
                 if (skillId == 0)
                 {
                     var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId); // if several functions with one NextPhase
@@ -236,7 +248,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 }
                 else
                 {
-                    if (DoFunc(caster, skillId, func)) { return; }
+                    if (DoFunc(caster, skillId, func))
+                    {
+                        DoPhaseFuncs(caster, (int)FuncGroupId);
+                        return;
+                    }
                 }
 
                 // then execute the phase functions (the FuncGroupId may change to a different one than it was before)
@@ -248,7 +264,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     return;
                 }
 
-                skillId = 0; // надо ли обнулять?
+                skillId = 0;
             }
         }
 
@@ -259,7 +275,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <param name="skillId"></param>
         /// <param name="func"></param>
         /// <returns>If TRUE, then we stop further execution of functions and wait for interaction</returns>
-        private bool DoFunc(Unit caster, uint skillId, DoodadFunc func)
+        public bool DoFunc(Unit caster, uint skillId, DoodadFunc func)
         {
             // if there is no function, complete the cycle
             if (func == null)
@@ -277,10 +293,26 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
             if (ToNextPhase)
             {
-                if (func.NextPhase == -1) { Delete(); } // Delete doodad
+                if (func.NextPhase == -1)
+                {
+                    // проверка нужна для Windstone id=1473
+                    if (!HasOnlyGroupKindStart())
+                    {
+                        if (FuncTask is DoodadFuncTimerTask)
+                        {
+                            FuncTask?.CancelAsync();
+                            FuncTask = null;
+                            _log.Debug($"DoFunc: DoodadFuncTimer: The current timer has been canceled. TemplateId {TemplateId}, ObjId {ObjId}, nextPhase {func.NextPhase}");
+                        }
+                        Delete(); // Delete doodad
+                    }
+                    return true;
+                }
+
 
                 if (OverridePhase > 0)
                 {
+                    // встречается в DoodadFuncConditionalUse
                     FuncGroupId = (uint)OverridePhase;
                     OverridePhase = 0;
                 }
@@ -304,10 +336,19 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <param name="caster"></param>
         /// <param name="nextPhase"></param>
         /// <returns>if true, it did not pass the check for the quest (it must be aborted)</returns>
-        private bool DoPhase(Unit caster, int nextPhase)
+        private bool DoPhase(Unit caster, ref int nextPhase)
         {
-            ListGroupId = new List<uint>();
             if (nextPhase <= 0) { return false; }
+
+            if (!ListGroupId.Contains((uint)nextPhase))
+            {
+                ListGroupId.Add((uint)nextPhase); // to check CheckPhase()
+            }
+            else
+            {
+                _log.Debug("DoPhase: Finished execution with recurse: TemplateId {0}, Using phase {1}", TemplateId, FuncGroupId);
+                return true;
+            }
 
             if (FuncTask is DoodadFuncTimerTask)
             {
@@ -324,8 +365,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 _log.Trace("DoPhase: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
 
             // Changing the phase.
-            FuncGroupId = (uint)nextPhase;
-            var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(FuncGroupId);
+            // FuncGroupId = (uint)nextPhase;
+            var phaseFuncs = DoodadManager.Instance.GetPhaseFunc((uint)nextPhase);
             if (phaseFuncs.Length == 0)
             {
                 return false; // no phase functions for FuncGroupId
@@ -351,7 +392,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             {
                 nextPhase = OverridePhase;
                 OverridePhase = 0;
-                return DoPhase(caster, nextPhase);
+                return DoPhase(caster, ref nextPhase);
             }
 
             if (!_deleted)
@@ -381,27 +422,51 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 _log.Trace("DoPhaseFuncs: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
 
             // Start the phase functions
-            var stop = DoPhase(caster, nextPhase);
-            // the phase change packet call must be after the phase functions to have the correct TimeLeft in the packet
-            BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
-
-            // the phase state does not allow us to interact with the object, so we will automatically
-            // get items from ID=6121 & ID=6125, "Treasure Chest" in Palace Celler Dungeon
-            var doodadFuncs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
-            if (doodadFuncs != null && doodadFuncs.Count > 0)
+            //if (nextPhase != FuncGroupId)
             {
-                foreach (var doodadFunc in doodadFuncs)
-                {
-                    switch (doodadFunc.FuncType)
-                    {
-                        case "DoodadFuncLootItem":
-                            DoFunc(caster, 0, doodadFunc);
-                            break;
-                    }
-                }
+                PhaseChangedWithHideAndShow(nextPhase);
+            }
+
+            var stop = DoPhase(caster, ref nextPhase);
+
+            // the phase change packet call must be after the phase functions to have the correct TimeLeft in the packet
+            if (nextPhase != FuncGroupId)
+            {
+                PhaseChangedWithHideAndShow(nextPhase);
             }
 
             return stop; // if true, it did not pass the check for the quest (it must be aborted)
+        }
+
+        private void PhaseChangedWithHideAndShow(int nextPhase)
+        {
+            //_log.Debug($"DoPhaseFuncs: change the phase to display doodad, TemplateId {TemplateId}, ObjId {ObjId}, nextPhase {nextPhase}, FuncGroupId {FuncGroupId}");
+            FuncGroupId = (uint)nextPhase; // сменим фазу, чтобы отображались doodad // change the phase to display doodad
+            if (ParentObjId > 0)
+            {
+                // это хак для предметов в домах // this is a hack for items in houses
+                Hide();
+                //BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true); // change the phase to display doodad
+                Show();
+            }
+            else
+            {
+                BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true); // change the phase to display doodad
+            }
+        }
+
+        private bool HasOnlyGroupKindStart()
+        {
+            return Template.FuncGroups.All(funcGroup =>
+                funcGroup.GroupKindId is not (DoodadFuncGroups.DoodadFuncGroupKind.Normal
+                    or DoodadFuncGroups.DoodadFuncGroupKind.End));
+        }
+
+        public bool IsGroupKindStart(uint funcGroupId)
+        {
+            return Template.FuncGroups.Where(funcGroup =>
+                    funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start)
+                .Any(funcGroup => funcGroupId == funcGroup.Id);
         }
 
         public uint GetFuncGroupId()
@@ -425,67 +490,75 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <summary>
         /// initialization of the current doodad phase
         /// </summary>
-        public override void Spawn()
+        public void InitDoodad()
         {
-            base.Spawn();
             // TODO has already been called in Create() - this eliminates re-initialization of plants/trees/animals
             //FuncGroupId = GetFuncGroupId();  // Start phase
-            _log.Trace("Doing phase {0} for WorldDoodad TemplateId {1}, objId {2}", FuncGroupId, TemplateId, ObjId);
             var unit = WorldManager.Instance.GetUnit(OwnerObjId);
-            if (unit is not null) // Initialize the seats on the vehicle
-            {
-                DoPhaseFuncs(unit, (int)FuncGroupId);
-            }
-            else // anything that sets up the environment
-            {
-                var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
-                var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(FuncGroupId);
-
-                if (phaseFuncs.Length > 0)
-                {
-                    foreach (var doodadPhaseFunc in phaseFuncs)
-                    {
-                        switch (doodadPhaseFunc.FuncType)
-                        {
-                            case "DoodadFuncTimer":
-                            case "DoodadFuncTod":
-                            case "DoodadFuncRatioChange":
-                            case "DoodadFuncGrowth":
-                            case "DoodadFuncClout":
-                                DoPhaseFuncs(null, (int)FuncGroupId);
-                                break;
-                                //case "DoodadFuncClimateReact":
-                                //case "DoodadFuncCraftDirect":
-                                //case "DoodadFuncHunger": // ?
-                                //case "DoodadFuncPulseTrigger":
-                                //case "DoodadFuncPuzzleOut": // ?
-                                //case "DoodadFuncSiegePeriod":
-                                //case "DoodadFuncSpawnGimmick":
-                                //case "DoodadFuncZoneReact":
-                                //    DoPhaseFuncs(null, (int)FuncGroupId);
-                                //    break;
-                        }
-                    }
-                }
-
-                if (funcs.Count <= 0 && phaseFuncs.Length > 0) // Initialize anything that does not require interaction immediately after spawning
-                {
-                    foreach (var doodadPhaseFunc in phaseFuncs)
-                    {
-                        switch (doodadPhaseFunc.FuncType)
-                        {
-                            case "DoodadFuncTimer":
-                            case "DoodadFuncTod":
-                            case "DoodadFuncRatioChange":
-                            case "DoodadFuncGrowth":
-                            case "DoodadFuncClout":
-                                DoPhaseFuncs(null, (int)FuncGroupId);
-                                break;
-                        }
-                    }
-                }
-            }
+            DoPhaseFuncs(unit, (int)FuncGroupId);
         }
+
+        //public override void Spawn()
+        //{
+        //    base.Spawn();
+        //    // TODO has already been called in Create() - this eliminates re-initialization of plants/trees/animals
+        //    //FuncGroupId = GetFuncGroupId();  // Start phase
+        //    _log.Trace("Doing phase {0} for WorldDoodad TemplateId {1}, objId {2}", FuncGroupId, TemplateId, ObjId);
+        //    var unit = WorldManager.Instance.GetUnit(OwnerObjId);
+        //    if (unit is not null) // Initialize the seats on the vehicle
+        //    {
+        //        DoPhaseFuncs(unit, (int)FuncGroupId);
+        //    }
+        //    else // anything that sets up the environment
+        //    {
+        //        var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
+        //        var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(FuncGroupId);
+
+        //        if (phaseFuncs.Length > 0)
+        //        {
+        //            foreach (var doodadPhaseFunc in phaseFuncs)
+        //            {
+        //                switch (doodadPhaseFunc.FuncType)
+        //                {
+        //                    case "DoodadFuncTimer":
+        //                    case "DoodadFuncTod":
+        //                    case "DoodadFuncRatioChange":
+        //                    case "DoodadFuncGrowth":
+        //                    case "DoodadFuncClout":
+        //                        DoPhaseFuncs(null, (int)FuncGroupId);
+        //                        break;
+        //                        //case "DoodadFuncClimateReact":
+        //                        //case "DoodadFuncCraftDirect":
+        //                        //case "DoodadFuncHunger": // ?
+        //                        //case "DoodadFuncPulseTrigger":
+        //                        //case "DoodadFuncPuzzleOut": // ?
+        //                        //case "DoodadFuncSiegePeriod":
+        //                        //case "DoodadFuncSpawnGimmick":
+        //                        //case "DoodadFuncZoneReact":
+        //                        //    DoPhaseFuncs(null, (int)FuncGroupId);
+        //                        //    break;
+        //                }
+        //            }
+        //        }
+
+        //        if (funcs.Count <= 0 && phaseFuncs.Length > 0) // Initialize anything that does not require interaction immediately after spawning
+        //        {
+        //            foreach (var doodadPhaseFunc in phaseFuncs)
+        //            {
+        //                switch (doodadPhaseFunc.FuncType)
+        //                {
+        //                    case "DoodadFuncTimer":
+        //                    case "DoodadFuncTod":
+        //                    case "DoodadFuncRatioChange":
+        //                    case "DoodadFuncGrowth":
+        //                    case "DoodadFuncClout":
+        //                        DoPhaseFuncs(null, (int)FuncGroupId);
+        //                        break;
+        //                }
+        //            }
+        //        }
+        //    }
+        //}
 
         public override void BroadcastPacket(GamePacket packet, bool self)
         {

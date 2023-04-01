@@ -381,11 +381,6 @@ namespace AAEmu.Game.Models.Game.Units
 
                 killer.CurrentTarget = null;
             }
-            else
-            {
-                this.IsInBattle = false; // we need the character to be "not in battle"
-                DespawMate((Character)this);
-            }
         }
 
         private void DespawMate(Character character)
