@@ -691,8 +691,10 @@ namespace AAEmu.Game.Models.Game.Quests
                     }
                 }
 
-                if (complete && (EarlyCompletion || ExtraCompletion))
+                if (complete || (EarlyCompletion || ExtraCompletion))
                 {
+                    complete = true;
+                    Status = QuestStatus.Ready;
                     break; // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест (the quest can be passed, but we do not let it end when it reaches 100% until we come to the Npc to pass the quest)
                 }
                 if (!complete)
