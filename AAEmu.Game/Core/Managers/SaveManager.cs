@@ -166,5 +166,9 @@ namespace AAEmu.Game.Core.Managers
             DoSave();
         }
 
+        public void SetAutoSaveInterval()
+        {
+            Delay = AppConfiguration.Instance.World.AutoSaveInterval;
+        }
     }
 }

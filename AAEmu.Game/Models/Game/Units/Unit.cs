@@ -442,6 +442,38 @@ namespace AAEmu.Game.Models.Game.Units
         {
             AppConfiguration.Instance.World.GodMode = value;
         }
+        public void SetGrowthRate(float value)
+        {
+            AppConfiguration.Instance.World.GrowthRate = value;
+        }
+        public void SetLootRate(float value)
+        {
+            AppConfiguration.Instance.World.LootRate = value;
+        }
+        public void SetVocationRate(float value)
+        {
+            AppConfiguration.Instance.World.VocationRate = value;
+        }
+        public void SetHonorRate(float value)
+        {
+            AppConfiguration.Instance.World.HonorRate = value;
+        }
+        public void SetExpRate(float value)
+        {
+            AppConfiguration.Instance.World.ExpRate = value;
+        }
+        public void SetAutoSaveInterval(float value)
+        {
+            AppConfiguration.Instance.World.AutoSaveInterval = value;
+        }
+        public void SetLogoutMessage(string value)
+        {
+            AppConfiguration.Instance.World.LogoutMessage = value;
+        }
+        public void SetMotdMessage(string value)
+        {
+            AppConfiguration.Instance.World.MOTD = value;
+        }
 
         public void SetCriminalState(bool criminalState)
         {

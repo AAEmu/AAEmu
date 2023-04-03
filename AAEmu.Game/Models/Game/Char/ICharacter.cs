@@ -24,5 +24,13 @@ namespace AAEmu.Game.Models.Game.Char
         void UpdateGearBonuses(Item itemAdded, Item itemRemoved);
         public bool ChangeMoney(SlotType typeFrom, SlotType typeTo, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney);
         public void ChangeGamePoints(GamePointKind kind, int change);
+        public void SetGrowthRate(float value);
+        public void SetLootRate(float value);
+        public void SetVocationRate(float value);
+        public void SetHonorRate(float value);
+        public void SetExpRate(float value);
+        public void SetAutoSaveInterval(float value);
+        public void SetLogoutMessage(string value);
+        public void SetMotdMessage(string value);
     }
 }
