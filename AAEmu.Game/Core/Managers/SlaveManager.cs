@@ -472,7 +472,7 @@ namespace AAEmu.Game.Core.Managers
             }
 
             owner.SendPacket(new SCMySlavePacket(template.ObjId, template.TlId, template.Name, template.TemplateId,
-                template.Hp, template.Mp,
+                template.Hp, template.MaxHp,
                 template.Transform.World.Position.X,
                 template.Transform.World.Position.Y,
                 template.Transform.World.Position.Z
@@ -715,8 +715,9 @@ namespace AAEmu.Game.Core.Managers
             }
 
             slave.SendPacket(new SCMySlavePacket(slave.ObjId, slave.TlId, slave.Name, slave.TemplateId,
-                slave.Hp, slave.Mp,
-                slave.Transform.World.Position.X, slave.Transform.World.Position.Y,
+                slave.Hp, slave.MaxHp,
+                slave.Transform.World.Position.X,
+                slave.Transform.World.Position.Y,
                 slave.Transform.World.Position.Z));
 
             return slave;
@@ -958,9 +959,10 @@ namespace AAEmu.Game.Core.Managers
             foreach (var (ownerObjId, slave) in slaveList)
             {
                 var owner = WorldManager.Instance.GetCharacterByObjId(ownerObjId);
-                owner?.SendPacket(new SCMySlavePacket(slave.ObjId, slave.TlId, slave.Name, slave.TemplateId, slave.Hp,
-                    slave.Mp,
-                    slave.Transform.World.Position.X, slave.Transform.World.Position.Y,
+                owner?.SendPacket(new SCMySlavePacket(slave.ObjId, slave.TlId, slave.Name, slave.TemplateId,
+                    slave.Hp, slave.MaxHp,
+                    slave.Transform.World.Position.X,
+                    slave.Transform.World.Position.Y,
                     slave.Transform.World.Position.Z));
             }
         }
