@@ -517,6 +517,12 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                     }
                     _log.Info("{0} Doodads spawned", count);
+
+                    if (worldId == 0)
+                    {
+                        // необходимо дождаться спавна всех doodads
+                        FishSchoolManager.Instance.Load();
+                    }
                 });
             }
 

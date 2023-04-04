@@ -35,7 +35,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 // Ships // TODO Check how sit on the ship
                 else
                 {
-                    SlaveManager.Instance.BindSlave(character, owner.ParentObjId, AttachPointId, AttachUnitReason.NewMaster);
+                    SlaveManager.Instance.BindSlave(character, owner.ParentObjId, AttachPointId, AttachUnitReason.BoardTransfer);
                 }
             }
         }

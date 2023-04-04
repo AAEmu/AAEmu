@@ -1088,6 +1088,11 @@ namespace AAEmu.Game.Core.Managers.World
             return _mates.Values.ToList();
         }
 
+        public List<Doodad> GetAllDoodads()
+        {
+            return _doodads.Values.ToList();
+        }
+
         public List<Slave> GetAllSlavesFromWorld(uint worldId)
         {
             return _slaves.Values.Where(n => n.Transform.WorldId == worldId).ToList();

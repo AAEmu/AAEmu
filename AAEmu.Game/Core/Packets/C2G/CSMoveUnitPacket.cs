@@ -56,6 +56,11 @@ namespace AAEmu.Game.Core.Packets.C2G
             */
 
             var character = Connection.ActiveChar;
+            if (character?.FishSchool?.FishFinderTickTask != null)
+            {
+                // stopping the FishSchoolTickTask if character moved
+                FishSchoolManager.Instance.StopFishFinderTickAsync(character).GetAwaiter().GetResult();
+            }
             var targetUnit = WorldManager.Instance.GetBaseUnit(_objId);
 
             // Invalid Object ?

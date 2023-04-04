@@ -181,6 +181,7 @@ namespace AAEmu.Game
             SlaveManager.Instance.Initialize();
             CashShopManager.Instance.Initialize();
             GameDataManager.Instance.PostLoadGameData();
+            FishSchoolManager.Instance.Initialize();
 
             if ((waterBodyTask != null) && (!waterBodyTask.IsCompleted))
             {
@@ -205,7 +206,7 @@ namespace AAEmu.Game
 
             // Start running Physics when everything is loaded
             WorldManager.Instance.StartPhysics();
-            
+
             CharacterManager.Instance.CheckForDeletedCharacters();
             
             GameNetwork.Instance.Start();
