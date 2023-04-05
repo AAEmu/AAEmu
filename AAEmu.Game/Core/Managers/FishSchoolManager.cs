@@ -6,7 +6,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.Shipyard;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Tasks.FishSchools;
 using AAEmu.Game.Utils;
@@ -19,19 +19,17 @@ namespace AAEmu.Game.Core.Managers
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
         private const double Delay = 500;
-        private List<Doodad> FishSchools = new List<Doodad>();
-        private bool _loaded = false;
+        private Dictionary<uint, List<Doodad>> FishSchools = new Dictionary<uint, List<Doodad>>();
 
         public void Initialize()
         {
+            FishSchools = new Dictionary<uint, List<Doodad>>();
             _log.Info("Initialising FishSchool Manager...");
         }
 
-        public void Load()
+        public void Load(uint worldId)
         {
-            if (_loaded)
-                return;
-
+            var fishschool = new List<Doodad>();
             _log.Info("Loading FishSchool...");
             var doodads = WorldManager.Instance.GetAllDoodads();
             if (doodads != null)
@@ -39,15 +37,19 @@ namespace AAEmu.Game.Core.Managers
                 foreach (var d in doodads)
                 {
                     // ID=6447, "Freshwater Fish School", ID=6448, "Saltwater Fish School"
-                    if (d.TemplateId == 6447 || d.TemplateId == 6448)
+                    if (d.TemplateId == (uint)DoodadConstants.FreshwaterFishSchool || d.TemplateId == (uint)DoodadConstants.SaltwaterFishSchool)
                     {
-                        FishSchools.Add(d);
+                        fishschool.Add(d);
                     }
                 }
-            }
-            _log.Info($"Loaded {FishSchools.Count} FishSchool...");
 
-            _loaded = true;
+                if (FishSchools.ContainsKey(worldId))
+                {
+                    FishSchools.Remove(worldId);
+                }
+                FishSchools.Add(worldId, fishschool);
+            }
+            _log.Info($"Loaded {FishSchools.Count} FishSchool for worldId={worldId}...");
         }
 
         public void FishFinderStart(Character character)
@@ -55,10 +57,13 @@ namespace AAEmu.Game.Core.Managers
             if (character.FishSchool.FishFinderTickTask != null)
             {
                 StopFishFinderTickAsync(character).GetAwaiter().GetResult();
+                character.Buffs.RemoveBuff((uint)BuffConstants.SearchSchoolOfFish);
                 return;
             }
 
-            var buffId = 5736u; // Id=5736, "Search School of Fish"
+            // TODO этот бафф не появляется при взаимодействии с FindFisher, добавим чтобы был
+            // TODO this buff does not appear when interacting with FindFisher, let's add it to be
+            var buffId = (uint)BuffConstants.SearchSchoolOfFish; // Id=5736, "Search School of Fish"
             character.Buffs.AddBuff(new Buff(character, character, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow));
 
             character.SendPacket(new SCSchoolOfFishFinderToggledPacket(true, 800));
@@ -75,7 +80,7 @@ namespace AAEmu.Game.Core.Managers
             if (character.AccessLevel == 0)
             {
                 var transfers2 = new List<Doodad>();
-                foreach (var t in FishSchools)
+                foreach (var t in FishSchools[character.Transform.WorldId])
                 {
                     if (!(MathF.Abs(MathUtil.CalculateDistance(character, t)) < 800f)) { continue; }
 
@@ -85,7 +90,7 @@ namespace AAEmu.Game.Core.Managers
             }
             else
             {
-                transfers = FishSchools.ToArray();
+                transfers = FishSchools[character.Transform.WorldId].ToArray();
             }
 
             if (transfers.Length > 0)
