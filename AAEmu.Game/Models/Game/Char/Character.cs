@@ -28,6 +28,8 @@ using MySql.Data.MySqlClient;
 using System.Drawing;
 using AAEmu.Game.Models.Game.NPChar;
 using System.Linq;
+using AAEmu.Game.Models.Game.FishSchools;
+using AAEmu.Game.Models.Tasks;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -179,6 +181,7 @@ namespace AAEmu.Game.Models.Game.Char
                 _isOnline = value;
             }
         }
+        public FishSchool FishSchool {get; set; }
 
         #region Attributes
 
@@ -1198,13 +1201,11 @@ namespace AAEmu.Game.Models.Game.Char
         {
             _options = new Dictionary<ushort, string>();
             _hostilePlayers = new ConcurrentDictionary<uint, DateTime>();
-
             Breath = LungCapacity;
-
             ModelParams = modelParams;
             Subscribers = new List<IDisposable>();
-            
             ChargeLock = new object();
+            FishSchool = new FishSchool(this);
         }
 
         public WeaponWieldKind GetWeaponWieldKind()

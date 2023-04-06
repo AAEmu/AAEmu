@@ -151,6 +151,8 @@ namespace AAEmu.Game.Core.Network.Connections
 
             // stopping the TransferTelescopeTickStartTask if character disconnected
             TransferTelescopeManager.Instance.StopTransferTelescopeTickAsync().GetAwaiter().GetResult();
+            // stopping the FishFindTickTask if character disconnected
+            FishSchoolManager.Instance.StopFishFinderTickAsync(ActiveChar).GetAwaiter().GetResult();
 
             ActiveChar.Delete();
             // Removed ReleaseId here to try and fix party/raid disconnect and reconnect issues. Replaced with saving the data

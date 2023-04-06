@@ -22,6 +22,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
@@ -517,6 +518,9 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                     }
                     _log.Info("{0} Doodads spawned", count);
+
+                    // необходимо дождаться спавна всех doodads
+                    FishSchoolManager.Instance.Load(worldId);
                 });
             }
 

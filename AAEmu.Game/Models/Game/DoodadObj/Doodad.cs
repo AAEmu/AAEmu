@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
@@ -15,6 +16,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Tasks.Doodads;
 
 /*
@@ -445,9 +447,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (ParentObjId > 0)
             {
                 // это хак для предметов в домах // this is a hack for items in houses
-                Hide();
-                //BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true); // change the phase to display doodad
-                Show();
+                //Hide();
+                BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true); // change the phase to display doodad
+                //Show();
             }
             else
             {
@@ -713,6 +715,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public virtual ulong GetItemContainerId()
         {
             return 0;
+        }
+
+        public PacketStream WriteFishFinderUnit(PacketStream stream)
+        {
+            stream.WriteBc(ObjId);
+            stream.Write(Template.Id);
+            stream.WritePosition(Transform.World.Position);
+
+            return stream;
         }
     }
 }

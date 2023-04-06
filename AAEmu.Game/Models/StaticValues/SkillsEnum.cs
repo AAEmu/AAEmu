@@ -16,6 +16,7 @@
         public const uint StopPlaying = 22214; // Pause music
         public const uint CloseTheScore = 22217; // End of song/stop
         public const uint ItemFusion = 23478;
+        public const uint ViewFishFinder = 23478;
     }
  
 }

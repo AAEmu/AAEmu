@@ -27,6 +27,7 @@
         EquipShield = 8226,
         EquipTwoHanded = 8227,
         InBeautySalon = 6117,
-        NpcReturn = 550 // TODO: Find
+        NpcReturn = 550, // TODO: Find
+        SearchSchoolOfFish = 5736
     }
 }
