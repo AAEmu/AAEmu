@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
@@ -60,6 +61,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 // stopping the FishSchoolTickTask if character moved
                 FishSchoolManager.Instance.StopFishFinderTickAsync(character).GetAwaiter().GetResult();
+                character.Buffs.RemoveBuff((uint)BuffConstants.SearchSchoolOfFish);
             }
             var targetUnit = WorldManager.Instance.GetBaseUnit(_objId);
 
