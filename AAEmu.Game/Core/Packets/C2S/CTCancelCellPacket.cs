@@ -5,6 +5,8 @@ namespace AAEmu.Game.Core.Packets.C2S
 {
     public class CTCancelCellPacket : StreamPacket
     {
+        public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
+
         public CTCancelCellPacket() : base(CTOffsets.CTCancelCellPacket)
         {
         }

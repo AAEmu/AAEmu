@@ -6,6 +6,8 @@ namespace AAEmu.Game.Core.Packets.Proxy
 {
     public class PongPacket : GamePacket
     {
+        public override PacketLogLevel LogLevel => PacketLogLevel.Off;
+        
         private long _tm;
         private long _when;
         private uint _local;

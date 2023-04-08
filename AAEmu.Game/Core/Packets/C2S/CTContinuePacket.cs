@@ -6,6 +6,8 @@ namespace AAEmu.Game.Core.Packets.C2S
 {
     public class CTContinuePacket : StreamPacket
     {
+        public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
+
         public CTContinuePacket() : base(CTOffsets.CTContinuePacket)
         {
         }

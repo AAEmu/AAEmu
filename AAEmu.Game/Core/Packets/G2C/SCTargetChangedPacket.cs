@@ -5,6 +5,8 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCTargetChangedPacket : GamePacket
     {
+        public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
+
         private readonly uint _id;
         private readonly uint _targetId;
 

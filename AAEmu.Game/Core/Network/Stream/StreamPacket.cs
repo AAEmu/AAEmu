@@ -24,18 +24,67 @@ namespace AAEmu.Game.Core.Network.Stream
                 throw;
             }
 
+            string logString;
             if ((TypeId == TCOffsets.TCDoodadIdsPacket) || ((TypeId == TCOffsets.TCDoodadStreamPacket)))
-                _log.Trace("StreamPacket: S->C type {0:X3} {1}", TypeId, this.ToString().Substring(23));
+                logString = $"StreamPacket: S->C type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
             else
-                _log.Debug("StreamPacket: S->C {1}\n{0}", ps, this.ToString().Substring(23));
+                logString = $"StreamPacket: S->C {ToString()?.Substring(23)}\n{ps}";
+            
+            switch (LogLevel)
+            {
+                case PacketLogLevel.Trace:
+                    _log.Trace(logString);
+                    break;
+                case PacketLogLevel.Debug:
+                    _log.Debug(logString);
+                    break;
+                case PacketLogLevel.Info:
+                    _log.Info(logString);
+                    break;
+                case PacketLogLevel.Warning:
+                    _log.Warn(logString);
+                    break;
+                case PacketLogLevel.Error:
+                    _log.Error(logString);
+                    break;
+                case PacketLogLevel.Fatal:
+                    _log.Fatal(logString);
+                    break;
+                case PacketLogLevel.Off:
+                default:
+                    break;
+            }
 
             return ps;
         }
 
         public override PacketBase<StreamConnection> Decode(PacketStream ps)
         {
-            //_log.Trace("StreamPacket: C->S type {0:X3} {1}", TypeId, this.ToString().Substring(23));
-            _log.Debug("StreamPacket: C->S type {0:X3} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
+            var logString = $"StreamPacket: C->S type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}\n{ps}";
+            switch (LogLevel)
+            {
+                case PacketLogLevel.Trace:
+                    _log.Trace(logString);
+                    break;
+                case PacketLogLevel.Debug:
+                    _log.Debug(logString);
+                    break;
+                case PacketLogLevel.Info:
+                    _log.Info(logString);
+                    break;
+                case PacketLogLevel.Warning:
+                    _log.Warn(logString);
+                    break;
+                case PacketLogLevel.Error:
+                    _log.Error(logString);
+                    break;
+                case PacketLogLevel.Fatal:
+                    _log.Fatal(logString);
+                    break;
+                case PacketLogLevel.Off:
+                default:
+                    break;
+            }            
 
             try
             {
