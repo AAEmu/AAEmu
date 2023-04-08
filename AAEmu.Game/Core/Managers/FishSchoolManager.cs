@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.FishSchools;
 using AAEmu.Game.Utils;
 
@@ -19,7 +20,7 @@ namespace AAEmu.Game.Core.Managers
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
         private const double Delay = 500;
-        private Dictionary<uint, List<Doodad>> FishSchools = new Dictionary<uint, List<Doodad>>();
+        private Dictionary<uint, List<Doodad>> FishSchools { get; set; } = new();
 
         public void Initialize()
         {
@@ -29,7 +30,7 @@ namespace AAEmu.Game.Core.Managers
 
         public void Load(uint worldId)
         {
-            var fishschool = new List<Doodad>();
+            var fishSchool = new List<Doodad>();
             _log.Info("Loading FishSchool...");
             var doodads = WorldManager.Instance.GetAllDoodads();
             if (doodads != null)
@@ -37,19 +38,25 @@ namespace AAEmu.Game.Core.Managers
                 foreach (var d in doodads)
                 {
                     // ID=6447, "Freshwater Fish School", ID=6448, "Saltwater Fish School"
-                    if (d.TemplateId == (uint)DoodadConstants.FreshwaterFishSchool || d.TemplateId == (uint)DoodadConstants.SaltwaterFishSchool)
-                    {
-                        fishschool.Add(d);
-                    }
+                    if ((d.TemplateId == DoodadConstants.FreshwaterFishSchool) || (d.TemplateId == DoodadConstants.SaltwaterFishSchool))
+                        fishSchool.Add(d);
                 }
 
-                if (FishSchools.ContainsKey(worldId))
+                lock (FishSchools)
                 {
-                    FishSchools.Remove(worldId);
+                    if (fishSchool.Count > 0)
+                    {
+                        if (!FishSchools.TryGetValue(worldId, out var worldFishList))
+                        {
+                            worldFishList = new List<Doodad>();
+                            FishSchools.Add(worldId, worldFishList);
+                        }
+
+                        worldFishList.AddRange(fishSchool);
+                    }
                 }
-                FishSchools.Add(worldId, fishschool);
             }
-            _log.Info($"Loaded {FishSchools.Count} FishSchool for worldId={worldId}...");
+            _log.Info($"Loaded {fishSchool.Count} FishSchool for worldId={worldId}...");
         }
 
         public void FishFinderStart(Character character)

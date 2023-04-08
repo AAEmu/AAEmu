@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects
 {
@@ -31,6 +32,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             
             if (caster is Character character)
             {
+                // _log.Warn($"{character.Name} triggered wiGroup {wiGroup}({(int)wiGroup}) with wi {WorldInteraction}({(int)WorldInteraction})");
                 switch (wiGroup)
                 {
                     case WorldInteractionGroup.Craft:
