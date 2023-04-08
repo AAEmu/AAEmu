@@ -6,6 +6,8 @@ namespace AAEmu.Game.Core.Packets.Proxy
 {
     public class PingPacket : GamePacket
     {
+        public override PacketLogLevel LogLevel => PacketLogLevel.Off;
+
         public PingPacket() : base(PPOffsets.PingPacket, 2)
         {
         }

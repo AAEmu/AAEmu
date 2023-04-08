@@ -51,20 +51,33 @@ namespace AAEmu.Game.Core.Network.Game
                 _log.Fatal(ex);
                 throw;
             }
-
-            // SC here you can set the filter to hide packets
-            if (!(TypeId == PPOffsets.PongPacket && Level == 2) &&
-                !(TypeId == PPOffsets.FastPongPacket && Level == 2) &&
-                !(TypeId == SCOffsets.SCUnitMovementsPacket && Level == 1) &&
-                !(TypeId == SCOffsets.SCOneUnitMovementPacket && Level == 1) &&
-                !(TypeId == SCOffsets.SCGimmickMovementPacket && Level == 1) &&
-                !(TypeId == SCOffsets.SCTransferTelescopeUnitsPacket && Level == 1) &&
-                !(TypeId == SCOffsets.SCTargetChangedPacket && Level == 1))
+            
+            var logString = $"GamePacket: S->C type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
+            switch (LogLevel)
             {
-                //_log.Debug("GamePacket: S->C type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
-                //_log.Trace("GamePacket: S->C type {0:X3} {1}", TypeId, this.ToString().Substring(23));
-                _log.Debug("GamePacket: S->C type {0:X3} {1}{2}", TypeId, ToString()?.Substring(23), Verbose());
+                case PacketLogLevel.Trace:
+                    _log.Trace(logString);
+                    break;
+                case PacketLogLevel.Debug:
+                    _log.Debug(logString);
+                    break;
+                case PacketLogLevel.Info:
+                    _log.Info(logString);
+                    break;
+                case PacketLogLevel.Warning:
+                    _log.Warn(logString);
+                    break;
+                case PacketLogLevel.Error:
+                    _log.Error(logString);
+                    break;
+                case PacketLogLevel.Fatal:
+                    _log.Fatal(logString);
+                    break;
+                case PacketLogLevel.Off:
+                default:
+                    break;
             }
+            
             return ps;
         }
 
@@ -73,16 +86,33 @@ namespace AAEmu.Game.Core.Network.Game
             try
             {
                 Read(ps);
-                // CS here you can set the filter to hide packets
-                if (!(TypeId == PPOffsets.PingPacket && Level == 2) &&
-                    !(TypeId == PPOffsets.FastPingPacket && Level == 2) &&
-                    !(TypeId == CSOffsets.CSMoveUnitPacket && Level == 1)
-                )
+                
+                var logString = $"GamePacket: C->S type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
+                switch (LogLevel)
                 {
-                    //_log.Debug("GamePacket: C->S type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
-                    //_log.Trace("GamePacket: C->S type {0:X3} {1}", TypeId, this.ToString().Substring(23));
-                    _log.Debug("GamePacket: C->S type {0:X3} {1}{2}", TypeId, ToString()?.Substring(23),Verbose());
+                    case PacketLogLevel.Trace:
+                        _log.Trace(logString);
+                        break;
+                    case PacketLogLevel.Debug:
+                        _log.Debug(logString);
+                        break;
+                    case PacketLogLevel.Info:
+                        _log.Info(logString);
+                        break;
+                    case PacketLogLevel.Warning:
+                        _log.Warn(logString);
+                        break;
+                    case PacketLogLevel.Error:
+                        _log.Error(logString);
+                        break;
+                    case PacketLogLevel.Fatal:
+                        _log.Fatal(logString);
+                        break;
+                    case PacketLogLevel.Off:
+                    default:
+                        break;
                 }
+
                 Execute();
             }
             catch (Exception ex)

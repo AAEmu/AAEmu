@@ -7,6 +7,8 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCGimmickMovementPacket : GamePacket
     {
+        public override PacketLogLevel LogLevel => PacketLogLevel.Off; 
+        
         private readonly Gimmick _gimmick;
 
         public SCGimmickMovementPacket(Gimmick gimmick) : base(SCOffsets.SCGimmickMovementPacket, 1)

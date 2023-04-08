@@ -5,6 +5,8 @@ namespace AAEmu.Game.Core.Packets.S2C
 {
     public class TCDoodadIdsPacket : StreamPacket
     {
+        public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
+        
         private readonly int _id;
         private readonly int _nextId;
         private readonly int _total;

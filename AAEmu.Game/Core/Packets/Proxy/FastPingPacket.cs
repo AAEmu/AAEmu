@@ -5,6 +5,8 @@ namespace AAEmu.Game.Core.Packets.Proxy
 {
     public class FastPingPacket : GamePacket
     {
+        public override PacketLogLevel LogLevel => PacketLogLevel.Off;
+
         public FastPingPacket() : base(PPOffsets.FastPingPacket, 2)
         {
         }

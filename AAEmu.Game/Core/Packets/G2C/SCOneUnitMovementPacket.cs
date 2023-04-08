@@ -7,6 +7,8 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCOneUnitMovementPacket : GamePacket // TODO ... SCUnitMovementsPacket
     {
+        public override PacketLogLevel LogLevel => PacketLogLevel.Off;
+        
         private readonly uint _id;
         private readonly MoveType _type;
 
