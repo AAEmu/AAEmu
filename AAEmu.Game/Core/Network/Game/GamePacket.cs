@@ -58,7 +58,8 @@ namespace AAEmu.Game.Core.Network.Game
                 !(TypeId == SCOffsets.SCUnitMovementsPacket && Level == 1) &&
                 !(TypeId == SCOffsets.SCOneUnitMovementPacket && Level == 1) &&
                 !(TypeId == SCOffsets.SCGimmickMovementPacket && Level == 1) &&
-                !(TypeId == SCOffsets.SCTransferTelescopeUnitsPacket && Level == 1))
+                !(TypeId == SCOffsets.SCTransferTelescopeUnitsPacket && Level == 1) &&
+                !(TypeId == SCOffsets.SCTargetChangedPacket && Level == 1))
             {
                 //_log.Debug("GamePacket: S->C type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
                 //_log.Trace("GamePacket: S->C type {0:X3} {1}", TypeId, this.ToString().Substring(23));
