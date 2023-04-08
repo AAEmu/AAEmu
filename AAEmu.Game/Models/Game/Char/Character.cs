@@ -112,6 +112,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public CharacterVisualOptions VisualOptions { get; set; }
 
+        public const int MaxActionSlots = 85;
         public ActionSlot[] Slots { get; set; }
         public Inventory Inventory { get; set; }
         public byte NumInventorySlots { get; set; }
@@ -1791,6 +1792,9 @@ namespace AAEmu.Game.Models.Game.Char
                         character.ReturnDictrictId = reader.GetUInt32("return_district");
 
                         character.Inventory = new Inventory(character);
+                        
+                        var slotsBlob = (PacketStream)((byte[])reader.GetValue("slots"));
+                        character.LoadActionSlots(slotsBlob);
 
                         if (character.Hp > character.MaxHp)
                             character.Hp = character.MaxHp;
@@ -1897,6 +1901,9 @@ namespace AAEmu.Game.Models.Game.Char
 
                         character.Inventory = new Inventory(character);
 
+                        var slotsBlob = (PacketStream)((byte[])reader.GetValue("slots"));
+                        character.LoadActionSlots(slotsBlob);
+                        
                         if (character.Hp > character.MaxHp)
                             character.Hp = character.MaxHp;
                         if (character.Mp > character.MaxMp)
@@ -1912,12 +1919,112 @@ namespace AAEmu.Game.Models.Game.Char
             return character;
         }
 
+        private void LoadActionSlots(PacketStream slotsBlob)
+        {
+            if (Slots == null)
+            {
+                Slots = new ActionSlot[MaxActionSlots];
+                for (var i = 0; i < Slots.Length; i++)
+                    Slots[i] = new ActionSlot();
+            }
+
+            foreach (var slot in Slots)
+            {
+                slot.Type = (ActionSlotType)slotsBlob.ReadByte();
+                switch (slot.Type)
+                {
+                    case ActionSlotType.None:
+                        {
+                            break;
+                        }
+                    case ActionSlotType.ItemType:
+                    case ActionSlotType.Spell:
+                    case ActionSlotType.RidePetSpell:
+                        {
+                            slot.ActionId = slotsBlob.ReadUInt32();
+                            break;
+                        }
+                    case ActionSlotType.ItemId:
+                        {
+                            slot.ActionId = slotsBlob.ReadUInt64(); // itemId
+                            break;
+                        }
+                    default:
+                        {
+                            _log.Error("LoadActionSlots, Unknown ActionSlotType!");
+                            break;
+                        }
+                }
+            }
+        }
+        
+        private void LoadActionSlots(MySqlConnection connection)
+        {
+            try
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.CommandText = "SELECT slots FROM `characters` WHERE `id` = @id AND `account_id` = @account_id";
+                    command.Parameters.AddWithValue("@id", Id);
+                    command.Parameters.AddWithValue("@account_id", AccountId);
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            var slotsBlob = (PacketStream)((byte[])reader.GetValue("slots"));
+                            LoadActionSlots(slotsBlob);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Warn($"LoadActionSlots, error while loading for character {Id}, {ex.Message}");
+            }
+        }
+
+        private byte[] GetActionSlotsAsBlob()
+        {
+            var slotsBlob = new PacketStream();
+            foreach (var slot in Slots)
+            {
+                slotsBlob.Write((byte)slot.Type);
+                    
+                switch (slot.Type)
+                {
+                    case ActionSlotType.None:
+                        {
+                            break;
+                        }
+                    case ActionSlotType.ItemType:
+                    case ActionSlotType.Spell:
+                    case ActionSlotType.RidePetSpell:
+                        {
+                            slotsBlob.Write((uint)slot.ActionId);
+                            break;
+                        }
+                    case ActionSlotType.ItemId:
+                        {
+                            slotsBlob.Write(slot.ActionId); // itemId
+                            break;
+                        }
+                    default:
+                        {
+                            _log.Error("GetActionSlotsAsBlob, Unknown ActionSlotType!");
+                            break;
+                        }
+                }
+            }
+            return slotsBlob.GetBytes();
+        }
+        
         public void Load()
         {
             var template = CharacterManager.Instance.GetTemplate((byte)Race, (byte)Gender);
             ModelId = template.ModelId;
             BuyBackItems = new ItemContainer(Id, SlotType.None,false, false);
-            Slots = new ActionSlot[85];
+            Slots = new ActionSlot[MaxActionSlots];
             for (var i = 0; i < Slots.Length; i++)
                 Slots[i] = new ActionSlot();
 
@@ -1947,28 +2054,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Mates = new CharacterMates(this);
                 Mates.Load(connection);
 
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.CommandText = "SELECT slots FROM `characters` WHERE `id` = @id AND `account_id` = @account_id";
-                    command.Parameters.AddWithValue("@id", Id);
-                    command.Parameters.AddWithValue("@account_id", AccountId);
-                    using (var reader = command.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            var slots = (PacketStream)((byte[])reader.GetValue("slots"));
-                            foreach (var slot in Slots)
-                            {
-                                slot.Type = (ActionSlotType)slots.ReadByte();
-                                if (slot.Type != ActionSlotType.None)
-                                {
-                                    slot.ActionId = slots.ReadUInt64();
-                                }
-                            }
-                        }
-                    }
-                }
+                LoadActionSlots(connection);
             }
 
             Mails = new CharacterMails(this);
@@ -2017,14 +2103,6 @@ namespace AAEmu.Game.Models.Game.Char
                 var unitModelParams = ModelParams.Write(new PacketStream()).GetBytes();
 
                 Updated = DateTime.UtcNow; // обновим время записи информации
-
-                var slots = new PacketStream();
-                foreach (var slot in Slots)
-                {
-                    slots.Write((byte)slot.Type);
-                    if (slot.Type != ActionSlotType.None)
-                        slots.Write(slot.ActionId);
-                }
 
                 using (var command = connection.CreateCommand())
                 {
@@ -2105,7 +2183,7 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.AddWithValue("@num_inv_slot", NumInventorySlots);
                     command.Parameters.AddWithValue("@num_bank_slot", NumBankSlots);
                     command.Parameters.AddWithValue("@expanded_expert", ExpandedExpert);
-                    command.Parameters.AddWithValue("@slots", slots.GetBytes());
+                    command.Parameters.AddWithValue("@slots", GetActionSlotsAsBlob());
                     command.Parameters.AddWithValue("@created_at", Created);
                     command.Parameters.AddWithValue("@updated_at", Updated);
                     command.Parameters.AddWithValue("@return_district", ReturnDictrictId);
