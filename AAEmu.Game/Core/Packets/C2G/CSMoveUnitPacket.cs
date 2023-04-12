@@ -17,6 +17,8 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSMoveUnitPacket : GamePacket
     {
+        public override PacketLogLevel LogLevel => PacketLogLevel.Off;
+
         private uint _objId;
         private MoveType _moveType;
 
