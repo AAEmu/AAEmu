@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
@@ -13,18 +13,18 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            string[] name = { "addbadges", "add_vp", "add_vb", "vp" };
+            string[] name = { "VocationPoints", "add_vp", "add_vb", "vp" };
             CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()
         {
-            return "(target) <vp>";
+            return "(target) <VocationPoints>";
         }
 
         public string GetCommandHelpText()
         {
-            return "Adds vocation points (to target player)";
+            return "Adds VocationPoints (to target player)";
         }
 
         public void Execute(Character character, string[] args)
@@ -34,17 +34,15 @@ namespace AAEmu.Game.Scripts.Commands
                 character.SendMessage("[VocationPoint] " + CommandManager.CommandPrefix + "add_vp (target) <VocationPoint>");
                 return;
             }
+            
+            var targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstArg);
 
-            Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
+            if (!int.TryParse(args[firstArg], out var vpToAdd))
+                vpToAdd = 0;
 
-            var vptoadd = 0;
-            if (int.TryParse(args[firstarg + 0], out int parsevp))
-            {
-                vptoadd = parsevp;
-            }
-
-            if (vptoadd > 0)
-                targetPlayer.ChangeGamePoints((GamePointKind)1, vptoadd);
+            if (vpToAdd != 0)
+                targetPlayer.ChangeGamePoints((GamePointKind)1, vpToAdd);
         }
     }
 }
+
