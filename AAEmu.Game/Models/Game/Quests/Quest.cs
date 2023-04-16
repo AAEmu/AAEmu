@@ -247,7 +247,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
             }
 
-            EndLoop:
+EndLoop:
             Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
 
             if (Status == QuestStatus.Progress && !supply)
@@ -484,12 +484,12 @@ namespace AAEmu.Game.Models.Game.Quests
                                             var sphereQuestTrigger = new SphereQuestTrigger();
                                             sphereQuestTrigger.Sphere = sphere;
 
-                                        if (sphereQuestTrigger.Sphere == null)
-                                        {
-                                            _log.Warn($"[Quest] QuestActObjSphere: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
-                                            _log.Warn($"[Quest] QuestActObjSphere: Sphere not found with cquest {components[componentIndex].Id} in quest_sign_spheres.json!");
-                                            return;
-                                        }
+                                            if (sphereQuestTrigger.Sphere == null)
+                                            {
+                                                _log.Warn($"[Quest] QuestActObjSphere: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
+                                                _log.Warn($"[Quest] QuestActObjSphere: Sphere not found with cquest {components[componentIndex].Id} in quest_sign_spheres.json!");
+                                                return;
+                                            }
 
                                             sphereQuestTrigger.Owner = Owner;
                                             sphereQuestTrigger.Quest = this;
@@ -498,7 +498,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                             _sphereQuestManager.AddSphereQuestTrigger(sphereQuestTrigger);
                                         }
 
-                                        const int Duration = 500; 
+                                        const int Duration = 500;
                                         // TODO : Add a proper delay in here
                                         Task.Run(async () =>
                                         {
@@ -726,7 +726,7 @@ namespace AAEmu.Game.Models.Game.Quests
             UseSkillAndBuff(currentComponent);
             SetNpcAggro(currentComponent);
         }
-       
+
         private void CheckReportNpcs(IQuestAct[] acts, int componentIndex, QuestComponent currentComponent, ref bool res, ref bool acceptNpc)
         {
             var questActConReportNpc = acts.All(a => a.DetailType == "QuestActConReportNpc");
@@ -868,7 +868,7 @@ namespace AAEmu.Game.Models.Game.Quests
                     var currentComponent = components[componentIndex];
                     var acts = _questManager.GetActs(currentComponent.Id);
                     CheckReportNpcs(acts, componentIndex, currentComponent, ref res, ref reportNpc);
-                    
+
                     if (Step == QuestComponentKind.Ready)
                         ComponentId = currentComponent.Id;
 
@@ -904,7 +904,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActSupplyItem":
                                 var prevStep = Step; // сохраним, так как Step изменится на Progress (we will save it, since Step will change to Progress)
                                 res = act.Use(Owner, this, 0); // всегда получаем предметы в конце квеста (always get items at the end of the quest)
-                                Step = prevStep;                               
+                                Step = prevStep;
                                 if (ComponentId == 0)
                                     ComponentId = currentComponent.Id;
                                 _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
@@ -1360,7 +1360,11 @@ namespace AAEmu.Game.Models.Game.Quests
             if (components.Length == 0)
                 return;
 
-            var interactionTarget = (Doodad)target;
+            var interactionTarget = target as Doodad;
+            if (interactionTarget == null)
+            {
+                return;
+            }
 
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
