@@ -43,9 +43,7 @@ namespace AAEmu.Game.Scripts.Commands
                     // We must broadcast this package because if character had initially attacked the mob and then executed kill
                     // the mob's "ghost" will still be attacking you and draining HP even though he doesn't exist in the world anymore
                     aUnit.CurrentTarget = null;
-                    // HP must be set to 0 because if character engaged in battle and then ran kill command, after mob dies
-                    // its hp will start regenerating
-                    aUnit.Hp = 0;
+
                     // Don't directly do the DoDie(), but trigger a damage with enough damage to kill target
                     // no matter what (even if it somehow still had hp after settings it to 0)
                     aUnit.ReduceCurrentHp(character, (aUnit.MaxHp+1) * 10, KillReason.Gm);
