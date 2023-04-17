@@ -158,12 +158,12 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (honorPoints > 0)
             {
-                Connection.ActiveChar.ChangeGamePoints(GamePointKind.Honor,honorPoints);
+                Connection.ActiveChar.ChangeGamePoints(GamePointKind.Honor, -honorPoints);
             }
 
             if (vocationBadges > 0)
             {
-                Connection.ActiveChar.ChangeGamePoints(GamePointKind.Vocation,vocationBadges);
+                Connection.ActiveChar.ChangeGamePoints(GamePointKind.Vocation, -vocationBadges);
             }
 
             if (money > 0)
