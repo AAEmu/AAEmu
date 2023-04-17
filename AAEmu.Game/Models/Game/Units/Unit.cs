@@ -699,8 +699,11 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual int DoFallDamage(ushort fallVel)
         {
             var fallDmg = Math.Min(MaxHp, (int)(MaxHp * ((fallVel - 8600) / 15000f)));
+            var multiplier = CalculateWithBonuses(0d, UnitAttribute.FallDamageMul) / 100d;
             var minHpLeft = MaxHp / 20; //5% of hp 
             var maxDmgLeft = Hp - minHpLeft; // Max damage one can take 
+
+            fallDmg = (int)(fallDmg + (fallDmg * multiplier));
 
             if (fallVel >= 32000)
             {
