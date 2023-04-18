@@ -176,7 +176,7 @@ namespace AAEmu.Game.Models.Game.Units
             get => (float)CalculateWithBonuses(100d, UnitAttribute.IncomingAggroMul);
         }
         public BaseUnit CurrentTarget { get; set; }
-        public Npc CurrentNPC { get; set; }
+        public BaseUnit CurrentInteractionObject { get; set; }
         public virtual byte RaceGender => 0;
         public virtual UnitCustomModelParams ModelParams { get; set; }
         public byte ActiveWeapon { get; set; }

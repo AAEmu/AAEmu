@@ -1689,9 +1689,10 @@ namespace AAEmu.Game.Models.Game.Char
                     continue;
                 }
 
-                var npc = CurrentNPC;
+                if (CurrentInteractionObject == null || !(CurrentInteractionObject is Npc npc))
+                    continue;
 
-                if (npc == null || !npc.Template.Blacksmith)
+                if (!npc.Template.Blacksmith)
                 {
                     _log.Warn("Attempting to repair an item while not at a blacksmith, Item: {0}, NPC: {1}", item.Id, npc);
                     continue;

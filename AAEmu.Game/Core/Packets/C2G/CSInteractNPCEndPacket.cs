@@ -1,6 +1,5 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.NPChar;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -14,9 +13,9 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var objId = stream.ReadBc();
 
-            Connection.ActiveChar.CurrentNPC = null;
-
             _log.Debug("InteractNPCEnd, BcId: {0}", objId);
+
+            Connection.ActiveChar.CurrentInteractionObject = null;
         }
     }
 }
