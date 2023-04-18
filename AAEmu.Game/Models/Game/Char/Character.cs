@@ -1673,19 +1673,19 @@ namespace AAEmu.Game.Models.Game.Char
 
                 if (!Inventory.Bag.Items.Contains(item) && !Equipment.Items.Contains(item))
                 {
-                    //_log.Warn("Attempting to repair an item that isn't in your inventory or equipment, Item: {0}", item.Id);
+                    _log.Warn("Attempting to repair an item that isn't in your inventory or equipment, Item: {0}", item.Id);
                     continue;
                 }
 
                 if (!(item is EquipItem equipItem && item.Template is EquipItemTemplate))
                 {
-                    //_log.Warn("Attempting to repair a non-equipment item, Item: {0}", item.Id);
+                    _log.Warn("Attempting to repair a non-equipment item, Item: {0}", item.Id);
                     continue;
                 }
 
                 if (equipItem.Durability >= equipItem.MaxDurability)
                 {
-                    //_log.Warn("Attempting to repair an item that has max durability, Item: {0}", item.Id);
+                    _log.Warn("Attempting to repair an item that has max durability, Item: {0}", item.Id);
                     continue;
                 }
 
@@ -1706,6 +1706,13 @@ namespace AAEmu.Game.Models.Game.Char
                 }
 
                 int currentRepairCost = equipItem.RepairCost;
+
+                if (Money < currentRepairCost)
+                {
+                    _log.Warn("Not enough money to repair, Item: {0}, Money: {1}, RepairCost: {2}", item.Id, Money, currentRepairCost);
+                    continue;
+                }
+
                 equipItem.Durability = equipItem.MaxDurability;
                 equipItem.IsDirty = true;
                 repairCost += currentRepairCost;
