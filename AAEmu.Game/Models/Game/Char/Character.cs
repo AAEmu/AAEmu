@@ -30,6 +30,8 @@ using AAEmu.Game.Models.Game.NPChar;
 using System.Linq;
 using AAEmu.Game.Models.Game.FishSchools;
 using AAEmu.Game.Models.Tasks;
+using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -1657,6 +1659,66 @@ namespace AAEmu.Game.Models.Game.Char
                 Breath -= 1000; //1 second
                 SendPacket(new SCSetBreathPacket(Breath));   
             }
+        }
+
+        public void DoRepair(List<Item> items)
+        {
+            var tasks = new List<ItemTask>();
+            int repairCost = 0;
+
+            foreach (var item in items)
+            {
+                if (item == null)
+                    continue;
+
+                if (!Inventory.Bag.Items.Contains(item) && !Equipment.Items.Contains(item))
+                {
+                    //_log.Warn("Attempting to repair an item that isn't in your inventory or equipment, Item: {0}", item.Id);
+                    continue;
+                }
+
+                if (!(item is EquipItem equipItem && item.Template is EquipItemTemplate))
+                {
+                    //_log.Warn("Attempting to repair a non-equipment item, Item: {0}", item.Id);
+                    continue;
+                }
+
+                if (equipItem.Durability >= equipItem.MaxDurability)
+                {
+                    //_log.Warn("Attempting to repair an item that has max durability, Item: {0}", item.Id);
+                    continue;
+                }
+
+                var npc = CurrentNPC;
+
+                if (npc == null || !npc.Template.Blacksmith)
+                {
+                    _log.Warn("Attempting to repair an item while not at a blacksmith, Item: {0}, NPC: {1}", item.Id, npc);
+                    continue;
+                }
+
+                var dist = MathUtil.CalculateDistance(Transform.World.Position, npc.Transform.World.Position);
+
+                if (dist > 5f)
+                {
+                    SendErrorMessage(ErrorMessageType.TooFarAway);
+                    continue;
+                }
+
+                int currentRepairCost = equipItem.RepairCost;
+                equipItem.Durability = equipItem.MaxDurability;
+                equipItem.IsDirty = true;
+                repairCost += currentRepairCost;
+
+                tasks.Add(new ItemUpdate(item));
+            }
+
+            if (repairCost > 0)
+            {
+                ChangeMoney(SlotType.Inventory, -repairCost);
+            }
+
+            Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Repair, tasks, new List<ulong>()));
         }
 
         public void Regenerate()
