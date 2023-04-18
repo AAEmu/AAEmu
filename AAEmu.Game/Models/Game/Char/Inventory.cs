@@ -39,6 +39,10 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var stv in slotTypes)
             {
                 var st = (SlotType)stv;
+
+                if (st == SlotType.EquipmentMate)
+                    continue;
+
                 // Take Equipment Container from Parent Unit's Equipment
                 if (st == SlotType.Equipment)
                 {
@@ -342,6 +346,13 @@ namespace AAEmu.Game.Models.Game.Char
                 sourceContainer = Equipment;
             }
 
+            if ((fromItemId == 0) && (fromType == SlotType.EquipmentMate) && (toType != SlotType.EquipmentMate) &&
+                (itemInTargetSlot != null))
+            {
+                action = SwapAction.doEquipInEmptySlot;
+                sourceContainer = Equipment;
+            }
+
             // Check some conditions when we are not equipping into a empty slot
             if ((action != SwapAction.doEquipInEmptySlot) && (fromItem == null))
             {
@@ -607,16 +618,32 @@ namespace AAEmu.Game.Models.Game.Char
             // Handle Equipment Broadcasting
             if (fromType == SlotType.Equipment)
             {
-                Owner.BroadcastPacket(
-                    new SCUnitEquipmentsChangedPacket(Owner.ObjId, fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
+                Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
+            }
+            else if (fromType == SlotType.EquipmentMate)
+            {
+                var mate = MateManager.Instance.GetActiveMate(Owner.ObjId);
+
+                if (mate != null) 
+                {
+                    Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
+                }
             }
 
             if (toType == SlotType.Equipment)
             {
-                Owner.BroadcastPacket(
-                    new SCUnitEquipmentsChangedPacket(Owner.ObjId, toSlot, Equipment.GetItemBySlot(toSlot)), false);
+                Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, toSlot, Equipment.GetItemBySlot(toSlot)), false);
             }
-            
+            else if (toType == SlotType.EquipmentMate)
+            {
+                var mate = MateManager.Instance.GetActiveMate(Owner.ObjId);
+
+                if (mate != null)
+                {
+                    Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
+                }
+            }
+
             // Send ItemContainer events
             if (sourceContainer != targetContainer)
             {
@@ -631,8 +658,8 @@ namespace AAEmu.Game.Models.Game.Char
                     targetContainer?.OnLeaveContainer(itemInTargetSlot, sourceContainer);
                     sourceContainer?.OnEnterContainer(itemInTargetSlot, targetContainer);
                 }
-            }            
-            
+            }
+
             if (itemTasks.Count > 0)
                 Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
 

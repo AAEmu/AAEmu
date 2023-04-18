@@ -63,6 +63,8 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             }
         }
 
+        public uint MateId { get; set; }
+
         public SlotType ContainerType
         {
             get => _containerType;
@@ -338,11 +340,11 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 Items.Insert(0, item); // insert at front for easy buyback handling
 
                 UpdateFreeSlotCount();
-                
+
                 // Note we use SlotType.None for things like the Item BuyBack Container. Make sure to manually handle the remove for these
                 if (this.ContainerType != SlotType.None)
                     itemTasks.Add(new ItemAdd(item));
-                
+
                 if ((sourceContainer != null) && (sourceContainer != this))
                 {
                     sourceContainer?.OnLeaveContainer(item, this);
@@ -748,14 +750,22 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         /// <returns></returns>
         public static ItemContainer CreateByTypeName(string containerTypeName, uint ownerId, SlotType slotType, bool isPartOfPlayerInventory, bool createWithNewId)
         {
+            if (containerTypeName.EndsWith("MateEquipmentContainer"))
+                return new MateEquipmentContainer(ownerId, slotType, isPartOfPlayerInventory, createWithNewId);
+
             if (containerTypeName.EndsWith("EquipmentContainer"))
                 return new EquipmentContainer(ownerId, slotType, isPartOfPlayerInventory, createWithNewId);
 
             if (containerTypeName.EndsWith("CofferContainer"))
-                return new CofferContainer(ownerId,isPartOfPlayerInventory, createWithNewId);
+                return new CofferContainer(ownerId, isPartOfPlayerInventory, createWithNewId);
             
             // Fall-back
             return new ItemContainer(ownerId, slotType, isPartOfPlayerInventory, createWithNewId);
+        }
+
+        public bool IsEquipmentContainer()
+        {
+            return ContainerType == SlotType.Equipment || ContainerType == SlotType.EquipmentMate;
         }
 
         public string ContainerTypeName()

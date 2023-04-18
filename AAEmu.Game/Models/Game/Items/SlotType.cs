@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Items
+﻿namespace AAEmu.Game.Models.Game.Items
 {
     public enum SlotType : byte
     {
@@ -8,6 +8,7 @@ namespace AAEmu.Game.Models.Game.Items
         Bank = 3,
         Trade = 4,
         Mail = 5,
+        EquipmentMate = 252,
         System = 0xFF 
     }
 }

@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Models.Game.Items.Containers;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -12,6 +14,7 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using MySql.Data.MySqlClient;
 
 using NLog;
+using System.Linq;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -122,9 +125,10 @@ namespace AAEmu.Game.Models.Game.Char
                 var obj = new SkillCasterUnit(mount.ObjId);
                 buff.Apply(mount, obj, mount, null, null, new EffectSource(), null, DateTime.UtcNow);
             }
-            
+
             // TODO: Load Pet Gear
-            
+            mount.Equipment = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, SlotType.EquipmentMate, mount.Id);
+
             // Cap stats to their max
             mount.Hp = Math.Min(mount.Hp, mount.MaxHp);
             mount.Mp = Math.Min(mount.Mp, mount.MaxMp);

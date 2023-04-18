@@ -1448,9 +1448,9 @@ namespace AAEmu.Game.Core.Managers
                             continue;
                         
                         command.CommandText = "REPLACE INTO item_containers (" +
-                                              "`container_id`,`container_type`,`slot_type`,`container_size`,`owner_id`" +
+                                              "`container_id`,`container_type`,`slot_type`,`container_size`,`owner_id`,`mate_id`" +
                                               ") VALUES ( " +
-                                              "@container_id, @container_type, @slot_type, @container_size, @owner_id" +
+                                              "@container_id, @container_type, @slot_type, @container_size, @owner_id, @mate_id" +
                                               ")";
 
                         command.Parameters.Clear();
@@ -1459,6 +1459,7 @@ namespace AAEmu.Game.Core.Managers
                         command.Parameters.AddWithValue("@slot_type", c.ContainerType.ToString());
                         command.Parameters.AddWithValue("@container_size", c.ContainerSize);
                         command.Parameters.AddWithValue("@owner_id", c.OwnerId);
+                        command.Parameters.AddWithValue("@mate_id", c.MateId);
                         try
                         {
                             var res = command.ExecuteNonQuery();
@@ -1552,21 +1553,29 @@ namespace AAEmu.Game.Core.Managers
             return (updateCount, deleteCount, containerUpdateCount);
         }
 
-        public ItemContainer GetItemContainerForCharacter(uint characterId, SlotType slotType)
+        public ItemContainer GetItemContainerForCharacter(uint characterId, SlotType slotType, uint mateId = 0)
         {
             foreach (var c in _allPersistantContainers)
             {
-                if ((c.Value.OwnerId == characterId) && (c.Value.ContainerType == slotType))
+                if ((c.Value.OwnerId == characterId) && (c.Value.ContainerType == slotType) && (c.Value.MateId == mateId))
                     return c.Value;
             }
 
             var newContainerType = "ItemContainer";
+
             if (slotType == SlotType.Equipment)
                 newContainerType = "EquipmentContainer";
+            else if (slotType == SlotType.EquipmentMate)
+                newContainerType = "MateEquipmentContainer";
+
             var newContainer = ItemContainer.CreateByTypeName(newContainerType, characterId, slotType, true, slotType != SlotType.None);
+
             if (slotType != SlotType.None)
                 _allPersistantContainers.Add(newContainer.ContainerId, newContainer);
             
+            if (mateId > 0)
+                newContainer.MateId = mateId;
+
             return newContainer;
         }
 
@@ -1651,9 +1660,11 @@ namespace AAEmu.Game.Core.Managers
                         var slotType = (SlotType)Enum.Parse(typeof(SlotType), reader.GetString("slot_type"), true);
                         var containerSize = reader.GetInt32("container_size");
                         var containerOwnerId = reader.GetUInt32("owner_id");
+                        var containerMateId = reader.GetUInt32("mate_id");
                         var container = ItemContainer.CreateByTypeName(containerType, containerOwnerId, slotType, containerOwnerId != 0, false);
                         container.ContainerId = containerId;
                         container.ContainerSize = containerSize;
+                        container.MateId = containerMateId;
 
                         _allPersistantContainers.Add(container.ContainerId, container);
                         container.IsDirty = false;

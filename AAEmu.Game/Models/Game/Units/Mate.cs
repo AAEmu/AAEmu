@@ -8,6 +8,8 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Mate;
@@ -393,6 +395,7 @@ namespace AAEmu.Game.Models.Game.Units
             ModelParams = new UnitCustomModelParams();
             Skills = new List<uint>();
             Passengers = new Dictionary<AttachPointKind, MatePassengerInfo>();
+            Equipment = new MateEquipmentContainer(0, SlotType.EquipmentMate, true, false);
 
             // TODO: Spawn this with the correct amount of seats depending on the template
             // 2 seats by default

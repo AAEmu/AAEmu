@@ -48,6 +48,23 @@ namespace AAEmu.Game.Models.Game.Items
             GemIds = new uint[7];
         }
 
+        public override void Read(PacketStream stream)
+        {
+            TemplateId = stream.ReadUInt32();
+            Id = stream.ReadUInt64();
+            Grade = stream.ReadByte();
+            ItemFlags = (ItemFlag)stream.ReadByte();
+            Count = stream.ReadInt32();
+            var detailType = stream.ReadByte();
+            ReadDetails(stream);
+            CreateTime = stream.ReadDateTime();
+            LifespanMins = stream.ReadInt32();
+            MadeUnitId = stream.ReadUInt32();
+            WorldId = stream.ReadByte();
+            UnsecureTime = stream.ReadDateTime();
+            UnpackTime = stream.ReadDateTime();
+        }
+
         public override void ReadDetails(PacketStream stream)
         {
             ImageItemTemplateId = stream.ReadUInt32();

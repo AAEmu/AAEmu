@@ -6,24 +6,24 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCUnitEquipmentsChangedPacket : GamePacket
     {
-        private readonly uint _characterId;
+        private readonly uint _objectId;
         private readonly (byte slot, Item item)[] _items;
 
         public SCUnitEquipmentsChangedPacket(uint objectId, (byte slot, Item item)[] items) : base(SCOffsets.SCUnitEquipmentsChangedPacket, 1)
         {
-            _characterId = objectId;
+            _objectId = objectId;
             _items = items;
         }
 
         public SCUnitEquipmentsChangedPacket(uint objectId, byte slot, Item item) : base(SCOffsets.SCUnitEquipmentsChangedPacket, 1)
         {
-            _characterId = objectId;
+            _objectId = objectId;
             _items = new[] { (slot, item) };
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.WriteBc(_characterId);
+            stream.WriteBc(_objectId);
             stream.Write((byte) _items.Length); // TODO max 28
             foreach (var (slot, item) in _items)
             {
