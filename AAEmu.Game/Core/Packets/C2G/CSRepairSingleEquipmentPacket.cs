@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Collections.Generic;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
 
@@ -19,6 +20,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             var autoUseAAPoint = stream.ReadBoolean();
 
             _log.Debug("RepairSingleEquipment, SlotType: {0}, Slot: {1}, AutoUseAAPoint: {2}", slotType, slot, autoUseAAPoint);
+
+            var item = Connection.ActiveChar.Inventory.GetItem(slotType, slot);
+
+            Connection.ActiveChar.DoRepair(new List<Item> { item });
         }
     }
 }

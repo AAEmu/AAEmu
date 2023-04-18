@@ -12,8 +12,10 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var objId = stream.ReadBc();
-            
+
             _log.Debug("InteractNPCEnd, BcId: {0}", objId);
+
+            Connection.ActiveChar.CurrentInteractionObject = null;
         }
     }
 }
