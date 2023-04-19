@@ -38,7 +38,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
                 _owner.Delete();
 
             AreaTriggerManager.Instance.RemoveAreaTrigger(_araAreaTrigger);
-            _owner.DoPhaseFuncs(_caster, _nextPhase);
+            _owner.DoChangePhase(_caster, _nextPhase);
         }
     }
 }

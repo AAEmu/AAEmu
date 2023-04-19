@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 case SkillObjectType.Unk1: // TODO - Skills bound to portals
                     obj = new SkillObjectUnk1();
                     break;
-                case SkillObjectType.Unk2:
+                case SkillObjectType.Unk2: // TODO - Skills bound to home portals
                     obj = new SkillObjectUnk2();
                     break;
                 case SkillObjectType.Unk3:

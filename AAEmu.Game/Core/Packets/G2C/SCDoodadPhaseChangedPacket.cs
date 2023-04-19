@@ -22,7 +22,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_doodad.FuncGroupId);
             stream.Write(_doodad.TimeLeft); // growing
             stream.Write(-1); // puzzleGroup
-            stream.Write(0); // type(id)
+            stream.Write(_doodad.ItemTemplateId); // type(id) for backpack e.g. Id=27606 Sturgeon Pack
             return stream;
         }
     }

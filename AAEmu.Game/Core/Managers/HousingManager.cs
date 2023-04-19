@@ -1598,6 +1598,14 @@ namespace AAEmu.Game.Core.Managers
             doodad.ItemTemplateId = item.TemplateId; // designId;
             doodad.ItemId = (item.Template.MaxCount <= 1) ? itemId : 0;
             doodad.DbHouseId = house.Id;
+
+            if (house.Id > 0 && item is BigFish fish)
+            {
+                var weight = (short)fish.Weight;
+                var length = (short)fish.Length;
+                doodad.Data = (length << 16) + weight;
+            }
+
             doodad.OwnerId = player.Id;
             doodad.ParentObjId = house.ObjId;
             doodad.ParentObj = house;

@@ -729,7 +729,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     if (effect.SourceBuffTagId > 0 && !caster.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceBuffTagId)))
                     {
                         // TODO Commented out the code for the Id=2255 quest to work. Restore after finding a solution to the lack of a debuff.
-                        //continue;
+                        continue;
                     }
 
                     if (effect.SourceNoBuffTagId > 0 && caster.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceNoBuffTagId)))

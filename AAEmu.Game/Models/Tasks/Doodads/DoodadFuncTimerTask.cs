@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -31,7 +32,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
                 _log.Trace("[Doodad] DoodadFuncTimerTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
 
             _owner.FuncTask = null;
-            _owner.DoPhaseFuncs(_caster, _nextPhase);
+            _owner.DoChangePhase(_caster, _nextPhase);
 
             // the phase state does not allow us to interact with the object, so we will automatically
             // get items from ID=6121 & ID=6125, "Treasure Chest" in Palace Celler Dungeon

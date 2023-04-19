@@ -242,7 +242,7 @@ namespace AAEmu.Game.Models.Game.Items
                 case 11: // Location
                     mDetailLength = 25;
                     break;
-                case 6: // BigFish
+                case 6: // BigFish  // есть расшифровка в items/BigFish
                 case 7: // Decoration
                     mDetailLength = 17;
                     break;
@@ -287,7 +287,7 @@ namespace AAEmu.Game.Models.Game.Items
                     //case ItemDetailType.Location: // нет в 1.2
                     mDetailLength = 25;
                     break;
-                case ItemDetailType.BigFish:
+                case ItemDetailType.BigFish: // есть расшифровка в items/BigFish
                 case ItemDetailType.Decoration:
                     mDetailLength = 17;
                     break;
