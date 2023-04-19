@@ -34,8 +34,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 character.Money += total;
 
                 character.Inventory.SystemContainer.RemoveItem(ItemTaskType.SkillEffectConsumption, backpack, true);
-                var task = new List<ItemTask> { new MoneyChange(total) };
-                character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.DepositMoney, task, new List<ulong>()));
+                character.AddMoney(SlotType.Inventory, total);
             }
         }
     }
