@@ -51,7 +51,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             }
 
             if (res == false)
-                character.SendErrorMessage(ErrorMessageType.BagFull);
+                character.SendErrorMessage(ErrorMessageType.BagInvalidItem);
 
             owner.ToNextPhase = true;
         }

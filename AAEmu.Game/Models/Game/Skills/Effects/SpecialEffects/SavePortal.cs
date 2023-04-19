@@ -20,7 +20,15 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value4)
         {
             // TODO ...
-            if (caster is Character) { _log.Debug("Special effects: SavePortal value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+            if (caster is Character character)
+            {
+                _log.Debug("Special effects: SavePortal value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
+
+                if (skillObject is SkillObjectUnk2 so)
+                {
+                    character.Portals.AddPrivatePortal(character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z, character.Transform.World.Rotation.Z, character.Transform.ZoneId, so.Name);
+                }
+            }
         }
     }
 }

@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -69,7 +71,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             else if (skillCaster is SkillItem)
             {
                 var item = Connection.ActiveChar.Inventory.GetItemById(((SkillItem)skillCaster).ItemId);
-                if (item == null || skillId != item.Template.UseSkillId)
+                // добавил проверку на ItemBindType.BindOnPickup для записи портала с помощью камина в доме
+                if (item == null || skillId != item.Template.UseSkillId && item.Template.BindType != ItemBindType.BindOnPickup)
                     return;
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
                 skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);

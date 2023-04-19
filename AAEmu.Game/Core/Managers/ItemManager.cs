@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
@@ -20,6 +20,7 @@ using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Item;
 using AAEmu.Game.Utils.DB;
 
@@ -213,6 +214,47 @@ namespace AAEmu.Game.Core.Managers
             };
             items.Add(item2);
             _lootDropItems.Add(npcId, items);
+
+            return items;
+        }
+        public List<Item> GetLootConvertFish(uint templateId)
+        {
+            var items = new List<Item>();
+            var lootPackDroppingNpcs = GetLootPackIdByNpcId(templateId);
+
+            if (lootPackDroppingNpcs.Count <= 0)
+            {
+                return items;
+            }
+            var itemId = ((ulong)templateId << 32) + 65536;
+            foreach (var lootPackDroppingNpc in lootPackDroppingNpcs)
+            {
+                var lootPacks = GetLootPacks(lootPackDroppingNpc.LootPackId);
+                var dropRateMax = (uint)0;
+                for (var ui = 0; ui < lootPacks.Length; ui++)
+                {
+                    dropRateMax += lootPacks[ui].DropRate;
+                }
+                var dropRateItem = Rand.Next(0, dropRateMax);
+                var dropRateItemId = 0u;
+                for (var uii = 0; uii < lootPacks.Length; uii++)
+                {
+                    if (lootPacks[uii].DropRate + dropRateItemId >= dropRateItem)
+                    {
+                        var item = new Item();
+                        item.TemplateId = lootPacks[uii].ItemId;
+                        item.WorldId = 1;
+                        item.CreateTime = DateTime.UtcNow;
+                        item.Id = ++itemId;
+                        item.MadeUnitId = templateId;
+                        item.Count = Rand.Next(lootPacks[uii].MinAmount, lootPacks[uii].MaxAmount);
+                        items.Add(item);
+                        break;
+                    }
+
+                    dropRateItemId += lootPacks[uii].DropRate;
+                }
+            }
 
             return items;
         }
@@ -488,11 +530,27 @@ namespace AAEmu.Game.Core.Managers
             return item;
         }
 
+        public bool AddItem(Item item)
+        {
+            if (item == null)
+            {
+                throw new ArgumentNullException(nameof(item));
+            }
+
+            if (_allItems.ContainsKey(item.Id))
+            {
+                return false;
+            }
+
+            _allItems.Add(item.Id, item);
+            return true;
+        }
+
         public void Load()
         {
             if (_loaded)
                 return;
-            
+
             _grades = new Dictionary<int, GradeTemplate>();
             _holdables = new Dictionary<uint, Holdable>();
             _wearables = new Dictionary<uint, Wearable>();
@@ -1031,12 +1089,12 @@ namespace AAEmu.Game.Core.Managers
                 // TODO: HACK-FIX FOR CREST INK/STAMP/MUSIC
                 var crestInkItemTemplate = new UccTemplate { Id = Item.CrestInk };
                 _templates.Add(crestInkItemTemplate.Id, crestInkItemTemplate);
-                
+
                 var crestStampItemTemplate = new UccTemplate { Id = Item.CrestStamp };
                 _templates.Add(crestStampItemTemplate.Id, crestStampItemTemplate);
 
                 var sheetMusicItemTemplate = new MusicSheetTemplate { Id = Item.SheetMusic };
-                _templates.Add(sheetMusicItemTemplate.Id,sheetMusicItemTemplate);
+                _templates.Add(sheetMusicItemTemplate.Id, sheetMusicItemTemplate);
 
                 using (var command = connection.CreateCommand())
                 {
@@ -1061,7 +1119,7 @@ namespace AAEmu.Game.Core.Managers
                             template.Sellable = reader.GetBoolean("sellable", true);
                             template.UseSkillId = reader.GetUInt32("use_skill_id");
                             template.UseSkillAsReagent = reader.GetBoolean("use_skill_as_reagent", true);
-                            template.ImplId = (ItemImplEnum) reader.GetInt32("impl_id");
+                            template.ImplId = (ItemImplEnum)reader.GetInt32("impl_id");
                             template.BuffId = reader.GetUInt32("buff_id");
                             template.Gradable = reader.GetBoolean("gradable", true);
                             template.LootMulti = reader.GetBoolean("loot_multi", true);
@@ -1294,6 +1352,32 @@ namespace AAEmu.Game.Core.Managers
 
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandText = "SELECT * FROM doodad_func_convert_fish_items";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new LootPackDroppingNpc();
+                            template.Id = reader.GetUInt32("id");
+                            template.NpcId = reader.GetUInt32("item_id");
+                            template.LootPackId = reader.GetUInt32("loot_pack_id");
+                            List<LootPackDroppingNpc> lootPackDroppingNpc;
+                            if (_lootPackDroppingNpc.TryGetValue(template.NpcId, out var value))
+                                lootPackDroppingNpc = value;
+                            else
+                            {
+                                lootPackDroppingNpc = new List<LootPackDroppingNpc>();
+                                _lootPackDroppingNpc.Add(template.NpcId, lootPackDroppingNpc);
+                            }
+
+                            lootPackDroppingNpc.Add(template);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
                     command.CommandText = "SELECT * FROM item_spawn_doodads";
                     command.Prepare();
                     using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
@@ -1436,17 +1520,17 @@ namespace AAEmu.Game.Core.Managers
             {
                 command.Connection = connection;
                 command.Transaction = transaction;
-                
+
                 lock (_allPersistantContainers)
                 {
                     foreach (var (_, c) in _allPersistantContainers)
                     {
                         if (c.ContainerId <= 0)
                             continue;
-                        
+
                         if (c.IsDirty == false)
                             continue;
-                        
+
                         command.CommandText = "REPLACE INTO item_containers (" +
                                               "`container_id`,`container_type`,`slot_type`,`container_size`,`owner_id`" +
                                               ") VALUES ( " +
@@ -1473,7 +1557,7 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
             }
-            
+
             // Update dirty items
             using (var command = connection.CreateCommand())
             {
@@ -1485,10 +1569,10 @@ namespace AAEmu.Game.Core.Managers
                     foreach (var entry in _allItems)
                     {
                         var item = entry.Value;
-                        
+
                         if (item == null)
                             continue;
-                        
+
                         if (item.SlotType == SlotType.None)
                         {
                             // Only give a error if it has no owner, otherwise it's likely a BuyBack item
@@ -1496,10 +1580,10 @@ namespace AAEmu.Game.Core.Managers
                                 _log.Warn(string.Format("Found SlotType.None in itemslist, skipping ID:{0} - Template:{1}", item.Id, item.TemplateId));
                             continue;
                         }
-                        
+
                         if (!item.IsDirty)
                             continue;
-                        
+
                         var details = new Commons.Network.PacketStream();
                         item.WriteDetails(details);
 
@@ -1533,16 +1617,16 @@ namespace AAEmu.Game.Core.Managers
                         command.Parameters.AddWithValue("@expire_time", item.ExpirationTime);
                         command.Parameters.AddWithValue("@expire_online_minutes", item.ExpirationOnlineMinutesLeft);
                         command.Parameters.AddWithValue("@charge_time", item.ChargeStartTime);
-                        command.Parameters.AddWithValue("@charge_count", item.ChargeCount); 
-                        
+                        command.Parameters.AddWithValue("@charge_count", item.ChargeCount);
+
                         if (command.ExecuteNonQuery() < 1)
                         {
-                            _log.Error($"Error updating items {item.Id} ({item.TemplateId}) !");                            
+                            _log.Error($"Error updating items {item.Id} ({item.TemplateId}) !");
                         }
                         else
                         {
                             item.IsDirty = false;
-                            updateCount++;                            
+                            updateCount++;
                         }
                         command.Parameters.Clear();
                     }
@@ -1566,7 +1650,7 @@ namespace AAEmu.Game.Core.Managers
             var newContainer = ItemContainer.CreateByTypeName(newContainerType, characterId, slotType, true, slotType != SlotType.None);
             if (slotType != SlotType.None)
                 _allPersistantContainers.Add(newContainer.ContainerId, newContainer);
-            
+
             return newContainer;
         }
 
@@ -1594,17 +1678,17 @@ namespace AAEmu.Game.Core.Managers
 
             if (container.Items.Count > 0)
                 return false;
-            
+
             var idToRemove = (uint)container.ContainerId;
             container.ContainerId = 0;
-            
+
             var res = false;
             lock (_allPersistantContainers)
             {
                 res = _allPersistantContainers.Remove(idToRemove);
                 ContainerIdManager.Instance.ReleaseId(idToRemove);
             }
-            
+
             // Remove deleted container from DB
             using (var connection = MySQL.CreateConnection())
             using (var command = connection.CreateCommand())
@@ -1624,12 +1708,12 @@ namespace AAEmu.Game.Core.Managers
 
             return res;
         }
-        
+
         public void LoadUserItems()
         {
             if (_loadedUserItems)
                 return;
-            
+
             _log.Info("Loading user items ...");
             _allItems = new Dictionary<ulong, Item>();
             _allPersistantContainers = new Dictionary<ulong, ItemContainer>();
@@ -1659,7 +1743,7 @@ namespace AAEmu.Game.Core.Managers
                         container.IsDirty = false;
                     }
                 }
-                
+
                 command.CommandText = "SELECT * FROM items ;";
 
                 using (var reader = command.ExecuteReader())
@@ -1724,7 +1808,7 @@ namespace AAEmu.Game.Core.Managers
                         item.ExpirationOnlineMinutesLeft = reader.GetDouble("expire_online_minutes");
                         item.ChargeStartTime = reader.IsDBNull("charge_time") ? DateTime.MinValue : reader.GetDateTime("charge_time");
                         item.ChargeCount = reader.GetInt32("charge_count");
-                        
+
                         // Add it to the global pool
                         if (!_allItems.TryAdd(item.Id, item))
                         {
@@ -1773,7 +1857,7 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
             }
-            
+
             _log.Info("Starting Timed Items Task ...");
             var itemTimerTask = new ItemTimerTask();
             TaskManager.Instance.Schedule(itemTimerTask, null, TimeSpan.FromSeconds(1));
@@ -1861,18 +1945,18 @@ namespace AAEmu.Game.Core.Managers
                     (equipItemTemplate.RechargeBuffId > 0))
                 {
                     var expireBuff = false;
-                    
+
                     // Expire Time
                     var expireCheckTime = (equipItemTemplate.BindType == ItemBindType.BindOnUnpack)
                         ? equipItem.UnpackTime
                         : equipItem.ChargeStartTime;
                     expireCheckTime = expireCheckTime.AddMinutes(equipItemTemplate.ChargeLifetime);
-                    
+
                     // Do we need to check if charges expired ?
                     var checkCharges = (equipItemTemplate.ChargeCount > 0);
                     if ((equipItemTemplate.BindType == ItemBindType.BindOnUnpack) && (equipItem.HasFlag(ItemFlag.Unpacked) == false))
                         checkCharges = false;
-                    
+
                     // Timed Charged items
                     if ((equipItemTemplate.ChargeLifetime > 0) && (expireCheckTime <= DateTime.UtcNow))
                         expireBuff = true;
@@ -1903,7 +1987,7 @@ namespace AAEmu.Game.Core.Managers
                     var sync = ExpireItemPacket(item);
                     if (sync != null)
                         character?.SendPacket(sync);
-                    itemContainer.RemoveItem(ItemTaskType.LifespanExpiration, item, true);            
+                    itemContainer.RemoveItem(ItemTaskType.LifespanExpiration, item, true);
                 }
             }
 
@@ -1919,7 +2003,7 @@ namespace AAEmu.Game.Core.Managers
                 delta = now - LastTimerCheck;
                 LastTimerCheck = now;
             }
-            
+
             // _log.Trace($"UpdateItemTimers - Tick, Delta: {delta.TotalMilliseconds}ms");
 
             // Timers are actually only checked when it's owner is actually online, so we loop the online characters for this.
@@ -1939,7 +2023,7 @@ namespace AAEmu.Game.Core.Managers
             if (res > 0)
                 _log.Warn($"{res} item(s) expired and have been removed.");
         }
-        
+
         public GamePacket SetItemExpirationTime(Item item, DateTime newTime)
         {
             if (item.ExpirationTime != newTime)
@@ -1951,7 +2035,7 @@ namespace AAEmu.Game.Core.Managers
 
             return null;
         }
-        
+
         public GamePacket SetItemOnlineExpirationTime(Item item, double newMinutes)
         {
             if (item.ExpirationOnlineMinutesLeft != newMinutes)
@@ -1986,7 +2070,7 @@ namespace AAEmu.Game.Core.Managers
             item.SetFlag(ItemFlag.Unpacked);
             if (item.Template.BindType == ItemBindType.BindOnUnpack)
                 item.SetFlag(ItemFlag.SoulBound);
-            var updateItemTask = new ItemUpdateSecurity(item, (byte)item.ItemFlags,  item.HasFlag(ItemFlag.Secure), item.HasFlag(ItemFlag.Secure), item.ItemFlags.HasFlag(ItemFlag.Unpacked));
+            var updateItemTask = new ItemUpdateSecurity(item, (byte)item.ItemFlags, item.HasFlag(ItemFlag.Secure), item.HasFlag(ItemFlag.Secure), item.ItemFlags.HasFlag(ItemFlag.Unpacked));
             character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ItemTaskThistimeUnpack, updateItemTask, new List<ulong>()));
             if ((item.Template is EquipItemTemplate equipItemTemplate) && (equipItemTemplate.ChargeLifetime > 0))
                 character.SendPacket(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, item.UnpackTime));

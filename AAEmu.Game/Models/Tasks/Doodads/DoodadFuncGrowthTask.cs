@@ -35,7 +35,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
 
             _owner.FuncTask = null;
 
-            _owner.DoPhaseFuncs(_caster, _nextPhase);
+            _owner.DoChangePhase(_caster, _nextPhase);
         }
     }
 }

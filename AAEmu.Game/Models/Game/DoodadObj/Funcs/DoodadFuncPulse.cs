@@ -42,7 +42,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                                 case "DoodadFuncPulseTrigger":
                                     {
                                         DoodadFuncPulseTrigger.Halt = false; // разрешаем однократное выполнение // allow one-time execution
-                                        doodad.DoPhaseFuncs(caster, (int)doodad.FuncGroupId);
+                                        doodad.DoChangePhase(caster, (int)doodad.FuncGroupId);
                                         break;
                                     }
                             }

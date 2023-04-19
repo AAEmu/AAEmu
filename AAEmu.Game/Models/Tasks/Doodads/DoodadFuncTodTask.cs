@@ -38,7 +38,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
                     _log.Trace("DoodadFuncTodTask: The current timer has been ended.");
             }
 
-            _owner.DoPhaseFuncs(_caster, _nextPhase);
+            _owner.DoChangePhase(_caster, _nextPhase);
         }
     }
 }
