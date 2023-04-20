@@ -9,8 +9,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         // doodad_phase_funcs
         public int NextPhase { get; set; }
 
-        // public override async void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
-        public override bool Use(Unit caster, Doodad owner)
+        // public override async void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
             _log.Trace("DoodadFuncClimateReact");
 

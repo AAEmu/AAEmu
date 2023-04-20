@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -170,7 +171,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             DynamicBonuses = new List<DynamicBonusTemplate>();
         }
 
-        public void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+        public void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
@@ -208,7 +209,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             target.Buffs.AddBuff(new Buff(target, caster, casterObj, this, source?.Skill, time) { AbLevel = abLevel });
         }
 
-        public void Start(Unit caster, BaseUnit owner, Buff buff)
+        public void Start(BaseUnit caster, BaseUnit owner, Buff buff)
         {
             foreach (var template in Bonuses)
             {
@@ -225,7 +226,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                 owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);
         }
 
-        public void TimeToTimeApply(Unit caster, BaseUnit owner, Buff buff)
+        public void TimeToTimeApply(BaseUnit caster, BaseUnit owner, Buff buff)
         {
             if (TickAreaRadius > 0)
             {
@@ -251,12 +252,11 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             }
         }
 
-        public void DoAreaTick(Unit caster, BaseUnit owner, Buff buff)
+        public void DoAreaTick(BaseUnit caster, BaseUnit owner, Buff buff)
         {
             var units = WorldManager.Instance.GetAround<Unit>(owner, TickAreaRadius);
 
-            if (owner == null)
-                owner = caster;
+            owner ??= caster;
 
             var ownerUnit = owner as Unit;
             if (TickAreaExcludeSource)
@@ -270,7 +270,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                     units.Add(ownerUnit);
             }
             
-            units = SkillTargetingUtil.FilterWithRelation((SkillTargetRelation)TickAreaRelationId, caster, units).ToList();
+            units = SkillTargetingUtil.FilterWithRelation((SkillTargetRelation)TickAreaRelationId, (Unit)caster, units).ToList();
 
             var source = caster;
             //if (TickAreaUseOriginSource)
@@ -297,7 +297,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             }
         }
 
-        public void Dispel(Unit caster, BaseUnit owner, Buff buff, bool replaced = false)
+        public void Dispel(BaseUnit caster, BaseUnit owner, Buff buff, bool replaced = false)
         {
             foreach (var template in Bonuses)
                 owner.RemoveBonus(buff.Index, template.Attribute);

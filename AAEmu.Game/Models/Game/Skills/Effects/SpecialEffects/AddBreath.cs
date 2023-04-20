@@ -3,15 +3,13 @@
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 
-using NLog;
-
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class AddBreath : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.AddBreath;
 
-        public override void Execute(Unit caster,
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,

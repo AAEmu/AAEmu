@@ -1,7 +1,5 @@
-﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
@@ -25,11 +23,11 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
         public Dictionary<uint,List<GameObject>> HitObjects { get; set; }
 
-        public PlotState(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
+        public PlotState(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
         {
             _cancellationRequest = false;
 
-            Caster = caster;
+            Caster = caster as Unit;
             CasterCaster = casterCaster;
             Target = target;
             TargetCaster = targetCaster;

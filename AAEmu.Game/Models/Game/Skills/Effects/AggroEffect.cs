@@ -25,9 +25,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj,
-            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
+            CompressedGamePackets packetBuilder = null)
         {
             if (!(caster is Character character))
                 return;
@@ -42,7 +42,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             if (UseLevelAggro)
             {
-                var lvlMd = caster.LevelDps * LevelMd;
+                var lvlMd = ((Unit)caster).LevelDps * LevelMd;
                 var levelModifier = (((source.Skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
 
                 min += lvlMd - levelModifier * lvlMd + 0.5f;

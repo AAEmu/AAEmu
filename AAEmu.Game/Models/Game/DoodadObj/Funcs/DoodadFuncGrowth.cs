@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public int EndScale { get; set; }
         public int NextPhase { get; set; }
 
-        public override bool Use(Unit caster, Doodad owner)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
             //TODO add doodad scaling transformation
             owner.Scale = StartScale / 1000f;

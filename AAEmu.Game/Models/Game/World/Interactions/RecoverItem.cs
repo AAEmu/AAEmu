@@ -9,10 +9,10 @@ namespace AAEmu.Game.Models.Game.World.Interactions
 {
     public class RecoverItem : IWorldInteraction
     {
-        public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
-            uint skillId, uint doodadId, DoodadFuncTemplate objectFunc)
+        public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
+            uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
         {
-            if ((target is Doodad doodad) && doodad.AllowRemoval())
+            if (target is Doodad doodad && doodad.AllowRemoval())
             {
                 // Get Funcs for current doodad phase
                 var funcs = DoodadManager.Instance.GetFuncsForGroup(doodad.FuncGroupId);
@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
             }
 
             // Something wasn't found or is invalid, so cancel whatever we're doing
-            caster.SendErrorMessage(ErrorMessageType.FailedToUseItem);
+            ((Unit)caster).SendErrorMessage(ErrorMessageType.FailedToUseItem);
             caster.InterruptSkills();
         }
     }

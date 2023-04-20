@@ -10,7 +10,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.GiveHonorPoint;
 
-        public override void Execute(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+        public override void Execute(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj,
             Skill skill, SkillObject skillObject, DateTime time, int amount, int value2, int value3, int value4)
         {
             if (caster is Character) { _log.Debug("Special effects: GiveHonorPoint amount {0}, value2 {1}, value3 {2}, value4 {3}", amount, value2, value3, value4); }

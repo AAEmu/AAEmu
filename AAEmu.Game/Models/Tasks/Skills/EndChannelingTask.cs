@@ -6,14 +6,14 @@ namespace AAEmu.Game.Models.Tasks.Skills
 {
     public class EndChannelingTask : SkillTask
     {
-        private readonly Unit _caster;
+        private readonly BaseUnit _caster;
         private readonly SkillCaster _casterCaster;
         private readonly BaseUnit _target;
         private readonly SkillCastTarget _targetCaster;
         private readonly SkillObject _skillObject;
         public Doodad _channelDoodad { get; set; }
 
-        public EndChannelingTask(Skill skill, Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Doodad channelDoodad) : base(skill)
+        public EndChannelingTask(Skill skill, BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Doodad channelDoodad) : base(skill)
         {
             _caster = caster;
             _casterCaster = casterCaster;

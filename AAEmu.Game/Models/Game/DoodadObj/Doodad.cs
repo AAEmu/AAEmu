@@ -39,7 +39,7 @@ using AAEmu.Game.Models.Tasks.Doodads;
  [Doodad] PhaseFunc: GroupId 5137, FuncId 1001, FuncType DoodadFuncTimer : delay=30000, nextPhase=5136
  [Doodad] Func: GroupId 5137, FuncId 0
 *-----------------------------------------------------------------------------------------------------------------
-метод public void Use(Unit caster, uint skillId) запускает в цикле:
+метод public void Use(BaseUnit caster, uint skillId) запускает в цикле:
 
 2. запуск Func (функций) func.Use(caster, this, skillId, func.NextPhase)
    - одна функция выбирается методом GetFunc(FuncGroupId, skillId)
@@ -166,7 +166,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             _data = data;
         }
 
-        public void Use(Unit caster, uint skillId = 0, int funcGroupId = 0)
+        public void Use(BaseUnit caster, uint skillId = 0, int funcGroupId = 0)
         {
             if (caster == null)
             {
@@ -244,7 +244,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <param name="skillId"></param>
         /// <param name="func"></param>
         /// <returns>If TRUE, then we stop further execution of functions and wait for interaction</returns>
-        public bool DoFunc(Unit caster, uint skillId, DoodadFunc func)
+        public bool DoFunc(BaseUnit caster, uint skillId, DoodadFunc func)
         {
             // if there is no function, complete the cycle
             if (func == null)
@@ -320,7 +320,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <param name="caster"></param>
         /// <param name="nextPhase"></param>
         /// <returns>if true, it did not pass the check for the quest (it must be aborted)</returns>
-        private bool DoPhaseFuncs(Unit caster, ref int nextPhase)
+        private bool DoPhaseFuncs(BaseUnit caster, ref int nextPhase)
         {
             if (nextPhase <= 0) { return true; }
 
@@ -405,7 +405,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <param name="caster"></param>
         /// <param name="nextPhase"></param>
         /// <returns>if TRUE, it did not pass the check for the quest (it must be aborted)</returns>
-        public bool DoChangePhase(Unit caster, int nextPhase)
+        public bool DoChangePhase(BaseUnit caster, int nextPhase)
         {
             // здесь не надо удалять doodad
             //if (nextPhase == -1)
@@ -450,7 +450,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     select funcGroup.Id).FirstOrDefault();
         }
 
-        public void OnSkillHit(Unit caster, uint skillId)
+        public void OnSkillHit(BaseUnit caster, uint skillId)
         {
             var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
             if (funcs == null) { return; }
@@ -471,68 +471,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             var unit = WorldManager.Instance.GetUnit(OwnerObjId);
             DoChangePhase(unit, (int)FuncGroupId);
         }
-
-        //public override void Spawn()
-        //{
-        //    base.Spawn();
-        //    // TODO has already been called in Create() - this eliminates re-initialization of plants/trees/animals
-        //    //FuncGroupId = GetFuncGroupId();  // Start phase
-        //    _log.Trace("Doing phase {0} for WorldDoodad TemplateId {1}, objId {2}", FuncGroupId, TemplateId, ObjId);
-        //    var unit = WorldManager.Instance.GetUnit(OwnerObjId);
-        //    if (unit is not null) // Initialize the seats on the vehicle
-        //    {
-        //        DoPhaseFuncs(unit, (int)FuncGroupId);
-        //    }
-        //    else // anything that sets up the environment
-        //    {
-        //        var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
-        //        var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(FuncGroupId);
-
-        //        if (phaseFuncs.Length > 0)
-        //        {
-        //            foreach (var doodadPhaseFunc in phaseFuncs)
-        //            {
-        //                switch (doodadPhaseFunc.FuncType)
-        //                {
-        //                    case "DoodadFuncTimer":
-        //                    case "DoodadFuncTod":
-        //                    case "DoodadFuncRatioChange":
-        //                    case "DoodadFuncGrowth":
-        //                    case "DoodadFuncClout":
-        //                        DoPhaseFuncs(null, (int)FuncGroupId);
-        //                        break;
-        //                        //case "DoodadFuncClimateReact":
-        //                        //case "DoodadFuncCraftDirect":
-        //                        //case "DoodadFuncHunger": // ?
-        //                        //case "DoodadFuncPulseTrigger":
-        //                        //case "DoodadFuncPuzzleOut": // ?
-        //                        //case "DoodadFuncSiegePeriod":
-        //                        //case "DoodadFuncSpawnGimmick":
-        //                        //case "DoodadFuncZoneReact":
-        //                        //    DoPhaseFuncs(null, (int)FuncGroupId);
-        //                        //    break;
-        //                }
-        //            }
-        //        }
-
-        //        if (funcs.Count <= 0 && phaseFuncs.Length > 0) // Initialize anything that does not require interaction immediately after spawning
-        //        {
-        //            foreach (var doodadPhaseFunc in phaseFuncs)
-        //            {
-        //                switch (doodadPhaseFunc.FuncType)
-        //                {
-        //                    case "DoodadFuncTimer":
-        //                    case "DoodadFuncTod":
-        //                    case "DoodadFuncRatioChange":
-        //                    case "DoodadFuncGrowth":
-        //                    case "DoodadFuncClout":
-        //                        DoPhaseFuncs(null, (int)FuncGroupId);
-        //                        break;
-        //                }
-        //            }
-        //        }
-        //    }
-        //}
 
         public override void BroadcastPacket(GamePacket packet, bool self)
         {

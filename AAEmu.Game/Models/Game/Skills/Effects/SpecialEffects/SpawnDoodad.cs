@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.SpawnDoodad;
 
-        public override void Execute(Unit caster,
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -23,7 +23,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int doodadId,
             int value2, // sometimes 1000
             int value3,
-            int value4)
+            int value4
+        )
         {
             // TODO ...
             if (caster is Character) { _log.Debug("Special effects: SpawnDoodad doodadId {0}, value2 {1}, value3 {2}, value4 {3}", doodadId, value2, value3, value4); }

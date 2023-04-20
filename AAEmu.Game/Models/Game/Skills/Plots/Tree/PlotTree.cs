@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using AAEmu.Commons.Network;
+
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
@@ -97,7 +97,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                         {
                             if (condition != child.ParentNextEvent.Fail)
                             {
-                                if (child?.ParentNextEvent?.PerTarget ?? false)
+                                if (child.ParentNextEvent?.PerTarget ?? false)
                                 {
                                     foreach(var target in item.targetInfo.EffectedTargets)
                                     {
@@ -133,7 +133,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                     if (queue.Count > 0)
                     {
-                        int delay = (int)queue.Min(o => (o.timestamp - DateTime.UtcNow).TotalMilliseconds);
+                        var delay = (int)queue.Min(o => (o.timestamp - DateTime.UtcNow).TotalMilliseconds);
                         delay = Math.Max(delay, 0);
 
                         //await Task.Delay(delay).ConfigureAwait(false);

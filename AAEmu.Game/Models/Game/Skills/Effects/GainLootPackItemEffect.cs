@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
@@ -10,7 +11,6 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects
 {
@@ -24,9 +24,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj,
-            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
+            CompressedGamePackets packetBuilder = null)
         {
             var character = (Character)caster;
             if (character == null) return;
@@ -172,7 +172,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             _log.Trace("GainLootPackItemEffect {0}", LootPackId);
         }
 
-        private void AddGold(Unit caster, int goldMin, int goldMax)
+        private void AddGold(BaseUnit caster, int goldMin, int goldMax)
         {
             var character = (Character)caster;
             if (character == null) return;
@@ -189,7 +189,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 new List<ItemTask> {new MoneyChange(goldAdd)}, new List<ulong>()));
         }
 
-        private void AddItem(Unit caster, uint itemId, byte gradeId, int minAmount, int maxAmount,
+        private void AddItem(BaseUnit caster, uint itemId, byte gradeId, int minAmount, int maxAmount,
             Item sourceItem = null)
         {
             var character = (Character)caster;

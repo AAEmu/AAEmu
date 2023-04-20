@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class Return : SpecialEffectAction
     {
-        public override void Execute(Unit caster,
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -89,7 +89,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (trp == null) { return; }
 
             caster.DisabledSetPosition = true;
-            caster.SendPacket(new SCTeleportUnitPacket(TeleportReason.MoveToLocation, 0, trp.X, trp.Y, trp.Z, trp.Yaw));
+            ((Unit)caster).SendPacket(new SCTeleportUnitPacket(TeleportReason.MoveToLocation, 0, trp.X, trp.Y, trp.Z, trp.Yaw));
         }
     }
 }

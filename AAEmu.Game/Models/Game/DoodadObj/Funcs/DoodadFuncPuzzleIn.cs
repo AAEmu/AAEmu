@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public uint GroupId { get; set; }
         public float Ratio { get; set; }
 
-        public override bool Use(Unit caster, Doodad owner)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
             _log.Trace("DoodadFuncPuzzleIn");
             return false;

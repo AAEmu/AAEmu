@@ -2576,43 +2576,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             return true;
         }
 
-        // public void TriggerFunc(string className, Unit caster, Doodad doodad, uint skillId, uint nextPhase = 0)
-        // {
-        //     var action = GetFunc(doodad.FuncGroupId, skillId);
-        //     if (action != null)
-        //     {
-        //         //_log.Warn(className + " is Actioning " + action.FuncType);
-        //         if (action.NextPhase > 0)
-        //             doodad.FuncGroupId = (uint)action.NextPhase;
-        //         else
-        //             doodad.cancelPhasing = true; //If the next phase in the action doesn't exist, prevent the doodad from phasing any further
-        //
-        //         action.Use(caster, doodad, action.SkillId);
-        //     }
-        //     else
-        //     {
-        //         if (nextPhase > 0)
-        //         {
-        //             doodad.FuncGroupId = nextPhase;
-        //             doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
-        //             TriggerPhases(className, caster, doodad, skillId);
-        //         }
-        //     }
-        // }
-        // public void TriggerPhases(string className, Unit caster, Doodad doodad, uint skillId)
-        // {
-        //     var phases = GetPhaseFunc(doodad.FuncGroupId);
-        //     foreach (var phase in phases)
-        //     {
-        //         if (!doodad.cancelPhasing)
-        //         {
-        //             //_log.Warn(className + " is Phasing " + phase.FuncType);
-        //             phase.Use(caster, doodad, phase.SkillId);
-        //         }
-        //     }
-        //     if (!doodad.cancelPhasing)
-        //         doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
-
         public bool ChangeDoodadData(Character player, Doodad doodad, int data)
         {
             // TODO: Can non-coffer doodads that use this packet only be changed by their owner ?

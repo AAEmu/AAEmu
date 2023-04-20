@@ -8,6 +8,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Templates
         protected static Logger _log = LogManager.GetCurrentClassLogger(); 
         
         public uint Id { get; set; }
-        public abstract bool Use(Unit caster, Doodad owner);
+        public abstract bool Use(BaseUnit caster, Doodad owner);
     }
 }

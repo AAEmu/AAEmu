@@ -458,7 +458,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
-        public void DoSpawnEffect(uint spawnerId, SpawnEffect effect, Unit caster, BaseUnit target)
+        public void DoSpawnEffect(uint spawnerId, SpawnEffect effect, BaseUnit caster, BaseUnit target)
         {
             var template = NpcGameData.Instance.GetNpcSpawnerTemplate(spawnerId);
             if (template.Npcs == null)
@@ -496,7 +496,7 @@ namespace AAEmu.Game.Models.Game.NPChar
                         }
                         else
                         {
-                            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, caster, 1);
+                            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, (Unit)caster, 1);
                         }
                         npc.Ai.OnAggroTargetChanged();
                         npc.Ai.GoToCombat();

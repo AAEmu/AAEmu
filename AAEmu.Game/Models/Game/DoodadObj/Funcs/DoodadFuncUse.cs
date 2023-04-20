@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         // doodad_funcs
         public uint SkillId { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             if (caster is Character)
                 _log.Debug("DoodadFuncUse: skillId {0}, nextPhase {1},  SkillId {2}", skillId, nextPhase, SkillId);
@@ -35,7 +35,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     // Coffers need their own permissions as they can override the house's settings
                     if (!coffer.AllowedToInteract(player))
                     {
-                        caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
+                        ((Unit)caster).SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
                         return;
                     }
                 }
@@ -51,7 +51,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 }
                 else if (!house.AllowedToInteract(player))
                 {
-                    caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
+                    ((Unit)caster).SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
                     return;
                 }
             }

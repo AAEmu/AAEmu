@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public int Tod { get; set; }
         public int NextPhase { get; set; }
 
-        public override bool Use(Unit caster, Doodad owner)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
             // I think this is used to reschedule anything that needs triggered at a specific gametime
             // По моему, здесь должна быть проверка на время дня.
