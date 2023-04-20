@@ -172,8 +172,8 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         }
 
         public void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj,
-            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
+            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
+            CompressedGamePackets packetBuilder = null)
         {
             if (RequireBuffId > 0 && !target.Buffs.CheckBuff(RequireBuffId))
                 return; //TODO send error?
@@ -292,7 +292,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                         continue;
 
                     var targetObj = new SkillCastUnitTarget(trg.ObjId);
-                    eff.Apply((Unit)source, buff.SkillCaster, trg, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.UtcNow);
+                    eff.Apply(source, buff.SkillCaster, trg, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.UtcNow);
                 }
             }
         }

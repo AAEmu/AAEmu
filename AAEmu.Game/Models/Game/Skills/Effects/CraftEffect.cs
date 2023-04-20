@@ -132,7 +132,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                                 ShipyardManager.Instance.ShipyardCompletedTask(sy);
                             }
                             else
-                                ((Unit)caster).SendErrorMessage(ErrorMessageType.NoPermissionToLoot);
+                                character.SendErrorMessage(ErrorMessageType.NoPermissionToLoot);
                         }
                         break;
                 }

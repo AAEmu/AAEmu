@@ -113,8 +113,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     HitType = hitType
                 };
                 // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
-                trg.CombatBuffs.TriggerCombatBuffs((Unit)caster, trg, hitType, false);
-                caster.CombatBuffs.TriggerCombatBuffs((Unit)caster, trg, hitType, false);
+                trg.CombatBuffs.TriggerCombatBuffs(caster, trg, hitType, false);
+                caster.CombatBuffs.TriggerCombatBuffs(caster, trg, hitType, false);
                 caster.BroadcastPacket(missPacket, true);
                 return;
             }

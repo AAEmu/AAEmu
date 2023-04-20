@@ -89,7 +89,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (trp == null) { return; }
 
             caster.DisabledSetPosition = true;
-            ((Unit)caster).SendPacket(new SCTeleportUnitPacket(TeleportReason.MoveToLocation, 0, trp.X, trp.Y, trp.Z, trp.Yaw));
+            character.SendPacket(new SCTeleportUnitPacket(TeleportReason.MoveToLocation, 0, trp.X, trp.Y, trp.Z, trp.Yaw));
         }
     }
 }

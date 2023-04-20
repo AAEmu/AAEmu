@@ -3,7 +3,6 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -21,12 +20,12 @@ namespace AAEmu.Game.Core.Packets.C2G
             _log.Trace($"Hang, unitObjId: {unitObjId}, targetObjId: {targetObjId}");
             var character = WorldManager.Instance.GetBaseUnit(unitObjId);
             var target = WorldManager.Instance.GetGameObject(targetObjId);
-            if ((character != null) && (target != null))
-                character.Transform.StickyParent = target?.Transform;
+            if (character != null && target != null)
+                character.Transform.StickyParent = target.Transform;
             Connection.ActiveChar.BroadcastPacket(new SCHungPacket(unitObjId,targetObjId),false);
             if (target is Doodad doodad)
             {
-                doodad.Use((Unit)character);
+                doodad.Use(character);
             }
         }
     }
