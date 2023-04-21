@@ -46,6 +46,7 @@ namespace AAEmu.Game.Models.Game.Units
         public SkillModifiers SkillModifiersCache { get; set; }
         public BuffModifiers BuffModifiersCache { get; set; }
         public CombatBuffs CombatBuffs { get; set; }
+        public object ChargeLock { get; set; }
 
         public BaseUnit()
         {

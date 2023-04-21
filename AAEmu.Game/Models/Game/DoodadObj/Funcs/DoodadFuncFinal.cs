@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public bool ShowEndTime { get; set; }
         public string Tip { get; set; }
 
-        public override bool Use(Unit caster, Doodad owner)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
             if (caster is Character)
                 _log.Debug("DoodadFuncFinal: After {0}, Respawn {1}, MinTime {2}, MaxTime {3}, ShowTip {4}, ShowEndTime {5}, Tip {6}", After, Respawn, MinTime, MaxTime, ShowTip, ShowEndTime, Tip);

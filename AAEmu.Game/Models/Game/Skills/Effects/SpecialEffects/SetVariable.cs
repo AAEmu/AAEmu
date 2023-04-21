@@ -1,9 +1,7 @@
 ﻿using System;
-using AAEmu.Game.Core.Managers;
+
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Tasks.Skills;
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
@@ -11,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.SetVariable;
         
-        public override void Execute(Unit caster,
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,

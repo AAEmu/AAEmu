@@ -6,9 +6,9 @@ namespace AAEmu.Game.Models.Tasks.Skills
 {
     public class DespawnTask : Task
     {
-        private readonly Unit _caster;
+        private readonly BaseUnit _caster;
 
-        public DespawnTask(Unit caster)
+        public DespawnTask(BaseUnit caster)
         {
             _caster = caster;
         }

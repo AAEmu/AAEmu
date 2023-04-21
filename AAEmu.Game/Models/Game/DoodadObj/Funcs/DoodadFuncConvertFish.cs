@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
     public class DoodadFuncConvertFish : DoodadFuncTemplate
     {
         // doodad_funcs
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Trace("DoodadFuncConvertFish");
             if (caster is Character character)

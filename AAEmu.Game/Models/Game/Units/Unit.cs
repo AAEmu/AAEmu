@@ -214,7 +214,6 @@ namespace AAEmu.Game.Models.Game.Units
         public Simulation Simulation { get; set; }
 
         public UnitProcs Procs { get; set; }
-        public object ChargeLock { get; set; }
 
         public bool ConditionChance { get; set; }
 
@@ -265,9 +264,9 @@ namespace AAEmu.Game.Models.Game.Units
         /// <param name="attacker"></param>
         /// <param name="value"></param>
         /// <param name="killReason"></param>
-        public virtual void ReduceCurrentHp(Unit attacker, int value, KillReason killReason = KillReason.Damage)
+        public virtual void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
         {
-            if (attacker.CurrentTarget is Character character)
+            if (((Unit)attacker).CurrentTarget is Character character)
             {
                 if (Hp <= 0 && character.IsInDuel)
                 {
@@ -299,13 +298,13 @@ namespace AAEmu.Game.Models.Game.Units
             Hp = Math.Max(Hp - value, 0);
             if (Hp <= 0)
             {
-                if (attacker.CurrentTarget is Character attacked && attacked.IsInDuel)
+                if (((Unit)attacker).CurrentTarget is Character attacked && attacked.IsInDuel)
                 {
                     Hp = 1; // we don't let you die during a duel
                     return;
                 }
 
-                attacker.Events.OnKill(attacker, new OnKillArgs { target = attacker });
+                ((Unit)attacker).Events.OnKill(attacker, new OnKillArgs { target = (Unit)attacker });
                 DoDie(attacker, killReason);
                 //StopRegen();
             }
@@ -316,7 +315,7 @@ namespace AAEmu.Game.Models.Game.Units
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
         }
 
-        public virtual void ReduceCurrentMp(Unit unit, int value)
+        public virtual void ReduceCurrentMp(BaseUnit unit, int value)
         {
             if (Hp == 0)
             {
@@ -334,13 +333,13 @@ namespace AAEmu.Game.Models.Game.Units
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
         }
 
-        public virtual void DoDie(Unit killer, KillReason killReason)
+        public virtual void DoDie(BaseUnit killer, KillReason killReason)
         {
             InterruptSkills();
 
-            Events.OnDeath(this, new OnDeathArgs { Killer = killer, Victim = this });
+            Events.OnDeath(this, new OnDeathArgs { Killer = (Unit)killer, Victim = this });
             Buffs.RemoveEffectsOnDeath();
-            killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, killer), true);
+            killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, (Unit)killer), true);
             if (killer == this)
             {
                 DespawMate((Character)this);
@@ -356,11 +355,11 @@ namespace AAEmu.Game.Models.Game.Units
             if (CurrentTarget != null)
             {
                 killer.BroadcastPacket(new SCAiAggroPacket(killer.ObjId, 0), true);
-                killer.SummarizeDamage = 0;
+                ((Unit)killer).SummarizeDamage = 0;
 
-                if (killer.CurrentTarget != null)
+                if (((Unit)killer).CurrentTarget != null)
                 {
-                    killer.BroadcastPacket(new SCCombatClearedPacket(killer.CurrentTarget.ObjId), true);
+                    killer.BroadcastPacket(new SCCombatClearedPacket(((Unit)killer).CurrentTarget.ObjId), true);
                 }
                 killer.BroadcastPacket(new SCCombatClearedPacket(killer.ObjId), true);
                 //killer.StartRegen();
@@ -372,7 +371,7 @@ namespace AAEmu.Game.Models.Game.Units
                     character.IsInBattle = false; // we need the character to be "not in battle"
                     DespawMate(character);
                 }
-                else if (killer.CurrentTarget is Character character2)
+                else if (((Unit)killer).CurrentTarget is Character character2)
                 {
                     character2.StopAutoSkill(character2);
                     character2.IsInBattle = false; // we need the character to be "not in battle"
@@ -380,7 +379,7 @@ namespace AAEmu.Game.Models.Game.Units
                     DespawMate(character2);
                 }
 
-                killer.CurrentTarget = null;
+                ((Unit)killer).CurrentTarget = null;
             }
         }
 

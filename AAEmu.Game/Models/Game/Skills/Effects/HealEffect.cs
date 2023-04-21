@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -30,9 +31,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj,
-            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
+            CompressedGamePackets packetBuilder = null)
         {
             _log.Trace("HealEffect {0}", Id);
 
@@ -51,14 +52,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             
             if (UseLevelHeal) 
             {
-                var lvlMd = caster.LevelDps * LevelMd;
+                var lvlMd = ((Unit)caster).LevelDps * LevelMd;
                 var levelModifier = (( (source.Skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
             
-                levelMin += (lvlMd - levelModifier * lvlMd) + 0.5f;
+                levelMin += lvlMd - levelModifier * lvlMd + 0.5f;
                 levelMax += (levelModifier + 1) * lvlMd + 0.5f;
             }
 
-            max += ((caster.HDps * 0.001f) * DpsMultiplier);
+            max += ((Unit)caster).HDps * 0.001f * DpsMultiplier;
             
             var minCastBonus = 1000f;
             // Hack null-check on skill
@@ -68,7 +69,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             else
                 minCastBonus = castTimeMod;
 
-            var variableDamage = (max * minCastBonus * 0.001f);
+            var variableDamage = max * minCastBonus * 0.001f;
             min = variableDamage + levelMin;
             max = variableDamage + levelMax;
 
@@ -92,14 +93,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 }
             }
 
-            bool criticalHeal = Rand.Next(0f, 100f) < caster.HealCritical;
+            bool criticalHeal = Rand.Next(0f, 100f) < ((Unit)caster).HealCritical;
             
             var value = (int)Rand.Next(min, max);
 
             if (criticalHeal)
             {
-                value = (int)(value * (1 + (caster.HealCriticalBonus / 100)));
-                caster.CombatBuffs.TriggerCombatBuffs(caster, trg, SkillHitType.SpellCritical, true);
+                value = (int)(value * (1 + ((Unit)caster).HealCriticalBonus / 100));
+                caster.CombatBuffs.TriggerCombatBuffs((Unit)caster, trg, SkillHitType.SpellCritical, true);
             }
 
             value = (int) (value * trg.IncomingHealMul);
@@ -109,12 +110,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 value = Rand.Next(FixedMin, FixedMax);
                 if (source.Buff != null && source.IsTrigger)
                 {
-                    value = (int)((value / 1000.0f) * source.Amount);
+                    value = (int)(value / 1000.0f * source.Amount);
                 } else 
                     value = (int) (value * tickModifier);
             }
             
-            value = (int) (value * caster.HealMul);
+            value = (int) (value * ((Unit)caster).HealMul);
 
             byte healHitType = criticalHeal ? (byte)11 : (byte)13;
 
@@ -128,7 +129,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             trg.Hp = Math.Min(trg.Hp, trg.MaxHp);
             trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);
 
-            trg.Events.OnHealed(this, new OnHealedArgs { Healer = caster, HealAmount = value });
+            trg.Events.OnHealed(this, new OnHealedArgs { Healer = (Unit)caster, HealAmount = value });
         }
     }
 }

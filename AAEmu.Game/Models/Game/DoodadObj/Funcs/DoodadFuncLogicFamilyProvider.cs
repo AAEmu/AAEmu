@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
     {
         public uint FamilyId { get; set; }
         
-        public override bool Use(Unit caster, Doodad owner)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
             _log.Debug("DoodadFuncLogicFamilyProvider: FamilyId {0}", FamilyId);
             return false;

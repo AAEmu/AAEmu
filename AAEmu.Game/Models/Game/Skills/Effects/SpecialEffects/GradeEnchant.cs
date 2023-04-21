@@ -27,7 +27,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             GreatSuccess = 4
         }
 
-        public override void Execute(Unit caster,
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,

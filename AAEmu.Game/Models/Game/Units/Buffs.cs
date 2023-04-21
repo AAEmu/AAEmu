@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
@@ -189,7 +190,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
-        public void AddBuff(uint buffId, Unit caster)
+        public void AddBuff(uint buffId, BaseUnit caster)
         {
             var buff = SkillManager.Instance.GetBuffTemplate(buffId);
             var casterObj = new SkillCasterUnit(caster.ObjId);

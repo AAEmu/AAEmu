@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Char;
@@ -17,9 +18,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public override uint BuffId => Buff.Id;
         public override bool OnActionTime => Buff.Tick > 0;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj,
-            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
+            CompressedGamePackets packetBuilder = null)
         {
             if (target is Unit trg)
             {
@@ -32,12 +33,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
             if (Rand.Next(0, 101) > Chance)
             {                
-                caster.ConditionChance = false;
+                ((Unit)caster).ConditionChance = false;
                 return;
             }
             else
             {
-                caster.ConditionChance = true;
+                ((Unit)caster).ConditionChance = true;
             }
 
             if (Buff.RequireBuffId > 0 && !target.Buffs.CheckBuff(Buff.RequireBuffId))
@@ -83,7 +84,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (Buff.Kind == BuffKind.Bad && caster.GetRelationStateTo(target) == RelationState.Friendly 
                 && caster != target && !target.Buffs.CheckBuff((uint)BuffConstants.Retribution))
             {
-                caster.SetCriminalState(true);
+                ((Unit)caster).SetCriminalState(true);
             }
         }
     }

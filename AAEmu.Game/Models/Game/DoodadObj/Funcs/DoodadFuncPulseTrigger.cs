@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public static bool Halt = false;
 
-        public override bool Use(Unit caster, Doodad owner)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
             _log.Debug($"DoodadFuncPulseTrigger Flag={Flag}, NextPhase={NextPhase}, Halt={Halt}");
 

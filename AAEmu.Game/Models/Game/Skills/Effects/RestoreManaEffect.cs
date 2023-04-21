@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -20,9 +21,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj,
-            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
+            CompressedGamePackets packetBuilder = null)
         {
             _log.Trace("RestoreManaEffect");
 
@@ -51,9 +52,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (UseLevelValue)
             {
                 var levelMd = (unk + 1) * LevelMd;
-                min += (int)(caster.LevelDps * levelMd + 0.5f);
+                min += (int)(((Unit)caster).LevelDps * levelMd + 0.5f);
                 max += (int)((((skillLevel - 1) * 0.020408163f * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.0099999998f + 1f) *
-                             caster.LevelDps * levelMd + 0.5f);
+                             ((Unit)caster).LevelDps * levelMd + 0.5f);
             }
 
             // TODO ...

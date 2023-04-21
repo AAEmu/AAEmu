@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public int Ratio { get; set; }
         public uint SpawnDoodadId { get; set; }
 
-        public override bool Use(Unit caster, Doodad owner)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
             _log.Trace("DoodadFuncRatioRespawn : Ratio {0}, SpawnDoodadId {1}", Ratio, SpawnDoodadId);
 

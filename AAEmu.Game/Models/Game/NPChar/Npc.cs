@@ -698,7 +698,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             //Equip = new Item[28];
         }
 
-        public override void DoDie(Unit killer, KillReason killReason)
+        public override void DoDie(BaseUnit killer, KillReason killReason)
         {
             base.DoDie(killer, killReason);
             AggroTable.Clear();

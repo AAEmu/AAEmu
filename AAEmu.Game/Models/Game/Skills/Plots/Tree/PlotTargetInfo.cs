@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
+
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
@@ -12,6 +11,7 @@ using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
@@ -101,7 +101,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
         private BaseUnit UpdateAreaTarget(PlotTargetAreaParams args, PlotState state, PlotEventTemplate plotEvent)
         {
-            BaseUnit posUnit = new BaseUnit();
+            var posUnit = new BaseUnit();
             posUnit.ObjId = uint.MaxValue;
             posUnit.Region = PreviousTarget.Region;
             posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
@@ -131,9 +131,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             // unitsInRange = unitsInRange.Where(u => u.);
 
             EffectedTargets.AddRange(unitsInRange);
-            if (state.HitObjects.ContainsKey(plotEvent.Id))
+            if (state.HitObjects.TryGetValue(plotEvent.Id, out var o))
             {
-                state.HitObjects[plotEvent.Id].AddRange(unitsInRange);
+                o.AddRange(unitsInRange);
             }
             else
             {
@@ -160,9 +160,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             var randomUnit = filteredUnits.ElementAt(index);
 
             EffectedTargets.Add(randomUnit);
-            if (state.HitObjects.ContainsKey(plotEvent.Id))
+            if (state.HitObjects.TryGetValue(plotEvent.Id, out var o))
             {
-                state.HitObjects[plotEvent.Id].Add(randomUnit);
+                o.Add(randomUnit);
             }
             else
             {
@@ -174,7 +174,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
         private BaseUnit UpdateRandomAreaTarget(PlotTargetRandomAreaParams args, PlotState state, PlotEventTemplate plotEvent)
         {
-            BaseUnit posUnit = new BaseUnit();
+            var posUnit = new BaseUnit();
             posUnit.ObjId = uint.MaxValue;
             posUnit.Region = PreviousTarget.Region;
             posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
@@ -202,9 +202,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             // unitsInRange = unitsInRange.Where(u => u.);
 
             EffectedTargets.AddRange(unitsInRange);
-            if (state.HitObjects.ContainsKey(plotEvent.Id))
+            if (state.HitObjects.TryGetValue(plotEvent.Id, out var o))
             {
-                state.HitObjects[plotEvent.Id].AddRange(unitsInRange);
+                o.AddRange(unitsInRange);
             }
             else
             {
@@ -226,8 +226,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             {
                 filtered = filtered.Where(o =>
                 {
-                    if (state.HitObjects.ContainsKey(plotEvent.Id))
-                        return !state.HitObjects[plotEvent.Id].Contains(o);
+                    if (state.HitObjects.TryGetValue(plotEvent.Id, out var o1))
+                        return !o1.Contains(o);
                     else
                         return true;
                 });
@@ -242,7 +242,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     return true;
                 });
             
-            filtered = SkillTargetingUtil.FilterWithRelation(args.UnitRelationType, state.Caster, filtered);
+            filtered = (IEnumerable<Unit>)SkillTargetingUtil.FilterWithRelation(args.UnitRelationType, state.Caster, filtered);
             filtered = filtered.Where(o => ((byte)o.TypeFlag & args.UnitTypeFlag) != 0);
 
             return filtered;

@@ -25,14 +25,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj,
-            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
+            CompressedGamePackets packetBuilder = null)
         {
-            if (!(caster is Character character))
+            if (caster is not Character character)
                 return;
 
-            if (!(target is Npc npc))
+            if (target is not Npc npc)
                 return;
 
             _log.Debug("AggroEffect");
@@ -42,7 +42,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             if (UseLevelAggro)
             {
-                var lvlMd = caster.LevelDps * LevelMd;
+                var lvlMd = character.LevelDps * LevelMd;
                 var levelModifier = (((source.Skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
 
                 min += lvlMd - levelModifier * lvlMd + 0.5f;

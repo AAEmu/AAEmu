@@ -3,7 +3,6 @@ using System.Linq;
 
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
-using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -20,8 +19,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
-            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
+            CompressedGamePackets packetBuilder = null)
         {
             _log.Trace("KillNpcWithoutCorpseEffect");
 
@@ -29,7 +29,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (Vanish && Radius == 0)
             {
                 // Fixed: "Trainer Daru" disappears after selling a bear
-                RemoveEffectsAndDelete(caster);
+                RemoveEffectsAndDelete((Unit)caster);
             }
             else
             {
@@ -37,7 +37,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 if (npcs == null) { return; }
                 foreach (var npc in npcs.Where(npc => npc.TemplateId == NpcId))
                 {
-                    RemoveEffectsAndDelete(caster);
+                    RemoveEffectsAndDelete((Unit)caster);
                 }
             }
         }

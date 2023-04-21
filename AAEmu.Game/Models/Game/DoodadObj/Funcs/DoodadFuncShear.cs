@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public uint ShearTypeId { get; set; }
         public int ShearTerm { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Trace("DoodadFuncShear");
         }

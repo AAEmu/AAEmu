@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public uint DoodadFuncConvertFishId { get; set; }
         public uint ItemId { get; set; }
         public uint LootPackId { get; set; }
-        public override bool Use(Unit caster, Doodad owner)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
             _log.Trace("DoodadFuncConvertFishItem");
             return false;

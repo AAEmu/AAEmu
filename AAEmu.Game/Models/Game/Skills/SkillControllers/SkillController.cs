@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using AAEmu.Game.Models.Game.Skills.Templates;
+﻿using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.SkillControllers
@@ -35,7 +32,7 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
             State = SCState.Ended;
         }
 
-        public static SkillController CreateSkillController(SkillControllerTemplate template, Unit owner, Unit target)
+        public static SkillController CreateSkillController(SkillControllerTemplate template, BaseUnit owner, BaseUnit target)
         {
             if (template == null)
             {

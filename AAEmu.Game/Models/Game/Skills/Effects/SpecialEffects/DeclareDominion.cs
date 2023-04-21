@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -6,7 +7,6 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.DeclareDominion;
         
-        public override void Execute(Unit caster,
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
@@ -29,7 +29,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         {
             if (caster is Character) { _log.Debug("Special effects: DeclareDominion value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
-            if (caster.Expedition == null)
+            if (((Unit)caster).Expedition == null)
                 return;
             
             // Check target is not already claimed
@@ -49,7 +49,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 Z = lodestone.Transform.World.Position.Z,
                 TaxRate = 50,
                 ReignStartTime = DateTime.UtcNow,
-                ExpeditionId = caster.Expedition.Id,
+                ExpeditionId = ((Unit)caster).Expedition.Id,
                 CurHouseTaxMoney = 500000,
                 CurHuntTaxMoney = 9000,
                 PeaceTaxMoney = 300000,

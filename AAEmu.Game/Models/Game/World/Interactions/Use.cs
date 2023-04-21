@@ -17,8 +17,8 @@ namespace AAEmu.Game.Models.Game.World.Interactions
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
-            uint skillId, uint doodadId, DoodadFuncTemplate objectFunc)
+        public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
+            uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
         {
             _log.Debug("World interaction SkillID: {0}", skillId);
             if (target is Doodad doodad)

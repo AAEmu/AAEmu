@@ -8,8 +8,8 @@ namespace AAEmu.Game.Models.Game.World.Interactions
 {
     public class CheckGrowth : IWorldInteraction
     {
-        public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
-            uint skillId, uint doodadId, DoodadFuncTemplate objectFunc)
+        public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
+            uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
         {
             // TODO Verification Needed
             if (!(target is Doodad doodad)) { return; }

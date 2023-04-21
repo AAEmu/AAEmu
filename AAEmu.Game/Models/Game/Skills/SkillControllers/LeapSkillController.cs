@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Numerics;
-using System.Text;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.SkillControllers
@@ -31,11 +29,11 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
         public LeapDirection Direction { get; set; }
 
 
-        public LeapSkillController(SkillControllerTemplate template, Unit owner, Unit target)
+        public LeapSkillController(SkillControllerTemplate template, BaseUnit owner, BaseUnit target)
         {
             Template = template;
-            Owner = owner;
-            Target = target;
+            Owner = (Unit)owner;
+            Target = (Unit)target;
 
             Angle = template.Value[0];
             Speed = template.Value[1];

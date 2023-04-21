@@ -8,13 +8,13 @@ namespace AAEmu.Game.Models.Tasks.Skills
     public class MeleeCastTask : SkillTask
     {
         //private readonly uint _skillId;
-        private readonly Unit _caster;
+        private readonly BaseUnit _caster;
         private readonly SkillCaster _casterCaster;
         private readonly BaseUnit _target;
         private readonly SkillCastTarget _targetCaster;
         private readonly SkillObject _skillObject;
 
-        public MeleeCastTask(Skill skill, Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject) : base(skill)
+        public MeleeCastTask(Skill skill, BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject) : base(skill)
         {
             _caster = caster;
             _casterCaster = casterCaster;

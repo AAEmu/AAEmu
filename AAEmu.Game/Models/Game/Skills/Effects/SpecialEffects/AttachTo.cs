@@ -11,7 +11,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.AttachTo;
         
-        public override void Execute(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+        public override void Execute(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj,
             Skill skill, SkillObject skillObject, DateTime time, int value1, int value2, int value3, int value4)
         {
             if (caster is Character) { _log.Debug("Special effects: AttachTo value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }

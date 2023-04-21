@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
     public class DoodadFuncFinalTask : DoodadFuncTask
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-        private Unit _caster;
+        private BaseUnit _caster;
         private Doodad _owner;
         private uint _skillId;
         private int _nextPhase;
@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         private int _delay;
         private DateTime? _respawnTime;
 
-        public DoodadFuncFinalTask(Unit caster, Doodad owner, uint skillId, bool respawn, int delay) : base(caster, owner, skillId)
+        public DoodadFuncFinalTask(BaseUnit caster, Doodad owner, uint skillId, bool respawn, int delay) : base(caster, owner, skillId)
         {
             _caster = caster;
             _owner = owner;

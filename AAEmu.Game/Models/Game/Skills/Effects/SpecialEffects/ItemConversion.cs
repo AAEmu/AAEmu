@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
@@ -10,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     public class ItemConversion : SpecialEffectAction
     {
         protected override SpecialType SpecialEffectActionType => SpecialType.ItemConversion;
-        public override void Execute(Unit caster,
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,

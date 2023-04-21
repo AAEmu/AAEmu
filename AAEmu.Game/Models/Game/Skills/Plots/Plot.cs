@@ -14,10 +14,12 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         
         public PlotTree Tree { get; set; }
 
-        public async Task Run(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
+        public async Task Run(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
         {
+            var Caster = caster as Unit;
+
             var state = new PlotState(caster, casterCaster, target, targetCaster, skillObject, skill);
-            caster.ActivePlotState = state;
+            Caster.ActivePlotState = state;
             skill.ActivePlotState = state;
             // I am guessing we want to do something here to run it in a thread, or at least using Async
             await Tree.Execute(state);

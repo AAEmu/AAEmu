@@ -7,8 +7,8 @@ namespace AAEmu.Game.Models.Game.World.Interactions
 {
     public class Looting : IWorldInteraction
     {
-        public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
-            uint skillId, uint itemId, DoodadFuncTemplate objectFunc)
+        public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
+            uint skillId, uint itemId, DoodadFuncTemplate objectFunc = null)
         {
             if (target is Doodad doodad)
             {

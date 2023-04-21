@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class GiveLivingPoint : SpecialEffectAction
     {
-        public override void Execute(Unit caster,
+        public override void Execute(BaseUnit caster,
             SkillCaster casterObj,
             BaseUnit target,
             SkillCastTarget targetObj,
