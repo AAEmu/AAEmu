@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 using AAEmu.Game.Core.Managers.World;
@@ -203,6 +204,12 @@ namespace AAEmu.Game.Models.Game.World
                     var temp = new uint[last ? length : SCDoodadsRemovedPacket.MaxCountPerPacket];
                     Array.Copy(doodadIds, offset, temp, 0, temp.Length);
                     character1.SendPacket(new SCDoodadsRemovedPacket(last, temp));
+                }
+
+                if ((character1.CurrentTarget != null) && (unitIds.Contains(character1.CurrentTarget.ObjId)))
+                {
+                    character1.CurrentTarget = null;
+                    character1.SendPacket(new SCTargetChangedPacket(character1.ObjId, 0));
                 }
                 // TODO ... others types...
             }
