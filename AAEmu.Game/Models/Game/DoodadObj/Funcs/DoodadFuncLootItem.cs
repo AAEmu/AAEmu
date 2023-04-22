@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -37,7 +38,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             var count = Rand.Next(CountMin, CountMax);
 
-            if (ItemManager.Instance.IsAutoEquipTradePack(ItemId))
+            if (ItemId == 500)
+            {
+                character.Money += count;
+                res = character.AddMoney(SlotType.Inventory, count);
+            }
+            else if (ItemManager.Instance.IsAutoEquipTradePack(ItemId))
             {
                 var item = ItemManager.Instance.Create(ItemId, count, 0);
                 if (character.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
