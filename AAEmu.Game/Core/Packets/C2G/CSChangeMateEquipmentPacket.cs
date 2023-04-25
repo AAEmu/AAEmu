@@ -29,57 +29,55 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (mate == null)
             {
-                _log.Warn("ChangeMateEquipment, Unknown mate!");
+                _log.Warn("ChangeMateEquipment, Unable to find mate with tlId {0}!", tl);
                 return;
             }
 
             for (int i = 0; i < num; i++)
             {
-                var itemTemplateId = stream.ReadUInt32();
-                bool isEquip = itemTemplateId != 0;
-
-                if (isEquip)
-                    stream.Pos -= 4;
+                var invItem = new EquipItem();
+                invItem.Read(stream);
 
                 var equipItem = new EquipItem();
                 equipItem.Read(stream);
 
-                if (isEquip)
-                    stream.ReadUInt32(); //?
-
-                var fromSlotType = (SlotType)stream.ReadByte();
-                var fromSlot = stream.ReadByte();
+                var invItemSlotType = (SlotType)stream.ReadByte();
+                var invItemSlot = stream.ReadByte();
 
                 var equipSlotType = (SlotType)stream.ReadByte();
                 var equipSlot = stream.ReadByte();
 
-                _log.Debug("FROM: {0}, {1}; TO {2}, {3}, EQUIP: {4}", fromSlotType, fromSlot, equipSlotType, equipSlot, isEquip);
+                var isEquip = invItem.TemplateId != 0;
 
-                var item = ItemManager.Instance.GetItemByItemId(equipItem.Id);
-                var invItem = Connection.ActiveChar.Inventory.Bag.GetItemBySlot(fromSlot);
-                var invItemId = invItem == null ? 0 : invItem.Id;
+                invItem = (EquipItem)Connection.ActiveChar.Inventory.Bag.GetItemBySlot(invItemSlot);
+                equipItem = (EquipItem)mate.Equipment.GetItemBySlot(equipSlot);
 
-                if (item == null)
-                {
-                    _log.Debug("ChangeMateEquipment, failed to get item {0}", item.Id);
-                    continue;
-                }
+                _log.Debug("FROM: {0}, {1}; TO {2}, {3}, ITEMS: {4}, {5}, EQUIP: {6}", invItemSlotType, invItemSlot, equipSlotType, equipSlot, invItem?.Id, equipItem?.Id, isEquip);
 
                 if (isEquip)
                 {
-                    if (mate.Equipment.AddOrMoveExistingItem(ItemTaskType.SwapItems, item))
+                    if (invItem != null)
                     {
-                        Connection.SendPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, equipSlot, item));
+                        var itemTasks = new List<ItemTask>();
+                        itemTasks.Add(new ItemRemove(invItem));
+                        if (Connection.ActiveChar.Inventory.SplitOrMoveItemEx(ItemTaskType.Invalid, Connection.ActiveChar.Inventory.Bag, mate.Equipment, invItem.Id, invItemSlotType, invItemSlot, 0, equipSlotType, equipSlot))
+                        {
+                            //Connection.SendPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, equipSlot, invItem));
+                            Connection.SendPacket(new SCMateEquipmentChangedPacket(invItem, invItemSlotType, invItemSlot, equipItem, equipSlotType, equipSlot, tl));
+                            Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, itemTasks, new List<ulong>()));
+                        }
                     }
-                    //Connection.ActiveChar.Inventory.SplitOrMoveItemEx(ItemTaskType.SwapCofferItems, Connection.ActiveChar.Inventory.Bag, mate.Equipment, invItemId, fromSlotType, fromSlot, item.Id, equipSlotType, equipSlot);
                 }
                 else
                 {
-                    if (Connection.ActiveChar.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.SwapItems, item))
+                    if (equipItem != null /* && Connection.ActiveChar.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Invalid, equipItem)*/)
                     {
-                        Connection.SendPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, equipSlot, null));
+                        if (Connection.ActiveChar.Inventory.SplitOrMoveItemEx(ItemTaskType.Invalid, mate.Equipment, Connection.ActiveChar.Inventory.Bag, equipItem.Id, equipSlotType, equipSlot, 0, invItemSlotType, invItemSlot))
+                        {
+                            //Connection.SendPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, equipSlot, null));
+                            Connection.SendPacket(new SCMateEquipmentChangedPacket(invItem, invItemSlotType, invItemSlot, equipItem, equipSlotType, equipSlot, tl));
+                        }
                     }
-                    //Connection.ActiveChar.Inventory.SplitOrMoveItemEx(ItemTaskType.SwapItems, mate.Equipment, Connection.ActiveChar.Inventory.Bag, item.Id, equipSlotType, equipSlot, invItemId, fromSlotType, fromSlot);
                 }
             }
         }

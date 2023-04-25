@@ -616,32 +616,24 @@ namespace AAEmu.Game.Models.Game.Char
                 itemInTargetSlot.OwnerId = targetContainer?.OwnerId ?? 0;
 
             // Handle Equipment Broadcasting
+            var mate = MateManager.Instance.GetActiveMate(Owner.ObjId);
+
             if (fromType == SlotType.Equipment)
             {
                 Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
             }
-            else if (fromType == SlotType.EquipmentMate)
+            else if (mate != null && fromType == SlotType.EquipmentMate)
             {
-                var mate = MateManager.Instance.GetActiveMate(Owner.ObjId);
-
-                if (mate != null) 
-                {
-                    Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
-                }
+                Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, fromSlot, Equipment.GetItemBySlot(toSlot)), true);
             }
 
             if (toType == SlotType.Equipment)
             {
                 Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, toSlot, Equipment.GetItemBySlot(toSlot)), false);
             }
-            else if (toType == SlotType.EquipmentMate)
+            else if (mate != null && toType == SlotType.EquipmentMate)
             {
-                var mate = MateManager.Instance.GetActiveMate(Owner.ObjId);
-
-                if (mate != null)
-                {
-                    Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
-                }
+                Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, toSlot, fromItem), true);
             }
 
             // Send ItemContainer events
@@ -660,7 +652,7 @@ namespace AAEmu.Game.Models.Game.Char
                 }
             }
 
-            if (itemTasks.Count > 0)
+            if (taskType != ItemTaskType.Invalid && itemTasks.Count > 0)
                 Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
 
             sourceContainer.ApplyBindRules(taskType);

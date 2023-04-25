@@ -51,6 +51,10 @@ namespace AAEmu.Game.Models.Game.Items
         public override void Read(PacketStream stream)
         {
             TemplateId = stream.ReadUInt32();
+
+            if (TemplateId == 0)
+                return;
+
             Id = stream.ReadUInt64();
             Grade = stream.ReadByte();
             ItemFlags = (ItemFlag)stream.ReadByte();
