@@ -166,7 +166,8 @@ namespace AAEmu.Game
             CashShopManager.Instance.Load();
             UccManager.Instance.Load();
             MusicManager.Instance.Load();
-            
+            AiGeoDataManager.Instance.Load();
+
             ScriptCompiler.Compile();
 
             TimeManager.Instance.Start();

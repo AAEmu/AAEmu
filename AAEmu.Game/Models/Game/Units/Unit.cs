@@ -11,6 +11,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Housing;
@@ -438,6 +439,10 @@ namespace AAEmu.Game.Models.Game.Units
             BroadcastPacket(new SCUnitInvisiblePacket(ObjId, Invisible), true);
         }
 
+        public void SetGeoDataMode(bool value)
+        {
+            AppConfiguration.Instance.World.GodMode = value;
+        }
         public void SetGodMode(bool value)
         {
             AppConfiguration.Instance.World.GodMode = value;

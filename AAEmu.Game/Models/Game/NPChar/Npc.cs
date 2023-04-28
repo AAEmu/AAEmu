@@ -5,6 +5,7 @@ using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
@@ -860,6 +861,15 @@ namespace AAEmu.Game.Models.Game.NPChar
 
             // TODO: Implement Transform.World to do proper movement
             //Transform.Local.SetPosition(newX, newY, WorldManager.Instance.GetHeight(Transform));
+            if (AppConfiguration.Instance.World.GeoDataMode)
+            {
+                var height = AiGeoDataManager.Instance.GetHeight(Transform.ZoneId, Transform.Local.Position);
+                if (height > 0)
+                {
+                    newZ = height; // check, as there is no geodata for main_world yet
+                }
+            }
+
             Transform.Local.SetPosition(newX, newY, newZ);
 
             var angle = MathUtil.CalculateAngleFrom(Transform.Local.Position, other);
@@ -956,8 +966,32 @@ namespace AAEmu.Game.Models.Game.NPChar
             CurrentTarget = other;
             SendPacket(new SCAggroTargetChangedPacket(ObjId, other?.ObjId ?? 0));
             BroadcastPacket(new SCTargetChangedPacket(ObjId, other?.ObjId ?? 0), true);
+            Ai.AlreadyTargetted = other != null;
         }
-    
+        public void FindPath(Unit abuser)
+        {
+            Ai.Owner.Ai.PathNode.pos1 = new Point(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
+            Ai.Owner.Ai.PathNode.pos2 = new Point(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
+            if (Ai.Owner.Ai.PathNode.pos1 != null && Ai.Owner.Ai.PathNode.pos2 != null)
+            {
+                Ai.Owner.Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
+                Ai.Owner.Ai.PathNode.findPath = Ai.Owner.Ai.PathNode.FindPath(Ai.Owner.Ai.PathNode.pos1, Ai.Owner.Ai.PathNode.pos2);
+
+                _log.Debug($"AStar: points found Total: {Ai.Owner.Ai.PathNode.findPath?.Count ?? 0}");
+                if (Ai.Owner.Ai.PathNode.findPath != null)
+                {
+                    for (var i = 0; i < Ai.Owner.Ai.PathNode.findPath.Count; i++)
+                    {
+                        _log.Debug($"AStar: point {i} coordinates X:{Ai.Owner.Ai.PathNode.findPath[i].X}, Y:{Ai.Owner.Ai.PathNode.findPath[i].Y}, Z:{Ai.Owner.Ai.PathNode.findPath[i].Z}");
+                    }
+                }
+            }
+            else
+            {
+                _log.Debug($"AStar: to find the path, you need to set the start and end points of the route!");
+            }
+        }
+
         public void DoDespawn(Npc npc)
         {
             Spawner.DoDespawn(npc);
