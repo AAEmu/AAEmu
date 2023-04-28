@@ -32,7 +32,7 @@ namespace AAEmu.Game.Models.Game.AI.Utils
                 terrainHeight = newPosition.Local.Position.Z;
             }
 
-            if (AppConfiguration.Instance.World.GeoData)
+            if (AppConfiguration.Instance.World.GeoDataMode)
             {
                 var height = AiGeoDataManager.Instance.GetHeight(newPosition.ZoneId, newPosition.Local.Position);
                 if (height > 0)

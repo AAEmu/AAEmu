@@ -7,6 +7,8 @@ using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.AStar;
+using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 
@@ -92,7 +94,7 @@ namespace AAEmu.Game.Core.Managers
         }
 
         /// <summary>
-        /// получить центр треугольника (пересеение медиан)
+        /// получить центр треугольника (пересечение медиан)
         /// </summary>
         /// <param name="point1"></param>
         /// <param name="point2"></param>
@@ -240,8 +242,8 @@ namespace AAEmu.Game.Core.Managers
             {
                 var worldId = WorldManager.Instance.GetWorldIdByZone(zoneKey);
 
-                var point = new Point();
-                var minDist = 99999.0f;
+                var pointN = new Point();
+                var minDistN = 99999.0f;
 
                 _aiNavigation.TryGetValue((byte)worldId, out var aiNavigation);
                 if (aiNavigation != null)
@@ -252,17 +254,46 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var vPosition = new Vector3(pf.Position.X, pf.Position.Y, pf.Position.Z);
                             var distance = MathUtil.GetDistance(pos, vPosition);
-                            if (distance < minDist)
+                            if (distance < minDistN)
                             {
-                                point = pf.Position;
-                                minDist = distance;
+                                pointN = pf.Position;
+                                minDistN = distance;
+                            }
+                        }
+                    }
+                }
+                
+                var pointFA = new Point();
+                var minDistFA = 99999.0f;
+
+                _forbiddenArea.TryGetValue((byte)worldId, out var forbiddenArea);
+                if (forbiddenArea != null)
+                {
+                    foreach (var lfa in forbiddenArea.Values)
+                    {
+                        foreach (var pf in lfa)
+                        {
+                            var vPosition = new Vector3(pf.X, pf.Y, pf.Z);
+                            var distance = MathUtil.GetDistance(pos, vPosition);
+                            if (distance < minDistN)
+                            {
+                                pointFA = pf;
+                                minDistFA = distance;
                             }
                         }
                     }
                 }
 
-                _log.Warn($"# Found near position, Z: {point.Z}...");
-                return point.Z;
+                if (minDistFA < minDistN)
+                {
+                    //_log.Warn($"# Found near position forbiddenArea, Z: {pointFA.Z}...");
+                    return pointFA.Z;
+                }
+                else
+                {
+                    //_log.Warn($"# Found near position aiNavigation, Z: {pointN.Z}...");
+                    return pointN.Z;
+                }
             }
             catch
             {
@@ -340,9 +371,9 @@ namespace AAEmu.Game.Core.Managers
                                     template.Position.Y = vec.Y;
                                     template.Position.Z = vec.Z;
 
-                                    if (aiNavigation.ContainsKey(template.StartPoint))
+                                    if (aiNavigation.TryGetValue(template.StartPoint, out var value))
                                     {
-                                        aiNavigation[template.StartPoint].Add(template);
+                                        value.Add(template);
                                     }
                                     else
                                     {
@@ -403,9 +434,9 @@ namespace AAEmu.Game.Core.Managers
                                     switch (type)
                                     {
                                         case "ForbiddenArea":
-                                            if (forbiddenArea.ContainsKey(template.Id))
+                                            if (forbiddenArea.TryGetValue(template.Id, out var value))
                                             {
-                                                forbiddenArea[template.Id].Add(template.Position);
+                                                value.Add(template.Position);
                                             }
                                             else
                                             {
@@ -413,9 +444,9 @@ namespace AAEmu.Game.Core.Managers
                                             }
                                             break;
                                         case "AINavigationModifier":
-                                            if (aiNavigationModifier.ContainsKey(template.Id))
+                                            if (aiNavigationModifier.TryGetValue(template.Id, out var value1))
                                             {
-                                                aiNavigationModifier[template.Id].Add(template.Position);
+                                                value1.Add(template.Position);
                                             }
                                             else
                                             {
@@ -423,9 +454,9 @@ namespace AAEmu.Game.Core.Managers
                                             }
                                             break;
                                         case "AIPath":
-                                            if (aiPath.ContainsKey(template.Id))
+                                            if (aiPath.TryGetValue(template.Id, out var value2))
                                             {
-                                                aiPath[template.Id].Add(template.Position);
+                                                value2.Add(template.Position);
                                             }
                                             else
                                             {

@@ -17,6 +17,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.World
             Register(new WorldSetExprateSubCommand(), "exprate", "exp_rate", "er");
             Register(new WorldSetAutosaveintervalSubCommand(), "autosaveinterval", "auto_save_interval", "asi");
             Register(new WorldSetLogoutmessageSubCommand(), "logoutmessage","logout_message", "lm");
+            Register(new WorldSetGeodatamodeSubCommand(), "geodatamode","geo_data_mode", "gdm", "geodata", "geo_data", "gd");
             Register(new WorldSetMotdmessageSubCommand(), "motd");
         }
     }

@@ -1009,7 +1009,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        private Region GetRegion(uint zoneId, float x, float y)
+        public Region GetRegion(uint zoneId, float x, float y)
         {
             var world = GetWorldByZone(zoneId);
             var sx = (int)(x / REGION_SIZE);

@@ -16,19 +16,22 @@ namespace AAEmu.Game.Models.Game.AI.AStar
     public class PathNode
     {
         // Current zone.Id
-        public static uint ZoneKey { get; set; }
+        public uint ZoneKey { get; set; }
 
         // The number of the current point on the map.
         public uint Current { get; set; }
 
+        // The coordinates of the point on the map where the Npc goes
+        public Point pos { get; set; }
+        public int  indexPos { get; set; }
         // Coordinates of the start point on the map (for the script).
-        public static Point pos1 { get; set; }
+        public Point pos1 { get; set; }
 
         // Coordinates of the end point on the map (for the script).
-        public static Point pos2 { get; set; }
+        public Point pos2 { get; set; }
 
         // List of found points (for the script).
-        public static List<Point> findPath { get; set; }
+        public List<Point> findPath { get; set; }
 
         // The coordinates of the point on the map.
         public Point Position { get; set; }
@@ -57,7 +60,7 @@ namespace AAEmu.Game.Models.Game.AI.AStar
         /// <param name="start"></param>
         /// <param name="goal"></param>
         /// <returns></returns>
-        public static List<Point> FindPath(Point start, Point goal)
+        public List<Point> FindPath(Point start, Point goal)
         {
             // Step 0
             // Find the nearest point from the start point in the list of geodata points and start the search from it.
@@ -90,7 +93,9 @@ namespace AAEmu.Game.Models.Game.AI.AStar
                     var result = GetPathForNode(currentNode);
                     result[0] = pos1; // replace the first and the last point with the real one
                     result[^1] = pos2;
-                    result = AiGeoDataManager.DouglasPeuckerReduction(result, 5.0);
+                    result = AiGeoDataManager.DouglasPeuckerReduction(result, 2.0);
+                    pos = result[0];
+                    indexPos = 0;
                     return result;
                 }
 
@@ -129,7 +134,7 @@ namespace AAEmu.Game.Models.Game.AI.AStar
         /// G: Function for the distance from the starting point to the current point.
         /// </summary>
         /// <returns></returns>
-        private static float GetDistanceFromStart(Point to)
+        private float GetDistanceFromStart(Point to)
         {
             var _from = new Vector3(pos1.X, pos1.Y, pos1.Z);
             var _to = new Vector3(to.X, to.Y, to.Z);
@@ -142,7 +147,7 @@ namespace AAEmu.Game.Models.Game.AI.AStar
         /// <param name="from"></param>
         /// <param name="to"></param>
         /// <returns></returns>
-        private static float GetHeuristicPathLength(Point from)
+        private float GetHeuristicPathLength(Point from)
         {
             // point-to-point distance
             var _from = new Vector3(from.X, from.Y, from.Z);
@@ -153,11 +158,11 @@ namespace AAEmu.Game.Models.Game.AI.AStar
         /// <summary>
         /// Obtaining a list of neighbors
         /// </summary>
+        /// <param name="zoneKey"></param>
         /// <param name="pathNode"></param>
         /// <param name="goal"></param>
-        /// <param name="worldId"></param>
         /// <returns></returns>
-        private static Collection<PathNode> GetNeighbours(uint zoneKey, PathNode pathNode, Point goal)
+        private Collection<PathNode> GetNeighbours(uint zoneKey, PathNode pathNode, Point goal)
         {
             var result = new Collection<PathNode>();
 
@@ -169,7 +174,7 @@ namespace AAEmu.Game.Models.Game.AI.AStar
                 // Checking that the point falls within the forbidden area where it is not allowed to walk.
                 if (AiGeoDataManager.Instance.CheckImpossibleWalk(zoneKey, point.Position))
                 {
-                    ViewPoint(point.Position, 858u); // let's show the point for debugging purposes
+                    //ViewPoint(point.Position, 858u); // let's show the point for debugging purposes
                     //continue;
                 }
 
@@ -182,7 +187,7 @@ namespace AAEmu.Game.Models.Game.AI.AStar
                 neighbourNode.HeuristicEstimatePathLength = GetHeuristicPathLength(point.Position);
 
                 result.Add(neighbourNode);
-                ViewPoint(point.Position, 681u); // let's show the point for debugging purposes
+                //ViewPoint(point.Position, 681u); // let's show the point for debugging purposes
             }
 
             return result;
@@ -193,7 +198,7 @@ namespace AAEmu.Game.Models.Game.AI.AStar
         /// </summary>
         /// <param name="point"></param>
         /// <param name="templateId"></param>
-        private static void ViewPoint(Point point, uint templateId)
+        private void ViewPoint(Point point, uint templateId)
         {
             // 681 Pebble, 858	Contaminated Pebble, 5014 Combat Flag
             var unitTemplateId = templateId;
@@ -224,14 +229,14 @@ namespace AAEmu.Game.Models.Game.AI.AStar
         /// </summary>
         /// <param name="pathNode"></param>
         /// <returns></returns>
-        private static List<Point> GetPathForNode(PathNode pathNode)
+        private List<Point> GetPathForNode(PathNode pathNode)
         {
             var result = new List<Point>();
             var currentNode = pathNode;
             while (currentNode != null)
             {
                 result.Add(currentNode.Position);
-                ViewPoint(currentNode.Position, 5014u); // let's show the point for debugging purposes
+                //ViewPoint(currentNode.Position, 5014u); // let's show the point for debugging purposes
                 currentNode = currentNode.CameFrom;
             }
             result.Reverse();

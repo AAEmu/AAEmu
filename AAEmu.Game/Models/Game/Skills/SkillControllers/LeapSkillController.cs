@@ -95,7 +95,7 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
                 WorldManager.Instance.GetHeight(Owner.Transform.ZoneId, Owner.Transform.World.Position.X, Owner.Transform.World.Position.Y) : 
                 Owner.Transform.World.Position.Z;
 
-            if (AppConfiguration.Instance.World.GeoData)
+            if (AppConfiguration.Instance.World.GeoDataMode)
             {
                 var height = AiGeoDataManager.Instance.GetHeight(Owner.Transform.ZoneId, Owner.Transform.Local.Position);
                 if (height > 0)

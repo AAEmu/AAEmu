@@ -3,9 +3,9 @@ using System.Drawing;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.NPChar;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.AStar
 {
@@ -15,12 +15,20 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.AStar
         {
             Title = "[AStar View]";
             Description = "Let's map the found waypoints on the terrain.";
-            CallPrefix = $"{CommandManager.CommandPrefix}pf view";
+            CallPrefix = $"{CommandManager.CommandPrefix}view";
             AddParameter(new NumericSubCommandParameter<uint>("templateId", "template id", false));
         }
 
         public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
+            var currentTarget = ((Character)character).CurrentTarget;
+            var npc = currentTarget as Npc;
+            if (currentTarget is null || npc == null)
+            {
+                SendColorMessage(character, Color.Coral, $"AStar: You need to target a Npc first");
+                return;
+            }
+
             uint unitTemplateId = parameters["templateId"]; // 1775 Small stone, 5014 Combat Flag, 7221 White Freedom Flag
             if (unitTemplateId == 0)
             {
@@ -28,7 +36,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.AStar
             }
             if (!DoodadManager.Instance.Exist(unitTemplateId))
             {
-                SendColorMessage(character, Color.Red, $"AStar: Doodad templateId:{unitTemplateId} don't exist|r");
+                SendColorMessage(character, Color.Coral, $"AStar: Doodad templateId:{unitTemplateId} don't exist|r");
                 return;
             }
 
@@ -39,7 +47,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands.AStar
                 UnitId = unitTemplateId
             };
 
-            foreach (var point in PathNode.findPath)
+            foreach (var point in npc.Ai.PathNode.findPath)
             {
                 doodadSpawner.Position = charPos.CloneAsSpawnPosition();
 

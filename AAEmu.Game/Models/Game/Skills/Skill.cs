@@ -355,24 +355,37 @@ namespace AAEmu.Game.Models.Game.Skills
                     }
                 case SkillTargetType.Pos:
                     {
-                        var positionTarget = (SkillCastPositionTarget)targetCaster;
-                        var positionUnit = new BaseUnit();
-                        positionUnit.ObjId = uint.MaxValue;
-                        positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
-                        positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
-                        positionUnit.Region = caster.Region;
-                        target = positionUnit;
+                        if (targetCaster is SkillCastPositionTarget positionTarget)
+                        {
+                            var positionUnit = new BaseUnit();
+                            positionUnit.ObjId = uint.MaxValue;
+                            positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
+                            positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                            caster.Region ??= WorldManager.Instance.GetRegion(caster.Transform.ZoneId, caster.Transform.World.Position.X, caster.Transform.World.Position.Y);
+                            positionUnit.Region = caster.Region;
+                            target = positionUnit;
+                        }
+                        if (target != null && caster.ObjId == target.ObjId)
+                        {
+                            return null; //TODO отправлять ошибку?
+                        }
                         break;
                     }
                 case SkillTargetType.BallisticPos:
                     {
-                        var positionTarget = (SkillCastPositionTarget)targetCaster;
-                        var positionUnit = new BaseUnit();
-                        positionUnit.ObjId = uint.MaxValue;
-                        positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
-                        positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
-                        positionUnit.Region = caster.Region;
-                        target = positionUnit;
+                        if (targetCaster is SkillCastPositionTarget positionTarget)
+                        {
+                            var positionUnit = new BaseUnit();
+                            positionUnit.ObjId = uint.MaxValue;
+                            positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
+                            positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                            caster.Region ??= WorldManager.Instance.GetRegion(caster.Transform.ZoneId, caster.Transform.World.Position.X, caster.Transform.World.Position.Y);
+                            target = positionUnit;
+                        }
+                        if (target != null && caster.ObjId == target.ObjId)
+                        {
+                            return null; //TODO отправлять ошибку?
+                        }
                         break;
                     }
                 case SkillTargetType.Party:
@@ -643,8 +656,12 @@ namespace AAEmu.Game.Models.Game.Skills
             if (Template.TargetAreaRadius > 0)
             {
                 var units = WorldManager.Instance.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius, true);
-                units.Add(targetSelf);
-                units = FilterAoeUnits(caster, units).ToList();
+                // TODO Fixed the work doodad ID=5090, "Stacked Lumber" and skill ID=18312, "Throw Torch" in Howling abyss.
+                if (units.Count == 1 && units[0] is not Doodad)
+                {
+                    units.Add(targetSelf);
+                    units = FilterAoeUnits(caster, units).ToList();
+                }
 
                 targets.AddRange(units);
                 // TODO : Need to this if this is needed
@@ -977,7 +994,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
             }
 
-            AlwaysHit:
+AlwaysHit:
             switch (damageType)
             {
                 case DamageType.Melee:

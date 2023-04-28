@@ -32,5 +32,6 @@ namespace AAEmu.Game.Models.Game.Char
         public void SetAutoSaveInterval(float value);
         public void SetLogoutMessage(string value);
         public void SetMotdMessage(string value);
+        public void SetGeoDataMode(bool value);
     }
 }
