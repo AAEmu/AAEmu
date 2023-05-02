@@ -441,7 +441,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public void SetGeoDataMode(bool value)
         {
-            AppConfiguration.Instance.World.GodMode = value;
+            AppConfiguration.Instance.World.GeoDataMode = value;
         }
         public void SetGodMode(bool value)
         {
