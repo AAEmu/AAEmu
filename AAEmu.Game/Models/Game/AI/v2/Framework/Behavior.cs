@@ -52,7 +52,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
     /// </summary>
     public abstract class Behavior
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
+        protected static Logger _log = LogManager.GetCurrentClassLogger();
 
         protected DateTime _delayEnd;
         protected float _nextTimeToDelay;
@@ -78,9 +78,9 @@ namespace AAEmu.Game.Models.Game.AI.v2
             var targetDist = Ai.Owner.GetDistanceTo(target);
             // Attack behavior probably only uses base skill ?
             var skills = new List<NpcSkill>();
-            if (Ai.Owner.Template.Skills.ContainsKey(kind))
+            if (Ai.Owner.Template.Skills.TryGetValue(kind, out var templateSkill))
             {
-                skills = Ai.Owner.Template.Skills[kind];
+                skills = templateSkill;
             }
             if (skills.Count > 0)
             {

@@ -12,10 +12,10 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
         public override void Tick(TimeSpan delta)
         {
-            //if (Ai.Owner.Hp == 0)
-            //{
-            //    Ai.AlreadyTargetted = false;
-            //}
+            if (Ai.Owner.Hp == 0)
+            {
+                Ai.AlreadyTargetted = false;
+            }
         }
 
         public override void Exit()

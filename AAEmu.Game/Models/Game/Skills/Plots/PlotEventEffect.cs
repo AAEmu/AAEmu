@@ -25,20 +25,20 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             if (buffEffect != null)
                 flag = 6; //idk what this does?  
 
-            Unit source;
+            BaseUnit source;
             switch (SourceId)
             {
                 case PlotEffectSource.OriginalSource:
                     source = state.Caster;
                     break;
                 case PlotEffectSource.OriginalTarget:
-                    source = (Unit) state.Target;
+                    source = state.Target;
                     break;
                 case PlotEffectSource.Source:
-                    source = (Unit) targetInfo.Source;
+                    source = targetInfo.Source;
                     break;
                 case PlotEffectSource.Target:
-                    source = (Unit) targetInfo.Target;
+                    source = targetInfo.Target;
                     break;
                 default:
                     throw new InvalidOperationException("This can't happen");

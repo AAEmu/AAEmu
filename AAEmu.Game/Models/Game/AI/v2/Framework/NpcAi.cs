@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World.Transform;
@@ -17,11 +19,12 @@ namespace AAEmu.Game.Models.Game.AI.v2
         
         // Test
         public bool ShouldTick { get; set; }
-        //public bool AlreadyTargetted { get; set; }
+        public bool AlreadyTargetted { get; set; }
         
         public Npc Owner { get; set; }
         public Transform IdlePosition { get; set; }
         public AiParams Param { get; set; }
+        public PathNode PathNode { get; set; }
 
         private Dictionary<BehaviorKind, Behavior> _behaviors;
         private Dictionary<Behavior, List<Transition>> _transitions;
@@ -31,6 +34,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
         {
             _behaviors = new Dictionary<BehaviorKind, Behavior>();
             _transitions = new Dictionary<Behavior, List<Transition>>();
+            PathNode = new PathNode();
         }
 
         public void Start()
