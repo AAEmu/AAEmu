@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 
@@ -51,10 +52,23 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             var speed = 5.4f * (delta.Milliseconds / 1000.0f);
             var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
 
-            if (Ai.Owner.Ai.PathNode.findPath.Count > 0)
+            // TODO найдем путь к abuser, только если координаты цели изменились
+            if (Ai.PathNode?.pos2 != null && Ai.PathNode != null && !Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
+            {
+                var stopWatch = new Stopwatch();
+                stopWatch.Start();
+                // TODO найдем путь к abuser
+                Ai.Owner.FindPath((Unit)target);
+                stopWatch.Stop();
+                _log.Info($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}");
+                // запомним новые координаты цели
+                Ai.PathNode.pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
+            }
+
+            if (Ai.PathNode?.findPath.Count > 0)
             {
                 // TODO взять точку к которой движемся
-                var position = new Vector3(Ai.Owner.Ai.PathNode.pos.X, Ai.Owner.Ai.PathNode.pos.Y, Ai.Owner.Ai.PathNode.pos.Z);
+                var position = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
                 distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, position, true);
                 if (distanceToTarget > range)
                 {
@@ -62,17 +76,15 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 }
                 else
                 {
-                    // TODO найдем путь к abuser
-                    Ai.Owner.FindPath((Unit)target);
                     // TODO взять следующую точку к которой движемся
-                    Ai.Owner.Ai.PathNode.indexPos++;
-                    if (Ai.Owner.Ai.PathNode.indexPos >= Ai.Owner.Ai.PathNode.findPath.Count)
+                    Ai.PathNode.Current++;
+                    if (Ai.PathNode.Current >= Ai.PathNode.findPath.Count)
                     {
                         Ai.Owner.StopMovement();
-                        Ai.Owner.Ai.PathNode.findPath = new List<Point>();
+                        Ai.PathNode.findPath = new List<Point>();
                         return;
                     }
-                    Ai.Owner.Ai.PathNode.pos = Ai.Owner.Ai.PathNode.findPath[Ai.Owner.Ai.PathNode.indexPos];
+                    Ai.PathNode.Position = Ai.PathNode.findPath[(int)Ai.PathNode.Current];
                 }
             }
             else

@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.NPChar
@@ -57,6 +60,15 @@ namespace AAEmu.Game.Models.Game.NPChar
 
                 _log.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawn {Id}, nps spawner Id {NpcSpawnerTemplateId}");
 
+                if (AppConfiguration.Instance.World.GeoDataMode)
+                {
+                    var height = AiGeoDataManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position);
+                    if (height > 0)
+                    {
+                        npcSpawner.Position.Z = height; // check, as there is no geodata for main_world yet
+                    }
+                }
+
                 npc.Transform.ApplyWorldSpawnPosition(npcSpawner.Position);
                 if (npc.Transform == null)
                 {
@@ -83,7 +95,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
 
             //_log.Warn($"Spawned Npcs id={MemberId}, maxPopulation={maxPopulation}...");
-            
+
             return npcs;
         }
 
