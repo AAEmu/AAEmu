@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿// https://lsreg.ru/realizaciya-algoritma-poiska-a-na-c/
+
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Numerics;
@@ -20,10 +22,6 @@ namespace AAEmu.Game.Models.Game.AI.AStar
 
         // The number of the current point on the map.
         public uint Current { get; set; }
-
-        // The coordinates of the point on the map where the Npc goes
-        public Point pos { get; set; }
-        public int  indexPos { get; set; }
         // Coordinates of the start point on the map (for the script).
         public Point pos1 { get; set; }
 
@@ -33,7 +31,7 @@ namespace AAEmu.Game.Models.Game.AI.AStar
         // List of found points (for the script).
         public List<Point> findPath { get; set; }
 
-        // The coordinates of the point on the map.
+        // The coordinates of the point on the map. And the coordinates of the point on the map where the Npc goes.
         public Point Position { get; set; }
 
         // Path length from the start (G).
@@ -63,6 +61,7 @@ namespace AAEmu.Game.Models.Game.AI.AStar
         public List<Point> FindPath(Point start, Point goal)
         {
             // Step 0
+            findPath = new List<Point>();
             // Find the nearest point from the start point in the list of geodata points and start the search from it.
             var (current, posStart) = AiGeoDataManager.Instance.FindСlosestToTheCurrent(ZoneKey, new Vector3(start.X, start.Y, start.Z));
             start = posStart; // replace it with the nearest point from the geodata
@@ -91,11 +90,14 @@ namespace AAEmu.Game.Models.Game.AI.AStar
                 if (currentNode.Position.Equals(goal))
                 {
                     var result = GetPathForNode(currentNode);
-                    result[0] = pos1; // replace the first and the last point with the real one
-                    result[^1] = pos2;
+                    // оставим ближайшую точку взятую с geodata вместо точки откуда идем
+                    //result[0] = pos1; // replace the first and the last point with the real one
+                    //result[^1] = pos2;
+                    // Добавим к найденным точкам координаты цели
+                    result.Add(pos2);
                     result = AiGeoDataManager.DouglasPeuckerReduction(result, 2.0);
-                    pos = result[0];
-                    indexPos = 0;
+                    Position = result[0];
+                    Current = 0;
                     return result;
                 }
 
@@ -127,7 +129,8 @@ namespace AAEmu.Game.Models.Game.AI.AStar
                 }
             }
             // Step 10.
-            return null;
+            return new List<Point>();
+            ;
         }
 
         /// <summary>

@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -15,6 +16,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Utils;
+
 using static AAEmu.Game.Models.Game.Skills.SkillControllers.SkillController;
 
 namespace AAEmu.Game.Models.Game.NPChar
@@ -35,6 +37,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public NpcAi Ai { get; set; } // New framework
         public ConcurrentDictionary<uint, Aggro> AggroTable { get; }
         public uint CurrentAggroTarget { get; set; }
+        public bool CanFly { get; set; } // TODO пометим Npc, которые могут летать, чтобы не приземлять изх на землю при расчете высоты Z
 
         #region Attributes
         [UnitAttribute(UnitAttribute.Str)]
@@ -970,19 +973,19 @@ namespace AAEmu.Game.Models.Game.NPChar
         }
         public void FindPath(Unit abuser)
         {
-            Ai.Owner.Ai.PathNode.pos1 = new Point(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
-            Ai.Owner.Ai.PathNode.pos2 = new Point(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
-            if (Ai.Owner.Ai.PathNode.pos1 != null && Ai.Owner.Ai.PathNode.pos2 != null)
+            Ai.PathNode.pos1 = new Point(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
+            Ai.PathNode.pos2 = new Point(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
+            if (Ai.PathNode.pos1 != null && Ai.PathNode.pos2 != null)
             {
-                Ai.Owner.Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
-                Ai.Owner.Ai.PathNode.findPath = Ai.Owner.Ai.PathNode.FindPath(Ai.Owner.Ai.PathNode.pos1, Ai.Owner.Ai.PathNode.pos2);
+                Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
+                Ai.PathNode.findPath = Ai.PathNode.FindPath(Ai.PathNode.pos1, Ai.PathNode.pos2);
 
-                _log.Debug($"AStar: points found Total: {Ai.Owner.Ai.PathNode.findPath?.Count ?? 0}");
-                if (Ai.Owner.Ai.PathNode.findPath != null)
+                _log.Debug($"AStar: points found Total: {Ai.PathNode.findPath?.Count ?? 0}");
+                if (Ai.PathNode.findPath != null)
                 {
-                    for (var i = 0; i < Ai.Owner.Ai.PathNode.findPath.Count; i++)
+                    for (var i = 0; i < Ai.PathNode.findPath.Count; i++)
                     {
-                        _log.Debug($"AStar: point {i} coordinates X:{Ai.Owner.Ai.PathNode.findPath[i].X}, Y:{Ai.Owner.Ai.PathNode.findPath[i].Y}, Z:{Ai.Owner.Ai.PathNode.findPath[i].Z}");
+                        _log.Debug($"AStar: point {i} coordinates X:{Ai.PathNode.findPath[i].X}, Y:{Ai.PathNode.findPath[i].Y}, Z:{Ai.PathNode.findPath[i].Z}");
                     }
                 }
             }
