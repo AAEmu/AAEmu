@@ -26,10 +26,8 @@ namespace AAEmu.Game.Models.Game.AI.Utils
 
             var terrainHeight = WorldManager.Instance.GetHeight(newPosition.ZoneId, newPosition.Local.Position.X, newPosition.Local.Position.Y);
             // Handles disabled heightmaps
-            if (terrainHeight <= 0.0f || ai.Owner.Spawner.CanFly || !ai.Owner.Spawner.CanSwim)
-            {
+            if (terrainHeight <= 0.0f || ai.Owner.CanFly)
                 terrainHeight = newPosition.Local.Position.Z;
-            }
 
             if (newPosition.Local.Position.Z < terrainHeight && terrainHeight - maxRoamingDistance < newPosition.Local.Position.Z)
                 newPosition.Local.SetHeight(terrainHeight);

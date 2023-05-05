@@ -17,6 +17,7 @@ namespace AAEmu.Tests.Unit.Converters
                 {
                     UnitId = 1,
                     Id = 1,
+                    FollowPath = "test",
                     Position = new JsonPosition
                     {
                         X = 1, Y = 1, Z = 1,
@@ -26,7 +27,7 @@ namespace AAEmu.Tests.Unit.Converters
                     }
                 }
             };
-            var expected = "[{\"Id\":1,\"UnitId\":1,\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0}}]";
+            var expected = "[{\"Id\":1,\"UnitId\":1,\"FollowPath\":\"test\",\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0}}]";
 
             //Act
             var conversion =  JsonConvert.SerializeObject(spawnsList, new JsonModelsConverter());
@@ -45,6 +46,7 @@ namespace AAEmu.Tests.Unit.Converters
                 {
                     UnitId = 1,
                     Id = 1,
+                    FollowPath = "test",
                     Position = new JsonPosition
                     {
                         X = 1, Y = 1, Z = 1,
@@ -54,7 +56,7 @@ namespace AAEmu.Tests.Unit.Converters
                     }
                 }
             };
-            var expected = "[{\"Id\":1,\"UnitId\":1,\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0,\"Roll\":20,\"Pitch\":10}}]";
+            var expected = "[{\"Id\":1,\"UnitId\":1,\"FollowPath\":\"test\",\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0,\"Roll\":20,\"Pitch\":10}}]";
 
             //Act
             var conversion = JsonConvert.SerializeObject(spawnsList, new JsonModelsConverter());

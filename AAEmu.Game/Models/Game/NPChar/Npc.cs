@@ -37,6 +37,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public NpcAi Ai { get; set; } // New framework
         public ConcurrentDictionary<uint, Aggro> AggroTable { get; }
         public uint CurrentAggroTarget { get; set; }
+        public bool CanFly { get; set; } // TODO mark Npc's that can fly so that they don't land on the ground when calculating the Z height
 
         #region Attributes
         [UnitAttribute(UnitAttribute.Str)]
@@ -860,16 +861,17 @@ namespace AAEmu.Game.Models.Game.NPChar
 
             // TODO: Implement proper use for Transform.World.AddDistanceToFront)
             var (newX, newY, newZ) = Transform.Local.AddDistanceToFront(travelDist, targetDist, Transform.Local.Position, other);
+            Transform.Local.SetPosition(newX, newY, newZ);
 
             // TODO: Implement Transform.World to do proper movement
-            if (!Spawner.CanFly && !Spawner.CanSwim)
+            if (!CanFly)
             {
                 // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
-                Transform.Local.SetPosition(newX, newY, WorldManager.Instance.GetHeight(Transform));
-            }
-            else
-            {
-                Transform.Local.SetPosition(newX, newY, newZ);
+                newZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY);
+                if (Math.Abs(Transform.Local.Position.Z - newZ) <= 10)
+                {
+                    Transform.Local.SetHeight(newZ);
+                }
             }
 
             var angle = MathUtil.CalculateAngleFrom(Transform.Local.Position, other);

@@ -60,10 +60,14 @@ namespace AAEmu.Game.Models.Game.NPChar
 
                 _log.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawn {Id}, nps spawner Id {NpcSpawnerTemplateId}");
 
-                if (!npcSpawner.CanFly && !npcSpawner.CanSwim)
+                if (!npc.CanFly)
                 {
                     // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
-                    npcSpawner.Position.Z = WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position.X, npcSpawner.Position.Y);
+                    var newZ = WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position.X, npcSpawner.Position.Y);
+                    if (Math.Abs(npcSpawner.Position.Z - newZ) <= 10)
+                    {
+                        npcSpawner.Position.Z = newZ;
+                    }
                 }
 
                 npc.Transform.ApplyWorldSpawnPosition(npcSpawner.Position);
