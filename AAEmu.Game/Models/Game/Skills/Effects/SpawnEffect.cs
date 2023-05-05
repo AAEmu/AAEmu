@@ -40,7 +40,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     return;
                 }
                 var (xx, yy) = MathUtil.AddDistanceToFrontDeg(PosDistance, target.Transform.World.Position.X, target.Transform.World.Position.Y, PosAngle);
-                var zz = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(target.Transform.ZoneId, xx, yy) : target.Transform.World.Position.Z;
+                var zz = WorldManager.Instance.GetHeight(target.Transform.ZoneId, xx, yy);
+                if (zz == 0)
+                {
+                    zz = target.Transform.World.Position.Z;
+                }
                 spawner.Position.X = xx;
                 spawner.Position.Y = yy;
                 spawner.Position.Z = zz;

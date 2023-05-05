@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
 
@@ -60,13 +60,10 @@ namespace AAEmu.Game.Models.Game.NPChar
 
                 _log.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawn {Id}, nps spawner Id {NpcSpawnerTemplateId}");
 
-                if (AppConfiguration.Instance.World.GeoDataMode)
+                if (!npcSpawner.CanFly && !npcSpawner.CanSwim)
                 {
-                    var height = AiGeoDataManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position);
-                    if (height > 0)
-                    {
-                        npcSpawner.Position.Z = height; // check, as there is no geodata for main_world yet
-                    }
+                    // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
+                    npcSpawner.Position.Z = WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position.X, npcSpawner.Position.Y);
                 }
 
                 npc.Transform.ApplyWorldSpawnPosition(npcSpawner.Position);

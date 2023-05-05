@@ -333,8 +333,7 @@ namespace AAEmu.Game.Core.Managers
 
         public float GetHeight(uint zoneKey, WorldSpawnPosition pos)
         {
-            var position = new Vector3(pos.X, pos.Y, pos.Z);
-            return GetHeight(zoneKey, position);
+            return GetHeight(zoneKey, pos.AsPositionVector());
         }
 
         private float DistanceBetweenPoints(Vector3 point, Point compareTo)

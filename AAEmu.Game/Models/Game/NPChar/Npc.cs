@@ -31,13 +31,12 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         public override UnitCustomModelParams ModelParams => Template.ModelParams;
         public override float Scale => Template.Scale;
-
+        
         public override byte RaceGender => (byte)(16 * Template.Gender + Template.Race);
-
+       
         public NpcAi Ai { get; set; } // New framework
         public ConcurrentDictionary<uint, Aggro> AggroTable { get; }
         public uint CurrentAggroTarget { get; set; }
-        public bool CanFly { get; set; } // TODO пометим Npc, которые могут летать, чтобы не приземлять изх на землю при расчете высоты Z
 
         #region Attributes
         [UnitAttribute(UnitAttribute.Str)]
@@ -863,17 +862,15 @@ namespace AAEmu.Game.Models.Game.NPChar
             var (newX, newY, newZ) = Transform.Local.AddDistanceToFront(travelDist, targetDist, Transform.Local.Position, other);
 
             // TODO: Implement Transform.World to do proper movement
-            //Transform.Local.SetPosition(newX, newY, WorldManager.Instance.GetHeight(Transform));
-            if (AppConfiguration.Instance.World.GeoDataMode)
+            if (!Spawner.CanFly && !Spawner.CanSwim)
             {
-                var height = AiGeoDataManager.Instance.GetHeight(Transform.ZoneId, Transform.Local.Position);
-                if (height > 0)
-                {
-                    newZ = height; // check, as there is no geodata for main_world yet
-                }
+                // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
+                Transform.Local.SetPosition(newX, newY, WorldManager.Instance.GetHeight(Transform));
             }
-
-            Transform.Local.SetPosition(newX, newY, newZ);
+            else
+            {
+                Transform.Local.SetPosition(newX, newY, newZ);
+            }
 
             var angle = MathUtil.CalculateAngleFrom(Transform.Local.Position, other);
             var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, (float)angle.DegToRad());

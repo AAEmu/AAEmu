@@ -111,7 +111,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 }
                 else // other
                 {
-                    moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Transform.ZoneId, npc.Transform.World.Position.X, npc.Transform.World.Position.Y) : npc.Transform.World.Position.Z;
+                    moveType.Z = WorldManager.Instance.GetHeight(npc.Transform);
                 }
 
                 // looks in the direction of movement

@@ -10,6 +10,8 @@ namespace AAEmu.Game.Models.Game.World
         public WorldSpawnPosition Position { get; set; }
         public int RespawnTime { get; set; } = 15;
         public int DespawnTime { get; set; } = 20;
+        public bool CanFly { get; set; } // указатель, что данный Npc может летать
+        public bool CanSwim { get; set; } // указатель, что данный Npc может плавать в воде
 
         public virtual T Spawn(uint objId)
         {
