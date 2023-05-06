@@ -76,6 +76,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             npc.Id = id;
             npc.Template = template;
             npc.ModelId = template.ModelId;
+            npc.CanFly = ModelManager.Instance.IsFlyOrSwim(template.ModelId);
             npc.Faction = FactionManager.Instance.GetFaction(template.FactionId);
             npc.Level = template.Level;
             npc.Patrol = null;

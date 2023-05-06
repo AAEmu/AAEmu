@@ -19,6 +19,8 @@ namespace AAEmu.Game.Utils.Converters
             writer.WriteValue(value.Id);
             writer.WritePropertyName(nameof(value.UnitId));
             writer.WriteValue(value.UnitId);
+            writer.WritePropertyName(nameof(value.FollowPath));
+            writer.WriteValue(value.FollowPath);
             writer.WritePropertyName(nameof(value.Position));
             serializer.Serialize(writer, value.Position);
             writer.WriteEndObject();
