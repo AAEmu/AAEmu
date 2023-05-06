@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.Char
          */
 
         protected static Logger _log = LogManager.GetCurrentClassLogger();
-        
+
         public Character Owner { get; set; }
 
         private readonly Dictionary<ulong, MateDb> _mates; // itemId, MountDb
@@ -52,7 +52,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Id = MateIdManager.Instance.GetNextId(),
                 ItemId = itemId,
                 Level = npctemplate.Level,
-                Name = LocalizationManager.Instance.Get("npcs","name", npctemplate.Id,npctemplate.Name), // npctemplate.Name,
+                Name = LocalizationManager.Instance.Get("npcs", "name", npctemplate.Id, npctemplate.Name), // npctemplate.Name,
                 Owner = Owner.Id,
                 Mileage = 0,
                 Xp = ExpirienceManager.Instance.GetExpForLevel(npctemplate.Level, true),
@@ -107,12 +107,12 @@ namespace AAEmu.Game.Models.Game.Char
                 SpawnDelayTime = 0, // TODO
                 DbInfo = mateDbInfo
             };
-            
+
             mount.Transform = Owner.Transform.CloneDetached(mount);
 
             foreach (var skill in MateManager.Instance.GetMateSkills(npcId))
                 mount.Skills.Add(skill);
-            
+
             foreach (var buffId in template.Buffs)
             {
                 var buff = SkillManager.Instance.GetBuffTemplate(buffId);
@@ -122,13 +122,13 @@ namespace AAEmu.Game.Models.Game.Char
                 var obj = new SkillCasterUnit(mount.ObjId);
                 buff.Apply(mount, obj, mount, null, null, new EffectSource(), null, DateTime.UtcNow);
             }
-            
+
             // TODO: Load Pet Gear
-            
+
             // Cap stats to their max
             mount.Hp = Math.Min(mount.Hp, mount.MaxHp);
             mount.Mp = Math.Min(mount.Mp, mount.MaxMp);
-            
+
             mount.Transform.Local.AddDistanceToFront(3f);
             //_log.Warn($"Spawn the pet:{mount.ObjId} X={mount.Transform.World.Position.X} Y={mount.Transform.World.Position.Y}");
             MateManager.Instance.AddActiveMateAndSpawn(Owner, mount, item);
@@ -137,6 +137,7 @@ namespace AAEmu.Game.Models.Game.Char
         public void DespawnMate(uint tlId)
         {
             var mateInfo = MateManager.Instance.GetActiveMateByTlId(tlId);
+
             if (mateInfo != null)
             {
                 var mateDbInfo = GetMateInfo(mateInfo.ItemId);
@@ -151,7 +152,7 @@ namespace AAEmu.Game.Models.Game.Char
                     mateDbInfo.UpdatedAt = DateTime.UtcNow;
                 }
             }
-
+            mateInfo.IsDespawning = true;
             MateManager.Instance.RemoveActiveMateAndDespawn(Owner, tlId);
         }
 

@@ -43,6 +43,7 @@ namespace AAEmu.Game.Models.Game.Units
         public MateDb DbInfo { get; set; }
         public Task MateXpUpdateTask { get; set; }
 
+        public bool IsDespawning { get; set; }
         #region Attributes
 
         [UnitAttribute(UnitAttribute.Str)]
@@ -455,6 +456,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public override void RemoveVisibleObject(Character character)
         {
+            if (!IsDespawning && character.ObjId == OwnerObjId) { return; }
             base.RemoveVisibleObject(character);
 
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));

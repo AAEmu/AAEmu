@@ -58,12 +58,12 @@ namespace AAEmu.Game.Core.Managers
         {
             attachPoint = AttachPointKind.System;
             foreach (var mate in _activeMates.Values)
-            foreach (var ati in mate.Passengers)
-                if (ati.Value._objId == objId)
-                {
-                    attachPoint = ati.Key;
-                    return mate;
-                }
+                foreach (var ati in mate.Passengers)
+                    if (ati.Value._objId == objId)
+                    {
+                        attachPoint = ati.Key;
+                        return mate;
+                    }
 
             return null;
         }
@@ -116,7 +116,7 @@ namespace AAEmu.Game.Core.Managers
                         character.Name, character.ObjId, mateInfo.Name, mateInfo.ObjId);
                     return;
                 }
-                
+
                 // Check if seat is empty
                 if (seatInfo._objId == 0)
                 {
@@ -138,10 +138,10 @@ namespace AAEmu.Game.Core.Managers
                     character.Name, character.ObjId, mateInfo.Name, mateInfo.ObjId, attachPoint);
                 return;
             }
-                
+
             character.Buffs.TriggerRemoveOn(BuffRemoveOn.Mount);
-            _log.Debug("MountMate. mountTlId: {0}, attachPoint: {1}, reason: {2}, seats: {3}", 
-                mateInfo.TlId, attachPoint, reason, string.Join(", ",mateInfo.Passengers.Values.ToList()));
+            _log.Debug("MountMate. mountTlId: {0}, attachPoint: {1}, reason: {2}, seats: {3}",
+                mateInfo.TlId, attachPoint, reason, string.Join(", ", mateInfo.Passengers.Values.ToList()));
         }
 
         public void UnMountMate(Character character, uint tlId, AttachPointKind attachPoint, AttachUnitReason reason)
@@ -205,12 +205,13 @@ namespace AAEmu.Game.Core.Managers
 
         public void RemoveActiveMateAndDespawn(Character owner, uint tlId)
         {
-            if (!_activeMates.TryGetValue(owner.ObjId,out var mateInfo)) return; 
+            if (!_activeMates.TryGetValue(owner.ObjId, out var mateInfo)) return;
             if (mateInfo.TlId != tlId) return; // skip if invalid tlId
 
             foreach (var ati in mateInfo.Passengers)
+            {
                 UnMountMate(WorldManager.Instance.GetCharacterByObjId(ati.Value._objId), mateInfo.TlId, ati.Key, AttachUnitReason.SlaveBinding);
-            
+            }
             _activeMates[owner.ObjId].Delete();
             _activeMates.Remove(owner.ObjId);
             ObjectIdManager.Instance.ReleaseId(mateInfo.ObjId);
@@ -228,7 +229,10 @@ namespace AAEmu.Game.Core.Managers
             if (character == null) return;
             foreach (var mate in _activeMates)
                 if (mate.Value.OwnerObjId == character.ObjId)
-                    RemoveActiveMateAndDespawn(character,mate.Value.TlId);
+                {
+                    GetActiveMateByTlId(character.ObjId).IsDespawning = true;
+                    RemoveActiveMateAndDespawn(character, mate.Value.TlId);
+                }
         }
 
         public List<uint> GetMateSkills(uint id)

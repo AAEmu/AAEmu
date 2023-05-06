@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Route;
 
 using NLog;
 
@@ -178,13 +179,27 @@ namespace AAEmu.Game.Models.Game.World
             {
                 var unitIds = GetListId<Unit>(new List<uint>(), character1.ObjId).ToArray();
                 var units = GetList(new List<Unit>(), character1.ObjId);
+                List<int> indexesToRemove = new List<int>();
                 foreach (var t in units)
                 {
+                    if (t is AAEmu.Game.Models.Game.Units.Mate)
+                    {
+                        if (!(t as AAEmu.Game.Models.Game.Units.Mate).IsDespawning &&
+                            (t as AAEmu.Game.Models.Game.Units.Mate).OwnerObjId == character1.ObjId)
+                        {
+                            indexesToRemove.Add(units.IndexOf(t));
+                            continue;
+                        }
+                    }
+
                     if (t is Npc npc && npc.Ai != null)
                     {
                         npc.Ai.ShouldTick = false;
                     }
                 }
+
+                foreach (int removalIndex in indexesToRemove) { units.RemoveAt(removalIndex); }
+
 
                 for (var offset = 0; offset < unitIds.Length; offset += SCUnitsRemovedPacket.MaxCountPerPacket)
                 {
