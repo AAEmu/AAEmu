@@ -43,6 +43,7 @@ public class AiNavigation
     {
         private static readonly double Sqr = Math.Sqrt(2);
         private readonly int hash;
+        public static readonly Point Zero = new(0, 0, 0);
 
         public Point()
         {
