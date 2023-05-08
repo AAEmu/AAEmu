@@ -110,7 +110,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
         /// <returns></returns>
         public bool PosInRange(Npc npc, Vector3 target, int distance)
         {
-            return MathUtil.CalculateDistance(npc.Transform.World.Position, target, true) <= distance;
+            return MathUtil.CalculateDistance(npc.Transform.World.Position, target) <= distance;
         }
         //***************************************************************
         public string GetValue(string valName)
@@ -170,7 +170,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
                 //_log.Warn($"Проверяем точку #{i} с координатами  x={TargetPosition.World.Position.X} y={TargetPosition.World.Position.Y}");
 
-                var m = MathUtil.CalculateDistance(TargetPosition.World.Position, npc.Transform.World.Position, true);
+                var m = MathUtil.CalculateDistance(TargetPosition.World.Position, npc.Transform.World.Position);
                 if (m <= 0) { continue; }
 
                 if (result == -1)
@@ -305,7 +305,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             var delta = TimeSpan.FromMilliseconds(100);
             var distance = 0.5f;
 
-            var dist = MathUtil.CalculateDistance(npc.Transform.World.Position, target, true);
+            var dist = MathUtil.CalculateDistance(npc.Transform.World.Position, target);
             if (dist > RangeToCheckPoint)
             {
                 move = true;
@@ -320,7 +320,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
                 var oldPosition = npc.Transform.Local.ClonePosition();
 
-                var targetDist = MathUtil.CalculateDistance(npc.Transform.Local.Position, target, true);
+                var targetDist = MathUtil.CalculateDistance(npc.Transform.Local.Position, target);
                 if (targetDist <= 0.05f)
                 {
                     return;

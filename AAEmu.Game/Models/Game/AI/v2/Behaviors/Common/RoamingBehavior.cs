@@ -63,7 +63,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 return;
 
             Ai.Owner.MoveTowards(_targetRoamPosition, 1.8f * (delta.Milliseconds / 1000.0f), 5);
-            var dist = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, _targetRoamPosition, true);
+            var dist = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, _targetRoamPosition);
             if (dist < 1.0f)
             {
                 Ai.Owner.StopMovement();

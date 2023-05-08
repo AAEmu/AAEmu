@@ -50,7 +50,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             //var range = 2f;// Ai.Owner.Template.AttackStartRangeScale * 6;
             var range = Ai.Owner.Template.AttackStartRangeScale;
             var speed = 5.4f * (delta.Milliseconds / 1000.0f);
-            var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
+            var distanceToTarget = Ai.Owner.GetDistanceTo(target);
 
             // TODO найдем путь к abuser, только если координаты цели изменились
             if (Ai.PathNode?.pos2 != null && Ai.PathNode != null && !Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
@@ -69,7 +69,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             {
                 // TODO взять точку к которой движемся
                 var position = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
-                distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, position, true);
+                distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, position);
                 if (distanceToTarget > range)
                 {
                     Ai.Owner.MoveTowards(position, speed);
@@ -137,7 +137,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 {
                     returnDistance = Ai.Owner.Template.ReturnDistance;
                 }
-                var res = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.IdlePosition.Local.Position, true) > returnDistance;
+                var res = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.IdlePosition.Local.Position) > returnDistance;
                 return res;
             }
         }

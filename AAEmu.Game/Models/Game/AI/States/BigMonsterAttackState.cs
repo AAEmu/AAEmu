@@ -70,7 +70,7 @@ namespace AAEmu.Game.Models.Game.AI.States
                 return;
             }
 
-            var distanceToIdle = MathUtil.CalculateDistance(AI.Owner.Transform.World.Position, AI.IdlePosition.Position, true);
+            var distanceToIdle = MathUtil.CalculateDistance(AI.Owner.Transform.World.Position, AI.IdlePosition.Position);
             if (distanceToIdle > OwnerTemplate.AbsoluteReturnDistance)
             {
                 GoToReturnToIdle();

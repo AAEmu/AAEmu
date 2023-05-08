@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.AI.States
         public override void Tick(TimeSpan delta)
         {
             _owner.MoveTowards(_targetLoc, 4.4f * (delta.Milliseconds / 1000.0f));
-            if (MathUtil.CalculateDistance(_owner.Transform.World.Position, _targetLoc, true) < 1.0f)
+            if (MathUtil.CalculateDistance(_owner.Transform.World.Position, _targetLoc) < 1.0f)
             {
                 _owner.StopMovement();
                 GoToIdle();

@@ -46,7 +46,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         {
             Ai.Owner.MoveTowards(Ai.IdlePosition.Local.Position, 2.4f * (delta.Milliseconds / 1000.0f)); // TODO: Get proper npc speed
             
-            var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition.Local.Position, Ai.Owner.Transform.World.Position, true );
+            var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition.Local.Position, Ai.Owner.Transform.World.Position);
             if (distanceToIdle < 1.0f)
                 OnCompletedReturnNoTeleport();
             

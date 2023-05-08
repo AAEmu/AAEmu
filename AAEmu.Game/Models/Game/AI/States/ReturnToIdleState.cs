@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Game.AI.States
                 return;
             
             npc.MoveTowards(AI.IdlePosition.Position, 4.4f * (delta.Milliseconds / 1000.0f));
-            if (MathUtil.CalculateDistance(npc.Transform.World.Position, AI.IdlePosition.Position, true) < 1.0f)
+            if (MathUtil.CalculateDistance(npc.Transform.World.Position, AI.IdlePosition.Position) < 1.0f)
             {
                 npc.StopMovement();
                 GoToIdle();
