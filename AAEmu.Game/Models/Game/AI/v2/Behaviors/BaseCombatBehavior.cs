@@ -65,7 +65,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 Ai.PathNode.pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
             }
 
-            if (Ai.PathNode?.findPath.Count > 0)
+            if (Ai.PathNode?.findPath.Count > 0 && !Ai.PathNode.findPath[0].Equals(Point.Zero))
             {
                 // TODO взять точку к которой движемся
                 var position = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
