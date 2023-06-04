@@ -126,7 +126,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
         //***************************************************************
         public float ExtractValue(string sData, int nIndex)
         {
-            System.Threading.Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
+            System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             int i;
             var j = 0;
             var s = sData;
