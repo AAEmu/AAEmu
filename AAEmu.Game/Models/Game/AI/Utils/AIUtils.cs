@@ -1,5 +1,4 @@
 ﻿using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.AI.Params;
@@ -27,19 +26,8 @@ namespace AAEmu.Game.Models.Game.AI.Utils
 
             var terrainHeight = WorldManager.Instance.GetHeight(newPosition.ZoneId, newPosition.Local.Position.X, newPosition.Local.Position.Y);
             // Handles disabled heightmaps
-            if (terrainHeight <= 0.0f)
-            {
+            if (terrainHeight <= 0.0f || ai.Owner.CanFly)
                 terrainHeight = newPosition.Local.Position.Z;
-            }
-
-            if (AppConfiguration.Instance.World.GeoDataMode)
-            {
-                var height = AiGeoDataManager.Instance.GetHeight(newPosition.ZoneId, newPosition.Local.Position);
-                if (height > 0)
-                {
-                    terrainHeight = height; // check, as there is no geodata for main_world yet
-                }
-            }
 
             if (newPosition.Local.Position.Z < terrainHeight && terrainHeight - maxRoamingDistance < newPosition.Local.Position.Z)
                 newPosition.Local.SetHeight(terrainHeight);

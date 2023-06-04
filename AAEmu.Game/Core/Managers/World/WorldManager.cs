@@ -579,15 +579,32 @@ namespace AAEmu.Game.Core.Managers.World
 
         public float GetHeight(uint zoneId, float x, float y)
         {
-            try
+            // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
+            var height = 0f;
+            if (AppConfiguration.Instance.World.GeoDataMode)
             {
-                var world = GetWorldByZone(zoneId);
-                return world?.GetHeight(x, y) ?? 0f;
+                var position = new WorldSpawnPosition { WorldId = 0, ZoneId = zoneId, X = x, Y = y, Z = 0, Yaw = 0, Pitch = 0, Roll = 0 };
+                height = AiGeoDataManager.Instance.GetHeight(zoneId, position);
             }
-            catch
+
+            // check, as there is no geodata for main_world yet
+            if (height == 0)
             {
-                return 0f;
+                if (AppConfiguration.Instance.HeightMapsEnable)
+                {
+                    try
+                    {
+                        var world = GetWorldByZone(zoneId);
+                        height = world?.GetHeight(x, y) ?? 0f;
+                    }
+                    catch
+                    {
+                        height = 0f;
+                    }
+                }
             }
+
+            return height;
         }
 
         /// <summary>
@@ -597,18 +614,35 @@ namespace AAEmu.Game.Core.Managers.World
         /// <returns>Height at target world transform, or transform.World.Position.Z if no heightmap could be found</returns>
         public float GetHeight(Transform transform)
         {
-            if (AppConfiguration.Instance.HeightMapsEnable)
-                try
+            // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
+            var height = 0f;
+            if (AppConfiguration.Instance.World.GeoDataMode)
+            {
+                height = AiGeoDataManager.Instance.GetHeight(transform.ZoneId, transform.World.Position);
+            }
+
+            // check, as there is no geodata for main_world yet
+            if (height == 0)
+            {
+                if (AppConfiguration.Instance.HeightMapsEnable)
                 {
-                    var world = GetWorld(transform.WorldId);
-                    return world?.GetHeight(transform.World.Position.X, transform.World.Position.Y) ?? transform.World.Position.Z;
+                    try
+                    {
+                        var world = GetWorld(transform.WorldId);
+                        height = world?.GetHeight(transform.World.Position.X, transform.World.Position.Y) ?? transform.World.Position.Z;
+                    }
+                    catch
+                    {
+                        height = transform.World.Position.Z;
+                    }
                 }
-                catch
+                else
                 {
-                    return 0f;
+                    height = transform.World.Position.Z;
                 }
-            else
-                return transform.World.Position.Z;
+            }
+
+            return height;
         }
 
         private GameObject GetRootObj(GameObject obj)

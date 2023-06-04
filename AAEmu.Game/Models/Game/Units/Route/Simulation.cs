@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
@@ -125,7 +126,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
         //***************************************************************
         public float ExtractValue(string sData, int nIndex)
         {
-            System.Threading.Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
+            System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             int i;
             var j = 0;
             var s = sData;
@@ -331,6 +332,12 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
                 // TODO: Implement proper use for Transform.World.AddDistanceToFront)
                 var (newX, newY, newZ) = npc.Transform.Local.AddDistanceToFront(travelDist, targetDist, npc.Transform.Local.Position, target);
+                
+                newZ = WorldManager.Instance.GetHeight(npc.Transform.ZoneId, npc.Transform.World.Position.X, npc.Transform.World.Position.Z);
+                if (newZ == 0)
+                {
+                    newZ = npc.Transform.World.Position.Z;
+                }
 
                 npc.Transform.Local.SetPosition(newX, newY, newZ);
 

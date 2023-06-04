@@ -151,7 +151,7 @@ namespace AAEmu.Game.Core.Managers.World
         {
             _log.Info("Loading SphereQuest...");
             var worlds = WorldManager.Instance.GetWorlds();
-            Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
+            Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
             var sphereQuests = new Dictionary<uint, List<SphereQuest>>();
             foreach (var world in worlds)

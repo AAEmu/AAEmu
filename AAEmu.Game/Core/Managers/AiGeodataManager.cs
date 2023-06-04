@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -7,9 +8,7 @@ using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.AStar;
-using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -113,6 +112,7 @@ namespace AAEmu.Game.Core.Managers
 
         #region Path smoothing
 
+        // https://www.codeproject.com/Articles/18936/A-C-Implementation-of-Douglas-Peucker-Line-Appro
         public static List<Point> DouglasPeuckerReduction(List<Point> points, double tolerance)
         {
             if (points == null || points.Count < 3)
@@ -205,14 +205,39 @@ namespace AAEmu.Game.Core.Managers
 
         #region Finding the closest point
 
-        public (uint, Point) FindСlosestToTheCurrent(uint zoneKey, Vector3 pos)
+        public (uint, Point) FindСlosestToTheCurrent2(uint zoneKey, Vector3 pos)
         {
             var index = 0u;
             var point = new Point();
-            var minDist = 99999.0f;
 
             var worldId = WorldManager.Instance.GetWorldIdByZone(zoneKey);
-            
+
+            _aiNavigation.TryGetValue((byte)worldId, out var aiNavigation);
+            if (aiNavigation != null)
+            {
+                foreach (var closest in aiNavigation.Values.Select(lpf => lpf
+                             .OrderBy(x => DistanceBetweenPoints(pos, x.Position))
+                             .First()))
+                {
+                    index = closest.StartPoint;
+                    point = closest.Position;
+                }
+            }
+
+            _log.Warn($"# Found near position index: {index}...");
+            return (index, point);
+        }
+
+        public (uint, Point) FindСlosestToTheCurrent(uint zoneKey, Vector3 pos)
+        {
+            var posX = pos.X;
+            var posY = pos.Y;
+
+            var index = 0u;
+            var point = new Point();
+            var minDist = 99999.0f;
+            var worldId = WorldManager.Instance.GetWorldIdByZone(zoneKey);
+
             _aiNavigation.TryGetValue((byte)worldId, out var aiNavigation);
             if (aiNavigation != null)
             {
@@ -220,14 +245,15 @@ namespace AAEmu.Game.Core.Managers
                 {
                     foreach (var pf in lpf)
                     {
-                        var vPosition = new Vector3(pf.Position.X, pf.Position.Y, pf.Position.Z);
-                        var distance = MathUtil.GetDistance(pos, vPosition);
-                        if (distance < minDist)
-                        {
-                            index = pf.StartPoint;
-                            point = pf.Position;
-                            minDist = distance;
-                        }
+                        var dx = posX - pf.Position.X;
+                        var dy = posY - pf.Position.Y;
+
+                        var distance = dx * dx + dy * dy;
+                        if (!(distance < minDist)) { continue; }
+
+                        index = pf.StartPoint;
+                        point = pf.Position;
+                        minDist = distance;
                     }
                 }
             }
@@ -238,12 +264,21 @@ namespace AAEmu.Game.Core.Managers
 
         public float GetHeight(uint zoneKey, Vector3 pos)
         {
+            var rrr = 0f;
+            //var stopWatch = new Stopwatch();
+            //stopWatch.Start();
             try
             {
                 var worldId = WorldManager.Instance.GetWorldIdByZone(zoneKey);
 
+                var posX = pos.X;
+                var posY = pos.Y;
+
                 var pointN = new Point();
+                var pointFa = new Point();
+
                 var minDistN = 99999.0f;
+                var minDistFa = 99999.0f;
 
                 _aiNavigation.TryGetValue((byte)worldId, out var aiNavigation);
                 if (aiNavigation != null)
@@ -252,19 +287,17 @@ namespace AAEmu.Game.Core.Managers
                     {
                         foreach (var pf in lpf)
                         {
-                            var vPosition = new Vector3(pf.Position.X, pf.Position.Y, pf.Position.Z);
-                            var distance = MathUtil.GetDistance(pos, vPosition);
-                            if (distance < minDistN)
-                            {
-                                pointN = pf.Position;
-                                minDistN = distance;
-                            }
+                            var dx = posX - pf.Position.X;
+                            var dy = posY - pf.Position.Y;
+
+                            var distance = dx * dx + dy * dy;
+                            if (!(distance < minDistN)) { continue; }
+
+                            pointN = pf.Position;
+                            minDistN = distance;
                         }
                     }
                 }
-                
-                var pointFA = new Point();
-                var minDistFA = 99999.0f;
 
                 _forbiddenArea.TryGetValue((byte)worldId, out var forbiddenArea);
                 if (forbiddenArea != null)
@@ -273,32 +306,100 @@ namespace AAEmu.Game.Core.Managers
                     {
                         foreach (var pf in lfa)
                         {
-                            var vPosition = new Vector3(pf.X, pf.Y, pf.Z);
-                            var distance = MathUtil.GetDistance(pos, vPosition);
-                            if (distance < minDistN)
-                            {
-                                pointFA = pf;
-                                minDistFA = distance;
-                            }
+                            var dx = posX - pf.X;
+                            var dy = posY - pf.Y;
+
+                            var distance = dx * dx + dy * dy;
+                            if (!(distance < minDistFa)) { continue; }
+
+                            pointFa = pf;
+                            minDistFa = distance;
                         }
                     }
                 }
 
-                if (minDistFA < minDistN)
-                {
-                    //_log.Warn($"# Found near position forbiddenArea, Z: {pointFA.Z}...");
-                    return pointFA.Z;
-                }
-                else
-                {
-                    //_log.Warn($"# Found near position aiNavigation, Z: {pointN.Z}...");
-                    return pointN.Z;
-                }
+                //_log.Warn($"# Found near position aiNavigation, Z: {pointN.Z}...");
+                rrr = minDistFa < minDistN ? pointFa.Z : pointN.Z;
             }
             catch
             {
-                return 0f;
+                rrr = 0f;
             }
+            //stopWatch.Stop();
+            //_log.Info($"GetHeight took {stopWatch.Elapsed}");
+
+            return rrr;
+        }
+
+        public float GetHeight(uint zoneKey, WorldSpawnPosition pos)
+        {
+            return GetHeight(zoneKey, pos.AsPositionVector());
+        }
+
+        private float DistanceBetweenPoints(Vector3 point, Point compareTo)
+        {
+            return (compareTo.X - point.X) * (compareTo.X - point.X) +
+                   (compareTo.Y - point.Y) * (compareTo.Y - point.Y);
+        }
+
+        private float DistanceBetweenPoints(Point point, Point compareTo)
+        {
+            return (compareTo.X - point.X) * (compareTo.X - point.X) +
+                   (compareTo.Y - point.Y) * (compareTo.Y - point.Y);
+        }
+
+        public Point FindClosest(List<AiNavigation> searchIn, Point compareTo)
+        {
+            return searchIn
+                .Select(p => new { point = p.Position, distance = DistanceBetweenPoints(p.Position, compareTo) })
+                .OrderBy(distances => distances.distance)
+                .First().point;
+        }
+
+        public Point FindClosest(List<Point> searchIn, Point compareTo)
+        {
+            return searchIn
+                .Select(p => new { point = p, distance = DistanceBetweenPoints(p, compareTo) })
+                .OrderBy(distances => distances.distance)
+                .First().point;
+        }
+        
+        public float GetHeight2(uint zoneKey, Vector3 pos)
+        {
+            var rrr = 0f;
+            var position = new Point(pos.X, pos.Y, pos.Z);
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+            try
+            {
+                var point = new Point();
+                var res = new List<Point>();
+
+                var worldId = WorldManager.Instance.GetWorldIdByZone(zoneKey);
+
+                _aiNavigation.TryGetValue((byte)worldId, out var aiNavigation);
+                if (aiNavigation != null)
+                {
+                    res.AddRange(aiNavigation.Values.Select(nav => FindClosest(nav, position)));
+                }
+
+                _forbiddenArea.TryGetValue((byte)worldId, out var forbiddenArea);
+                if (forbiddenArea != null)
+                {
+                    res.AddRange(forbiddenArea.Values.Select(fa => FindClosest(fa, position)));
+                }
+
+                point = res.OrderBy(p => DistanceBetweenPoints(pos, p)).First();
+                //_log.Warn($"# Found near position aiNavigation, Z: {pointN.Z}...");
+                rrr = point.Z;
+            }
+            catch
+            {
+                rrr = 0f;
+            }
+            stopWatch.Stop();
+            _log.Info($"GetHeight2 took {stopWatch.Elapsed}");
+            return rrr;
         }
 
         #endregion Finding the closest point

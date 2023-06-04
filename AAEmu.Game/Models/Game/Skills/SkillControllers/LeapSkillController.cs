@@ -57,7 +57,7 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
                 End();
                 return;
             };
-            MoveTowards(_calculatedSpeed * (float)(delta.TotalMilliseconds/1000f));
+            MoveTowards(_calculatedSpeed * (float)(delta.TotalMilliseconds / 1000f));
         }
 
         public override void Execute()
@@ -91,22 +91,15 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
             //var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
             var (newX, newY) = MathUtil.AddDistanceToFront(travelDist, Owner.Transform.World.Position.X, Owner.Transform.World.Position.Y, angle);
             var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, angle);
-            var newZ = AppConfiguration.Instance.HeightMapsEnable ? 
-                WorldManager.Instance.GetHeight(Owner.Transform.ZoneId, Owner.Transform.World.Position.X, Owner.Transform.World.Position.Y) : 
-                Owner.Transform.World.Position.Z;
-
-            if (AppConfiguration.Instance.World.GeoDataMode)
+            var newZ = WorldManager.Instance.GetHeight(Owner.Transform.ZoneId, Owner.Transform.World.Position.X, Owner.Transform.World.Position.Z);
+            if (newZ == 0)
             {
-                var height = AiGeoDataManager.Instance.GetHeight(Owner.Transform.ZoneId, Owner.Transform.Local.Position);
-                if (height > 0)
-                {
-                    newZ = height; // check, as there is no geodata for main_world yet
-                }
+                newZ = Owner.Transform.World.Position.Z;
             }
 
             // TODO: Implement Transform.World
-            Owner.Transform.World.SetPosition(newX,newY, newZ);
-            Owner.Transform.World.SetRotationDegree(0f, 0f, angle-90);
+            Owner.Transform.World.SetPosition(newX, newY, newZ);
+            Owner.Transform.World.SetRotationDegree(0f, 0f, angle - 90);
 
             moveType.X = Owner.Transform.Local.Position.X;
             moveType.Y = Owner.Transform.Local.Position.Y;

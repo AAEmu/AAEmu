@@ -33,9 +33,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             doodad.Transform = caster.Transform.CloneDetached(doodad);
             var rpy = target.Transform.World.ToRollPitchYawDegrees();
             var (xx, yy) = MathUtil.AddDistanceToFrontDeg(1f, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, rpy.Z + 90f); //  + 90f to Front
-            doodad.SetPosition(xx, yy, target.Transform.World.Position.Z, rpy.X, rpy.Y, rpy.Z);
-            if (AppConfiguration.Instance.HeightMapsEnable)
-                doodad.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(doodad.Transform.ZoneId, xx, yy));
+            doodad.SetPosition(xx, yy, WorldManager.Instance.GetHeight(doodad.Transform), rpy.X, rpy.Y, rpy.Z);
 
             doodad.Spawn();
         }

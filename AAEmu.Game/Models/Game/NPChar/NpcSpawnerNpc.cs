@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.NPChar
@@ -57,6 +60,16 @@ namespace AAEmu.Game.Models.Game.NPChar
 
                 _log.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawn {Id}, nps spawner Id {NpcSpawnerTemplateId}");
 
+                if (!npc.CanFly)
+                {
+                    // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
+                    var newZ = WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position.X, npcSpawner.Position.Y);
+                    if (Math.Abs(npcSpawner.Position.Z - newZ) <= 10)
+                    {
+                        npcSpawner.Position.Z = newZ;
+                    }
+                }
+
                 npc.Transform.ApplyWorldSpawnPosition(npcSpawner.Position);
                 if (npc.Transform == null)
                 {
@@ -83,7 +96,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
 
             //_log.Warn($"Spawned Npcs id={MemberId}, maxPopulation={maxPopulation}...");
-            
+
             return npcs;
         }
 
