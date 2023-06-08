@@ -25,7 +25,7 @@ namespace AAEmu.Game.Core.Managers
 
         public uint GetCharacterId(string characterName)
         {
-            var res = (from x in _characterNames where (x.Value.ToLower() == characterName.ToLower()) select x.Key).FirstOrDefault();
+            var res = (from x in _characterNames where (x.Value.ToLower() == characterName.ToLower()) select x.Key).FirstOrDefault(0u);
             return res ;
         }
 
