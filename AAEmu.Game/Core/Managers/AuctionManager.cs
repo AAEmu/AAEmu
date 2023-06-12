@@ -165,7 +165,7 @@ namespace AAEmu.Game.Core.Managers
 
                 else if(bidAmount > auctionItem.BidMoney) //Bid
                 {
-                    if(auctionItem.BidderName != "") //Send mail to old bidder. 
+                    if ((auctionItem.BidderName != "") && (auctionItem.BidderId != 0)) //Send mail to old bidder. 
                     {
                         var moneyArray = new int[3];
                         moneyArray[0] = (int)auctionItem.BidMoney;
@@ -181,6 +181,8 @@ namespace AAEmu.Game.Core.Managers
 
                     //Set info to new bidders info
                     auctionItem.BidderName = player.Name;
+                    auctionItem.BidderId = player.Id;
+                    auctionItem.BidWorldID = (byte)player.Transform.WorldId;
                     auctionItem.BidMoney = bidAmount;
 
                     player.SubtractMoney(SlotType.Inventory, (int)bidAmount);
