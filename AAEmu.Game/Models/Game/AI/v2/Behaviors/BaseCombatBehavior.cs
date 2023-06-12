@@ -133,11 +133,20 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             get
             {
                 var returnDistance = 50f;
+                var absoluteReturnDistance = 100f;
+
                 if (Ai.Owner.Template.ReturnDistance > 0)
                 {
                     returnDistance = Ai.Owner.Template.ReturnDistance;
                 }
-                var res = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.IdlePosition.Local.Position, true) > returnDistance;
+                if (Ai.Owner.Template.AbsoluteReturnDistance > 0)
+                {
+                    absoluteReturnDistance = Ai.Owner.Template.AbsoluteReturnDistance;
+                }
+
+                var res = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.Owner.CurrentTarget.Transform.World.Position, true) > returnDistance;
+                if (!res)
+                    res = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.IdlePosition.Local.Position, true) > absoluteReturnDistance;
                 return res;
             }
         }
