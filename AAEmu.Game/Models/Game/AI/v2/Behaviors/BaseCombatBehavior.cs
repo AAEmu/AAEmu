@@ -133,7 +133,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             get
             {
                 var returnDistance = 50f;
-                var absoluteReturnDistance = 100f;
+                var absoluteReturnDistance = 200f;
 
                 if (Ai.Owner.Template.ReturnDistance > 0)
                 {
