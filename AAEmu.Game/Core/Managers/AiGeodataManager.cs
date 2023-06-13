@@ -10,7 +10,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils.DB;
-
+using Newtonsoft.Json;
 using NLog;
 
 using Point = AAEmu.Game.Models.Game.AI.AStar.Point;
@@ -21,12 +21,13 @@ namespace AAEmu.Game.Core.Managers
     public class AiGeoDataManager : Singleton<AiGeoDataManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-
+        //              worldId       StartPoint  list
         private Dictionary<byte, Dictionary<uint, List<AiNavigation>>> _aiNavigation;
         private Dictionary<byte, Dictionary<uint, string>> _areasMission;
         private Dictionary<byte, Dictionary<uint, List<Point>>> _forbiddenArea;
         private Dictionary<byte, Dictionary<uint, List<Point>>> _aiPath;
         private Dictionary<byte, Dictionary<uint, List<Point>>> _aiNavigationModifier;
+        private Dictionary<byte, List<Point>> _aiNavigationPoints; // список всех имеющихся точек для инстанса
 
         public List<AiNavigation> GetAvailablePoints(uint zoneKey, uint point)
         {
@@ -48,7 +49,7 @@ namespace AAEmu.Game.Core.Managers
             var res = new List<bool>();
             _forbiddenArea.TryGetValue((byte)worldId, out var forbiddenArea);
 
-            if (forbiddenArea != null && forbiddenArea.Count <= 1)
+            if (forbiddenArea is { Count: <= 1 })
             {
                 return false; // consider that we are inside the zone (i.e. limitation outside)
             }
@@ -230,6 +231,29 @@ namespace AAEmu.Game.Core.Managers
 
         public (uint, Point) FindСlosestToTheCurrent(uint zoneKey, Vector3 pos)
         {
+            var index = 0;
+            var position = new Point(pos.X, pos.Y, pos.Z);
+            var point = new Point(0, 0, 0);
+            var worldId = WorldManager.Instance.GetWorldIdByZone(zoneKey);
+
+            _aiNavigationPoints.TryGetValue((byte)worldId, out var aiNavigationList);
+            if (aiNavigationList is { Count: > 0 })
+            {
+                index = aiNavigationList.BinarySearch(position);
+                if (index < 0)
+                {
+                    index = ~index;
+                }
+                if (index < aiNavigationList.Count)
+                {
+                    point = aiNavigationList[index];
+                }
+            }
+            //_log.Warn($"Found near position index={index}");
+            return ((uint)index, point);
+        }
+        public (uint, Point) FindСlosestToTheCurrent0(uint zoneKey, Vector3 pos)
+        {
             var posX = pos.X;
             var posY = pos.Y;
 
@@ -263,6 +287,35 @@ namespace AAEmu.Game.Core.Managers
         }
 
         public float GetHeight(uint zoneKey, Vector3 pos)
+        {
+            //var stopWatch = new Stopwatch();
+            //stopWatch.Start();
+            var position = new Point(pos.X, pos.Y, pos.Z);
+            var point = new Point(0, 0, 0);
+            var worldId = WorldManager.Instance.GetWorldIdByZone(zoneKey);
+            _aiNavigationPoints.TryGetValue((byte)worldId, out var aiNavigationList);
+            if (aiNavigationList is { Count: > 0 })
+            {
+                var index = aiNavigationList.BinarySearch(position);
+                if (index < 0)
+                {
+                    index = ~index;
+                }
+
+                if (index < aiNavigationList.Count)
+                {
+                    point = aiNavigationList[index];
+                }
+
+                //_log.Warn($"Found near position index={index}, Z={point.Z}");
+            }
+            //stopWatch.Stop();
+            //_log.Info($"GetHeight took {stopWatch.Elapsed}");
+
+            return point.Z;
+        }
+
+        public float GetHeight0(uint zoneKey, Vector3 pos)
         {
             var rrr = 0f;
             //var stopWatch = new Stopwatch();
@@ -363,7 +416,7 @@ namespace AAEmu.Game.Core.Managers
                 .OrderBy(distances => distances.distance)
                 .First().point;
         }
-        
+
         public float GetHeight2(uint zoneKey, Vector3 pos)
         {
             var rrr = 0f;
@@ -410,6 +463,7 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Info("Loading AI GeoData...");
 
+            _aiNavigationPoints = new Dictionary<byte, List<Point>>();
             _aiNavigation = new Dictionary<byte, Dictionary<uint, List<AiNavigation>>>();
             _areasMission = new Dictionary<byte, Dictionary<uint, string>>();
             _forbiddenArea = new Dictionary<byte, Dictionary<uint, List<Point>>>();
@@ -417,18 +471,28 @@ namespace AAEmu.Game.Core.Managers
             _aiNavigationModifier = new Dictionary<byte, Dictionary<uint, List<Point>>>();
 
             var worlds = WorldManager.Instance.GetWorlds();
-            foreach (var world in worlds)
+            var isLoadNP = false;
+            var npPath = Path.Combine("Data", "AiGeoData");
+            var nvigationPoints = Path.Combine(npPath, "aiNavigationPoints.json");
+            if (!File.Exists(nvigationPoints))
             {
-                _aiNavigation = new Dictionary<byte, Dictionary<uint, List<AiNavigation>>>();
-                _areasMission = new Dictionary<byte, Dictionary<uint, string>>();
-                _forbiddenArea = new Dictionary<byte, Dictionary<uint, List<Point>>>();
-                _aiPath = new Dictionary<byte, Dictionary<uint, List<Point>>>();
-                _aiNavigationModifier = new Dictionary<byte, Dictionary<uint, List<Point>>>();
+                _log.Info($"File {Path.GetFileName(nvigationPoints)} is missing. We create it. It will take a lot of time...");
+            }
+            else
+            {
+                _log.Info($"Loading {nvigationPoints}...");
+                // Читаем содержимое файла в строку
+                string jsonNP = File.ReadAllText(nvigationPoints);
+
+                // Десериализуем строку JSON в список объектов типа Point
+                _aiNavigationPoints = JsonConvert.DeserializeObject<Dictionary<byte, List<Point>>>(jsonNP);
+                isLoadNP = true;
             }
 
             foreach (var world in worlds)
             {
                 // TODO добавить в worlds => Geodata
+                var aiNavigationPoints = new List<Point>();
                 var aiNavigation = new Dictionary<uint, List<AiNavigation>>();
                 var areasMission = new Dictionary<uint, string>();
                 var forbiddenArea = new Dictionary<uint, List<Point>>();
@@ -443,129 +507,137 @@ namespace AAEmu.Game.Core.Managers
                 }
                 else
                 {
-                    using (var connection = SQLite.CreateConnection(worldPath, "server_ai_geo_data.sqlite3"))
+                    using var connection = SQLite.CreateConnection(worldPath, "server_ai_geo_data.sqlite3");
+                    _log.Info("Loading ai_navigation...");
+                    using (var command = connection.CreateCommand())
                     {
-                        _log.Info("Loading ai_navigation...");
-                        using (var command = connection.CreateCommand())
+                        command.CommandText = "SELECT * FROM ai_navigation";
+                        command.Prepare();
+                        using var sqliteDataReader = command.ExecuteReader();
+                        using var reader = new SQLiteWrapperReader(sqliteDataReader);
+                        while (reader.Read())
                         {
-                            command.CommandText = "SELECT * FROM ai_navigation";
-                            command.Prepare();
-                            using (var sqliteDataReader = command.ExecuteReader())
-                            using (var reader = new SQLiteWrapperReader(sqliteDataReader))
+                            var template = new AiNavigation();
+                            template.Id = reader.GetUInt32("id");
+                            template.ZoneKey = reader.GetUInt32("zone_key");
+                            template.StartPoint = reader.GetUInt32("start_point");
+                            template.EndPoint = reader.GetUInt32("end_point");
+                            template.Position = new Point();
+                            template.Position.X = reader.GetFloat("x");
+                            template.Position.Y = reader.GetFloat("y");
+                            template.Position.Z = reader.GetFloat("z");
+
+                            // convert coordinates from local to world, immediately when reading the path from the file
+                            var xyz = new Vector3(template.Position.X, template.Position.Y, template.Position.Z);
+                            var vec = ZoneManager.Instance.ConvertToWorldCoordinates(template.ZoneKey, xyz);
+                            template.Position.X = vec.X;
+                            template.Position.Y = vec.Y;
+                            template.Position.Z = vec.Z;
+
+                            if (aiNavigation.TryGetValue(template.StartPoint, out var value))
                             {
-                                while (reader.Read())
+                                value.Add(template);
+                            }
+                            else
+                            {
+                                aiNavigation.Add(template.StartPoint, new List<AiNavigation> { template });
+                            }
+
+                            if (!isLoadNP)
+                            {
+                                if (!aiNavigationPoints.Contains(template.Position))
                                 {
-                                    var template = new AiNavigation();
-                                    template.Id = reader.GetUInt32("id");
-                                    template.ZoneKey = reader.GetUInt32("zone_key");
-                                    template.StartPoint = reader.GetUInt32("start_point");
-                                    template.EndPoint = reader.GetUInt32("end_point");
-                                    template.Position = new Point();
-                                    template.Position.X = reader.GetFloat("x");
-                                    template.Position.Y = reader.GetFloat("y");
-                                    template.Position.Z = reader.GetFloat("z");
+                                    aiNavigationPoints.Add(template.Position);
+                                }
+                            }
+                        }
+                    }
 
-                                    // convert coordinates from local to world, immediately when reading the path from the file
-                                    var xyz = new Vector3(template.Position.X, template.Position.Y, template.Position.Z);
-                                    var vec = ZoneManager.Instance.ConvertToWorldCoordinates(template.ZoneKey, xyz);
-                                    template.Position.X = vec.X;
-                                    template.Position.Y = vec.Y;
-                                    template.Position.Z = vec.Z;
+                    _log.Info("Loading areas_mission...");
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText = "SELECT * FROM areas_mission";
+                        command.Prepare();
+                        using var sqliteDataReader = command.ExecuteReader();
+                        using var reader = new SQLiteWrapperReader(sqliteDataReader);
+                        while (reader.Read())
+                        {
+                            var template = new AreasMission();
+                            template.Id = reader.GetUInt32("id");
+                            template.ZoneKey = reader.GetUInt32("zone_key");
+                            template.Name = reader.GetString("name");
+                            template.Type = reader.GetString("type");
+                            template.PointCount = reader.GetUInt32("point_count");
 
-                                    if (aiNavigation.TryGetValue(template.StartPoint, out var value))
+                            areasMission.Add(template.Id, template.Type);
+                        }
+                    }
+
+                    _log.Info("Loading areas_mission_points...");
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText = "SELECT * FROM areas_mission_points";
+                        command.Prepare();
+                        using var sqliteDataReader = command.ExecuteReader();
+                        using var reader = new SQLiteWrapperReader(sqliteDataReader);
+                        while (reader.Read())
+                        {
+                            var template = new AreasMissionPoints();
+                            template.Id = reader.GetUInt32("id");
+                            template.ZoneKey = reader.GetUInt32("zone_key");
+                            template.Position = new Point();
+                            template.Position.X = reader.GetFloat("x");
+                            template.Position.Y = reader.GetFloat("y");
+                            template.Position.Z = reader.GetFloat("z");
+
+                            // convert coordinates from local to world, immediately when reading the path from the file
+                            var xyz = new Vector3(template.Position.X, template.Position.Y, template.Position.Z);
+                            var vec = ZoneManager.Instance.ConvertToWorldCoordinates(template.ZoneKey, xyz);
+                            template.Position.X = vec.X;
+                            template.Position.Y = vec.Y;
+                            template.Position.Z = vec.Z;
+
+                            if (!isLoadNP)
+                            {
+                                if (!aiNavigationPoints.Contains(template.Position))
+                                {
+                                    aiNavigationPoints.Add(template.Position);
+                                }
+                            }
+
+                            var type = areasMission[template.Id];
+                            switch (type)
+                            {
+                                case "ForbiddenArea":
+                                    if (forbiddenArea.TryGetValue(template.Id, out var value))
                                     {
-                                        value.Add(template);
+                                        value.Add(template.Position);
                                     }
                                     else
                                     {
-                                        aiNavigation.Add(template.StartPoint, new List<AiNavigation> { template });
+                                        forbiddenArea.Add(template.Id, new List<Point> { template.Position });
                                     }
-                                }
-                            }
-                        }
-
-                        _log.Info("Loading areas_mission...");
-                        using (var command = connection.CreateCommand())
-                        {
-                            command.CommandText = "SELECT * FROM areas_mission";
-                            command.Prepare();
-                            using (var sqliteDataReader = command.ExecuteReader())
-                            using (var reader = new SQLiteWrapperReader(sqliteDataReader))
-                            {
-                                while (reader.Read())
-                                {
-                                    var template = new AreasMission();
-                                    template.Id = reader.GetUInt32("id");
-                                    template.ZoneKey = reader.GetUInt32("zone_key");
-                                    template.Name = reader.GetString("name");
-                                    template.Type = reader.GetString("type");
-                                    template.PointCount = reader.GetUInt32("point_count");
-
-                                    areasMission.Add(template.Id, template.Type);
-                                }
-                            }
-                        }
-
-                        _log.Info("Loading areas_mission_points...");
-                        using (var command = connection.CreateCommand())
-                        {
-                            command.CommandText = "SELECT * FROM areas_mission_points";
-                            command.Prepare();
-                            using (var sqliteDataReader = command.ExecuteReader())
-                            using (var reader = new SQLiteWrapperReader(sqliteDataReader))
-                            {
-                                while (reader.Read())
-                                {
-                                    var template = new AreasMissionPoints();
-                                    template.Id = reader.GetUInt32("id");
-                                    template.ZoneKey = reader.GetUInt32("zone_key");
-                                    template.Position = new Point();
-                                    template.Position.X = reader.GetFloat("x");
-                                    template.Position.Y = reader.GetFloat("y");
-                                    template.Position.Z = reader.GetFloat("z");
-
-                                    // convert coordinates from local to world, immediately when reading the path from the file
-                                    var xyz = new Vector3(template.Position.X, template.Position.Y, template.Position.Z);
-                                    var vec = ZoneManager.Instance.ConvertToWorldCoordinates(template.ZoneKey, xyz);
-                                    template.Position.X = vec.X;
-                                    template.Position.Y = vec.Y;
-                                    template.Position.Z = vec.Z;
-
-                                    var type = areasMission[template.Id];
-                                    switch (type)
+                                    break;
+                                case "AINavigationModifier":
+                                    if (aiNavigationModifier.TryGetValue(template.Id, out var value1))
                                     {
-                                        case "ForbiddenArea":
-                                            if (forbiddenArea.TryGetValue(template.Id, out var value))
-                                            {
-                                                value.Add(template.Position);
-                                            }
-                                            else
-                                            {
-                                                forbiddenArea.Add(template.Id, new List<Point> { template.Position });
-                                            }
-                                            break;
-                                        case "AINavigationModifier":
-                                            if (aiNavigationModifier.TryGetValue(template.Id, out var value1))
-                                            {
-                                                value1.Add(template.Position);
-                                            }
-                                            else
-                                            {
-                                                aiNavigationModifier.Add(template.Id, new List<Point> { template.Position });
-                                            }
-                                            break;
-                                        case "AIPath":
-                                            if (aiPath.TryGetValue(template.Id, out var value2))
-                                            {
-                                                value2.Add(template.Position);
-                                            }
-                                            else
-                                            {
-                                                aiPath.Add(template.Id, new List<Point> { template.Position });
-                                            }
-                                            break;
+                                        value1.Add(template.Position);
                                     }
-                                }
+                                    else
+                                    {
+                                        aiNavigationModifier.Add(template.Id, new List<Point> { template.Position });
+                                    }
+                                    break;
+                                case "AIPath":
+                                    if (aiPath.TryGetValue(template.Id, out var value2))
+                                    {
+                                        value2.Add(template.Position);
+                                    }
+                                    else
+                                    {
+                                        aiPath.Add(template.Id, new List<Point> { template.Position });
+                                    }
+                                    break;
                             }
                         }
                     }
@@ -575,6 +647,18 @@ namespace AAEmu.Game.Core.Managers
                 _forbiddenArea[(byte)world.Id] = forbiddenArea;
                 _aiNavigationModifier[(byte)world.Id] = aiNavigationModifier;
                 _aiPath[(byte)world.Id] = aiPath;
+                if (!isLoadNP)
+                {
+                    aiNavigationPoints.Sort();
+                    _aiNavigationPoints[(byte)world.Id] = aiNavigationPoints;
+                }
+            }
+            if (!isLoadNP)
+            {
+                // Сериализуем список в JSON-строку
+                var json = JsonConvert.SerializeObject(_aiNavigationPoints);
+                // Записываем JSON-строку в файл
+                File.WriteAllText(nvigationPoints, json);
             }
         }
 

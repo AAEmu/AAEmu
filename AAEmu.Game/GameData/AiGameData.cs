@@ -49,17 +49,15 @@ namespace AAEmu.Game.GameData
             {
                 command.CommandText = "SELECT id, ai_file_id, npc_ai_param_id FROM npcs";
                 command.Prepare();
-                using (var sqliteReader = command.ExecuteReader())
-                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                using var sqliteReader = command.ExecuteReader();
+                using var reader = new SQLiteWrapperReader(sqliteReader);
+                while (reader.Read())
                 {
-                    while (reader.Read())
-                    {
-                        var npcId = reader.GetUInt32("id");
-                        var type = (AiParams.AiParamType)reader.GetUInt32("ai_file_id");
-                        var id = reader.GetUInt32("npc_ai_param_id");
-                        if (!fileTypeToId.ContainsKey(id))
-                            fileTypeToId.Add(id, type);
-                    }
+                    var npcId = reader.GetUInt32("id");
+                    var type = (AiParams.AiParamType)reader.GetUInt32("ai_file_id");
+                    var id = reader.GetUInt32("npc_ai_param_id");
+
+                    fileTypeToId.TryAdd(id, type);
                 }
             }
 
@@ -67,27 +65,26 @@ namespace AAEmu.Game.GameData
             {
                 command.CommandText = "SELECT * FROM npc_ai_params";
                 command.Prepare();
-                using (var sqliteReader = command.ExecuteReader())
-                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                using var sqliteReader = command.ExecuteReader();
+                using var reader = new SQLiteWrapperReader(sqliteReader);
+                while (reader.Read())
                 {
-                    while (reader.Read())
-                    {
-                        var id = reader.GetUInt32("id");
-                        if (!fileTypeToId.ContainsKey(id))
-                            continue;
+                    var id = reader.GetUInt32("id");
+                    if (!fileTypeToId.ContainsKey(id))
+                        continue;
 
-                        var fileType = fileTypeToId[id];
-                        try
-                        {
-                            var data = reader.IsDBNull("ai_param") ? string.Empty : reader.GetString("ai_param");
-                            var aiParams = AiParams.CreateByType(fileType, data);
-                            if (aiParams != null && !_aiParams.ContainsKey(id))
-                                _aiParams.Add(id, aiParams);
-                        }
-                        catch (Exception e)
-                        {
-                            _log.Warn("Impossible to parse npc_ai_params {0}\n{1}", id, e.Message);
-                        }
+                    var fileType = fileTypeToId[id];
+                    try
+                    {
+                        var data = reader.IsDBNull("ai_param") ? string.Empty : reader.GetString("ai_param");
+                        var aiParams = AiParams.CreateByType(fileType, data);
+
+                        if (aiParams != null)
+                            _aiParams.TryAdd(id, aiParams);
+                    }
+                    catch (Exception e)
+                    {
+                        _log.Warn("Impossible to parse npc_ai_params {0}\n{1}", id, e.Message);
                     }
                 }
             }
@@ -96,31 +93,29 @@ namespace AAEmu.Game.GameData
             {
                 command.CommandText = "SELECT * FROM ai_commands";
                 command.Prepare();
-                using (var sqliteReader = command.ExecuteReader())
-                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                using var sqliteReader = command.ExecuteReader();
+                using var reader = new SQLiteWrapperReader(sqliteReader);
+                var tempListId = new List<uint>();
+                while (reader.Read())
                 {
-                    var tempListId = new List<uint>();
-                    while (reader.Read())
+                    var template = new AiCommands();
+                    template.Id = reader.GetUInt32("id");
+                    if (tempListId.Contains(template.Id))
                     {
-                        var template = new AiCommands();
-                        template.Id = reader.GetUInt32("id");
-                        if (tempListId.Contains(template.Id))
-                        {
-                            continue; // в таблице есть дубли
-                        }
-
-                        tempListId.Add(template.Id);
-                        template.CmdSetId = reader.GetUInt32("cmd_set_id");
-                        template.CmdId = (AiCommandCategory)reader.GetUInt32("cmd_id");
-                        template.Param1 = reader.GetUInt32("param1");
-                        template.Param2 = reader.GetString("param2");
-
-                        if (!_aiCommands.ContainsKey(template.CmdSetId))
-                        {
-                            _aiCommands.Add(template.CmdSetId, new List<AiCommands>());
-                        }
-                        _aiCommands[template.CmdSetId].Add(template);
+                        continue; // в таблице есть дубли
                     }
+
+                    tempListId.Add(template.Id);
+                    template.CmdSetId = reader.GetUInt32("cmd_set_id");
+                    template.CmdId = (AiCommandCategory)reader.GetUInt32("cmd_id");
+                    template.Param1 = reader.GetUInt32("param1");
+                    template.Param2 = reader.GetString("param2");
+
+                    if (!_aiCommands.ContainsKey(template.CmdSetId))
+                    {
+                        _aiCommands.Add(template.CmdSetId, new List<AiCommands>());
+                    }
+                    _aiCommands[template.CmdSetId].Add(template);
                 }
             }
 
@@ -128,21 +123,16 @@ namespace AAEmu.Game.GameData
             {
                 command.CommandText = "SELECT * FROM ai_command_sets";
                 command.Prepare();
-                using (var sqliteReader = command.ExecuteReader())
-                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                using var sqliteReader = command.ExecuteReader();
+                using var reader = new SQLiteWrapperReader(sqliteReader);
+                while (reader.Read())
                 {
-                    while (reader.Read())
-                    {
-                        var template = new AiCommandSets();
-                        template.Id = reader.GetUInt32("id");
-                        template.Name = reader.GetString("name");
-                        template.CanInteract = reader.GetBoolean("can_interact");
+                    var template = new AiCommandSets();
+                    template.Id = reader.GetUInt32("id");
+                    template.Name = reader.GetString("name");
+                    template.CanInteract = reader.GetBoolean("can_interact");
 
-                        if (!_aiCommandSets.ContainsKey(template.Id))
-                        {
-                            _aiCommandSets.Add(template.Id, template);
-                        }
-                    }
+                    _aiCommandSets.TryAdd(template.Id, template);
                 }
             }
         }

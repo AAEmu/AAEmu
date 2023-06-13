@@ -172,6 +172,8 @@ namespace AAEmu.Game.Models.Game.AI.AStar
             // The adjacent points are the points where you can go.
             var neighbourPoints = AiGeoDataManager.Instance.GetAvailablePoints(zoneKey, pathNode.Current);
 
+            if (neighbourPoints == null) { return result; }
+
             foreach (var point in neighbourPoints)
             {
                 // Checking that the point falls within the forbidden area where it is not allowed to walk.
