@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -63,7 +64,24 @@ namespace AAEmu.Game.Core.Packets.C2G
                 }
             }
 
-            if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
+            if (skillCaster is SkillCasterMount)
+            {
+                var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+                skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+
+                var mountAttachedSkill = MateManager.Instance.GetMountAttachedSkills(skillId);
+                var trg = Connection.ActiveChar.CurrentTarget;
+                if (trg == null)
+                {
+                    skill = new Skill(SkillManager.Instance.GetSkillTemplate(mountAttachedSkill));
+                    skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+                }
+                else
+                {
+                    Connection.ActiveChar.UseSkill(mountAttachedSkill, (IUnit)trg);
+                }
+            }
+            else if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
             {
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
                 skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);

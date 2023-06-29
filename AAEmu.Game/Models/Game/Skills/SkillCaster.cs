@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Skills
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Skills
         Unit = 0,
         Unk1 = 1, // Doodad
         Item = 2,
-        Unk3 = 3, // TODO mountSkillType
+        Mount = 3, // TODO mountSkillType
         Doodad = 4 // Gimmick
     }
 
@@ -43,8 +43,8 @@ namespace AAEmu.Game.Models.Game.Skills
                 case SkillCasterType.Item:
                     obj = new SkillItem();
                     break;
-                case SkillCasterType.Unk3:
-                    obj = new SkillCasterUnk3();
+                case SkillCasterType.Mount:
+                    obj = new SkillCasterMount();
                     break;
                 case SkillCasterType.Doodad:
                     obj = new SkillDoodad();
@@ -123,17 +123,17 @@ namespace AAEmu.Game.Models.Game.Skills
         }
     }
 
-    public class SkillCasterUnk3 : SkillCaster
+    public class SkillCasterMount : SkillCaster
     {
         public uint MountSkillTemplateId { get; set; }
 
-        public SkillCasterUnk3()
+        public SkillCasterMount()
         {
         }
 
-        public SkillCasterUnk3(uint objId)
+        public SkillCasterMount(uint objId)
         {
-            Type = SkillCasterType.Unk3;
+            Type = SkillCasterType.Mount;
             ObjId = objId;
         }
 
