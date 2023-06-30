@@ -67,19 +67,22 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (skillCaster is SkillCasterMount)
             {
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-                skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
-
+                var mate = MateManager.Instance.GetActiveMate(Connection.ActiveChar.ObjId);
                 var mountAttachedSkill = MateManager.Instance.GetMountAttachedSkills(skillId);
-                var trg = Connection.ActiveChar.CurrentTarget;
-                if (trg == null)
-                {
-                    skill = new Skill(SkillManager.Instance.GetSkillTemplate(mountAttachedSkill));
-                    skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
-                }
+
+                if (mate != null && skill.Template.Plot != null)
+                    skill.Use(mate, skillCaster, skillCastTarget, skillObject);
                 else
-                {
+                    skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+
+                if (mountAttachedSkill == 0) { return; }
+
+                var trg = Connection.ActiveChar.CurrentTarget;
+
+                if (trg == null)
+                    Connection.ActiveChar.UseSkill(mountAttachedSkill, Connection.ActiveChar);
+                else
                     Connection.ActiveChar.UseSkill(mountAttachedSkill, (IUnit)trg);
-                }
             }
             else if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
             {
