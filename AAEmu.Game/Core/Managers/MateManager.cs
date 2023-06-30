@@ -27,11 +27,13 @@ namespace AAEmu.Game.Core.Managers
         private Regex _nameRegex;
 
         private Dictionary<uint, NpcMountSkills> _slaveMountSkills;
+        private Dictionary<uint, MountSkills> _mountSkills;
+        private Dictionary<uint, MountAttachedSkills> _mountAttachedSkills;
         private Dictionary<uint, Mate> _activeMates; // ownerObjId, Mount
 
         public Mate GetActiveMate(uint ownerObjId)
         {
-            return _activeMates.ContainsKey(ownerObjId) ? _activeMates[ownerObjId] : null;
+            return _activeMates.TryGetValue(ownerObjId, out var mate) ? mate : null;
         }
 
         public Mate GetActiveMateByTlId(uint tlId)
@@ -187,9 +189,9 @@ namespace AAEmu.Game.Core.Managers
 
         public void AddActiveMateAndSpawn(Character owner, Mate mate, Item item)
         {
-            if (_activeMates.ContainsKey(owner.ObjId))
+            if (_activeMates.TryGetValue(owner.ObjId, out var activeMate))
             {
-                owner.Mates.DespawnMate(_activeMates[owner.ObjId].TlId);
+                owner.Mates.DespawnMate(activeMate.TlId);
                 return;
             }
 
@@ -242,10 +244,33 @@ namespace AAEmu.Game.Core.Managers
             return template;
         }
 
+        public uint GetMountAttachedSkills(uint mountSkill)
+        {
+            var id = 0u;
+            var skill = 0u;
+
+            foreach (var ms in _mountSkills)
+            {
+                if (ms.Value.SkillId != mountSkill) { continue; }
+                id = ms.Key;
+                break;
+            }
+            foreach (var mas in _mountAttachedSkills)
+            {
+                if (mas.Value.MountSkillId != id) { continue; }
+                skill = mas.Value.SkillId;
+                break;
+            }
+
+            return skill;
+        }
+
         public void Load()
         {
             _nameRegex = new Regex(AppConfiguration.Instance.CharacterNameRegex, RegexOptions.Compiled);
             _slaveMountSkills = new Dictionary<uint, NpcMountSkills>();
+            _mountSkills = new Dictionary<uint, MountSkills>();
+            _mountAttachedSkills = new Dictionary<uint, MountAttachedSkills>();
             _activeMates = new Dictionary<uint, Mate>();
 
             #region SQLite
@@ -267,6 +292,47 @@ namespace AAEmu.Game.Core.Managers
                                 MountSkillId = reader.GetUInt32("mount_skill_id")
                             };
                             _slaveMountSkills.Add(template.Id, template);
+                        }
+                    }
+                }
+            }
+
+            using (var connection = SQLite.CreateConnection())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM mount_skills";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new MountSkills();
+                            template.Id = reader.GetUInt32("id");
+                            template.Name = reader.GetString("name", "");
+                            template.SkillId = reader.GetUInt32("skill_id");
+                            _mountSkills.Add(template.Id, template);
+                        }
+                    }
+                }
+            }
+
+            using (var connection = SQLite.CreateConnection())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM mount_attached_skills";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new MountAttachedSkills();
+                            template.Id = reader.GetUInt32("id");
+                            template.MountSkillId = reader.GetUInt32("mount_skill_id");
+                            template.AttachPointId = (AttachPointKind)reader.GetUInt32("attach_point_id");
+                            template.SkillId = reader.GetUInt32("skill_id");
+                            _mountAttachedSkills.Add(template.Id, template);
                         }
                     }
                 }

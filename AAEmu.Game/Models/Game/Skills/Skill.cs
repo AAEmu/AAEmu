@@ -210,7 +210,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 return null;
             }
             // HACKFIX : Mounts and Turbulence
-            if (skillCaster.Type == SkillCasterType.Unk3 || skillCaster.Type == SkillCasterType.Unit)
+            if (skillCaster.Type == SkillCasterType.Mount || skillCaster.Type == SkillCasterType.Unit)
                 target = WorldManager.Instance.GetUnit(skillCaster.ObjId);
 
             switch (Template.TargetType)
@@ -702,7 +702,7 @@ namespace AAEmu.Game.Models.Game.Skills
                         break;
                     case SkillEffectApplicationMethod.SourceOnce:
                         // TODO: HACKFIX for owner's mark
-                        if (casterCaster.Type == SkillCasterType.Unk3 && targetSelf is Slave)
+                        if (casterCaster.Type == SkillCasterType.Mount && targetSelf is Slave)
                             effectedTargets = targets;
                         else
                             effectedTargets.Add(caster);//idk

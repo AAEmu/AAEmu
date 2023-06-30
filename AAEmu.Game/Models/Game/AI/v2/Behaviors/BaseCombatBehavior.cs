@@ -53,45 +53,61 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
 
             // TODO найдем путь к abuser, только если координаты цели изменились
-            if (Ai.PathNode?.pos2 != null && Ai.PathNode != null && !Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
+            if (target != null && Ai.PathNode?.pos2 != null && Ai.PathNode != null)
             {
-                var stopWatch = new Stopwatch();
-                stopWatch.Start();
-                // TODO найдем путь к abuser
-                Ai.Owner.FindPath((Unit)target);
-                stopWatch.Stop();
-                _log.Info($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}");
-                // запомним новые координаты цели
-                Ai.PathNode.pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
+                if (!Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
+                {
+                    var stopWatch = new Stopwatch();
+                    stopWatch.Start();
+                    // TODO найдем путь к abuser
+                    Ai.Owner.FindPath((Unit)target);
+                    stopWatch.Stop();
+                    _log.Info($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}");
+                    // запомним новые координаты цели
+                    Ai.PathNode.pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
+                }
             }
 
-            if (Ai.PathNode?.findPath.Count > 0 && !Ai.PathNode.findPath[0].Equals(Point.Zero))
+            if (target != null && Ai.PathNode != null)
             {
-                // TODO взять точку к которой движемся
-                var position = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
-                distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, position, true);
-                if (distanceToTarget > range)
+                if (Ai.PathNode?.findPath.Count > 0 && !Ai.PathNode.findPath[0].Equals(Point.Zero))
                 {
-                    Ai.Owner.MoveTowards(position, speed);
+                    // TODO взять точку к которой движемся
+                    var position = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
+                    distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, position, true);
+                    if (distanceToTarget > range)
+                    {
+                        Ai.Owner.MoveTowards(position, speed);
+                    }
+                    else
+                    {
+                        // TODO взять следующую точку к которой движемся
+                        Ai.PathNode.Current++;
+                        if (Ai.PathNode.Current >= Ai.PathNode.findPath.Count)
+                        {
+                            Ai.Owner.StopMovement();
+                            Ai.PathNode.findPath = new List<Point>();
+                            return;
+                        }
+                        Ai.PathNode.Position = Ai.PathNode.findPath[(int)Ai.PathNode.Current];
+                    }
                 }
                 else
                 {
-                    // TODO взять следующую точку к которой движемся
-                    Ai.PathNode.Current++;
-                    if (Ai.PathNode.Current >= Ai.PathNode.findPath.Count)
-                    {
+                    // var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
+                    if (distanceToTarget > range)
+                        Ai.Owner.MoveTowards(target.Transform.World.Position, speed);
+                    else
                         Ai.Owner.StopMovement();
-                        Ai.PathNode.findPath = new List<Point>();
-                        return;
-                    }
-                    Ai.PathNode.Position = Ai.PathNode.findPath[(int)Ai.PathNode.Current];
                 }
             }
             else
             {
                 // var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
-                if (distanceToTarget > range)
+                if (distanceToTarget > range && target != null)
+                {
                     Ai.Owner.MoveTowards(target.Transform.World.Position, speed);
+                }
                 else
                     Ai.Owner.StopMovement();
             }
@@ -144,7 +160,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                     absoluteReturnDistance = Ai.Owner.Template.AbsoluteReturnDistance;
                 }
 
-                var res = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.Owner.CurrentTarget.Transform.World.Position, true) > returnDistance;
+                var res = Ai.Owner.CurrentTarget != null && MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.Owner.CurrentTarget.Transform.World.Position, true) > returnDistance;
                 if (!res)
                     res = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.IdlePosition.Local.Position, true) > absoluteReturnDistance;
                 return res;
