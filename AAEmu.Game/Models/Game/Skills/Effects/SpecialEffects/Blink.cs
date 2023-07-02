@@ -1,7 +1,8 @@
 ﻿using System;
-
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
@@ -32,6 +33,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 newPos.Local.AddDistanceToFront(value1);
                 //var (endX, endY) = MathUtil.AddDistanceToFront(value1, character.Transform.World.Position.X, character.Transform.World.Position.Y, (sbyte)value2);
                 //var endZ = character.Transform.World.Position.Z;
+                if (character.IsRiding)
+                {
+                    var mate = MateManager.Instance.GetActiveMate(character.ObjId);
+                    MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                }
                 character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, value1, value2, newPos.Local.Position.X, newPos.Local.Position.Y, newPos.Local.Position.Z));
                 //character.SendMessage("To: " + newPos.ToString());
                 //character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, value1, value2, endX, endY, endZ));

@@ -233,14 +233,27 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                 DoAreaTick(caster, owner, buff);
                 return;
             }
+            var mate = MateManager.Instance.GetActiveMate(owner.ObjId);
             foreach (var tickEff in TickEffects)
             {
-                if (tickEff.TargetBuffTagId > 0 &&
-                    !owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
-                    return;
-                if (tickEff.TargetNoBuffTagId > 0 &&
-                    owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
-                    return;
+                if (caster is Character character && character.IsRiding)
+                {
+                    if (tickEff.TargetBuffTagId > 0 &&
+                        !mate.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
+                        return;
+                    if (tickEff.TargetNoBuffTagId > 0 &&
+                        mate.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
+                        return;
+                }
+                else
+                {
+                    if (tickEff.TargetBuffTagId > 0 &&
+                        !owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
+                        return;
+                    if (tickEff.TargetNoBuffTagId > 0 &&
+                        owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
+                        return;
+                }
                 var eff = SkillManager.Instance.GetEffectTemplate(tickEff.EffectId);
                 if (eff == null)
                 {

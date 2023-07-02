@@ -277,6 +277,8 @@ namespace AAEmu.Game.Models.Game.Units
             get
             {
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Mate, UnitFormulaKind.MaxMana);
+                var mateKindVariable = FormulaManager.Instance.GetUnitVariable(formula.Id,
+                    UnitFormulaVariableType.MateKind, (uint)Template.MateKindId);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -286,7 +288,7 @@ namespace AAEmu.Game.Models.Game.Units
                     ["int"] = Int,
                     ["spi"] = Spi,
                     ["fai"] = Fai,
-                    ["mate_kind"] = Template.MateKindId
+                    ["mate_kind"] = mateKindVariable
                 };
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.MaxMana))
@@ -378,7 +380,7 @@ namespace AAEmu.Game.Models.Game.Units
                     ["int"] = Int,
                     ["spi"] = Spi,
                     ["fai"] = Fai,
-                    ["mate_kind"] = Template.MateKindId
+                    ["ab_level"] = Level
                 };
 
                 var res = formula.Evaluate(parameters);
@@ -386,6 +388,110 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
+        [UnitAttribute(UnitAttribute.MeleeDpsInc)]
+        public override int DpsInc
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Mate, UnitFormulaKind.MeleeDpsInc);
+                var parameters = new Dictionary<string, double>();
+                parameters["level"] = Level;
+                parameters["str"] = Str;
+                parameters["dex"] = Dex;
+                parameters["sta"] = Sta;
+                parameters["int"] = Int;
+                parameters["spi"] = Spi;
+                parameters["fai"] = Fai;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.MeleeDpsInc))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (int)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.SpellDpsInc)]
+        public override int MDpsInc
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Mate, UnitFormulaKind.SpellDpsInc);
+                var parameters = new Dictionary<string, double>();
+                parameters["level"] = Level;
+                parameters["str"] = Str;
+                parameters["dex"] = Dex;
+                parameters["sta"] = Sta;
+                parameters["int"] = Int;
+                parameters["spi"] = Spi;
+                parameters["fai"] = Fai;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (int)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.Armor)]
+        public override int Armor
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Mate, UnitFormulaKind.Armor);
+                var parameters = new Dictionary<string, double>();
+                parameters["level"] = Level;
+                parameters["str"] = Str;
+                parameters["dex"] = Dex;
+                parameters["sta"] = Sta;
+                parameters["int"] = Int;
+                parameters["spi"] = Spi;
+                parameters["fai"] = Fai;
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Armor))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.MagicResist)]
+        public override int MagicResistance
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Mate, UnitFormulaKind.MagicResist);
+                var parameters = new Dictionary<string, double>();
+                parameters["level"] = Level;
+                parameters["str"] = Str;
+                parameters["dex"] = Dex;
+                parameters["sta"] = Sta;
+                parameters["int"] = Int;
+                parameters["spi"] = Spi;
+                parameters["fai"] = Fai;
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.MagicResist))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return res;
+            }
+        }
         #endregion
 
         public Mate()
