@@ -415,7 +415,23 @@ namespace AAEmu.Game.Models.Game.Skills
                 case SkillTargetType.SourcePos:
                     break;
                 case SkillTargetType.ArtilleryPos:
-                    break;
+                    {
+                        if (targetCaster is SkillCastPosition3Target positionTarget)
+                        {
+                            var positionUnit = new BaseUnit();
+                            positionUnit.ObjId = uint.MaxValue;
+                            positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
+                            positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                            caster.Region ??= WorldManager.Instance.GetRegion(caster.Transform.ZoneId, caster.Transform.World.Position.X, caster.Transform.World.Position.Y);
+                            positionUnit.Region = caster.Region;
+                            target = positionUnit;
+                        }
+                        if (target != null && caster.ObjId == target.ObjId)
+                        {
+                            return null; //TODO отправлять ошибку?
+                        }
+                        break;
+                    }
                 case SkillTargetType.CursorPos:
                     break;
                 default:
