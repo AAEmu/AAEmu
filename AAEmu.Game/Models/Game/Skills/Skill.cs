@@ -11,6 +11,7 @@ using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -114,7 +115,11 @@ namespace AAEmu.Game.Models.Game.Skills
             }
 
             if (Template.CancelOngoingBuffs)
+            {
+                if (caster is Units.Mate || caster is Character character1 && character1.IsRiding)
+                    caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.UseSkill, Template.CancelOngoingBuffExceptionTagId);
                 caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.StartSkill, Template.CancelOngoingBuffExceptionTagId);
+            }
 
             skillObject ??= new SkillObject();
 
@@ -127,6 +132,13 @@ namespace AAEmu.Game.Models.Game.Skills
             }
 
             TlId = SkillManager.Instance.NextId();
+
+            if (caster is Character character && character.IsRiding && Template.Unmount)
+            {
+                var mate = MateManager.Instance.GetActiveMate(character.ObjId);
+                MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+            }
+
             if (Template.Plot != null)
             {
                 Task.Run(() => Template.Plot.Run(caster, casterCaster, target, targetCaster, skillObject, this));
@@ -403,7 +415,23 @@ namespace AAEmu.Game.Models.Game.Skills
                 case SkillTargetType.SourcePos:
                     break;
                 case SkillTargetType.ArtilleryPos:
-                    break;
+                    {
+                        if (targetCaster is SkillCastPosition3Target positionTarget)
+                        {
+                            var positionUnit = new BaseUnit();
+                            positionUnit.ObjId = uint.MaxValue;
+                            positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
+                            positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                            caster.Region ??= WorldManager.Instance.GetRegion(caster.Transform.ZoneId, caster.Transform.World.Position.X, caster.Transform.World.Position.Y);
+                            positionUnit.Region = caster.Region;
+                            target = positionUnit;
+                        }
+                        if (target != null && caster.ObjId == target.ObjId)
+                        {
+                            return null; //TODO отправлять ошибку?
+                        }
+                        break;
+                    }
                 case SkillTargetType.CursorPos:
                     break;
                 default:
@@ -702,7 +730,7 @@ namespace AAEmu.Game.Models.Game.Skills
                         break;
                     case SkillEffectApplicationMethod.SourceOnce:
                         // TODO: HACKFIX for owner's mark
-                        if (casterCaster.Type == SkillCasterType.Mount && targetSelf is Slave)
+                        if (casterCaster.Type == SkillCasterType.Mount && targetSelf is Units.Mate || targetSelf is Slave)
                             effectedTargets = targets;
                         else
                             effectedTargets.Add(caster);//idk

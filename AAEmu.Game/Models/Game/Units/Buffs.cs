@@ -5,10 +5,12 @@ using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using NLog.Fluent;
 
 namespace AAEmu.Game.Models.Game.Units
 {
@@ -319,6 +321,12 @@ namespace AAEmu.Game.Models.Game.Units
                     owner.SkillModifiersCache.AddModifiers(buff.Template.BuffId);
                     owner.BuffModifiersCache.AddModifiers(buff.Template.BuffId);
                     owner.CombatBuffs.AddCombatBuffs(buff.Template.BuffId);
+
+                    if (owner is Character character && character.IsRiding && (bufft.Stun || bufft.Sleep || bufft.Root))
+                    {
+                        var mate = MateManager.Instance.GetActiveMate(character.ObjId);
+                        MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                    }
 
                     if (bufft.Stun || bufft.Silence || bufft.Sleep)
                         owner.InterruptSkills();

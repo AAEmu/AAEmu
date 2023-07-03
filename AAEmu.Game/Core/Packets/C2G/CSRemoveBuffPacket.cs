@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -17,6 +18,16 @@ namespace AAEmu.Game.Core.Packets.C2G
             var objId = stream.ReadBc();
             var buffId = stream.ReadUInt32();
             var reason = stream.ReadByte();
+            var mate = MateManager.Instance.GetActiveMate(Connection.ActiveChar.ObjId);
+
+            if (mate?.ObjId == objId)
+            {
+                var mateEffect = mate.Buffs.GetEffectByIndex(buffId);
+                if (mateEffect == null)
+                    return;
+                if (mateEffect.Template.Kind == BuffKind.Good)
+                    mateEffect.Exit();
+            }
 
             if (Connection.ActiveChar.ObjId != objId)
                 return;

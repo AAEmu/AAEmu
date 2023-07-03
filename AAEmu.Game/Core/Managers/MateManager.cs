@@ -176,6 +176,7 @@ namespace AAEmu.Game.Core.Managers
 
                 character.Events.OnUnmount(character, new OnUnmountArgs { });
 
+                mateInfo.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
                 character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
                 _log.Debug("UnMountMate. mountTlId: {0}, targetObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId,
                     targetObj.ObjId, attachPoint, reason);

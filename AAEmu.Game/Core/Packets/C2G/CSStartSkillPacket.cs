@@ -68,12 +68,13 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
                 var mate = MateManager.Instance.GetActiveMate(Connection.ActiveChar.ObjId);
+                var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
                 var mountAttachedSkill = MateManager.Instance.GetMountAttachedSkills(skillId);
 
-                if (mate != null && skill.Template.Plot != null)
+                if (mate != null && Connection.ActiveChar.IsRiding)
                     skill.Use(mate, skillCaster, skillCastTarget, skillObject);
                 else
-                    skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+                    skill.Use(slave, skillCaster, skillCastTarget, skillObject);
 
                 if (mountAttachedSkill == 0) { return; }
 

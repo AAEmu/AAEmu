@@ -18,6 +18,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
@@ -130,6 +131,9 @@ namespace AAEmu.Game.Core.Managers
                 character.Transform.Parent = null;
                 character.Transform.StickyParent = null;
             }
+
+            character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
+
             character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, reason), true);
         }
 
