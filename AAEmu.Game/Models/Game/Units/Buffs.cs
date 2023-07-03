@@ -322,7 +322,7 @@ namespace AAEmu.Game.Models.Game.Units
                     owner.BuffModifiersCache.AddModifiers(buff.Template.BuffId);
                     owner.CombatBuffs.AddCombatBuffs(buff.Template.BuffId);
 
-                    if (owner is Character character && character.IsRiding && (bufft.Stun || bufft.Silence || bufft.Sleep || bufft.Root))
+                    if (owner is Character character && character.IsRiding && (bufft.Stun || bufft.Sleep || bufft.Root))
                     {
                         var mate = MateManager.Instance.GetActiveMate(character.ObjId);
                         MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
