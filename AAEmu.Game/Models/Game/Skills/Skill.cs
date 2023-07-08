@@ -86,15 +86,15 @@ namespace AAEmu.Game.Models.Game.Skills
                     var delay = 150;
                     if (Id == 2 || Id == 3 || Id == 4)
                     {
-                        delay = caster is Character ? 300 : 1500;
+                        delay = caster is Character ? 500 : 1500;
                     }
 
                     if (unit.SkillLastUsed.AddMilliseconds(delay) > DateTime.UtcNow)
                     {
-                        _log.Warn($"Skill: CooldownTime [{delay}]!");
                         // Will delay for 150 Milliseconds to eliminate the hanging of the skill
-                        if (!this.CheckInterval(delay))
+                        if (!caster.CheckInterval(delay))
                         {
+                            _log.Warn($"Skill: CooldownTime [{delay}]!");
                             return SkillResult.CooldownTime;
                         }
                     }
@@ -102,10 +102,10 @@ namespace AAEmu.Game.Models.Game.Skills
                     // Commented out the line to eliminate the hanging of the skill
                     if (unit.GlobalCooldown >= DateTime.UtcNow && !Template.IgnoreGlobalCooldown)
                     {
-                        _log.Warn($"Skill: CooldownTime [{delay}]!");
                         // Will delay for 50 Milliseconds to eliminate the hanging of the skill
-                        if (!this.CheckInterval(delay))
+                        if (!caster.CheckInterval(delay))
                         {
+                            _log.Warn($"Skill: CooldownTime [{delay}]!");
                             return SkillResult.CooldownTime;
                         }
                     }
