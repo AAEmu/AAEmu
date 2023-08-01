@@ -116,7 +116,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
             if (Template.CancelOngoingBuffs)
             {
-                if (caster is Units.Mate || caster is Character character1 && character1.IsRiding)
+                if (caster is Units.Mate)
                     caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.UseSkill, Template.CancelOngoingBuffExceptionTagId);
                 caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.StartSkill, Template.CancelOngoingBuffExceptionTagId);
             }
