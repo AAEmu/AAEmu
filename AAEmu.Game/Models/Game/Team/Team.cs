@@ -1,5 +1,6 @@
 ﻿using System;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.World;
@@ -67,8 +68,9 @@ namespace AAEmu.Game.Models.Game.Team
 
         public bool IsObjMember(uint objId)
         {
+            var mate = MateManager.Instance.GetActiveMateByMateObjId(objId);
             foreach (var member in Members)
-                if (member?.Character != null && member.Character.ObjId == objId)
+                if (member?.Character != null && (member.Character.ObjId == objId || mate?.OwnerObjId == member.Character.ObjId))
                     return true;
             return false;
         }
