@@ -181,9 +181,13 @@ namespace AAEmu.Game.Models.Game.Items
                 var template = (ArmorTemplate) Template;
                 var grade = ItemManager.Instance.GetGradeTemplate(Grade);
                 var durability =
-                    (int) ((int) (ItemManager.Instance.GetWearableDurabilityConst() * 1000 + 0.5f) *
-                           (int) (template.SlotTemplate.Coverage * 100 + 0.5f) * template.KindTemplate.DurabilityRatio *
-                           1000 * 1.0e-10f) * ItemManager.Instance.GetDurabilityConst() * grade.Durability;
+                    (int)((int)(template.SlotTemplate.Coverage * 100 + 0.5f) *
+                          (int)(template.KindTemplate.DurabilityRatio * 1000 + 0.5f) * grade.Durability * 1000 *
+                          0.00000001f) * ItemManager.Instance.GetDurabilityConst();
+                //var durability =
+                //    (int) ((int) (ItemManager.Instance.GetWearableDurabilityConst() * 1000 + 0.5f) *
+                //           (int) (template.SlotTemplate.Coverage * 100 + 0.5f) * template.KindTemplate.DurabilityRatio *
+                //           1000 * 1.0e-10f) * ItemManager.Instance.GetDurabilityConst() * grade.Durability;
                 durability = (float) Math.Round(durability * template.DurabilityMultiplier * 0.0099999998f);
                 return (byte) durability;
             }
