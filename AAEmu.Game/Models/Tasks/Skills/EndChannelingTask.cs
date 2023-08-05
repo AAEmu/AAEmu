@@ -1,3 +1,4 @@
+﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
@@ -27,6 +28,9 @@ namespace AAEmu.Game.Models.Tasks.Skills
         {
             // Skill.ScheduleEffects(_caster, _casterCaster, _target, _targetCaster, _skillObject);
             Skill.EndChanneling(_caster, _channelDoodad);
+            if (_casterCaster is not SkillItem skillItem) { return; }
+            if (_caster is Unit unit && _caster is Character character && unit.ConditionChance)
+                character.ItemUse(skillItem.ItemId);
         }
     }
 }

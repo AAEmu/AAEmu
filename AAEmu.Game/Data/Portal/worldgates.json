@@ -27,6 +27,16 @@
         "SubZoneId": 196 // 372
     },
     {
+        "Id": 389,
+        "Name": "Villanelle", //for quest 3478
+        "ZoneId": 160,
+        "X": 21206.7,
+        "Y": 10428.8,
+        "Z": 107.7,
+        "Yaw": -68.0,
+        "SubZoneId": 542
+    },
+    {
         "Id": 402,
         "Name": "Respawn: Perinoor Ruins",
         "ZoneId": 139,

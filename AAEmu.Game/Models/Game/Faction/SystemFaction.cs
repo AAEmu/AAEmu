@@ -34,7 +34,7 @@ namespace AAEmu.Game.Models.Game.Faction
             var factionId = MotherId != 0 ? MotherId : Id;
             var otherFactionId = otherFaction.MotherId != 0 ? otherFaction.MotherId : otherFaction.Id;
 
-            if (factionId == otherFactionId)
+            if (factionId == otherFactionId || otherFactionId == 1)
                 return RelationState.Friendly;
 
             //Not sure if we should prioritize mother faction here?
