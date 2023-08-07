@@ -59,7 +59,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             */
 
             var character = Connection.ActiveChar;
-            if (character?.FishSchool?.FishFinderTickTask != null)
+            
+            if (character == null) return;
+
+            if (character.FishSchool?.FishFinderTickTask != null)
             {
                 // stopping the FishSchoolTickTask if character moved
                 FishSchoolManager.Instance.StopFishFinderTickAsync(character).GetAwaiter().GetResult();
@@ -148,7 +151,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                             else
                                 mate.StopUpdateXp();
                         }
-                        else if (targetUnit is Character player && player.IsRiding)
+                        else if (targetUnit is Character { IsRiding: true } player)
                         {
                             // TODO : check target has Telekinesis buff if target is a player
                             // Just forward it to the packet, not safe for exploits/hacking
@@ -156,10 +159,14 @@ namespace AAEmu.Game.Core.Packets.C2G
                             RemoveEffects(player, _moveType);
                             // Если мы сидим на питомце и Parent = null, насильно спешиваем персонажа для предотвращения сбоя клиента
                             // If we are sitting on a pet and Parent = null, we are rushing the character to prevent crash of the client
-                            var mate2 = MateManager.Instance.GetActiveMate(character.ObjId);
-                            if (mate2 != null)
+                            if (player.Transform.Parent == null)
                             {
-                                MateManager.Instance.UnMountMate(player, mate2.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                                var mate2 = MateManager.Instance.GetActiveMate(character.ObjId);
+                                if (mate2 != null)
+                                {
+                                    player.Transform.Parent = mate2.Transform;
+                                    //MateManager.Instance.UnMountMate(player, mate2.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                                }
                             }
                         }
                         else
