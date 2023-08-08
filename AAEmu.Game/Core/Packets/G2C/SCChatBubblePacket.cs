@@ -18,7 +18,6 @@ namespace AAEmu.Game.Core.Packets.G2C
             _kind2 = kind2;
             _type = type;
             _text = text;
-            _text = text;
         }
 
         public override PacketStream Write(PacketStream stream)
