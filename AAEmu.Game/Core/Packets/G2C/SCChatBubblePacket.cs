@@ -23,7 +23,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_bc);
+            stream.WriteBc(_bc);
             stream.Write(_kind1);
             stream.Write(_kind2);
             stream.Write(_type);
