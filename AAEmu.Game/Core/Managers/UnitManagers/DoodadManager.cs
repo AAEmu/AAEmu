@@ -2494,6 +2494,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             if (targetHouse != null)
             {
                 doodad.DbHouseId = targetHouse.Id;
+                doodad.AttachPoint = AttachPointKind.None;
                 doodad.OwnerType = DoodadOwnerType.Housing;
                 doodad.ParentObj = targetHouse;
                 doodad.ParentObjId = targetHouse.ObjId;
