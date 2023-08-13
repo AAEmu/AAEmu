@@ -185,7 +185,11 @@ namespace AAEmu.Game.Models.Game.Skills
                 Owner.Buffs.RemoveEffect(this);
                 Template.Dispel(Caster, Owner, this, replace);
 
-                if (Template.FactionId > 0 && Owner is Unit owner)
+                if (Template.FactionId > 0 && Owner is NPChar.Npc npc)
+                {
+                    npc.SetFaction(npc.Template.FactionId);
+                }
+                else if (Template.FactionId > 0 && Owner is Unit owner)
                 {
                     owner.SetFaction(saveFactions[owner.Id]);
                     saveFactions.Remove(owner.Id);
