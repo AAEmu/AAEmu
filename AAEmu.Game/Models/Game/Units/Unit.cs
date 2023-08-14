@@ -297,23 +297,18 @@ namespace AAEmu.Game.Models.Game.Units
             }
 
             Hp = Math.Max(Hp - value, 0);
-            if (Hp <= 0)
-            {
-                if (((Unit)attacker).CurrentTarget is Character attacked && attacked.IsInDuel)
-                {
-                    Hp = 1; // we don't let you die during a duel
-                    return;
-                }
 
-                ((Unit)attacker).Events.OnKill(attacker, new OnKillArgs { target = (Unit)attacker });
-                DoDie(attacker, killReason);
-                //StopRegen();
-            }
-            else
-            {
-                //StartRegen();
-            }
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
+
+            if (Hp > 0) { return; }
+            if (((Unit)attacker).CurrentTarget is Character attacked && attacked.IsInDuel)
+            {
+                Hp = 1; // we don't let you die during a duel
+                return;
+            }
+
+            ((Unit)attacker).Events.OnKill(attacker, new OnKillArgs { target = (Unit)attacker });
+            DoDie(attacker, killReason);
         }
 
         public virtual void ReduceCurrentMp(BaseUnit unit, int value)

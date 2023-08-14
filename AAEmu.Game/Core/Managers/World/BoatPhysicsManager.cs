@@ -1,16 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.Threading;
 
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Physics.Forces;
 using AAEmu.Game.Physics.Util;
 using AAEmu.Game.Utils;
@@ -21,7 +19,6 @@ using Jitter.Dynamics;
 using Jitter.LinearMath;
 
 using NLog;
-using NLog.Config;
 
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
@@ -38,6 +35,7 @@ namespace AAEmu.Game.Core.Managers.World
         private uint _tickCount;
         private bool ThreadRunning { get; set; }
         public InstanceWorld SimulationWorld { get; set; }
+        private object _slaveListLock = new();
 
         private bool CustomWater(ref JVector area)
         {
@@ -52,6 +50,27 @@ namespace AAEmu.Game.Core.Managers.World
             _buoyancy = new Buoyancy(_physWorld);
             _buoyancy.UseOwnFluidArea(CustomWater);
             // _buoyancy.FluidBox = new JBBox(new JVector(0, 0, 0), new JVector(100000, 100, 100000));
+
+            //// Добавим поверхность земли // Add ground surface
+            //if (SimulationWorld.Name != "main_world") { return; }
+            //try
+            //{
+            //    var hmap = WorldManager.Instance.GetWorld(0).HeightMaps;
+            //    var heightMaxCoefficient = WorldManager.Instance.GetWorld(0).HeightMaxCoefficient;
+            //    var dx = hmap.GetLength(0);
+            //    var dz = hmap.GetLength(1);
+            //    var hmapTerrain = new float[dx, dz];
+            //    for (var x = 0; x < dx; x += 1)
+            //        for (var y = 0; y < dz; y += 1)
+            //            hmapTerrain[x, y] = (float)(hmap[x, y] / heightMaxCoefficient);
+            //    var terrain = new TerrainShape(hmapTerrain, 2.0f, 2.0f);
+            //    var body = new RigidBody(terrain) { IsStatic = true };
+            //    _physWorld.AddBody(body);
+            //}
+            //catch (Exception e)
+            //{
+            //    _log.Error("{0}\n{1}", e.Message, e.StackTrace);
+            //}
         }
 
         public void StartPhysics()
@@ -78,42 +97,43 @@ namespace AAEmu.Game.Core.Managers.World
                     _physWorld.Step(1 / 60.0f, false);
                     _tickCount++;
 
-                    // Not sure if it's better to query it each tick, or track them locally
-                    var slaveList = SlaveManager.Instance.GetActiveSlavesByKinds(simulatedSlaveTypeList, SimulationWorld.Id);
-                    if (slaveList == null)
-                        continue;
-
-                    foreach (var slave in slaveList)
+                    lock (_slaveListLock)
                     {
-                        if (slave.Transform.WorldId != SimulationWorld.Id)
+                        // Not sure if it's better to query it each tick, or track them locally
+                        var slaveList = SlaveManager.Instance.GetActiveSlavesByKinds(simulatedSlaveTypeList, SimulationWorld.Id);
+                        if (slaveList == null)
+                            continue;
+
+                        foreach (var slave in slaveList)
                         {
-                            _log.Debug($"Skip {slave.Name}");
-                            continue;
-                        }
+                            if (slave.Transform.WorldId != SimulationWorld.Id)
+                            {
+                                _log.Debug($"Skip {slave.Name}");
+                                continue;
+                            }
 
-                        // Skip simulation if still summoning
-                        if (slave.SpawnTime.AddSeconds(slave.Template.PortalTime) > DateTime.UtcNow)
-                            continue;
+                            // Skip simulation if still summoning
+                            if (slave.SpawnTime.AddSeconds(slave.Template.PortalTime) > DateTime.UtcNow)
+                                continue;
 
-                        // Skip simulation if no rigidbody applied to slave
-                        var slaveRigidBody = slave.RigidBody;
-                        if (slaveRigidBody == null)
-                            continue;
+                            // Skip simulation if no rigidbody applied to slave
+                            var slaveRigidBody = slave.RigidBody;
+                            if (slaveRigidBody == null)
+                                continue;
 
-                        // Note: Y, Z swapped
-                        var xDelta = slaveRigidBody.Position.X - slave.Transform.World.Position.X;
-                        var yDelta = slaveRigidBody.Position.Z - slave.Transform.World.Position.Y;
-                        var zDelta = slaveRigidBody.Position.Y - slave.Transform.World.Position.Z;
+                            // Note: Y, Z swapped
+                            var xDelta = slaveRigidBody.Position.X - slave.Transform.World.Position.X;
+                            var yDelta = slaveRigidBody.Position.Z - slave.Transform.World.Position.Y;
+                            var zDelta = slaveRigidBody.Position.Y - slave.Transform.World.Position.Z;
 
-                        slave.Transform.Local.Translate(xDelta, yDelta, zDelta);
-                        var rot = JQuaternion.CreateFromMatrix(slaveRigidBody.Orientation);
-                        slave.Transform.Local.ApplyFromQuaternion(rot.X, rot.Z, rot.Y, rot.W);
+                            slave.Transform.Local.Translate(xDelta, yDelta, zDelta);
+                            var rot = JQuaternion.CreateFromMatrix(slaveRigidBody.Orientation);
+                            slave.Transform.Local.ApplyFromQuaternion(rot.X, rot.Z, rot.Y, rot.W);
 
-                        if (_tickCount % 6 == 0)
-                        {
+                            if (_tickCount % 6 != 0) { continue; }
                             _physWorld.CollisionSystem.Detect(true);
                             BoatPhysicsTick(slave, slaveRigidBody);
-                            // _log.Trace($"{_thread.Name}, slave: {slave.Name} collision check tick");
+                            //_log.Debug($"{_thread.Name}, slave: {slave.Name} collision check tick");
                         }
                     }
                 }
@@ -128,13 +148,11 @@ namespace AAEmu.Game.Core.Managers.World
         public void AddShip(Slave slave)
         {
             var shipModel = ModelManager.Instance.GetShipModel(slave.ModelId);
-            if (shipModel == null)
-                return;
-
+            if (shipModel == null) { return; }
             var slaveBox = new BoxShape(shipModel.MassBoxSizeX, shipModel.MassBoxSizeZ, shipModel.MassBoxSizeY);
             var slaveMaterial = new Material();
             // TODO: Add the center of mass settings into JitterPhysics somehow
-
+            
             var rigidBody = new RigidBody(slaveBox, slaveMaterial)
             {
                 Position = new JVector(slave.Transform.World.Position.X, slave.Transform.World.Position.Z, slave.Transform.World.Position.Y),
@@ -179,37 +197,53 @@ namespace AAEmu.Game.Core.Managers.World
             slave.RigidBody.IsActive = true;
 
             // Provide minimum speed of 1 when Throttle is used
-            if ((slave.Throttle > 0) && (slave.Speed < 1f))
+            if (slave.Throttle > 0 && slave.Speed < 1f)
                 slave.Speed = 1f;
-            if ((slave.Throttle < 0) && (slave.Speed > -1f))
+            if (slave.Throttle < 0 && slave.Speed > -1f)
                 slave.Speed = -1f;
 
             // Convert sbyte throttle value to use as speed
-            slave.Speed += (slave.Throttle * 0.00787401575f) * (velAccel / 10f);
+            slave.Speed += slave.Throttle * 0.00787401575f * (velAccel / 10f);
 
             // Clamp speed between min and max Velocity
             slave.Speed = Math.Min(slave.Speed, maxVelForward);
             slave.Speed = Math.Max(slave.Speed, maxVelBackward);
 
-            slave.RotSpeed += (slave.Steering * 0.00787401575f) * (rotAccel / 100f);
+            slave.RotSpeed += slave.Steering * 0.00787401575f * (rotAccel / 100f);
             slave.RotSpeed = Math.Min(slave.RotSpeed, 1f);
             slave.RotSpeed = Math.Max(slave.RotSpeed, -1f);
 
             if (slave.Steering == 0)
             {
-                slave.RotSpeed -= (slave.RotSpeed / 20);
+                slave.RotSpeed -= slave.RotSpeed / 20;
                 if (Math.Abs(slave.RotSpeed) <= 0.01)
                     slave.RotSpeed = 0;
             }
 
             if (slave.Throttle == 0) // this needs to be fixed : ships need to apply a static drag, and slowly ship away at the speed instead of doing it like this
             {
-                slave.Speed -= (slave.Speed / 20f);
+                slave.Speed -= slave.Speed / 20f;
                 if (Math.Abs(slave.Speed) < 0.01)
                     slave.Speed = 0;
             }
-
             // _log.Debug("Slave: {0}, speed: {1}, rotSpeed: {2}", slave.ObjId, slave.Speed, slave.RotSpeed);
+            
+            var floor = WorldManager.Instance.GetHeight(slave.Transform); // получим уровень земли // get ground level
+            _log.Debug($"[Height] Z-Pos: {slave.Transform.World.Position.Z} - Floor: {floor}");
+            if (floor >= slave.Transform.World.Position.Z) // + shipModel.MassCenterZ)
+            {
+                var damage = floor - slave.Transform.World.Position.Z;
+                if (damage is > 0 and < 1) { damage = 1; }
+                slave.DoDamage((int)damage, true, KillReason.Collide);
+                
+                _log.Debug($"Slave: {slave.ObjId}, speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}, floor: {floor}, Z: {slave.Transform.World.Position.Z}, damage: {damage}");
+                
+                if (slave.Hp <= 0)
+                {
+                    slave.Speed = 0;
+                    return;
+                }
+            }
 
             // Calculate some stuff for later
             var boxSize = rigidBody.Shape.BoundingBox.Max - rigidBody.Shape.BoundingBox.Min;
@@ -217,9 +251,9 @@ namespace AAEmu.Game.Core.Managers.World
             var solidVolume = MathF.Abs(rigidBody.Mass - tubeVolume);
 
             var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
-            var slaveRotRad = rpy.Item1 + (90 * (MathF.PI / 180.0f));
-
-            var forceThrottle = (float)slave.Speed * 17.25f * slave.MoveSpeedMul; // don't know what this number is, but it's perfect for all ships
+            var slaveRotRad = rpy.Item1 + 90 * (MathF.PI / 180.0f);
+            
+            var forceThrottle = slave.Speed * 17.25f * slave.MoveSpeedMul; // don't know what this number is, but it's perfect for all ships
             rigidBody.AddForce(new JVector(forceThrottle * rigidBody.Mass * MathF.Cos(slaveRotRad), 0.0f, forceThrottle * rigidBody.Mass * MathF.Sin(slaveRotRad)));
 
             // Make sure the steering is reversed when going backwards.
@@ -263,7 +297,7 @@ namespace AAEmu.Game.Core.Managers.World
             // We can more or less us the model Mass Center Z value to get how much it needs to sink
             // It doesn't actually do this server-side, as wel only modify the packet sent to the players
             // If center of mass is positive rather than negative, we need to ignore it here to prevent the boat from floating
-            moveType.Z += (shipModel.MassCenterZ < 0f ? (shipModel.MassCenterZ / 2f) : 0f) - shipModel.KeelHeight;
+            moveType.Z += (shipModel.MassCenterZ < 0f ? shipModel.MassCenterZ / 2f : 0f) - shipModel.KeelHeight;
 
             // Apply new Location/Rotation to GameObject
             slave.Transform.Local.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y);

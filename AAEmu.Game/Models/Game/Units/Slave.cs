@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -8,6 +9,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Units.Static;
 using Jitter.Dynamics;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -178,8 +180,8 @@ namespace AAEmu.Game.Models.Game.Units
                 // Should be 9216 Hp, but we only have 4796 (at 108 base stamina for Lv50)
                 // For example a clipper would be correct is we added another 368.33 (= +341%) stamina boost
                 // TODO: for now just put a static 250k HP so spawned slaves don't show damaged
-                return 250000;
-                /*
+                //return 250000;
+
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.MaxHealth);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
@@ -198,7 +200,7 @@ namespace AAEmu.Game.Models.Game.Units
                         res += bonus.Value;
                 }
                 return res;
-                */
+
             }
         }
 
@@ -590,5 +592,47 @@ namespace AAEmu.Game.Models.Game.Units
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }
 
+        public void DoDamage(int damage, bool isPercent = true, KillReason killReason = KillReason.Damage)
+        {
+            // If % based, calculate it's damage
+            if (isPercent)
+            {
+                damage = MaxHp * damage / 100;
+            }
+
+            ReduceCurrentHp(this, damage, killReason);
+        }
+
+        public override void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
+        {
+            if (Hp <= 0)
+                return;
+
+            var absorptionEffects = Buffs.GetAbsorptionEffects().ToList();
+            if (absorptionEffects.Count > 0)
+            {
+                // Handle damage absorb
+                foreach (var absorptionEffect in absorptionEffects)
+                {
+                    value = absorptionEffect.ConsumeCharge(value);
+                }
+            }
+
+            Hp = Math.Max(Hp - value, 0);
+            
+            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
+
+            if (Hp > 0) { return; }
+            ((Unit)attacker).Events.OnKill(attacker, new OnKillArgs { target = (Unit)attacker });
+            DoDie(attacker, killReason);
+        }
+
+        public override void DoDie(BaseUnit killer, KillReason killReason)
+        {
+            InterruptSkills();
+            Events.OnDeath(this, new OnDeathArgs { Killer = (Unit)killer, Victim = this });
+            Buffs.RemoveEffectsOnDeath();
+            killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, (Unit)killer), true);
+        }
     }
 }
