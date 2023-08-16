@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Linq;
 using System.Numerics;
 using System.Threading;
 
@@ -27,7 +28,10 @@ namespace AAEmu.Game.Core.Managers.World
     // ReSharper disable HollowTypeName
     public class BoatPhysicsManager
     {
-        private float TargetPhysicsTps { get; set; } = 100f;
+        /// <summary>
+        /// Target ticks per second the physics try to emulate
+        /// </summary>
+        private float TargetPhysicsTps { get; set; } = 25f;
         internal Thread _thread;
         private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -37,8 +41,7 @@ namespace AAEmu.Game.Core.Managers.World
         public bool ThreadRunning { get; set; }
         public InstanceWorld SimulationWorld { get; set; }
         private readonly object _slaveListLock = new();
-        private Random _random = new();
-        private float _waterLevel = 100f; // Default water level
+        private readonly float _waterLevel = 100f; // Default water level
 
         public void Initialize()
         {
@@ -73,14 +76,13 @@ namespace AAEmu.Game.Core.Managers.World
 
         public bool CustomWater(ref JVector area)
         {
-            return SimulationWorld?.IsWater(new Vector3(area.X, area.Z, area.Y)) ?? area.Y <= _waterLevel;
+            return SimulationWorld?.IsWater(new Vector3(area.X, area.Z, area.Y), out _) ?? area.Y <= (SimulationWorld?.OceanLevel ?? _waterLevel);
         }
 
         public void StartPhysics()
         {
             ThreadRunning = true;
-            _thread = new Thread(PhysicsThread);
-            _thread.Name = "Physics-" + (SimulationWorld?.Name ?? "???");
+            _thread = new Thread(PhysicsThread) { Name = "Physics-" + (SimulationWorld?.Name ?? "???") };
             _thread.Start();
         }
 
@@ -91,8 +93,12 @@ namespace AAEmu.Game.Core.Managers.World
                 Logger.Debug($"PhysicsThread Start: {Thread.CurrentThread.Name}");
                 var simulatedSlaveTypeList = new[]
                 {
-                    SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.SmallSailingShip,
-                    SlaveKind.MerchantShip, SlaveKind.Speedboat
+                    SlaveKind.BigSailingShip,
+                    SlaveKind.Boat,
+                    SlaveKind.Fishboat,
+                    SlaveKind.SmallSailingShip,
+                    SlaveKind.MerchantShip,
+                    SlaveKind.Speedboat,
                 };
 
                 var lastTick = TimeSpan.FromMilliseconds(Environment.TickCount64);
@@ -125,31 +131,63 @@ namespace AAEmu.Game.Core.Managers.World
 
                     lock (_slaveListLock)
                     {
-                        var slaveList = SlaveManager.Instance.GetActiveSlavesByKinds(simulatedSlaveTypeList, SimulationWorld.Id);
-                        if (slaveList == null) continue;
+                        var slaveList = SlaveManager.Instance.GetActiveSlavesByKinds(simulatedSlaveTypeList, SimulationWorld.Id).ToList();
+                        if (slaveList.Count == 0) continue;
 
                         foreach (var slave in slaveList)
                         {
-                            if (slave.Transform.WorldId != SimulationWorld.Id)
+                            try
                             {
-                                Logger.Debug($"Skip {slave.Name}");
-                                continue;
+                                if (slave.Transform.WorldId != SimulationWorld.Id)
+                                {
+                                    // Not from the currently simulated world 
+                                    continue;
+                                }
+
+                                // Skip simulation if still summoning
+                                if (slave.SpawnTime.AddSeconds(slave.Template.PortalTime) > DateTime.UtcNow)
+                                    continue;
+
+                                // Skip simulation if no rigidbody applied to slave
+                                var slaveRigidBody = slave.RigidBody;
+                                if (slaveRigidBody == null)
+                                {
+                                    Logger.Debug($"Skip {slave.Name} ({slave.ObjId}), no RigidBody");
+                                    continue;
+                                }
+
+                                var underPos = slave.Transform.World.Position + (Vector3.UnitZ * -2f);
+                                if (SimulationWorld.Water.IsWater(underPos, out var flowDirection))
+                                {
+                                    if (flowDirection.Length() > 0f)
+                                    {
+                                        // We are in moving water, apply force
+                                        var multiplier = slave.RigidBody.Mass * 3.15f;
+                                        slave.RigidBody.AddForce(new JVector(flowDirection.X * multiplier,
+                                            flowDirection.Z * multiplier, flowDirection.Y * multiplier));
+                                        // slaveRigidBody.LinearVelocity += new JVector(flowDirection.X * 0.1f,flowDirection.Z * 0.1f, flowDirection.Y * 0.1f);
+                                    }
+                                }
+                                else
+                                {
+                                    /*
+                                    var floorHeight = SimulationWorld.GetHeight(slave.Transform.World.Position.X, slave.Transform.World.Position.Y);
+                                    if (floorHeight < slave.Transform.World.Position.Z)
+                                    {
+                                        // Gravity boost
+                                        slave.RigidBody.AffectedByGravity = true;
+                                    }
+                                    */
+                                }
+
+                                SyncTransformWithRigidBody(slave);
+                                BoatPhysicsTick(slave, slave.RigidBody);
                             }
-
-                            // Skip simulation if still summoning
-                            if (slave.SpawnTime.AddSeconds(slave.Template.PortalTime) > DateTime.UtcNow)
-                                continue;
-
-                            // Skip simulation if no rigidbody applied to slave
-                            var slaveRigidBody = slave.RigidBody;
-                            if (slaveRigidBody == null)
+                            catch (Exception slaveException)
                             {
-                                Logger.Debug($"Skip {slave.Name}");
-                                continue;
+                                // Put a separate catch here to catch individual errors without it breaking all the physics in this world 
+                                Logger.Error($"PhysicsThread Error on Slave {slave.Id} {slave.Name} ({slave.ObjId}): {slaveException.Message}\n{slaveException.StackTrace}");
                             }
-
-                            SyncTransformWithRigidBody(slave);
-                            BoatPhysicsTick(slave, slave.RigidBody);
                         }
                     }
                 }
@@ -174,7 +212,7 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 slaveRigidBody.Position = slaveRigidBody.Position with { Y = slave.Transform.World.Position.Z };
                 zDelta = 0;
-                Logger.Info($"SyncTransformWithRigidBody {slave.Name} -> {SimulationWorld.Name}, _waterLevel={_waterLevel}, slave.Position.Z={slave.Transform.World.Position.Z}");
+                Logger.Info($"SyncTransformWithRigidBody {slave.Name} -> {SimulationWorld.Name}, _waterLevel={_waterLevel}, OceanLevel={SimulationWorld.OceanLevel}, slave.Position.Z={slave.Transform.World.Position.Z}");
             }
 
             slave.Transform.Local.Translate(xDelta, yDelta, zDelta);
@@ -204,13 +242,15 @@ namespace AAEmu.Game.Core.Managers.World
 
             // Compound & rigidBody
             var compoundShape = new CompoundShape(transformedShapes);
-            var rigidBody = new RigidBody(compoundShape, slaveMaterial);
-
-            rigidBody.Position = slave.Transform.World.Position.VectorToJVector();
-            rigidBody.Orientation = JMatrix.CreateRotationY(slave.Transform.World.Rotation.Z); // yaw y-axis in Jitter, z-axis in Archeage
-            rigidBody.Mass = shipModel.Mass;
-            rigidBody.IsActive = true;
-            rigidBody.IsStatic = false;
+            var rigidBody = new RigidBody(compoundShape, slaveMaterial)
+            {
+                Position = slave.Transform.World.Position.VectorToJVector(),
+                Orientation = JMatrix.CreateRotationY(slave.Transform.World.Rotation.Z), // yaw y-axis in Jitter, z-axis in ArcheAge
+                Mass = shipModel.Mass,
+                AffectedByGravity = true,
+                IsActive = true,
+                IsStatic = false
+            };
 
             _buoyancy.Add(rigidBody, 3);
             _physWorld.AddBody(rigidBody);
@@ -229,7 +269,7 @@ namespace AAEmu.Game.Core.Managers.World
             Logger.Debug($"RemoveShip {slave.Name} <- {SimulationWorld.Name}");
         }
 
-        public void BoatPhysicsTick(Slave slave, RigidBody rigidBody)
+        private void BoatPhysicsTick(Slave slave, RigidBody rigidBody)
         {
             var shipModel = ModelManager.Instance.GetShipModel(slave.Template.ModelId);
             if (shipModel == null) return;
@@ -238,7 +278,9 @@ namespace AAEmu.Game.Core.Managers.World
             rigidBody.IsStatic = false;
 
             // Calculate submerged depth and buoyancy force
-            var submergedDepth = Math.Max(0, _waterLevel - rigidBody.Position.Y);
+            var waterSurfaceLevel = SimulationWorld?.Water?.GetWaterSurface(slave.Transform.World.Position, out _) ??
+                                    (SimulationWorld?.OceanLevel ?? _waterLevel);
+            var submergedDepth = Math.Max(0, waterSurfaceLevel - rigidBody.Position.Y);
             var isOnWater = submergedDepth > 0;
             var isOnLand = !isOnWater && submergedDepth <= 0;
 
@@ -345,7 +387,7 @@ namespace AAEmu.Game.Core.Managers.World
         private void ApplyCollisions(Slave slave, RigidBody rigidBody, ShipModel shipModel)
         {
             var floor = WorldManager.Instance.GetHeight(slave.Transform);
-            var boxSize = rigidBody.Shape.BoundingBox.Max - rigidBody.Shape.BoundingBox.Min;
+            // var boxSize = rigidBody.Shape.BoundingBox.Max - rigidBody.Shape.BoundingBox.Min;
             var boatBottom = rigidBody.Position.Y;
             //Logger.Debug($"Slave: {slave.Name}, floor: {floor:F1}, boatBottom: {boatBottom:F1}, boxSize: {boxSize}");
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -453,7 +453,7 @@ public class SlaveManager : Singleton<SlaveManager>
                     return null;
                 }
 
-                var worldWaterLevel = world.Water.GetWaterSurface(spawnPos.World.Position);
+                var worldWaterLevel = world.Water.GetWaterSurface(spawnPos.World.Position, out _);
                 spawnPos.Local.SetHeight(worldWaterLevel);
 
                 // temporary grab ship information so that we can use it to find a suitable spot in front to summon it
@@ -471,7 +471,7 @@ public class SlaveManager : Singleton<SlaveManager>
                     var floorHeight = WorldManager.Instance.GetHeight(depthCheckPos);
                     if (floorHeight > 0f)
                     {
-                        var surfaceHeight = world.Water.GetWaterSurface(depthCheckPos.World.Position);
+                        var surfaceHeight = world.Water.GetWaterSurface(depthCheckPos.World.Position, out _);
                         var delta = surfaceHeight - floorHeight;
                         if (delta > minDepth)
                         {
@@ -739,6 +739,7 @@ public class SlaveManager : Singleton<SlaveManager>
             //     childSlave.Save();
         }
 
+        // If it's a boat, add it to boat physics
         if (summonedSlave.Template.IsABoat())
         {
             var world = WorldManager.Instance.GetWorld(owner.Transform.WorldId);

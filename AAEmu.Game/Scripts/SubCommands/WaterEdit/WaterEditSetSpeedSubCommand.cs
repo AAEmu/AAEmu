@@ -1,0 +1,57 @@
+﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Core.Managers.World;
+using System.Collections.Generic;
+using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils.Scripts;
+using AAEmu.Game.Utils.Scripts.SubCommands;
+
+namespace AAEmu.Game.Scripts.Commands
+{
+    public class WaterEditSetSpeedSubCommand : SubCommandBase 
+    {
+        public WaterEditSetSpeedSubCommand()
+        {
+            Title = "[WaterEdit]";
+            Description = "Set speed at which the selected river flows in m/s.";
+            CallPrefix = $"{CommandManager.CommandPrefix}wateredit setspeed";
+            AddParameter(new NumericSubCommandParameter<float>("speed", "speed", true, 0f, 100f));
+        }
+
+        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+        {
+            var world = WorldManager.Instance.GetWorld(character.Transform.WorldId);
+            if (world == null)
+            {
+                character.SendMessage($"[WaterEdit] You are somehow not in a valid world!");
+                return;
+            }
+
+            if (WaterEditCmd.SelectedWater == null)
+            {
+                character.SendMessage($"|cFFFF0000[WaterEdit] You need to select a water body first!|r");
+                return;
+            }
+
+            if (WaterEditCmd.SelectedWorld != world)
+            {
+                character.SendMessage(
+                    $"|cFFFF0000[WaterEdit] Currently selected water is not in the same world as you! ({WaterEditCmd.SelectedWorld.Name})|r");
+                return;
+            }
+            
+            if (WaterEditCmd.SelectedWater.AreaType != WaterBodyAreaType.LineArray)
+            {
+                character.SendMessage(
+                    $"|cFFFF0000[WaterEdit] Currently selected water is not of LineArray type! ({WaterEditCmd.SelectedWorld.Name})|r");
+                return;
+            }
+
+            float newSpeed = parameters["speed"];
+
+            WaterEditCmd.SelectedWater.Speed = newSpeed;
+            WaterEditCmd.ShowSelectedArea(character);
+            character.SendMessage($"[WaterEdit] Speed for |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r set to |cFF00FF00{newSpeed}!|r");
+        }
+    }
+}

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Numerics;
 
 using AAEmu.Game.Models.Game.World;

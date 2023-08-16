@@ -1,0 +1,65 @@
+﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Core.Managers.World;
+using System.Collections.Generic;
+using System.Numerics;
+using AAEmu.Game.Utils.Scripts;
+using AAEmu.Game.Utils.Scripts.SubCommands;
+
+namespace AAEmu.Game.Scripts.Commands
+{
+    public class WaterEditSetZSubCommand : SubCommandBase 
+    {
+        public WaterEditSetZSubCommand()
+        {
+            Title = "[WaterEdit]";
+            Description = "Set the Z-position of all points in the water body";
+            CallPrefix = $"{CommandManager.CommandPrefix}wateredit setz";
+            AddParameter(new NumericSubCommandParameter<float>("z", "Z-height", true, 0f, 4096f));
+            AddParameter(new NumericSubCommandParameter<int>("point", "point=0", false, -1, 9999) { DefaultValue = -1 });
+        }
+
+        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+        {
+            var world = WorldManager.Instance.GetWorld(character.Transform.WorldId);
+            if (world == null)
+            {
+                character.SendMessage($"[WaterEdit] You are somehow not in a valid world!");
+                return;
+            }
+
+            if (WaterEditCmd.SelectedWater == null)
+            {
+                character.SendMessage($"|cFFFF0000[WaterEdit] You need to select a water body first!|r");
+                return;
+            }
+
+            if (WaterEditCmd.SelectedWorld != world)
+            {
+                character.SendMessage(
+                    $"|cFFFF0000[WaterEdit] Currently selected water is not in the same world as you! ({WaterEdit.SelectedWorld.Name})|r");
+                return;
+            }
+
+            float newZ = parameters["z"];
+            var onePoint = GetOptionalParameterValue<int>(parameters, "point", -1);
+
+            for (var i = 0; i < WaterEditCmd.SelectedWater.Points.Count; i++)
+            {
+                if ((onePoint >= 0) && (onePoint != i))
+                    continue;
+
+                WaterEditCmd.SelectedWater.Points[i] = new Vector3(WaterEditCmd.SelectedWater.Points[i].X,
+                    WaterEditCmd.SelectedWater.Points[i].Y, newZ);
+            }
+
+            WaterEditCmd.ShowSelectedArea(character);
+            if (onePoint >= 0)
+                character.SendMessage(
+                    $"[WaterEdit] Z position for point |cFF00FF00{onePoint}|r in |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r has been set to |cFF00FF00{newZ}!|r");
+            else
+                character.SendMessage(
+                    $"[WaterEdit] Z position for all points in |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r have been set to |cFF00FF00{newZ}!|r");
+        }
+    }
+}
