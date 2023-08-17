@@ -958,10 +958,13 @@ namespace AAEmu.Game.Core.Managers
                 var designItemId = GetItemIdByDesign(house.Template.Id);
                 var designItem = ItemManager.Instance.Create(designItemId, 1, 0);
                 var designTemplate = ItemManager.Instance.GetTemplate(designItemId);
-                designItem.Grade = (designTemplate.FixedGrade >= 0) ? (byte)designTemplate.FixedGrade : (byte)0 ;
-                designItem.OwnerId = house.OwnerId;
-                designItem.SlotType = SlotType.Mail;
-                returnedItems.Add(designItem);
+                if (designTemplate != null && designItem != null)
+                {
+                    designItem.Grade = (designTemplate.FixedGrade >= 0) ? (byte)designTemplate.FixedGrade : (byte)0;
+                    designItem.OwnerId = house.OwnerId;
+                    designItem.SlotType = SlotType.Mail;
+                    returnedItems.Add(designItem);
+                }
 
                 // Return taxes
                 if (!failedToPayTax)
