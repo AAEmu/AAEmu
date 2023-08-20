@@ -237,9 +237,11 @@ namespace AAEmu.Game.Core.Managers.World
             _log.Debug($"[Height] Z-Pos: {slave.Transform.World.Position.Z} - Floor: {floor}");
             if (floor >= slave.Transform.World.Position.Z - boxSize.Z)
             {
-                var damage = floor - slave.Transform.World.Position.Z;
-                if (damage is > 0 and < 1) { damage = 1; }
-                slave.DoDamage((int)damage, true, KillReason.Collide);
+                var damage = slave.Hp * 0.1f; // 10%
+                if (damage > 0)
+                {
+                    slave.DoDamage((int)damage, true, KillReason.Collide);
+                }
                 
                 _log.Debug($"Slave: {slave.ObjId}, speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}, floor: {floor}, Z: {slave.Transform.World.Position.Z}, damage: {damage}");
                 
