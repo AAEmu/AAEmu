@@ -36,6 +36,7 @@ namespace AAEmu.Game.Core.Managers.World
         private bool ThreadRunning { get; set; }
         public InstanceWorld SimulationWorld { get; set; }
         private object _slaveListLock = new();
+        private Random _random = new Random();
 
         private bool CustomWater(ref JVector area)
         {
@@ -237,10 +238,10 @@ namespace AAEmu.Game.Core.Managers.World
             _log.Debug($"[Height] Z-Pos: {slave.Transform.World.Position.Z} - Floor: {floor}");
             if (floor >= slave.Transform.World.Position.Z - boxSize.Z)
             {
-                var damage = slave.Hp * 0.1f; // 10%
+                var damage = _random.Next(500, 750); // damage randomly 500-750
                 if (damage > 0)
                 {
-                    slave.DoDamage((int)damage, true, KillReason.Collide);
+                    slave.DoDamage((int)damage, false, KillReason.Collide);
                 }
                 
                 _log.Debug($"Slave: {slave.ObjId}, speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}, floor: {floor}, Z: {slave.Transform.World.Position.Z}, damage: {damage}");
