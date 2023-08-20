@@ -299,6 +299,9 @@ namespace AAEmu.Game.Core.Managers.World
             // If center of mass is positive rather than negative, we need to ignore it here to prevent the boat from floating
             moveType.Z += (shipModel.MassCenterZ < 0f ? shipModel.MassCenterZ / 2f : 0f) - shipModel.KeelHeight;
 
+            // Do not allow the body to flip
+            slave.RigidBody.Orientation = JMatrix.CreateFromYawPitchRoll(rpy.Item1, 0, 0);
+            
             // Apply new Location/Rotation to GameObject
             slave.Transform.Local.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y);
             var jRot = JQuaternion.CreateFromMatrix(rigidBody.Orientation);
@@ -310,8 +313,6 @@ namespace AAEmu.Game.Core.Managers.World
 
             // Update all to main Slave and it's children 
             slave.Transform.FinalizeTransform();
-            // Do not allow the body to flip
-            slave.RigidBody.Orientation = JMatrix.CreateFromYawPitchRoll(rpy.Item1, 0, 0);
         }
 
         internal void Stop()
