@@ -36,6 +36,7 @@ namespace AAEmu.Game.Core.Managers.World
         private bool ThreadRunning { get; set; }
         public InstanceWorld SimulationWorld { get; set; }
         private object _slaveListLock = new();
+        private Random _random = new Random();
 
         private bool CustomWater(ref JVector area)
         {
@@ -51,26 +52,26 @@ namespace AAEmu.Game.Core.Managers.World
             _buoyancy.UseOwnFluidArea(CustomWater);
             // _buoyancy.FluidBox = new JBBox(new JVector(0, 0, 0), new JVector(100000, 100, 100000));
 
-            //// Добавим поверхность земли // Add ground surface
-            //if (SimulationWorld.Name != "main_world") { return; }
-            //try
-            //{
-            //    var hmap = WorldManager.Instance.GetWorld(0).HeightMaps;
-            //    var heightMaxCoefficient = WorldManager.Instance.GetWorld(0).HeightMaxCoefficient;
-            //    var dx = hmap.GetLength(0);
-            //    var dz = hmap.GetLength(1);
-            //    var hmapTerrain = new float[dx, dz];
-            //    for (var x = 0; x < dx; x += 1)
-            //        for (var y = 0; y < dz; y += 1)
-            //            hmapTerrain[x, y] = (float)(hmap[x, y] / heightMaxCoefficient);
-            //    var terrain = new TerrainShape(hmapTerrain, 2.0f, 2.0f);
-            //    var body = new RigidBody(terrain) { IsStatic = true };
-            //    _physWorld.AddBody(body);
-            //}
-            //catch (Exception e)
-            //{
-            //    _log.Error("{0}\n{1}", e.Message, e.StackTrace);
-            //}
+            // Добавим поверхность земли // Add ground surface
+            if (SimulationWorld.Name != "main_world") { return; }
+            try
+            {
+                var hmap = WorldManager.Instance.GetWorld(0).HeightMaps;
+                var heightMaxCoefficient = WorldManager.Instance.GetWorld(0).HeightMaxCoefficient;
+                var dx = hmap.GetLength(0);
+                var dz = hmap.GetLength(1);
+                var hmapTerrain = new float[dx, dz];
+                for (var x = 0; x < dx; x += 1)
+                    for (var y = 0; y < dz; y += 1)
+                        hmapTerrain[x, y] = (float)(hmap[x, y] / heightMaxCoefficient);
+                var terrain = new TerrainShape(hmapTerrain, 2.0f, 2.0f);
+                var body = new RigidBody(terrain) { IsStatic = true };
+                _physWorld.AddBody(body);
+            }
+            catch (Exception e)
+            {
+                _log.Error("{0}\n{1}", e.Message, e.StackTrace);
+            }
         }
 
         public void StartPhysics()
@@ -228,13 +229,20 @@ namespace AAEmu.Game.Core.Managers.World
             }
             // _log.Debug("Slave: {0}, speed: {1}, rotSpeed: {2}", slave.ObjId, slave.Speed, slave.RotSpeed);
             
+            // Calculate some stuff for later
+            var boxSize = rigidBody.Shape.BoundingBox.Max - rigidBody.Shape.BoundingBox.Min;
+            var tubeVolume = shipModel.TubeLength * shipModel.TubeRadius * MathF.PI;
+            var solidVolume = MathF.Abs(rigidBody.Mass - tubeVolume);
+
             var floor = WorldManager.Instance.GetHeight(slave.Transform); // получим уровень земли // get ground level
             _log.Debug($"[Height] Z-Pos: {slave.Transform.World.Position.Z} - Floor: {floor}");
-            if (floor >= slave.Transform.World.Position.Z) // + shipModel.MassCenterZ)
+            if (floor >= slave.Transform.World.Position.Z - boxSize.Z)
             {
-                var damage = floor - slave.Transform.World.Position.Z;
-                if (damage is > 0 and < 1) { damage = 1; }
-                slave.DoDamage((int)damage, true, KillReason.Collide);
+                var damage = _random.Next(500, 750); // damage randomly 500-750
+                if (damage > 0)
+                {
+                    slave.DoDamage((int)damage, false, KillReason.Collide);
+                }
                 
                 _log.Debug($"Slave: {slave.ObjId}, speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}, floor: {floor}, Z: {slave.Transform.World.Position.Z}, damage: {damage}");
                 
@@ -244,11 +252,6 @@ namespace AAEmu.Game.Core.Managers.World
                     return;
                 }
             }
-
-            // Calculate some stuff for later
-            var boxSize = rigidBody.Shape.BoundingBox.Max - rigidBody.Shape.BoundingBox.Min;
-            var tubeVolume = shipModel.TubeLength * shipModel.TubeRadius * MathF.PI;
-            var solidVolume = MathF.Abs(rigidBody.Mass - tubeVolume);
 
             var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
             var slaveRotRad = rpy.Item1 + 90 * (MathF.PI / 180.0f);
@@ -299,6 +302,9 @@ namespace AAEmu.Game.Core.Managers.World
             // If center of mass is positive rather than negative, we need to ignore it here to prevent the boat from floating
             moveType.Z += (shipModel.MassCenterZ < 0f ? shipModel.MassCenterZ / 2f : 0f) - shipModel.KeelHeight;
 
+            // Do not allow the body to flip
+            slave.RigidBody.Orientation = JMatrix.CreateFromYawPitchRoll(rpy.Item1, 0, 0); // TODO: Fix me with proper physics
+            
             // Apply new Location/Rotation to GameObject
             slave.Transform.Local.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y);
             var jRot = JQuaternion.CreateFromMatrix(rigidBody.Orientation);

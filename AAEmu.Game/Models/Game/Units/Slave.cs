@@ -618,7 +618,7 @@ namespace AAEmu.Game.Models.Game.Units
                 }
             }
 
-            Hp = Math.Max(Hp - value, 0);
+            Hp = value < 0 ? Math.Max(Hp + value, 0) : Math.Max(Hp - value, 0);
             
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
 
