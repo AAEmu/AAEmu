@@ -161,10 +161,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             #region Schedule
             // First, let's check if the schedule has such an spawnerId
-            if (GameScheduleManager.Instance.CheckSpawnerInScheduleSpawners((int)doodad.TemplateId)) // doodad.TemplateId
+            if (GameScheduleManager.Instance.CheckDoodadInScheduleSpawners((int)doodad.TemplateId))
             {
                 // if there is, we'll check the time for the spawning
-                if (GameScheduleManager.Instance.CheckSpawnerInGameSchedules((int)doodad.TemplateId))
+                if (GameScheduleManager.Instance.CheckDoodadInGameSchedules(doodad.TemplateId))
                 {
                     var delay = GameScheduleManager.Instance.GetRemainingTime((int)doodad.TemplateId, false);
                     _log.Debug("DoDespawn: Doodad TemplateId {0}, objId {1} FuncGroupId {2} despawn [1] reschedule next time...", UnitId, Last.ObjId, Last.FuncGroupId);
@@ -188,10 +188,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             #region Schedule
             // First, let's check if the schedule has such an spawnerId
-            if (GameScheduleManager.Instance.CheckSpawnerInScheduleSpawners((int)UnitId))
+            if (GameScheduleManager.Instance.CheckDoodadInScheduleSpawners((int)UnitId))
             {
                 // if there is, we'll check the time for the spawning
-                if (GameScheduleManager.Instance.CheckSpawnerInGameSchedules((int)UnitId))
+                if (GameScheduleManager.Instance.CheckDoodadInGameSchedules(UnitId))
                 {
                     var delay = GameScheduleManager.Instance.GetRemainingTime((int)UnitId, true);
                     _permanent = false; // Doodad on the schedule.

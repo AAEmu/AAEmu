@@ -62,10 +62,7 @@ namespace AAEmu.Game.GameData
                         template.EdMin = reader.GetInt32("ed_min");
                         template.StartTimeMin = reader.GetInt32("start_time_min");
                         template.EndTimeMin = reader.GetInt32("end_time_min");
-                        if (!_gameSchedules.ContainsKey(template.Id))
-                        {
-                            _gameSchedules.Add(template.Id, template);
-                        }
+                        _gameSchedules.TryAdd(template.Id, template);
                     }
                 }
             }
@@ -84,10 +81,7 @@ namespace AAEmu.Game.GameData
                         template.GameScheduleId = reader.GetInt32("game_schedule_id");
                         template.SpawnerId = reader.GetInt32("spawner_id");
 
-                        if (!_gameScheduleSpawners.ContainsKey(template.Id))
-                        {
-                            _gameScheduleSpawners.Add(template.Id, template);
-                        }
+                        _gameScheduleSpawners.TryAdd(template.Id, template);
                     }
                 }
             }
@@ -105,10 +99,7 @@ namespace AAEmu.Game.GameData
                         template.GameScheduleId = reader.GetInt32("game_schedule_id");
                         template.DoodadId = reader.GetInt32("doodad_id");
 
-                        if (!_gameScheduleDoodads.ContainsKey(template.Id))
-                        {
-                            _gameScheduleDoodads.Add(template.Id, template);
-                        }
+                        _gameScheduleDoodads.TryAdd(template.Id, template);
                     }
                 }
             }
@@ -126,10 +117,7 @@ namespace AAEmu.Game.GameData
                         template.GameScheduleId = reader.GetInt32("game_schedule_id");
                         template.QuestId = reader.GetInt32("quest_id");
 
-                        if (!_gameScheduleQuests.ContainsKey(template.Id))
-                        {
-                            _gameScheduleQuests.Add(template.Id, template);
-                        }
+                        _gameScheduleQuests.TryAdd(template.Id, template);
                     }
                 }
             }
