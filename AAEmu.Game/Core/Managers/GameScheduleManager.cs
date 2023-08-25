@@ -7,7 +7,7 @@ using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Schedules;
 
 using NLog;
-
+using static System.String;
 using DayOfWeek = AAEmu.Game.Models.Game.Schedules.DayOfWeek;
 
 namespace AAEmu.Game.Core.Managers
@@ -20,6 +20,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<int, GameScheduleSpawners> _gameScheduleSpawners;
         private Dictionary<int, List<int>> _gameScheduleSpawnerIds;
         private Dictionary<int, GameScheduleDoodads> _gameScheduleDoodads;
+        private Dictionary<int, List<int>> _gameScheduleDoodadIds;
         private Dictionary<int, GameScheduleQuests> _gameScheduleQuests;
         private List<int> GameScheduleId { get; set; }
 
@@ -32,7 +33,7 @@ namespace AAEmu.Game.Core.Managers
 
             SchedulesGameData.Instance.PostLoad();
 
-            LoadGameScheduleSpawnersData();
+            LoadGameScheduleSpawnersData(); // добавил разделение spawnerId для Npc & Doodads
 
             _log.Info("Loaded schedules");
 
@@ -53,10 +54,12 @@ namespace AAEmu.Game.Core.Managers
         {
             _gameScheduleSpawners = gameScheduleSpawners;
         }
+
         public void LoadGameScheduleDoodads(Dictionary<int, GameScheduleDoodads> gameScheduleDoodads)
         {
             _gameScheduleDoodads = gameScheduleDoodads;
-        }
+        } 
+        
         public void LoadGameScheduleQuests(Dictionary<int, GameScheduleQuests> gameScheduleQuests)
         {
             _gameScheduleQuests = gameScheduleQuests;
@@ -67,16 +70,26 @@ namespace AAEmu.Game.Core.Managers
             return _gameScheduleSpawnerIds.ContainsKey(spawnerId);
         }
 
+        public bool CheckDoodadInScheduleSpawners(int spawnerId)
+        {
+            return _gameScheduleDoodadIds.ContainsKey(spawnerId);
+        }
+
+        //public bool CheckDoodadInScheduleSpawners(int spawnerId)
+        //{
+        //    return _gameScheduleDoodads.ContainsKey(spawnerId);
+        //}
+
         public bool CheckSpawnerInGameSchedules(int spawnerId)
         {
-            var res = CheckScheduler(spawnerId);
+            var res = CheckSpawnerScheduler(spawnerId);
             return res.Contains(true);
         }
 
         public bool CheckDoodadInGameSchedules(uint doodadId)
         {
-            if (!GetGameScheduleDoodadsData(doodadId)) { return false; }
-            var res = CheckScheduler();
+            //if (!GetGameScheduleDoodadsData(doodadId)) { return false; }
+            var res = CheckDoodadScheduler((int)doodadId);
             return res.Contains(true);
         }
 
@@ -87,7 +100,7 @@ namespace AAEmu.Game.Core.Managers
             return res.Contains(true);
         }
 
-        private List<bool> CheckScheduler(int spawnerId)
+        private List<bool> CheckSpawnerScheduler(int spawnerId)
         {
             if (!_gameScheduleSpawnerIds.ContainsKey(spawnerId))
             {
@@ -97,9 +110,27 @@ namespace AAEmu.Game.Core.Managers
             var res = new List<bool>();
             foreach (var gameScheduleId in _gameScheduleSpawnerIds[spawnerId])
             {
-                if (_gameSchedules.ContainsKey(gameScheduleId))
+                if (_gameSchedules.TryGetValue(gameScheduleId, out var gs))
                 {
-                    var gs = _gameSchedules[gameScheduleId];
+                    res.Add(CheckData(gs));
+                }
+            }
+
+            return res;
+        }
+        
+        private List<bool> CheckDoodadScheduler(int spawnerId)
+        {
+            if (!_gameScheduleDoodadIds.ContainsKey(spawnerId))
+            {
+                return new List<bool>();
+            }
+
+            var res = new List<bool>();
+            foreach (var gameScheduleId in _gameScheduleDoodadIds[spawnerId])
+            {
+                if (_gameSchedules.TryGetValue(gameScheduleId, out var gs))
+                {
                     res.Add(CheckData(gs));
                 }
             }
@@ -112,9 +143,8 @@ namespace AAEmu.Game.Core.Managers
             var res = new List<bool>();
             foreach (var gameScheduleId in GameScheduleId)
             {
-                if (_gameSchedules.ContainsKey(gameScheduleId))
+                if (_gameSchedules.TryGetValue(gameScheduleId, out var gs))
                 {
-                    var gs = _gameSchedules[gameScheduleId];
                     res.Add(CheckData(gs));
                 }
             }
@@ -124,7 +154,7 @@ namespace AAEmu.Game.Core.Managers
 
         public string GetCronRemainingTime(int spawnerId, bool start = true)
         {
-            var cronExpression = String.Empty;
+            var cronExpression = Empty;
             if (!_gameScheduleSpawnerIds.ContainsKey(spawnerId))
             {
                 return cronExpression;
@@ -173,9 +203,8 @@ namespace AAEmu.Game.Core.Managers
 
         private void LoadGameScheduleSpawnersData()
         {
-            _gameScheduleSpawnerIds = new Dictionary<int, List<int>>();
-
             // Spawners
+            _gameScheduleSpawnerIds = new Dictionary<int, List<int>>();
             foreach (var gss in _gameScheduleSpawners.Values)
             {
                 if (!_gameScheduleSpawnerIds.ContainsKey(gss.SpawnerId))
@@ -189,15 +218,16 @@ namespace AAEmu.Game.Core.Managers
             }
 
             // Doodads
+            _gameScheduleDoodadIds = new Dictionary<int, List<int>>();
             foreach (var gsd in _gameScheduleDoodads.Values)
             {
-                if (!_gameScheduleSpawnerIds.ContainsKey(gsd.DoodadId))
+                if (!_gameScheduleDoodadIds.ContainsKey(gsd.DoodadId))
                 {
-                    _gameScheduleSpawnerIds.Add(gsd.DoodadId, new List<int> { gsd.GameScheduleId });
+                    _gameScheduleDoodadIds.Add(gsd.DoodadId, new List<int> { gsd.GameScheduleId });
                 }
                 else
                 {
-                    _gameScheduleSpawnerIds[gsd.DoodadId].Add(gsd.GameScheduleId);
+                    _gameScheduleDoodadIds[gsd.DoodadId].Add(gsd.GameScheduleId);
                 }
             }
             //TODO: quests data
@@ -461,7 +491,7 @@ namespace AAEmu.Game.Core.Managers
             var endTime = value.EndTime;
             var endTimeMin = value.EndTimeMin;
 
-            var cronExpression = String.Empty;
+            var cronExpression = Empty;
 
             /*
                1.Секунды
