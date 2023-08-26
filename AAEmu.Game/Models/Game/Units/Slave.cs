@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Units.Static;
 using Jitter.Dynamics;
+using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Models.Game.Units
 {
@@ -578,11 +579,21 @@ namespace AAEmu.Game.Models.Game.Units
         
         public override void AddVisibleObject(Character character)
         {
+            base.AddVisibleObject(character);
+
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
             character.SendPacket(new SCSlaveStatePacket(ObjId, TlId, Summoner.Name, Summoner.ObjId, Template.Id));
-            
-            base.AddVisibleObject(character);
+
+            foreach (var ati in AttachedCharacters)
+            {
+                if (ati.Value.ObjId > 0)
+                {
+                    var player = WorldManager.Instance.GetCharacterByObjId(ati.Value.ObjId);
+                    if (player != null)
+                        character.SendPacket(new SCUnitAttachedPacket(player.ObjId, ati.Key, AttachUnitReason.None, ObjId));
+                }
+            }
         }
 
         public override void RemoveVisibleObject(Character character)

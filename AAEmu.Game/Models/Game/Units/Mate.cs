@@ -543,6 +543,8 @@ namespace AAEmu.Game.Models.Game.Units
 
         public override void AddVisibleObject(Character character)
         {
+            base.AddVisibleObject(character);
+
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCMateStatePacket(ObjId));
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
@@ -556,7 +558,6 @@ namespace AAEmu.Game.Models.Game.Units
                         character.SendPacket(new SCUnitAttachedPacket(player.ObjId, ati.Key, ati.Value._reason, ObjId));
                 }
             }
-            base.AddVisibleObject(character);
         }
 
         public override void RemoveVisibleObject(Character character)
