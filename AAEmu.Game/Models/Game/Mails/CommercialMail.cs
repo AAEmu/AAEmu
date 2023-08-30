@@ -66,7 +66,7 @@ namespace AAEmu.Game.Models.Game.Mails
 
             // Title looks like it should be the item shop entry names (in multiple language?)
             // Title = "title('Rainbow Pumpkin Taffy|Rainbow Pumpkin Taffy|Rainbow Pumpkin Taffy|彩虹南瓜糖|Радужный марципан')";
-            Title = "title('" + _purchasedItemTitle + "')";
+            Title = "title('" + _purchasedItemTitle.Replace("'", "\\'") + "')";
             OpenDate = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc); // Always in the past
 
             // Not sure what all the body fields mean
@@ -75,7 +75,7 @@ namespace AAEmu.Game.Models.Game.Mails
             var giftString = (_isGift ? "1" : "0");
             var refundString = (_isRefund ? "1" : "0");
             var expireDateString = "2100,12,31,00,00,00";
-            Body.Text = "body(" + isPresent + ",'" + gifterName + "','" + _purchasedItemTitle + "')" +
+            Body.Text = "body(" + isPresent + ",'" + gifterName + "','" + _purchasedItemTitle.Replace("'", "\\'") + "')" +
                         "|gift:" + giftString + ";|refund:" + refundString + ";|limit:" + expireDateString + ";";
         }
     }
