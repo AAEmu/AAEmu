@@ -1,10 +1,10 @@
 ﻿using System;
 namespace AAEmu.Game.Models.Game.Items
 {
-    public class LootPacks : IComparable<LootPacks>
+    public class Loot : IComparable<Loot>
     {
         public uint Id { get; set; }
-        public int Group { get; set; }
+        public uint Group { get; set; }
         public uint ItemId { get; set; }
         public uint DropRate { get; set; }
         public int MinAmount { get; set; }
@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Items
         /*
          * To sort an array
          */
-        public int CompareTo(LootPacks other)
+        public int CompareTo(Loot other)
         {
             return Id.CompareTo(other.Id);
         }

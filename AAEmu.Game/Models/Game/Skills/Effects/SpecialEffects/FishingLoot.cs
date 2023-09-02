@@ -3,8 +3,10 @@ using System.Linq;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
@@ -26,44 +28,27 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
-            if (caster is Character) { _log.Debug("Special effects: FishingLoot value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+            if (caster is not Character character)
+                return;
 
-            var lootTableId = new uint();
-            var zoneId = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId).GroupId;
-            
-            if(target.Transform.World.Position.Z > 101)
-                lootTableId = ZoneManager.Instance.GetZoneGroupById(zoneId).FishingLandLootPackId;
-            else
-                lootTableId = ZoneManager.Instance.GetZoneGroupById(zoneId).FishingSeaLootPackId;
-            
-            var lootPacks = ItemManager.Instance.GetLootPacks(lootTableId);
+            _log.Debug("Special effects: FishingLoot value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
 
-            if (lootPacks != null)
+            var zoneGroupId = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId).GroupId;
+            var zoneGroup = ZoneManager.Instance.GetZoneGroupById(zoneGroupId);
+            if (zoneGroup == null)
             {
-                var totalDropRate = (int)lootPacks.Sum(c => c.DropRate); //Adds the total drop rate of all possible items from a skill
-                Random rand = new Random();
-                var randChoice = rand.Next(totalDropRate);
-
-                LootPacks lootpack = null;
-
-                foreach (var item in lootPacks) //Picks item based on a weighted system. The higher the droprate the more likely you are to get that item. 
-                {
-                    if (randChoice < item.DropRate)
-                    {
-                        lootpack = item;
-                        break;
-                    }
-                    else
-                        randChoice -= (int)item.DropRate;
-                }
-
-                var player = (Character)caster;
-
-                if (player != null && lootpack != null)
-                {
-                    player.Inventory.Bag.AcquireDefaultItem(Items.Actions.ItemTaskType.Fishing, lootpack.ItemId, 1);
-                }
+                _log.Warn($"{character.Name} seems to be trying to fish out of bounds.");
+                return;
             }
+            
+            var lootTableId = (target.Transform.World.Position.Z > 101) ? zoneGroup.FishingLandLootPackId : zoneGroup.FishingSeaLootPackId;
+            
+            var pack = LootGameData.Instance.GetPack(lootTableId);
+
+            if ((pack == null) || (pack.Loots.Count <= 0))
+                return;
+
+            pack.GiveLootPack(character, ItemTaskType.SkillEffectGainItem);
         }
     }
 }

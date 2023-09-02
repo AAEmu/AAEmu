@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
@@ -56,10 +57,12 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, ItemCapScale> _itemCapScales;
 
         // LootPacks
-        private Dictionary<uint, List<LootPacks>> _lootPacks;
         private Dictionary<uint, List<LootPackDroppingNpc>> _lootPackDroppingNpc;
-        private Dictionary<uint, List<LootGroups>> _lootGroups;
         private Dictionary<int, GradeDistributions> _itemGradeDistributions;
+        /*
+        private Dictionary<uint, List<Loot>> _lootPacks;
+        private Dictionary<uint, List<LootGroups>> _lootGroups;
+        */
         private Dictionary<uint, List<Item>> _lootDropItems;
 
         // ItemLookConvert
@@ -124,81 +127,92 @@ namespace AAEmu.Game.Core.Managers
         {
             return _enchantingSupports.ContainsKey(itemId) ? _enchantingSupports[itemId] : null;
         }
-
+        
         public List<LootPackDroppingNpc> GetLootPackIdByNpcId(uint npcId)
         {
             return _lootPackDroppingNpc.ContainsKey(npcId) ? _lootPackDroppingNpc[npcId] : new List<LootPackDroppingNpc>();
         }
-
-        public LootPacks[] GetLootPacks(uint lootPackId)
-        {
-            var res = (_lootPacks.ContainsKey(lootPackId) ? _lootPacks[lootPackId] : new List<LootPacks>()).ToArray();
-            Array.Sort(res);
-            return res;
-        }
-        public LootGroups[] GetLootGroups(uint packId)
-        {
-            var res = (_lootGroups.ContainsKey(packId) ? _lootGroups[packId] : new List<LootGroups>()).ToArray();
-            Array.Sort(res);
-            return res;
-        }
+        
         public List<Item> GetLootDropItems(uint npcId)
         {
             return _lootDropItems.ContainsKey(npcId) ? _lootDropItems[npcId] : new List<Item>();
         }
+        
         public List<ItemTemplate> GetAllItems()
         {
             return _templates.Values.ToList();
         }
+        
         public List<Item> CreateLootDropItems(uint npcId)
         {
             // TODO: Implement AppConfiguration.Instance.World.LootRate
             var items = GetLootDropItems(npcId);
 
+            // Already generated?
             if (items.Count > 0)
             {
                 return items;
             }
+            
             var unit = WorldManager.Instance.GetNpc(npcId);
             if (unit == null)
             {
                 return items;
             }
+            
             var lootPackDroppingNpcs = GetLootPackIdByNpcId(unit.TemplateId);
-
             if (lootPackDroppingNpcs.Count <= 0)
             {
                 return items;
             }
+            
+            var baseId = ((ulong)unit.ObjId << 32) + 65536;
+
+            foreach (var lootPackDropping in lootPackDroppingNpcs)
+            {
+                var lootPack = LootGameData.Instance.GetPack(lootPackDropping.LootPackId);
+                if (lootPack == null) 
+                    continue;
+                items = lootPack.GenerateNpcPackItems(ref baseId);
+                if (_lootDropItems.ContainsKey(npcId))
+                    _lootDropItems[npcId].AddRange(items);
+                else
+                    _lootDropItems.Add(npcId, items);
+            }
+
+            /*
             items = new List<Item>();
             var itemId = ((ulong)npcId << 32) + 65536;
             foreach (var lootPackDroppingNpc in lootPackDroppingNpcs)
             {
-                var lootPacks = GetLootPacks(lootPackDroppingNpc.LootPackId);
+                var lootPacks = LootGameData.Instance.GetPack(lootPackDroppingNpc.LootPackId);
+                
+                
+                // var lootPacks = GetLootPacks(lootPackDroppingNpc.LootPackId);
                 var dropRateMax = (uint)0;
-                for (var ui = 0; ui < lootPacks.Length; ui++)
+                for (var ui = 0; ui < lootPacks.Loots.Count; ui++)
                 {
-                    dropRateMax += lootPacks[ui].DropRate;
+                    dropRateMax += lootPacks.Loots[ui].DropRate;
                 }
                 var dropRateItem = Rand.Next(0, dropRateMax);
                 var dropRateItemId = (uint)0;
-                for (var uii = 0; uii < lootPacks.Length; uii++)
+                for (var uii = 0; uii < lootPacks.Loots.Count; uii++)
                 {
-                    if (lootPacks[uii].DropRate + dropRateItemId >= dropRateItem)
+                    if (lootPacks.Loots[uii].DropRate + dropRateItemId >= dropRateItem)
                     {
                         var item = new Item();
-                        item.TemplateId = lootPacks[uii].ItemId;
+                        item.TemplateId = lootPacks.Loots[uii].ItemId;
                         item.WorldId = 1;
                         item.CreateTime = DateTime.UtcNow;
                         item.Id = ++itemId;
                         item.MadeUnitId = npcId;
-                        item.Count = Rand.Next(lootPacks[uii].MinAmount, lootPacks[uii].MaxAmount);
+                        item.Count = Rand.Next(lootPacks.Loots[uii].MinAmount, lootPacks.Loots[uii].MaxAmount);
                         items.Add(item);
                         break;
                     }
                     else
                     {
-                        dropRateItemId += lootPacks[uii].DropRate;
+                        dropRateItemId += lootPacks.Loots[uii].DropRate;
                     }
                 }
             }
@@ -214,6 +228,7 @@ namespace AAEmu.Game.Core.Managers
             };
             items.Add(item2);
             _lootDropItems.Add(npcId, items);
+            */
 
             return items;
         }
@@ -229,30 +244,30 @@ namespace AAEmu.Game.Core.Managers
             var itemId = ((ulong)templateId << 32) + 65536;
             foreach (var lootPackDroppingNpc in lootPackDroppingNpcs)
             {
-                var lootPacks = GetLootPacks(lootPackDroppingNpc.LootPackId);
+                var lootPacks = LootGameData.Instance.GetPack(lootPackDroppingNpc.LootPackId);
                 var dropRateMax = (uint)0;
-                for (var ui = 0; ui < lootPacks.Length; ui++)
+                for (var ui = 0; ui < lootPacks.Loots?.Count; ui++)
                 {
-                    dropRateMax += lootPacks[ui].DropRate;
+                    dropRateMax += lootPacks.Loots[ui].DropRate;
                 }
                 var dropRateItem = Rand.Next(0, dropRateMax);
                 var dropRateItemId = 0u;
-                for (var uii = 0; uii < lootPacks.Length; uii++)
+                for (var uii = 0; uii < lootPacks.Loots.Count; uii++)
                 {
-                    if (lootPacks[uii].DropRate + dropRateItemId >= dropRateItem)
+                    if (lootPacks.Loots[uii].DropRate + dropRateItemId >= dropRateItem)
                     {
                         var item = new Item();
-                        item.TemplateId = lootPacks[uii].ItemId;
+                        item.TemplateId = lootPacks.Loots[uii].ItemId;
                         item.WorldId = 1;
                         item.CreateTime = DateTime.UtcNow;
                         item.Id = ++itemId;
                         item.MadeUnitId = templateId;
-                        item.Count = Rand.Next(lootPacks[uii].MinAmount, lootPacks[uii].MaxAmount);
+                        item.Count = Rand.Next(lootPacks.Loots[uii].MinAmount, lootPacks.Loots[uii].MaxAmount);
                         items.Add(item);
                         break;
                     }
 
-                    dropRateItemId += lootPacks[uii].DropRate;
+                    dropRateItemId += lootPacks.Loots[uii].DropRate;
                 }
             }
 
@@ -332,6 +347,7 @@ namespace AAEmu.Game.Core.Managers
             }
             return true;
         }
+        
         public GradeDistributions GetGradeDistributions(byte id)
         {
             return _itemGradeDistributions.ContainsKey(id) ? _itemGradeDistributions[id] : null;
@@ -567,9 +583,11 @@ namespace AAEmu.Game.Core.Managers
             _holdableItemLookConverts = new Dictionary<uint, uint>();
             _wearableItemLookConverts = new Dictionary<uint, uint>();
             _lootPackDroppingNpc = new Dictionary<uint, List<LootPackDroppingNpc>>();
-            _lootPacks = new Dictionary<uint, List<LootPacks>>();
-            _lootGroups = new Dictionary<uint, List<LootGroups>>();
             _itemGradeDistributions = new Dictionary<int, GradeDistributions>();
+            /*
+            _lootPacks = new Dictionary<uint, List<Loot>>();
+            _lootGroups = new Dictionary<uint, List<LootGroups>>();
+            */
             _lootDropItems = new Dictionary<uint, List<Item>>();
             _itemDoodadTemplates = new Dictionary<uint, ItemDoodadTemplate>();
             _itemProcTemplates = new Dictionary<uint, ItemProcTemplate>();
@@ -1234,6 +1252,8 @@ namespace AAEmu.Game.Core.Managers
 
 
                 // Load main item templates
+                
+                /*
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM loots";
@@ -1242,9 +1262,9 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new LootPacks();
+                            var template = new Loot();
                             template.Id = reader.GetUInt32("id");
-                            template.Group = reader.GetInt32("group");
+                            template.Group = reader.GetUInt32("group");
                             template.ItemId = reader.GetUInt32("item_id");
                             template.DropRate = reader.GetUInt32("drop_rate");
                             template.MinAmount = reader.GetInt32("min_amount");
@@ -1252,12 +1272,12 @@ namespace AAEmu.Game.Core.Managers
                             template.LootPackId = reader.GetUInt32("loot_pack_id");
                             template.GradeId = reader.GetByte("grade_id");
                             template.AlwaysDrop = reader.GetBoolean("always_drop");
-                            List<LootPacks> lootPacks;
+                            List<Loot> lootPacks;
                             if (_lootPacks.ContainsKey(template.LootPackId))
                                 lootPacks = _lootPacks[template.LootPackId];
                             else
                             {
-                                lootPacks = new List<LootPacks>();
+                                lootPacks = new List<Loot>();
                                 _lootPacks.Add(template.LootPackId, lootPacks);
                             }
 
@@ -1277,7 +1297,7 @@ namespace AAEmu.Game.Core.Managers
                             var template = new LootGroups();
                             template.Id = reader.GetUInt32("id");
                             template.PackId = reader.GetUInt32("pack_id");
-                            template.GroupNo = reader.GetInt32("group_no");
+                            template.GroupNo = reader.GetUInt32("group_no");
                             template.DropRate = reader.GetUInt32("drop_rate");
                             template.ItemGradeDistributionId = reader.GetByte("item_grade_distribution_id");
                             List<LootGroups> lootGroups;
@@ -1293,7 +1313,8 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-
+                        */
+                        
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM item_grade_distributions";
@@ -1322,7 +1343,7 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-
+                
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM loot_pack_dropping_npcs";
@@ -1350,6 +1371,7 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
+                /*
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_convert_fish_items";
@@ -1375,6 +1397,7 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
+                */
 
                 using (var command = connection.CreateCommand())
                 {
@@ -1502,7 +1525,8 @@ namespace AAEmu.Game.Core.Managers
                     {
                         using (var deleteCommand = connection.CreateCommand())
                         {
-                            deleteCommand.CommandText = "DELETE FROM items WHERE `id` IN(" + string.Join(",", _removedItems) + ")";
+                            var removedItemList = string.Join(",", _removedItems);
+                            deleteCommand.CommandText = $"DELETE FROM items WHERE `id` IN({removedItemList})";
                             deleteCommand.Prepare();
                             deleteCount += deleteCommand.ExecuteNonQuery();
                         }
