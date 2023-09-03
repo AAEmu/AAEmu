@@ -3,6 +3,7 @@ using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Loots;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Data.Sqlite;
 

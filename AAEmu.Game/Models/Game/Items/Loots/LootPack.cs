@@ -5,9 +5,16 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Units;
 using NLog;
 
-namespace AAEmu.Game.Models.Game.Items;
+namespace AAEmu.Game.Models.Game.Items.Loots;
+
+/*
+ * Original Authors: AAGene, spiral
+ * Original Source: AAGenesis
+ * Modified by: ZeromusXYZ
+ */
 
 public class LootPack
 {
@@ -24,11 +31,26 @@ public class LootPack
 
     private List<(uint itemId, int count, byte grade)> _generatedPack;
 
-    /**
-     * Generates the contents of a LootPack, in the form of a list of tuples.
-     * This list is stored internally
-     */
-    public List<(uint itemId, int count, byte grade)> GeneratePack()
+
+    /// <summary>
+    /// Generates the contents of a LootPack, in the form of a list of tuples. This list is stored internally
+    /// </summary>
+    /// <param name="player">Player who's loot multipliers need to be used</param>
+    /// <returns></returns>
+    public List<(uint itemId, int count, byte grade)> GeneratePack(Character player)
+    {
+        var lootDropRate = player.GetAttribute<float>(UnitAttribute.DropRateMul, 100f) / 100f;
+        var lootGoldRate = player.GetAttribute<float>(UnitAttribute.LootGoldMul, 100f) / 100f;
+        return GeneratePack(lootDropRate, lootGoldRate);
+    }
+    
+    /// <summary>
+    /// Generates the contents of a LootPack, in the form of a list of tuples. This list is stored internally
+    /// </summary>
+    /// <param name="lootDropRate">1.0f = 100%</param>
+    /// <param name="lootGoldRate">1.0f = 100% applies to coins item only</param>
+    /// <returns></returns>
+    public List<(uint itemId, int count, byte grade)> GeneratePack(float lootDropRate, float lootGoldRate)
     {
         // Use 8000022 as an example
 
@@ -42,19 +64,32 @@ public class LootPack
 
             if (!LootsByGroupNo.ContainsKey(gIdx))
                 continue;
+            
             // If that group has a LootGroup, roll the dice
             if (Groups.TryGetValue(gIdx, out var lootGroup))
             {
                 hasLootGroup = true;
                 lootGradeDistribId = lootGroup.ItemGradeDistributionId;
-                if (Rand.Next(0, 10000000) > lootGroup.DropRate)
+                var dice = (long)Rand.Next(0, 10000000);
+                
+                // Use generic loot multiplier for the groups ?
+                dice = (long)Math.Floor(dice / (lootDropRate * AppConfiguration.Instance.World.LootRate));
+                
+                if (dice > lootGroup.DropRate)
                     continue;
             }
 
             // If that group has a LootActGroup, roll the dice
             if (ActabilityGroups.TryGetValue(gIdx, out var actabilityGroup))
-                if (Rand.Next(0, 10000) > actabilityGroup.MaxDice)
+            {
+                var dice = (long)Rand.Next(0, 10000); 
+
+                // Use generic loot multiplier for the ActGroups ?
+                dice = (long)Math.Floor(dice / (lootDropRate * AppConfiguration.Instance.World.LootRate));
+                
+                if (dice > actabilityGroup.MaxDice)
                     continue;
+            }
 
             var loots = LootsByGroupNo[gIdx];
             if (loots == null || loots.Count == 0)
@@ -62,12 +97,16 @@ public class LootPack
 
             var uniqueItemDrop = loots[0].DropRate == 1;
             var itemRoll = Rand.Next(0, 10000000);
+            
+            // Apply multiplier for loot drop rate
+            itemRoll = (int)Math.Round(itemRoll / lootDropRate);
+            
             var itemStackingRoll = 0u;
 
             List<Loot> selected = new List<Loot>();
 
 
-            if (uniqueItemDrop || hasLootGroup)
+            if (uniqueItemDrop || hasLootGroup || (GroupCount <= 1))
             {
                 selected.Add(loots.RandomElementByWeight(l => l.DropRate));
             }
@@ -99,6 +138,10 @@ public class LootPack
                 if (lootGradeDistribId > 0)
                     grade = GetGradeFromDistribution(lootGradeDistribId);
 
+                // Multiply gold as needed
+                if (selectedPack.ItemId == Item.Coins)
+                    lootCount = (int)Math.Round(lootCount * (lootGoldRate * AppConfiguration.Instance.World.GoldLootMultiplier));
+
                 items.Add((selectedPack.ItemId, lootCount, grade));
             }
         }
@@ -107,15 +150,9 @@ public class LootPack
         return items;
     }
 
-    public List<Item> GeneratePackItems()
+    public List<Item> GenerateNpcPackItems(ref ulong baseId, float lootDropRate = 1.0f, float lootGoldRate = 1.0f)
     {
-        var packList = GeneratePack();
-        return packList.Select(tuple => ItemManager.Instance.Create(tuple.itemId, tuple.count, tuple.grade)).ToList();
-    }
-
-    public List<Item> GenerateNpcPackItems(ref ulong baseId)
-    {
-        var packList = GeneratePack();
+        var packList = GeneratePack(lootDropRate, lootGoldRate);
         var itemList = packList
             .Select(tuple => ItemManager.Instance.Create(tuple.itemId, tuple.count, tuple.grade, false)).ToList();
         foreach (var item in itemList)
@@ -134,9 +171,11 @@ public class LootPack
     /// <param name="generatedList"></param>
     public void GiveLootPack(Character character, ItemTaskType taskType, List<(uint itemId, int count, byte grade)> generatedList = null)
     {
+        // If it is not generated yet, generate loot pack info now
         if (generatedList == null)
-            generatedList = GeneratePack();
+            generatedList = GeneratePack(character);
 
+        // Distribute the items (and coins)
         foreach (var tuple in generatedList)
         {
             if (tuple.itemId == 500)

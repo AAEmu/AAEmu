@@ -1,4 +1,9 @@
-namespace AAEmu.Game.Models.Game.Items;
+namespace AAEmu.Game.Models.Game.Items.Loots;
+
+/*
+ * Original Author: AAGene
+ * Original Source: AAGenesis
+ */
 
 public class LootActabilityGroups
 {

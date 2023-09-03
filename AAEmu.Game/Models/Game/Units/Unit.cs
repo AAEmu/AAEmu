@@ -344,8 +344,8 @@ namespace AAEmu.Game.Models.Game.Units
                 DespawMate((Character)this);
                 return;
             }
-            
-            var lootDropItems = ItemManager.Instance.CreateLootDropItems(ObjId);
+
+            var lootDropItems = ItemManager.Instance.CreateLootDropItems(ObjId, killer);
             if (lootDropItems.Count > 0)
             {
                 killer.BroadcastPacket(new SCLootableStatePacket(ObjId, true), true);

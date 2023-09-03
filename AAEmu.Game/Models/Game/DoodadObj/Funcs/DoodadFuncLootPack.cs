@@ -20,7 +20,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 return;
             
             var lootPack = LootGameData.Instance.GetPack(LootPackId);
-            var lootPackContents = lootPack.GeneratePack();
+            var lootPackContents = lootPack.GeneratePack(character);
             
             if (character.Inventory.Bag.FreeSlotCount >= lootPackContents.Count)
             {

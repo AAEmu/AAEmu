@@ -7,6 +7,7 @@
         "HonorRate": 1.0,
         "VocationRate": 1.0,
         "LootRate": 1.0,
+        "GoldLootMultiplier": 1.0,
         "GrowthRate": 1.0,
         "GodMode": false,
         "GeoDataMode": false
