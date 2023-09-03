@@ -54,13 +54,9 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, List<BonusTemplate>> _itemUnitModifiers;
         private Dictionary<uint, ItemCapScale> _itemCapScales;
 
-        // LootPacks
+        // Loot related
         private Dictionary<uint, List<LootPackDroppingNpc>> _lootPackDroppingNpc;
         private Dictionary<int, GradeDistributions> _itemGradeDistributions;
-        /*
-        private Dictionary<uint, List<Loot>> _lootPacks;
-        private Dictionary<uint, List<LootGroups>> _lootGroups;
-        */
         private Dictionary<uint, List<Item>> _lootDropItems;
 
         // ItemLookConvert
@@ -140,7 +136,6 @@ namespace AAEmu.Game.Core.Managers
         
         public List<Item> CreateLootDropItems(uint npcId, BaseUnit killer)
         {
-            // TODO: Implement AppConfiguration.Instance.World.LootRate
             var items = GetLootDropItems(npcId);
 
             // Already generated?
@@ -162,16 +157,57 @@ namespace AAEmu.Game.Core.Managers
             {
                 return items;
             }
-            
-            // Calculate loot rates
-            var lootDropRate = 1.0f;
-            var lootGoldRate = 1.0f;
 
-            // TODO: Consider aggro list and party loot rates
-            if (killer is Character player)
-            { 
-                lootDropRate *= player.GetAttribute(UnitAttribute.DropRateMul, 100f) / 100f;
-                lootGoldRate *= player.GetAttribute(UnitAttribute.LootGoldMul, 100f) / 100f;
+            // Calculate loot rates
+            var lootDropRate = 1f;
+            var lootGoldRate = 1f;
+            var validAggroCount = 0;
+
+            // Check all people in the aggro list, and use the highest stat
+            // TODO: Only consider players in the party/raid with a claim on the NPC
+            if (unit.AggroTable.Count >= 1)
+            {
+                var maxDropRateMul = -100f;
+                var maxLootGoldMul = -100f;
+
+                foreach (var aggroInfo in unit.AggroTable)
+                {
+                    // Ingnore stats from people more than 200m away. 
+                    var distance = aggroInfo.Value.Owner.Transform.World.Position - unit.Transform.World.Position;
+                    if (distance.Length() > 200)
+                        continue;
+
+                    // If a pet is on there, use it's owner
+                    var checkUnit = aggroInfo.Value.Owner;
+                    if (checkUnit is Mate mate)
+                        checkUnit = WorldManager.Instance.GetCharacterByObjId(mate.OwnerObjId) ?? aggroInfo.Value.Owner;
+
+                    // Get player loot stats
+                    if (checkUnit is Character pl)
+                    {
+                        var aggroDropMul = (100f + pl.DropRateMul) / 100f;
+                        var aggroGoldMul = (100f + pl.LootGoldMul) / 100f;
+                        if (aggroDropMul > maxDropRateMul)
+                            maxDropRateMul = aggroDropMul;
+                        if (aggroGoldMul > maxLootGoldMul)
+                            maxLootGoldMul = aggroGoldMul;
+                        validAggroCount++;
+                    }
+                }
+
+                if (validAggroCount > 0)
+                {
+                    lootDropRate = maxDropRateMul;
+                    lootGoldRate = maxLootGoldMul;
+                }
+            }
+
+            // Fallback to killer's stats if aggro list failed
+            if ((validAggroCount <= 0) && (killer is Character player))
+            {
+                lootDropRate *= (100f + player.DropRateMul) / 100f;
+                lootGoldRate *= (100f + player.LootGoldMul) / 100f;
+                _log.Info($"Unit killed without aggro: {unit.ObjId} ({unit.TemplateId}) by {player.Name}");
             }
 
             // Base ID used for identifying the loot

@@ -39,8 +39,8 @@ public class LootPack
     /// <returns></returns>
     public List<(uint itemId, int count, byte grade)> GeneratePack(Character player)
     {
-        var lootDropRate = player.GetAttribute<float>(UnitAttribute.DropRateMul, 100f) / 100f;
-        var lootGoldRate = player.GetAttribute<float>(UnitAttribute.LootGoldMul, 100f) / 100f;
+        var lootDropRate = (100f + player.DropRateMul) / 100f;
+        var lootGoldRate = (100f + player.LootGoldMul) / 100f;
         return GeneratePack(lootDropRate, lootGoldRate);
     }
     
