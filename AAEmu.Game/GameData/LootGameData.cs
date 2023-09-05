@@ -128,7 +128,7 @@ namespace AAEmu.Game.GameData
                 }
             }
             
-            // generate packs
+            // Generate packs
 
             foreach (var lootPackId in _lootsByPackId.Keys)
             {
@@ -142,17 +142,19 @@ namespace AAEmu.Game.GameData
                     GroupCount = 0
                 };
 
-                if (_lootGroupsByPackId.ContainsKey(lootPackId))
-                    foreach (var lootGroup in _lootGroupsByPackId[lootPackId])
+                if (_lootGroupsByPackId.TryGetValue(lootPackId, out var lootGroupsList))
+                    foreach (var lootGroup in lootGroupsList)
                         pack.Groups.Add(lootGroup.GroupNo, lootGroup);
-                if (_lootActabilityGroupsByPackId.ContainsKey(lootPackId))
-                    foreach (var lag in _lootActabilityGroupsByPackId[lootPackId])
+                
+                if (_lootActabilityGroupsByPackId.TryGetValue(lootPackId, out var lootActAbilityGroups))
+                    foreach (var lag in lootActAbilityGroups)
                         pack.ActabilityGroups.Add(lag.GroupId, lag);
 
                 foreach (var loot in _lootsByPackId[lootPackId])
                 {
                     if (!pack.LootsByGroupNo.ContainsKey(loot.Group))
                         pack.LootsByGroupNo.Add(loot.Group, new List<Loot>());
+                    
                     pack.LootsByGroupNo[loot.Group].Add(loot);
 
                     if (pack.GroupCount < loot.Group)

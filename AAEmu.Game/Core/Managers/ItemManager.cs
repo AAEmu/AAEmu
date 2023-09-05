@@ -226,8 +226,11 @@ namespace AAEmu.Game.Core.Managers
                     _lootDropItems.Add(npcId, items);
             }
 
+            if (!_lootDropItems.TryGetValue(npcId, out items))
+                    items = new List<Item>();
             return items;
         }
+        
         public List<Item> GetLootConvertFish(uint templateId)
         {
             var items = new List<Item>();
