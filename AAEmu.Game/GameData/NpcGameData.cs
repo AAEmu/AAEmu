@@ -167,54 +167,10 @@ namespace AAEmu.Game.GameData
                     _npcMemberAndSpawnerTemplateIds[nsn.MemberId].Add(nsn.NpcSpawnerTemplateId);
                 }
             }
-
-            foreach (var (memberId, spawnerTemplateIds) in _npcMemberAndSpawnerTemplateIds)
-            {
-                if (spawnerTemplateIds.Count <= 1)
-                {
-                    npcMemberAndSpawnerId.Add(memberId, spawnerTemplateIds);
-                    continue;
-                }
-                var itemAutocreated = spawnerTemplateIds.Where(spawnerTemplateId =>
-                    _npcSpawnerTemplates[spawnerTemplateId].NpcSpawnerCategoryId == NpcSpawnerCategory.Autocreated)
-                        .ToList();
-
-                //var itemNormal = slist.Where(t => _npcSpawners[t].NpcSpawnerCategoryId == NpcSpawnerCategory.Normal).ToList();
-
-                var itemSpawnerSchedule = spawnerTemplateIds.Where(spawnerTemplateId =>
-                    _npcSpawnerTemplates[spawnerTemplateId].StartTime != 0
-                    && _npcSpawnerTemplates[spawnerTemplateId].EndTime != 0)
-                        .ToList();
-
-                var itemGameSchedule = spawnerTemplateIds.Where(t => GameScheduleManager.Instance.HasGameScheduleSpawnersData(t)).ToList();
-
-                if (itemSpawnerSchedule.Count == 0 && itemGameSchedule.Count == 0)
-                {
-                    // если нет в расписаниях, то оставим только Autocreated
-                    // if it's not on the schedules, then we'll just leave Autocreated
-                    npcMemberAndSpawnerId.Add(memberId, itemAutocreated);
-                }
-                else if (itemSpawnerSchedule.Count > 0)
-                {
-                    // оставим только ту запись, которая есть в NpcSpawners
-                    // leave only the entry that is in NpcSpawners
-                    npcMemberAndSpawnerId.Add(memberId,
-                        itemSpawnerSchedule.Count > 1 ? new List<uint> { itemSpawnerSchedule[0] } : itemSpawnerSchedule);
-                }
-                else if (itemGameSchedule.Count > 0)
-                {
-                    // оставим только ту запись, которая есть в GameScheduleSpawners
-                    // we'll leave only the entry that is in GameScheduleSpawners
-                    npcMemberAndSpawnerId.Add(memberId,
-                        itemGameSchedule.Count > 1 ? new List<uint> { itemGameSchedule[0] } : itemGameSchedule);
-                }
-            }
-            _npcMemberAndSpawnerTemplateIds = npcMemberAndSpawnerId;
         }
 
         public List<uint> GetSpawnerIds(uint memberId)
         {
-            //return _npcMemberAndSpawnerTemplateIds.ContainsKey(memberId) ? _npcMemberAndSpawnerTemplateIds[memberId] : null;
             _npcMemberAndSpawnerTemplateIds.TryGetValue(memberId, out var list);
 
             return list;
@@ -222,7 +178,6 @@ namespace AAEmu.Game.GameData
 
         public NpcSpawnerTemplate GetNpcSpawnerTemplate(uint npcSpawnerTemplateId)
         {
-            //return _npcSpawnerTemplates.ContainsKey(npcSpawnerTemplateId) ? _npcSpawnerTemplates[npcSpawnerTemplateId] : null;
             _npcSpawnerTemplates.TryGetValue(npcSpawnerTemplateId, out var template);
 
             return template;

@@ -48,7 +48,7 @@ namespace AAEmu.Game.Models.Game.World
             return (float)(HeightMaps[sx, sy] / HeightMaxCoefficient);
         }
 
-        private static float Lerp(float s, float e, float t)
+        public static float Lerp(float s, float e, float t)
         {
             return s + (e - s) * t;
         }

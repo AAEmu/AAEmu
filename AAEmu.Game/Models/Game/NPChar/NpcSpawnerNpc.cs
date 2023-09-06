@@ -54,11 +54,11 @@ namespace AAEmu.Game.Models.Game.NPChar
                 var npc = NpcManager.Instance.Create(0, MemberId);
                 if (npc == null)
                 {
-                    _log.Warn($"Npc {MemberId}, from spawn not exist at db");
+                    _log.Warn($"Npc {MemberId}, from spawner Id {npcSpawner.Id} not exist at db");
                     return null;
                 }
 
-                _log.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawn {Id}, nps spawner Id {NpcSpawnerTemplateId}");
+                _log.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawnerId {NpcSpawnerTemplateId}");
 
                 if (!npc.CanFly)
                 {
@@ -73,7 +73,7 @@ namespace AAEmu.Game.Models.Game.NPChar
                 npc.Transform.ApplyWorldSpawnPosition(npcSpawner.Position);
                 if (npc.Transform == null)
                 {
-                    _log.Error($"Can't spawn npc {MemberId} from spawn {Id}, spawner {NpcSpawnerTemplateId}");
+                    _log.Error($"Can't spawn npc {MemberId} from spawnerId {NpcSpawnerTemplateId}");
                     return null;
                 }
 
@@ -102,7 +102,7 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         private List<Npc> SpawnNpcGroup(NpcSpawner npcSpawner, uint maxPopulation)
         {
-            return Spawn(npcSpawner, maxPopulation);
+            return SpawnNpc(npcSpawner, maxPopulation);
         }
     }
 }

@@ -48,7 +48,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 spawner.Position.X = xx;
                 spawner.Position.Y = yy;
                 spawner.Position.Z = zz;
-                spawner.Position.Roll = PosAngle;
+                spawner.Position.Yaw = PosAngle;
 
                 spawner.RespawnTime = 0; // don't respawn
 
