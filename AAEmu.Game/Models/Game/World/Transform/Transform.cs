@@ -245,7 +245,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// Assigns a new Parent Transform, automatically handles related child Transforms
         /// </summary>
         /// <param name="parent"></param>
-        protected void SetParent(Transform parent)
+        public void SetParent(Transform parent, bool isRelative = false)
         {
             if (_parentTransform == parent) return;
             lock (_lock)
@@ -284,7 +284,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                     */
 
                     _parentTransform = parent;
-                    _parentTransform?.InternalAttachChild(this);
+                    _parentTransform?.InternalAttachChild(this, isRelative);
 
                     if ((_owningObject is Character aPlayer))
                         aPlayer.SendMessage($"NewPos: {ToFullString(true, true)}");
@@ -292,18 +292,46 @@ namespace AAEmu.Game.Models.Game.World.Transform
             }
         }
 
-        private void InternalAttachChild(Transform child)
+        private void InternalAttachChild(Transform child, bool isRelative = false)
         {
             if (!_children.Contains(child))
             {
                 _children.Add(child);
-                // TODO: This needs better handling and take into account rotations
-                //child.Local.SubDistance(World.Position);
-                child.Local.Position -= World.Position;
-                child.Local.Rotation -= World.Rotation;
                 child.GameObject.ParentObj = this.GameObject;
+
+                if (!isRelative)
+                {
+                    child.Local.Position -= World.Position;
+                    child.Local.Rotation += World.Rotation;
+                    
+                    if (World.Rotation.Z != 0)
+                    {
+                        var newPos = RotatePoint(child.Local.Position, new Point(0,0, 0), World.Rotation.Z*(-1));
+                        child.Local.Position = new Vector3(newPos.X, newPos.Y, child.Local.Position.Z);
+                    }
+                }
             }
         }
+
+        static Vector3 RotatePoint(Vector3 pointToRotate, Point centerPoint, float angleInRadians)
+        {
+            //double angleInRadians = angleInDegrees * (Math.PI / 180);
+            float cosTheta = MathF.Cos(angleInRadians);
+            float sinTheta = MathF.Sin(angleInRadians);
+            return new Vector3
+            {
+                X =
+                    
+                    (cosTheta * (pointToRotate.X - centerPoint.X) -
+                        sinTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.X),
+                Y =
+                    
+                    (sinTheta * (pointToRotate.X - centerPoint.X) +
+                     cosTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.Y),
+                Z = pointToRotate.Z
+            };
+        }
+        
 
         private void InternalDetachChild(Transform child)
         {
@@ -324,6 +352,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// <returns></returns>
         private PositionAndRotation GetWorldPosition()
         {
+            return _localPosRot;
+            
             if (_parentTransform == null)
                 return _localPosRot;
             var res = _parentTransform.GetWorldPosition().Clone();
@@ -626,6 +656,22 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 _debugTrackers.Add(player);
                 return true;
             }
+        }
+        
+        public static Vector3 RotatePoint(Vector3 pointToRotate, float angleInRadians)
+        {
+            float cosTheta = MathF.Cos(angleInRadians);
+            float sinTheta = MathF.Sin(angleInRadians);
+            return new Vector3
+            {
+                X =
+                    (cosTheta * (pointToRotate.X ) -
+                     sinTheta * (pointToRotate.Y)),
+                Y =
+                    (sinTheta * (pointToRotate.X ) +
+                     cosTheta * (pointToRotate.Y)),
+                Z = pointToRotate.Z
+            };
         }
 
     }

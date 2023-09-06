@@ -577,12 +577,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     command.Parameters.AddWithValue("@growth_time", GrowthTime);
                     command.Parameters.AddWithValue("@phase_time", DateTime.MinValue);
                     // We save it's world position, and upon loading, we re-parent things depending on the data
-                    command.Parameters.AddWithValue("@x", Transform?.World.Position.X ?? 0f);
-                    command.Parameters.AddWithValue("@y", Transform?.World.Position.Y ?? 0f);
-                    command.Parameters.AddWithValue("@z", Transform?.World.Position.Z ?? 0f);
-                    command.Parameters.AddWithValue("@roll", Transform?.World.Rotation.X ?? 0f);
-                    command.Parameters.AddWithValue("@pitch", Transform?.World.Rotation.Y ?? 0f);
-                    command.Parameters.AddWithValue("@yaw", Transform?.World.Rotation.Z ?? 0f);
+                    command.Parameters.AddWithValue("@x", Transform?.Local.Position.X ?? 0f);
+                    command.Parameters.AddWithValue("@y", Transform?.Local.Position.Y ?? 0f);
+                    command.Parameters.AddWithValue("@z", Transform?.Local.Position.Z ?? 0f);
+                    command.Parameters.AddWithValue("@roll", Transform?.Local.Rotation.X ?? 0f);
+                    command.Parameters.AddWithValue("@pitch", Transform?.Local.Rotation.Y ?? 0f);
+                    command.Parameters.AddWithValue("@yaw", Transform?.Local.Rotation.Z ?? 0f);
                     command.Parameters.AddWithValue("@item_id", ItemId);
                     command.Parameters.AddWithValue("@house_id", DbHouseId);
                     command.Parameters.AddWithValue("@parent_doodad", parentDoodadId);

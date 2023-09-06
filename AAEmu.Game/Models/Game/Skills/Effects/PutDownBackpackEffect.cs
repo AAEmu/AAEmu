@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets;
@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects
 {
@@ -74,13 +75,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 doodad.UccId = item.UccId; // Not sure if it's needed, but let's copy the Ucc for completeness' sake
                 doodad.SetScale(1f);
                 doodad.PlantTime = DateTime.UtcNow;
+                
                 if (targetHouse != null)
                 {
                     doodad.DbHouseId = targetHouse.Id;
                     doodad.OwnerType = DoodadOwnerType.Housing;
                     doodad.ParentObj = targetHouse;
                     doodad.ParentObjId = targetHouse.ObjId;
-                    doodad.Transform.Parent = targetHouse.Transform; // Does not work as intended yet
+                    doodad.Transform.SetParent(targetHouse.Transform);
                 }
                 
                 doodad.Spawn();

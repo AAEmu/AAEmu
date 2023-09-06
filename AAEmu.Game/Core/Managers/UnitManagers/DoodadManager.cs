@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Database.Mysql;
+using AAEmu.Game.Core.Database.Sqllite;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -17,10 +20,134 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
+using Character = AAEmu.Game.Models.Game.Char.Character;
+using Doodad = AAEmu.Game.Models.Game.DoodadObj.Doodad;
+using DoodadFunc = AAEmu.Game.Models.Game.DoodadObj.DoodadFunc;
+using DoodadFuncAnimate = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncAnimate;
+using DoodadFuncAreaTrigger = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncAreaTrigger;
+using DoodadFuncAttachment = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncAttachment;
+using DoodadFuncBinding = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncBinding;
+using DoodadFuncBubble = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncBubble;
+using DoodadFuncBuff = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncBuff;
+using DoodadFuncButcher = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncButcher;
+using DoodadFuncBuyFish = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncBuyFish;
+using DoodadFuncBuyFishItem = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncBuyFishItem;
+using DoodadFuncBuyFishModel = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncBuyFishModel;
+using DoodadFuncCatch = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCatch;
+using DoodadFuncCerealHarvest = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCerealHarvest;
+using DoodadFuncCleanupLogicLink = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCleanupLogicLink;
+using DoodadFuncClimateReact = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncClimateReact;
+using DoodadFuncClimb = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncClimb;
+using DoodadFuncClout = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncClout;
+using DoodadFuncCoffer = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCoffer;
+using DoodadFuncCofferPerm = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCofferPerm;
+using DoodadFuncConditionalUse = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncConditionalUse;
+using DoodadFuncConsumeChanger = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncConsumeChanger;
+using DoodadFuncConsumeChangerItem = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncConsumeChangerItem;
+using DoodadFuncConsumeChangerModel = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncConsumeChangerModel;
+using DoodadFuncConsumeChangerModelItem = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncConsumeChangerModelItem;
+using DoodadFuncConsumeItem = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncConsumeItem;
+using DoodadFuncConvertFish = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncConvertFish;
+using DoodadFuncConvertFishItem = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncConvertFishItem;
+using DoodadFuncCraftAct = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCraftAct;
+using DoodadFuncCraftCancel = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCraftCancel;
+using DoodadFuncCraftDirect = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCraftDirect;
+using DoodadFuncCraftGetItem = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCraftGetItem;
+using DoodadFuncCraftInfo = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCraftInfo;
+using DoodadFuncCraftPack = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCraftPack;
+using DoodadFuncCraftStart = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCraftStart;
+using DoodadFuncCraftStartCraft = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCraftStartCraft;
+using DoodadFuncCropHarvest = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCropHarvest;
+using DoodadFuncCrystalCollect = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCrystalCollect;
+using DoodadFuncCutdown = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCutdown;
+using DoodadFuncCutdowning = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncCutdowning;
+using DoodadFuncDairyCollect = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncDairyCollect;
+using DoodadFuncDeclareSiege = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncDeclareSiege;
+using DoodadFuncDig = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncDig;
+using DoodadFuncDigTerrain = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncDigTerrain;
+using DoodadFuncDyeingredientCollect = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncDyeingredientCollect;
+using DoodadFuncEnterInstance = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncEnterInstance;
+using DoodadFuncEnterSysInstance = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncEnterSysInstance;
+using DoodadFuncEvidenceItemLoot = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncEvidenceItemLoot;
+using DoodadFuncExchange = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncExchange;
+using DoodadFuncExitIndun = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncExitIndun;
+using DoodadFuncFakeUse = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncFakeUse;
+using DoodadFuncFeed = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncFeed;
+using DoodadFuncFiberCollect = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncFiberCollect;
+using DoodadFuncFinal = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncFinal;
+using DoodadFuncFishSchool = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncFishSchool;
+using DoodadFuncFruitPick = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncFruitPick;
+using DoodadFuncGassExtract = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncGassExtract;
+using DoodadFuncGrowth = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncGrowth;
+using DoodadFuncHarvest = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncHarvest;
+using DoodadFuncHouseFarm = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncHouseFarm;
+using DoodadFuncHousingArea = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncHousingArea;
+using DoodadFuncHunger = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncHunger;
+using DoodadFuncInsertCounter = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncInsertCounter;
+using DoodadFuncLogic = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncLogic;
+using DoodadFuncLogicFamilyProvider = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncLogicFamilyProvider;
+using DoodadFuncLogicFamilySubscriber = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncLogicFamilySubscriber;
+using DoodadFuncLootItem = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncLootItem;
+using DoodadFuncLootPack = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncLootPack;
+using DoodadFuncMachinePartsCollect = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncMachinePartsCollect;
+using DoodadFuncMedicalingredientMine = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncMedicalingredientMine;
+using DoodadFuncMow = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncMow;
+using DoodadFuncNaviMarkPosToMap = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncNaviMarkPosToMap;
+using DoodadFuncNaviNaming = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncNaviNaming;
+using DoodadFuncNaviOpenBounty = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncNaviOpenBounty;
+using DoodadFuncNaviOpenMailbox = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncNaviOpenMailbox;
+using DoodadFuncNaviOpenPortal = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncNaviOpenPortal;
+using DoodadFuncNaviRemove = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncNaviRemove;
+using DoodadFuncNaviRemoveTimer = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncNaviRemoveTimer;
+using DoodadFuncNaviTeleport = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncNaviTeleport;
+using DoodadFuncOpenFarmInfo = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncOpenFarmInfo;
+using DoodadFuncOpenPaper = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncOpenPaper;
+using DoodadFuncOreMine = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncOreMine;
+using DoodadFuncParentInfo = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncParentInfo;
+using DoodadFuncParrot = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncParrot;
+using DoodadFuncPlantCollect = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncPlantCollect;
+using DoodadFuncPlayFlowGraph = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncPlayFlowGraph;
+using DoodadFuncPulse = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncPulse;
+using DoodadFuncPulseTrigger = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncPulseTrigger;
+using DoodadFuncPurchase = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncPurchase;
+using DoodadFuncPuzzleIn = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncPuzzleIn;
+using DoodadFuncPuzzleOut = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncPuzzleOut;
+using DoodadFuncPuzzleRoll = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncPuzzleRoll;
+using DoodadFuncQuest = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncQuest;
+using DoodadFuncRatioChange = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncRatioChange;
+using DoodadFuncRatioRespawn = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncRatioRespawn;
+using DoodadFuncRecoverItem = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncRecoverItem;
+using DoodadFuncRemoveInstance = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncRemoveInstance;
+using DoodadFuncRemoveItem = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncRemoveItem;
+using DoodadFuncRenewItem = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncRenewItem;
+using DoodadFuncRequireItem = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncRequireItem;
+using DoodadFuncRequireQuest = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncRequireQuest;
+using DoodadFuncRespawn = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncRespawn;
+using DoodadFuncRockMine = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncRockMine;
+using DoodadFuncSeedCollect = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncSeedCollect;
+using DoodadFuncShear = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncShear;
+using DoodadFuncSiegePeriod = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncSiegePeriod;
+using DoodadFuncSign = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncSign;
+using DoodadFuncSkillHit = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncSkillHit;
+using DoodadFuncSkinOff = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncSkinOff;
+using DoodadFuncSoilCollect = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncSoilCollect;
+using DoodadFuncSpawnGimmick = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncSpawnGimmick;
+using DoodadFuncSpawnMgmt = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncSpawnMgmt;
+using DoodadFuncSpiceCollect = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncSpiceCollect;
+using DoodadFuncStampMaker = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncStampMaker;
+using DoodadFuncStoreUi = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncStoreUi;
+using DoodadFuncTimer = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncTimer;
+using DoodadFuncTod = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncTod;
+using DoodadFuncUccImprint = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncUccImprint;
+using DoodadFuncUse = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncUse;
+using DoodadFuncWaterVolume = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncWaterVolume;
+using DoodadFuncZoneReact = AAEmu.Game.Models.Game.DoodadObj.Funcs.DoodadFuncZoneReact;
+using DoodadPhaseFunc = AAEmu.Game.Models.Game.DoodadObj.DoodadPhaseFunc;
+using Transfer = AAEmu.Game.Models.Game.Units.Transfer;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
 {
@@ -51,6 +178,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         {
             if (_loaded)
                 return;
+            
+            var _sqlliteContext = new AAEmuSqlliteDbContext();
+            var _mysqlContext = new AAEmuMysqlDbContext();
+
+            var doodadAlmighties = _sqlliteContext.DoodadAlmighties.ToList();
+            var doodads = _mysqlContext.Doodads.ToList();
+            
 
             _templates = new Dictionary<uint, DoodadTemplate>();
             _allFuncGroups = new Dictionary<uint, DoodadFuncGroups>();
@@ -2482,6 +2616,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             _log.Warn("{0} is placing a doodad {1} at position {2} {3} {4}", character.Name, id, x, y, z);
 
             var targetHouse = HousingManager.Instance.GetHouseAtLocation(x, y);
+            var usedItem = character.Inventory.Bag.GetItemByItemId(itemId);
 
             // Create doodad
             var doodad = Instance.Create(0, id, character);
@@ -2491,6 +2626,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.Transform.Local.SetZRotation(zRot);
             doodad.ItemId = itemId;
             doodad.PlantTime = DateTime.UtcNow;
+
             if (targetHouse != null)
             {
                 doodad.DbHouseId = targetHouse.Id;
@@ -2498,21 +2634,23 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 doodad.OwnerType = DoodadOwnerType.Housing;
                 doodad.ParentObj = targetHouse;
                 doodad.ParentObjId = targetHouse.ObjId;
-                doodad.Transform.Parent = targetHouse.Transform;
+                
+                _log.Debug(targetHouse.Template.AutoZOffsetY);
+                
+                doodad.Transform.SetParent(targetHouse.Transform, !(usedItem.Template.Category_Id == 51 || usedItem.Template.Category_Id == 8));
             }
             else
             {
                 doodad.DbHouseId = 0;
             }
-
+            
             if (scale > 0f)
                 doodad.SetScale(scale);
 
             // Consume item
             var items = ItemManager.Instance.GetItemIdsFromDoodad(id);
-            var preferredItem = character.Inventory.Bag.GetItemByItemId(itemId);
-
-            doodad.ItemTemplateId = preferredItem.TemplateId;
+            
+            doodad.ItemTemplateId = usedItem.TemplateId;
 
             if (doodad is DoodadCoffer coffer)
             {
@@ -2520,13 +2658,15 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
 
             foreach (var item in items)
-                character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1, preferredItem);
+                character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1, usedItem);
 
             doodad.Spawn();
             doodad.Save();
 
             return doodad;
         }
+        
+      
 
         public bool OpenCofferDoodad(Character character, uint objId)
         {

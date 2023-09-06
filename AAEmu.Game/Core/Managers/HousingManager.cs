@@ -1637,7 +1637,7 @@ namespace AAEmu.Game.Core.Managers
                 res = player.Inventory.SystemContainer.AddOrMoveExistingItem(ItemTaskType.DoodadCreate, item);
             }
             
-            // _log.Debug("DecorateHouse => DoodadTemplate: {0} , DoodadId {1}, Pos: {2}", doodad.TemplateId, doodad.ObjId, doodad.Transform.ToString());
+            _log.Debug("DecorateHouse => DoodadTemplate: {0} , DoodadId {1}, Pos: {2}, Original Pos {3}", doodad.TemplateId, doodad.ObjId, doodad.Transform.ToString(), pos.ToString());
 
             return res;
         }
