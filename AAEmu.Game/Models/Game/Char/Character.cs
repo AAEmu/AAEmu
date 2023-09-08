@@ -1198,6 +1198,28 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.DropRateMul)]
+        public float DropRateMul
+        {
+            get
+            {
+                double res = 0.0;
+                res = CalculateWithBonuses(res, UnitAttribute.DropRateMul);
+                return (float)res;
+            }
+        }
+        
+        [UnitAttribute(UnitAttribute.LootGoldMul)]
+        public float LootGoldMul
+        {
+            get
+            {
+                double res = 0.0;
+                res = CalculateWithBonuses(res, UnitAttribute.LootGoldMul);
+                return (float)res;
+            }
+        }
+        
         #endregion
 
         public Character(UnitCustomModelParams modelParams)

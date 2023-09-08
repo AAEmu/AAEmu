@@ -11,13 +11,16 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
@@ -342,7 +345,7 @@ namespace AAEmu.Game.Models.Game.Units
                 return;
             }
 
-            var lootDropItems = ItemManager.Instance.CreateLootDropItems(ObjId);
+            var lootDropItems = ItemManager.Instance.CreateLootDropItems(ObjId, killer);
             if (lootDropItems.Count > 0)
             {
                 killer.BroadcastPacket(new SCLootableStatePacket(ObjId, true), true);

@@ -19,6 +19,7 @@ namespace AAEmu.Game.Models.Game
         public double HonorRate { get; set; } = 1.0;
         public double VocationRate { get; set; } = 1.0;
         public double LootRate { get; set; } = 1.0;
+        public double GoldLootMultiplier { get; set; } = 1.0;
         public double GrowthRate { get; set; } = 1.0;
         public bool GodMode { get; set; } = false;
         public bool GeoDataMode { get; set; } = false;
