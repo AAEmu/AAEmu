@@ -93,7 +93,7 @@ namespace AAEmu.Game.Core.Managers.World
                 }
                 else
                 {
-                    spawner[0].SpawnAll();
+                    spawner[0].SpawnAll(true);
                     count++;
                     if (count % 5000 == 0 && worldId == 0)
                     {
