@@ -379,6 +379,42 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        public void ResetQuests(QuestDetail questDetail, bool sendIfChanged = true) => ResetQuests(new QuestDetail[] { questDetail }, sendIfChanged);
+        public void ResetQuests(QuestDetail[] questDetail, bool sendIfChanged = true)
+        {
+            foreach(var (completeId, completeBlock) in CompletedQuests)
+            {
+                for (var id = 0; id < 64; id++)
+                {
+                    var questId = (uint)(completeId * 64) + (uint)id;
+                    var q = QuestManager.Instance.GetTemplate(questId);
+                    // Skip unused Ids
+                    if (q == null)
+                        continue;
+                    // Skip if quest still active
+                    if (HasQuest(questId))
+                        continue;
+
+                    foreach (var qd in questDetail)
+                    {
+                        if ((q.DetailId == qd) && (completeBlock.Body[id]))
+                        {
+                            completeBlock.Body[id] = false;
+                            _log.Info($"QuestReset by {Owner.Name}, reset {questId}");
+                            if (sendIfChanged)
+                            {
+                                var body = new byte[8];
+                                completeBlock.Body.CopyTo(body, 0);
+                                Owner.SendPacket(new SCQuestContextResetPacket(questId, body, completeId));
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+        
+        
         public void Load(MySqlConnection connection)
         {
             using (var command = connection.CreateCommand())
