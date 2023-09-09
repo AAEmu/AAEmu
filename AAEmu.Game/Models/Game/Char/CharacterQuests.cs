@@ -414,7 +414,6 @@ namespace AAEmu.Game.Models.Game.Char
 
         }
         
-        
         public void Load(MySqlConnection connection)
         {
             using (var command = connection.CreateCommand())
@@ -513,6 +512,27 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.Clear();
                 }
             }
+        }
+
+        public void CheckDailyResetAtLogin()
+        {
+            // TODO: Put Server timezone offset in configuration file, currently using local machine midnight
+            // var utcDelta = DateTime.Now - DateTime.UtcNow;
+            // var isOld = (DateTime.Today + utcDelta - Owner.LeaveTime.Date) >= TimeSpan.FromDays(1);
+            var isOld = (DateTime.Today - Owner.LeaveTime.Date) >= TimeSpan.FromDays(1);
+            if (isOld)
+                ResetDailyQuests(false);
+        }
+
+        public void ResetDailyQuests(bool sendPacketsIfChanged)
+        {
+            Owner.Quests.ResetQuests(
+                new QuestDetail[]
+                {
+                    QuestDetail.Daily, QuestDetail.DailyGroup, QuestDetail.DailyHunt,
+                    QuestDetail.DailyLivelihood
+                }, true
+            );
         }
     }
 }

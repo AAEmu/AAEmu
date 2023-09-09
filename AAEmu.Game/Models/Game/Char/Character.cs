@@ -2143,6 +2143,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Blocked.Load(connection);
                 Quests = new CharacterQuests(this);
                 Quests.Load(connection);
+                Quests.CheckDailyResetAtLogin();
                 Mates = new CharacterMates(this);
                 Mates.Load(connection);
 

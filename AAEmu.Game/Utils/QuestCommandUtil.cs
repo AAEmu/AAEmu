@@ -141,13 +141,7 @@ namespace AAEmu.Game.Utils
                     }
                     break;
                 case "resetdaily":
-                    character.Quests.ResetQuests(
-                        new QuestDetail[]
-                        {
-                            QuestDetail.Daily, QuestDetail.DailyGroup, QuestDetail.DailyHunt,
-                            QuestDetail.DailyLivelihood
-                        }, true
-                    );
+                    character.Quests.ResetDailyQuests(true);
                     break;
                 default:
                     character.SendMessage("[Quest] /quest <add/remove/list/prog/reward>\nBefore that, target the Npc you need for the quest");

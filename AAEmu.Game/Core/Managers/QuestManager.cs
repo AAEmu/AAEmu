@@ -134,6 +134,11 @@ namespace AAEmu.Game.Core.Managers
                 UpdateQuestComponentActs();
             }
             _loaded = true;
+            
+            // Start daily reset task
+            var dailyCron = "0 0 0 ? * * *";
+            // TODO: Make sure it obeys server time settings
+            TaskManager.Instance.CronSchedule(new QuestDailyResetTask(), dailyCron);
         }
 
         private void LoadQuestMonsterNpcs(SqliteConnection connection)
