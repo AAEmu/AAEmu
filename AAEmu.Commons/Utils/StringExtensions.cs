@@ -7,7 +7,7 @@ namespace AAEmu.Commons.Utils
         public static string FirstCharToUpper(this string input)
         {
             if (string.IsNullOrEmpty(input))
-                throw new ArgumentNullException($"{nameof(input)} is null or empty");
+                throw new ArgumentException($"{nameof(input)} is null or empty");
 
             return char.ToUpper(input[0]) + input[1..];
         }
