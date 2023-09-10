@@ -38,4 +38,14 @@ namespace AAEmu.Game.Models.Game
         public List<AccountDeleteDelayTiming> DeleteTimings { get; set; } = new List<AccountDeleteDelayTiming>();
     }
 
+    public class SpecialtyConfig
+    {
+        public int MaxSpecialtyRatio { get; set; } = 130;
+        public int MinSpecialtyRatio { get; set; } = 70;
+        public double RatioDecreasePerPack { get; set; } = 0.5f;
+        public double RatioIncreasePerTick { get; set; } = 5.0;
+        public double RatioDecreaseTickMinutes { get; set; } = 1f;
+        public double RatioRegenTickMinutes { get; set; } = 60f;
+    }
+
 }

@@ -25,6 +25,7 @@ namespace AAEmu.Game.Models
         public Dictionary<string, int> AccessLevel { get; set; } = new Dictionary<string, int>();
         public AccountConfig Account { get; set; }
         public ClientDataConfig ClientData { get; set; } = new ClientDataConfig();
+        public SpecialtyConfig Specialty { get; set; } = new SpecialtyConfig();
 
         public class NetworkConfig
         {
