@@ -6,12 +6,12 @@ using System.Numerics;
 using System.Text;
 using AAEmu.Commons.Conversion;
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Exceptions;
+
+#pragma warning disable IDE0048 // Add parentheses for clarity
 
 namespace AAEmu.Commons.Network
 {
-    public sealed class MarshalException : Exception // next: is it necessary?
-    {
-    }
 
     /// <summary>
     /// Class to manage, merge, read and write packets. 

@@ -6,7 +6,7 @@ namespace AAEmu.Commons.Utils
     /// Base class used for singletons
     /// </summary>
     /// <typeparam name="T">The class type</typeparam>
-    public class Singleton<T> where T : class
+    public abstract class Singleton<T> where T : class
     {
         private static T _instance;
 
@@ -20,10 +20,6 @@ namespace AAEmu.Commons.Utils
                 OnInit();
                 return _instance;
             }
-        }
-
-        protected Singleton()
-        {
         }
 
         private static void OnInit()

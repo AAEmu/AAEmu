@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace AAEmu.Commons.Utils
 {
@@ -7,8 +7,9 @@ namespace AAEmu.Commons.Utils
         public static string FirstCharToUpper(this string input)
         {
             if (string.IsNullOrEmpty(input))
-                throw new ArgumentNullException($"{nameof(input)} is null or empty");
-            return input[0].ToString().ToUpper() + input.Substring(1);
+                throw new ArgumentException($"{nameof(input)} is null or empty");
+
+            return char.ToUpper(input[0]) + input[1..];
         }
     }
 }

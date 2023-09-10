@@ -63,7 +63,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
         public string MoveFilesPath = @"./Data/Path/";    // путь где хранятся наши файлы
         public string MoveFileExt = @".path";             // расширение по умолчанию
         public string MoveFileName = "";                  // имя файла для маршрута
-        private float MovingDistance = 0.25f; //0.3f;
+        
+        //Not used
+        //private float MovingDistance = 0.25f; //0.3f;
+
         float RangeToCheckPoint = 0.5f; // дистанция до чекпоинта при которой считается , что мы достигли оного
         int MoveTrigerDelay = 1000;     // срабатывание таймера на движение  0,8 сек
 
