@@ -9,10 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Config.json" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="Config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -46,9 +42,6 @@
    </ItemGroup>
 
    <ItemGroup>
-     <None Update="Config.json">
-       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-     </None>
      <None Update="ExampleConfig.json">
        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
      </None>
