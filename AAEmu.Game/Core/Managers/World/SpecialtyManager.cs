@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -8,7 +7,6 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Trading;
-using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Specialty;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
@@ -20,13 +18,13 @@ namespace AAEmu.Game.Core.Managers.World
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        public static int MAX_SPECIALTY_RATIO = 130;
-        public static int MIN_SPECIALTY_RATIO = 70;
-        public static float RATIO_DECREASE_PER_PACK = 0.5f;
-        public static int RATIO_INCREASE_PER_TICK = 5;
-        
-        public static int RATIO_DECREASE_TICK_MINUTES = 1;
-        public static int RATIO_REGEN_TICK_MINUTES = 60;
+        private const int MaxSpecialtyRatio = 130;
+        private const int MinSpecialtyRatio = 70;
+        private const float RatioDecreasePerPack = 0.5f;
+        private const int RatioIncreasePerTick = 5;
+
+        private const float RatioDecreaseTickMinutes = 1f;
+        private const float RatioRegenTickMinutes = 60f;
 
         private Dictionary<uint, Specialty> _specialties;
         private Dictionary<uint, SpecialtyBundleItem> _specialtyBundleItems;
@@ -125,10 +123,10 @@ namespace AAEmu.Game.Core.Managers.World
         public void Initialize()
         {
             var ratioConsumeTask = new SpecialtyRatioConsumeTask();
-            TaskManager.Instance.Schedule(ratioConsumeTask, TimeSpan.FromMinutes(RATIO_DECREASE_TICK_MINUTES), TimeSpan.FromMinutes(RATIO_DECREASE_TICK_MINUTES));
+            TaskManager.Instance.Schedule(ratioConsumeTask, TimeSpan.FromMinutes(RatioDecreaseTickMinutes), TimeSpan.FromMinutes(RatioDecreaseTickMinutes));
             
             var ratioRegenTask = new SpecialtyRatioRegenTask();
-            TaskManager.Instance.Schedule(ratioRegenTask, TimeSpan.FromMinutes(RATIO_REGEN_TICK_MINUTES), TimeSpan.FromMinutes(RATIO_REGEN_TICK_MINUTES));
+            TaskManager.Instance.Schedule(ratioRegenTask, TimeSpan.FromMinutes(RatioRegenTickMinutes), TimeSpan.FromMinutes(RatioRegenTickMinutes));
         }
 
         public void OnItemsLoaded(object sender, EventArgs e)
@@ -308,15 +306,19 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void ConsumeRatio()
         {
-            foreach (var soldPackItems in _soldPackAmountInTick)
+            foreach (var (itemId, zoneInfo) in _soldPackAmountInTick)
             {
-                foreach (var soldPacksInZone in soldPackItems.Value)
+                foreach (var (zoneId, count) in zoneInfo)
                 {
-                    var ratioDecrease = (int) Math.Ceiling(soldPacksInZone.Value * RATIO_DECREASE_PER_PACK);
-                    InitRatioInZoneForPack(soldPackItems.Key, soldPacksInZone.Key);
+                    if (count <= 0)
+                        continue;
+                    
+                    var ratioDecrease = (int) Math.Ceiling(count * RatioDecreasePerPack);
+                    InitRatioInZoneForPack(itemId, zoneId);
+                    _soldPackAmountInTick[itemId][zoneId] = 0;
 
-                    var initialRatio = _priceRatios[soldPackItems.Key][soldPacksInZone.Key];
-                    _priceRatios[soldPackItems.Key][soldPacksInZone.Key] = Math.Max(MIN_SPECIALTY_RATIO, initialRatio - ratioDecrease);
+                    var initialRatio = _priceRatios[itemId][zoneId];
+                    _priceRatios[itemId][zoneId] = Math.Max(MinSpecialtyRatio, initialRatio - ratioDecrease);
                 }
             }
         }
@@ -329,7 +331,7 @@ namespace AAEmu.Game.Core.Managers.World
                 {
                     InitRatioInZoneForPack(soldPackItems.Key, soldPacksInZone.Key);
                     var initialRatio = _priceRatios[soldPackItems.Key][soldPacksInZone.Key];
-                    _priceRatios[soldPackItems.Key][soldPacksInZone.Key] = Math.Min(MAX_SPECIALTY_RATIO, initialRatio + RATIO_INCREASE_PER_TICK);
+                    _priceRatios[soldPackItems.Key][soldPacksInZone.Key] = Math.Min(MaxSpecialtyRatio, initialRatio + RatioIncreasePerTick);
                 }
             }
         }
@@ -340,7 +342,7 @@ namespace AAEmu.Game.Core.Managers.World
                 _priceRatios.Add(itemId, new Dictionary<uint, int>());
             
             if (!_priceRatios[itemId].ContainsKey(zoneId))
-                _priceRatios[itemId].Add(zoneId, MAX_SPECIALTY_RATIO);
+                _priceRatios[itemId].Add(zoneId, MaxSpecialtyRatio);
         }
 
         // Dummy for tests
