@@ -343,7 +343,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 if (this.ContainerType != SlotType.None)
                     itemTasks.Add(new ItemAdd(item));
                 
-                if ((sourceContainer != null) && (sourceContainer != this))
+                if (sourceContainer != this)
                 {
                     sourceContainer?.OnLeaveContainer(item, this);
                     OnEnterContainer(item, sourceContainer);
