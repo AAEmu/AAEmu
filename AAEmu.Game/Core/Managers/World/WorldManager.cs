@@ -29,6 +29,9 @@ using NLog;
 
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
+#pragma warning disable IDE0048 // Add parentheses for clarity
+#pragma warning disable IDE0047 // Remove unnecessary parentheses
+
 namespace AAEmu.Game.Core.Managers.World
 {
     public class WorldManager : Singleton<WorldManager>, IWorldManager
@@ -1148,9 +1151,12 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void Stop()
         {
-            foreach (var world in _worlds)
+            if (_worlds is not null)
             {
-                world.Value?.Physics?.Stop();
+                foreach (var world in _worlds)
+                {
+                    world.Value?.Physics?.Stop();
+                }
             }
         }
 

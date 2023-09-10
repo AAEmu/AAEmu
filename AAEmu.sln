@@ -9,13 +9,26 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AAEmu.Commons", "AAEmu.Comm
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AAEmu.Game", "AAEmu.Game\AAEmu.Game.csproj", "{B17DD122-1843-4176-A0CB-8A4A8B434044}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AAEmu.Tests.Unit", "AAEmu.Tests.Unit\AAEmu.Tests.Unit.csproj", "{0E614BCF-6BA2-4986-85DA-8A0AA9C57C6B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AAEmu.UnitTests", "AAEmu.UnitTests\AAEmu.UnitTests.csproj", "{0E614BCF-6BA2-4986-85DA-8A0AA9C57C6B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AAEmu.Tests.Integration", "AAEmu.Tests.Integration\AAEmu.Tests.Integration.csproj", "{9D26DA94-2E47-45D5-9A23-14C52FA2638A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AAEmu.IntegrationTests", "AAEmu.IntegrationTests\AAEmu.IntegrationTests.csproj", "{9D26DA94-2E47-45D5-9A23-14C52FA2638A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{37933EC9-EBED-4B75-B7E9-796BEE2CA3D3}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Applications", "Applications", "{B20B2996-83AC-4BAB-9A7C-638DBEEDF47A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AddicionalFiles", "AddicionalFiles", "{ADE4FB05-479F-4C5A-9E6E-1E785A26C158}"
+	ProjectSection(SolutionItems) = preProject
+		.dockerignore = .dockerignore
+		.editorconfig = .editorconfig
+		.env = .env
+		.gitignore = .gitignore
+		.gitlab-ci.yml = .gitlab-ci.yml
+		CONTRIBUTING.md = CONTRIBUTING.md
+		docker-compose.yaml = docker-compose.yaml
+		global.json = global.json
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

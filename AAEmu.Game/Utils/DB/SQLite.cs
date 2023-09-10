@@ -8,7 +8,7 @@ namespace AAEmu.Game.Utils.DB
 {
     public static class SQLite
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
+        private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
         public static SqliteConnection CreateConnection(string directory = "Data", string sqlite = "compact.sqlite3")
         {
@@ -16,7 +16,7 @@ namespace AAEmu.Game.Utils.DB
             if (!File.Exists(dbPath))
             {
                 _log.Fatal("Server database does not exist: {0} !",dbPath);
-                return null;
+                throw new FileNotFoundException("Server database does not exist: " + dbPath);
             }
             var connection = new SqliteConnection($"Data Source=file:{dbPath}; Mode=ReadOnly");
             try
@@ -26,7 +26,7 @@ namespace AAEmu.Game.Utils.DB
             catch (Exception e)
             {
                 _log.Error(e,"Error on SQLite connect: {0}", e.Message);
-                return null;
+                throw;
             }
 
             return connection;
