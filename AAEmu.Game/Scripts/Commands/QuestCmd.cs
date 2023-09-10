@@ -17,19 +17,19 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "<list||add||remove||prog||reward>";
+            return "<list||add||remove||prog||reward||resetdaily>";
         }
 
         public string GetCommandHelpText()
 {
-            return "[Quest] /quest <add/remove/list/prog/reward>\nBefore that, target the Npc you need for the quest";
+            return "[Quest] /quest <add/remove/list/prog/reward/resetdaily>\nBefore that, target the Npc you need for the quest";
         }
 
         public void Execute( Character character, string[] args )
         {
             if ( args.Length < 1 )
             {
-                character.SendMessage( "[Quest] /quest <add/remove/list/prog/reward>\nBefore that, target the Npc you need for the quest" );
+                character.SendMessage( "[Quest] /quest <add/remove/list/prog/reward/resetdaily>\nBefore that, target the Npc you need for the quest" );
                 return;
             }
 

@@ -1,6 +1,6 @@
 ﻿namespace AAEmu.Game.Models.Game.Quests.Static
 {
-    public enum QuestDetail
+    public enum QuestDetail : uint
     {
         Normal = 1,
         Main = 2,

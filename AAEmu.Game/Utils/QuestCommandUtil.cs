@@ -140,6 +140,9 @@ namespace AAEmu.Game.Utils
                         character.SendMessage("[Quest] Proper usage: /quest remove <questId>");
                     }
                     break;
+                case "resetdaily":
+                    character.Quests.ResetDailyQuests(true);
+                    break;
                 default:
                     character.SendMessage("[Quest] /quest <add/remove/list/prog/reward>\nBefore that, target the Npc you need for the quest");
                     break;

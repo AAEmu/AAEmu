@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Quests.Templates
         public uint QuestIdx { get; set; }
         public uint MilestoneId { get; set; }
         public bool LetItDone { get; set; }
-        public uint DetailId { get; set; }
+        public QuestDetail DetailId { get; set; }
         public uint ZoneId { get; set; }
         public int Degree { get; set; }
         public bool UseQuestCamera { get; set; }
