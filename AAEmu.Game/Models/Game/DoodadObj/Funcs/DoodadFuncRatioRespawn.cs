@@ -2,29 +2,28 @@
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
+
+public class DoodadFuncRatioRespawn : DoodadPhaseFuncTemplate
 {
-    public class DoodadFuncRatioRespawn : DoodadPhaseFuncTemplate
+    public int Ratio { get; set; }
+    public uint SpawnDoodadId { get; set; }
+
+    public override bool Use(BaseUnit caster, Doodad owner)
     {
-        public int Ratio { get; set; }
-        public uint SpawnDoodadId { get; set; }
+        _log.Trace("DoodadFuncRatioRespawn : Ratio {0}, SpawnDoodadId {1}", Ratio, SpawnDoodadId);
 
-        public override bool Use(BaseUnit caster, Doodad owner)
+        // Doodad spawn
+        if (owner.PhaseRatio <= Ratio)
         {
-            _log.Trace("DoodadFuncRatioRespawn : Ratio {0}, SpawnDoodadId {1}", Ratio, SpawnDoodadId);
+            var doodad = DoodadManager.Instance.Create(0, SpawnDoodadId);
+            doodad.Transform = owner.Transform.Clone();
+            doodad.Spawn();
+            owner.Delete();
 
-            // Doodad spawn
-            if (owner.PhaseRatio <= Ratio)
-            {
-                var doodad = DoodadManager.Instance.Create(0, SpawnDoodadId);
-                doodad.Transform = owner.Transform.Clone();
-                doodad.Spawn();
-                owner.Delete();
-
-                return true; // прерываем фазовую функцию
-            }
-
-            return false;
+            return true; // прерываем фазовую функцию
         }
+
+        return false;
     }
 }

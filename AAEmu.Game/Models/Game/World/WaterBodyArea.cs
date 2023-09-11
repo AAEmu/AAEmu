@@ -9,25 +9,25 @@ public class WaterBodyArea
 {
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public uint Id { get; set; }
-    
+
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public float Height { get; set; }
-    
+
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public string Name { get; set; }
-    
+
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public string Guid { get; set; }
 
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public int WaterType { get; set; }
-    
+
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public Vector3 Direction { get; set; } = Vector3.Zero;
-    
+
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public List<Vector3> Points { get; set; }
-    
+
     [JsonIgnore]
     public RectangleF _boundingBox = RectangleF.Empty;
     [JsonIgnore]
@@ -51,7 +51,7 @@ public class WaterBodyArea
         // First do a check in 2D top view
         if (!Contains(point.X, point.Y))
             return false;
-        
+
         // If it's in withing the shape, check the height (assumes shape is flat)
         // Is it above the estimated water ?
         if (point.Z > _heighest + Height)
@@ -73,7 +73,7 @@ public class WaterBodyArea
             return false;
         }
 
-        surfacePoint = new Vector3(point.X, point.Y,_heighest + Height);
+        surfacePoint = new Vector3(point.X, point.Y, _heighest + Height);
         return true;
     }
 
@@ -87,7 +87,7 @@ public class WaterBodyArea
         var yMin = 0f;
         var xMax = 0f;
         var yMax = 0f;
-        
+
         foreach (var point in Points)
         {
             // Just take the first point
@@ -111,7 +111,7 @@ public class WaterBodyArea
                     yMin = point.Y;
                 if (point.Y > yMax)
                     yMax = point.Y;
-                
+
                 // Z
                 if (point.Z > _heighest)
                     _heighest = point.Z;
@@ -121,8 +121,8 @@ public class WaterBodyArea
         }
         _boundingBox = new RectangleF(xMin, yMin, xMax - xMin, yMax - yMin);
     }
-    
-    private bool AreLinesIntersecting(Vector2 v1Start, Vector2 v1End, Vector2 v2Start, Vector2 v2End)
+
+    private static bool AreLinesIntersecting(Vector2 v1Start, Vector2 v1End, Vector2 v2Start, Vector2 v2End)
     {
         float d1, d2;
         float a1, a2, b1, b2, c1, c2;

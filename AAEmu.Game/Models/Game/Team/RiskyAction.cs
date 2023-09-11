@@ -1,9 +1,8 @@
-﻿namespace AAEmu.Game.Models.Game.Team
+﻿namespace AAEmu.Game.Models.Game.Team;
+
+public enum RiskyAction
 {
-    public enum RiskyAction
-    {
-        Leave = 0,
-        Kick = 1,
-        Dismiss = 2
-    }
+    Leave = 0,
+    Kick = 1,
+    Dismiss = 2
 }

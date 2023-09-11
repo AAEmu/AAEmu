@@ -3,66 +3,65 @@ using AAEmu.Game.Utils.Converters;
 using Newtonsoft.Json;
 using Xunit;
 
-namespace AAEmu.UnitTests.Game.Models.Json
+namespace AAEmu.UnitTests.Game.Models.Json;
+
+public class ModelsJsonConverterTests
 {
-    public class ModelsJsonConverterTests
+    [Fact]
+    public void ConvertAComplexObject_WhenYawRollPitchIsZero_ShouldIgnore()
     {
-        [Fact]
-        public void ConvertAComplexObject_WhenYawRollPitchIsZero_ShouldIgnore()
+        //Arrange
+        var spawnsList = new JsonNpcSpawns[]
         {
-            //Arrange
-            var spawnsList = new JsonNpcSpawns[]
+            new JsonNpcSpawns
             {
-                new JsonNpcSpawns
+                UnitId = 1,
+                Id = 1,
+                FollowPath = "test",
+                Position = new JsonPosition
                 {
-                    UnitId = 1,
-                    Id = 1,
-                    FollowPath = "test",
-                    Position = new JsonPosition
-                    {
-                        X = 1, Y = 1, Z = 1,
-                        Yaw = 0,
-                        Pitch = 0,
-                        Roll = 0,
-                    }
+                    X = 1, Y = 1, Z = 1,
+                    Yaw = 0,
+                    Pitch = 0,
+                    Roll = 0,
                 }
-            };
-            var expected = "[{\"Id\":1,\"UnitId\":1,\"FollowPath\":\"test\",\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0}}]";
+            }
+        };
+        var expected = "[{\"Id\":1,\"UnitId\":1,\"FollowPath\":\"test\",\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0}}]";
 
-            //Act
-            var conversion = JsonConvert.SerializeObject(spawnsList, new JsonModelsConverter());
+        //Act
+        var conversion = JsonConvert.SerializeObject(spawnsList, new JsonModelsConverter());
 
-            //Assert
-            Assert.Equal(expected, conversion);
-        }
+        //Assert
+        Assert.Equal(expected, conversion);
+    }
 
-        [Fact]
-        public void ConvertAComplexObject_WhenYawIsZero_ShouldIgnore()
+    [Fact]
+    public void ConvertAComplexObject_WhenYawIsZero_ShouldIgnore()
+    {
+        //Arrange
+        var spawnsList = new JsonNpcSpawns[]
         {
-            //Arrange
-            var spawnsList = new JsonNpcSpawns[]
+            new JsonNpcSpawns
             {
-                new JsonNpcSpawns
+                UnitId = 1,
+                Id = 1,
+                FollowPath = "test",
+                Position = new JsonPosition
                 {
-                    UnitId = 1,
-                    Id = 1,
-                    FollowPath = "test",
-                    Position = new JsonPosition
-                    {
-                        X = 1, Y = 1, Z = 1,
-                        Yaw = 0,
-                        Pitch = 10,
-                        Roll = 20,
-                    }
+                    X = 1, Y = 1, Z = 1,
+                    Yaw = 0,
+                    Pitch = 10,
+                    Roll = 20,
                 }
-            };
-            var expected = "[{\"Id\":1,\"UnitId\":1,\"FollowPath\":\"test\",\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0,\"Roll\":20,\"Pitch\":10}}]";
+            }
+        };
+        var expected = "[{\"Id\":1,\"UnitId\":1,\"FollowPath\":\"test\",\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0,\"Roll\":20,\"Pitch\":10}}]";
 
-            //Act
-            var conversion = JsonConvert.SerializeObject(spawnsList, new JsonModelsConverter());
+        //Act
+        var conversion = JsonConvert.SerializeObject(spawnsList, new JsonModelsConverter());
 
-            //Assert
-            Assert.Equal(expected, conversion);
-        }
+        //Assert
+        Assert.Equal(expected, conversion);
     }
 }

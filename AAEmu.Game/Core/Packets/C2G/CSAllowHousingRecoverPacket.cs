@@ -2,20 +2,19 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.C2G
-{
-    public class CSAllowHousingRecoverPacket : GamePacket
-    {
-        public CSAllowHousingRecoverPacket() : base(CSOffsets.CSAllowHousingRecoverPacket, 1)
-        {
-        }
+namespace AAEmu.Game.Core.Packets.C2G;
 
-        public override void Read(PacketStream stream)
-        {
-            var tl = stream.ReadUInt16();
-            
-            _log.Debug("AllowHousingRecover, Tl: {0}", tl);
-            HousingManager.Instance.HousingToggleAllowRecover(Connection.ActiveChar,tl);
-        }
+public class CSAllowHousingRecoverPacket : GamePacket
+{
+    public CSAllowHousingRecoverPacket() : base(CSOffsets.CSAllowHousingRecoverPacket, 1)
+    {
+    }
+
+    public override void Read(PacketStream stream)
+    {
+        var tl = stream.ReadUInt16();
+
+        _log.Debug("AllowHousingRecover, Tl: {0}", tl);
+        HousingManager.Instance.HousingToggleAllowRecover(Connection.ActiveChar, tl);
     }
 }

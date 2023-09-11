@@ -9,100 +9,99 @@ using AAEmu.Game.Models.Game.World;
 
 using NLog;
 
-namespace AAEmu.Game.Models.Game.NPChar
+namespace AAEmu.Game.Models.Game.NPChar;
+
+public class NpcSpawnerNpc : Spawner<Npc>
 {
-    public class NpcSpawnerNpc : Spawner<Npc>
+    private static Logger _log = LogManager.GetCurrentClassLogger();
+
+    public uint NpcSpawnerTemplateId { get; set; }
+    public uint MemberId { get; set; }
+    public string MemberType { get; set; }
+    public float Weight { get; set; }
+
+    public NpcSpawnerNpc()
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
+    }
 
-        public uint NpcSpawnerTemplateId { get; set; }
-        public uint MemberId { get; set; }
-        public string MemberType { get; set; }
-        public float Weight { get; set; }
+    /// <summary>
+    /// Creates a new instance of NpcSpawnerNpcs with a Spawner template id (npc_spanwers)
+    /// </summary>
+    /// <param name="spawnerTemplateId"></param>
+    public NpcSpawnerNpc(uint spawnerTemplateId)
+    {
+        NpcSpawnerTemplateId = spawnerTemplateId;
+    }
 
-        public NpcSpawnerNpc()
+    public List<Npc> Spawn(NpcSpawner npcSpawner, uint maxPopulation = 1)
+    {
+        switch (MemberType)
         {
+            case "Npc":
+                return SpawnNpc(npcSpawner, maxPopulation);
+            case "NpcGroup":
+                return SpawnNpcGroup(npcSpawner, maxPopulation);
+            default:
+                throw new InvalidOperationException($"Tried spawning an unsupported line from NpcSpawnerNpc - Id: {Id}");
         }
+    }
 
-        /// <summary>
-        /// Creates a new instance of NpcSpawnerNpcs with a Spawner template id (npc_spanwers)
-        /// </summary>
-        /// <param name="spawnerTemplateId"></param>
-        public NpcSpawnerNpc(uint spawnerTemplateId)
+    private List<Npc> SpawnNpc(NpcSpawner npcSpawner, uint maxPopulation = 1)
+    {
+        var npcs = new List<Npc>();
+        for (var i = 0; i < maxPopulation; i++)
         {
-            NpcSpawnerTemplateId = spawnerTemplateId;
-        }
-
-        public List<Npc> Spawn(NpcSpawner npcSpawner, uint maxPopulation = 1)
-        {
-            switch (MemberType)
+            var npc = NpcManager.Instance.Create(0, MemberId);
+            if (npc == null)
             {
-                case "Npc":
-                    return SpawnNpc(npcSpawner, maxPopulation);
-                case "NpcGroup":
-                    return SpawnNpcGroup(npcSpawner, maxPopulation);
-                default:
-                    throw new InvalidOperationException($"Tried spawning an unsupported line from NpcSpawnerNpc - Id: {Id}");
-            }
-        }
-
-        private List<Npc> SpawnNpc(NpcSpawner npcSpawner, uint maxPopulation = 1)
-        {
-            var npcs = new List<Npc>();
-            for (var i = 0; i < maxPopulation; i++)
-            {
-                var npc = NpcManager.Instance.Create(0, MemberId);
-                if (npc == null)
-                {
-                    _log.Warn($"Npc {MemberId}, from spawner Id {npcSpawner.Id} not exist at db");
-                    return null;
-                }
-
-                _log.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawnerId {NpcSpawnerTemplateId}");
-
-                if (!npc.CanFly)
-                {
-                    // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
-                    var newZ = WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position.X, npcSpawner.Position.Y);
-                    if (Math.Abs(npcSpawner.Position.Z - newZ) <= 10)
-                    {
-                        npcSpawner.Position.Z = newZ;
-                    }
-                }
-
-                npc.Transform.ApplyWorldSpawnPosition(npcSpawner.Position);
-                if (npc.Transform == null)
-                {
-                    _log.Error($"Can't spawn npc {MemberId} from spawnerId {NpcSpawnerTemplateId}");
-                    return null;
-                }
-
-                if (npc.Ai != null)
-                {
-                    npc.Ai.IdlePosition = npc.Transform.CloneDetached();
-                    npc.Ai.GoToSpawn();
-                }
-
-                npc.Spawner = new NpcSpawner();
-                npc.Spawner.Position = npcSpawner.Position;
-                npc.Spawner.Id = npcSpawner.Id;
-                npc.Spawner.UnitId = MemberId;
-                npc.Spawner.NpcSpawnerIds.Add(NpcSpawnerTemplateId);
-                npc.Spawner.Template = npcSpawner.Template;
-                npc.Spawner.RespawnTime = (int)Rand.Next(npc.Spawner.Template.SpawnDelayMin, npc.Spawner.Template.SpawnDelayMax);
-                npc.Spawn();
-                npc.Simulation = new Simulation(npc);
-                npcs.Add(npc);
+                _log.Warn($"Npc {MemberId}, from spawner Id {npcSpawner.Id} not exist at db");
+                return null;
             }
 
-            //_log.Warn($"Spawned Npcs id={MemberId}, maxPopulation={maxPopulation}...");
+            _log.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawnerId {NpcSpawnerTemplateId}");
 
-            return npcs;
+            if (!npc.CanFly)
+            {
+                // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
+                var newZ = WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position.X, npcSpawner.Position.Y);
+                if (Math.Abs(npcSpawner.Position.Z - newZ) <= 10)
+                {
+                    npcSpawner.Position.Z = newZ;
+                }
+            }
+
+            npc.Transform.ApplyWorldSpawnPosition(npcSpawner.Position);
+            if (npc.Transform == null)
+            {
+                _log.Error($"Can't spawn npc {MemberId} from spawnerId {NpcSpawnerTemplateId}");
+                return null;
+            }
+
+            if (npc.Ai != null)
+            {
+                npc.Ai.IdlePosition = npc.Transform.CloneDetached();
+                npc.Ai.GoToSpawn();
+            }
+
+            npc.Spawner = new NpcSpawner();
+            npc.Spawner.Position = npcSpawner.Position;
+            npc.Spawner.Id = npcSpawner.Id;
+            npc.Spawner.UnitId = MemberId;
+            npc.Spawner.NpcSpawnerIds.Add(NpcSpawnerTemplateId);
+            npc.Spawner.Template = npcSpawner.Template;
+            npc.Spawner.RespawnTime = (int)Rand.Next(npc.Spawner.Template.SpawnDelayMin, npc.Spawner.Template.SpawnDelayMax);
+            npc.Spawn();
+            npc.Simulation = new Simulation(npc);
+            npcs.Add(npc);
         }
 
-        private List<Npc> SpawnNpcGroup(NpcSpawner npcSpawner, uint maxPopulation)
-        {
-            return SpawnNpc(npcSpawner, maxPopulation);
-        }
+        //_log.Warn($"Spawned Npcs id={MemberId}, maxPopulation={maxPopulation}...");
+
+        return npcs;
+    }
+
+    private List<Npc> SpawnNpcGroup(NpcSpawner npcSpawner, uint maxPopulation)
+    {
+        return SpawnNpc(npcSpawner, maxPopulation);
     }
 }

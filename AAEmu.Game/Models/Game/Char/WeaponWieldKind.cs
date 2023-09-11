@@ -1,10 +1,9 @@
-namespace AAEmu.Game.Models.Game.Char
+namespace AAEmu.Game.Models.Game.Char;
+
+public enum WeaponWieldKind
 {
-    public enum WeaponWieldKind
-    {
-        None = 0,
-        OneHanded = 1,
-        TwoHanded = 2,
-        DuelWielded = 3
-    }
+    None = 0,
+    OneHanded = 1,
+    TwoHanded = 2,
+    DuelWielded = 3
 }

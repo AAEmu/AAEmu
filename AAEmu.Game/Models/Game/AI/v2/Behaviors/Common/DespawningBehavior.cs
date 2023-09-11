@@ -1,19 +1,18 @@
 using System;
 
-namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
+namespace AAEmu.Game.Models.Game.AI.v2.Behaviors;
+
+public class DespawningBehavior : Behavior
 {
-    public class DespawningBehavior : Behavior
+    public override void Enter()
     {
-        public override void Enter()
-        {
-        }
+    }
 
-        public override void Tick(TimeSpan delta)
-        {
-        }
+    public override void Tick(TimeSpan delta)
+    {
+    }
 
-        public override void Exit()
-        {
-        }
+    public override void Exit()
+    {
     }
 }

@@ -1,24 +1,23 @@
 ﻿using System;
 
-namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Archer
+namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Archer;
+
+public class ArcherAttackBehavior : BaseCombatBehavior
 {
-    public class ArcherAttackBehavior : BaseCombatBehavior
+    public override void Enter()
     {
-        public override void Enter()
-        {
-        }
+    }
 
-        public override void Tick(TimeSpan delta)
+    public override void Tick(TimeSpan delta)
+    {
+        if (!UpdateTarget() || ShouldReturn)
         {
-            if (!UpdateTarget() || ShouldReturn)
-            {
-                Ai.GoToReturn();
-                return;
-            }
+            Ai.GoToReturn();
+            return;
         }
+    }
 
-        public override void Exit()
-        {
-        }
+    public override void Exit()
+    {
     }
 }

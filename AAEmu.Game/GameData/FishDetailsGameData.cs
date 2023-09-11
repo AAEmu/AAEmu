@@ -10,113 +10,112 @@ using AAEmu.Game.Utils.DB;
 
 using Microsoft.Data.Sqlite;
 
-namespace AAEmu.Game.GameData
+namespace AAEmu.Game.GameData;
+
+[GameData]
+public class FishDetailsGameData : Singleton<FishDetailsGameData>, IGameDataLoader
 {
-    [GameData]
-    public class FishDetailsGameData : Singleton<FishDetailsGameData>, IGameDataLoader
+    private Dictionary<uint, FishDetails> _fishDetails;
+
+    public void Load(SqliteConnection connection)
     {
-        private Dictionary<uint, FishDetails> _fishDetails;
+        _fishDetails = new Dictionary<uint, FishDetails>();
 
-        public void Load(SqliteConnection connection)
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM fish_details";
+        command.Prepare();
+        using var sqliteReader = command.ExecuteReader();
+        using var reader = new SQLiteWrapperReader(sqliteReader);
+        while (reader.Read())
         {
-            _fishDetails = new Dictionary<uint, FishDetails>();
+            var template = new FishDetails();
+            template.Id = reader.GetInt32("id");
+            template.Name = LocalizationManager.Instance.Get("fish_details", "name", template.Id, reader.GetString("name"));
+            template.ItemId = reader.GetUInt32("item_id");
+            template.MinWeight = reader.GetInt32("min_weight");
+            template.MaxWeight = reader.GetInt32("max_weight");
+            template.MinLength = reader.GetInt32("min_length");
+            template.MaxLength = reader.GetInt32("max_length");
 
-            using var command = connection.CreateCommand();
-            command.CommandText = "SELECT * FROM fish_details";
-            command.Prepare();
-            using var sqliteReader = command.ExecuteReader();
-            using var reader = new SQLiteWrapperReader(sqliteReader);
-            while (reader.Read())
-            {
-                var template = new FishDetails();
-                template.Id = reader.GetInt32("id");
-                template.Name = LocalizationManager.Instance.Get("fish_details", "name", template.Id, reader.GetString("name"));
-                template.ItemId = reader.GetUInt32("item_id");
-                template.MinWeight = reader.GetInt32("min_weight");
-                template.MaxWeight = reader.GetInt32("max_weight");
-                template.MinLength = reader.GetInt32("min_length");
-                template.MaxLength = reader.GetInt32("max_length");
+            _fishDetails.TryAdd(template.ItemId, template);
+        }
+    }
 
-                _fishDetails.TryAdd(template.ItemId, template);
-            }
+    public BigFish Create(uint templateId, int count = 1, byte grade = 0, bool generateId = true)
+    {
+        //var itemTemplate = ItemManager.Instance.GetItemTemplateFromItemId(trophy.TemplateId);
+        //var newItem = ItemManager.Instance.Create(itemTemplate.Id, trophy.Count, trophy.Grade);
+        //character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Fishing, newItem);
+
+        var template = ItemManager.Instance.GetItemTemplateFromItemId(templateId); ;
+        if (template == null)
+        {
+            return null;
         }
 
-        public BigFish Create(uint templateId, int count = 1, byte grade = 0, bool generateId = true)
+        var newItem = ItemManager.Instance.Create(templateId, 1, 0);
+
+        var fish = new BigFish(newItem.Id, template, 1);
+        (fish.Length, fish.Weight) = GetFishSize(templateId);
+
+        return fish;
+    }
+
+    public BigFish Create(Item item)
+    {
+        var template = ItemManager.Instance.GetItemTemplateFromItemId(item.TemplateId);
+        if (template == null)
         {
-            //var itemTemplate = ItemManager.Instance.GetItemTemplateFromItemId(trophy.TemplateId);
-            //var newItem = ItemManager.Instance.Create(itemTemplate.Id, trophy.Count, trophy.Grade);
-            //character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Fishing, newItem);
-
-            var template = ItemManager.Instance.GetItemTemplateFromItemId(templateId); ;
-            if (template == null)
-            {
-                return null;
-            }
-
-            var newItem = ItemManager.Instance.Create(templateId, 1,  0);
-
-            var fish = new BigFish(newItem.Id, template, 1);
-            (fish.Length, fish.Weight) = GetFishSize(templateId);
-
-            return fish;
-        }
-        
-        public BigFish Create(Item item)
-        {
-            var template = ItemManager.Instance.GetItemTemplateFromItemId(item.TemplateId);
-            if (template == null)
-            {
-                return null;
-            }
-
-            var fish = new BigFish(item.Id, template, 1);
-            fish.CreateTime = DateTime.UtcNow;
-            (fish.Length, fish.Weight) = GetFishSize(item.MadeUnitId);
-
-            //var byteArray = new byte[16];
-            //Buffer.BlockCopy(BitConverter.GetBytes(fish.Weight), 0, byteArray, 0, 4);
-            //Buffer.BlockCopy(BitConverter.GetBytes(fish.Length), 0, byteArray, 4, 4);
-            //Buffer.BlockCopy(BitConverter.GetBytes(Helpers.UnixTime(fish.CreateTime)), 0, byteArray, 8, 8);
-
-            //fish.Detail = byteArray;
-
-            ItemManager.Instance.AddItem(fish);
-
-            return fish;
+            return null;
         }
 
-        public (float, float) GetFishSize(uint templateId)
-        {
-            var length = GetFishLength(templateId);
-            var amount = length / _fishDetails[templateId].MaxLength;
-            var weight = GetFishWeight(templateId, amount);
+        var fish = new BigFish(item.Id, template, 1);
+        fish.CreateTime = DateTime.UtcNow;
+        (fish.Length, fish.Weight) = GetFishSize(item.MadeUnitId);
 
-            return (length, weight);
-        }
+        //var byteArray = new byte[16];
+        //Buffer.BlockCopy(BitConverter.GetBytes(fish.Weight), 0, byteArray, 0, 4);
+        //Buffer.BlockCopy(BitConverter.GetBytes(fish.Length), 0, byteArray, 4, 4);
+        //Buffer.BlockCopy(BitConverter.GetBytes(Helpers.UnixTime(fish.CreateTime)), 0, byteArray, 8, 8);
 
-        public float GetFishLength(uint templateId)
-        {
-            return Rand.Next(_fishDetails[templateId].MinLength, _fishDetails[templateId].MaxLength);
-        }
-        public float GetFishWeight(uint templateId)
-        {
-            return Rand.Next(_fishDetails[templateId].MinWeight, _fishDetails[templateId].MaxWeight);
-        }
+        //fish.Detail = byteArray;
 
-        public float GetFishWeight(uint templateId, float amount)
-        {
+        ItemManager.Instance.AddItem(fish);
 
-            return Lerp(_fishDetails[templateId].MinWeight, _fishDetails[templateId].MaxWeight, amount);
-        }
+        return fish;
+    }
 
-        private static float Lerp(float v1, float v2, float t)
-        {
-            return v1 + (v2 - v1) * t;
-        }
+    public (float, float) GetFishSize(uint templateId)
+    {
+        var length = GetFishLength(templateId);
+        var amount = length / _fishDetails[templateId].MaxLength;
+        var weight = GetFishWeight(templateId, amount);
 
-        public void PostLoad()
-        {
+        return (length, weight);
+    }
 
-        }
+    public float GetFishLength(uint templateId)
+    {
+        return Rand.Next(_fishDetails[templateId].MinLength, _fishDetails[templateId].MaxLength);
+    }
+    public float GetFishWeight(uint templateId)
+    {
+        return Rand.Next(_fishDetails[templateId].MinWeight, _fishDetails[templateId].MaxWeight);
+    }
+
+    public float GetFishWeight(uint templateId, float amount)
+    {
+
+        return Lerp(_fishDetails[templateId].MinWeight, _fishDetails[templateId].MaxWeight, amount);
+    }
+
+    private static float Lerp(float v1, float v2, float t)
+    {
+        return v1 + (v2 - v1) * t;
+    }
+
+    public void PostLoad()
+    {
+
     }
 }

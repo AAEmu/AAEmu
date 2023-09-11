@@ -1,17 +1,16 @@
 ﻿using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
+
+public class DoodadFuncRenewItem : DoodadFuncTemplate
 {
-    public class DoodadFuncRenewItem : DoodadFuncTemplate
+    // doodad_funcs
+    public uint SkillId { get; set; }
+
+    public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        // doodad_funcs
-        public uint SkillId { get; set; }
+        _log.Trace("DoodadFuncRenewItem");
 
-        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
-        {
-            _log.Trace("DoodadFuncRenewItem");
-
-        }
     }
 }

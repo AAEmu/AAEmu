@@ -3,29 +3,28 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
 
-namespace AAEmu.Game.Core.Packets.G2C
+namespace AAEmu.Game.Core.Packets.G2C;
+
+public class SCMailSentPacket : GamePacket
 {
-    public class SCMailSentPacket : GamePacket
+    private readonly MailHeader _mail;
+    private readonly (SlotType slotType, byte slot)[] _items;
+
+    public SCMailSentPacket(MailHeader mail, (SlotType slotType, byte slot)[] items) : base(SCOffsets.SCMailSentPacket, 1)
     {
-        private readonly MailHeader _mail;
-        private readonly (SlotType slotType, byte slot)[] _items;
+        _mail = mail;
+        _items = items;
+    }
 
-        public SCMailSentPacket(MailHeader mail, (SlotType slotType, byte slot)[] items) : base(SCOffsets.SCMailSentPacket, 1)
+    public override PacketStream Write(PacketStream stream)
+    {
+        stream.Write(_mail);
+        foreach (var (slotType, slot) in _items) // TODO 10 items
         {
-            _mail = mail;
-            _items = items;
+            stream.Write((byte)slotType);
+            stream.Write(slot);
         }
 
-        public override PacketStream Write(PacketStream stream)
-        {
-            stream.Write(_mail);
-            foreach (var (slotType, slot) in _items) // TODO 10 items
-            {
-                stream.Write((byte)slotType);
-                stream.Write(slot);
-            }
-
-            return stream;
-        }
+        return stream;
     }
 }
