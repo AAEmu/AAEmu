@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.AI.v2;
+namespace AAEmu.Game.Models.Game.AI.v2.Framework;
 
 // TODO: Fill
 public enum TransitionEvent

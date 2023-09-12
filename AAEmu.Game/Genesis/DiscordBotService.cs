@@ -49,7 +49,7 @@ public class DiscordBotService : IHostedService
         }
     }
 
-    public static async Task MessageReceived(SocketMessage message)
+    public async Task MessageReceived(SocketMessage message)
     {
         if (message.Content == "/online")
         {

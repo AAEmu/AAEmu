@@ -8,7 +8,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World.Transform;
 using NLog;
 
-namespace AAEmu.Game.Models.Game.AI.v2;
+namespace AAEmu.Game.Models.Game.AI.v2.Framework;
 
 /// <summary>
 /// This is the basics of a unit's AI: The state machine. It also carries data about which unit owns it

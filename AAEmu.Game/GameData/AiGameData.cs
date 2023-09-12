@@ -82,7 +82,7 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
                         var data = reader.IsDBNull("ai_param") ? string.Empty : reader.GetString("ai_param");
                         var aiParams = AiParams.CreateByType(fileType, data);
 #pragma warning disable CA1508 // Avoid dead conditional code
-                        if (aiParams is not null && !_aiParams.ContainsKey(id))
+                        if (aiParams != null && !_aiParams.ContainsKey(id))
                             _aiParams.Add(id, aiParams);
 #pragma warning restore CA1508 // Avoid dead conditional code
                     }

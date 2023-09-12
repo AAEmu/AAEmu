@@ -34,7 +34,7 @@ public class AiParamsOld
             case AiParamType.HoldPosition:
                 return new HoldPositionAiParams();
             case AiParamType.AlmightyNpc:
-                return new AlmightyNpcAiParams();
+                return new AlmightyNpcParams();
             case AiParamType.BigMonsterRoaming:
                 return new BigMonsterRoamingAiParams();
             default:

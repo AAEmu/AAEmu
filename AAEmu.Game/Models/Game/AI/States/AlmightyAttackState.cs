@@ -1,5 +1,4 @@
 ﻿using System;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.AI.Params;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -13,11 +12,11 @@ public class AlmightyAttackState : AAttackState
     public Unit Target { get; set; }
     public Npc Npc { get; set; }
     public NpcTemplate OwnerTemplate { get; set; }
-    public AlmightyNpcAiParams AiParams { get; set; }
-    private DateTime _lastSkillEnd = DateTime.MinValue;
-    private float _currentDelay = 0.0f;
-    private float _nextDelay = 0.0f;
-    private int _sequenceIndex = 0;
+    public AlmightyNpcParams AiParams { get; set; }
+    // private DateTime _lastSkillEnd = DateTime.MinValue;
+    // private float _currentDelay = 0.0f;
+    // private float _nextDelay = 0.0f;
+    // Unused private int _sequenceIndex = 0;
 
     public override void Enter()
     {
@@ -31,7 +30,7 @@ public class AlmightyAttackState : AAttackState
         Npc = npc;
         //AiParams = (AlmightyNpcAiParams) AiGameData.Instance.GetAiParamsForId((uint) npc.Template.NpcAiParamId);
         OwnerTemplate = npc.Template;
-        _lastSkillEnd = DateTime.MinValue;
+        //_lastSkillEnd = DateTime.MinValue;
     }
 
     public override void Tick(TimeSpan delta)
@@ -112,6 +111,7 @@ public class AlmightyAttackState : AAttackState
         */
     }
 
+    /* Unused
     private AiSkillList GetNextAiSkills()
     {
         if (_sequenceIndex >= AiParams.AiSkillLists.Count)
@@ -133,6 +133,7 @@ public class AlmightyAttackState : AAttackState
         return aiSkill;
     }
 
+    Unused
     private void GoToReturnToIdle()
     {
         Npc.InterruptSkills();
@@ -140,11 +141,14 @@ public class AlmightyAttackState : AAttackState
         var returnToIdleState = AI.StateMachine.GetState(Framework.States.ReturnToIdle);
         AI.StateMachine.SetCurrentState(returnToIdleState);
     }
+    */
 
+#pragma warning disable CA1822 // Mark members as static
     public void OnSkillEnd(Skill skill)
     {
-        _lastSkillEnd = DateTime.UtcNow;
-        _currentDelay = _nextDelay;
-        _nextDelay = 0.0f;
+        // _lastSkillEnd = DateTime.UtcNow;
+        // _currentDelay = _nextDelay;
+        // _nextDelay = 0.0f;
     }
+#pragma warning restore CA1822 // Mark members as static
 }

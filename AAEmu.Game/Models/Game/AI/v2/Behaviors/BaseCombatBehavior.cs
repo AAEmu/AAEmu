@@ -6,6 +6,7 @@ using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.AStar;
+using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 

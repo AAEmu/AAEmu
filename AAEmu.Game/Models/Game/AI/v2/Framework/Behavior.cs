@@ -11,7 +11,7 @@ using AAEmu.Game.Models.Game.Units;
 
 using NLog;
 
-namespace AAEmu.Game.Models.Game.AI.v2;
+namespace AAEmu.Game.Models.Game.AI.v2.Framework;
 
 public enum BehaviorKind
 {
@@ -209,7 +209,7 @@ public abstract class Behavior
 
     public void OnEnemySeen(Unit target)
     {
-        Ai.Owner.AddUnitAggro(NPChar.AggroKind.Damage, target, 1);
+        Ai.Owner.AddUnitAggro(AggroKind.Damage, target, 1);
         Ai.GoToCombat();
     }
 }

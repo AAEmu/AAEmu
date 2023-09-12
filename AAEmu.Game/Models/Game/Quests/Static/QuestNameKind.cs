@@ -1,4 +1,4 @@
-﻿namespace AAEmu.Game.Models.Game.Quests;
+﻿namespace AAEmu.Game.Models.Game.Quests.Static;
 
 public enum QuestNameKind
 {

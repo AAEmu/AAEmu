@@ -1,10 +1,11 @@
 ﻿using System;
 
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
-namespace AAEmu.Game.Models.Game.AI.v2.Behaviors;
+namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
 public class IdleBehavior : Behavior
 {

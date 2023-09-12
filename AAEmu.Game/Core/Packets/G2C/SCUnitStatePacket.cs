@@ -7,7 +7,6 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Housing;
-using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Shipyard;
 using AAEmu.Game.Models.Game.Skills;
@@ -493,6 +492,7 @@ public class SCUnitStatePacket : GamePacket
         } while (index < 28);
     }
 
+    /* Unused
     private static void Inventory_Equip(PacketStream stream, Unit unit0)
     {
         switch (unit0)
@@ -600,6 +600,7 @@ public class SCUnitStatePacket : GamePacket
                 break;
         }
     }
+    */
     #endregion Inventory_Equip
 
     #region NetBuff

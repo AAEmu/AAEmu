@@ -2,7 +2,7 @@
 
 using AAEmu.Game.Models.Game.Skills.Static;
 
-namespace AAEmu.Game.Models.Game.AI.v2.Behaviors;
+namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
 public class AttackBehavior : BaseCombatBehavior
 {

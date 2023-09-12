@@ -1,7 +1,7 @@
 ﻿using AAEmu.Game.Models.Game.AI.v2.Params.Archer;
 using AAEmu.Game.Models.Game.AI.v2.Params.BigMonster;
-using AAEmu.Game.Models.Game.AI.V2.Params;
 using AAEmu.Game.Models.Game.AI.v2.Params.WildBoar;
+using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Params;
 

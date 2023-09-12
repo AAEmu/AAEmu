@@ -3,7 +3,7 @@ using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.Params;
 
-public class AlmightyNpcAiParams : AiParamsOld
+public class AlmightyNpcParams : AiParamsOld
 {
     public override AiParamType Type => AiParamType.AlmightyNpc;
 

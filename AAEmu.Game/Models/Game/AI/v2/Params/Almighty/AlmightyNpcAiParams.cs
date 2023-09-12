@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using AAEmu.Game.Models.Game.AI.v2.Params;
+using AAEmu.Game.Models.Game.AI.V2.Params;
 using NLua;
 
-namespace AAEmu.Game.Models.Game.AI.V2.Params;
+namespace AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 
 public class AlmightyNpcAiParams : AiParams
 {

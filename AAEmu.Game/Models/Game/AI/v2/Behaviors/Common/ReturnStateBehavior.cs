@@ -1,9 +1,10 @@
 ﻿using System;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Utils;
 
-namespace AAEmu.Game.Models.Game.AI.v2.Behaviors;
+namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
 public class ReturnStateBehavior : Behavior
 {

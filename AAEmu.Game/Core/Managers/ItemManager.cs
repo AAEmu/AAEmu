@@ -165,7 +165,7 @@ public class ItemManager : Singleton<ItemManager>
 
         // Check all people in the aggro list, and use the highest stat
         // TODO: Only consider players in the party/raid with a claim on the NPC
-        if (unit.AggroTable.Count >= 1)
+        if (!unit.AggroTable.IsEmpty)
         {
             var maxDropRateMul = -100f;
             var maxLootGoldMul = -100f;

@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 using AAEmu.Game.Models.Game.AI.V2.Params;
 using AAEmu.Game.Models.Game.Skills;
 
-namespace AAEmu.Game.Models.Game.AI.v2.Behaviors;
+namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
 public class AlmightyAttackBehavior : BaseCombatBehavior
 {
@@ -109,7 +110,7 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
 
     private List<AiSkillList> RequestAvailableSkillList(float trgDist)
     {
-        int healthRatio = (int)(((float)Ai.Owner.Hp / Ai.Owner.MaxHp) * 100);
+        var healthRatio = (int)((float)Ai.Owner.Hp / Ai.Owner.MaxHp * 100);
 
         var baseList = _aiParams.AiSkillLists.AsEnumerable();
 
@@ -120,7 +121,7 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
             return s.Skills.All(skill =>
             {
                 var template = SkillManager.Instance.GetSkillTemplate(skill.SkillId);
-                return (template != null && (trgDist >= template.MinRange && trgDist <= template.MaxRange || template.TargetType == SkillTargetType.Self));
+                return template != null && (trgDist >= template.MinRange && trgDist <= template.MaxRange || template.TargetType == SkillTargetType.Self);
             });
         });
 

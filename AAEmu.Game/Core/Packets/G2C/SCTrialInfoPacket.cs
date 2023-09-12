@@ -46,4 +46,5 @@ public class SCTrialInfoPacket : GamePacket
         stream.Write(_botReport);
         return stream;
     }
+
 }
