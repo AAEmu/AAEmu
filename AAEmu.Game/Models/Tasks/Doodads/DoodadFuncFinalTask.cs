@@ -16,7 +16,7 @@ public class DoodadFuncFinalTask : DoodadFuncTask
     private BaseUnit _caster;
     private Doodad _owner;
     private uint _skillId;
-    private int _nextPhase;
+    // Unused private int _nextPhase;
     private bool _respawn;
     private int _delay;
     private DateTime? _respawnTime;
@@ -26,7 +26,7 @@ public class DoodadFuncFinalTask : DoodadFuncTask
         _caster = caster;
         _owner = owner;
         _skillId = skillId;
-        _nextPhase = (int)owner.FuncGroupId;
+        // Unused _nextPhase = (int)owner.FuncGroupId;
         _respawn = respawn;
         _owner = owner;
         _delay = delay;
@@ -59,7 +59,7 @@ public class DoodadFuncFinalTask : DoodadFuncTask
             _owner.FuncTask = null;
             if (_owner.Spawner != null)
             {
-                _owner.Spawner?.Despawn(_owner);
+                _owner.Spawner.Despawn(_owner);
             }
             else
             {

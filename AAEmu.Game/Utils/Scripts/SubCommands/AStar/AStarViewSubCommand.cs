@@ -40,7 +40,7 @@ public class AStarViewSubCommand : SubCommandBase
             return;
         }
 
-        var charPos = ((Character)character).Transform.CloneDetached();
+        using var charPos = ((Character)character).Transform.CloneDetached();
         var doodadSpawner = new DoodadSpawner
         {
             Id = 0,

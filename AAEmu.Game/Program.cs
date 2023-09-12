@@ -8,6 +8,7 @@ using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Genesis;
 using AAEmu.Game.Models;
+using AAEmu.Game.Utils.DB;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,7 +24,7 @@ public static class Program
     private static DateTime _startTime;
     private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
     private static string Version => Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "???";
-    public static AutoResetEvent ShutdownSignal = new(false); // TODO save to shutdown server?
+    public static AutoResetEvent ShutdownSignal => new(false); // TODO save to shutdown server?
 
     public static int UpTime => (int)(DateTime.UtcNow - _startTime).TotalSeconds;
     private static string[] _launchArgs;
@@ -40,25 +41,33 @@ public static class Program
         _log.Info($"{Name} version {Version}");
 
         // Apply MySQL Configuration
+        MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
+
         try
         {
-            MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
+            // Test the DB connection
+            var connection = MySQL.CreateConnection();
+            connection.Close();
+            connection.Dispose();
         }
-        catch
+        catch (Exception ex)
         {
-            _log.Fatal("MySQL configuration could not be loaded !");
-            return;
-        }
-
-        // Test the DB connection
-        var connection = MySQL.CreateConnection();
-        if (connection == null)
-        {
+            _log.Fatal(ex, "MySQL connection failed, check your configuration!");
             LogManager.Flush();
             return;
         }
 
-        connection.Close();
+        try
+        {
+            // Test the DB connection
+            using var connection = SQLite.CreateConnection();
+        }
+        catch (Exception ex)
+        {
+            _log.Fatal(ex, "Failed to load compact.sqlite3 database check if it exists!");
+            LogManager.Flush();
+            return;
+        }
 
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
 

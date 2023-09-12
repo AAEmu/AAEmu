@@ -1,6 +1,6 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Xml;
+using AAEmu.Commons.Exceptions;
 using AAEmu.Game.Models.Game.World.Transform;
 using XmlH = AAEmu.Commons.Utils.XML.XmlHelper;
 
@@ -40,7 +40,7 @@ public class XmlWorldZone
                 var cell = new XmlWorldCell();
                 cell.ReadNode(cellNodes[i], world, this);
                 if (!Cells.TryAdd((cell.X, cell.Y), cell))
-                    throw new Exception($"Failed to add Cell {cell.X}, {cell.Y} in {Name}");
+                    throw new GameException($"Failed to add Cell {cell.X}, {cell.Y} in {Name}");
             }
         }
     }

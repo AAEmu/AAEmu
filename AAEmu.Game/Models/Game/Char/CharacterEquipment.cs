@@ -164,7 +164,7 @@ public partial class Character
             armorPieces[(ArmorType)armorTemplate.KindTemplate.TypeId].Add(armor);
         }
 
-        if (!armorPieces.Any())
+        if (armorPieces.Count == 0)
             return;
         // Get kind with most pieces
         var piecesOfKind = armorPieces.First();

@@ -435,7 +435,7 @@ public class Skill
             case SkillTargetType.CursorPos:
                 break;
             default:
-                throw new ArgumentOutOfRangeException();
+                throw new NotSupportedException($"SkillTargetType not supported {Template.TargetType}");
         }
 
         return target;
@@ -458,14 +458,14 @@ public class Skill
 
             // Get a random number (from 0 to n)
             var value = Rand.Next(0, 1);
-            // для skillId = 2
-            // 87 (35) - удар наотмаш, chr
-            //  2 (00) - удар сбоку, NPC
-            //  3 (46) - удар сбоку, chr
-            //  1 (00) - удар похож на 2 удар сбоку, NPC
-            // 91 - удар сверху (немного справа)
-            // 92 - удар наотмашь слева вниз направо
-            //  0 - удар не наносится (расстояние большое и надо подойти поближе), f=1, c=15
+            // для skillId = 2 - for skillId = 2
+            // 87 (35) - удар наотмаш, chr - overhead swing, chr
+            // 2 (00) - удар сбоку, NPC - side strike, NPC
+            // 3 (46) - удар сбоку, chr - side strike, chr
+            // 1 (00) - удар похож на 2 удар сбоку, NPC - strike similar to 2, side strike, NPC
+            // 91 - удар сверху (немного справа) - strike from above (slightly from the right)
+            // 92 - удар наотмашь слева вниз направо - swing from left to right downwards
+            // 0 - удар не наносится (расстояние большое и надо подойти поближе), no strike is made (distance is too great and need to get closer) f=1, c=15 
             var effectDelay = new Dictionary<int, short> { { 0, 46 }, { 1, 35 } };
             var fireAnimId = new Dictionary<int, int> { { 0, 3 }, { 1, 87 } };
             var effectDelay2 = new Dictionary<int, short> { { 0, 0 }, { 1, 0 } };
@@ -475,8 +475,8 @@ public class Skill
             var dist = MathUtil.CalculateDistance(caster.Transform.World.Position, targetUnit.Transform.World.Position, true);
             if (dist >= SkillManager.Instance.GetSkillTemplate(Id).MinRange && dist <= SkillManager.Instance.GetSkillTemplate(Id).MaxRange)
             {
-
                 var sc = SkillController.CreateSkillController(scTemplate, caster, targetUnit);
+#pragma warning disable CA1508 // Avoid dead conditional code
                 if (sc != null)
                 {
                     if (unit.ActiveSkillController != null)
@@ -484,6 +484,7 @@ public class Skill
                     unit.ActiveSkillController = sc;
                     sc.Execute();
                 }
+#pragma warning restore CA1508 // Avoid dead conditional code
             }
         }
         unit.SkillTask = null;

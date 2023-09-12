@@ -38,6 +38,7 @@ public class SkillController
         {
             return null;
         }
+
         switch ((SkillControllerKind)template.KindId)
         {
             case SkillControllerKind.Floating:

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using NLog;
@@ -118,9 +119,9 @@ public class IdManager
                 using (var reader = command.ExecuteReader())
                 {
                     if (!reader.Read())
-                        throw new Exception("IdManager: can't extract count ids");
+                        throw new GameException("IdManager: can't extract count ids");
                     if (reader.GetInt32(0) != reader.GetInt32(1) && !_distinct)
-                        throw new Exception("IdManager: there are duplicates in object ids");
+                        throw new GameException("IdManager: there are duplicates in object ids");
                     count = reader.GetInt32(0);
                 }
 
@@ -187,7 +188,7 @@ public class IdManager
                     if (_freeIds.Count < _freeIdSize)
                         IncreaseBitSetCapacity();
                     else
-                        throw new Exception("Ran out of valid Id's.");
+                        throw new GameException("Ran out of valid Id's.");
                 }
             }
 

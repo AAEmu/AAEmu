@@ -261,7 +261,7 @@ public class PortalManager : Singleton<PortalManager>
                 _worldgatesKey.Add(worldgate.Id, worldgate.SubZoneId);
             }
         else
-            throw new Exception($"PortalManager: Parse {filePath} file");
+            throw new GameException($"PortalManager: Parse {filePath} file");
 
         _log.Info("Loaded {0} Worldgate Portals", _worldgates.Count);
 

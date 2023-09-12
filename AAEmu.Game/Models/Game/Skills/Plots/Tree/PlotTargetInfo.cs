@@ -12,13 +12,11 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
-using NLog;
-
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree;
 
 public class PlotTargetInfo
 {
-    private Logger _log = NLog.LogManager.GetCurrentClassLogger();
+    // Unused private Logger _log = NLog.LogManager.GetCurrentClassLogger();
 
     public BaseUnit Source { get; set; }
     private BaseUnit PreviousSource { get; set; }
@@ -143,7 +141,7 @@ public class PlotTargetInfo
         return posUnit;
     }
 
-    private BaseUnit UpdateRandomUnitTarget(PlotTargetRandomUnitParams args, PlotState state, PlotEventTemplate plotEvent)
+    private Unit UpdateRandomUnitTarget(PlotTargetRandomUnitParams args, PlotState state, PlotEventTemplate plotEvent)
     {
         //TODO for now we get all units in a 5 meters radius
         var randomUnits = WorldManager.GetAroundByShape<Unit>(Source, args.Shape);
@@ -154,7 +152,7 @@ public class PlotTargetInfo
 
         var index = Rand.Next(0, filteredUnits.Count());
 
-        if (filteredUnits.Count() == 0)
+        if (!filteredUnits.Any())
             return null;
 
         var randomUnit = filteredUnits.ElementAt(index);

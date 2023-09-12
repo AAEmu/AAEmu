@@ -84,8 +84,7 @@ public abstract class MoveType : PacketMarshaler
                 break;
         }
 
-        if (mType != null)
-            mType.Type = type;
+        mType.Type = type;
         return mType;
     }
 }

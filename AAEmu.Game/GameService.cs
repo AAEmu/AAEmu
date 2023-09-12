@@ -18,8 +18,7 @@ using AAEmu.Game.Models;
 using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
-using AAEmu.Game.Utils.DB;
-using MySQL = AAEmu.Commons.Utils.DB.MySQL;
+using AAEmu.Commons.Utils.DB;
 
 namespace AAEmu.Game;
 
@@ -34,30 +33,12 @@ public sealed class GameService : IHostedService, IDisposable
         // Check for updates
         using (var connection = MySQL.CreateConnection())
         {
-            if (connection is null)
-            {
-                _log.Fatal("Failed to connect to mysql database check version and credentials!");
-                _log.Fatal("Press Ctrl+C to quit");
-                return;
-            }
-
             if (!MySqlDatabaseUpdater.Run(connection, "aaemu_game", AppConfiguration.Instance.Connections.MySQLProvider.Database))
             {
                 _log.Fatal("Failed to update database!");
                 _log.Fatal("Press Ctrl+C to quit");
                 return;
             }
-        }
-
-        try
-        {
-            using var connection = SQLite.CreateConnection();
-        }
-        catch (Exception ex)
-        {
-            _log.Fatal(ex, "Failed to load compact.sqlite3 database check if it exists!");
-            _log.Fatal("Press Ctrl+C to quit");
-            return;
         }
 
         ClientFileManager.Initialize();

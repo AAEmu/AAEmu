@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-
+using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
@@ -18,8 +17,7 @@ namespace AAEmu.Game.Utils;
 
 public class SphereCommandUtil
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
-
+    private static Logger _log = LogManager.GetCurrentClassLogger();
 
     public static void GetCommandChoice(Character character, string choice, string[] args)
     {
@@ -176,7 +174,7 @@ public class SphereCommandUtil
 
                 }
                 else
-                    throw new Exception(
+                    throw new GameException(
                         $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json file");
 
                 var json = JsonConvert.SerializeObject(spheres.ToArray(), Formatting.Indented);
@@ -231,7 +229,7 @@ public class SphereCommandUtil
                     }
                 }
                 else
-                    throw new Exception(
+                    throw new GameException(
                         $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json file");
 
             }
@@ -284,7 +282,7 @@ public class SphereCommandUtil
                     }
                 }
                 else
-                    throw new Exception(
+                    throw new GameException(
                         $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json file");
 
                 var json = JsonConvert.SerializeObject(spheres.ToArray(), Formatting.Indented);
@@ -336,7 +334,7 @@ public class SphereCommandUtil
                     }
                 }
                 else
-                    throw new Exception(
+                    throw new GameException(
                         $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json file");
             }
         }

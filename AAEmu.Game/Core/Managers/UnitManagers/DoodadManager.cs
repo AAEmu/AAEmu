@@ -2591,7 +2591,7 @@ public class DoodadManager : Singleton<DoodadManager>
                 player.SendErrorMessage(ErrorMessageType.FamilyNotExist); // Not sure 
                 return false;
             }
-            if ((data == (int)HousingPermission.Guild) && ((player.Expedition == null) || (player.Expedition?.Id <= 0)))
+            if (data == (int)HousingPermission.Guild && (player.Expedition == null || player.Expedition.Id <= 0))
             {
                 player.SendErrorMessage(ErrorMessageType.OnlyExpeditionMember); // Not sure
                 return false;

@@ -12,13 +12,13 @@ public abstract class SubCommandBase : ICommandV2
 {
     protected Logger _log = LogManager.GetCurrentClassLogger();
     private readonly Dictionary<string, ICommandV2> _subCommands = new();
-    List<SubCommandParameterBase> _parameters = new();
+    private List<SubCommandParameterBase> _parameters = new();
 
     protected void AddParameter(SubCommandParameterBase parameter)
     {
         if (parameter.Prefix is null &&
             parameter.IsRequired &&
-            _parameters.Any() &&
+            _parameters.Count != 0 &&
             _parameters.LastOrDefault(x => !x.IsRequired && x.Prefix is null) is not null)
         {
             throw new InvalidOperationException("Cannot add a required parameter after an optional parameter");
@@ -26,7 +26,7 @@ public abstract class SubCommandBase : ICommandV2
 
         if (parameter.Prefix is not null &&
             parameter.IsRequired &&
-            _parameters.Any() &&
+            _parameters.Count != 0 &&
             _parameters.LastOrDefault(x => !x.IsRequired && x.Prefix is not null) is not null)
         {
             throw new InvalidOperationException("Cannot add a required prefix parameter after an optional prefix parameter");
@@ -117,7 +117,7 @@ public abstract class SubCommandBase : ICommandV2
     {
         Dictionary<string, ParameterResult> parametersValue = new();
 
-        var nonPrefixArguments = args.Where(a => a.IndexOf('=') == -1).ToArray();
+        var nonPrefixArguments = args.Where(a => !a.Contains('=')).ToArray();
         var parameterCount = 0;
         foreach (var parameter in _parameters.Where(p => p.Prefix is null))
         {

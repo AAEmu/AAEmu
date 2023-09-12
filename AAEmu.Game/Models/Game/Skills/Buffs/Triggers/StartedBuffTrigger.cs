@@ -9,7 +9,7 @@ internal class StartedBuffTrigger : BuffTrigger
     public override void Execute(object sender, EventArgs eventArgs)
     {
         var args = eventArgs as OnBuffStartedArgs;
-        _log.Trace("Buff[{0}] {1} executed. Applying {2}[{3}]!", _buff?.Template?.BuffId, this?.GetType()?.Name, Template?.Effect?.GetType().Name, Template?.Effect?.Id);
+        _log.Trace("Buff[{0}] {1} executed. Applying {2}[{3}]!", _buff?.Template?.BuffId, this.GetType()?.Name, Template?.Effect?.GetType().Name, Template?.Effect?.Id);
 
         if (!(_owner is Unit owner))
         {

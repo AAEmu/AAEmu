@@ -1,6 +1,6 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Xml;
+using AAEmu.Commons.Exceptions;
 using AAEmu.Game.Core.Managers.World;
 using XmlH = AAEmu.Commons.Utils.XML.XmlHelper;
 
@@ -69,7 +69,8 @@ public class XmlWorld
                 var zone = new XmlWorldZone();
                 zone.ReadNode(zoneNodes[i], world, this);
                 if (!Zones.TryAdd(zone.Id, zone))
-                    throw new Exception("Duplicate zoneKey while reading world.xml");
+                    throw new GameException("Duplicate zoneKey while reading world.xml");
+
                 world.XmlWorldZones.TryAdd(zone.Id, zone);
             }
         }

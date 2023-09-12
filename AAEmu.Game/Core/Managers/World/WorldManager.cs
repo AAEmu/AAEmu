@@ -417,12 +417,12 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                         {
                             var hmap = new Hmap();
 
-                            // Version is never VersionCalc.V1, commenting this out.
-                            /*if (hmap.Read(br, version == VersionCalc.V1) < 0)
+                            var disableReCalc = false; // (version == VersionCalc.V1) // Version is never VersionCalc.V1
+                            if (hmap.Read(br, disableReCalc) < 0)
                             {
                                 _log.Error($"Error reading {heightMapFile}");
                                 continue;
-                            }*/
+                            }
 
                             var nodes = hmap.Nodes
                                 .OrderBy(cell => cell.BoxHeightmap.Min.X)
