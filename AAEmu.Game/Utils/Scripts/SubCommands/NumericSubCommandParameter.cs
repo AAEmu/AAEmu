@@ -182,7 +182,7 @@ public class NumericSubCommandParameter<T> : SubCommandParameterBase
                 }
             default:
                 {
-                    result = default(T);
+                    result = default;
                     invalidMessage = $"Unsupported numeric type {typeof(T).Name} for parameter: {DisplayName}";
 
                     return new ParameterResult<T>(Name, result, invalidMessage);

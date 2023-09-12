@@ -10,7 +10,7 @@ public static class ClientFileManager
     private static Logger _log = LogManager.GetCurrentClassLogger();
     private static bool _initialized = false;
 
-    static List<ClientSource> Sources = new();
+    private static List<ClientSource> Sources = new();
 
     /// <summary>
     /// Adds a Client Source location to the ClientFileManager

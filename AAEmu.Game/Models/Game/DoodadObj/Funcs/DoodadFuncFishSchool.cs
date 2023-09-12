@@ -41,16 +41,11 @@ public class DoodadFuncFishSchool : DoodadPhaseFuncTemplate
             }
 
             spawner[0].Template.Npcs.Add(nsn);
-            if (spawner[0].Template.Npcs == null)
-            {
-                return false;
-            }
-
             spawner[0].Template.Npcs[0].MemberId = unitId;
             spawner[0].Template.Npcs[0].UnitId = unitId;
 
         }
-        var spawnPos = owner.Transform.Clone();
+        using var spawnPos = owner.Transform.Clone();
         //spawnPos.World.AddDistanceToFront(3f);
         //spawnPos.World.SetHeight(WorldManager.Instance.GetHeight(spawnPos));
         spawner[0].Position = spawnPos.CloneAsSpawnPosition();

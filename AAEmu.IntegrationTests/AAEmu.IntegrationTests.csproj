@@ -37,6 +37,9 @@
    </ItemGroup>
 
    <ItemGroup>
+     <None Update="Config.json">
+       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+     </None>
      <None Update="ExampleConfig.json">
        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
      </None>

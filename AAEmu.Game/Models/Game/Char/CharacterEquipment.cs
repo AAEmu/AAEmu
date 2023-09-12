@@ -277,9 +277,9 @@ public partial class Character
         if (itemAdded != null)
         {
             // Static Buffs
-            var itemAddedBuff = ItemGameData.Instance.GetItemBuff(itemAdded?.TemplateId ?? 0, itemAdded?.Grade ?? 0);
+            var itemAddedBuff = ItemGameData.Instance.GetItemBuff(itemAdded.TemplateId, itemAdded.Grade);
             if (itemAddedBuff == null)
-                itemAddedBuff = SkillManager.Instance.GetBuffTemplate(itemAdded?.Template.BuffId ?? 0);
+                itemAddedBuff = SkillManager.Instance.GetBuffTemplate(itemAdded.Template.BuffId);
             if (itemAddedBuff != null) // add buff from equipped item
             {
                 var newEffect =

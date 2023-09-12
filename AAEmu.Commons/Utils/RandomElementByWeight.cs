@@ -23,6 +23,6 @@ public static class IEnumerableExtensions
                 return item.Value;
         }
 
-        return default(T);
+        return default;
     }
 }

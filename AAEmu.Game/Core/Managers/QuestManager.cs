@@ -58,8 +58,8 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     public T GetActTemplate<T>(uint id, string type) where T : QuestActTemplate
     {
         if (!_actTemplates.ContainsKey(type))
-            return default(T);
-        return _actTemplates[type].ContainsKey(id) ? (T)_actTemplates[type][id] : default(T);
+            return default;
+        return _actTemplates[type].ContainsKey(id) ? (T)_actTemplates[type][id] : default;
     }
 
     public List<uint> GetGroupItems(uint groupId)

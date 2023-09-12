@@ -4,7 +4,7 @@ using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.Utils.DB;
 
-public class SQLiteWrapperReader : IDisposable
+public sealed class SQLiteWrapperReader : IDisposable
 {
     private readonly SqliteDataReader _reader;
     private readonly Dictionary<string, int> _ordinal;

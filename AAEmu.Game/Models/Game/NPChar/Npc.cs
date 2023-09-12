@@ -974,24 +974,25 @@ public class Npc : Unit
     {
         Ai.PathNode.pos1 = new Point(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
         Ai.PathNode.pos2 = new Point(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
-        if (Ai.PathNode.pos1 != null && Ai.PathNode.pos2 != null)
-        {
-            Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
-            Ai.PathNode.findPath = Ai.PathNode.FindPath(Ai.PathNode.pos1, Ai.PathNode.pos2);
+        //Always true
+        //if (Ai.PathNode.pos1 != null && Ai.PathNode.pos2 != null)
+        //{
+        Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
+        Ai.PathNode.findPath = Ai.PathNode.FindPath(Ai.PathNode.pos1, Ai.PathNode.pos2);
 
-            Log.Debug($"AStar: points found Total: {Ai.PathNode.findPath?.Count ?? 0}");
-            if (Ai.PathNode.findPath != null)
+        Log.Debug($"AStar: points found Total: {Ai.PathNode.findPath?.Count ?? 0}");
+        if (Ai.PathNode.findPath != null)
+        {
+            for (var i = 0; i < Ai.PathNode.findPath.Count; i++)
             {
-                for (var i = 0; i < Ai.PathNode.findPath.Count; i++)
-                {
-                    Log.Debug($"AStar: point {i} coordinates X:{Ai.PathNode.findPath[i].X}, Y:{Ai.PathNode.findPath[i].Y}, Z:{Ai.PathNode.findPath[i].Z}");
-                }
+                Log.Debug($"AStar: point {i} coordinates X:{Ai.PathNode.findPath[i].X}, Y:{Ai.PathNode.findPath[i].Y}, Z:{Ai.PathNode.findPath[i].Z}");
             }
         }
+        /*}
         else
         {
             Log.Debug($"AStar: to find the path, you need to set the start and end points of the route!");
-        }
+        }*/
     }
 
     public void DoDespawn(Npc npc)

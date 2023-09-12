@@ -171,7 +171,7 @@ public static class ScriptCompiler
         list.AddRange(Directory.GetFiles(path, filter));
     }
 
-    private static IEnumerable<SyntaxTree> ParseScripts(IEnumerable<string> list)
+    private static List<SyntaxTree> ParseScripts(IEnumerable<string> list)
     {
         var syntaxTrees = new List<SyntaxTree>();
         foreach (var path in list)
