@@ -1,15 +1,16 @@
 ﻿using AAEmu.Game.Core.Managers;
 
-namespace AAEmu.Game.Models.Tasks.LaborPower;
-
-public class LaborPowerTickStartTask : Task
+namespace AAEmu.Game.Models.Tasks.LaborPower
 {
-    public LaborPowerTickStartTask()
+    public class LaborPowerTickStartTask : Task
     {
-    }
+        public LaborPowerTickStartTask()
+        {
+        }
 
-    public override void Execute()
-    {
-        LaborPowerManager.LaborPowerTick();
+        public override void Execute()
+        {
+            LaborPowerManager.LaborPowerTick();
+        }
     }
 }

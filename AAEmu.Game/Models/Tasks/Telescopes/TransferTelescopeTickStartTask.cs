@@ -1,11 +1,12 @@
 ﻿using AAEmu.Game.Core.Managers;
 
-namespace AAEmu.Game.Models.Tasks.Telescopes;
-
-public class TransferTelescopeTickStartTask : Task
+namespace AAEmu.Game.Models.Tasks.Telescopes
 {
-    public override void Execute()
+    public class TransferTelescopeTickStartTask : Task
     {
-        TransferTelescopeManager.Instance.TransferTelescopeTick();
+        public override void Execute()
+        {
+            TransferTelescopeManager.Instance.TransferTelescopeTick();
+        }
     }
 }

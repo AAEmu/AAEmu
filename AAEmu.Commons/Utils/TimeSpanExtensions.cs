@@ -1,21 +1,22 @@
 ﻿using System;
 
-namespace AAEmu.Commons.Utils;
-
-public static class TimeSpanExtensions
+namespace AAEmu.Commons.Utils
 {
-    public static bool IsBetween(this TimeSpan time, TimeSpan startTime, TimeSpan endTime)
+    public static class TimeSpanExtensions
     {
-        if (endTime == startTime)
+        public static bool IsBetween(this TimeSpan time, TimeSpan startTime, TimeSpan endTime)
         {
-            return true;
-        }
+            if (endTime == startTime)
+            {
+                return true;
+            }
 
-        if (endTime < startTime)
-        {
-            return time <= endTime || time >= startTime;
-        }
+            if (endTime < startTime)
+            {
+                return time <= endTime || time >= startTime;
+            }
 
-        return time >= startTime && time <= endTime;
+            return time >= startTime && time <= endTime;
+        }
     }
 }

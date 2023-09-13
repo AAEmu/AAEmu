@@ -1,44 +1,45 @@
 ﻿using AAEmu.Commons.Network;
 
-namespace AAEmu.Game.Models.Game.Mails;
-
-public class CountUnreadMail : PacketMarshaler
+namespace AAEmu.Game.Models.Game.Mails
 {
-    public int Sent { get; set; }
-    public int Received { get; protected set; }
-    public int MiaReceived { get; protected set; }
-    public int CommercialReceived { get; protected set; }
-
-    public override PacketStream Write(PacketStream stream)
+    public class CountUnreadMail : PacketMarshaler
     {
-        stream.Write(Sent);
-        stream.Write(Received);
-        stream.Write(MiaReceived);
-        stream.Write(CommercialReceived);
-        return stream;
-    }
+        public int Sent { get; set; }
+        public int Received { get; protected set; }
+        public int MiaReceived { get; protected set; }
+        public int CommercialReceived { get; protected set; }
 
-    public void ResetReceived()
-    {
-        Received = 0;
-        MiaReceived = 0;
-        CommercialReceived = 0;
-    }
-
-    public void UpdateReceived(MailType mailType, int amount)
-    {
-        if ((mailType == MailType.Charged) || (mailType == MailType.Promotion))
+        public override PacketStream Write(PacketStream stream)
         {
-            CommercialReceived += amount;
+            stream.Write(Sent);
+            stream.Write(Received);
+            stream.Write(MiaReceived);
+            stream.Write(CommercialReceived);
+            return stream;
         }
-        else
-        if (mailType == MailType.MiaRecv)
+
+        public void ResetReceived()
         {
-            MiaReceived += amount;
+            Received = 0;
+            MiaReceived = 0;
+            CommercialReceived = 0;
         }
-        else
+
+        public void UpdateReceived(MailType mailType, int amount)
         {
-            Received += amount;
+            if ((mailType == MailType.Charged) || (mailType == MailType.Promotion))
+            {
+                CommercialReceived += amount;
+            }
+            else
+            if (mailType == MailType.MiaRecv)
+            {
+                MiaReceived += amount;
+            }
+            else
+            {
+                Received += amount;
+            }
         }
     }
 }

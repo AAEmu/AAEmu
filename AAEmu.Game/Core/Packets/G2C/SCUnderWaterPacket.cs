@@ -1,20 +1,21 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCUnderWaterPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly bool _start;
-
-    public SCUnderWaterPacket(bool start) : base(SCOffsets.SCUnderWaterPacket, 1)
+    public class SCUnderWaterPacket : GamePacket
     {
-        _start = start;
-    }
+        private readonly bool _start;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_start);
-        return stream;
+        public SCUnderWaterPacket(bool start) : base(SCOffsets.SCUnderWaterPacket, 1)
+        {
+            _start = start;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_start);
+            return stream;
+        }
     }
 }

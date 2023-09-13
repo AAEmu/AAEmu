@@ -1,23 +1,24 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCTradeCanceledPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly int _reason;
-    private readonly bool _causedByMe;
-
-    public SCTradeCanceledPacket(int reason, bool causedByMe) : base(SCOffsets.SCTradeCanceledPacket, 1)
+    public class SCTradeCanceledPacket : GamePacket
     {
-        _reason = reason;
-        _causedByMe = causedByMe;
-    }
+        private readonly int _reason;
+        private readonly bool _causedByMe;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_reason);
-        stream.Write(_causedByMe);
-        return stream;
+        public SCTradeCanceledPacket(int reason, bool causedByMe) : base(SCOffsets.SCTradeCanceledPacket, 1)
+        {
+            _reason = reason;
+            _causedByMe = causedByMe;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_reason);
+            stream.Write(_causedByMe);
+            return stream;
+        }
     }
 }

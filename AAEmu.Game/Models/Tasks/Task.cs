@@ -2,41 +2,42 @@
 using AAEmu.Game.Core.Managers;
 using Quartz;
 
-namespace AAEmu.Game.Models.Tasks;
-
-public abstract class Task
+namespace AAEmu.Game.Models.Tasks
 {
-    public uint Id { get; set; }
-    public string Name { get; set; }
-    public IScheduleBuilder Scheduler { get; set; } = null;
-    public IJobDetail JobDetail { get; set; }
-    public ITrigger Trigger { get; set; }
-    public bool Cancelled { get; set; }
-    public long ScheduleTime { get; set; }
-    public int MaxCount { get; set; }
-    public int ExecuteCount { get; set; }
-
-    protected Task()
+    public abstract class Task
     {
-        Name = GetType().Name;
-        Cancelled = false;
-    }
+        public uint Id { get; set; }
+        public string Name { get; set; }
+        public IScheduleBuilder Scheduler { get; set; } = null;
+        public IJobDetail JobDetail { get; set; }
+        public ITrigger Trigger { get; set; }
+        public bool Cancelled { get; set; }
+        public long ScheduleTime { get; set; }
+        public int MaxCount { get; set; }
+        public int ExecuteCount { get; set; }
 
-    public abstract void Execute();
-
-    public async Task<bool> CancelAsync()
-    {
-        var result = await TaskManager.Instance.Cancel(this);
-        if (result)
+        protected Task()
         {
-            OnCancel();
-            return true;
+            Name = GetType().Name;
+            Cancelled = false;
         }
 
-        return false;
-    }
+        public abstract void Execute();
 
-    public virtual void OnCancel()
-    {
+        public async Task<bool> CancelAsync()
+        {
+            var result = await TaskManager.Instance.Cancel(this);
+            if (result)
+            {
+                OnCancel();
+                return true;
+            }
+
+            return false;
+        }
+
+        public virtual void OnCancel()
+        {
+        }
     }
 }

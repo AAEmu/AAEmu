@@ -1,12 +1,13 @@
 ﻿using AAEmu.Game.Models.Game.Units;
 using NLog;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Templates;
-
-public abstract class DoodadPhaseFuncTemplate
+namespace AAEmu.Game.Models.Game.DoodadObj.Templates
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
+    public abstract class DoodadPhaseFuncTemplate
+    {
+        protected static Logger _log = LogManager.GetCurrentClassLogger();
 
-    public uint Id { get; set; }
-    public abstract bool Use(BaseUnit caster, Doodad owner);
+        public uint Id { get; set; }
+        public abstract bool Use(BaseUnit caster, Doodad owner);
+    }
 }

@@ -3,43 +3,44 @@ using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Utils.Scripts.SubCommands.Feature;
-
-public class FeatureSetSubCommand : SubCommandBase
+namespace AAEmu.Game.Utils.Scripts.SubCommands.Feature
 {
-    public FeatureSetSubCommand()
+    public class FeatureSetSubCommand : SubCommandBase
     {
-        Title = "[Feature]";
-        Description = "Change the characteristic features of the account using a bitwise installation";
-        CallPrefix = $"{CommandManager.CommandPrefix}feature set";
-        AddParameter(new NumericSubCommandParameter<int>("feature", "feature id", true, 0, 87));
-        AddParameter(new StringSubCommandParameter("enable", "enable", true));
-    }
-
-    public override void Execute(ICharacter character, string triggerArgument, string[] args) =>
-        Execute(character, triggerArgument, new Dictionary<string, ParameterValue>());
-
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
-    {
-        var feature = -1;
-        feature = parameters["feature"];
-
-        if (feature == -1)
+        public FeatureSetSubCommand()
         {
-            SendColorMessage(character, Color.Red, $"Error Feature set!");
-            return;
+            Title = "[Feature]";
+            Description = "Change the characteristic features of the account using a bitwise installation";
+            CallPrefix = $"{CommandManager.CommandPrefix}feature set";
+            AddParameter(new NumericSubCommandParameter<int>("feature", "feature id", true, 0, 87));
+            AddParameter(new StringSubCommandParameter("enable", "enable", true));
         }
-        string enableString = parameters["enable"];
-        var enable = enableString == "true";
 
-        if (FeaturesManager.Fsets.Set((Models.Game.Features.Feature)feature, enable))
+        public override void Execute(ICharacter character, string triggerArgument, string[] args) =>
+            Execute(character, triggerArgument, new Dictionary<string, ParameterValue>());
+
+        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
-            //TODO: There is much more potential information to show on this command.
-            SendMessage(character, $"Feature set {feature}, {enable}. Need reload character");
-        }
-        else
-        {
-            SendColorMessage(character, Color.Red, $"Error Feature set!");
+            var feature = -1;
+            feature = parameters["feature"];
+
+            if (feature == -1)
+            {
+                SendColorMessage(character, Color.Red, $"Error Feature set!");
+                return;
+            }
+            string enableString = parameters["enable"];
+            var enable = enableString == "true";
+
+            if (FeaturesManager.Fsets.Set((Models.Game.Features.Feature)feature, enable))
+            {
+                //TODO: There is much more potential information to show on this command.
+                SendMessage(character, $"Feature set {feature}, {enable}. Need reload character");
+            }
+            else
+            {
+                SendColorMessage(character, Color.Red, $"Error Feature set!");
+            }
         }
     }
 }

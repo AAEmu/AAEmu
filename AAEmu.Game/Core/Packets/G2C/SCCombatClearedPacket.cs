@@ -1,20 +1,21 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCCombatClearedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _objId;
-
-    public SCCombatClearedPacket(uint objId) : base(SCOffsets.SCCombatClearedPacket, 1)
+    public class SCCombatClearedPacket : GamePacket
     {
-        _objId = objId;
-    }
+        private readonly uint _objId;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.WriteBc(_objId);
-        return stream;
+        public SCCombatClearedPacket(uint objId) : base(SCOffsets.SCCombatClearedPacket, 1)
+        {
+            _objId = objId;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(_objId);
+            return stream;
+        }
     }
 }

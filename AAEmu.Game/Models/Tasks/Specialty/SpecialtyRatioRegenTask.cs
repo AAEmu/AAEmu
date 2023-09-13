@@ -1,11 +1,12 @@
 using AAEmu.Game.Core.Managers.World;
 
-namespace AAEmu.Game.Models.Tasks.Specialty;
-
-public class SpecialtyRatioRegenTask : Task
+namespace AAEmu.Game.Models.Tasks.Specialty
 {
-    public override void Execute()
+    public class SpecialtyRatioRegenTask : Task
     {
-        SpecialtyManager.Instance.RegenRatio();
+        public override void Execute()
+        {
+            SpecialtyManager.Instance.RegenRatio();
+        }
     }
 }

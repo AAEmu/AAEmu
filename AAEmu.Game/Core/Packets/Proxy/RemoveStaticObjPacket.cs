@@ -1,11 +1,12 @@
 ﻿using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.Proxy;
-
-public class RemoveStaticObjPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.Proxy
 {
-    // TODO Only command without body...
-    public RemoveStaticObjPacket() : base(PPOffsets.RemoveStaticObjPacket, 2)
+    public class RemoveStaticObjPacket : GamePacket
     {
+        // TODO Only command without body...
+        public RemoveStaticObjPacket() : base(PPOffsets.RemoveStaticObjPacket, 2)
+        {
+        }
     }
 }

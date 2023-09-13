@@ -1,24 +1,25 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCLevelChangedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _objId;
-    private readonly byte _level;
-
-    public SCLevelChangedPacket(uint objId, byte level) : base(SCOffsets.SCLevelChangedPacket, 1)
+    public class SCLevelChangedPacket : GamePacket
     {
-        _objId = objId;
-        _level = level;
-    }
+        private readonly uint _objId;
+        private readonly byte _level;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.WriteBc(_objId);
-        stream.Write(_level);
+        public SCLevelChangedPacket(uint objId, byte level) : base(SCOffsets.SCLevelChangedPacket, 1)
+        {
+            _objId = objId;
+            _level = level;
+        }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(_objId);
+            stream.Write(_level);
+
+            return stream;
+        }
     }
 }

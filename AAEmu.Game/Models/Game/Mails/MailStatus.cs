@@ -1,8 +1,9 @@
-﻿namespace AAEmu.Game.Models.Game.Mails;
-
-public enum MailStatus : byte
+﻿namespace AAEmu.Game.Models.Game.Mails
 {
-    Unread = 0,
-    Read = 1,
-    Unpaid = 2,
+    public enum MailStatus : byte
+    {
+        Unread = 0,
+        Read = 1,
+        Unpaid = 2,
+    }
 }

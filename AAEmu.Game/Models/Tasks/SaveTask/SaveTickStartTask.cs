@@ -1,15 +1,16 @@
 ﻿using AAEmu.Game.Core.Managers;
 
-namespace AAEmu.Game.Models.Tasks.SaveTask;
-
-public class SaveTickStartTask : Task
+namespace AAEmu.Game.Models.Tasks.SaveTask
 {
-    public SaveTickStartTask()
+    public class SaveTickStartTask : Task
     {
-    }
+        public SaveTickStartTask()
+        {
+        }
 
-    public override void Execute()
-    {
-        SaveManager.Instance.SaveTick();
+        public override void Execute()
+        {
+            SaveManager.Instance.SaveTick();
+        }
     }
 }

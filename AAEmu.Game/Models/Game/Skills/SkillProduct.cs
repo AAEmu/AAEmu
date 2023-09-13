@@ -1,9 +1,10 @@
-﻿namespace AAEmu.Game.Models.Game.Skills;
-
-public class SkillProduct
+﻿namespace AAEmu.Game.Models.Game.Skills
 {
-    public uint Id;
-    public uint SkillId;
-    public uint ItemId;
-    public int Amount;
+    public class SkillProduct
+    {
+        public uint Id;
+        public uint SkillId;
+        public uint ItemId;
+        public int Amount;
+    }
 }

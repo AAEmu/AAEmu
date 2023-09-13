@@ -1,23 +1,24 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCHousePermissionChangedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly ushort _tl;
-    private readonly byte _permission;
-
-    public SCHousePermissionChangedPacket(ushort tl, byte permission) : base(SCOffsets.SCHousePermissionChangedPacket, 1)
+    public class SCHousePermissionChangedPacket : GamePacket
     {
-        _tl = tl;
-        _permission = permission;
-    }
+        private readonly ushort _tl;
+        private readonly byte _permission;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_tl);
-        stream.Write(_permission);
-        return stream;
+        public SCHousePermissionChangedPacket(ushort tl, byte permission) : base(SCOffsets.SCHousePermissionChangedPacket, 1)
+        {
+            _tl = tl;
+            _permission = permission;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_tl);
+            stream.Write(_permission);
+            return stream;
+        }
     }
 }

@@ -1,19 +1,20 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Models.Tasks.FishSchools;
-
-public class FishSchoolTickTask : FishSchoolsTask
+namespace AAEmu.Game.Models.Tasks.FishSchools
 {
-    private Character _character;
-
-    public FishSchoolTickTask(Character character) : base(character)
+    public class FishSchoolTickTask : FishSchoolsTask
     {
-        _character = character;
-    }
+        private Character _character;
 
-    public override void Execute()
-    {
-        FishSchoolManager.Instance.FishFinderTick(_character);
+        public FishSchoolTickTask(Character character) : base(character)
+        {
+            _character = character;
+        }
+
+        public override void Execute()
+        {
+            FishSchoolManager.Instance.FishFinderTick(_character);
+        }
     }
 }

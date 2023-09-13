@@ -1,22 +1,23 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 
-namespace AAEmu.Game.Core.Packets.C2S;
-
-public class CTCancelCellPacket : StreamPacket
+namespace AAEmu.Game.Core.Packets.C2S
 {
-    public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
-
-    public CTCancelCellPacket() : base(CTOffsets.CTCancelCellPacket)
+    public class CTCancelCellPacket : StreamPacket
     {
-    }
+        public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
 
-    public override void Read(PacketStream stream)
-    {
-        var i = stream.ReadUInt32();
-        var x = stream.ReadInt32();
-        var y = stream.ReadInt32();
+        public CTCancelCellPacket() : base(CTOffsets.CTCancelCellPacket)
+        {
+        }
 
-        _log.Warn("CTCancelCellPacket #.{0} ({1},{2})", i, x, y);
+        public override void Read(PacketStream stream)
+        {
+            var i = stream.ReadUInt32();
+            var x = stream.ReadInt32();
+            var y = stream.ReadInt32();
+
+            _log.Warn("CTCancelCellPacket #.{0} ({1},{2})", i, x, y);
+        }
     }
 }

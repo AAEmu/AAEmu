@@ -1,20 +1,21 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCPauseUserMusicPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _playerObjId;
-
-    public SCPauseUserMusicPacket(uint playerObjId) : base(SCOffsets.SCPauseUserMusicPacket, 1)
+    public class SCPauseUserMusicPacket : GamePacket
     {
-        _playerObjId = playerObjId;
-    }
+        private readonly uint _playerObjId;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.WriteBc(_playerObjId);
-        return stream;
+        public SCPauseUserMusicPacket(uint playerObjId) : base(SCOffsets.SCPauseUserMusicPacket, 1)
+        {
+            _playerObjId = playerObjId;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(_playerObjId);
+            return stream;
+        }
     }
 }

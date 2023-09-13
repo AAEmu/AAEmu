@@ -1,23 +1,24 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCTradeOkUpdatePacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly bool _myOk;
-    private readonly bool _otherOk;
-
-    public SCTradeOkUpdatePacket(bool myOk, bool otherOk) : base(SCOffsets.SCTradeOkUpdatePacket, 1)
+    public class SCTradeOkUpdatePacket : GamePacket
     {
-        _myOk = myOk;
-        _otherOk = otherOk;
-    }
+        private readonly bool _myOk;
+        private readonly bool _otherOk;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_myOk);
-        stream.Write(_otherOk);
-        return stream;
+        public SCTradeOkUpdatePacket(bool myOk, bool otherOk) : base(SCOffsets.SCTradeOkUpdatePacket, 1)
+        {
+            _myOk = myOk;
+            _otherOk = otherOk;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_myOk);
+            stream.Write(_otherOk);
+            return stream;
+        }
     }
 }

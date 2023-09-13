@@ -1,8 +1,9 @@
-﻿namespace AAEmu.Game.Models.Game.Slaves;
-
-public class SlaveInitialBuffs
+﻿namespace AAEmu.Game.Models.Game.Slaves
 {
-    public uint Id { get; set; }
-    public uint SlaveId { get; set; }
-    public uint BuffId { get; set; }
+    public class SlaveInitialBuffs
+    {
+        public uint Id { get; set; }
+        public uint SlaveId { get; set; }
+        public uint BuffId { get; set; }
+    }
 }

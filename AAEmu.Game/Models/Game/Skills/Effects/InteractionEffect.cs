@@ -7,42 +7,43 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
-namespace AAEmu.Game.Models.Game.Skills.Effects;
-
-public class InteractionEffect : EffectTemplate
+namespace AAEmu.Game.Models.Game.Skills.Effects
 {
-    public WorldInteractionType WorldInteraction { get; set; }
-    public uint DoodadId { get; set; }
-
-    public override bool OnActionTime => false;
-
-    public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-        CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
-        CompressedGamePackets packetBuilder = null)
+    public class InteractionEffect : EffectTemplate
     {
-        _log.Debug("InteractionEffect, {0}", WorldInteraction);
+        public WorldInteractionType WorldInteraction { get; set; }
+        public uint DoodadId { get; set; }
 
-        var classType = Type.GetType("AAEmu.Game.Models.Game.World.Interactions." + WorldInteraction);
-        if (classType == null)
+        public override bool OnActionTime => false;
+
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
+            CompressedGamePackets packetBuilder = null)
         {
-            _log.Error("InteractionEffect, Unknown world interaction: {0}", WorldInteraction);
-            return;
-        }
+            _log.Debug("InteractionEffect, {0}", WorldInteraction);
 
-        _log.Debug("InteractionEffect, Action: {0}", classType); // TODO help to debug...
+            var classType = Type.GetType("AAEmu.Game.Models.Game.World.Interactions." + WorldInteraction);
+            if (classType == null)
+            {
+                _log.Error("InteractionEffect, Unknown world interaction: {0}", WorldInteraction);
+                return;
+            }
 
-        caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.Interaction);
+            _log.Debug("InteractionEffect, Action: {0}", classType); // TODO help to debug...
 
-        var action = (IWorldInteraction)Activator.CreateInstance(classType);
-        if (source is { Skill: { } } && casterObj != null && target != null && targetObj != null && source.Skill.Template != null)
-        {
-            action?.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId);
-        }
+            caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.Interaction);
 
-        if (caster is not Character character) { return; }
-        if (target is Doodad)
-        {
-            character.Quests.OnInteraction(WorldInteraction, target);
+            var action = (IWorldInteraction)Activator.CreateInstance(classType);
+            if (source is { Skill: { } } && casterObj != null && target != null && targetObj != null && source.Skill.Template != null)
+            {
+                action?.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId);
+            }
+
+            if (caster is not Character character) { return; }
+            if (target is Doodad)
+            {
+                character.Quests.OnInteraction(WorldInteraction, target);
+            }
         }
     }
 }

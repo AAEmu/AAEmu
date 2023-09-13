@@ -1,20 +1,21 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCToggleBeautyshopResponsePacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly byte _state;
-
-    public SCToggleBeautyshopResponsePacket(byte state) : base(SCOffsets.SCToggleBeautyshopResponsePacket, 1)
+    public class SCToggleBeautyshopResponsePacket : GamePacket
     {
-        _state = state;
-    }
+        private readonly byte _state;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_state);
-        return stream;
+        public SCToggleBeautyshopResponsePacket(byte state) : base(SCOffsets.SCToggleBeautyshopResponsePacket, 1)
+        {
+            _state = state;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_state);
+            return stream;
+        }
     }
 }

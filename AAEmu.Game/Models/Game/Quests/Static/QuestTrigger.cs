@@ -1,10 +1,11 @@
-﻿namespace AAEmu.Game.Models.Game.Quests.Static;
-
-public enum QuestTrigger
+﻿namespace AAEmu.Game.Models.Game.Quests.Static
 {
-    Complete = 1,
-    Drop = 2,
-    AcceptForce = 3,
-    AcceptConditional = 4,
-    Fail = 5
+    public enum QuestTrigger
+    {
+        Complete = 1,
+        Drop = 2,
+        AcceptForce = 3,
+        AcceptConditional = 4,
+        Fail = 5
+    }
 }

@@ -1,30 +1,31 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Models.Tasks.Skills;
-
-public class CraftTask : Task
+namespace AAEmu.Game.Models.Tasks.Skills
 {
-    private uint _craftId;
-    private uint _objId;
-    private int _count;
-    private Character _character;
-
-    public CraftTask(Character character, uint craftId, uint objId, int count)
+    public class CraftTask : Task
     {
-        _character = character;
-        _craftId = craftId;
-        _objId = objId;
-        _count = count;
-    }
+        private uint _craftId;
+        private uint _objId;
+        private int _count;
+        private Character _character;
 
-    public override void Execute()
-    {
-        if (_count > 0)
+        public CraftTask(Character character, uint craftId, uint objId, int count)
         {
-            // _character.SendMessage($"CraftTask: {_craftId}");
-            var craft = CraftManager.Instance.GetCraftById(_craftId);
-            _character?.Craft.Craft(craft, _count, _objId);
+            _character = character;
+            _craftId = craftId;
+            _objId = objId;
+            _count = count;
+        }
+
+        public override void Execute()
+        {
+            if (_count > 0)
+            {
+                // _character.SendMessage($"CraftTask: {_craftId}");
+                var craft = CraftManager.Instance.GetCraftById(_craftId);
+                _character?.Craft.Craft(craft, _count, _objId);
+            }
         }
     }
 }

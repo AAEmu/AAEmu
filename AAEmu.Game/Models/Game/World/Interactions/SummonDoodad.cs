@@ -3,19 +3,20 @@ using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.World.Interactions;
-
-public class SummonDoodad : IWorldInteraction
+namespace AAEmu.Game.Models.Game.World.Interactions
 {
-    public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
-        uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
+    public class SummonDoodad : IWorldInteraction
     {
-        var doodad = DoodadManager.Instance.Create(0, (uint)doodadId, caster);
-        if (doodad == null)
+        public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
+            uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
         {
-            return;
+            var doodad = DoodadManager.Instance.Create(0, (uint)doodadId, caster);
+            if (doodad == null)
+            {
+                return;
+            }
+            doodad.Transform = target.Transform.CloneDetached(doodad);
+            doodad.Spawn();
         }
-        doodad.Transform = target.Transform.CloneDetached(doodad);
-        doodad.Spawn();
     }
 }

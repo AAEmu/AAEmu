@@ -1,17 +1,18 @@
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActObjTalkNpcGroup : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public uint NpcGroupId { get; set; }
-    public bool UseAlias { get; set; }
-    public uint QuestActObjAliasId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActObjTalkNpcGroup : QuestActTemplate
     {
-        _log.Warn("QuestActObjTalkNpcGroup");
-        return false;
+        public uint NpcGroupId { get; set; }
+        public bool UseAlias { get; set; }
+        public uint QuestActObjAliasId { get; set; }
+
+        public override bool Use(ICharacter character, Quest quest, int objective)
+        {
+            _log.Warn("QuestActObjTalkNpcGroup");
+            return false;
+        }
     }
 }

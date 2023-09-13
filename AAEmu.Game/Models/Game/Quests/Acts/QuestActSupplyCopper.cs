@@ -1,16 +1,17 @@
 ﻿using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActSupplyCopper : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public int Amount { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActSupplyCopper : QuestActTemplate
     {
-        _log.Debug("QuestActSupplyCopper");
-        quest.QuestRewardCoinsPool += Amount;
-        return true;
+        public int Amount { get; set; }
+
+        public override bool Use(ICharacter character, Quest quest, int objective)
+        {
+            _log.Debug("QuestActSupplyCopper");
+            quest.QuestRewardCoinsPool += Amount;
+            return true;
+        }
     }
 }

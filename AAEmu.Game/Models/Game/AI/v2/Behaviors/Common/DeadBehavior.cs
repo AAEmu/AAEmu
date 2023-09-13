@@ -1,25 +1,26 @@
 ﻿using System;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 
-namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
-
-public class DeadBehavior : Behavior
+namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common
 {
-    public override void Enter()
+    public class DeadBehavior : Behavior
     {
-        Ai.Owner.InterruptSkills();
-        Ai.Owner.StopMovement();
-    }
-
-    public override void Tick(TimeSpan delta)
-    {
-        if (Ai.Owner.Hp == 0)
+        public override void Enter()
         {
-            Ai.AlreadyTargetted = false;
+            Ai.Owner.InterruptSkills();
+            Ai.Owner.StopMovement();
         }
-    }
 
-    public override void Exit()
-    {
+        public override void Tick(TimeSpan delta)
+        {
+            if (Ai.Owner.Hp == 0)
+            {
+                Ai.AlreadyTargetted = false;
+            }
+        }
+
+        public override void Exit()
+        {
+        }
     }
 }

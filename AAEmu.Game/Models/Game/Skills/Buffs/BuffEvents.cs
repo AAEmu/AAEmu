@@ -1,25 +1,26 @@
 ﻿using System;
 
-namespace AAEmu.Game.Models.Game.Skills.Buffs;
-
-public class BuffEvents
+namespace AAEmu.Game.Models.Game.Skills.Buffs
 {
-    public EventHandler<OnBuffStartedArgs> OnBuffStarted = delegate { };
-    public EventHandler<OnDispelledArgs> OnDispelled = delegate { };
-    public EventHandler<OnTimeoutArgs> OnTimeout = delegate { };
-}
+    public class BuffEvents
+    {
+        public EventHandler<OnBuffStartedArgs> OnBuffStarted = delegate { };
+        public EventHandler<OnDispelledArgs> OnDispelled = delegate { };
+        public EventHandler<OnTimeoutArgs> OnTimeout = delegate { };
+    }
 
-public class OnBuffStartedArgs : EventArgs
-{
+    public class OnBuffStartedArgs : EventArgs
+    {
 
-}
+    }
 
-public class OnDispelledArgs : EventArgs
-{
+    public class OnDispelledArgs : EventArgs
+    {
 
-}
+    }
 
-public class OnTimeoutArgs : EventArgs
-{
+    public class OnTimeoutArgs : EventArgs
+    {
 
+    }
 }

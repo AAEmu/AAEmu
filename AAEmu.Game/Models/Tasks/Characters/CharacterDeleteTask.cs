@@ -1,22 +1,23 @@
 ﻿using AAEmu.Game.Core.Managers.UnitManagers;
 
-namespace AAEmu.Game.Models.Tasks.Characters;
-
-class CharacterDeleteTask : Task
+namespace AAEmu.Game.Models.Tasks.Characters
 {
-    private static object _lock = new();
-
-    public override void Execute()
+    class CharacterDeleteTask : Task
     {
-        lock (_lock)
+        private static object _lock = new();
+
+        public override void Execute()
         {
-            try
+            lock (_lock)
             {
-                CharacterManager.CheckForDeletedCharacters();
-            }
-            catch
-            {
-                // Do nothing
+                try
+                {
+                    CharacterManager.CheckForDeletedCharacters();
+                }
+                catch
+                {
+                    // Do nothing
+                }
             }
         }
     }

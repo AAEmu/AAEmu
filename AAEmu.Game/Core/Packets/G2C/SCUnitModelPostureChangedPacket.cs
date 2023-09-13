@@ -4,28 +4,29 @@ using AAEmu.Game.Models.Game.Units;
 
 using Unit = AAEmu.Game.Models.Game.Units.Unit;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCUnitModelPostureChangedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private Unit _unit;
-    private BaseUnitType _baseUnitType;
-    private ModelPostureType _modelPostureType;
-    private uint _animActionId;
-
-    public SCUnitModelPostureChangedPacket(Unit unit, BaseUnitType baseUnitType, ModelPostureType modelPostureType, uint animActionId = 0xFFFFFFFF) : base(SCOffsets.SCUnitModelPostureChangedPacket, 1)
+    public class SCUnitModelPostureChangedPacket : GamePacket
     {
-        _unit = unit;
-        _baseUnitType = baseUnitType;
-        _modelPostureType = modelPostureType;
-        _animActionId = animActionId;
-    }
+        private Unit _unit;
+        private BaseUnitType _baseUnitType;
+        private ModelPostureType _modelPostureType;
+        private uint _animActionId;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.WriteBc(_unit.ObjId);
-        Unit.ModelPosture(stream, _unit, _baseUnitType, _modelPostureType, _animActionId);
+        public SCUnitModelPostureChangedPacket(Unit unit, BaseUnitType baseUnitType, ModelPostureType modelPostureType, uint animActionId = 0xFFFFFFFF) : base(SCOffsets.SCUnitModelPostureChangedPacket, 1)
+        {
+            _unit = unit;
+            _baseUnitType = baseUnitType;
+            _modelPostureType = modelPostureType;
+            _animActionId = animActionId;
+        }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(_unit.ObjId);
+            Unit.ModelPosture(stream, _unit, _baseUnitType, _modelPostureType, _animActionId);
+
+            return stream;
+        }
     }
 }

@@ -2,89 +2,54 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Connections;
 
-namespace AAEmu.Game.Core.Network.Game;
-
-public abstract class GamePacket : PacketBase<GameConnection>
+namespace AAEmu.Game.Core.Network.Game
 {
-    public byte Level { get; set; }
-
-    protected GamePacket(ushort typeId, byte level) : base(typeId)
+    public abstract class GamePacket : PacketBase<GameConnection>
     {
-        Level = level;
-    }
+        public byte Level { get; set; }
 
-    /// <summary>
-    /// This is called in Encode after Read() in the case of GamePackets
-    /// The purpose is to separate packet data from packet behavior
-    /// </summary>
-    public virtual void Execute() { }
-
-    public override PacketStream Encode()
-    {
-        var ps = new PacketStream();
-        try
+        protected GamePacket(ushort typeId, byte level) : base(typeId)
         {
-            var packet = new PacketStream()
-                .Write((byte)0xdd)
-                .Write(Level);
+            Level = level;
+        }
 
-            var body = new PacketStream()
-                .Write(TypeId)
-                .Write(this);
+        /// <summary>
+        /// This is called in Encode after Read() in the case of GamePackets
+        /// The purpose is to separate packet data from packet behavior
+        /// </summary>
+        public virtual void Execute() { }
 
-            if (Level == 1)
+        public override PacketStream Encode()
+        {
+            var ps = new PacketStream();
+            try
             {
-                packet
-                    .Write((byte)0) // hash
-                    .Write((byte)0); // count
+                var packet = new PacketStream()
+                    .Write((byte)0xdd)
+                    .Write(Level);
+
+                var body = new PacketStream()
+                    .Write(TypeId)
+                    .Write(this);
+
+                if (Level == 1)
+                {
+                    packet
+                        .Write((byte)0) // hash
+                        .Write((byte)0); // count
+                }
+
+                packet.Write(body, false);
+
+                ps.Write(packet);
+            }
+            catch (Exception ex)
+            {
+                _log.Fatal(ex);
+                throw;
             }
 
-            packet.Write(body, false);
-
-            ps.Write(packet);
-        }
-        catch (Exception ex)
-        {
-            _log.Fatal(ex);
-            throw;
-        }
-
-        var logString = $"GamePacket: S->C type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
-        switch (LogLevel)
-        {
-            case PacketLogLevel.Trace:
-                _log.Trace(logString);
-                break;
-            case PacketLogLevel.Debug:
-                _log.Debug(logString);
-                break;
-            case PacketLogLevel.Info:
-                _log.Info(logString);
-                break;
-            case PacketLogLevel.Warning:
-                _log.Warn(logString);
-                break;
-            case PacketLogLevel.Error:
-                _log.Error(logString);
-                break;
-            case PacketLogLevel.Fatal:
-                _log.Fatal(logString);
-                break;
-            case PacketLogLevel.Off:
-            default:
-                break;
-        }
-
-        return ps;
-    }
-
-    public override PacketBase<GameConnection> Decode(PacketStream ps)
-    {
-        try
-        {
-            Read(ps);
-
-            var logString = $"GamePacket: C->S type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
+            var logString = $"GamePacket: S->C type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
             switch (LogLevel)
             {
                 case PacketLogLevel.Trace:
@@ -110,15 +75,51 @@ public abstract class GamePacket : PacketBase<GameConnection>
                     break;
             }
 
-            Execute();
-        }
-        catch (Exception ex)
-        {
-            _log.Error("GamePacket: C->S type {0:X3} {1}", TypeId, ToString()?.Substring(23));
-            _log.Fatal(ex);
-            throw;
+            return ps;
         }
 
-        return this;
+        public override PacketBase<GameConnection> Decode(PacketStream ps)
+        {
+            try
+            {
+                Read(ps);
+
+                var logString = $"GamePacket: C->S type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
+                switch (LogLevel)
+                {
+                    case PacketLogLevel.Trace:
+                        _log.Trace(logString);
+                        break;
+                    case PacketLogLevel.Debug:
+                        _log.Debug(logString);
+                        break;
+                    case PacketLogLevel.Info:
+                        _log.Info(logString);
+                        break;
+                    case PacketLogLevel.Warning:
+                        _log.Warn(logString);
+                        break;
+                    case PacketLogLevel.Error:
+                        _log.Error(logString);
+                        break;
+                    case PacketLogLevel.Fatal:
+                        _log.Fatal(logString);
+                        break;
+                    case PacketLogLevel.Off:
+                    default:
+                        break;
+                }
+
+                Execute();
+            }
+            catch (Exception ex)
+            {
+                _log.Error("GamePacket: C->S type {0:X3} {1}", TypeId, ToString()?.Substring(23));
+                _log.Fatal(ex);
+                throw;
+            }
+
+            return this;
+        }
     }
 }

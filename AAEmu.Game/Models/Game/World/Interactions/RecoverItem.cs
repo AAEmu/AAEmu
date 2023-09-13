@@ -5,35 +5,36 @@ using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.World.Interactions;
-
-public class RecoverItem : IWorldInteraction
+namespace AAEmu.Game.Models.Game.World.Interactions
 {
-    public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
-        uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
+    public class RecoverItem : IWorldInteraction
     {
-        if (target is Doodad doodad && doodad.AllowRemoval())
+        public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
+            uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
         {
-            // Get Funcs for current doodad phase
-            var funcs = DoodadManager.Instance.GetFuncsForGroup(doodad.FuncGroupId);
-            // Check if it contains a DoodadRecoverItem func
-            foreach (var func in funcs)
+            if (target is Doodad doodad && doodad.AllowRemoval())
             {
-                var template = DoodadManager.Instance.GetFuncTemplate(func.FuncId, func.FuncType);
-                if (template is DoodadFuncRecoverItem doodadFuncRecoverItemTemplate)
+                // Get Funcs for current doodad phase
+                var funcs = DoodadManager.Instance.GetFuncsForGroup(doodad.FuncGroupId);
+                // Check if it contains a DoodadRecoverItem func
+                foreach (var func in funcs)
                 {
-                    // Execute DoodadFuncRecoverItem
-                    doodadFuncRecoverItemTemplate.Use(caster, doodad, skillId);
-                    // Move to next phase to remove the doodad
-                    //doodad.DoPhaseFuncs(caster, -1);
-                    doodad.Delete();
-                    return;
+                    var template = DoodadManager.Instance.GetFuncTemplate(func.FuncId, func.FuncType);
+                    if (template is DoodadFuncRecoverItem doodadFuncRecoverItemTemplate)
+                    {
+                        // Execute DoodadFuncRecoverItem
+                        doodadFuncRecoverItemTemplate.Use(caster, doodad, skillId);
+                        // Move to next phase to remove the doodad
+                        //doodad.DoPhaseFuncs(caster, -1);
+                        doodad.Delete();
+                        return;
+                    }
                 }
             }
-        }
 
-        // Something wasn't found or is invalid, so cancel whatever we're doing
-        ((Unit)caster).SendErrorMessage(ErrorMessageType.FailedToUseItem);
-        caster.InterruptSkills();
+            // Something wasn't found or is invalid, so cancel whatever we're doing
+            ((Unit)caster).SendErrorMessage(ErrorMessageType.FailedToUseItem);
+            caster.InterruptSkills();
+        }
     }
 }

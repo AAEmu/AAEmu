@@ -1,20 +1,21 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCLpManagedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _characterId;
-
-    public SCLpManagedPacket(uint characterId) : base(SCOffsets.SCLpManagedPacket, 1)
+    public class SCLpManagedPacket : GamePacket
     {
-        _characterId = characterId;
-    }
+        private readonly uint _characterId;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_characterId);
-        return stream;
+        public SCLpManagedPacket(uint characterId) : base(SCOffsets.SCLpManagedPacket, 1)
+        {
+            _characterId = characterId;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_characterId);
+            return stream;
+        }
     }
 }

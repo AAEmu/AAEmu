@@ -8,35 +8,36 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.World.Interactions;
-
-public class MagicalEnchant : IWorldInteraction
+namespace AAEmu.Game.Models.Game.World.Interactions
 {
-    public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
-        uint skillId, uint itemId, DoodadFuncTemplate objectFunc = null)
+    public class MagicalEnchant : IWorldInteraction
     {
-        if (!(caster is Character character))
-            return;
+        public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
+            uint skillId, uint itemId, DoodadFuncTemplate objectFunc = null)
+        {
+            if (!(caster is Character character))
+                return;
 
-        if (!(targetType is SkillCastItemTarget itemTarget))
-            return;
+            if (!(targetType is SkillCastItemTarget itemTarget))
+                return;
 
-        if (!(casterType is SkillItem skillItem))
-            return;
+            if (!(casterType is SkillItem skillItem))
+                return;
 
-        var targetItem = character.Inventory.Bag.GetItemByItemId(itemTarget.Id);
+            var targetItem = character.Inventory.Bag.GetItemByItemId(itemTarget.Id);
 
-        if (!(targetItem is EquipItem equipItem))
-            return;
+            if (!(targetItem is EquipItem equipItem))
+                return;
 
-        equipItem.RuneId = skillItem.ItemTemplateId;
+            equipItem.RuneId = skillItem.ItemTemplateId;
 
-        character.SendPacket(new SCItemSocketingLunastoneResultPacket(true, targetItem.Id, skillItem.ItemTemplateId));
-        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantMagical,
-            new List<ItemTask>
-            {
+            character.SendPacket(new SCItemSocketingLunastoneResultPacket(true, targetItem.Id, skillItem.ItemTemplateId));
+            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantMagical,
+                new List<ItemTask>
+                {
                 new ItemUpdate(equipItem)
-            },
-            new List<ulong>()));
+                },
+                new List<ulong>()));
+        }
     }
 }

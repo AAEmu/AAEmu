@@ -6,38 +6,39 @@ using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Packets.L2G;
 using AAEmu.Login.Models;
 
-namespace AAEmu.Login.Core.Packets.G2L;
-
-public class GLRegisterGameServerPacket : InternalPacket
+namespace AAEmu.Login.Core.Packets.G2L
 {
-    public GLRegisterGameServerPacket() : base(GLOffsets.GLRegisterGameServerPacket)
+    public class GLRegisterGameServerPacket : InternalPacket
     {
-    }
-
-    async Task SendPacketWithDelay(int delay, InternalPacket message)
-    {
-        await Task.Delay(delay);
-        Connection.SendPacket(message);
-    }
-
-    public override void Read(PacketStream stream)
-    {
-        var secretKey = stream.ReadString();
-        if (secretKey == AppConfiguration.Instance.SecretKey)
+        public GLRegisterGameServerPacket() : base(GLOffsets.GLRegisterGameServerPacket)
         {
-            var gsId = stream.ReadByte();
-            var additionalesCount = stream.ReadInt32();
-            var mirrors = new List<byte>();
-            for (var i = 0; i < additionalesCount; i++)
-                mirrors.Add(stream.ReadByte());
-
-            GameController.Instance.Add(gsId, mirrors, Connection);
         }
-        else
+
+        async Task SendPacketWithDelay(int delay, InternalPacket message)
         {
-            _log.Error($"Connection {Connection.Ip}, bad secret key");
-            Task.Run(() => SendPacketWithDelay(5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)));
-            // Connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
+            await Task.Delay(delay);
+            Connection.SendPacket(message);
+        }
+
+        public override void Read(PacketStream stream)
+        {
+            var secretKey = stream.ReadString();
+            if (secretKey == AppConfiguration.Instance.SecretKey)
+            {
+                var gsId = stream.ReadByte();
+                var additionalesCount = stream.ReadInt32();
+                var mirrors = new List<byte>();
+                for (var i = 0; i < additionalesCount; i++)
+                    mirrors.Add(stream.ReadByte());
+
+                GameController.Instance.Add(gsId, mirrors, Connection);
+            }
+            else
+            {
+                _log.Error($"Connection {Connection.Ip}, bad secret key");
+                Task.Run(() => SendPacketWithDelay(5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)));
+                // Connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
+            }
         }
     }
 }

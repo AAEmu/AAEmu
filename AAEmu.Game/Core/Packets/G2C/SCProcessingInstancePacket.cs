@@ -1,20 +1,21 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCProcessingInstancePacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly int _zoneId;
-
-    public SCProcessingInstancePacket(int zoneId) : base(SCOffsets.SCProcessingInstancePacket, 1)
+    public class SCProcessingInstancePacket : GamePacket
     {
-        _zoneId = zoneId;
-    }
+        private readonly int _zoneId;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_zoneId);
-        return stream;
+        public SCProcessingInstancePacket(int zoneId) : base(SCOffsets.SCProcessingInstancePacket, 1)
+        {
+            _zoneId = zoneId;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_zoneId);
+            return stream;
+        }
     }
 }

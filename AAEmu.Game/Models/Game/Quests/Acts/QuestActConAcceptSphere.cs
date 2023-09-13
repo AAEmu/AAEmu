@@ -2,19 +2,20 @@
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActConAcceptSphere : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public uint SphereId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActConAcceptSphere : QuestActTemplate
     {
-        _log.Warn("QuestActConAcceptSphere: SphereId {0}", SphereId);
+        public uint SphereId { get; set; }
 
-        quest.QuestAcceptorType = QuestAcceptorType.Sphere;
-        quest.AcceptorType = SphereId;
+        public override bool Use(ICharacter character, Quest quest, int objective)
+        {
+            _log.Warn("QuestActConAcceptSphere: SphereId {0}", SphereId);
 
-        return false;
+            quest.QuestAcceptorType = QuestAcceptorType.Sphere;
+            quest.AcceptorType = SphereId;
+
+            return false;
+        }
     }
 }

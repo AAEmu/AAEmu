@@ -2,23 +2,24 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCUnitVisualOptionsPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _id;
-    private readonly CharacterVisualOptions _visualOptions;
-
-    public SCUnitVisualOptionsPacket(uint id, CharacterVisualOptions visualOptions) : base(SCOffsets.SCUnitVisualOptionsPacket, 1)
+    public class SCUnitVisualOptionsPacket : GamePacket
     {
-        _id = id;
-        _visualOptions = visualOptions;
-    }
+        private readonly uint _id;
+        private readonly CharacterVisualOptions _visualOptions;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.WriteBc(_id);
-        stream.Write(_visualOptions);
-        return stream;
+        public SCUnitVisualOptionsPacket(uint id, CharacterVisualOptions visualOptions) : base(SCOffsets.SCUnitVisualOptionsPacket, 1)
+        {
+            _id = id;
+            _visualOptions = visualOptions;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(_id);
+            stream.Write(_visualOptions);
+            return stream;
+        }
     }
 }

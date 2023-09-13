@@ -3,16 +3,17 @@ using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.World.Interactions;
-
-public class Looting : IWorldInteraction
+namespace AAEmu.Game.Models.Game.World.Interactions
 {
-    public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
-        uint skillId, uint itemId, DoodadFuncTemplate objectFunc = null)
+    public class Looting : IWorldInteraction
     {
-        if (target is Doodad doodad)
+        public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
+            uint skillId, uint itemId, DoodadFuncTemplate objectFunc = null)
         {
-            doodad.Use(caster, skillId);
+            if (target is Doodad doodad)
+            {
+                doodad.Use(caster, skillId);
+            }
         }
     }
 }

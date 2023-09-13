@@ -1,14 +1,14 @@
 ﻿using System;
 
-namespace AAEmu.Commons.Utils;
-
-public static class PrimeFinder
+namespace AAEmu.Commons.Utils
 {
-    private static bool _init;
-    public static int largestPrime = int.MaxValue;
-
-    private static int[] primeCapacities =
+    public static class PrimeFinder
     {
+        private static bool _init;
+        public static int largestPrime = int.MaxValue;
+
+        private static int[] primeCapacities =
+        {
         //chunk #0
         largestPrime,
 
@@ -278,22 +278,23 @@ public static class PrimeFinder
     };
 
 
-    public static void Init()
-    {
-        if (_init)
-            return;
-        _init = true;
-        // The above prime numbers are formatted for human readability.
-        // To find numbers fast, we sort them once and for all.
+        public static void Init()
+        {
+            if (_init)
+                return;
+            _init = true;
+            // The above prime numbers are formatted for human readability.
+            // To find numbers fast, we sort them once and for all.
 
-        Array.Sort(primeCapacities);
-    }
+            Array.Sort(primeCapacities);
+        }
 
-    public static int NextPrime(int desiredCapacity)
-    {
-        var i = Array.BinarySearch(primeCapacities, desiredCapacity);
-        if (i < 0)
-            i = -i - 1;
-        return primeCapacities[i];
+        public static int NextPrime(int desiredCapacity)
+        {
+            var i = Array.BinarySearch(primeCapacities, desiredCapacity);
+            if (i < 0)
+                i = -i - 1;
+            return primeCapacities[i];
+        }
     }
 }

@@ -3,30 +3,31 @@
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
-
-public class AddBreath : SpecialEffectAction
+namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
-    protected override SpecialType SpecialEffectActionType => SpecialType.AddBreath;
-
-    public override void Execute(BaseUnit caster,
-        SkillCaster casterObj,
-        BaseUnit target,
-        SkillCastTarget targetObj,
-        CastAction castObj,
-        Skill skill,
-        SkillObject skillObject,
-        DateTime time,
-        int value1,
-        int value2,
-        int value3,
-        int value4)
+    public class AddBreath : SpecialEffectAction
     {
-        if (caster is Character) { _log.Debug("Special effects: AddBreath value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        protected override SpecialType SpecialEffectActionType => SpecialType.AddBreath;
 
-        if (caster is Character character && character.IsUnderWater)
+        public override void Execute(BaseUnit caster,
+            SkillCaster casterObj,
+            BaseUnit target,
+            SkillCastTarget targetObj,
+            CastAction castObj,
+            Skill skill,
+            SkillObject skillObject,
+            DateTime time,
+            int value1,
+            int value2,
+            int value3,
+            int value4)
         {
-            character.Breath = (uint)Math.Min(character.LungCapacity, character.Breath + value1);
+            if (caster is Character) { _log.Debug("Special effects: AddBreath value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+
+            if (caster is Character character && character.IsUnderWater)
+            {
+                character.Breath = (uint)Math.Min(character.LungCapacity, character.Breath + value1);
+            }
         }
     }
 }

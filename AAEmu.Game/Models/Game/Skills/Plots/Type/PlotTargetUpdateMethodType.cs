@@ -1,18 +1,19 @@
-namespace AAEmu.Game.Models.Game.Skills.Plots.Type;
-
-public enum PlotTargetUpdateMethodType
+namespace AAEmu.Game.Models.Game.Skills.Plots.Type
 {
-    // Original source in the skill ?
-    OriginalSource = 1,
-    // Original target in the skill ?
-    OriginalTarget = 2,
-    // Source of previous event step ?
-    PreviousSource = 3,
-    // Target of previous event step ?
-    PreviousTarget = 4,
-    Area = 5,
-    RandomUnit = 6,
-    RandomArea = 7
+    public enum PlotTargetUpdateMethodType
+    {
+        // Original source in the skill ?
+        OriginalSource = 1,
+        // Original target in the skill ?
+        OriginalTarget = 2,
+        // Source of previous event step ?
+        PreviousSource = 3,
+        // Target of previous event step ?
+        PreviousTarget = 4,
+        Area = 5,
+        RandomUnit = 6,
+        RandomArea = 7
+    }
 }
 
 // Information about parameters :

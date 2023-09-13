@@ -1,19 +1,20 @@
 ﻿using AAEmu.Game.Models.Game.World.Zones;
 
-namespace AAEmu.Game.Models.Tasks.Zones;
-
-public class ZoneStateChangeTask : Task
+namespace AAEmu.Game.Models.Tasks.Zones
 {
-    public ZoneConflict ZoneConflict;
-
-    public ZoneStateChangeTask(ZoneConflict zc)
+    public class ZoneStateChangeTask : Task
     {
-        ZoneConflict = zc;
-    }
+        public ZoneConflict ZoneConflict;
 
-    public override void Execute()
-    {
-        // Just checking for timer should be enough to trigger the next state
-        ZoneConflict.CheckTimer();
+        public ZoneStateChangeTask(ZoneConflict zc)
+        {
+            ZoneConflict = zc;
+        }
+
+        public override void Execute()
+        {
+            // Just checking for timer should be enough to trigger the next state
+            ZoneConflict.CheckTimer();
+        }
     }
 }

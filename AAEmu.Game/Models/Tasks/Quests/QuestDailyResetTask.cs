@@ -1,19 +1,20 @@
 ﻿using AAEmu.Game.Core.Managers.World;
 
-namespace AAEmu.Game.Models.Tasks.Quests;
-
-public class QuestDailyResetTask : Task
+namespace AAEmu.Game.Models.Tasks.Quests
 {
-    public QuestDailyResetTask()
+    public class QuestDailyResetTask : Task
     {
-
-    }
-
-    public override void Execute()
-    {
-        foreach (var character in WorldManager.Instance.GetAllCharacters())
+        public QuestDailyResetTask()
         {
-            character.Quests.ResetDailyQuests(true);
+
+        }
+
+        public override void Execute()
+        {
+            foreach (var character in WorldManager.Instance.GetAllCharacters())
+            {
+                character.Quests.ResetDailyQuests(true);
+            }
         }
     }
 }

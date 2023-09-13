@@ -1,18 +1,19 @@
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActObjCompleteQuest : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public uint QuestId { get; set; }
-    public bool AcceptWith { get; set; }
-    public bool UseAlias { get; set; }
-    public uint QuestActObjAliasId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActObjCompleteQuest : QuestActTemplate
     {
-        _log.Debug("QuestActObjCompleteQuest");
-        return character.Quests.IsQuestComplete(QuestId) == AcceptWith;
+        public uint QuestId { get; set; }
+        public bool AcceptWith { get; set; }
+        public bool UseAlias { get; set; }
+        public uint QuestActObjAliasId { get; set; }
+
+        public override bool Use(ICharacter character, Quest quest, int objective)
+        {
+            _log.Debug("QuestActObjCompleteQuest");
+            return character.Quests.IsQuestComplete(QuestId) == AcceptWith;
+        }
     }
 }

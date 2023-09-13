@@ -1,25 +1,26 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCGimmicksRemovedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint[] _ids;
-
-    public SCGimmicksRemovedPacket(uint[] ids) : base(SCOffsets.SCGimmicksRemovedPacket, 1)
+    public class SCGimmicksRemovedPacket : GamePacket
     {
-        _ids = ids;
-    }
+        private readonly uint[] _ids;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write((ushort)_ids.Length); // TODO max 500 elements
-        foreach (var id in _ids)
+        public SCGimmicksRemovedPacket(uint[] ids) : base(SCOffsets.SCGimmicksRemovedPacket, 1)
         {
-            stream.WriteBc(id);
+            _ids = ids;
         }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write((ushort)_ids.Length); // TODO max 500 elements
+            foreach (var id in _ids)
+            {
+                stream.WriteBc(id);
+            }
+
+            return stream;
+        }
     }
 }

@@ -1,21 +1,22 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 
-namespace AAEmu.Game.Core.Packets.S2C;
-
-public class TCJoinResponsePacket : StreamPacket
+namespace AAEmu.Game.Core.Packets.S2C
 {
-    private readonly byte _response;
-
-    public TCJoinResponsePacket(byte response) : base(TCOffsets.TCJoinResponsePacket)
+    public class TCJoinResponsePacket : StreamPacket
     {
-        _response = response;
-    }
+        private readonly byte _response;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_response);
+        public TCJoinResponsePacket(byte response) : base(TCOffsets.TCJoinResponsePacket)
+        {
+            _response = response;
+        }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_response);
+
+            return stream;
+        }
     }
 }

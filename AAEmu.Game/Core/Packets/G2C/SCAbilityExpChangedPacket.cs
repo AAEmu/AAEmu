@@ -2,26 +2,27 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCAbilityExpChangedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _objId;
-    private readonly byte _ability;
-    private readonly int _exp;
-
-    public SCAbilityExpChangedPacket(uint objId, AbilityType ability, int exp) : base(SCOffsets.SCAbilityExpChangedPacket, 1)
+    public class SCAbilityExpChangedPacket : GamePacket
     {
-        _objId = objId;
-        _ability = (byte)ability;
-        _exp = exp;
-    }
+        private readonly uint _objId;
+        private readonly byte _ability;
+        private readonly int _exp;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.WriteBc(_objId);
-        stream.Write(_ability);
-        stream.Write(_exp);
-        return stream;
+        public SCAbilityExpChangedPacket(uint objId, AbilityType ability, int exp) : base(SCOffsets.SCAbilityExpChangedPacket, 1)
+        {
+            _objId = objId;
+            _ability = (byte)ability;
+            _exp = exp;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(_objId);
+            stream.Write(_ability);
+            stream.Write(_exp);
+            return stream;
+        }
     }
 }

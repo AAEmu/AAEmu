@@ -1,23 +1,24 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCUnitIdleStatusPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _id;
-    private readonly bool _status;
-
-    public SCUnitIdleStatusPacket(uint id, bool status) : base(SCOffsets.SCUnitIdleStatusPacket, 1)
+    public class SCUnitIdleStatusPacket : GamePacket
     {
-        _id = id;
-        _status = status;
-    }
+        private readonly uint _id;
+        private readonly bool _status;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.WriteBc(_id);
-        stream.Write(_status);
-        return stream;
+        public SCUnitIdleStatusPacket(uint id, bool status) : base(SCOffsets.SCUnitIdleStatusPacket, 1)
+        {
+            _id = id;
+            _status = status;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(_id);
+            stream.Write(_status);
+            return stream;
+        }
     }
 }

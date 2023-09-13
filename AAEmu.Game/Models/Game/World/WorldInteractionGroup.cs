@@ -1,8 +1,9 @@
-namespace AAEmu.Game.Models.Game.World;
-
-public enum WorldInteractionGroup // wi_groups
+namespace AAEmu.Game.Models.Game.World
 {
-    Craft = 1,
-    Collect = 2,
-    Building = 3
+    public enum WorldInteractionGroup // wi_groups
+    {
+        Craft = 1,
+        Collect = 2,
+        Building = 3
+    }
 }

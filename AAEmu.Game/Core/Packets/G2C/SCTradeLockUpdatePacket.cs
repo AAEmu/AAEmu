@@ -1,23 +1,24 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCTradeLockUpdatePacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly bool _myLock;
-    private readonly bool _otherLock;
-
-    public SCTradeLockUpdatePacket(bool myLock, bool otherLock) : base(SCOffsets.SCTradeLockUpdatePacket, 1)
+    public class SCTradeLockUpdatePacket : GamePacket
     {
-        _myLock = myLock;
-        _otherLock = otherLock;
-    }
+        private readonly bool _myLock;
+        private readonly bool _otherLock;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_myLock);
-        stream.Write(_otherLock);
-        return stream;
+        public SCTradeLockUpdatePacket(bool myLock, bool otherLock) : base(SCOffsets.SCTradeLockUpdatePacket, 1)
+        {
+            _myLock = myLock;
+            _otherLock = otherLock;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_myLock);
+            stream.Write(_otherLock);
+            return stream;
+        }
     }
 }

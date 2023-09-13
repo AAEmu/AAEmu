@@ -4,25 +4,26 @@ using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.World.Interactions;
-
-public class CheckGrowth : IWorldInteraction
+namespace AAEmu.Game.Models.Game.World.Interactions
 {
-    public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
-        uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
+    public class CheckGrowth : IWorldInteraction
     {
-        // TODO Verification Needed
-        if (!(target is Doodad doodad)) { return; }
+        public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
+            uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
+        {
+            // TODO Verification Needed
+            if (!(target is Doodad doodad)) { return; }
 
-        var func = DoodadManager.Instance.GetFunc(doodad.FuncGroupId, skillId);
-        if (func == null) { return; }
+            var func = DoodadManager.Instance.GetFunc(doodad.FuncGroupId, skillId);
+            if (func == null) { return; }
 
-        var grp = func.GroupId;
-        func.Use(caster, doodad, skillId);
+            var grp = func.GroupId;
+            func.Use(caster, doodad, skillId);
 
-        var nextFunc = DoodadManager.Instance.GetFunc(doodad.FuncGroupId, skillId);
-        if (nextFunc?.NextPhase == grp || nextFunc?.NextPhase == -1) { return; }
+            var nextFunc = DoodadManager.Instance.GetFunc(doodad.FuncGroupId, skillId);
+            if (nextFunc?.NextPhase == grp || nextFunc?.NextPhase == -1) { return; }
 
-        nextFunc?.Use(caster, doodad, skillId);
+            nextFunc?.Use(caster, doodad, skillId);
+        }
     }
 }

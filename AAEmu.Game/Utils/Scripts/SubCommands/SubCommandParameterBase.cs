@@ -1,37 +1,38 @@
-﻿namespace AAEmu.Game.Utils.Scripts.SubCommands;
-
-public abstract class SubCommandParameterBase
+﻿namespace AAEmu.Game.Utils.Scripts.SubCommands
 {
-    public SubCommandParameterBase(string name, string displayName, bool required)
+    public abstract class SubCommandParameterBase
     {
-        Name = name;
-        IsRequired = required;
-        DisplayName = displayName ?? name;
-    }
-    public string Name { get; protected set; }
-    public string DisplayName { get; protected set; }
-    public bool IsRequired { get; protected set; }
-    public string Prefix { get; protected set; }
-    public abstract string CallExample { get; }
-    /// <summary>
-    /// This value will be used if the parameter is optional and no value was provided.
-    /// </summary>
-    public object DefaultValue { get; set; }
-    protected string GetValueWithoutPrefix(string argumentValue)
-    {
-        if (Prefix is null)
+        public SubCommandParameterBase(string name, string displayName, bool required)
         {
-            return argumentValue;
+            Name = name;
+            IsRequired = required;
+            DisplayName = displayName ?? name;
         }
-        return argumentValue.Substring(Prefix.Length + 1);
-    }
-    public bool MatchPrefix(string argument)
-    {
-        if (Prefix is null)
-            return false;
+        public string Name { get; protected set; }
+        public string DisplayName { get; protected set; }
+        public bool IsRequired { get; protected set; }
+        public string Prefix { get; protected set; }
+        public abstract string CallExample { get; }
+        /// <summary>
+        /// This value will be used if the parameter is optional and no value was provided.
+        /// </summary>
+        public object DefaultValue { get; set; }
+        protected string GetValueWithoutPrefix(string argumentValue)
+        {
+            if (Prefix is null)
+            {
+                return argumentValue;
+            }
+            return argumentValue.Substring(Prefix.Length + 1);
+        }
+        public bool MatchPrefix(string argument)
+        {
+            if (Prefix is null)
+                return false;
 
-        return argument.StartsWith(Prefix + "=");
-    }
-    public abstract ParameterResult Load(string argument);
+            return argument.StartsWith(Prefix + "=");
+        }
+        public abstract ParameterResult Load(string argument);
 
+    }
 }

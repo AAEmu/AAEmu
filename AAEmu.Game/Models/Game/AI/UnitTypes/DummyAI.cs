@@ -1,11 +1,12 @@
 using AAEmu.Game.Models.Game.AI.Framework;
 
-namespace AAEmu.Game.Models.Game.AI.UnitTypes;
-
-public class DummyAI : AbstractUnitAI
+namespace AAEmu.Game.Models.Game.AI.UnitTypes
 {
-    public override Framework.States GetNextState(State previous)
+    public class DummyAI : AbstractUnitAI
     {
-        return Framework.States.Idle;
+        public override Framework.States GetNextState(State previous)
+        {
+            return Framework.States.Idle;
+        }
     }
 }

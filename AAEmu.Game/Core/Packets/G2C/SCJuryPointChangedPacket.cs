@@ -1,20 +1,21 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCJuryPointChangedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly int _juryPoint;
-
-    public SCJuryPointChangedPacket(int juryPoint) : base(SCOffsets.SCJuryPointChangedPacket, 1)
+    public class SCJuryPointChangedPacket : GamePacket
     {
-        _juryPoint = juryPoint;
-    }
+        private readonly int _juryPoint;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_juryPoint);
-        return stream;
+        public SCJuryPointChangedPacket(int juryPoint) : base(SCOffsets.SCJuryPointChangedPacket, 1)
+        {
+            _juryPoint = juryPoint;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_juryPoint);
+            return stream;
+        }
     }
 }

@@ -4,67 +4,68 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using NLog;
 
-namespace AAEmu.Game.Scripts.Commands;
-
-public class Dloc : ICommand
+namespace AAEmu.Game.Scripts.Commands
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
-    public void OnLoad()
+    public class Dloc : ICommand
     {
-        CommandManager.Instance.Register("dloc", this);
-    }
-
-    public string GetCommandLineHelp()
-    {
-        return "<doodad> <objectId> <x> <y> <z>";
-    }
-
-    public string GetCommandHelpText()
-    {
-        return "change doodad position";
-    }
-
-    public void Execute(Character character, string[] args)
-    {
-        if (args.Length < 4)
+        protected static Logger _log = LogManager.GetCurrentClassLogger();
+        public void OnLoad()
         {
-            character.SendMessage("[dloc] /dloc <doodadID> <x> <y> <z> - Use x y z instead of a value to keep current position");
-            return;
+            CommandManager.Instance.Register("dloc", this);
         }
 
-        if (uint.TryParse(args[0], out var id))
+        public string GetCommandLineHelp()
         {
-            var doodad = WorldManager.Instance.GetDoodad(id);
-            if (doodad != null)
+            return "<doodad> <objectId> <x> <y> <z>";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "change doodad position";
+        }
+
+        public void Execute(Character character, string[] args)
+        {
+            if (args.Length < 4)
             {
-                float value = 0;
-                float x = doodad.Transform.Local.Position.X;
-                float y = doodad.Transform.Local.Position.Y;
-                float z = doodad.Transform.Local.Position.Z;
-
-                if (args[1] != "x" && float.TryParse(args[1], out value))
-                {
-                    x = value;
-                }
-
-                if (args[2] != "y" && float.TryParse(args[2], out value))
-                {
-                    y = value;
-                }
-
-                if (args[3] != "z" && float.TryParse(args[3], out value))
-                {
-                    z = value;
-                }
-
-                doodad.Transform.Local.SetPosition(x, y, z);
-
-                doodad.Hide();
-                doodad.Show();
+                character.SendMessage("[dloc] /dloc <doodadID> <x> <y> <z> - Use x y z instead of a value to keep current position");
+                return;
             }
-            else
+
+            if (uint.TryParse(args[0], out var id))
             {
-                character.SendMessage("[npcloc] npc is null!");
+                var doodad = WorldManager.Instance.GetDoodad(id);
+                if (doodad != null)
+                {
+                    float value = 0;
+                    float x = doodad.Transform.Local.Position.X;
+                    float y = doodad.Transform.Local.Position.Y;
+                    float z = doodad.Transform.Local.Position.Z;
+
+                    if (args[1] != "x" && float.TryParse(args[1], out value))
+                    {
+                        x = value;
+                    }
+
+                    if (args[2] != "y" && float.TryParse(args[2], out value))
+                    {
+                        y = value;
+                    }
+
+                    if (args[3] != "z" && float.TryParse(args[3], out value))
+                    {
+                        z = value;
+                    }
+
+                    doodad.Transform.Local.SetPosition(x, y, z);
+
+                    doodad.Hide();
+                    doodad.Show();
+                }
+                else
+                {
+                    character.SendMessage("[npcloc] npc is null!");
+                }
             }
         }
     }

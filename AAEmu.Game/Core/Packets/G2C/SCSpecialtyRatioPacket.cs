@@ -1,20 +1,21 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCSpecialtyRatioPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly int _ratio;
-
-    public SCSpecialtyRatioPacket(int ratio) : base(SCOffsets.SCSpecialtyRatioPacket, 1)
+    public class SCSpecialtyRatioPacket : GamePacket
     {
-        _ratio = ratio;
-    }
+        private readonly int _ratio;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_ratio);
-        return stream;
+        public SCSpecialtyRatioPacket(int ratio) : base(SCOffsets.SCSpecialtyRatioPacket, 1)
+        {
+            _ratio = ratio;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_ratio);
+            return stream;
+        }
     }
 }

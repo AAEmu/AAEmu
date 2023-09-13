@@ -2,36 +2,37 @@
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 
-namespace AAEmu.Game.Core.Network.Connections;
-
-public class StreamConnectionTable : Singleton<StreamConnectionTable>
+namespace AAEmu.Game.Core.Network.Connections
 {
-    private ConcurrentDictionary<uint, StreamConnection> _connections;
-
-    private StreamConnectionTable()
+    public class StreamConnectionTable : Singleton<StreamConnectionTable>
     {
-        _connections = new ConcurrentDictionary<uint, StreamConnection>();
-    }
+        private ConcurrentDictionary<uint, StreamConnection> _connections;
 
-    public void AddConnection(StreamConnection con)
-    {
-        _connections.TryAdd(con.Id, con);
-    }
+        private StreamConnectionTable()
+        {
+            _connections = new ConcurrentDictionary<uint, StreamConnection>();
+        }
 
-    public StreamConnection GetConnection(uint id)
-    {
-        _connections.TryGetValue(id, out var con);
-        return con;
-    }
+        public void AddConnection(StreamConnection con)
+        {
+            _connections.TryAdd(con.Id, con);
+        }
 
-    public StreamConnection RemoveConnection(uint id)
-    {
-        _connections.TryRemove(id, out var con);
-        return con;
-    }
+        public StreamConnection GetConnection(uint id)
+        {
+            _connections.TryGetValue(id, out var con);
+            return con;
+        }
 
-    public List<StreamConnection> GetConnections()
-    {
-        return new List<StreamConnection>(_connections.Values);
+        public StreamConnection RemoveConnection(uint id)
+        {
+            _connections.TryRemove(id, out var con);
+            return con;
+        }
+
+        public List<StreamConnection> GetConnections()
+        {
+            return new List<StreamConnection>(_connections.Values);
+        }
     }
 }

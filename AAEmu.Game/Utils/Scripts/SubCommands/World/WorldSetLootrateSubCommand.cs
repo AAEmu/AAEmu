@@ -3,27 +3,28 @@ using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Utils.Scripts.SubCommands.World;
-
-public class WorldSetLootrateSubCommand : SubCommandBase
+namespace AAEmu.Game.Utils.Scripts.SubCommands.World
 {
-    public WorldSetLootrateSubCommand()
+    public class WorldSetLootrateSubCommand : SubCommandBase
     {
-        Title = "[World Set LootRate]";
-        Description = "Setting the loot rate";
-        CallPrefix = $"{CommandManager.CommandPrefix}lootrate";
-        AddParameter(new NumericSubCommandParameter<float>("LootRate", "LootRate", true));
-    }
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
-    {
-        float lootRate = parameters["LootRate"];
-        if (lootRate < 1.0f || lootRate > 1000.0f)
+        public WorldSetLootrateSubCommand()
         {
-            SendColorMessage(character, Color.Coral, $"Loot rate = {lootRate} must be at least 1.0 and no more than 1000.0 |r");
-            return;
+            Title = "[World Set LootRate]";
+            Description = "Setting the loot rate";
+            CallPrefix = $"{CommandManager.CommandPrefix}lootrate";
+            AddParameter(new NumericSubCommandParameter<float>("LootRate", "LootRate", true));
         }
-        character.SetLootRate(lootRate);
-        SendMessage(character, "Set GrowthRate {0}", lootRate);
-        _log.Warn($"{Title}: {lootRate}");
+        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+        {
+            float lootRate = parameters["LootRate"];
+            if (lootRate < 1.0f || lootRate > 1000.0f)
+            {
+                SendColorMessage(character, Color.Coral, $"Loot rate = {lootRate} must be at least 1.0 and no more than 1000.0 |r");
+                return;
+            }
+            character.SetLootRate(lootRate);
+            SendMessage(character, "Set GrowthRate {0}", lootRate);
+            _log.Warn($"{Title}: {lootRate}");
+        }
     }
 }

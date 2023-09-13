@@ -5,39 +5,40 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Scripts.SubCommands.Slaves;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
-namespace AAEmu.Game.Scripts.Commands;
-
-public class SlaveCmd : SubCommandBase, ICommand, ICommandV2
+namespace AAEmu.Game.Scripts.Commands
 {
-    public SlaveCmd()
+    public class SlaveCmd : SubCommandBase, ICommand, ICommandV2
     {
-        Title = "[Slave]";
-        Description = "Root command to manage Slaves";
-        CallPrefix = $"{CommandManager.CommandPrefix}slave";
+        public SlaveCmd()
+        {
+            Title = "[Slave]";
+            Description = "Root command to manage Slaves";
+            CallPrefix = $"{CommandManager.CommandPrefix}slave";
 
-        Register(new SlaveInformationSubCommand(), "info");
-        Register(new SlavePositionSubCommand(), "position", "pos");
-        Register(new SlaveSaveSubCommand(), "save");
-        Register(new SlaveSpawnSubCommand(), "spawn");
-        Register(new SlaveRemoveSubCommand(), "remove");
-    }
-    public void OnLoad()
-    {
-        CommandManager.Instance.Register("slave", this);
-    }
+            Register(new SlaveInformationSubCommand(), "info");
+            Register(new SlavePositionSubCommand(), "position", "pos");
+            Register(new SlaveSaveSubCommand(), "save");
+            Register(new SlaveSpawnSubCommand(), "spawn");
+            Register(new SlaveRemoveSubCommand(), "remove");
+        }
+        public void OnLoad()
+        {
+            CommandManager.Instance.Register("slave", this);
+        }
 
-    public string GetCommandLineHelp()
-    {
-        return $"<{string.Join("||", SupportedCommands)}>";
-    }
+        public string GetCommandLineHelp()
+        {
+            return $"<{string.Join("||", SupportedCommands)}>";
+        }
 
-    public string GetCommandHelpText()
-    {
-        return CallPrefix;
-    }
+        public string GetCommandHelpText()
+        {
+            return CallPrefix;
+        }
 
-    public void Execute(Character character, string[] args)
-    {
-        throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        public void Execute(Character character, string[] args)
+        {
+            throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        }
     }
 }

@@ -1,27 +1,28 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCAreaChatBubblePacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly bool _enter;
-    private readonly uint _unitObjId;
-    private readonly uint _type;
-
-    public SCAreaChatBubblePacket(bool enter, uint unitObjId, uint type) : base(SCOffsets.SCAreaChatBubblePacket, 1)
+    public class SCAreaChatBubblePacket : GamePacket
     {
-        _enter = enter;
-        _unitObjId = unitObjId;
-        _type = type;
-    }
+        private readonly bool _enter;
+        private readonly uint _unitObjId;
+        private readonly uint _type;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_enter);        // enter
-        stream.WriteBc(_unitObjId); // ObjId
-        stream.Write(_type);       // type
+        public SCAreaChatBubblePacket(bool enter, uint unitObjId, uint type) : base(SCOffsets.SCAreaChatBubblePacket, 1)
+        {
+            _enter = enter;
+            _unitObjId = unitObjId;
+            _type = type;
+        }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_enter);        // enter
+            stream.WriteBc(_unitObjId); // ObjId
+            stream.Write(_type);       // type
+
+            return stream;
+        }
     }
 }

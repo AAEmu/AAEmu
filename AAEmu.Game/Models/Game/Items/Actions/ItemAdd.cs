@@ -1,25 +1,26 @@
 ﻿using AAEmu.Commons.Network;
 
-namespace AAEmu.Game.Models.Game.Items.Actions;
-
-public class ItemAdd : ItemTask
+namespace AAEmu.Game.Models.Game.Items.Actions
 {
-    private readonly Item _item;
-
-    public ItemAdd(Item item)
+    public class ItemAdd : ItemTask
     {
-        _type = ItemAction.Create;
-        _item = item;
-    }
+        private readonly Item _item;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        base.Write(stream);
+        public ItemAdd(Item item)
+        {
+            _type = ItemAction.Create;
+            _item = item;
+        }
 
-        stream.Write((byte)_item.SlotType);
-        stream.Write((byte)_item.Slot);
-        WriteDetails(stream, _item);
+        public override PacketStream Write(PacketStream stream)
+        {
+            base.Write(stream);
 
-        return stream;
+            stream.Write((byte)_item.SlotType);
+            stream.Write((byte)_item.Slot);
+            WriteDetails(stream, _item);
+
+            return stream;
+        }
     }
 }

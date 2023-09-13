@@ -2,17 +2,18 @@
 using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Network.Stream;
 
-namespace AAEmu.Game.Core.Packets.C2S;
-
-public class CTRequestEmblemPacket : StreamPacket
+namespace AAEmu.Game.Core.Packets.C2S
 {
-    public CTRequestEmblemPacket() : base(CTOffsets.CTRequestEmblemPacket)
+    public class CTRequestEmblemPacket : StreamPacket
     {
-    }
+        public CTRequestEmblemPacket() : base(CTOffsets.CTRequestEmblemPacket)
+        {
+        }
 
-    public override void Read(PacketStream stream)
-    {
-        var uccId = stream.ReadUInt64();
-        UccManager.Instance.RequestUcc(Connection, uccId);
+        public override void Read(PacketStream stream)
+        {
+            var uccId = stream.ReadUInt64();
+            UccManager.Instance.RequestUcc(Connection, uccId);
+        }
     }
 }

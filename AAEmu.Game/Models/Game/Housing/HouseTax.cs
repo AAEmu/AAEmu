@@ -1,8 +1,9 @@
-﻿namespace AAEmu.Game.Models.Game.Housing;
-
-public class HouseTax
+﻿namespace AAEmu.Game.Models.Game.Housing
 {
-    public uint Id { get; set; }
-    public uint Tax { get; set; }
-    public bool Show { get; set; }
+    public class HouseTax
+    {
+        public uint Id { get; set; }
+        public uint Tax { get; set; }
+        public bool Show { get; set; }
+    }
 }

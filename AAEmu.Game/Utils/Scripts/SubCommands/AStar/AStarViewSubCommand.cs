@@ -7,61 +7,62 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 
-namespace AAEmu.Game.Utils.Scripts.SubCommands.AStar;
-
-public class AStarViewSubCommand : SubCommandBase
+namespace AAEmu.Game.Utils.Scripts.SubCommands.AStar
 {
-    public AStarViewSubCommand()
+    public class AStarViewSubCommand : SubCommandBase
     {
-        Title = "[AStar View]";
-        Description = "Let's map the found waypoints on the terrain.";
-        CallPrefix = $"{CommandManager.CommandPrefix}view";
-        AddParameter(new NumericSubCommandParameter<uint>("templateId", "template id", false));
-    }
-
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
-    {
-        var currentTarget = ((Character)character).CurrentTarget;
-        var npc = currentTarget as Npc;
-        if (currentTarget is null || npc == null)
+        public AStarViewSubCommand()
         {
-            SendColorMessage(character, Color.Coral, $"AStar: You need to target a Npc first");
-            return;
+            Title = "[AStar View]";
+            Description = "Let's map the found waypoints on the terrain.";
+            CallPrefix = $"{CommandManager.CommandPrefix}view";
+            AddParameter(new NumericSubCommandParameter<uint>("templateId", "template id", false));
         }
 
-        uint unitTemplateId = parameters["templateId"]; // 1775 Small stone, 5014 Combat Flag, 7221 White Freedom Flag
-        if (unitTemplateId == 0)
+        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
-            unitTemplateId = 5014u;
-        }
-        if (!DoodadManager.Instance.Exist(unitTemplateId))
-        {
-            SendColorMessage(character, Color.Coral, $"AStar: Doodad templateId:{unitTemplateId} don't exist|r");
-            return;
-        }
+            var currentTarget = ((Character)character).CurrentTarget;
+            var npc = currentTarget as Npc;
+            if (currentTarget is null || npc == null)
+            {
+                SendColorMessage(character, Color.Coral, $"AStar: You need to target a Npc first");
+                return;
+            }
 
-        using var charPos = ((Character)character).Transform.CloneDetached();
-        var doodadSpawner = new DoodadSpawner
-        {
-            Id = 0,
-            UnitId = unitTemplateId
-        };
+            uint unitTemplateId = parameters["templateId"]; // 1775 Small stone, 5014 Combat Flag, 7221 White Freedom Flag
+            if (unitTemplateId == 0)
+            {
+                unitTemplateId = 5014u;
+            }
+            if (!DoodadManager.Instance.Exist(unitTemplateId))
+            {
+                SendColorMessage(character, Color.Coral, $"AStar: Doodad templateId:{unitTemplateId} don't exist|r");
+                return;
+            }
 
-        foreach (var point in npc.Ai.PathNode.findPath)
-        {
-            doodadSpawner.Position = charPos.CloneAsSpawnPosition();
+            using var charPos = ((Character)character).Transform.CloneDetached();
+            var doodadSpawner = new DoodadSpawner
+            {
+                Id = 0,
+                UnitId = unitTemplateId
+            };
 
-            doodadSpawner.Position.X = point.X;
-            doodadSpawner.Position.Y = point.Y;
-            doodadSpawner.Position.Z = point.Z;
-            ;
-            doodadSpawner.Position.Yaw = 0;
-            doodadSpawner.Position.Pitch = 0;
-            doodadSpawner.Position.Roll = 0;
+            foreach (var point in npc.Ai.PathNode.findPath)
+            {
+                doodadSpawner.Position = charPos.CloneAsSpawnPosition();
 
-            var createdDoodad = doodadSpawner.Spawn(0, 0, ((Character)character).ObjId);
+                doodadSpawner.Position.X = point.X;
+                doodadSpawner.Position.Y = point.Y;
+                doodadSpawner.Position.Z = point.Z;
+                ;
+                doodadSpawner.Position.Yaw = 0;
+                doodadSpawner.Position.Pitch = 0;
+                doodadSpawner.Position.Roll = 0;
 
-            //character.SendMessage($"AStar: Doodad ObjId:{createdDoodad.ObjId}, Template {unitTemplateId} spawned");
+                var createdDoodad = doodadSpawner.Spawn(0, 0, ((Character)character).ObjId);
+
+                //character.SendMessage($"AStar: Doodad ObjId:{createdDoodad.ObjId}, Template {unitTemplateId} spawned");
+            }
         }
     }
 }

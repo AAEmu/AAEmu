@@ -1,46 +1,47 @@
 ﻿using System.Collections.Generic;
 using NLog;
 
-namespace AAEmu.Game.Models.Game.AI.Params;
-
-class HoldPositionAiParams : AiParamsOld
+namespace AAEmu.Game.Models.Game.AI.Params
 {
-    private Logger _log = LogManager.GetCurrentClassLogger();
-    public override AiParamType Type => AiParamType.HoldPosition;
-
-    public int AlertDuration { get; set; }
-    public bool AlertToAttack { get; set; }
-    public int AlertSafeTargetRememberTime { get; set; }
-    public List<uint> OnGroupLeaderDied { get; set; }
-    public List<uint> OnGroupMemberDied { get; set; }
-
-    public override void Parse(string data)
+    class HoldPositionAiParams : AiParamsOld
     {
-        using (var aiParams = new AiLua())
+        private Logger _log = LogManager.GetCurrentClassLogger();
+        public override AiParamType Type => AiParamType.HoldPosition;
+
+        public int AlertDuration { get; set; }
+        public bool AlertToAttack { get; set; }
+        public int AlertSafeTargetRememberTime { get; set; }
+        public List<uint> OnGroupLeaderDied { get; set; }
+        public List<uint> OnGroupMemberDied { get; set; }
+
+        public override void Parse(string data)
         {
-            aiParams.DoString($"data = {{\n{data}\n}}");
-
-            AlertDuration = aiParams.GetInteger("data.alertDuration");
-            AlertToAttack = (bool)(aiParams.GetObjectFromPath("data.alertToAttack") ?? false);
-            AlertSafeTargetRememberTime = aiParams.GetInteger("data.alertSafeTargetRememberTime");
-
-            OnGroupLeaderDied = new List<uint>();
-            var onGroupLeaderDied = aiParams.GetTable("data.onGroupLeaderDied");
-            if (onGroupLeaderDied != null)
+            using (var aiParams = new AiLua())
             {
-                foreach (KeyValuePair<object, object> entry in onGroupLeaderDied)
+                aiParams.DoString($"data = {{\n{data}\n}}");
+
+                AlertDuration = aiParams.GetInteger("data.alertDuration");
+                AlertToAttack = (bool)(aiParams.GetObjectFromPath("data.alertToAttack") ?? false);
+                AlertSafeTargetRememberTime = aiParams.GetInteger("data.alertSafeTargetRememberTime");
+
+                OnGroupLeaderDied = new List<uint>();
+                var onGroupLeaderDied = aiParams.GetTable("data.onGroupLeaderDied");
+                if (onGroupLeaderDied != null)
                 {
-                    OnGroupLeaderDied.Add((uint)entry.Value);
+                    foreach (KeyValuePair<object, object> entry in onGroupLeaderDied)
+                    {
+                        OnGroupLeaderDied.Add((uint)entry.Value);
+                    }
                 }
-            }
 
-            OnGroupMemberDied = new List<uint>();
-            var onGroupMemberDied = aiParams.GetTable("data.onGroupLeaderDied");
-            if (onGroupMemberDied != null)
-            {
-                foreach (KeyValuePair<object, object> entry in onGroupMemberDied)
+                OnGroupMemberDied = new List<uint>();
+                var onGroupMemberDied = aiParams.GetTable("data.onGroupLeaderDied");
+                if (onGroupMemberDied != null)
                 {
-                    OnGroupMemberDied.Add((uint)entry.Value);
+                    foreach (KeyValuePair<object, object> entry in onGroupMemberDied)
+                    {
+                        OnGroupMemberDied.Add((uint)entry.Value);
+                    }
                 }
             }
         }

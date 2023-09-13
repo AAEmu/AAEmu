@@ -1,26 +1,27 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCFamilyMemberRemovedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _familyId;
-    private readonly bool _kicked;
-    private readonly uint _memberId;
-
-    public SCFamilyMemberRemovedPacket(uint familyId, bool kicked, uint memberId) : base(SCOffsets.SCFamilyMemberRemovedPacket, 1)
+    public class SCFamilyMemberRemovedPacket : GamePacket
     {
-        _familyId = familyId;
-        _kicked = kicked;
-        _memberId = memberId;
-    }
+        private readonly uint _familyId;
+        private readonly bool _kicked;
+        private readonly uint _memberId;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_familyId);
-        stream.Write(_memberId);
-        stream.Write(_kicked);
-        return stream;
+        public SCFamilyMemberRemovedPacket(uint familyId, bool kicked, uint memberId) : base(SCOffsets.SCFamilyMemberRemovedPacket, 1)
+        {
+            _familyId = familyId;
+            _kicked = kicked;
+            _memberId = memberId;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_familyId);
+            stream.Write(_memberId);
+            stream.Write(_kicked);
+            return stream;
+        }
     }
 }

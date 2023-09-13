@@ -4,16 +4,17 @@ using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.Skills.Effects;
-
-public class MoveToRezPointEffect : EffectTemplate
+namespace AAEmu.Game.Models.Game.Skills.Effects
 {
-    public override bool OnActionTime => false;
-
-    public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-        CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
-        CompressedGamePackets packetBuilder = null)
+    public class MoveToRezPointEffect : EffectTemplate
     {
-        _log.Trace("MoveToRezPointEffect");
+        public override bool OnActionTime => false;
+
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
+            CompressedGamePackets packetBuilder = null)
+        {
+            _log.Trace("MoveToRezPointEffect");
+        }
     }
 }

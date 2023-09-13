@@ -1,8 +1,9 @@
-namespace AAEmu.Game.Models.Game.Faction;
-
-public enum RelationState : byte
+namespace AAEmu.Game.Models.Game.Faction
 {
-    Hostile = 1,
-    Neutral = 2,
-    Friendly = 3
+    public enum RelationState : byte
+    {
+        Hostile = 1,
+        Neutral = 2,
+        Friendly = 3
+    }
 }

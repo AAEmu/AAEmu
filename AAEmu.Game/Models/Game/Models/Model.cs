@@ -1,6 +1,7 @@
-namespace AAEmu.Game.Models.Game.Models;
-
-public class Model
+namespace AAEmu.Game.Models.Game.Models
 {
-    public uint Id { get; set; }
+    public class Model
+    {
+        public uint Id { get; set; }
+    }
 }

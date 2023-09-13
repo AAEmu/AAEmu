@@ -3,33 +3,34 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils;
 
-namespace AAEmu.Game.Scripts.Commands;
-
-public class QuestCmd : ICommand
+namespace AAEmu.Game.Scripts.Commands
 {
-    public void OnLoad()
+    public class QuestCmd : ICommand
     {
-        CommandManager.Instance.Register("quest", this);
-    }
-
-    public string GetCommandLineHelp()
-    {
-        return "<list||add||remove||prog||reward||resetdaily>";
-    }
-
-    public string GetCommandHelpText()
-    {
-        return "[Quest] /quest <add/remove/list/prog/reward/resetdaily>\nBefore that, target the Npc you need for the quest";
-    }
-
-    public void Execute(Character character, string[] args)
-    {
-        if (args.Length < 1)
+        public void OnLoad()
         {
-            character.SendMessage("[Quest] /quest <add/remove/list/prog/reward/resetdaily>\nBefore that, target the Npc you need for the quest");
-            return;
+            CommandManager.Instance.Register("quest", this);
         }
 
-        QuestCommandUtil.GetCommandChoice(character, args[0], args);
+        public string GetCommandLineHelp()
+        {
+            return "<list||add||remove||prog||reward||resetdaily>";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "[Quest] /quest <add/remove/list/prog/reward/resetdaily>\nBefore that, target the Npc you need for the quest";
+        }
+
+        public void Execute(Character character, string[] args)
+        {
+            if (args.Length < 1)
+            {
+                character.SendMessage("[Quest] /quest <add/remove/list/prog/reward/resetdaily>\nBefore that, target the Npc you need for the quest");
+                return;
+            }
+
+            QuestCommandUtil.GetCommandChoice(character, args[0], args);
+        }
     }
 }

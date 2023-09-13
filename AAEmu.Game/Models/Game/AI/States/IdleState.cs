@@ -2,41 +2,42 @@ using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.AI.Framework;
 
-namespace AAEmu.Game.Models.Game.AI.States;
-
-public class IdleState : State
+namespace AAEmu.Game.Models.Game.AI.States
 {
-    private float _maxIdleTime;
-    private TimeSpan _idleTimeSpan;
-    private DateTime _stateStart;
-
-    /// <summary>
-    /// This state is used when waiting for other actions to trigger new states
-    /// Passing a maxIdleTime will pick between 0 and maxIdleTime to go to NextState, from AI.GetNextState()
-    /// </summary>
-    /// <param name="maxIdleTime"></param>
-    public IdleState(float maxIdleTime = 0.0f)
+    public class IdleState : State
     {
-        _maxIdleTime = maxIdleTime;
-    }
+        private float _maxIdleTime;
+        private TimeSpan _idleTimeSpan;
+        private DateTime _stateStart;
 
-    public override void Enter()
-    {
-        // Pick time to Idle
-        if (_maxIdleTime > 0)
+        /// <summary>
+        /// This state is used when waiting for other actions to trigger new states
+        /// Passing a maxIdleTime will pick between 0 and maxIdleTime to go to NextState, from AI.GetNextState()
+        /// </summary>
+        /// <param name="maxIdleTime"></param>
+        public IdleState(float maxIdleTime = 0.0f)
         {
-            _stateStart = DateTime.UtcNow;
-            _idleTimeSpan = TimeSpan.FromSeconds(Rand.Next(0, _maxIdleTime));
+            _maxIdleTime = maxIdleTime;
         }
-    }
 
-    public override void Tick(TimeSpan delta)
-    {
-        if (_maxIdleTime > 0 && _stateStart + _idleTimeSpan > DateTime.UtcNow)
+        public override void Enter()
         {
-            var stateId = AI.GetNextState(this);
-            var state = AI.StateMachine.GetState(stateId);
-            AI.StateMachine.SetCurrentState(state);
+            // Pick time to Idle
+            if (_maxIdleTime > 0)
+            {
+                _stateStart = DateTime.UtcNow;
+                _idleTimeSpan = TimeSpan.FromSeconds(Rand.Next(0, _maxIdleTime));
+            }
+        }
+
+        public override void Tick(TimeSpan delta)
+        {
+            if (_maxIdleTime > 0 && _stateStart + _idleTimeSpan > DateTime.UtcNow)
+            {
+                var stateId = AI.GetNextState(this);
+                var state = AI.StateMachine.GetState(stateId);
+                AI.StateMachine.SetCurrentState(state);
+            }
         }
     }
 }

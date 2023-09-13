@@ -3,16 +3,16 @@ using AAEmu.Game.Utils.Converters;
 using Newtonsoft.Json;
 using Xunit;
 
-namespace AAEmu.UnitTests.Game.Models.Json;
-
-public class ModelsJsonConverterTests
+namespace AAEmu.UnitTests.Game.Models.Json
 {
-    [Fact]
-    public void ConvertAComplexObject_WhenYawRollPitchIsZero_ShouldIgnore()
+    public class ModelsJsonConverterTests
     {
-        //Arrange
-        var spawnsList = new JsonNpcSpawns[]
+        [Fact]
+        public void ConvertAComplexObject_WhenYawRollPitchIsZero_ShouldIgnore()
         {
+            //Arrange
+            var spawnsList = new JsonNpcSpawns[]
+            {
             new JsonNpcSpawns
             {
                 UnitId = 1,
@@ -26,22 +26,22 @@ public class ModelsJsonConverterTests
                     Roll = 0,
                 }
             }
-        };
-        var expected = "[{\"Id\":1,\"UnitId\":1,\"FollowPath\":\"test\",\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0}}]";
+            };
+            var expected = "[{\"Id\":1,\"UnitId\":1,\"FollowPath\":\"test\",\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0}}]";
 
-        //Act
-        var conversion = JsonConvert.SerializeObject(spawnsList, new JsonModelsConverter());
+            //Act
+            var conversion = JsonConvert.SerializeObject(spawnsList, new JsonModelsConverter());
 
-        //Assert
-        Assert.Equal(expected, conversion);
-    }
+            //Assert
+            Assert.Equal(expected, conversion);
+        }
 
-    [Fact]
-    public void ConvertAComplexObject_WhenYawIsZero_ShouldIgnore()
-    {
-        //Arrange
-        var spawnsList = new JsonNpcSpawns[]
+        [Fact]
+        public void ConvertAComplexObject_WhenYawIsZero_ShouldIgnore()
         {
+            //Arrange
+            var spawnsList = new JsonNpcSpawns[]
+            {
             new JsonNpcSpawns
             {
                 UnitId = 1,
@@ -55,13 +55,14 @@ public class ModelsJsonConverterTests
                     Roll = 20,
                 }
             }
-        };
-        var expected = "[{\"Id\":1,\"UnitId\":1,\"FollowPath\":\"test\",\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0,\"Roll\":20,\"Pitch\":10}}]";
+            };
+            var expected = "[{\"Id\":1,\"UnitId\":1,\"FollowPath\":\"test\",\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0,\"Roll\":20,\"Pitch\":10}}]";
 
-        //Act
-        var conversion = JsonConvert.SerializeObject(spawnsList, new JsonModelsConverter());
+            //Act
+            var conversion = JsonConvert.SerializeObject(spawnsList, new JsonModelsConverter());
 
-        //Assert
-        Assert.Equal(expected, conversion);
+            //Assert
+            Assert.Equal(expected, conversion);
+        }
     }
 }

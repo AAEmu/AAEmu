@@ -2,30 +2,31 @@
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCTransferTelescopeUnitsPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    public override PacketLogLevel LogLevel => PacketLogLevel.Off;
-
-    private readonly bool _last;
-    private readonly Transfer[] _transfers;
-
-    public SCTransferTelescopeUnitsPacket(bool last, Transfer[] transfers) : base(SCOffsets.SCTransferTelescopeUnitsPacket, 1)
+    public class SCTransferTelescopeUnitsPacket : GamePacket
     {
-        _last = last;
-        _transfers = transfers;
-    }
+        public override PacketLogLevel LogLevel => PacketLogLevel.Off;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_last);
-        stream.Write((byte)_transfers.Length);
-        foreach (var transfer in _transfers)
+        private readonly bool _last;
+        private readonly Transfer[] _transfers;
+
+        public SCTransferTelescopeUnitsPacket(bool last, Transfer[] transfers) : base(SCOffsets.SCTransferTelescopeUnitsPacket, 1)
         {
-            transfer.WriteTelescopeUnit(stream);
+            _last = last;
+            _transfers = transfers;
         }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_last);
+            stream.Write((byte)_transfers.Length);
+            foreach (var transfer in _transfers)
+            {
+                transfer.WriteTelescopeUnit(stream);
+            }
+
+            return stream;
+        }
     }
 }

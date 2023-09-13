@@ -2,22 +2,23 @@
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Tasks.Skills;
-
-public class DespawnTask : Task
+namespace AAEmu.Game.Models.Tasks.Skills
 {
-    private readonly BaseUnit _caster;
-
-    public DespawnTask(BaseUnit caster)
+    public class DespawnTask : Task
     {
-        _caster = caster;
-    }
-    public override void Execute()
-    {
-        if (_caster is not Npc npc)
-            return;
+        private readonly BaseUnit _caster;
 
-        ObjectIdManager.Instance.ReleaseId(npc.ObjId);
-        npc.Delete();
+        public DespawnTask(BaseUnit caster)
+        {
+            _caster = caster;
+        }
+        public override void Execute()
+        {
+            if (_caster is not Npc npc)
+                return;
+
+            ObjectIdManager.Instance.ReleaseId(npc.ObjId);
+            npc.Delete();
+        }
     }
 }

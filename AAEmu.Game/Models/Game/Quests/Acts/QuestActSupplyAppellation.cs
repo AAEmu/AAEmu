@@ -1,17 +1,18 @@
 ﻿using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActSupplyAppellation : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public uint AppellationId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActSupplyAppellation : QuestActTemplate
     {
-        _log.Debug("QuestActSupplyAppellation");
+        public uint AppellationId { get; set; }
 
-        character.Appellations.Add(AppellationId);
-        return true;
+        public override bool Use(ICharacter character, Quest quest, int objective)
+        {
+            _log.Debug("QuestActSupplyAppellation");
+
+            character.Appellations.Add(AppellationId);
+            return true;
+        }
     }
 }

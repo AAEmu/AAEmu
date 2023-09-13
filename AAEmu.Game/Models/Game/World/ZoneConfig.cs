@@ -1,23 +1,24 @@
 using System.Collections.Generic;
 
-namespace AAEmu.Game.Models.Game.World;
-
-public class ZoneConfig
+namespace AAEmu.Game.Models.Game.World
 {
-    public class CellConfig
+    public class ZoneConfig
     {
-        public int X { get; set; }
-        public int Y { get; set; }
-        public List<SectorConfig> Sectors { get; set; }
-    }
+        public class CellConfig
+        {
+            public int X { get; set; }
+            public int Y { get; set; }
+            public List<SectorConfig> Sectors { get; set; }
+        }
 
-    public class SectorConfig
-    {
-        public int X { get; set; }
-        public int Y { get; set; }
-    }
+        public class SectorConfig
+        {
+            public int X { get; set; }
+            public int Y { get; set; }
+        }
 
-    public ushort Id { get; set; }
-    public string Name { get; set; }
-    public List<CellConfig> Cells { get; set; }
+        public ushort Id { get; set; }
+        public string Name { get; set; }
+        public List<CellConfig> Cells { get; set; }
+    }
 }

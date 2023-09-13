@@ -6,251 +6,252 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.Skills;
-
-public enum EffectState
+namespace AAEmu.Game.Models.Game.Skills
 {
-    Created,
-    Acting,
-    Finishing,
-    Finished
-}
-
-public class Buff
-{
-    private object _lock = new();
-    private int _count;
-
-    public uint Index { get; set; }
-    public Skill Skill { get; set; }
-    // public EffectTemplate Template { get; set; }
-    public BuffTemplate Template { get; set; }
-    public Unit Caster { get; set; }
-    public SkillCaster SkillCaster { get; set; }
-    public BaseUnit Owner { get; set; }
-    public EffectState State { get; set; }
-    public bool InUse { get; set; }
-    public int Duration { get; set; }
-    public double Tick { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public int Charge { get; set; }
-    public bool Passive { get; set; }
-    public uint AbLevel { get; set; }
-    public BuffEvents Events { get; }
-    public BuffTriggersHandler Triggers { get; }
-    public Dictionary<uint, uint> saveFactions { get; set; }
-
-    public Buff(IBaseUnit owner, IBaseUnit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
+    public enum EffectState
     {
-        Owner = (BaseUnit)owner;
-        Caster = caster as Unit;
-        SkillCaster = skillCaster;
-        Template = template;
-        Skill = skill;
-        StartTime = time;
-        EndTime = DateTime.MinValue;
-        AbLevel = 1;
-        Events = new BuffEvents();
-        Triggers = new BuffTriggersHandler(this);
-        saveFactions = new Dictionary<uint, uint>();
+        Created,
+        Acting,
+        Finishing,
+        Finished
     }
 
-    public void UpdateEffect()
+    public class Buff
     {
-        Template.Start(Caster, Owner, this);
-        if (Duration == 0)
-            Duration = Template.GetDuration(AbLevel);
-        if (StartTime == DateTime.MinValue)
+        private object _lock = new();
+        private int _count;
+
+        public uint Index { get; set; }
+        public Skill Skill { get; set; }
+        // public EffectTemplate Template { get; set; }
+        public BuffTemplate Template { get; set; }
+        public Unit Caster { get; set; }
+        public SkillCaster SkillCaster { get; set; }
+        public BaseUnit Owner { get; set; }
+        public EffectState State { get; set; }
+        public bool InUse { get; set; }
+        public int Duration { get; set; }
+        public double Tick { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public int Charge { get; set; }
+        public bool Passive { get; set; }
+        public uint AbLevel { get; set; }
+        public BuffEvents Events { get; }
+        public BuffTriggersHandler Triggers { get; }
+        public Dictionary<uint, uint> saveFactions { get; set; }
+
+        public Buff(IBaseUnit owner, IBaseUnit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
         {
-            StartTime = DateTime.UtcNow;
-            EndTime = StartTime.AddMilliseconds(Duration);
+            Owner = (BaseUnit)owner;
+            Caster = caster as Unit;
+            SkillCaster = skillCaster;
+            Template = template;
+            Skill = skill;
+            StartTime = time;
+            EndTime = DateTime.MinValue;
+            AbLevel = 1;
+            Events = new BuffEvents();
+            Triggers = new BuffTriggersHandler(this);
+            saveFactions = new Dictionary<uint, uint>();
         }
 
-        Tick = Template.GetTick();
-
-        if (Tick > 0)
+        public void UpdateEffect()
         {
-            var time = GetTimeLeft();
-            if (time > 0)
-                _count = (int)(time / Tick + 0.5f + 1);
+            Template.Start(Caster, Owner, this);
+            if (Duration == 0)
+                Duration = Template.GetDuration(AbLevel);
+            if (StartTime == DateTime.MinValue)
+            {
+                StartTime = DateTime.UtcNow;
+                EndTime = StartTime.AddMilliseconds(Duration);
+            }
+
+            Tick = Template.GetTick();
+
+            if (Tick > 0)
+            {
+                var time = GetTimeLeft();
+                if (time > 0)
+                    _count = (int)(time / Tick + 0.5f + 1);
+                else
+                    _count = -1;
+                EffectTaskManager.AddDispelTask(this, Tick);
+            }
             else
-                _count = -1;
-            EffectTaskManager.AddDispelTask(this, Tick);
+                EffectTaskManager.AddDispelTask(this, GetTimeLeft());
         }
-        else
-            EffectTaskManager.AddDispelTask(this, GetTimeLeft());
-    }
 
-    public void ScheduleEffect(bool replace)
-    {
-        switch (State)
+        public void ScheduleEffect(bool replace)
         {
-            case EffectState.Created:
-                {
-                    State = EffectState.Acting;
-
-                    Template.Start(Caster, Owner, this);
-
-                    if (Duration == 0)
-                        Duration = Template.GetDuration(AbLevel);
-                    if (StartTime == DateTime.MinValue)
+            switch (State)
+            {
+                case EffectState.Created:
                     {
-                        StartTime = DateTime.UtcNow;
-                        EndTime = StartTime.AddMilliseconds(Duration);
-                    }
+                        State = EffectState.Acting;
 
-                    Tick = Template.GetTick();
+                        Template.Start(Caster, Owner, this);
 
-                    if (Tick > 0)
-                    {
-                        var time = GetTimeLeft();
-                        if (time > 0)
-                            _count = (int)(time / Tick + 0.5f + 1);
-                        else
-                            _count = -1;
-                        EffectTaskManager.AddDispelTask(this, Tick);
-                    }
-                    else
-                        EffectTaskManager.AddDispelTask(this, GetTimeLeft());
-
-                    if (Template.FactionId > 0 && Owner is Unit owner)
-                    {
-                        if (saveFactions.ContainsKey(owner.Id))
+                        if (Duration == 0)
+                            Duration = Template.GetDuration(AbLevel);
+                        if (StartTime == DateTime.MinValue)
                         {
-                            saveFactions[owner.Id] = owner.Faction.Id;
+                            StartTime = DateTime.UtcNow;
+                            EndTime = StartTime.AddMilliseconds(Duration);
+                        }
+
+                        Tick = Template.GetTick();
+
+                        if (Tick > 0)
+                        {
+                            var time = GetTimeLeft();
+                            if (time > 0)
+                                _count = (int)(time / Tick + 0.5f + 1);
+                            else
+                                _count = -1;
+                            EffectTaskManager.AddDispelTask(this, Tick);
                         }
                         else
+                            EffectTaskManager.AddDispelTask(this, GetTimeLeft());
+
+                        if (Template.FactionId > 0 && Owner is Unit owner)
                         {
-                            saveFactions.Add(owner.Id, owner.Faction.Id);
+                            if (saveFactions.ContainsKey(owner.Id))
+                            {
+                                saveFactions[owner.Id] = owner.Faction.Id;
+                            }
+                            else
+                            {
+                                saveFactions.Add(owner.Id, owner.Faction.Id);
+                            }
+                            owner.SetFaction(Template.FactionId);
                         }
-                        owner.SetFaction(Template.FactionId);
+                        return;
                     }
-                    return;
-                }
-            case EffectState.Acting:
+                case EffectState.Acting:
+                    {
+                        if (_count == -1)
+                        {
+                            if (Template.OnActionTime)
+                            {
+                                Template.TimeToTimeApply(Caster, Owner, this);
+                                return;
+                            }
+                        }
+                        else if (_count > 0)
+                        {
+                            _count--;
+                            if (Template.OnActionTime && _count > 0)
+                            {
+                                Template.TimeToTimeApply(Caster, Owner, this);
+                                return;
+                            }
+                        }
+
+                        //Buff seems to come to natural expiration here
+                        //Events.OnTimeout(this, new OnTimeoutArgs());
+                        State = EffectState.Finishing;
+                        break;
+                    }
+            }
+
+            if (State == EffectState.Finishing)
+            {
+                State = EffectState.Finished;
+                InUse = false;
+                StopEffectTask(replace);
+            }
+        }
+
+        public void Exit(bool replace = false)
+        {
+            if (State == EffectState.Finished)
+                return;
+            if (State != EffectState.Created)
+            {
+                State = EffectState.Finishing;
+                ScheduleEffect(replace);
+            }
+            else
+                State = EffectState.Finishing;
+        }
+
+        private void StopEffectTask(bool replace)
+        {
+            lock (_lock)
+            {
+                Events.OnTimeout(this, new OnTimeoutArgs());
+                Triggers.UnsubscribeEvents();
+                Owner.Buffs.RemoveEffect(this);
+                Template.Dispel(Caster, Owner, this, replace);
+
+                if (Template.FactionId > 0 && Owner is NPChar.Npc npc)
                 {
-                    if (_count == -1)
-                    {
-                        if (Template.OnActionTime)
-                        {
-                            Template.TimeToTimeApply(Caster, Owner, this);
-                            return;
-                        }
-                    }
-                    else if (_count > 0)
-                    {
-                        _count--;
-                        if (Template.OnActionTime && _count > 0)
-                        {
-                            Template.TimeToTimeApply(Caster, Owner, this);
-                            return;
-                        }
-                    }
-
-                    //Buff seems to come to natural expiration here
-                    //Events.OnTimeout(this, new OnTimeoutArgs());
-                    State = EffectState.Finishing;
-                    break;
+                    npc.SetFaction(npc.Template.FactionId);
                 }
-        }
-
-        if (State == EffectState.Finishing)
-        {
-            State = EffectState.Finished;
-            InUse = false;
-            StopEffectTask(replace);
-        }
-    }
-
-    public void Exit(bool replace = false)
-    {
-        if (State == EffectState.Finished)
-            return;
-        if (State != EffectState.Created)
-        {
-            State = EffectState.Finishing;
-            ScheduleEffect(replace);
-        }
-        else
-            State = EffectState.Finishing;
-    }
-
-    private void StopEffectTask(bool replace)
-    {
-        lock (_lock)
-        {
-            Events.OnTimeout(this, new OnTimeoutArgs());
-            Triggers.UnsubscribeEvents();
-            Owner.Buffs.RemoveEffect(this);
-            Template.Dispel(Caster, Owner, this, replace);
-
-            if (Template.FactionId > 0 && Owner is NPChar.Npc npc)
-            {
-                npc.SetFaction(npc.Template.FactionId);
-            }
-            else if (Template.FactionId > 0 && Owner is Unit owner)
-            {
-                owner.SetFaction(saveFactions[owner.Id]);
-                saveFactions.Remove(owner.Id);
+                else if (Template.FactionId > 0 && Owner is Unit owner)
+                {
+                    owner.SetFaction(saveFactions[owner.Id]);
+                    saveFactions.Remove(owner.Id);
+                }
             }
         }
-    }
 
-    public void SetInUse(bool inUse, bool update)
-    {
-        InUse = inUse;
-        if (update)
-            UpdateEffect();
-        else if (inUse)
-            ScheduleEffect(false);
-        else if (State != EffectState.Finished)
+        public void SetInUse(bool inUse, bool update)
         {
-            State = EffectState.Finishing;
-            StopEffectTask(false);
-        }
-    }
-
-    public bool IsEnded()
-    {
-        return State == EffectState.Finished || State == EffectState.Finishing;
-    }
-
-    public double GetTimeLeft()
-    {
-        if (Duration == 0)
-            return -1;
-        var time = (long)(StartTime.AddMilliseconds(Duration) - DateTime.UtcNow).TotalMilliseconds;
-        return time > 0 ? time : 0;
-    }
-
-    public uint GetTimeElapsed()
-    {
-        var time = (uint)(DateTime.UtcNow - StartTime).TotalMilliseconds;
-        return time > 0 ? time : 0;
-    }
-
-    public void WriteData(PacketStream stream)
-    {
-        stream.WritePisc(Charge, Duration / 10, 0, (long)(Template.Tick / 10));
-    }
-
-    /// <summary>
-    /// Consumes as much charge as possible. Remainder is returned
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    public int ConsumeCharge(int value)
-    {
-        var newCharge = Math.Max(0, Charge - value);
-        value = Math.Max(0, value - Charge);
-        Charge = newCharge;
-
-        if (Charge <= 0)
-        {
-            Exit(false);
+            InUse = inUse;
+            if (update)
+                UpdateEffect();
+            else if (inUse)
+                ScheduleEffect(false);
+            else if (State != EffectState.Finished)
+            {
+                State = EffectState.Finishing;
+                StopEffectTask(false);
+            }
         }
 
-        return value;
+        public bool IsEnded()
+        {
+            return State == EffectState.Finished || State == EffectState.Finishing;
+        }
+
+        public double GetTimeLeft()
+        {
+            if (Duration == 0)
+                return -1;
+            var time = (long)(StartTime.AddMilliseconds(Duration) - DateTime.UtcNow).TotalMilliseconds;
+            return time > 0 ? time : 0;
+        }
+
+        public uint GetTimeElapsed()
+        {
+            var time = (uint)(DateTime.UtcNow - StartTime).TotalMilliseconds;
+            return time > 0 ? time : 0;
+        }
+
+        public void WriteData(PacketStream stream)
+        {
+            stream.WritePisc(Charge, Duration / 10, 0, (long)(Template.Tick / 10));
+        }
+
+        /// <summary>
+        /// Consumes as much charge as possible. Remainder is returned
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public int ConsumeCharge(int value)
+        {
+            var newCharge = Math.Max(0, Charge - value);
+            value = Math.Max(0, value - Charge);
+            Charge = newCharge;
+
+            if (Charge <= 0)
+            {
+                Exit(false);
+            }
+
+            return value;
+        }
     }
 }

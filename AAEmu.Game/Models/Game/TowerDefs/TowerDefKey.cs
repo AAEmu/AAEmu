@@ -1,16 +1,17 @@
 using AAEmu.Commons.Network;
 
-namespace AAEmu.Game.Models.Game.TowerDefs;
-
-public class TowerDefKey : PacketMarshaler
+namespace AAEmu.Game.Models.Game.TowerDefs
 {
-    public uint TowerDefId { get; set; }
-    public ushort ZoneGroupId { get; set; }
-
-    public override PacketStream Write(PacketStream stream)
+    public class TowerDefKey : PacketMarshaler
     {
-        stream.Write(TowerDefId);
-        stream.Write(ZoneGroupId);
-        return stream;
+        public uint TowerDefId { get; set; }
+        public ushort ZoneGroupId { get; set; }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(TowerDefId);
+            stream.Write(ZoneGroupId);
+            return stream;
+        }
     }
 }

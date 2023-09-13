@@ -1,18 +1,19 @@
 ﻿using AAEmu.Game.Models.Game.DoodadObj;
 
-namespace AAEmu.Game.Models.Tasks.World;
-
-public class DoodadSpawnerDoSpawnTask : Task
+namespace AAEmu.Game.Models.Tasks.World
 {
-    private readonly DoodadSpawner _doodadSpawner;
-
-    public DoodadSpawnerDoSpawnTask(DoodadSpawner doodadSpawner)
+    public class DoodadSpawnerDoSpawnTask : Task
     {
-        _doodadSpawner = doodadSpawner;
-    }
+        private readonly DoodadSpawner _doodadSpawner;
 
-    public override void Execute()
-    {
-        _doodadSpawner.DoSpawn();
+        public DoodadSpawnerDoSpawnTask(DoodadSpawner doodadSpawner)
+        {
+            _doodadSpawner = doodadSpawner;
+        }
+
+        public override void Execute()
+        {
+            _doodadSpawner.DoSpawn();
+        }
     }
 }

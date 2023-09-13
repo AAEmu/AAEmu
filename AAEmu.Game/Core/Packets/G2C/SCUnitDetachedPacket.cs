@@ -2,23 +2,24 @@
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCUnitDetachedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _childUnitId;
-    private readonly AttachUnitReason _reason;
-
-    public SCUnitDetachedPacket(uint objId, AttachUnitReason reason) : base(SCOffsets.SCUnitDetachedPacket, 1)
+    public class SCUnitDetachedPacket : GamePacket
     {
-        _childUnitId = objId;
-        _reason = reason;
-    }
+        private readonly uint _childUnitId;
+        private readonly AttachUnitReason _reason;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.WriteBc(_childUnitId);
-        stream.Write((byte)_reason);
-        return stream;
+        public SCUnitDetachedPacket(uint objId, AttachUnitReason reason) : base(SCOffsets.SCUnitDetachedPacket, 1)
+        {
+            _childUnitId = objId;
+            _reason = reason;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(_childUnitId);
+            stream.Write((byte)_reason);
+            return stream;
+        }
     }
 }

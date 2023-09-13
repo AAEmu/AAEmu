@@ -1,21 +1,22 @@
 ﻿using AAEmu.Commons.Network;
 
-namespace AAEmu.Game.Models.Game.Items.Actions;
-
-public class ItemRemoveCrafting : ItemTask
+namespace AAEmu.Game.Models.Game.Items.Actions
 {
-    private readonly ulong _id;
-
-    public ItemRemoveCrafting(ulong id)
+    public class ItemRemoveCrafting : ItemTask
     {
-        _id = id;
-        _type = ItemAction.RemoveCrafting; // 12
-    }
+        private readonly ulong _id;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        base.Write(stream);
-        stream.Write(_id);
-        return stream;
+        public ItemRemoveCrafting(ulong id)
+        {
+            _id = id;
+            _type = ItemAction.RemoveCrafting; // 12
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            base.Write(stream);
+            stream.Write(_id);
+            return stream;
+        }
     }
 }

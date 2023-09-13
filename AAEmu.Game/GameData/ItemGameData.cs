@@ -6,49 +6,50 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Data.Sqlite;
 
-namespace AAEmu.Game.GameData;
-
-[GameData]
-public class ItemGameData : Singleton<ItemGameData>, IGameDataLoader
+namespace AAEmu.Game.GameData
 {
-    private Dictionary<uint, Dictionary<byte, uint>> _itemGradeBuffs;
-
-    public BuffTemplate GetItemBuff(uint itemId, byte gradeId)
+    [GameData]
+    public class ItemGameData : Singleton<ItemGameData>, IGameDataLoader
     {
-        if (_itemGradeBuffs.TryGetValue(itemId, out var itemGradeBuffs))
-            if (itemGradeBuffs.TryGetValue(gradeId, out var buffId))
-                return SkillManager.Instance.GetBuffTemplate(buffId);
-        return null;
-    }
+        private Dictionary<uint, Dictionary<byte, uint>> _itemGradeBuffs;
 
-    public void Load(SqliteConnection connection)
-    {
-        _itemGradeBuffs = new Dictionary<uint, Dictionary<byte, uint>>();
-
-        using (var command = connection.CreateCommand())
+        public BuffTemplate GetItemBuff(uint itemId, byte gradeId)
         {
-            command.CommandText = "SELECT * FROM item_grade_buffs";
-            command.Prepare();
-            using (var sqliteReader = command.ExecuteReader())
-            using (var reader = new SQLiteWrapperReader(sqliteReader))
+            if (_itemGradeBuffs.TryGetValue(itemId, out var itemGradeBuffs))
+                if (itemGradeBuffs.TryGetValue(gradeId, out var buffId))
+                    return SkillManager.Instance.GetBuffTemplate(buffId);
+            return null;
+        }
+
+        public void Load(SqliteConnection connection)
+        {
+            _itemGradeBuffs = new Dictionary<uint, Dictionary<byte, uint>>();
+
+            using (var command = connection.CreateCommand())
             {
-                while (reader.Read())
+                command.CommandText = "SELECT * FROM item_grade_buffs";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
                 {
-                    var itemId = reader.GetUInt32("item_id");
-                    var itemGrade = reader.GetByte("item_grade_id");
-                    var buffId = reader.GetUInt32("buff_id");
+                    while (reader.Read())
+                    {
+                        var itemId = reader.GetUInt32("item_id");
+                        var itemGrade = reader.GetByte("item_grade_id");
+                        var buffId = reader.GetUInt32("buff_id");
 
-                    if (!_itemGradeBuffs.ContainsKey(itemId))
-                        _itemGradeBuffs.Add(itemId, new Dictionary<byte, uint>());
+                        if (!_itemGradeBuffs.ContainsKey(itemId))
+                            _itemGradeBuffs.Add(itemId, new Dictionary<byte, uint>());
 
-                    _itemGradeBuffs[itemId].Add(itemGrade, buffId);
+                        _itemGradeBuffs[itemId].Add(itemGrade, buffId);
+                    }
                 }
             }
         }
-    }
 
-    public void PostLoad()
-    {
+        public void PostLoad()
+        {
 
+        }
     }
 }

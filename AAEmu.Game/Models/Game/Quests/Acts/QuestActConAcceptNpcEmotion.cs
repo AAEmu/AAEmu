@@ -3,23 +3,24 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActConAcceptNpcEmotion : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public uint NpcId { get; set; }
-    public string Emotion { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActConAcceptNpcEmotion : QuestActTemplate
     {
-        _log.Warn("QuestActConAcceptNpcEmotion: NpcId {0}, Emotion {1}", NpcId, Emotion);
+        public uint NpcId { get; set; }
+        public string Emotion { get; set; }
 
-        if (!(character.CurrentTarget is Npc))
-            return false;
+        public override bool Use(ICharacter character, Quest quest, int objective)
+        {
+            _log.Warn("QuestActConAcceptNpcEmotion: NpcId {0}, Emotion {1}", NpcId, Emotion);
 
-        quest.QuestAcceptorType = QuestAcceptorType.Npc;
-        quest.AcceptorType = NpcId;
+            if (!(character.CurrentTarget is Npc))
+                return false;
 
-        return ((Npc)character.CurrentTarget).TemplateId == NpcId;
+            quest.QuestAcceptorType = QuestAcceptorType.Npc;
+            quest.AcceptorType = NpcId;
+
+            return ((Npc)character.CurrentTarget).TemplateId == NpcId;
+        }
     }
 }

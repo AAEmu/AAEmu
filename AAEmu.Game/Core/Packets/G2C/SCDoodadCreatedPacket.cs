@@ -2,19 +2,20 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.DoodadObj;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCDoodadCreatedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly Doodad _doodad;
-
-    public SCDoodadCreatedPacket(Doodad doodad) : base(SCOffsets.SCDoodadCreatedPacket, 1)
+    public class SCDoodadCreatedPacket : GamePacket
     {
-        _doodad = doodad;
-    }
+        private readonly Doodad _doodad;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        return _doodad.Write(stream);
+        public SCDoodadCreatedPacket(Doodad doodad) : base(SCOffsets.SCDoodadCreatedPacket, 1)
+        {
+            _doodad = doodad;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            return _doodad.Write(stream);
+        }
     }
 }

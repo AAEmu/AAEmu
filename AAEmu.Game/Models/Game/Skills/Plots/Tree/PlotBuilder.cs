@@ -1,56 +1,57 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 
-namespace AAEmu.Game.Models.Game.Skills.Plots.Tree;
-
-public class PlotBuilder
+namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 {
-
-    public static PlotTree BuildTree(uint plotId)
+    public class PlotBuilder
     {
-        var tree = new PlotTree(plotId);
-        var existingNextEvents = new Dictionary<uint, PlotNode>();
 
-        var firstEvent = PlotManager.Instance.GetEventByPlotId(plotId);
-
-        // Create RootNode
-        var rootNode = new PlotNode
+        public static PlotTree BuildTree(uint plotId)
         {
-            Tree = tree,
-            Event = firstEvent
-        };
+            var tree = new PlotTree(plotId);
+            var existingNextEvents = new Dictionary<uint, PlotNode>();
 
-        tree.RootNode = rootNode;
-        // Start the recursion
-        BuildChildren(rootNode, existingNextEvents);
+            var firstEvent = PlotManager.Instance.GetEventByPlotId(plotId);
 
-        return tree;
-    }
+            // Create RootNode
+            var rootNode = new PlotNode
+            {
+                Tree = tree,
+                Event = firstEvent
+            };
 
-    private static void BuildChildren(PlotNode parent, Dictionary<uint, PlotNode> existingNextEvents)
-    {
-        var childNextEvents = parent.Event.NextEvents;
+            tree.RootNode = rootNode;
+            // Start the recursion
+            BuildChildren(rootNode, existingNextEvents);
 
-        foreach (var childNextEvent in childNextEvents)
+            return tree;
+        }
+
+        private static void BuildChildren(PlotNode parent, Dictionary<uint, PlotNode> existingNextEvents)
         {
-            if (existingNextEvents.ContainsKey(childNextEvent.Id))
+            var childNextEvents = parent.Event.NextEvents;
+
+            foreach (var childNextEvent in childNextEvents)
             {
-                parent.Children.Add(existingNextEvents[childNextEvent.Id]);
-            }
-            else
-            {
-                var childNode = new PlotNode()
+                if (existingNextEvents.ContainsKey(childNextEvent.Id))
                 {
-                    Tree = parent.Tree,
-                    Parent = parent,
-                    Event = childNextEvent.Event,
-                    ParentNextEvent = childNextEvent
-                };
-                parent.Children.Add(childNode);
+                    parent.Children.Add(existingNextEvents[childNextEvent.Id]);
+                }
+                else
+                {
+                    var childNode = new PlotNode()
+                    {
+                        Tree = parent.Tree,
+                        Parent = parent,
+                        Event = childNextEvent.Event,
+                        ParentNextEvent = childNextEvent
+                    };
+                    parent.Children.Add(childNode);
 
-                existingNextEvents.Add(childNextEvent.Id, childNode);
+                    existingNextEvents.Add(childNextEvent.Id, childNode);
 
-                BuildChildren(childNode, existingNextEvents);
+                    BuildChildren(childNode, existingNextEvents);
+                }
             }
         }
     }

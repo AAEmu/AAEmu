@@ -1,10 +1,11 @@
 ﻿using Microsoft.Data.Sqlite;
 
-namespace AAEmu.Game.GameData.Framework;
-
-public interface IGameDataLoader
+namespace AAEmu.Game.GameData.Framework
 {
-    //static T Instance { get; set; }
-    void Load(SqliteConnection connection);
-    void PostLoad();
+    public interface IGameDataLoader
+    {
+        //static T Instance { get; set; }
+        void Load(SqliteConnection connection);
+        void PostLoad();
+    }
 }

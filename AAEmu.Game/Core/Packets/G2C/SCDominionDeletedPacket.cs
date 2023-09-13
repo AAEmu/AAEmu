@@ -1,20 +1,21 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCDominionDeletedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly ushort _id;
-
-    public SCDominionDeletedPacket(ushort id) : base(SCOffsets.SCDominionDeletedPacket, 1)
+    public class SCDominionDeletedPacket : GamePacket
     {
-        _id = id;
-    }
+        private readonly ushort _id;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_id);
-        return stream;
+        public SCDominionDeletedPacket(ushort id) : base(SCOffsets.SCDominionDeletedPacket, 1)
+        {
+            _id = id;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_id);
+            return stream;
+        }
     }
 }

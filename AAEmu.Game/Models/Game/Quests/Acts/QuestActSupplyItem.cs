@@ -4,46 +4,47 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActSupplyItem : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public uint ItemId { get; set; }
-    public int Count { get; set; }
-    public byte GradeId { get; set; }
-    public bool ShowActionBar { get; set; }
-    public bool Cleanup { get; set; }
-    public bool DropWhenDestroy { get; set; }
-    public bool DestroyWhenDrop { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActSupplyItem : QuestActTemplate
     {
-        _log.Warn("QuestActSupplyItem");
+        public uint ItemId { get; set; }
+        public int Count { get; set; }
+        public byte GradeId { get; set; }
+        public bool ShowActionBar { get; set; }
+        public bool Cleanup { get; set; }
+        public bool DropWhenDestroy { get; set; }
+        public bool DestroyWhenDrop { get; set; }
 
-        if (objective >= Count) // checking for call recursion
+        public override bool Use(ICharacter character, Quest quest, int objective)
         {
-            return true;
-        }
+            _log.Warn("QuestActSupplyItem");
 
-        var acquireSuccessful = false;
-        if (ItemManager.Instance.IsAutoEquipTradePack(ItemId))
-        {
-            acquireSuccessful = character.Inventory.TryEquipNewBackPack(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
-        }
-        else
-        {
-            acquireSuccessful = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
-        }
-
-        if (!acquireSuccessful)
-        {
-            var amountFree = character.Inventory.Bag.SpaceLeftForItem(ItemId);
-            if (amountFree < Count)
+            if (objective >= Count) // checking for call recursion
             {
-                character.SendErrorMessage(ErrorMessageType.BagFull);
+                return true;
             }
-        }
 
-        return acquireSuccessful;
+            var acquireSuccessful = false;
+            if (ItemManager.Instance.IsAutoEquipTradePack(ItemId))
+            {
+                acquireSuccessful = character.Inventory.TryEquipNewBackPack(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
+            }
+            else
+            {
+                acquireSuccessful = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
+            }
+
+            if (!acquireSuccessful)
+            {
+                var amountFree = character.Inventory.Bag.SpaceLeftForItem(ItemId);
+                if (amountFree < Count)
+                {
+                    character.SendErrorMessage(ErrorMessageType.BagFull);
+                }
+            }
+
+            return acquireSuccessful;
+        }
     }
 }

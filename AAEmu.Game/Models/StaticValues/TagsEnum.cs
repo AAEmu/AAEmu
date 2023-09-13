@@ -1,6 +1,7 @@
-﻿namespace AAEmu.Game.Models.StaticValues;
-
-public enum TagsEnum : uint
+﻿namespace AAEmu.Game.Models.StaticValues
 {
-    PlaySong = 1155,
+    public enum TagsEnum : uint
+    {
+        PlaySong = 1155,
+    }
 }

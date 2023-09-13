@@ -4,42 +4,43 @@ using AAEmu.Game.Models.Game.AI.v2.AiCharacters;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 
-namespace AAEmu.Game.Scripts.Commands;
-
-public class TestAI : ICommand
+namespace AAEmu.Game.Scripts.Commands
 {
-    public void OnLoad()
+    public class TestAI : ICommand
     {
-        string[] name = { "testai", "ai" };
-        CommandManager.Instance.Register(name, this);
-    }
-
-    public string GetCommandLineHelp()
-    {
-        return "";
-    }
-
-    public string GetCommandHelpText()
-    {
-        return "Forces the HoldPosition AI to the target";
-    }
-
-    public void Execute(Character character, string[] args)
-    {
-        if (character.CurrentTarget == null)
+        public void OnLoad()
         {
-            character.SendMessage("You gotta target shit homie");
-            return;
+            string[] name = { "testai", "ai" };
+            CommandManager.Instance.Register(name, this);
         }
 
-        if (character.CurrentTarget is not Npc npc)
+        public string GetCommandLineHelp()
         {
-            character.SendMessage("You gotta target a NPC homie");
-            return;
+            return "";
         }
 
-        npc.Patrol = null;
-        npc.Ai = new AlmightyNpcAiCharacter() { Owner = npc, IdlePosition = npc.Transform.CloneDetached() };
-        AIManager.Instance.AddAi(npc.Ai);
+        public string GetCommandHelpText()
+        {
+            return "Forces the HoldPosition AI to the target";
+        }
+
+        public void Execute(Character character, string[] args)
+        {
+            if (character.CurrentTarget == null)
+            {
+                character.SendMessage("You gotta target shit homie");
+                return;
+            }
+
+            if (character.CurrentTarget is not Npc npc)
+            {
+                character.SendMessage("You gotta target a NPC homie");
+                return;
+            }
+
+            npc.Patrol = null;
+            npc.Ai = new AlmightyNpcAiCharacter() { Owner = npc, IdlePosition = npc.Transform.CloneDetached() };
+            AIManager.Instance.AddAi(npc.Ai);
+        }
     }
 }

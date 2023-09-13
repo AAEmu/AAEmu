@@ -1,26 +1,27 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCUnitGmModeChangedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _unitId;
-    private readonly int _mode;
-    private readonly byte _value;
-
-    public SCUnitGmModeChangedPacket(uint unitId, int mode, byte value) : base(SCOffsets.SCUnitGmModeChangedPacket, 1)
+    public class SCUnitGmModeChangedPacket : GamePacket
     {
-        _unitId = unitId;
-        _mode = mode;
-        _value = value;
-    }
+        private readonly uint _unitId;
+        private readonly int _mode;
+        private readonly byte _value;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.WriteBc(_unitId);
-        stream.Write(_mode);
-        stream.Write(_value);
-        return stream;
+        public SCUnitGmModeChangedPacket(uint unitId, int mode, byte value) : base(SCOffsets.SCUnitGmModeChangedPacket, 1)
+        {
+            _unitId = unitId;
+            _mode = mode;
+            _value = value;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(_unitId);
+            stream.Write(_mode);
+            stream.Write(_value);
+            return stream;
+        }
     }
 }

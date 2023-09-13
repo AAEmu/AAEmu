@@ -1,7 +1,8 @@
-﻿namespace AAEmu.Game.Models.Game.Skills.Plots;
-
-public class PlotAoeCondition
+﻿namespace AAEmu.Game.Models.Game.Skills.Plots
 {
-    public PlotCondition Condition { get; set; }
-    public int Position { get; set; }
+    public class PlotAoeCondition
+    {
+        public PlotCondition Condition { get; set; }
+        public int Position { get; set; }
+    }
 }

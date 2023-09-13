@@ -3,44 +3,45 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCUnitDeathPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _objId;
-    private readonly KillReason _killReason;
-    private readonly Unit _killer;
-
-    public SCUnitDeathPacket(uint objId, KillReason killReason, Unit killer = null) : base(SCOffsets.SCUnitDeathPacket, 1)
+    public class SCUnitDeathPacket : GamePacket
     {
-        _objId = objId;
-        _killReason = killReason;
-        _killer = killer;
-    }
+        private readonly uint _objId;
+        private readonly KillReason _killReason;
+        private readonly Unit _killer;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.WriteBc(_objId);
-        stream.Write((byte)_killReason);
-        // ---------------
-        stream.Write(15000u); // resurrectionWaitingTime
-        stream.Write(0); // lostExp
-        stream.Write((byte)0); // deathDurabilityLossRatio
-        // ---------------
-        stream.WriteBc(_killer?.ObjId ?? 0);
-        if (_killer != null)
+        public SCUnitDeathPacket(uint objId, KillReason killReason, Unit killer = null) : base(SCOffsets.SCUnitDeathPacket, 1)
         {
-            // ---------------
-            stream.Write((byte)0); // GameType
-            // ---------------
-            stream.Write((ushort)0); // killStreak
-            stream.Write((byte)0); // param1
-            stream.Write((byte)0); // param2
-            stream.Write((byte)0); // param3
-            stream.Write(_killer.Name);
-
+            _objId = objId;
+            _killReason = killReason;
+            _killer = killer;
         }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(_objId);
+            stream.Write((byte)_killReason);
+            // ---------------
+            stream.Write(15000u); // resurrectionWaitingTime
+            stream.Write(0); // lostExp
+            stream.Write((byte)0); // deathDurabilityLossRatio
+                                   // ---------------
+            stream.WriteBc(_killer?.ObjId ?? 0);
+            if (_killer != null)
+            {
+                // ---------------
+                stream.Write((byte)0); // GameType
+                                       // ---------------
+                stream.Write((ushort)0); // killStreak
+                stream.Write((byte)0); // param1
+                stream.Write((byte)0); // param2
+                stream.Write((byte)0); // param3
+                stream.Write(_killer.Name);
+
+            }
+
+            return stream;
+        }
     }
 }

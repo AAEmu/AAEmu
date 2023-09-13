@@ -1,65 +1,66 @@
 ﻿using System;
 
-namespace AAEmu.Commons.Utils;
-
-public static class Rand
+namespace AAEmu.Commons.Utils
 {
-    private static MersenneTwister _random = new(DateTime.UtcNow.Millisecond);
-    private static object _lock = new();
-
-    public static int Next()
+    public static class Rand
     {
-        lock (_lock)
+        private static MersenneTwister _random = new(DateTime.UtcNow.Millisecond);
+        private static object _lock = new();
+
+        public static int Next()
         {
-            return _random.Next();
+            lock (_lock)
+            {
+                return _random.Next();
+            }
         }
-    }
 
-    public static int Next(int maxValue)
-    {
-        lock (_lock)
+        public static int Next(int maxValue)
         {
-            return _random.Next(maxValue);
+            lock (_lock)
+            {
+                return _random.Next(maxValue);
+            }
         }
-    }
 
-    public static int Next(int minValue, int maxValue)
-    {
-        lock (_lock)
+        public static int Next(int minValue, int maxValue)
         {
-            return _random.Next(minValue, maxValue);
+            lock (_lock)
+            {
+                return _random.Next(minValue, maxValue);
+            }
         }
-    }
 
-    public static double NextDouble()
-    {
-        lock (_lock)
+        public static double NextDouble()
         {
-            return _random.NextDouble(true);
+            lock (_lock)
+            {
+                return _random.NextDouble(true);
+            }
         }
-    }
 
-    public static float NextSingle()
-    {
-        lock (_lock)
+        public static float NextSingle()
         {
-            return _random.NextSingle(true);
+            lock (_lock)
+            {
+                return _random.NextSingle(true);
+            }
         }
-    }
 
-    public static float Next(float maxValue)
-    {
-        lock (_lock)
+        public static float Next(float maxValue)
         {
-            return _random.NextSingle(true) * maxValue;
+            lock (_lock)
+            {
+                return _random.NextSingle(true) * maxValue;
+            }
         }
-    }
 
-    public static float Next(float minValue, float maxValue)
-    {
-        lock (_lock)
+        public static float Next(float minValue, float maxValue)
         {
-            return _random.NextSingle(true) * (maxValue - minValue) + minValue;
+            lock (_lock)
+            {
+                return _random.NextSingle(true) * (maxValue - minValue) + minValue;
+            }
         }
     }
 }

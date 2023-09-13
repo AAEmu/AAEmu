@@ -3,19 +3,20 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Managers.UnitManagers;
 
 
-namespace AAEmu.Game.Core.Packets.C2G;
-
-public class CSRollDicePacket : GamePacket
+namespace AAEmu.Game.Core.Packets.C2G
 {
-    public CSRollDicePacket() : base(CSOffsets.CSRollDicePacket, 1)
+    public class CSRollDicePacket : GamePacket
     {
-    }
+        public CSRollDicePacket() : base(CSOffsets.CSRollDicePacket, 1)
+        {
+        }
 
-    public override void Read(PacketStream stream)
-    {
+        public override void Read(PacketStream stream)
+        {
 
-        var max = stream.ReadUInt32();
-        CharacterManager.PlayerRoll(Connection.ActiveChar, int.Parse(max.ToString()));
+            var max = stream.ReadUInt32();
+            CharacterManager.PlayerRoll(Connection.ActiveChar, int.Parse(max.ToString()));
 
+        }
     }
 }

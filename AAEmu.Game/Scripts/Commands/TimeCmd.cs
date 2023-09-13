@@ -5,36 +5,37 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts.SubCommands.Time;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
-namespace AAEmu.Game.Scripts.Commands;
-
-public class TimeCmd : SubCommandBase, ICommand, ICommandV2
+namespace AAEmu.Game.Scripts.Commands
 {
-    public TimeCmd()
+    public class TimeCmd : SubCommandBase, ICommand, ICommandV2
     {
-        Title = "[Time]";
-        Description = "Root command to manage Time";
-        CallPrefix = $"{CommandManager.CommandPrefix}time";
+        public TimeCmd()
+        {
+            Title = "[Time]";
+            Description = "Root command to manage Time";
+            CallPrefix = $"{CommandManager.CommandPrefix}time";
 
-        Register(new TimeSetSubCommand(), "set", "s");
-    }
-    public void OnLoad()
-    {
-        string[] name = { "time" };
-        CommandManager.Instance.Register(name, this);
-    }
+            Register(new TimeSetSubCommand(), "set", "s");
+        }
+        public void OnLoad()
+        {
+            string[] name = { "time" };
+            CommandManager.Instance.Register(name, this);
+        }
 
-    public string GetCommandLineHelp()
-    {
-        return $"<{string.Join("||", SupportedCommands)}>";
-    }
+        public string GetCommandLineHelp()
+        {
+            return $"<{string.Join("||", SupportedCommands)}>";
+        }
 
-    public string GetCommandHelpText()
-    {
-        return CallPrefix;
-    }
+        public string GetCommandHelpText()
+        {
+            return CallPrefix;
+        }
 
-    public void Execute(Character character, string[] args)
-    {
-        throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        public void Execute(Character character, string[] args)
+        {
+            throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        }
     }
 }

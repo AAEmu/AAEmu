@@ -6,85 +6,86 @@ using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.Skills.Plots;
-
-public class PlotEventEffect
+namespace AAEmu.Game.Models.Game.Skills.Plots
 {
-    public int Position { get; set; }
-    public PlotEffectSource SourceId { get; set; }
-    public PlotEffectTarget TargetId { get; set; }
-    public uint ActualId { get; set; }
-    public string ActualType { get; set; }
-
-    public void ApplyEffect(PlotState state, PlotTargetInfo targetInfo, PlotEventTemplate evt, ref byte flag, bool channeled = false, CompressedGamePackets gamePackets = null)
+    public class PlotEventEffect
     {
-        var template = SkillManager.Instance.GetEffectTemplate(ActualId, ActualType);
+        public int Position { get; set; }
+        public PlotEffectSource SourceId { get; set; }
+        public PlotEffectTarget TargetId { get; set; }
+        public uint ActualId { get; set; }
+        public string ActualType { get; set; }
 
-        var buffEffect = template as BuffEffect;
-        if (buffEffect != null)
-            flag = 6; //idk what this does?  
-
-        BaseUnit source;
-        switch (SourceId)
+        public void ApplyEffect(PlotState state, PlotTargetInfo targetInfo, PlotEventTemplate evt, ref byte flag, bool channeled = false, CompressedGamePackets gamePackets = null)
         {
-            case PlotEffectSource.OriginalSource:
-                source = state.Caster;
-                break;
-            case PlotEffectSource.OriginalTarget:
-                source = state.Target;
-                break;
-            case PlotEffectSource.Source:
-                source = targetInfo.Source;
-                break;
-            case PlotEffectSource.Target:
-                source = targetInfo.Target;
-                break;
-            default:
-                throw new InvalidOperationException("This can't happen");
-        }
+            var template = SkillManager.Instance.GetEffectTemplate(ActualId, ActualType);
 
-        foreach (var newTarget in targetInfo.EffectedTargets)
-        {
-            BaseUnit target;
-            switch (TargetId)
+            var buffEffect = template as BuffEffect;
+            if (buffEffect != null)
+                flag = 6; //idk what this does?  
+
+            BaseUnit source;
+            switch (SourceId)
             {
-                case PlotEffectTarget.OriginalSource:
-                    target = state.Caster;
+                case PlotEffectSource.OriginalSource:
+                    source = state.Caster;
                     break;
-                case PlotEffectTarget.OriginalTarget:
-                    target = state.Target;
+                case PlotEffectSource.OriginalTarget:
+                    source = state.Target;
                     break;
-                case PlotEffectTarget.Source:
-                    target = targetInfo.Source;
+                case PlotEffectSource.Source:
+                    source = targetInfo.Source;
                     break;
-                case PlotEffectTarget.Target:
-                    target = newTarget;
-                    break;
-                case PlotEffectTarget.Location:
-                    target = targetInfo.Target;
+                case PlotEffectSource.Target:
+                    source = targetInfo.Target;
                     break;
                 default:
                     throw new InvalidOperationException("This can't happen");
             }
 
-            if (channeled && buffEffect != null)
-                state.ChanneledBuffs.Add((target, buffEffect.BuffId));
-
-            if (template == null)
+            foreach (var newTarget in targetInfo.EffectedTargets)
             {
-                return;
-            }
+                BaseUnit target;
+                switch (TargetId)
+                {
+                    case PlotEffectTarget.OriginalSource:
+                        target = state.Caster;
+                        break;
+                    case PlotEffectTarget.OriginalTarget:
+                        target = state.Target;
+                        break;
+                    case PlotEffectTarget.Source:
+                        target = targetInfo.Source;
+                        break;
+                    case PlotEffectTarget.Target:
+                        target = newTarget;
+                        break;
+                    case PlotEffectTarget.Location:
+                        target = targetInfo.Target;
+                        break;
+                    default:
+                        throw new InvalidOperationException("This can't happen");
+                }
 
-            template.Apply(
-                source,
-                state.CasterCaster,
-                target,
-                state.TargetCaster,
-                new CastPlot(evt.PlotId, state.ActiveSkill.TlId, evt.Id, state.ActiveSkill.Template.Id),
-                new EffectSource(state.ActiveSkill),
-                state.SkillObject,
-                DateTime.UtcNow,
-                gamePackets);
+                if (channeled && buffEffect != null)
+                    state.ChanneledBuffs.Add((target, buffEffect.BuffId));
+
+                if (template == null)
+                {
+                    return;
+                }
+
+                template.Apply(
+                    source,
+                    state.CasterCaster,
+                    target,
+                    state.TargetCaster,
+                    new CastPlot(evt.PlotId, state.ActiveSkill.TlId, evt.Id, state.ActiveSkill.Template.Id),
+                    new EffectSource(state.ActiveSkill),
+                    state.SkillObject,
+                    DateTime.UtcNow,
+                    gamePackets);
+            }
         }
     }
 }

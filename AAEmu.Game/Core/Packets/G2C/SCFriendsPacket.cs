@@ -2,25 +2,26 @@
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCFriendsPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly int _total;
-    private readonly Friend[] _friends;
-
-    public SCFriendsPacket(int total, Friend[] friends) : base(SCOffsets.SCFriendsPacket, 1)
+    public class SCFriendsPacket : GamePacket
     {
-        _total = total;
-        _friends = friends;
-    }
+        private readonly int _total;
+        private readonly Friend[] _friends;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_total);
-        stream.Write(_friends.Length); // TODO max length 200
-        foreach (var friend in _friends)
-            stream.Write(friend);
-        return stream;
+        public SCFriendsPacket(int total, Friend[] friends) : base(SCOffsets.SCFriendsPacket, 1)
+        {
+            _total = total;
+            _friends = friends;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_total);
+            stream.Write(_friends.Length); // TODO max length 200
+            foreach (var friend in _friends)
+                stream.Write(friend);
+            return stream;
+        }
     }
 }

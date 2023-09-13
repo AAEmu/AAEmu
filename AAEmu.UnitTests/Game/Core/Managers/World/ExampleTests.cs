@@ -1,14 +1,15 @@
 ﻿using AAEmu.Game.Core.Managers.World;
 using Xunit;
 
-namespace AAEmu.UnitTests.Game.Core.Managers.World;
-
-public class ExampleTests
+namespace AAEmu.UnitTests.Game.Core.Managers.World
 {
-
-    [Fact]
-    public void SampleTest()
+    public class ExampleTests
     {
-        Assert.Equal(1, SpecialtyManager.GetValueOfOne());
+
+        [Fact]
+        public void SampleTest()
+        {
+            Assert.Equal(1, SpecialtyManager.GetValueOfOne());
+        }
     }
 }

@@ -1,11 +1,12 @@
 using AAEmu.Game.Models.Game.AI.Framework;
 
-namespace AAEmu.Game.Models.Game.AI.UnitTypes;
-
-public class WildBoarHoldPositionAI : AbstractUnitAI
+namespace AAEmu.Game.Models.Game.AI.UnitTypes
 {
-    public override Framework.States GetNextState(State previous)
+    public class WildBoarHoldPositionAI : AbstractUnitAI
     {
-        throw new System.NotImplementedException();
+        public override Framework.States GetNextState(State previous)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

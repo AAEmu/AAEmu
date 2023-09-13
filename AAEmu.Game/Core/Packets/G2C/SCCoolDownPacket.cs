@@ -2,46 +2,47 @@
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCCooldownsPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private Character _chr;
-    //private uint _skillId;
-    private int _skillCount;
-    private int _tagCount;
-
-    public SCCooldownsPacket() : base(SCOffsets.SCCooldownsPacket, 1)
+    public class SCCooldownsPacket : GamePacket
     {
-        _skillCount = 0;
-        _tagCount = 0;
-    }
-    public SCCooldownsPacket(Character chr) : base(SCOffsets.SCCooldownsPacket, 1)
-    {
-        _chr = chr;
-        _skillCount = 0;
-        _tagCount = 0;
-    }
+        private Character _chr;
+        //private uint _skillId;
+        private int _skillCount;
+        private int _tagCount;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        //TODO заготовка для пакета
-
-        stream.Write(_skillCount); // skillCount
-        for (var i = 0; i < _skillCount; i++)
+        public SCCooldownsPacket() : base(SCOffsets.SCCooldownsPacket, 1)
         {
-            stream.Write(0u); // type(id)
-            stream.Write(0u); // type(id)
-            stream.Write(0u); // type(id)
+            _skillCount = 0;
+            _tagCount = 0;
         }
-        stream.Write(_tagCount); // tagCount
-        for (var i = 0; i < _tagCount; i++)
+        public SCCooldownsPacket(Character chr) : base(SCOffsets.SCCooldownsPacket, 1)
         {
-            stream.Write(0u); // type(id) //tagId
-            stream.Write(0u); // type(id) // GCD?
-            stream.Write(0u); // type(id) // Delay?
+            _chr = chr;
+            _skillCount = 0;
+            _tagCount = 0;
         }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            //TODO заготовка для пакета
+
+            stream.Write(_skillCount); // skillCount
+            for (var i = 0; i < _skillCount; i++)
+            {
+                stream.Write(0u); // type(id)
+                stream.Write(0u); // type(id)
+                stream.Write(0u); // type(id)
+            }
+            stream.Write(_tagCount); // tagCount
+            for (var i = 0; i < _tagCount; i++)
+            {
+                stream.Write(0u); // type(id) //tagId
+                stream.Write(0u); // type(id) // GCD?
+                stream.Write(0u); // type(id) // Delay?
+            }
+
+            return stream;
+        }
     }
 }

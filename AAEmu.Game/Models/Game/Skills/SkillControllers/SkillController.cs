@@ -1,54 +1,55 @@
 ﻿using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
-
-public class SkillController
+namespace AAEmu.Game.Models.Game.Skills.SkillControllers
 {
-    public enum SCState
+    public class SkillController
     {
-        Created,
-        Running,
-        Ended
-    }
-    public SkillControllerTemplate Template { get; set; }
-    public Unit Owner { get; protected set; }
-    public Unit Target { get; protected set; }
-
-    public SCState State { get; protected set; }
-
-    protected SkillController()
-    {
-
-    }
-
-    public virtual void Execute()
-    {
-        State = SCState.Running;
-    }
-
-    public virtual void End()
-    {
-        State = SCState.Ended;
-    }
-
-    public static SkillController CreateSkillController(SkillControllerTemplate template, BaseUnit owner, BaseUnit target)
-    {
-        if (template == null)
+        public enum SCState
         {
-            return null;
+            Created,
+            Running,
+            Ended
+        }
+        public SkillControllerTemplate Template { get; set; }
+        public Unit Owner { get; protected set; }
+        public Unit Target { get; protected set; }
+
+        public SCState State { get; protected set; }
+
+        protected SkillController()
+        {
+
         }
 
-        switch ((SkillControllerKind)template.KindId)
+        public virtual void Execute()
         {
-            case SkillControllerKind.Floating:
-                return null; // TODO: Add Floating (telekinesis, bubble ?)
-            case SkillControllerKind.Wandering:
-                return null;// TODO: Add Wandering (Fear ?)
-            case SkillControllerKind.Leap:
-                return new LeapSkillController(template, owner, target);
-            default:
+            State = SCState.Running;
+        }
+
+        public virtual void End()
+        {
+            State = SCState.Ended;
+        }
+
+        public static SkillController CreateSkillController(SkillControllerTemplate template, BaseUnit owner, BaseUnit target)
+        {
+            if (template == null)
+            {
                 return null;
+            }
+
+            switch ((SkillControllerKind)template.KindId)
+            {
+                case SkillControllerKind.Floating:
+                    return null; // TODO: Add Floating (telekinesis, bubble ?)
+                case SkillControllerKind.Wandering:
+                    return null;// TODO: Add Wandering (Fear ?)
+                case SkillControllerKind.Leap:
+                    return new LeapSkillController(template, owner, target);
+                default:
+                    return null;
+            }
         }
     }
 }

@@ -2,209 +2,210 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items;
 
-namespace AAEmu.Game.Models.Game.Mails;
-
-public class MailForAuction : BaseMail
+namespace AAEmu.Game.Models.Game.Mails
 {
-    private uint _buyerId;
-    private uint _sellerId;
-    private Item _item;
-    private string _itemName;
-    private int _itemBuyoutPrice;
-    private int _sellerShare;
-    private int _listingFee;
-    private int _tradeTaxFee;
-
-    public static string AuctionName = "Auctioneer";
-    // TODO: verify title names
-    public static string TitleSold = "Successful Auction Notice";
-    public static string TitleNotSold = "Failed Auction Notice";
-    public static string TitleBidWin = "Succesfull Purchase";
-    public static string TitleBidLost = "Failed Bid Notice";
-    public static string TitleCancel = "Cancelled Auction Notice";
-
-    // Mail examples for 1.2
-
-    public MailForAuction(Item itemToSell, uint sellerId, int buyoutPrice, int listingFee) : base()
+    public class MailForAuction : BaseMail
     {
-        _buyerId = 0;
-        _sellerId = sellerId;
-        _item = itemToSell;
-        _itemBuyoutPrice = buyoutPrice;
-        _sellerShare = 0;
-        _listingFee = listingFee;
-        _tradeTaxFee = 0;
-        _itemName = LocalizationManager.Instance.Get("items", "name", _item.TemplateId, "Item:" + itemToSell.TemplateId.ToString());
+        private uint _buyerId;
+        private uint _sellerId;
+        private Item _item;
+        private string _itemName;
+        private int _itemBuyoutPrice;
+        private int _sellerShare;
+        private int _listingFee;
+        private int _tradeTaxFee;
 
-        // Correct types and name will be set in finalize functions
-        MailType = MailType.InvalidMailType;
-        Header.SenderId = 0;
-        Header.SenderName = AuctionName; // Name changes depending on type of mail
+        public static string AuctionName = "Auctioneer";
+        // TODO: verify title names
+        public static string TitleSold = "Successful Auction Notice";
+        public static string TitleNotSold = "Failed Auction Notice";
+        public static string TitleBidWin = "Succesfull Purchase";
+        public static string TitleBidLost = "Failed Bid Notice";
+        public static string TitleCancel = "Cancelled Auction Notice";
 
-        Body.RecvDate = DateTime.UtcNow; // These mails should always be instant
-    }
+        // Mail examples for 1.2
 
-    /// <summary>
-    /// Please refactor AH to not use this fucntion, only finalize with FinalizeForBidFail() or face null exceptions
-    /// </summary>
-    /// <param name="itemTemplateIdToSell"></param>
-    /// <param name="sellerId"></param>
-    /// <param name="buyoutPrice"></param>
-    /// <param name="listingFee"></param>
-    public MailForAuction(uint itemTemplateIdToSell, uint sellerId, int buyoutPrice, int listingFee) : base()
-    {
-        _buyerId = 0;
-        _sellerId = sellerId;
-        _item = null;
-        _itemBuyoutPrice = buyoutPrice;
-        _sellerShare = 0;
-        _listingFee = listingFee;
-        _tradeTaxFee = 0;
-        _itemName = LocalizationManager.Instance.Get("items", "name", itemTemplateIdToSell, "Item:" + itemTemplateIdToSell.ToString());
+        public MailForAuction(Item itemToSell, uint sellerId, int buyoutPrice, int listingFee) : base()
+        {
+            _buyerId = 0;
+            _sellerId = sellerId;
+            _item = itemToSell;
+            _itemBuyoutPrice = buyoutPrice;
+            _sellerShare = 0;
+            _listingFee = listingFee;
+            _tradeTaxFee = 0;
+            _itemName = LocalizationManager.Instance.Get("items", "name", _item.TemplateId, "Item:" + itemToSell.TemplateId.ToString());
 
-        // Correct types and name will be set in finalize functions
-        MailType = MailType.InvalidMailType;
-        Header.SenderId = 0;
-        Header.SenderName = AuctionName; // Name changes depending on type of mail
+            // Correct types and name will be set in finalize functions
+            MailType = MailType.InvalidMailType;
+            Header.SenderId = 0;
+            Header.SenderName = AuctionName; // Name changes depending on type of mail
 
-        Body.RecvDate = DateTime.UtcNow; // These mails should always be instant
-    }
+            Body.RecvDate = DateTime.UtcNow; // These mails should always be instant
+        }
 
-    /// <summary>
-    /// Prepare mail for the person who is buying the item
-    /// </summary>
-    /// <returns></returns>
-    public bool FinalizeForSaleBuyer(uint buyerId)
-    {
-        // /testmail 16 .auctionBidWin AHBidWin "body('My Sold Item', 7, 400000)"
-        _buyerId = buyerId;
+        /// <summary>
+        /// Please refactor AH to not use this fucntion, only finalize with FinalizeForBidFail() or face null exceptions
+        /// </summary>
+        /// <param name="itemTemplateIdToSell"></param>
+        /// <param name="sellerId"></param>
+        /// <param name="buyoutPrice"></param>
+        /// <param name="listingFee"></param>
+        public MailForAuction(uint itemTemplateIdToSell, uint sellerId, int buyoutPrice, int listingFee) : base()
+        {
+            _buyerId = 0;
+            _sellerId = sellerId;
+            _item = null;
+            _itemBuyoutPrice = buyoutPrice;
+            _sellerShare = 0;
+            _listingFee = listingFee;
+            _tradeTaxFee = 0;
+            _itemName = LocalizationManager.Instance.Get("items", "name", itemTemplateIdToSell, "Item:" + itemTemplateIdToSell.ToString());
 
-        var nameBuyer = NameManager.Instance.GetCharacterName(_buyerId);
-        if (nameBuyer == null)
-            return false;
+            // Correct types and name will be set in finalize functions
+            MailType = MailType.InvalidMailType;
+            Header.SenderId = 0;
+            Header.SenderName = AuctionName; // Name changes depending on type of mail
 
-        Header.SenderName = ".auctionBidWin";
-        ReceiverName = nameBuyer;
+            Body.RecvDate = DateTime.UtcNow; // These mails should always be instant
+        }
 
-        MailType = MailType.AucBidWin;
-        Title = TitleBidWin;
-        Header.ReceiverId = _buyerId;
+        /// <summary>
+        /// Prepare mail for the person who is buying the item
+        /// </summary>
+        /// <returns></returns>
+        public bool FinalizeForSaleBuyer(uint buyerId)
+        {
+            // /testmail 16 .auctionBidWin AHBidWin "body('My Sold Item', 7, 400000)"
+            _buyerId = buyerId;
 
-        Body.Text = string.Format("body('{0}', {1}, {2})", _itemName, _item.Count, _itemBuyoutPrice);
-        _item.OwnerId = _buyerId;
-        _item.SlotType = SlotType.Mail;
-        Body.Attachments.Add(_item);
+            var nameBuyer = NameManager.Instance.GetCharacterName(_buyerId);
+            if (nameBuyer == null)
+                return false;
 
-        return true;
-    }
+            Header.SenderName = ".auctionBidWin";
+            ReceiverName = nameBuyer;
 
-    /// <summary>
-    /// Prepare mail for the person selling the item
-    /// </summary>
-    /// <returns></returns>
-    public bool FinalizeForSaleSeller(int sellerShare, int tradeTaxFee)
-    {
-        // /testmail 14 .auctionOffSuccess AHBuy "body('My Sold Item',7, 364000, 400000, 40000, 4000)"
-        _sellerShare = sellerShare;
-        _tradeTaxFee = tradeTaxFee;
+            MailType = MailType.AucBidWin;
+            Title = TitleBidWin;
+            Header.ReceiverId = _buyerId;
 
-        var nameSeller = NameManager.Instance.GetCharacterName(_sellerId);
-        if (nameSeller == null)
-            return false;
+            Body.Text = string.Format("body('{0}', {1}, {2})", _itemName, _item.Count, _itemBuyoutPrice);
+            _item.OwnerId = _buyerId;
+            _item.SlotType = SlotType.Mail;
+            Body.Attachments.Add(_item);
 
-        Header.SenderName = ".auctionOffSuccess";
-        Header.ReceiverId = _sellerId;
-        ReceiverName = nameSeller;
+            return true;
+        }
 
-        MailType = MailType.AucOffSuccess;
-        Title = TitleSold;
+        /// <summary>
+        /// Prepare mail for the person selling the item
+        /// </summary>
+        /// <returns></returns>
+        public bool FinalizeForSaleSeller(int sellerShare, int tradeTaxFee)
+        {
+            // /testmail 14 .auctionOffSuccess AHBuy "body('My Sold Item',7, 364000, 400000, 40000, 4000)"
+            _sellerShare = sellerShare;
+            _tradeTaxFee = tradeTaxFee;
 
-        Body.Text = string.Format("body('{0}', {1}, {2}, {3}, {4}, {5})",
-            _itemName, _item.Count, _sellerShare, _itemBuyoutPrice, _tradeTaxFee, _listingFee);
+            var nameSeller = NameManager.Instance.GetCharacterName(_sellerId);
+            if (nameSeller == null)
+                return false;
 
-        AttachMoney(sellerShare);
+            Header.SenderName = ".auctionOffSuccess";
+            Header.ReceiverId = _sellerId;
+            ReceiverName = nameSeller;
 
-        return true;
-    }
+            MailType = MailType.AucOffSuccess;
+            Title = TitleSold;
 
-    /// <summary>
-    /// Prepare mail for returning item to owner because of cancel
-    /// </summary>
-    /// <returns></returns>
-    public bool FinalizeForCancel()
-    {
-        // /testmail 13 .auctionOffCancel AHCancel "body('My Sold Item',7)"
+            Body.Text = string.Format("body('{0}', {1}, {2}, {3}, {4}, {5})",
+                _itemName, _item.Count, _sellerShare, _itemBuyoutPrice, _tradeTaxFee, _listingFee);
 
-        var nameSeller = NameManager.Instance.GetCharacterName(_sellerId);
-        if (nameSeller == null)
-            return false;
+            AttachMoney(sellerShare);
 
-        Header.SenderName = ".auctionOffCancel";
-        Header.ReceiverId = _sellerId;
-        ReceiverName = nameSeller;
+            return true;
+        }
 
-        MailType = MailType.AucOffCancel;
-        Title = TitleCancel;
+        /// <summary>
+        /// Prepare mail for returning item to owner because of cancel
+        /// </summary>
+        /// <returns></returns>
+        public bool FinalizeForCancel()
+        {
+            // /testmail 13 .auctionOffCancel AHCancel "body('My Sold Item',7)"
 
-        Body.Text = string.Format("body('{0}', {1})", _itemName, _item.Count);
-        _item.OwnerId = _sellerId;
-        _item.SlotType = SlotType.Mail;
-        Body.Attachments.Add(_item);
+            var nameSeller = NameManager.Instance.GetCharacterName(_sellerId);
+            if (nameSeller == null)
+                return false;
 
-        return true;
-    }
+            Header.SenderName = ".auctionOffCancel";
+            Header.ReceiverId = _sellerId;
+            ReceiverName = nameSeller;
 
-    /// <summary>
-    /// Prepare mail for returning item to owner because of expired
-    /// </summary>
-    /// <returns></returns>
-    public bool FinalizeForFail()
-    {
-        // /testmail 15 .auctionOffFail AHFail "body('My Sold Item',7)"
+            MailType = MailType.AucOffCancel;
+            Title = TitleCancel;
 
-        var nameSeller = NameManager.Instance.GetCharacterName(_sellerId);
-        if (nameSeller == null)
-            return false;
+            Body.Text = string.Format("body('{0}', {1})", _itemName, _item.Count);
+            _item.OwnerId = _sellerId;
+            _item.SlotType = SlotType.Mail;
+            Body.Attachments.Add(_item);
 
-        Header.SenderName = ".auctionOffFail";
-        Header.ReceiverId = _sellerId;
-        ReceiverName = nameSeller;
+            return true;
+        }
 
-        MailType = MailType.AucOffFail;
-        Title = TitleNotSold;
+        /// <summary>
+        /// Prepare mail for returning item to owner because of expired
+        /// </summary>
+        /// <returns></returns>
+        public bool FinalizeForFail()
+        {
+            // /testmail 15 .auctionOffFail AHFail "body('My Sold Item',7)"
 
-        Body.Text = string.Format("body('{0}', {1})", _itemName, _item.Count);
-        _item.OwnerId = _sellerId;
-        _item.SlotType = SlotType.Mail;
-        Body.Attachments.Add(_item);
+            var nameSeller = NameManager.Instance.GetCharacterName(_sellerId);
+            if (nameSeller == null)
+                return false;
 
-        return true;
-    }
+            Header.SenderName = ".auctionOffFail";
+            Header.ReceiverId = _sellerId;
+            ReceiverName = nameSeller;
 
-    /// <summary>
-    /// Prepare mail for the person who was outbid
-    /// </summary>
-    /// <returns></returns>
-    public bool FinalizeForBidFail(uint previousBuyerId, int previousBid)
-    {
-        // /testmail 17 .auctionBidFail AHBidFail "body('My Sold Item')"
-        _buyerId = previousBuyerId;
+            MailType = MailType.AucOffFail;
+            Title = TitleNotSold;
 
-        var nameBuyer = NameManager.Instance.GetCharacterName(_buyerId);
-        if (nameBuyer == null)
-            return false;
+            Body.Text = string.Format("body('{0}', {1})", _itemName, _item.Count);
+            _item.OwnerId = _sellerId;
+            _item.SlotType = SlotType.Mail;
+            Body.Attachments.Add(_item);
 
-        Header.SenderName = ".auctionBidFail";
-        Header.ReceiverId = _buyerId;
-        ReceiverName = nameBuyer;
+            return true;
+        }
 
-        MailType = MailType.AucOffFail;
-        Title = TitleBidLost;
+        /// <summary>
+        /// Prepare mail for the person who was outbid
+        /// </summary>
+        /// <returns></returns>
+        public bool FinalizeForBidFail(uint previousBuyerId, int previousBid)
+        {
+            // /testmail 17 .auctionBidFail AHBidFail "body('My Sold Item')"
+            _buyerId = previousBuyerId;
 
-        Body.Text = string.Format("body('{0}')", _itemName);
+            var nameBuyer = NameManager.Instance.GetCharacterName(_buyerId);
+            if (nameBuyer == null)
+                return false;
 
-        AttachMoney(previousBid);
+            Header.SenderName = ".auctionBidFail";
+            Header.ReceiverId = _buyerId;
+            ReceiverName = nameBuyer;
 
-        return true;
+            MailType = MailType.AucOffFail;
+            Title = TitleBidLost;
+
+            Body.Text = string.Format("body('{0}')", _itemName);
+
+            AttachMoney(previousBid);
+
+            return true;
+        }
     }
 }

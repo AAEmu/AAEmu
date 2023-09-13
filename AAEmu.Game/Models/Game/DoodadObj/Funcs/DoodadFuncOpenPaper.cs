@@ -1,17 +1,18 @@
 ﻿using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
-
-public class DoodadFuncOpenPaper : DoodadFuncTemplate
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    // doodad_funcs
-    public uint BookPageId { get; set; }
-    public uint BookId { get; set; }
-
-    public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
+    public class DoodadFuncOpenPaper : DoodadFuncTemplate
     {
-        _log.Trace("DoodadFuncOpenPaper");
+        // doodad_funcs
+        public uint BookPageId { get; set; }
+        public uint BookId { get; set; }
 
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        {
+            _log.Trace("DoodadFuncOpenPaper");
+
+        }
     }
 }

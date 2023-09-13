@@ -1,38 +1,39 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Duels;
 
-namespace AAEmu.Game.Models.Tasks.Duels;
-
-public class DuelEndTimerTask : Task
+namespace AAEmu.Game.Models.Tasks.Duels
 {
-    protected Duel _duel;
-    protected uint _challengerId;
-
-    public DuelEndTimerTask(Duel duel, uint challengerId)
+    public class DuelEndTimerTask : Task
     {
-        _duel = duel;
-        _challengerId = challengerId;
-    }
+        protected Duel _duel;
+        protected uint _challengerId;
 
-    public override async void Execute()
-    {
-        if (_duel.DuelEndTimerTask == null)
-            return;
-
-        await _duel.DuelEndTimerTask.CancelAsync();
-        _duel.DuelEndTimerTask = null;
-
-        if (_duel.Challenger.Hp < _duel.Challenged.Hp)
+        public DuelEndTimerTask(Duel duel, uint challengerId)
         {
-            DuelManager.Instance.DuelStop(_duel.Challenged.Id, DuelDetType.Win, _challengerId);
+            _duel = duel;
+            _challengerId = challengerId;
         }
-        else if (_duel.Challenger.Hp > _duel.Challenged.Hp)
+
+        public override async void Execute()
         {
-            DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Win, _duel.Challenged.Id);
-        }
-        else if (_duel.Challenger.Hp == _duel.Challenged.Hp)
-        {
-            DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Draw, _duel.Challenged.Id);
+            if (_duel.DuelEndTimerTask == null)
+                return;
+
+            await _duel.DuelEndTimerTask.CancelAsync();
+            _duel.DuelEndTimerTask = null;
+
+            if (_duel.Challenger.Hp < _duel.Challenged.Hp)
+            {
+                DuelManager.Instance.DuelStop(_duel.Challenged.Id, DuelDetType.Win, _challengerId);
+            }
+            else if (_duel.Challenger.Hp > _duel.Challenged.Hp)
+            {
+                DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Win, _duel.Challenged.Id);
+            }
+            else if (_duel.Challenger.Hp == _duel.Challenged.Hp)
+            {
+                DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Draw, _duel.Challenged.Id);
+            }
         }
     }
 }

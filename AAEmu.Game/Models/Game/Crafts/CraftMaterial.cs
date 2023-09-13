@@ -1,13 +1,14 @@
-﻿namespace AAEmu.Game.Models.Game.Crafts;
-
-/*
-    Material required in a craft.
-*/
-public class CraftMaterial
+﻿namespace AAEmu.Game.Models.Game.Crafts
 {
-    public uint Id { get; set; }
-    public uint CraftId { get; set; }
-    public uint ItemId { get; set; }
-    public int Amount { get; set; }
-    public bool MainGrade { get; set; }
+    /*
+        Material required in a craft.
+    */
+    public class CraftMaterial
+    {
+        public uint Id { get; set; }
+        public uint CraftId { get; set; }
+        public uint ItemId { get; set; }
+        public int Amount { get; set; }
+        public bool MainGrade { get; set; }
+    }
 }

@@ -2,36 +2,37 @@ using System;
 using System.Collections.Generic;
 using NLua;
 
-namespace AAEmu.Game.Models.Game.AI.Params.BigMonster;
-
-public class BigMonsterRoamingAiParams : AiParamsOld
+namespace AAEmu.Game.Models.Game.AI.Params.BigMonster
 {
-    public override AiParamType Type => AiParamType.BigMonsterRoaming;
-
-    public float AlertDuration { get; set; } = 3.0f;
-    public float AlertSafeTargetRememberTime { get; set; } = 5.0f;
-    public bool AlertToAttack { get; set; } = true;
-    public List<BigMonsterCombatSkill> CombatSkills { get; set; }
-
-    public override void Parse(string data)
+    public class BigMonsterRoamingAiParams : AiParamsOld
     {
-        using (var aiParams = new AiLua())
-        {
-            aiParams.DoString($"data = {{\n{data}\n}}");
+        public override AiParamType Type => AiParamType.BigMonsterRoaming;
 
-            AlertDuration = aiParams.GetInteger("data.alertDuration");
-            AlertSafeTargetRememberTime = aiParams.GetInteger("data.alertSafeTargetRememberTime");
-            AlertToAttack = Convert.ToBoolean(aiParams.GetString("data.alertToAttack"));
-            CombatSkills = new List<BigMonsterCombatSkill>();
-            if (aiParams.GetTable("data.combatSkills") is LuaTable table)
+        public float AlertDuration { get; set; } = 3.0f;
+        public float AlertSafeTargetRememberTime { get; set; } = 5.0f;
+        public bool AlertToAttack { get; set; } = true;
+        public List<BigMonsterCombatSkill> CombatSkills { get; set; }
+
+        public override void Parse(string data)
+        {
+            using (var aiParams = new AiLua())
             {
-                foreach (var skillList in table.Values)
+                aiParams.DoString($"data = {{\n{data}\n}}");
+
+                AlertDuration = aiParams.GetInteger("data.alertDuration");
+                AlertSafeTargetRememberTime = aiParams.GetInteger("data.alertSafeTargetRememberTime");
+                AlertToAttack = Convert.ToBoolean(aiParams.GetString("data.alertToAttack"));
+                CombatSkills = new List<BigMonsterCombatSkill>();
+                if (aiParams.GetTable("data.combatSkills") is LuaTable table)
                 {
-                    if (skillList is LuaTable skillListTable)
+                    foreach (var skillList in table.Values)
                     {
-                        var combatSkill = new BigMonsterCombatSkill();
-                        combatSkill.ParseLua(skillListTable);
-                        CombatSkills.Add(combatSkill);
+                        if (skillList is LuaTable skillListTable)
+                        {
+                            var combatSkill = new BigMonsterCombatSkill();
+                            combatSkill.ParseLua(skillListTable);
+                            CombatSkills.Add(combatSkill);
+                        }
                     }
                 }
             }

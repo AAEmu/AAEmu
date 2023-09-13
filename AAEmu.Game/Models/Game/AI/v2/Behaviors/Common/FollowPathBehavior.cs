@@ -1,19 +1,20 @@
 using System;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 
-namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
-
-public class FollowPathBehavior : Behavior
+namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common
 {
-    public override void Enter()
+    public class FollowPathBehavior : Behavior
     {
-    }
+        public override void Enter()
+        {
+        }
 
-    public override void Tick(TimeSpan delta)
-    {
-    }
+        public override void Tick(TimeSpan delta)
+        {
+        }
 
-    public override void Exit()
-    {
+        public override void Exit()
+        {
+        }
     }
 }

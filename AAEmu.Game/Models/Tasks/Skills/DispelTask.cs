@@ -2,33 +2,34 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
 
-namespace AAEmu.Game.Models.Tasks.Skills;
-
-public class DispelTask : Task
+namespace AAEmu.Game.Models.Tasks.Skills
 {
-    public WeakReference Effect;
-
-    public DispelTask(Buff buff)
+    public class DispelTask : Task
     {
-        Effect = new WeakReference(buff);
-    }
+        public WeakReference Effect;
 
-    public override void Execute()
-    {
-        if (!Effect.IsAlive)
-            return;
-        var eff = Effect.Target as Buff;
-        if (eff == null || eff.IsEnded())
-            return;
-        if (eff.Owner == null)
-            return;
-
-        eff.ScheduleEffect(false);
-
-        if (eff.IsEnded())
+        public DispelTask(Buff buff)
         {
-            return;
+            Effect = new WeakReference(buff);
         }
-        EffectTaskManager.AddDispelTask(eff, eff.Tick);
+
+        public override void Execute()
+        {
+            if (!Effect.IsAlive)
+                return;
+            var eff = Effect.Target as Buff;
+            if (eff == null || eff.IsEnded())
+                return;
+            if (eff.Owner == null)
+                return;
+
+            eff.ScheduleEffect(false);
+
+            if (eff.IsEnded())
+            {
+                return;
+            }
+            EffectTaskManager.AddDispelTask(eff, eff.Tick);
+        }
     }
 }

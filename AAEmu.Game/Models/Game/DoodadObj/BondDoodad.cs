@@ -1,52 +1,53 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 
-namespace AAEmu.Game.Models.Game.DoodadObj;
-
-public class BondDoodad : PacketMarshaler
+namespace AAEmu.Game.Models.Game.DoodadObj
 {
-    private Doodad _owner;
-    private readonly byte _attachPoint;
-    private readonly byte _kind;
-    private readonly int _space;
-    private readonly int _spot;
-
-    public uint ObjId => _owner?.ObjId ?? 0;
-
-    public BondDoodad(AttachPointKind attachPoint, BondKind kind, int space, int spot)
+    public class BondDoodad : PacketMarshaler
     {
-        _attachPoint = (byte)attachPoint;
-        _kind = (byte)kind;
-        _space = space;
-        _spot = spot;
-    }
+        private Doodad _owner;
+        private readonly byte _attachPoint;
+        private readonly byte _kind;
+        private readonly int _space;
+        private readonly int _spot;
 
-    public BondDoodad(Doodad owner, AttachPointKind attachPoint, BondKind kind, int space, int spot)
-    {
-        SetOwner(owner);
-        _attachPoint = (byte)attachPoint;
-        _kind = (byte)kind;
-        _space = space;
-        _spot = spot;
-    }
+        public uint ObjId => _owner?.ObjId ?? 0;
 
-    public void SetOwner(Doodad owner)
-    {
-        _owner = owner;
-    }
+        public BondDoodad(AttachPointKind attachPoint, BondKind kind, int space, int spot)
+        {
+            _attachPoint = (byte)attachPoint;
+            _kind = (byte)kind;
+            _space = space;
+            _spot = spot;
+        }
 
-    public Doodad GetOwner()
-    {
-        return _owner;
-    }
+        public BondDoodad(Doodad owner, AttachPointKind attachPoint, BondKind kind, int space, int spot)
+        {
+            SetOwner(owner);
+            _attachPoint = (byte)attachPoint;
+            _kind = (byte)kind;
+            _space = space;
+            _spot = spot;
+        }
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_attachPoint);
-        stream.WriteBc(_owner.ObjId);
-        stream.Write(_kind);
-        stream.Write(_space);
-        stream.Write(_spot);
-        return stream;
+        public void SetOwner(Doodad owner)
+        {
+            _owner = owner;
+        }
+
+        public Doodad GetOwner()
+        {
+            return _owner;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_attachPoint);
+            stream.WriteBc(_owner.ObjId);
+            stream.Write(_kind);
+            stream.Write(_space);
+            stream.Write(_spot);
+            return stream;
+        }
     }
 }

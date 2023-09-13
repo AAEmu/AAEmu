@@ -1,17 +1,18 @@
 ﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActConReportDoodad : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public uint DoodadId { get; set; }
-    public bool UseAlias { get; set; }
-    public uint QuestActObjAliasId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActConReportDoodad : QuestActTemplate
     {
-        _log.Warn("QuestActConReportDoodad");
-        return true;
+        public uint DoodadId { get; set; }
+        public bool UseAlias { get; set; }
+        public uint QuestActObjAliasId { get; set; }
+
+        public override bool Use(ICharacter character, Quest quest, int objective)
+        {
+            _log.Warn("QuestActConReportDoodad");
+            return true;
+        }
     }
 }

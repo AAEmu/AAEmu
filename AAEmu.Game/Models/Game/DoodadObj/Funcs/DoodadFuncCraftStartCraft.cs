@@ -1,16 +1,17 @@
 ﻿using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
-
-public class DoodadFuncCraftStartCraft : DoodadPhaseFuncTemplate
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    public uint DoodadFuncCraftStartId { get; set; }
-    public uint CraftId { get; set; }
-
-    public override bool Use(BaseUnit caster, Doodad owner)
+    public class DoodadFuncCraftStartCraft : DoodadPhaseFuncTemplate
     {
-        _log.Trace("DoodadFuncCraftStartCraft");
-        return false;
+        public uint DoodadFuncCraftStartId { get; set; }
+        public uint CraftId { get; set; }
+
+        public override bool Use(BaseUnit caster, Doodad owner)
+        {
+            _log.Trace("DoodadFuncCraftStartCraft");
+            return false;
+        }
     }
 }

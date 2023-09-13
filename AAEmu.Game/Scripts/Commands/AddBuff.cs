@@ -6,132 +6,133 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Scripts.Commands;
-
-public class AddBuff : ICommand
+namespace AAEmu.Game.Scripts.Commands
 {
-    public void OnLoad()
+    public class AddBuff : ICommand
     {
-        string[] name = { "addbuff", "add_buff", "buff" };
-        CommandManager.Instance.Register(name, this);
-    }
-
-    public string GetCommandLineHelp()
-    {
-        return "\"View\" || [\"AsTarget\"] <buffId> <ab_level>";
-    }
-
-    public string GetCommandHelpText()
-    {
-        return "Adds or removes a buff to selected target. Negative BuffId's will remove a buff. " +
-            "If precered by AsTarget (at) buff will be applied as if target was source. " +
-            "If you provide view as a parameter, it will list the current buffs on target." +
-            "You can also use 'v' instead of 'view' and 'at' or 't' instead of 'AsTarget'";
-    }
-
-    public void Execute(Character character, string[] args)
-    {
-        var firstArg = 0;
-        if (args.Length <= 0)
+        public void OnLoad()
         {
-            character.SendMessage("[AddBuff] " + CommandManager.CommandPrefix + "addbuff " + GetCommandLineHelp());
-            return;
+            string[] name = { "addbuff", "add_buff", "buff" };
+            CommandManager.Instance.Register(name, this);
         }
 
-        Unit sourceUnit = character;
-        Unit targetUnit = null;
-
-        if (!(character.CurrentTarget is Unit selectedUnit))
+        public string GetCommandLineHelp()
         {
-            character.SendMessage("[AddBuff] |cFFFF0000No target unit selected|r");
-            return;
+            return "\"View\" || [\"AsTarget\"] <buffId> <ab_level>";
         }
-        targetUnit = selectedUnit;
 
-        var a0 = args[0].ToLower();
-        if ((a0 == "view") || (a0 == "v"))
+        public string GetCommandHelpText()
         {
-            var goodBuffs = new List<Buff>();
-            var badBuffs = new List<Buff>();
-            var hiddenBuffs = new List<Buff>();
-            selectedUnit.Buffs.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs);
+            return "Adds or removes a buff to selected target. Negative BuffId's will remove a buff. " +
+                "If precered by AsTarget (at) buff will be applied as if target was source. " +
+                "If you provide view as a parameter, it will list the current buffs on target." +
+                "You can also use 'v' instead of 'view' and 'at' or 't' instead of 'AsTarget'";
+        }
 
-            if (goodBuffs.Count + badBuffs.Count + hiddenBuffs.Count > 0)
+        public void Execute(Character character, string[] args)
+        {
+            var firstArg = 0;
+            if (args.Length <= 0)
             {
-                character.SendMessage("[AddBuff] Listing buffs for {0} - {1} !", selectedUnit.ObjId, selectedUnit.Name);
-                foreach (var b in goodBuffs)
-                    character.SendMessage("[AddBuff] |cFF00FF00{0} - {1}|r", b.Template.Id, LocalizationManager.Instance.Get("buffs", "name", b.Template.Id));
-                foreach (var b in badBuffs)
-                    character.SendMessage("[AddBuff] |cFFFF0000{0} - {1}|r", b.Template.Id, LocalizationManager.Instance.Get("buffs", "name", b.Template.Id));
-                foreach (var b in hiddenBuffs)
-                    character.SendMessage("[AddBuff] |cFF6666FF{0} - {1}|r", b.Template.Id, LocalizationManager.Instance.Get("buffs", "name", b.Template.Id));
+                character.SendMessage("[AddBuff] " + CommandManager.CommandPrefix + "addbuff " + GetCommandLineHelp());
+                return;
+            }
+
+            Unit sourceUnit = character;
+            Unit targetUnit = null;
+
+            if (!(character.CurrentTarget is Unit selectedUnit))
+            {
+                character.SendMessage("[AddBuff] |cFFFF0000No target unit selected|r");
+                return;
+            }
+            targetUnit = selectedUnit;
+
+            var a0 = args[0].ToLower();
+            if ((a0 == "view") || (a0 == "v"))
+            {
+                var goodBuffs = new List<Buff>();
+                var badBuffs = new List<Buff>();
+                var hiddenBuffs = new List<Buff>();
+                selectedUnit.Buffs.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs);
+
+                if (goodBuffs.Count + badBuffs.Count + hiddenBuffs.Count > 0)
+                {
+                    character.SendMessage("[AddBuff] Listing buffs for {0} - {1} !", selectedUnit.ObjId, selectedUnit.Name);
+                    foreach (var b in goodBuffs)
+                        character.SendMessage("[AddBuff] |cFF00FF00{0} - {1}|r", b.Template.Id, LocalizationManager.Instance.Get("buffs", "name", b.Template.Id));
+                    foreach (var b in badBuffs)
+                        character.SendMessage("[AddBuff] |cFFFF0000{0} - {1}|r", b.Template.Id, LocalizationManager.Instance.Get("buffs", "name", b.Template.Id));
+                    foreach (var b in hiddenBuffs)
+                        character.SendMessage("[AddBuff] |cFF6666FF{0} - {1}|r", b.Template.Id, LocalizationManager.Instance.Get("buffs", "name", b.Template.Id));
+                }
+                else
+                {
+                    character.SendMessage("[AddBuff] No buffs on {0} - {1}", selectedUnit.ObjId, selectedUnit.Name);
+                }
+
+                return;
+            }
+
+            if ((a0 == "astarget") || (a0 == "t") || (a0 == "at"))
+            {
+                firstArg++;
+                sourceUnit = selectedUnit;
+                targetUnit = character;
+            }
+
+            if (args.Length <= firstArg)
+            {
+                character.SendMessage("|cFFFF0000[AddBuff] No buffId provided ?|r");
+                return;
+            }
+
+            if (!int.TryParse(args[firstArg], out var buffIdInt))
+            {
+                character.SendMessage("|cFFFF0000[AddBuff] Parse error buffId !|r");
+                return;
+            }
+
+            var abLevel = 1u;
+            if (args.Length > firstArg + 1)
+                if (!uint.TryParse(args[firstArg + 1], out abLevel))
+                    abLevel = 1u;
+
+            uint buffId = (uint)Math.Abs(buffIdInt);
+
+            var buffTemplate = SkillManager.Instance.GetBuffTemplate(buffId);
+            if (buffTemplate == null)
+            {
+                character.SendMessage("|cFFFF0000[AddBuff] Unknown buffId {0}|r", buffId);
+                return;
+            }
+
+            if (buffIdInt > 0)
+            {
+
+                var casterObj = new SkillCasterUnit(sourceUnit.ObjId);
+                var targetObj = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+                targetObj.ObjId = targetUnit.ObjId;
+
+                var newBuff = new Buff(targetUnit, sourceUnit, casterObj, buffTemplate, null, System.DateTime.UtcNow)
+                {
+                    AbLevel = abLevel
+                };
+                targetUnit.Buffs.AddBuff(newBuff);
+            }
+            if (buffIdInt < 0)
+            {
+                if (selectedUnit.Buffs.CheckBuff(buffId))
+                    selectedUnit.Buffs.RemoveBuff(buffId);
+                else
+                {
+                    character.SendMessage("|cFFFF0000[AddBuff] Target didn't have buff to remove|r", buffId);
+                }
             }
             else
             {
-                character.SendMessage("[AddBuff] No buffs on {0} - {1}", selectedUnit.ObjId, selectedUnit.Name);
+                // I think this might be zero
             }
-
-            return;
-        }
-
-        if ((a0 == "astarget") || (a0 == "t") || (a0 == "at"))
-        {
-            firstArg++;
-            sourceUnit = selectedUnit;
-            targetUnit = character;
-        }
-
-        if (args.Length <= firstArg)
-        {
-            character.SendMessage("|cFFFF0000[AddBuff] No buffId provided ?|r");
-            return;
-        }
-
-        if (!int.TryParse(args[firstArg], out var buffIdInt))
-        {
-            character.SendMessage("|cFFFF0000[AddBuff] Parse error buffId !|r");
-            return;
-        }
-
-        var abLevel = 1u;
-        if (args.Length > firstArg + 1)
-            if (!uint.TryParse(args[firstArg + 1], out abLevel))
-                abLevel = 1u;
-
-        uint buffId = (uint)Math.Abs(buffIdInt);
-
-        var buffTemplate = SkillManager.Instance.GetBuffTemplate(buffId);
-        if (buffTemplate == null)
-        {
-            character.SendMessage("|cFFFF0000[AddBuff] Unknown buffId {0}|r", buffId);
-            return;
-        }
-
-        if (buffIdInt > 0)
-        {
-
-            var casterObj = new SkillCasterUnit(sourceUnit.ObjId);
-            var targetObj = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
-            targetObj.ObjId = targetUnit.ObjId;
-
-            var newBuff = new Buff(targetUnit, sourceUnit, casterObj, buffTemplate, null, System.DateTime.UtcNow)
-            {
-                AbLevel = abLevel
-            };
-            targetUnit.Buffs.AddBuff(newBuff);
-        }
-        if (buffIdInt < 0)
-        {
-            if (selectedUnit.Buffs.CheckBuff(buffId))
-                selectedUnit.Buffs.RemoveBuff(buffId);
-            else
-            {
-                character.SendMessage("|cFFFF0000[AddBuff] Target didn't have buff to remove|r", buffId);
-            }
-        }
-        else
-        {
-            // I think this might be zero
         }
     }
 }

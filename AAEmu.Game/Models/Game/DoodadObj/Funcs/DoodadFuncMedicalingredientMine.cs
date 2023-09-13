@@ -1,14 +1,15 @@
 ﻿using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
-
-public class DoodadFuncMedicalingredientMine : DoodadFuncTemplate
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    // doodad_funcs
-    public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
+    public class DoodadFuncMedicalingredientMine : DoodadFuncTemplate
     {
-        _log.Trace("DoodadFuncMedicalingredientMine");
+        // doodad_funcs
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        {
+            _log.Trace("DoodadFuncMedicalingredientMine");
 
+        }
     }
 }

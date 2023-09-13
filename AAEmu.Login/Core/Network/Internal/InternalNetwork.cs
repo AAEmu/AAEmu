@@ -6,47 +6,48 @@ using AAEmu.Login.Core.Packets.G2L;
 using AAEmu.Login.Models;
 using NLog;
 
-namespace AAEmu.Login.Core.Network.Internal;
-
-public class InternalNetwork : Singleton<InternalNetwork>
+namespace AAEmu.Login.Core.Network.Internal
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
-
-    private Server _server;
-    private InternalProtocolHandler _handler;
-
-    public InternalNetwork()
+    public class InternalNetwork : Singleton<InternalNetwork>
     {
-        _handler = new InternalProtocolHandler();
+        private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        RegisterPacket(GLOffsets.GLRegisterGameServerPacket, typeof(GLRegisterGameServerPacket));
-        RegisterPacket(GLOffsets.GLPlayerEnterPacket, typeof(GLPlayerEnterPacket));
-        RegisterPacket(GLOffsets.GLPlayerReconnectPacket, typeof(GLPlayerReconnectPacket));
-        RegisterPacket(GLOffsets.LGRequestInfoPacket, typeof(LGRequestInfoPacket));
-    }
+        private Server _server;
+        private InternalProtocolHandler _handler;
 
-    public void Start()
-    {
-        var config = AppConfiguration.Instance.InternalNetwork;
-        var host =
-            new IPEndPoint(config.Host.Equals("*") ? IPAddress.Any : IPAddress.Parse(config.Host), config.Port);
+        public InternalNetwork()
+        {
+            _handler = new InternalProtocolHandler();
 
-        _server = new Server(host.Address, host.Port, _handler);
-        _server.Start();
+            RegisterPacket(GLOffsets.GLRegisterGameServerPacket, typeof(GLRegisterGameServerPacket));
+            RegisterPacket(GLOffsets.GLPlayerEnterPacket, typeof(GLPlayerEnterPacket));
+            RegisterPacket(GLOffsets.GLPlayerReconnectPacket, typeof(GLPlayerReconnectPacket));
+            RegisterPacket(GLOffsets.LGRequestInfoPacket, typeof(LGRequestInfoPacket));
+        }
 
-        _log.Info("InternalNetwork started");
-    }
+        public void Start()
+        {
+            var config = AppConfiguration.Instance.InternalNetwork;
+            var host =
+                new IPEndPoint(config.Host.Equals("*") ? IPAddress.Any : IPAddress.Parse(config.Host), config.Port);
 
-    public void Stop()
-    {
-        if (_server.IsStarted)
-            _server.Stop();
+            _server = new Server(host.Address, host.Port, _handler);
+            _server.Start();
 
-        _log.Info("InternalNetwork stoped");
-    }
+            _log.Info("InternalNetwork started");
+        }
 
-    public void RegisterPacket(uint type, Type classType)
-    {
-        _handler.RegisterPacket(type, classType);
+        public void Stop()
+        {
+            if (_server.IsStarted)
+                _server.Stop();
+
+            _log.Info("InternalNetwork stoped");
+        }
+
+        public void RegisterPacket(uint type, Type classType)
+        {
+            _handler.RegisterPacket(type, classType);
+        }
     }
 }

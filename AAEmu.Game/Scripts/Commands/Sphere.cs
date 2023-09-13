@@ -5,35 +5,36 @@ using AAEmu.Game.Utils;
 
 using NLog;
 
-namespace AAEmu.Game.Scripts.Commands;
-
-public class Sphere : ICommand
+namespace AAEmu.Game.Scripts.Commands
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
-
-    public void OnLoad()
+    public class Sphere : ICommand
     {
-        CommandManager.Instance.Register("sphere", this);
-    }
+        protected static Logger _log = LogManager.GetCurrentClassLogger();
 
-    public string GetCommandLineHelp()
-    {
-        return "<list||add||remove>";
-    }
-
-    public string GetCommandHelpText()
-    {
-        return "/sphere ";
-    }
-
-    public void Execute(Character character, string[] args)
-    {
-        if (args.Length < 1)
+        public void OnLoad()
         {
-            character.SendMessage("/sphere <add/remove/list>");
-            return;
+            CommandManager.Instance.Register("sphere", this);
         }
 
-        SphereCommandUtil.GetCommandChoice(character, args[0], args);
+        public string GetCommandLineHelp()
+        {
+            return "<list||add||remove>";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "/sphere ";
+        }
+
+        public void Execute(Character character, string[] args)
+        {
+            if (args.Length < 1)
+            {
+                character.SendMessage("/sphere <add/remove/list>");
+                return;
+            }
+
+            SphereCommandUtil.GetCommandChoice(character, args[0], args);
+        }
     }
 }

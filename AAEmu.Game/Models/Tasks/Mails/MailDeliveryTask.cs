@@ -1,11 +1,12 @@
 ﻿using AAEmu.Game.Core.Managers;
 
-namespace AAEmu.Game.Models.Tasks.Mails;
-
-class MailDeliveryTask : Task
+namespace AAEmu.Game.Models.Tasks.Mails
 {
-    public override void Execute()
+    class MailDeliveryTask : Task
     {
-        MailManager.Instance.CheckAllMailTimings();
+        public override void Execute()
+        {
+            MailManager.Instance.CheckAllMailTimings();
+        }
     }
 }

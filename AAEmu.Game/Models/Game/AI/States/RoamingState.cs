@@ -4,34 +4,35 @@ using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Utils;
 
-namespace AAEmu.Game.Models.Game.AI.States;
-
-public class RoamingState : State
+namespace AAEmu.Game.Models.Game.AI.States
 {
-    private Vector3 _targetLoc = new();
-    private Npc _owner;
-
-    public override void Enter()
+    public class RoamingState : State
     {
-        if (!(AI.Owner is Npc npc))
-            return;
-        // _targetLoc = AIUtils.CalcNextRoamingPosition(AI);
-        _owner = npc;
-    }
+        private Vector3 _targetLoc = new();
+        private Npc _owner;
 
-    public override void Tick(TimeSpan delta)
-    {
-        _owner.MoveTowards(_targetLoc, 4.4f * (delta.Milliseconds / 1000.0f));
-        if (MathUtil.CalculateDistance(_owner.Transform.World.Position, _targetLoc, true) < 1.0f)
+        public override void Enter()
         {
-            _owner.StopMovement();
-            GoToIdle();
+            if (!(AI.Owner is Npc npc))
+                return;
+            // _targetLoc = AIUtils.CalcNextRoamingPosition(AI);
+            _owner = npc;
         }
-    }
 
-    private void GoToIdle()
-    {
-        var idleState = AI.StateMachine.GetState(Framework.States.Idle);
-        AI.StateMachine.SetCurrentState(idleState);
+        public override void Tick(TimeSpan delta)
+        {
+            _owner.MoveTowards(_targetLoc, 4.4f * (delta.Milliseconds / 1000.0f));
+            if (MathUtil.CalculateDistance(_owner.Transform.World.Position, _targetLoc, true) < 1.0f)
+            {
+                _owner.StopMovement();
+                GoToIdle();
+            }
+        }
+
+        private void GoToIdle()
+        {
+            var idleState = AI.StateMachine.GetState(Framework.States.Idle);
+            AI.StateMachine.SetCurrentState(idleState);
+        }
     }
 }

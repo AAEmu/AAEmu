@@ -3,26 +3,27 @@ using AAEmu.Commons.Models;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Login;
 
-namespace AAEmu.Game.Core.Packets.G2L;
-
-public class GLRequestInfoPacket : LoginPacket
+namespace AAEmu.Game.Core.Packets.G2L
 {
-    private readonly uint _connectionId;
-    private readonly uint _requestId;
-    private readonly List<LoginCharacterInfo> _characters;
-
-    public GLRequestInfoPacket(uint connectionId, uint requestId, List<LoginCharacterInfo> characters) : base(GLOffsets.GLRequestInfoPacket)
+    public class GLRequestInfoPacket : LoginPacket
     {
-        _connectionId = connectionId;
-        _requestId = requestId;
-        _characters = characters;
-    }
+        private readonly uint _connectionId;
+        private readonly uint _requestId;
+        private readonly List<LoginCharacterInfo> _characters;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_connectionId);
-        stream.Write(_requestId);
-        stream.Write(_characters);
-        return stream;
+        public GLRequestInfoPacket(uint connectionId, uint requestId, List<LoginCharacterInfo> characters) : base(GLOffsets.GLRequestInfoPacket)
+        {
+            _connectionId = connectionId;
+            _requestId = requestId;
+            _characters = characters;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_connectionId);
+            stream.Write(_requestId);
+            stream.Write(_characters);
+            return stream;
+        }
     }
 }

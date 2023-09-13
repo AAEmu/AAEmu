@@ -4,27 +4,28 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.StaticValues;
 
-namespace AAEmu.Game.Core.Packets.C2G;
-
-public class CSEndMusicPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.C2G
 {
-    public CSEndMusicPacket() : base(CSOffsets.CSEndMusicPacket, 1)
+    public class CSEndMusicPacket : GamePacket
     {
-    }
-
-    public override void Read(PacketStream stream)
-    {
-        _log.Warn("CSEndMusicPacket");
-
-        // remove all remaining music buffs is score memorization has ended already
-        var b = Connection.ActiveChar.Buffs;
-        if (!b.CheckBuff((uint)BuffConstants.ScoreMemorized))
+        public CSEndMusicPacket() : base(CSOffsets.CSEndMusicPacket, 1)
         {
-            var allMusicBuffs = SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.PlaySong); // 1155 = Play Song
-            foreach (var buff in allMusicBuffs)
+        }
+
+        public override void Read(PacketStream stream)
+        {
+            _log.Warn("CSEndMusicPacket");
+
+            // remove all remaining music buffs is score memorization has ended already
+            var b = Connection.ActiveChar.Buffs;
+            if (!b.CheckBuff((uint)BuffConstants.ScoreMemorized))
             {
-                if (b.CheckBuff(buff))
-                    b.RemoveBuff(buff);
+                var allMusicBuffs = SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.PlaySong); // 1155 = Play Song
+                foreach (var buff in allMusicBuffs)
+                {
+                    if (b.CheckBuff(buff))
+                        b.RemoveBuff(buff);
+                }
             }
         }
     }

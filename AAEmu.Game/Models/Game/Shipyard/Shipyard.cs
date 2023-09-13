@@ -8,459 +8,460 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.Shipyard;
-
-public sealed class Shipyard : Unit
+namespace AAEmu.Game.Models.Game.Shipyard
 {
-    public override float Scale => 1.0f;
-    private object _lock = new();
-    private bool _isDirty;
-    private int _allAction;
-    private int _baseAction;
-    private int _numAction;
-    private int _currentStep;
-    private ShipyardsTemplate _template;
-
-    public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Shipyard;
-    public override UnitCustomModelParams ModelParams { get; set; }
-    public ShipyardData ShipyardData { get; set; }
-    public ShipyardsTemplate Template
+    public sealed class Shipyard : Unit
     {
-        get => _template;
-        set
+        public override float Scale => 1.0f;
+        private object _lock = new();
+        private bool _isDirty;
+        private int _allAction;
+        private int _baseAction;
+        private int _numAction;
+        private int _currentStep;
+        private ShipyardsTemplate _template;
+
+        public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Shipyard;
+        public override UnitCustomModelParams ModelParams { get; set; }
+        public ShipyardData ShipyardData { get; set; }
+        public ShipyardsTemplate Template
         {
-            _template = value;
-            _allAction = _template.ShipyardSteps.Values.Sum(step => step.NumActions);
-        }
-    }
-    private bool IsDirty { get => _isDirty; set => _isDirty = value; }
-    public int AllAction { get => _allAction; set { _allAction = value; _isDirty = true; } }
-    public int BaseAction
-    {
-        get => _baseAction;
-        private set
-        {
-            _baseAction = value; _isDirty = true;
-        }
-    }
-    public int CurrentAction => BaseAction + NumAction;
-    public int NumAction
-    {
-        get => _numAction;
-        private set
-        {
-            _numAction = value; _isDirty = true;
-        }
-    }
-    public int CurrentStep
-    {
-        get => _currentStep;
-        private set
-        {
-            _currentStep = value;
-            _isDirty = true;
-            ModelId = _currentStep == -1 ? Template.MainModelId : Template.ShipyardSteps[_currentStep].ModelId;
-            if (_currentStep <= 0) { return; }
-
-            BaseAction = 0;
-            for (var i = 0; i < _currentStep; i++)
-                BaseAction += Template.ShipyardSteps[i].NumActions;
-        }
-    }
-
-    public Shipyard()
-    {
-        ModelParams = new UnitCustomModelParams();
-        IsDirty = true;
-        Events.OnDeath += OnDeath;
-    }
-
-    public override void AddVisibleObject(Character character)
-    {
-        character.SendPacket(new SCUnitStatePacket(this));
-        character.SendPacket(new SCShipyardStatePacket(ShipyardData));
-
-        base.AddVisibleObject(character);
-    }
-
-    public override void RemoveVisibleObject(Character character)
-    {
-        base.RemoveVisibleObject(character);
-
-        character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
-    }
-
-    #region Attributes
-
-    public int Str
-    {
-        get
-        {
-            var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Str);
-            var parameters = new Dictionary<string, double> { ["level"] = Level };
-            var result = formula.Evaluate(parameters);
-            var res = (int)result;
-            foreach (var bonus in GetBonuses(UnitAttribute.Str))
+            get => _template;
+            set
             {
-                if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                {
-                    res += (int)(res * bonus.Value / 100f);
-                }
-                else
-                {
-                    res += bonus.Value;
-                }
+                _template = value;
+                _allAction = _template.ShipyardSteps.Values.Sum(step => step.NumActions);
             }
-
-            return res;
         }
-    }
-
-    public int Dex
-    {
-        get
+        private bool IsDirty { get => _isDirty; set => _isDirty = value; }
+        public int AllAction { get => _allAction; set { _allAction = value; _isDirty = true; } }
+        public int BaseAction
         {
-            var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Dex);
-            var parameters = new Dictionary<string, double> { ["level"] = Level };
-            var res = (int)formula.Evaluate(parameters);
-            foreach (var bonus in GetBonuses(UnitAttribute.Dex))
+            get => _baseAction;
+            private set
             {
-                if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                {
-                    res += (int)(res * bonus.Value / 100f);
-                }
-                else
-                {
-                    res += bonus.Value;
-                }
+                _baseAction = value; _isDirty = true;
             }
-
-            return res;
         }
-    }
-
-    public int Sta
-    {
-        get
+        public int CurrentAction => BaseAction + NumAction;
+        public int NumAction
         {
-            var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Sta);
-            var parameters = new Dictionary<string, double> { ["level"] = Level };
-            var res = (int)formula.Evaluate(parameters);
-            foreach (var bonus in GetBonuses(UnitAttribute.Sta))
+            get => _numAction;
+            private set
             {
-                if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                {
-                    res += (int)(res * bonus.Value / 100f);
-                }
-                else
-                {
-                    res += bonus.Value;
-                }
+                _numAction = value; _isDirty = true;
             }
-
-            return res;
         }
-    }
-
-    public int Int
-    {
-        get
+        public int CurrentStep
         {
-            var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Int);
-            var parameters = new Dictionary<string, double> { ["level"] = Level };
-            var res = (int)formula.Evaluate(parameters);
-            foreach (var bonus in GetBonuses(UnitAttribute.Int))
+            get => _currentStep;
+            private set
             {
-                if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                {
-                    res += (int)(res * bonus.Value / 100f);
-                }
-                else
-                {
-                    res += bonus.Value;
-                }
+                _currentStep = value;
+                _isDirty = true;
+                ModelId = _currentStep == -1 ? Template.MainModelId : Template.ShipyardSteps[_currentStep].ModelId;
+                if (_currentStep <= 0) { return; }
+
+                BaseAction = 0;
+                for (var i = 0; i < _currentStep; i++)
+                    BaseAction += Template.ShipyardSteps[i].NumActions;
             }
-
-            return res;
         }
-    }
 
-    public int Spi
-    {
-        get
+        public Shipyard()
         {
-            var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Spi);
-            var parameters = new Dictionary<string, double> { ["level"] = Level };
-            var res = (int)formula.Evaluate(parameters);
-            foreach (var bonus in GetBonuses(UnitAttribute.Spi))
+            ModelParams = new UnitCustomModelParams();
+            IsDirty = true;
+            Events.OnDeath += OnDeath;
+        }
+
+        public override void AddVisibleObject(Character character)
+        {
+            character.SendPacket(new SCUnitStatePacket(this));
+            character.SendPacket(new SCShipyardStatePacket(ShipyardData));
+
+            base.AddVisibleObject(character);
+        }
+
+        public override void RemoveVisibleObject(Character character)
+        {
+            base.RemoveVisibleObject(character);
+
+            character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
+        }
+
+        #region Attributes
+
+        public int Str
+        {
+            get
             {
-                if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Str);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var result = formula.Evaluate(parameters);
+                var res = (int)result;
+                foreach (var bonus in GetBonuses(UnitAttribute.Str))
                 {
-                    res += (int)(res * bonus.Value / 100f);
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
+                        res += (int)(res * bonus.Value / 100f);
+                    }
+                    else
+                    {
+                        res += bonus.Value;
+                    }
                 }
-                else
-                {
-                    res += bonus.Value;
-                }
+
+                return res;
             }
-
-            return res;
         }
-    }
 
-    public int Fai
-    {
-        get
+        public int Dex
         {
-            var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Fai);
-            var parameters = new Dictionary<string, double> { ["level"] = Level };
-            var res = (int)formula.Evaluate(parameters);
-            foreach (var bonus in GetBonuses(UnitAttribute.Fai))
+            get
             {
-                if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Dex);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Dex))
                 {
-                    res += (int)(res * bonus.Value / 100f);
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
+                        res += (int)(res * bonus.Value / 100f);
+                    }
+                    else
+                    {
+                        res += bonus.Value;
+                    }
                 }
-                else
-                {
-                    res += bonus.Value;
-                }
+
+                return res;
             }
-
-            return res;
         }
-    }
 
-    public override int MaxHp
-    {
-        get
+        public int Sta
         {
-            var formula =
-                FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.MaxHealth);
-            var parameters = new Dictionary<string, double>
+            get
             {
-                ["level"] = Level,
-                ["str"] = Str,
-                ["dex"] = Dex,
-                ["sta"] = Sta,
-                ["int"] = Int,
-                ["spi"] = Spi,
-                ["fai"] = Fai
-            };
-            var res = (int)formula.Evaluate(parameters);
-            foreach (var bonus in GetBonuses(UnitAttribute.MaxHealth))
-            {
-                if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Sta);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Sta))
                 {
-                    res += (int)(res * bonus.Value / 100f);
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
+                        res += (int)(res * bonus.Value / 100f);
+                    }
+                    else
+                    {
+                        res += bonus.Value;
+                    }
                 }
-                else
-                {
-                    res += bonus.Value;
-                }
+
+                return res;
             }
-
-            return res;
         }
-    }
 
-    public override int HpRegen
-    {
-        get
+        public int Int
         {
-            var formula =
-                FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.HealthRegen);
-            var parameters = new Dictionary<string, double>
+            get
             {
-                ["level"] = Level,
-                ["str"] = Str,
-                ["dex"] = Dex,
-                ["sta"] = Sta,
-                ["int"] = Int,
-                ["spi"] = Spi,
-                ["fai"] = Fai
-            };
-            var res = (int)formula.Evaluate(parameters);
-            res += Spi / 10;
-            foreach (var bonus in GetBonuses(UnitAttribute.HealthRegen))
-            {
-                if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Int);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Int))
                 {
-                    res += (int)(res * bonus.Value / 100f);
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
+                        res += (int)(res * bonus.Value / 100f);
+                    }
+                    else
+                    {
+                        res += bonus.Value;
+                    }
                 }
-                else
-                {
-                    res += bonus.Value;
-                }
+
+                return res;
             }
-
-            return res;
         }
-    }
 
-    public override int PersistentHpRegen
-    {
-        get
+        public int Spi
         {
-            var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard,
-                UnitFormulaKind.PersistentHealthRegen);
-            var parameters = new Dictionary<string, double>
+            get
             {
-                ["level"] = Level,
-                ["str"] = Str,
-                ["dex"] = Dex,
-                ["sta"] = Sta,
-                ["int"] = Int,
-                ["spi"] = Spi,
-                ["fai"] = Fai
-            };
-            var res = (int)formula.Evaluate(parameters);
-            res /= 5; // TODO ...
-            foreach (var bonus in GetBonuses(UnitAttribute.PersistentHealthRegen))
-            {
-                if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Spi);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Spi))
                 {
-                    res += (int)(res * bonus.Value / 100f);
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
+                        res += (int)(res * bonus.Value / 100f);
+                    }
+                    else
+                    {
+                        res += bonus.Value;
+                    }
                 }
-                else
-                {
-                    res += bonus.Value;
-                }
+
+                return res;
             }
-
-            return res;
         }
-    }
 
-    public override int MaxMp
-    {
-        get
+        public int Fai
         {
-            var formula =
-                FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.MaxMana);
-            var parameters = new Dictionary<string, double>
+            get
             {
-                ["level"] = Level,
-                ["str"] = Str,
-                ["dex"] = Dex,
-                ["sta"] = Sta,
-                ["int"] = Int,
-                ["spi"] = Spi,
-                ["fai"] = Fai
-            };
-            var res = (int)formula.Evaluate(parameters);
-            foreach (var bonus in GetBonuses(UnitAttribute.MaxMana))
-            {
-                if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Fai);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Fai))
                 {
-                    res += (int)(res * bonus.Value / 100f);
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
+                        res += (int)(res * bonus.Value / 100f);
+                    }
+                    else
+                    {
+                        res += bonus.Value;
+                    }
                 }
-                else
-                {
-                    res += bonus.Value;
-                }
+
+                return res;
             }
-
-            return res;
         }
-    }
 
-    public override int MpRegen
-    {
-        get
+        public override int MaxHp
         {
-            var formula =
-                FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.ManaRegen);
-            var parameters = new Dictionary<string, double>
+            get
             {
-                ["level"] = Level,
-                ["str"] = Str,
-                ["dex"] = Dex,
-                ["sta"] = Sta,
-                ["int"] = Int,
-                ["spi"] = Spi,
-                ["fai"] = Fai
-            };
-            var res = (int)formula.Evaluate(parameters);
-            res += Spi / 10;
-            foreach (var bonus in GetBonuses(UnitAttribute.ManaRegen))
-            {
-                if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.MaxHealth);
+                var parameters = new Dictionary<string, double>
                 {
-                    res += (int)(res * bonus.Value / 100f);
-                }
-                else
+                    ["level"] = Level,
+                    ["str"] = Str,
+                    ["dex"] = Dex,
+                    ["sta"] = Sta,
+                    ["int"] = Int,
+                    ["spi"] = Spi,
+                    ["fai"] = Fai
+                };
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.MaxHealth))
                 {
-                    res += bonus.Value;
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
+                        res += (int)(res * bonus.Value / 100f);
+                    }
+                    else
+                    {
+                        res += bonus.Value;
+                    }
                 }
+
+                return res;
             }
-
-            return res;
         }
-    }
 
-    public override int PersistentMpRegen
-    {
-        get
+        public override int HpRegen
         {
-            var formula =
-                FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard,
-                    UnitFormulaKind.PersistentManaRegen);
-            var parameters = new Dictionary<string, double>
+            get
             {
-                ["level"] = Level,
-                ["str"] = Str,
-                ["dex"] = Dex,
-                ["sta"] = Sta,
-                ["int"] = Int,
-                ["spi"] = Spi,
-                ["fai"] = Fai
-            };
-            var res = (int)formula.Evaluate(parameters);
-            res /= 5; // TODO ...
-            foreach (var bonus in GetBonuses(UnitAttribute.PersistentManaRegen))
-            {
-                if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.HealthRegen);
+                var parameters = new Dictionary<string, double>
                 {
-                    res += (int)(res * bonus.Value / 100f);
-                }
-                else
+                    ["level"] = Level,
+                    ["str"] = Str,
+                    ["dex"] = Dex,
+                    ["sta"] = Sta,
+                    ["int"] = Int,
+                    ["spi"] = Spi,
+                    ["fai"] = Fai
+                };
+                var res = (int)formula.Evaluate(parameters);
+                res += Spi / 10;
+                foreach (var bonus in GetBonuses(UnitAttribute.HealthRegen))
                 {
-                    res += bonus.Value;
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
+                        res += (int)(res * bonus.Value / 100f);
+                    }
+                    else
+                    {
+                        res += bonus.Value;
+                    }
                 }
+
+                return res;
             }
-
-            return res;
         }
-    }
 
-    #endregion
-
-    private void OnDeath(object sender, EventArgs args)
-    {
-        Log.Debug("Shipyard died ObjId:{0} - TemplateId:{1} - {2}", ObjId, ShipyardData.TemplateId, ShipyardData.OwnerName);
-        ShipyardManager.Instance.RemoveShipyard(this);
-    }
-
-    public void AddBuildAction()
-    {
-        if (CurrentStep == -1)
-            return;
-
-        lock (_lock)
+        public override int PersistentHpRegen
         {
-            var nextAction = NumAction + 1;
-            if (Template.ShipyardSteps[CurrentStep].NumActions > nextAction)
-                NumAction = nextAction;
-            else
+            get
             {
-                NumAction = 0;
-                var nextStep = CurrentStep + 1;
-                if (Template.ShipyardSteps.Count > nextStep)
-                    CurrentStep = nextStep;
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard,
+                    UnitFormulaKind.PersistentHealthRegen);
+                var parameters = new Dictionary<string, double>
+                {
+                    ["level"] = Level,
+                    ["str"] = Str,
+                    ["dex"] = Dex,
+                    ["sta"] = Sta,
+                    ["int"] = Int,
+                    ["spi"] = Spi,
+                    ["fai"] = Fai
+                };
+                var res = (int)formula.Evaluate(parameters);
+                res /= 5; // TODO ...
+                foreach (var bonus in GetBonuses(UnitAttribute.PersistentHealthRegen))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
+                        res += (int)(res * bonus.Value / 100f);
+                    }
+                    else
+                    {
+                        res += bonus.Value;
+                    }
+                }
+
+                return res;
+            }
+        }
+
+        public override int MaxMp
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.MaxMana);
+                var parameters = new Dictionary<string, double>
+                {
+                    ["level"] = Level,
+                    ["str"] = Str,
+                    ["dex"] = Dex,
+                    ["sta"] = Sta,
+                    ["int"] = Int,
+                    ["spi"] = Spi,
+                    ["fai"] = Fai
+                };
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.MaxMana))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
+                        res += (int)(res * bonus.Value / 100f);
+                    }
+                    else
+                    {
+                        res += bonus.Value;
+                    }
+                }
+
+                return res;
+            }
+        }
+
+        public override int MpRegen
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.ManaRegen);
+                var parameters = new Dictionary<string, double>
+                {
+                    ["level"] = Level,
+                    ["str"] = Str,
+                    ["dex"] = Dex,
+                    ["sta"] = Sta,
+                    ["int"] = Int,
+                    ["spi"] = Spi,
+                    ["fai"] = Fai
+                };
+                var res = (int)formula.Evaluate(parameters);
+                res += Spi / 10;
+                foreach (var bonus in GetBonuses(UnitAttribute.ManaRegen))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
+                        res += (int)(res * bonus.Value / 100f);
+                    }
+                    else
+                    {
+                        res += bonus.Value;
+                    }
+                }
+
+                return res;
+            }
+        }
+
+        public override int PersistentMpRegen
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard,
+                        UnitFormulaKind.PersistentManaRegen);
+                var parameters = new Dictionary<string, double>
+                {
+                    ["level"] = Level,
+                    ["str"] = Str,
+                    ["dex"] = Dex,
+                    ["sta"] = Sta,
+                    ["int"] = Int,
+                    ["spi"] = Spi,
+                    ["fai"] = Fai
+                };
+                var res = (int)formula.Evaluate(parameters);
+                res /= 5; // TODO ...
+                foreach (var bonus in GetBonuses(UnitAttribute.PersistentManaRegen))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    {
+                        res += (int)(res * bonus.Value / 100f);
+                    }
+                    else
+                    {
+                        res += bonus.Value;
+                    }
+                }
+
+                return res;
+            }
+        }
+
+        #endregion
+
+        private void OnDeath(object sender, EventArgs args)
+        {
+            Log.Debug("Shipyard died ObjId:{0} - TemplateId:{1} - {2}", ObjId, ShipyardData.TemplateId, ShipyardData.OwnerName);
+            ShipyardManager.Instance.RemoveShipyard(this);
+        }
+
+        public void AddBuildAction()
+        {
+            if (CurrentStep == -1)
+                return;
+
+            lock (_lock)
+            {
+                var nextAction = NumAction + 1;
+                if (Template.ShipyardSteps[CurrentStep].NumActions > nextAction)
+                    NumAction = nextAction;
                 else
                 {
-                    CurrentStep = -1;
+                    NumAction = 0;
+                    var nextStep = CurrentStep + 1;
+                    if (Template.ShipyardSteps.Count > nextStep)
+                        CurrentStep = nextStep;
+                    else
+                    {
+                        CurrentStep = -1;
+                    }
                 }
             }
         }

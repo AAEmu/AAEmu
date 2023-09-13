@@ -3,32 +3,33 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Stream;
 
-namespace AAEmu.Game.Core.Packets.S2C;
-
-public class TCItemUccDataPacket : StreamPacket
+namespace AAEmu.Game.Core.Packets.S2C
 {
-    private uint _playerId;
-    private uint _count;
-    private List<ulong> _itemIds;
-
-    public TCItemUccDataPacket(uint playerId, uint count, List<ulong> itemIds) : base(TCOffsets.TCItemUccDataPacket)
+    public class TCItemUccDataPacket : StreamPacket
     {
-        _playerId = playerId;
-        _count = count;
-        _itemIds = itemIds;
-    }
+        private uint _playerId;
+        private uint _count;
+        private List<ulong> _itemIds;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_playerId);
-        stream.Write(_itemIds.Count);
-        foreach (var itemId in _itemIds)
+        public TCItemUccDataPacket(uint playerId, uint count, List<ulong> itemIds) : base(TCOffsets.TCItemUccDataPacket)
         {
-            var item = ItemManager.Instance.GetItemByItemId(itemId);
-            stream.Write(item.Id);
-            stream.Write(item.UccId);
+            _playerId = playerId;
+            _count = count;
+            _itemIds = itemIds;
         }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_playerId);
+            stream.Write(_itemIds.Count);
+            foreach (var itemId in _itemIds)
+            {
+                var item = ItemManager.Instance.GetItemByItemId(itemId);
+                stream.Write(item.Id);
+                stream.Write(item.UccId);
+            }
+
+            return stream;
+        }
     }
 }

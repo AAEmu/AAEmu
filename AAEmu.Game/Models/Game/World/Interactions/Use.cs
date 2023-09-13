@@ -9,30 +9,31 @@ using AAEmu.Game.Models.StaticValues;
 
 using NLog;
 
-namespace AAEmu.Game.Models.Game.World.Interactions;
-
-public class Use : IWorldInteraction
+namespace AAEmu.Game.Models.Game.World.Interactions
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
-
-    public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
-        uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
+    public class Use : IWorldInteraction
     {
-        _log.Debug("World interaction SkillID: {0}", skillId);
-        if (target is Doodad doodad)
-        {
-            doodad.Use(caster, skillId);
-        }
+        private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        // TODO ID=21902, View Fish Finder: Scan around with the Fish Finder. Detected schools of fish will be displayed on the map.
-        if (skillId == SkillsEnum.ViewFishFinder)
+        public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
+            uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
         {
-            var doodads = WorldManager.GetAround<Doodad>(caster, 1f);
-            if (doodads != null)
+            _log.Debug("World interaction SkillID: {0}", skillId);
+            if (target is Doodad doodad)
             {
-                foreach (var d in doodads)
+                doodad.Use(caster, skillId);
+            }
+
+            // TODO ID=21902, View Fish Finder: Scan around with the Fish Finder. Detected schools of fish will be displayed on the map.
+            if (skillId == SkillsEnum.ViewFishFinder)
+            {
+                var doodads = WorldManager.GetAround<Doodad>(caster, 1f);
+                if (doodads != null)
                 {
-                    FishSchoolManager.FishFinderStart((Character)caster);
+                    foreach (var d in doodads)
+                    {
+                        FishSchoolManager.FishFinderStart((Character)caster);
+                    }
                 }
             }
         }

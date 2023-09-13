@@ -1,14 +1,15 @@
 ﻿using System;
 
-namespace AAEmu.Commons.Utils;
-
-public static class StringExtensions
+namespace AAEmu.Commons.Utils
 {
-    public static string FirstCharToUpper(this string input)
+    public static class StringExtensions
     {
-        if (string.IsNullOrEmpty(input))
-            throw new ArgumentException($"{nameof(input)} is null or empty");
+        public static string FirstCharToUpper(this string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                throw new ArgumentException($"{nameof(input)} is null or empty");
 
-        return char.ToUpper(input[0]) + input[1..];
+            return char.ToUpper(input[0]) + input[1..];
+        }
     }
 }

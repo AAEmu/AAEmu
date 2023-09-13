@@ -1,11 +1,12 @@
 using AAEmu.Game.Core.Managers.World;
 
-namespace AAEmu.Game.Models.Tasks.Specialty;
-
-public class SpecialtyRatioConsumeTask : Task
+namespace AAEmu.Game.Models.Tasks.Specialty
 {
-    public override void Execute()
+    public class SpecialtyRatioConsumeTask : Task
     {
-        SpecialtyManager.Instance.ConsumeRatio();
+        public override void Execute()
+        {
+            SpecialtyManager.Instance.ConsumeRatio();
+        }
     }
 }

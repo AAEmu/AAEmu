@@ -3,25 +3,26 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Mails;
 
-namespace AAEmu.Game.Core.Packets.C2G;
-
-public class CSTakeAllAttachmentItemPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.C2G
 {
-    public CSTakeAllAttachmentItemPacket() : base(CSOffsets.CSTakeAllAttachmentItemPacket, 1)
+    public class CSTakeAllAttachmentItemPacket : GamePacket
     {
-    }
-
-    public override void Read(PacketStream stream)
-    {
-        var mailId = stream.ReadInt64();
-        _log.Debug($"CSTakeAllAttachmentItemPacket {mailId} -> {Connection.ActiveChar.Name}");
-        if (Connection.ActiveChar.Mails.GetAttached(mailId, true, true, true))
+        public CSTakeAllAttachmentItemPacket() : base(CSOffsets.CSTakeAllAttachmentItemPacket, 1)
         {
-            Connection.ActiveChar.SendPacket(new SCMailStatusUpdatedPacket(false, mailId, MailStatus.Read));
-            Connection.ActiveChar.Mails.DeleteMail(mailId, false);
-            Connection.ActiveChar.Mails.SendUnreadMailCount();
         }
-        else
-            _log.Debug($"CSTakeAllAttachmentItemPacket - Failed for: {mailId} -> {Connection.ActiveChar.Name}");
+
+        public override void Read(PacketStream stream)
+        {
+            var mailId = stream.ReadInt64();
+            _log.Debug($"CSTakeAllAttachmentItemPacket {mailId} -> {Connection.ActiveChar.Name}");
+            if (Connection.ActiveChar.Mails.GetAttached(mailId, true, true, true))
+            {
+                Connection.ActiveChar.SendPacket(new SCMailStatusUpdatedPacket(false, mailId, MailStatus.Read));
+                Connection.ActiveChar.Mails.DeleteMail(mailId, false);
+                Connection.ActiveChar.Mails.SendUnreadMailCount();
+            }
+            else
+                _log.Debug($"CSTakeAllAttachmentItemPacket - Failed for: {mailId} -> {Connection.ActiveChar.Name}");
+        }
     }
 }

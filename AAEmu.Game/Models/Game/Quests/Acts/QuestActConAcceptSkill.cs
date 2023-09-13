@@ -2,19 +2,20 @@
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActConAcceptSkill : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public uint SkillId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActConAcceptSkill : QuestActTemplate
     {
-        _log.Warn("QuestActConAcceptSkill: SkillId {0}", SkillId);
+        public uint SkillId { get; set; }
 
-        quest.QuestAcceptorType = QuestAcceptorType.Skill;
-        quest.AcceptorType = SkillId;
+        public override bool Use(ICharacter character, Quest quest, int objective)
+        {
+            _log.Warn("QuestActConAcceptSkill: SkillId {0}", SkillId);
 
-        return false;
+            quest.QuestAcceptorType = QuestAcceptorType.Skill;
+            quest.AcceptorType = SkillId;
+
+            return false;
+        }
     }
 }

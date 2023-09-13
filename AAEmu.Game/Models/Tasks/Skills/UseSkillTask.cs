@@ -1,27 +1,28 @@
 ﻿using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Tasks.Skills;
-
-public class UseSkillTask : Task
+namespace AAEmu.Game.Models.Tasks.Skills
 {
-    private readonly Skill _skill;
-    private readonly BaseUnit _caster;
-    private readonly SkillCaster _casterCaster;
-    private readonly SkillCastTarget _targetCaster;
-    private readonly SkillObject _skillObject;
-
-    public UseSkillTask(Skill skill, BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
+    public class UseSkillTask : Task
     {
-        _skill = skill;
-        _caster = caster;
-        _casterCaster = casterCaster;
-        _targetCaster = targetCaster;
-        _skillObject = skillObject;
-    }
+        private readonly Skill _skill;
+        private readonly BaseUnit _caster;
+        private readonly SkillCaster _casterCaster;
+        private readonly SkillCastTarget _targetCaster;
+        private readonly SkillObject _skillObject;
 
-    public override void Execute()
-    {
-        _skill.Use(_caster, _casterCaster, _targetCaster, _skillObject, true);
+        public UseSkillTask(Skill skill, BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
+        {
+            _skill = skill;
+            _caster = caster;
+            _casterCaster = casterCaster;
+            _targetCaster = targetCaster;
+            _skillObject = skillObject;
+        }
+
+        public override void Execute()
+        {
+            _skill.Use(_caster, _casterCaster, _targetCaster, _skillObject, true);
+        }
     }
 }

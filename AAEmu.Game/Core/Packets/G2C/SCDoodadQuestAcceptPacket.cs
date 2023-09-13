@@ -1,24 +1,25 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCDoodadQuestAcceptPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _doodadObjId;
-    private readonly uint _questContextId;
-
-    public SCDoodadQuestAcceptPacket(uint doodadObjId, uint questContextId) : base(SCOffsets.SCDoodadQuestAcceptPacket, 1)
+    public class SCDoodadQuestAcceptPacket : GamePacket
     {
-        _doodadObjId = doodadObjId;
-        _questContextId = questContextId;
-    }
+        private readonly uint _doodadObjId;
+        private readonly uint _questContextId;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.WriteBc(_doodadObjId);
-        stream.Write(_questContextId);
+        public SCDoodadQuestAcceptPacket(uint doodadObjId, uint questContextId) : base(SCOffsets.SCDoodadQuestAcceptPacket, 1)
+        {
+            _doodadObjId = doodadObjId;
+            _questContextId = questContextId;
+        }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(_doodadObjId);
+            stream.Write(_questContextId);
+
+            return stream;
+        }
     }
 }

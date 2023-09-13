@@ -1,9 +1,10 @@
-namespace AAEmu.Game.Models.Game.Trading;
-
-public class SpecialtyNpc
+namespace AAEmu.Game.Models.Game.Trading
 {
-    public uint Id { get; set; }
-    public string Name { get; set; }
-    public uint NpcId { get; set; }
-    public uint SpecialtyBundleId { get; set; }
+    public class SpecialtyNpc
+    {
+        public uint Id { get; set; }
+        public string Name { get; set; }
+        public uint NpcId { get; set; }
+        public uint SpecialtyBundleId { get; set; }
+    }
 }

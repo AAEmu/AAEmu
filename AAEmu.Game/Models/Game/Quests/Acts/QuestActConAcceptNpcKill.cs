@@ -3,22 +3,23 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActConAcceptNpcKill : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public uint NpcId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActConAcceptNpcKill : QuestActTemplate
     {
-        _log.Warn("QuestActConAcceptNpcKill: NpcId {0}", NpcId);
+        public uint NpcId { get; set; }
 
-        if (!(character.CurrentTarget is Npc))
-            return false;
+        public override bool Use(ICharacter character, Quest quest, int objective)
+        {
+            _log.Warn("QuestActConAcceptNpcKill: NpcId {0}", NpcId);
 
-        quest.QuestAcceptorType = QuestAcceptorType.Npc;
-        quest.AcceptorType = NpcId;
+            if (!(character.CurrentTarget is Npc))
+                return false;
 
-        return ((Npc)character.CurrentTarget).TemplateId == NpcId;
+            quest.QuestAcceptorType = QuestAcceptorType.Npc;
+            quest.AcceptorType = NpcId;
+
+            return ((Npc)character.CurrentTarget).TemplateId == NpcId;
+        }
     }
 }

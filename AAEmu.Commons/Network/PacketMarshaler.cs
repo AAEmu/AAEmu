@@ -1,24 +1,25 @@
 ﻿using NLog;
 
-namespace AAEmu.Commons.Network;
-
-public abstract class PacketMarshaler
+namespace AAEmu.Commons.Network
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
-
-    public virtual void Read(PacketStream stream)
+    public abstract class PacketMarshaler
     {
-        _log.Warn("{0} doesn't inherit Read()", GetType().FullName);
-    }
+        protected static Logger _log = LogManager.GetCurrentClassLogger();
 
-    public virtual PacketStream Write(PacketStream stream)
-    {
-        _log.Warn("{0} doesn't inherit Write()", GetType().FullName);
-        return stream;
-    }
+        public virtual void Read(PacketStream stream)
+        {
+            _log.Warn("{0} doesn't inherit Read()", GetType().FullName);
+        }
 
-    public virtual string Verbose()
-    {
-        return string.Empty;
+        public virtual PacketStream Write(PacketStream stream)
+        {
+            _log.Warn("{0} doesn't inherit Write()", GetType().FullName);
+            return stream;
+        }
+
+        public virtual string Verbose()
+        {
+            return string.Empty;
+        }
     }
 }

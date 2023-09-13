@@ -1,20 +1,21 @@
 ﻿using System.Collections.Generic;
 
-namespace AAEmu.Game.Models.Game.Items.Templates;
-
-public class EquipItemSetBonus
+namespace AAEmu.Game.Models.Game.Items.Templates
 {
-    public int NumPieces { get; set; }
-    public uint BuffId { get; set; }
-    public uint ItemProcId { get; set; }
-}
-public class EquipItemSet
-{
-    public uint Id { get; set; }
-    public List<EquipItemSetBonus> Bonuses { get; }
-
-    public EquipItemSet()
+    public class EquipItemSetBonus
     {
-        Bonuses = new List<EquipItemSetBonus>();
+        public int NumPieces { get; set; }
+        public uint BuffId { get; set; }
+        public uint ItemProcId { get; set; }
+    }
+    public class EquipItemSet
+    {
+        public uint Id { get; set; }
+        public List<EquipItemSetBonus> Bonuses { get; }
+
+        public EquipItemSet()
+        {
+            Bonuses = new List<EquipItemSetBonus>();
+        }
     }
 }

@@ -3,52 +3,53 @@ using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items.Procs;
 
-namespace AAEmu.Game.Models.Game.Units;
-
-public class UnitProcs
+namespace AAEmu.Game.Models.Game.Units
 {
-    private List<ItemProc> _procs;
-    private Dictionary<ProcChanceKind, List<ItemProc>> _procsByChanceKind;
-
-    public Unit Owner { get; set; }
-
-    public UnitProcs(Unit owner)
+    public class UnitProcs
     {
-        Owner = owner;
-        _procsByChanceKind = new Dictionary<ProcChanceKind, List<ItemProc>>();
-        _procs = new List<ItemProc>();
-    }
+        private List<ItemProc> _procs;
+        private Dictionary<ProcChanceKind, List<ItemProc>> _procsByChanceKind;
 
-    public void AddProc(uint procId)
-    {
-        var proc = new ItemProc(procId);
-        _procs.Add(proc);
-        if (!_procsByChanceKind.ContainsKey(proc.Template.ChanceKind))
-            _procsByChanceKind.Add(proc.Template.ChanceKind, new List<ItemProc>());
-        _procsByChanceKind[proc.Template.ChanceKind].Add(proc);
-    }
+        public Unit Owner { get; set; }
 
-    public void RemoveProc(uint procId)
-    {
-        var procTemplate = ItemManager.Instance.GetItemProcTemplate(procId);
-
-        if (_procsByChanceKind.ContainsKey(procTemplate.ChanceKind))
-            _procsByChanceKind[procTemplate.ChanceKind].RemoveAll(p => p.TemplateId == procId);
-    }
-
-    public void RollProcsForKind(ProcChanceKind kind)
-    {
-        if (!_procsByChanceKind.ContainsKey(kind))
-            return;
-        var procs = _procsByChanceKind[kind];
-
-        foreach (var proc in procs)
+        public UnitProcs(Unit owner)
         {
-            if (proc.LastProc.AddSeconds(proc.Template.CooldownSec) <= DateTime.UtcNow)
-                continue;
+            Owner = owner;
+            _procsByChanceKind = new Dictionary<ProcChanceKind, List<ItemProc>>();
+            _procs = new List<ItemProc>();
+        }
 
-            proc.Apply(Owner);
-            proc.LastProc = DateTime.UtcNow;
+        public void AddProc(uint procId)
+        {
+            var proc = new ItemProc(procId);
+            _procs.Add(proc);
+            if (!_procsByChanceKind.ContainsKey(proc.Template.ChanceKind))
+                _procsByChanceKind.Add(proc.Template.ChanceKind, new List<ItemProc>());
+            _procsByChanceKind[proc.Template.ChanceKind].Add(proc);
+        }
+
+        public void RemoveProc(uint procId)
+        {
+            var procTemplate = ItemManager.Instance.GetItemProcTemplate(procId);
+
+            if (_procsByChanceKind.ContainsKey(procTemplate.ChanceKind))
+                _procsByChanceKind[procTemplate.ChanceKind].RemoveAll(p => p.TemplateId == procId);
+        }
+
+        public void RollProcsForKind(ProcChanceKind kind)
+        {
+            if (!_procsByChanceKind.ContainsKey(kind))
+                return;
+            var procs = _procsByChanceKind[kind];
+
+            foreach (var proc in procs)
+            {
+                if (proc.LastProc.AddSeconds(proc.Template.CooldownSec) <= DateTime.UtcNow)
+                    continue;
+
+                proc.Apply(Owner);
+                proc.LastProc = DateTime.UtcNow;
+            }
         }
     }
 }

@@ -1,24 +1,25 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCDuelStatePacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _challengerObjId;
-    private readonly uint _flagObjId;
-
-    public SCDuelStatePacket(uint challengerObjId, uint flagObjId) : base(SCOffsets.SCDuelStatePacket, 1)
+    public class SCDuelStatePacket : GamePacket
     {
-        _challengerObjId = challengerObjId;
-        _flagObjId = flagObjId;
-    }
+        private readonly uint _challengerObjId;
+        private readonly uint _flagObjId;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.WriteBc(_challengerObjId);  // challengerObjId
-        stream.WriteBc(_flagObjId);       // flagObjId
+        public SCDuelStatePacket(uint challengerObjId, uint flagObjId) : base(SCOffsets.SCDuelStatePacket, 1)
+        {
+            _challengerObjId = challengerObjId;
+            _flagObjId = flagObjId;
+        }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(_challengerObjId);  // challengerObjId
+            stream.WriteBc(_flagObjId);       // flagObjId
+
+            return stream;
+        }
     }
 }

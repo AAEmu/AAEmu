@@ -1,28 +1,29 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCCvFCombatRelationshipPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly (long x, byte unitRelationshipCode, byte unitRelationshipReason)[] _relationships;
-
-    public SCCvFCombatRelationshipPacket((long x, byte unitRelationshipCode, byte unitRelationshipReason)[] relationships)
-        : base(SCOffsets.SCCvFCombatRelationshipPacket, 1)
+    public class SCCvFCombatRelationshipPacket : GamePacket
     {
-        _relationships = relationships;
-    }
+        private readonly (long x, byte unitRelationshipCode, byte unitRelationshipReason)[] _relationships;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write((byte)_relationships.Length);
-        foreach (var (x, unitRelationshipCode, unitRelationshipReason) in _relationships)
+        public SCCvFCombatRelationshipPacket((long x, byte unitRelationshipCode, byte unitRelationshipReason)[] relationships)
+            : base(SCOffsets.SCCvFCombatRelationshipPacket, 1)
         {
-            stream.Write(x);
-            stream.Write(unitRelationshipCode);
-            stream.Write(unitRelationshipReason);
+            _relationships = relationships;
         }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write((byte)_relationships.Length);
+            foreach (var (x, unitRelationshipCode, unitRelationshipReason) in _relationships)
+            {
+                stream.Write(x);
+                stream.Write(unitRelationshipCode);
+                stream.Write(unitRelationshipReason);
+            }
+
+            return stream;
+        }
     }
 }

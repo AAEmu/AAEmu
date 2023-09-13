@@ -6,38 +6,39 @@ using AAEmu.Game.Models.Game.World;
 
 using NLog;
 
-namespace AAEmu.Game.Models.Tasks.Doodads;
-
-public class DoodadFuncCloutTask : DoodadFuncTask
+namespace AAEmu.Game.Models.Tasks.Doodads
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
-    private BaseUnit _caster;
-    private Doodad _owner;
-    private uint _skillId;
-    private int _nextPhase;
-    private AreaTrigger _araAreaTrigger;
-
-    public DoodadFuncCloutTask(BaseUnit caster, Doodad owner, uint skillId, int nextPhase, AreaTrigger araAreaTrigger) : base(caster, owner, skillId)
+    public class DoodadFuncCloutTask : DoodadFuncTask
     {
-        _caster = caster;
-        _owner = owner;
-        _skillId = skillId;
-        _nextPhase = nextPhase;
-        _araAreaTrigger = araAreaTrigger;
-    }
-    public override void Execute()
-    {
-        if (_caster is Character)
-            _log.Debug("[Doodad] DoodadFuncCloutTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
-        else
-            _log.Trace("[Doodad] DoodadFuncCloutTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
+        private static Logger _log = LogManager.GetCurrentClassLogger();
+        private BaseUnit _caster;
+        private Doodad _owner;
+        private uint _skillId;
+        private int _nextPhase;
+        private AreaTrigger _araAreaTrigger;
 
-        _owner.FuncTask = null;
+        public DoodadFuncCloutTask(BaseUnit caster, Doodad owner, uint skillId, int nextPhase, AreaTrigger araAreaTrigger) : base(caster, owner, skillId)
+        {
+            _caster = caster;
+            _owner = owner;
+            _skillId = skillId;
+            _nextPhase = nextPhase;
+            _araAreaTrigger = araAreaTrigger;
+        }
+        public override void Execute()
+        {
+            if (_caster is Character)
+                _log.Debug("[Doodad] DoodadFuncCloutTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
+            else
+                _log.Trace("[Doodad] DoodadFuncCloutTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
 
-        if (_nextPhase == -1)
-            _owner.Delete();
+            _owner.FuncTask = null;
 
-        AreaTriggerManager.Instance.RemoveAreaTrigger(_araAreaTrigger);
-        _owner.DoChangePhase(_caster, _nextPhase);
+            if (_nextPhase == -1)
+                _owner.Delete();
+
+            AreaTriggerManager.Instance.RemoveAreaTrigger(_araAreaTrigger);
+            _owner.DoChangePhase(_caster, _nextPhase);
+        }
     }
 }

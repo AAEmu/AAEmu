@@ -2,24 +2,25 @@
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.DoodadObj;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCDoodadsCreatedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly Doodad[] _doodads;
-    public const int MaxCountPerPacket = 30; // Suggested Maximum Size
-
-    public SCDoodadsCreatedPacket(Doodad[] doodads) : base(SCOffsets.SCDoodadsCreatedPacket, 1)
+    public class SCDoodadsCreatedPacket : GamePacket
     {
-        _doodads = doodads;
-    }
+        private readonly Doodad[] _doodads;
+        public const int MaxCountPerPacket = 30; // Suggested Maximum Size
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write((byte)_doodads.Length);
-        foreach (var doodad in _doodads)
-            doodad.Write(stream);
+        public SCDoodadsCreatedPacket(Doodad[] doodads) : base(SCOffsets.SCDoodadsCreatedPacket, 1)
+        {
+            _doodads = doodads;
+        }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write((byte)_doodads.Length);
+            foreach (var doodad in _doodads)
+                doodad.Write(stream);
+
+            return stream;
+        }
     }
 }

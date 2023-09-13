@@ -4,35 +4,36 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Scripts.Commands;
-
-public class MoveAll : ICommand
+namespace AAEmu.Game.Scripts.Commands
 {
-    public void Execute(Character character, string[] args)
+    public class MoveAll : ICommand
     {
-        foreach (var otherChar in WorldManager.Instance.GetAllCharacters())
+        public void Execute(Character character, string[] args)
         {
-            if (otherChar != character)
+            foreach (var otherChar in WorldManager.Instance.GetAllCharacters())
             {
-                otherChar.DisabledSetPosition = true;
-                otherChar.SendPacket(new SCTeleportUnitPacket(0, 0, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z + 1.0f, 0f));
+                if (otherChar != character)
+                {
+                    otherChar.DisabledSetPosition = true;
+                    otherChar.SendPacket(new SCTeleportUnitPacket(0, 0, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z + 1.0f, 0f));
+                }
             }
         }
-    }
 
-    public void OnLoad()
-    {
-        string[] name = { "move_all", "moveall" };
-        CommandManager.Instance.Register(name, this);
-    }
+        public void OnLoad()
+        {
+            string[] name = { "move_all", "moveall" };
+            CommandManager.Instance.Register(name, this);
+        }
 
-    public string GetCommandLineHelp()
-    {
-        return "";
-    }
+        public string GetCommandLineHelp()
+        {
+            return "";
+        }
 
-    public string GetCommandHelpText()
-    {
-        return "Moves every player to your location";
+        public string GetCommandHelpText()
+        {
+            return "Moves every player to your location";
+        }
     }
 }

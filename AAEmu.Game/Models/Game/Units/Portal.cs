@@ -3,22 +3,23 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World.Transform;
 
-namespace AAEmu.Game.Models.Game.Units;
-
-public sealed class Portal : Npc
+namespace AAEmu.Game.Models.Game.Units
 {
-    public override UnitCustomModelParams ModelParams { get; set; }
-
-    public Transform TeleportPosition { get; set; }
-
-    public Portal()
+    public sealed class Portal : Npc
     {
-        ModelParams = new UnitCustomModelParams();
-    }
+        public override UnitCustomModelParams ModelParams { get; set; }
 
-    public override void Delete()
-    {
-        BroadcastPacket(new SCUnitDeathPacket(ObjId, KillReason.PortalTimeout), false);
-        base.Delete();
+        public Transform TeleportPosition { get; set; }
+
+        public Portal()
+        {
+            ModelParams = new UnitCustomModelParams();
+        }
+
+        public override void Delete()
+        {
+            BroadcastPacket(new SCUnitDeathPacket(ObjId, KillReason.PortalTimeout), false);
+            base.Delete();
+        }
     }
 }

@@ -1,9 +1,10 @@
-namespace AAEmu.Game.Models.Game.Skills.Plots.Type;
-
-public enum PlotSourceUpdateMethodType
+namespace AAEmu.Game.Models.Game.Skills.Plots.Type
 {
-    OriginalSource = 1,
-    OriginalTarget = 2,
-    PreviousSource = 3,
-    PreviousTarget = 4
+    public enum PlotSourceUpdateMethodType
+    {
+        OriginalSource = 1,
+        OriginalTarget = 2,
+        PreviousSource = 3,
+        PreviousTarget = 4
+    }
 }

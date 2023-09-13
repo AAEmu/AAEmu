@@ -3,50 +3,51 @@ using AAEmu.Game.Models.Game.AI.v2.Params.BigMonster;
 using AAEmu.Game.Models.Game.AI.v2.Params.WildBoar;
 using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 
-namespace AAEmu.Game.Models.Game.AI.v2.Params;
-
-// TODO : Load this!!
-public class AiParams
+namespace AAEmu.Game.Models.Game.AI.v2.Params
 {
-    public enum AiParamType : uint
+    // TODO : Load this!!
+    public class AiParams
     {
-        None = 0,
-        SiegeWeaponPlace = 11,
-        Bomb = 12,
-        Roaming = 13,
-        HoldPosition = 15,
-        TowerDefenseAttacker = 17,
-        Flytrap = 18,
-        BigMonsterHoldPosition = 19,
-        BigMonsterRoaming = 20,
-        ArcherHoldPosition = 21,
-        ArcherRoaming = 22,
-        WildBoarHoldPosition = 23,
-        WildBoarRoaming = 24,
-        Dummy = 25,
-        Default = 26,
-        AlmightyNpc = 27
-    }
-    // TODO: Msgs
-    public static AiParams CreateByType(AiParamType type, string aiParamsString)
-    {
-        switch (type)
+        public enum AiParamType : uint
         {
-            //case AiParamType.HoldPosition:
-            //return new HoldPositionAiParams();
-            case AiParamType.AlmightyNpc:
-                return new AlmightyNpcAiParams(aiParamsString);
-            case AiParamType.BigMonsterHoldPosition:
-            case AiParamType.BigMonsterRoaming:
-                return new BigMonsterAiParams(aiParamsString);
-            case AiParamType.ArcherHoldPosition:
-            case AiParamType.ArcherRoaming:
-                return new ArcherAiParams(aiParamsString);
-            case AiParamType.WildBoarRoaming:
-            case AiParamType.WildBoarHoldPosition:
-                return new WildBoarAiParams(aiParamsString);
-            default:
-                return null;
+            None = 0,
+            SiegeWeaponPlace = 11,
+            Bomb = 12,
+            Roaming = 13,
+            HoldPosition = 15,
+            TowerDefenseAttacker = 17,
+            Flytrap = 18,
+            BigMonsterHoldPosition = 19,
+            BigMonsterRoaming = 20,
+            ArcherHoldPosition = 21,
+            ArcherRoaming = 22,
+            WildBoarHoldPosition = 23,
+            WildBoarRoaming = 24,
+            Dummy = 25,
+            Default = 26,
+            AlmightyNpc = 27
+        }
+        // TODO: Msgs
+        public static AiParams CreateByType(AiParamType type, string aiParamsString)
+        {
+            switch (type)
+            {
+                //case AiParamType.HoldPosition:
+                //return new HoldPositionAiParams();
+                case AiParamType.AlmightyNpc:
+                    return new AlmightyNpcAiParams(aiParamsString);
+                case AiParamType.BigMonsterHoldPosition:
+                case AiParamType.BigMonsterRoaming:
+                    return new BigMonsterAiParams(aiParamsString);
+                case AiParamType.ArcherHoldPosition:
+                case AiParamType.ArcherRoaming:
+                    return new ArcherAiParams(aiParamsString);
+                case AiParamType.WildBoarRoaming:
+                case AiParamType.WildBoarHoldPosition:
+                    return new WildBoarAiParams(aiParamsString);
+                default:
+                    return null;
+            }
         }
     }
 }

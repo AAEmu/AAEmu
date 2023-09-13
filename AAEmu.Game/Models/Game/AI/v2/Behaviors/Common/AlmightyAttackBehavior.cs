@@ -7,124 +7,125 @@ using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 using AAEmu.Game.Models.Game.AI.V2.Params;
 using AAEmu.Game.Models.Game.Skills;
 
-namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
-
-public class AlmightyAttackBehavior : BaseCombatBehavior
+namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common
 {
-    private AlmightyNpcAiParams _aiParams;
-    private Queue<AiSkill> _skillQueue;
-
-    public override void Enter()
+    public class AlmightyAttackBehavior : BaseCombatBehavior
     {
-        Ai.Owner.InterruptSkills();
-        _aiParams = Ai.Owner.Template.AiParams as AlmightyNpcAiParams;
-        _skillQueue = new Queue<AiSkill>();
-    }
+        private AlmightyNpcAiParams _aiParams;
+        private Queue<AiSkill> _skillQueue;
 
-    public override void Tick(TimeSpan delta)
-    {
-        if (_aiParams == null)
-            return;
-
-        if (!UpdateTarget() || ShouldReturn)
+        public override void Enter()
         {
-            Ai.GoToReturn();
-            return;
+            Ai.Owner.InterruptSkills();
+            _aiParams = Ai.Owner.Template.AiParams as AlmightyNpcAiParams;
+            _skillQueue = new Queue<AiSkill>();
         }
 
-        if (CanStrafe && !IsUsingSkill)
-            MoveInRange(Ai.Owner.CurrentTarget, delta);
-
-        if (!CanUseSkill)
-            return;
-
-        _strafeDuringDelay = false;
-
-        #region Pick a skill
-
-        var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
-
-        if (_skillQueue.Count == 0)
+        public override void Tick(TimeSpan delta)
         {
-            if (!RefreshSkillQueue(targetDist))
+            if (_aiParams == null)
                 return;
-        }
 
-        var selectedSkill = _skillQueue.Dequeue();
-        if (selectedSkill == null)
-            return;
-        var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillId);
-        if (skillTemplate != null)
-        {
-            if (targetDist >= skillTemplate.MinRange && targetDist <= skillTemplate.MaxRange)
+            if (!UpdateTarget() || ShouldReturn)
             {
-                Ai.Owner.StopMovement();
-                UseSkill(new Skill(skillTemplate), Ai.Owner.CurrentTarget, selectedSkill.Delay);
-                _strafeDuringDelay = selectedSkill.Strafe;
-            }
-        }
-        // If skill list is empty, get Base skill
-        #endregion
-
-        //PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner);
-
-    }
-
-    public override void Exit()
-    {
-    }
-
-    private bool RefreshSkillQueue(float trgDist)
-    {
-        var availableSkills = RequestAvailableSkillList(trgDist);
-
-        if (availableSkills.Count > 0)
-        {
-            var selectedSkillList = availableSkills.RandomElementByWeight(s => s.Dice);
-
-            foreach (var skill in selectedSkillList.Skills)
-            {
-                _skillQueue.Enqueue(skill);
+                Ai.GoToReturn();
+                return;
             }
 
-            return _skillQueue.Count > 0;
-        }
-        else
-        {
-            if (Ai.Owner.Template.BaseSkillId != 0)
+            if (CanStrafe && !IsUsingSkill)
+                MoveInRange(Ai.Owner.CurrentTarget, delta);
+
+            if (!CanUseSkill)
+                return;
+
+            _strafeDuringDelay = false;
+
+            #region Pick a skill
+
+            var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+
+            if (_skillQueue.Count == 0)
             {
-                _skillQueue.Enqueue(new AiSkill
+                if (!RefreshSkillQueue(targetDist))
+                    return;
+            }
+
+            var selectedSkill = _skillQueue.Dequeue();
+            if (selectedSkill == null)
+                return;
+            var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillId);
+            if (skillTemplate != null)
+            {
+                if (targetDist >= skillTemplate.MinRange && targetDist <= skillTemplate.MaxRange)
                 {
-                    SkillId = (uint)Ai.Owner.Template.BaseSkillId,
-                    Strafe = Ai.Owner.Template.BaseSkillStrafe,
-                    Delay = Ai.Owner.Template.BaseSkillDelay
-                });
-                return true;
+                    Ai.Owner.StopMovement();
+                    UseSkill(new Skill(skillTemplate), Ai.Owner.CurrentTarget, selectedSkill.Delay);
+                    _strafeDuringDelay = selectedSkill.Strafe;
+                }
+            }
+            // If skill list is empty, get Base skill
+            #endregion
+
+            //PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner);
+
+        }
+
+        public override void Exit()
+        {
+        }
+
+        private bool RefreshSkillQueue(float trgDist)
+        {
+            var availableSkills = RequestAvailableSkillList(trgDist);
+
+            if (availableSkills.Count > 0)
+            {
+                var selectedSkillList = availableSkills.RandomElementByWeight(s => s.Dice);
+
+                foreach (var skill in selectedSkillList.Skills)
+                {
+                    _skillQueue.Enqueue(skill);
+                }
+
+                return _skillQueue.Count > 0;
             }
             else
             {
-                return false;
+                if (Ai.Owner.Template.BaseSkillId != 0)
+                {
+                    _skillQueue.Enqueue(new AiSkill
+                    {
+                        SkillId = (uint)Ai.Owner.Template.BaseSkillId,
+                        Strafe = Ai.Owner.Template.BaseSkillStrafe,
+                        Delay = Ai.Owner.Template.BaseSkillDelay
+                    });
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
             }
         }
-    }
 
-    private List<AiSkillList> RequestAvailableSkillList(float trgDist)
-    {
-        var healthRatio = (int)((float)Ai.Owner.Hp / Ai.Owner.MaxHp * 100);
-
-        var baseList = _aiParams.AiSkillLists.AsEnumerable();
-
-        baseList = baseList.Where(s => s.HealthRangeMin <= healthRatio && healthRatio <= s.HealthRangeMax);
-        baseList = baseList.Where(s => s.Skills.All(skill => !Ai.Owner.Cooldowns.CheckCooldown(skill.SkillId)));
-        baseList = baseList.Where(s =>
+        private List<AiSkillList> RequestAvailableSkillList(float trgDist)
         {
-            return s.Skills.All(skill =>
-            {
-                var template = SkillManager.Instance.GetSkillTemplate(skill.SkillId);
-                return template != null && (trgDist >= template.MinRange && trgDist <= template.MaxRange || template.TargetType == SkillTargetType.Self);
-            });
-        });
+            var healthRatio = (int)((float)Ai.Owner.Hp / Ai.Owner.MaxHp * 100);
 
-        return baseList.ToList();
+            var baseList = _aiParams.AiSkillLists.AsEnumerable();
+
+            baseList = baseList.Where(s => s.HealthRangeMin <= healthRatio && healthRatio <= s.HealthRangeMax);
+            baseList = baseList.Where(s => s.Skills.All(skill => !Ai.Owner.Cooldowns.CheckCooldown(skill.SkillId)));
+            baseList = baseList.Where(s =>
+            {
+                return s.Skills.All(skill =>
+                {
+                    var template = SkillManager.Instance.GetSkillTemplate(skill.SkillId);
+                    return template != null && (trgDist >= template.MinRange && trgDist <= template.MaxRange || template.TargetType == SkillTargetType.Self);
+                });
+            });
+
+            return baseList.ToList();
+        }
     }
 }

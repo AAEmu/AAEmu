@@ -4,55 +4,56 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 
-namespace AAEmu.Game.Scripts.Commands;
-
-public class TickDoodad : ICommand
+namespace AAEmu.Game.Scripts.Commands
 {
-    // Unused protected static Logger _log = LogManager.GetCurrentClassLogger();
-    public void OnLoad()
+    public class TickDoodad : ICommand
     {
-        CommandManager.Instance.Register("tickdoodad", this);
-    }
-
-    public string GetCommandLineHelp()
-    {
-        return "<objId>";
-    }
-
-    public string GetCommandHelpText()
-    {
-        return "Moves a doodad onto it's next Phase using <objId> inside a <radius> range.";
-    }
-
-    public void Execute(Character character, string[] args)
-    {
-        if (args.Length < 1)
+        // Unused protected static Logger _log = LogManager.GetCurrentClassLogger();
+        public void OnLoad()
         {
-            character.SendMessage("[tickdoodad] " + CommandManager.CommandPrefix + "tickdoodad " + GetCommandLineHelp());
-            return;
+            CommandManager.Instance.Register("tickdoodad", this);
         }
 
-        float radius = 30f;
-        if (!uint.TryParse(args[0], out var unitId))
+        public string GetCommandLineHelp()
         {
-            character.SendMessage("|cFFFF0000[tickdoodad] Parse error unitId|r");
-            return;
+            return "<objId>";
         }
-        var tickedCount = 0;
-        // Use radius
-        var myDoodads = WorldManager.GetAround<Doodad>(character, radius);
-        foreach (var doodad in myDoodads)
+
+        public string GetCommandHelpText()
         {
-            if (doodad.TemplateId == unitId)
+            return "Moves a doodad onto it's next Phase using <objId> inside a <radius> range.";
+        }
+
+        public void Execute(Character character, string[] args)
+        {
+            if (args.Length < 1)
             {
-                if (doodad.FuncTask != null)
+                character.SendMessage("[tickdoodad] " + CommandManager.CommandPrefix + "tickdoodad " + GetCommandLineHelp());
+                return;
+            }
+
+            float radius = 30f;
+            if (!uint.TryParse(args[0], out var unitId))
+            {
+                character.SendMessage("|cFFFF0000[tickdoodad] Parse error unitId|r");
+                return;
+            }
+            var tickedCount = 0;
+            // Use radius
+            var myDoodads = WorldManager.GetAround<Doodad>(character, radius);
+            foreach (var doodad in myDoodads)
+            {
+                if (doodad.TemplateId == unitId)
                 {
-                    doodad.FuncTask.CancelAsync().GetAwaiter().GetResult();
-                    doodad.FuncTask.Execute();
-                    tickedCount++;
+                    if (doodad.FuncTask != null)
+                    {
+                        doodad.FuncTask.CancelAsync().GetAwaiter().GetResult();
+                        doodad.FuncTask.Execute();
+                        tickedCount++;
+                    }
                 }
             }
+            character.SendMessage("[tickdoodad] phased {0} Doodad(s) with TemplateID {1} - @DOODAD_NAME({1})", tickedCount, unitId);
         }
-        character.SendMessage("[tickdoodad] phased {0} Doodad(s) with TemplateID {1} - @DOODAD_NAME({1})", tickedCount, unitId);
     }
 }

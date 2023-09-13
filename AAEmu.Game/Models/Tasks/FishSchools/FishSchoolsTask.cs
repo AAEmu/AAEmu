@@ -1,13 +1,14 @@
 ﻿using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Models.Tasks.FishSchools;
-
-public abstract class FishSchoolsTask : Task
+namespace AAEmu.Game.Models.Tasks.FishSchools
 {
-    private Character _character;
-
-    protected FishSchoolsTask(Character character)
+    public abstract class FishSchoolsTask : Task
     {
-        _character = character;
+        private Character _character;
+
+        protected FishSchoolsTask(Character character)
+        {
+            _character = character;
+        }
     }
 }

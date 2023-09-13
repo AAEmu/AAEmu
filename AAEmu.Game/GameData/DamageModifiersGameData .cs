@@ -8,56 +8,57 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Data.Sqlite;
 
-namespace AAEmu.Game.GameData;
-
-[GameData]
-public class DamageModifierGameData : Singleton<DamageModifierGameData>, IGameDataLoader
+namespace AAEmu.Game.GameData
 {
-    private Dictionary<uint, List<BonusTemplate>> __damageModifiers;
-
-    public List<BonusTemplate> GetModifiersForBuff(uint ownerId)
+    [GameData]
+    public class DamageModifierGameData : Singleton<DamageModifierGameData>, IGameDataLoader
     {
-        return __damageModifiers.ContainsKey(ownerId) ? __damageModifiers[ownerId] : new List<BonusTemplate>();
-    }
+        private Dictionary<uint, List<BonusTemplate>> __damageModifiers;
 
-    public void Load(SqliteConnection connection)
-    {
-        __damageModifiers = new Dictionary<uint, List<BonusTemplate>>();
-
-        using (var command = connection.CreateCommand())
+        public List<BonusTemplate> GetModifiersForBuff(uint ownerId)
         {
-            command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type = 'DamageEffect'";
-            command.Prepare();
-            using (var sqliteReader = command.ExecuteReader())
-            using (var reader = new SQLiteWrapperReader(sqliteReader))
-            {
-                while (reader.Read())
-                {
-                    var ownerId = reader.GetUInt32("owner_id");
-                    var template = new BonusTemplate()
-                    {
-                        Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id"),
-                        ModifierType = (UnitModifierType)reader.GetUInt32("unit_modifier_type_id"),
-                        Value = reader.GetInt32("value"),
-                        LinearLevelBonus = reader.GetInt32("linear_level_bonus")
-                    };
+            return __damageModifiers.ContainsKey(ownerId) ? __damageModifiers[ownerId] : new List<BonusTemplate>();
+        }
 
-                    if (!__damageModifiers.ContainsKey(ownerId))
-                        __damageModifiers.Add(ownerId, new List<BonusTemplate>());
-                    __damageModifiers[ownerId].Add(template);
+        public void Load(SqliteConnection connection)
+        {
+            __damageModifiers = new Dictionary<uint, List<BonusTemplate>>();
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type = 'DamageEffect'";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var ownerId = reader.GetUInt32("owner_id");
+                        var template = new BonusTemplate()
+                        {
+                            Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id"),
+                            ModifierType = (UnitModifierType)reader.GetUInt32("unit_modifier_type_id"),
+                            Value = reader.GetInt32("value"),
+                            LinearLevelBonus = reader.GetInt32("linear_level_bonus")
+                        };
+
+                        if (!__damageModifiers.ContainsKey(ownerId))
+                            __damageModifiers.Add(ownerId, new List<BonusTemplate>());
+                        __damageModifiers[ownerId].Add(template);
+                    }
                 }
             }
         }
-    }
 
-    public void PostLoad()
-    {
-        foreach (var mod in __damageModifiers)
+        public void PostLoad()
         {
-            var de = SkillManager.Instance.GetEffectTemplate(mod.Key, "DamageEffect") as DamageEffect;
-            if (de != null)
+            foreach (var mod in __damageModifiers)
             {
-                de.Bonuses = mod.Value;
+                var de = SkillManager.Instance.GetEffectTemplate(mod.Key, "DamageEffect") as DamageEffect;
+                if (de != null)
+                {
+                    de.Bonuses = mod.Value;
+                }
             }
         }
     }

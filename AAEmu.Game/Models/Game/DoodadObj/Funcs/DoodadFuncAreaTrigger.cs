@@ -1,16 +1,17 @@
 ﻿using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
-
-public class DoodadFuncAreaTrigger : DoodadFuncTemplate
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    // doodad_funcs
-    public uint NpcId { get; set; }
-    public bool IsEnter { get; set; }
-
-    public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
+    public class DoodadFuncAreaTrigger : DoodadFuncTemplate
     {
-        _log.Trace("DoodadFuncAreaTrigger");
+        // doodad_funcs
+        public uint NpcId { get; set; }
+        public bool IsEnter { get; set; }
+
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        {
+            _log.Trace("DoodadFuncAreaTrigger");
+        }
     }
 }

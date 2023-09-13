@@ -1,23 +1,24 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCBuffLearnedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _objId;
-    private readonly uint _buffId;
-
-    public SCBuffLearnedPacket(uint objId, uint buffId) : base(SCOffsets.SCBuffLearnedPacket, 1)
+    public class SCBuffLearnedPacket : GamePacket
     {
-        _objId = objId;
-        _buffId = buffId;
-    }
+        private readonly uint _objId;
+        private readonly uint _buffId;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.WriteBc(_objId);
-        stream.Write(_buffId);
-        return stream;
+        public SCBuffLearnedPacket(uint objId, uint buffId) : base(SCOffsets.SCBuffLearnedPacket, 1)
+        {
+            _objId = objId;
+            _buffId = buffId;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(_objId);
+            stream.Write(_buffId);
+            return stream;
+        }
     }
 }

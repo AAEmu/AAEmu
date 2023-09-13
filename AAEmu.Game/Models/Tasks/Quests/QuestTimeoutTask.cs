@@ -1,21 +1,22 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Models.Tasks.Quests;
-
-public class QuestTimeoutTask : Task
+namespace AAEmu.Game.Models.Tasks.Quests
 {
-    private ICharacter _owner;
-    private uint _questId;
-
-    public QuestTimeoutTask(ICharacter owner, uint questId)
+    public class QuestTimeoutTask : Task
     {
-        _owner = owner;
-        _questId = questId;
-    }
+        private ICharacter _owner;
+        private uint _questId;
 
-    public override void Execute()
-    {
-        QuestManager.Instance.CancelQuest(_owner, _questId);
+        public QuestTimeoutTask(ICharacter owner, uint questId)
+        {
+            _owner = owner;
+            _questId = questId;
+        }
+
+        public override void Execute()
+        {
+            QuestManager.Instance.CancelQuest(_owner, _questId);
+        }
     }
 }

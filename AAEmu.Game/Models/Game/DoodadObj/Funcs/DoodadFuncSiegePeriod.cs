@@ -2,24 +2,25 @@
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
-
-public class DoodadFuncSiegePeriod : DoodadPhaseFuncTemplate
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    public uint SiegePeriodId { get; set; }
-    public int NextPhase { get; set; }
-    public bool Defense { get; set; }
-
-    public override bool Use(BaseUnit caster, Doodad owner)
+    public class DoodadFuncSiegePeriod : DoodadPhaseFuncTemplate
     {
-        _log.Trace("DoodadFuncSiegePeriod");
-        if (caster is Character)
-        {
-            //I think this is used to reschedule anything that needs triggered at a specific gametime
-            owner.OverridePhase = NextPhase;
-            return true;
-        }
+        public uint SiegePeriodId { get; set; }
+        public int NextPhase { get; set; }
+        public bool Defense { get; set; }
 
-        return false;
+        public override bool Use(BaseUnit caster, Doodad owner)
+        {
+            _log.Trace("DoodadFuncSiegePeriod");
+            if (caster is Character)
+            {
+                //I think this is used to reschedule anything that needs triggered at a specific gametime
+                owner.OverridePhase = NextPhase;
+                return true;
+            }
+
+            return false;
+        }
     }
 }

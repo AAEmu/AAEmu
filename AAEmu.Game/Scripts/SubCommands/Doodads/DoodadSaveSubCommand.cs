@@ -12,88 +12,89 @@ using AAEmu.Game.Utils.Converters;
 using Newtonsoft.Json;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
-namespace AAEmu.Game.Scripts.SubCommands.Doodads;
-
-public class DoodadSaveSubCommand : SubCommandBase
+namespace AAEmu.Game.Scripts.SubCommands.Doodads
 {
-    public DoodadSaveSubCommand()
+    public class DoodadSaveSubCommand : SubCommandBase
     {
-        Title = "[Doodad Save]";
-        Description = "Save current state of a doodad to the doodads world file.";
-        CallPrefix = $"{CommandManager.CommandPrefix}doodad save";
-        AddParameter(new NumericSubCommandParameter<uint>("ObjId", "Object Id", true));
-    }
-
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
-    {
-        uint doodadObjId = parameters["ObjId"];
-        var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
-        if (doodad is null)
+        public DoodadSaveSubCommand()
         {
-            SendColorMessage(character, Color.Red, $"Doodad with objId {doodadObjId} does not exist |r");
-            return;
+            Title = "[Doodad Save]";
+            Description = "Save current state of a doodad to the doodads world file.";
+            CallPrefix = $"{CommandManager.CommandPrefix}doodad save";
+            AddParameter(new NumericSubCommandParameter<uint>("ObjId", "Object Id", true));
         }
 
-        var world = WorldManager.Instance.GetWorld(doodad.Transform.WorldId);
-        if (world is null)
+        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
         {
-            SendColorMessage(character, Color.Red, "Could not find the worldId {0} |r", doodad.Transform.WorldId);
-            return;
-        }
-
-        // Load Doodad spawns
-        _log.Info("Loading spawns...");
-        var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name);
-        var jsonFileName = Path.Combine(worldPath, "doodad_spawns_new.json");
-
-        if (!File.Exists(jsonFileName))
-        {
-            SendColorMessage(character, Color.Red, $"World file {jsonFileName} is missing for world {world.Name}");
-            _log.Info($"World file {jsonFileName} is missing for world {world.Name}");
-            return;
-        }
-
-        var contents = FileManager.GetFileContents(jsonFileName);
-        if (string.IsNullOrWhiteSpace(contents))
-        {
-            _log.Warn($"World file {jsonFileName} is empty, using empty spawners list");
-            contents = "[]";
-        }
-
-        if (!JsonHelper.TryDeserializeObject<List<JsonDoodadSpawns>>(contents, out var fileSpawnersList, out _))
-        {
-            SendColorMessage(character, Color.Red, $"Incorrect Json format for file {jsonFileName}");
-            return;
-        }
-
-        var fileSpawners = fileSpawnersList.ToDictionary(s => s.Id, s => s);
-
-        var spawn = new JsonDoodadSpawns
-        {
-            Id = doodad.Id,
-            UnitId = doodad.TemplateId,
-            Position = new JsonPosition
+            uint doodadObjId = parameters["ObjId"];
+            var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+            if (doodad is null)
             {
-                X = doodad.Transform.Local.Position.X,
-                Y = doodad.Transform.Local.Position.Y,
-                Z = doodad.Transform.Local.Position.Z,
-                Roll = doodad.Transform.Local.Rotation.X.RadToDeg(),
-                Pitch = doodad.Transform.Local.Rotation.Y.RadToDeg(),
-                Yaw = doodad.Transform.Local.Rotation.Z.RadToDeg(),
+                SendColorMessage(character, Color.Red, $"Doodad with objId {doodadObjId} does not exist |r");
+                return;
             }
-        };
 
-        if (fileSpawners.ContainsKey(spawn.Id))
-        {
-            fileSpawners[spawn.Id] = spawn;
-        }
-        else
-        {
-            fileSpawners.Add(spawn.Id, spawn);
-        }
+            var world = WorldManager.Instance.GetWorld(doodad.Transform.WorldId);
+            if (world is null)
+            {
+                SendColorMessage(character, Color.Red, "Could not find the worldId {0} |r", doodad.Transform.WorldId);
+                return;
+            }
 
-        var serialized = JsonConvert.SerializeObject(fileSpawners.Values.ToArray(), Formatting.Indented, new JsonModelsConverter());
-        FileManager.SaveFile(serialized, string.Format(jsonFileName, FileManager.AppPath));
-        SendMessage(character, "Doodad ObjId: {0} has been saved!", doodad.ObjId);
+            // Load Doodad spawns
+            _log.Info("Loading spawns...");
+            var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name);
+            var jsonFileName = Path.Combine(worldPath, "doodad_spawns_new.json");
+
+            if (!File.Exists(jsonFileName))
+            {
+                SendColorMessage(character, Color.Red, $"World file {jsonFileName} is missing for world {world.Name}");
+                _log.Info($"World file {jsonFileName} is missing for world {world.Name}");
+                return;
+            }
+
+            var contents = FileManager.GetFileContents(jsonFileName);
+            if (string.IsNullOrWhiteSpace(contents))
+            {
+                _log.Warn($"World file {jsonFileName} is empty, using empty spawners list");
+                contents = "[]";
+            }
+
+            if (!JsonHelper.TryDeserializeObject<List<JsonDoodadSpawns>>(contents, out var fileSpawnersList, out _))
+            {
+                SendColorMessage(character, Color.Red, $"Incorrect Json format for file {jsonFileName}");
+                return;
+            }
+
+            var fileSpawners = fileSpawnersList.ToDictionary(s => s.Id, s => s);
+
+            var spawn = new JsonDoodadSpawns
+            {
+                Id = doodad.Id,
+                UnitId = doodad.TemplateId,
+                Position = new JsonPosition
+                {
+                    X = doodad.Transform.Local.Position.X,
+                    Y = doodad.Transform.Local.Position.Y,
+                    Z = doodad.Transform.Local.Position.Z,
+                    Roll = doodad.Transform.Local.Rotation.X.RadToDeg(),
+                    Pitch = doodad.Transform.Local.Rotation.Y.RadToDeg(),
+                    Yaw = doodad.Transform.Local.Rotation.Z.RadToDeg(),
+                }
+            };
+
+            if (fileSpawners.ContainsKey(spawn.Id))
+            {
+                fileSpawners[spawn.Id] = spawn;
+            }
+            else
+            {
+                fileSpawners.Add(spawn.Id, spawn);
+            }
+
+            var serialized = JsonConvert.SerializeObject(fileSpawners.Values.ToArray(), Formatting.Indented, new JsonModelsConverter());
+            FileManager.SaveFile(serialized, string.Format(jsonFileName, FileManager.AppPath));
+            SendMessage(character, "Doodad ObjId: {0} has been saved!", doodad.ObjId);
+        }
     }
 }

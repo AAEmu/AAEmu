@@ -8,74 +8,75 @@ using AAEmu.Game.Utils;
 
 using NLog;
 
-namespace AAEmu.Game.Models.Game.World;
-
-public enum AreaSphereTriggerCondition
+namespace AAEmu.Game.Models.Game.World
 {
-    INVALID = 0,
-    TRIGGER_ONCE_AT_ALL = 1,
-    TRIGGER_ONCE_IN_RUNTIME = 2,
-    TRIGGER_EVERY_N_TIME_AFTER = 3
-}
-
-public class SphereQuest
-{
-    public uint ZoneID { get; set; }
-    public string WorldID { get; set; }
-    public uint QuestID { get; set; }
-    public uint ComponentID { get; set; }
-    public float Radius { get; set; }
-    public float X { get; set; }
-    public float Y { get; set; }
-    public float Z { get; set; }
-}
-
-public class SphereQuestTrigger
-{
-    private static Logger _log = LogManager.GetCurrentClassLogger();
-    public SphereQuest Sphere { get; set; }
-    public ICharacter Owner { get; set; }
-    public Quest Quest { get; set; }
-
-    private List<SphereQuestTrigger> Triggers { get; set; }
-    public int TickRate { get; set; }
-    private DateTime _lastTick = DateTime.MinValue;
-
-    public SphereQuestTrigger()
+    public enum AreaSphereTriggerCondition
     {
-        Triggers = new List<SphereQuestTrigger>();
+        INVALID = 0,
+        TRIGGER_ONCE_AT_ALL = 1,
+        TRIGGER_ONCE_IN_RUNTIME = 2,
+        TRIGGER_EVERY_N_TIME_AFTER = 3
     }
 
-    public void UpdateUnits()
+    public class SphereQuest
     {
-        Triggers = SphereQuestManager.Instance.GetSphereQuestTriggers();
+        public uint ZoneID { get; set; }
+        public string WorldID { get; set; }
+        public uint QuestID { get; set; }
+        public uint ComponentID { get; set; }
+        public float Radius { get; set; }
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float Z { get; set; }
     }
 
-    public void ApplyEffects()
+    public class SphereQuestTrigger
     {
-        foreach (var trigger in Triggers)
+        private static Logger _log = LogManager.GetCurrentClassLogger();
+        public SphereQuest Sphere { get; set; }
+        public ICharacter Owner { get; set; }
+        public Quest Quest { get; set; }
+
+        private List<SphereQuestTrigger> Triggers { get; set; }
+        public int TickRate { get; set; }
+        private DateTime _lastTick = DateTime.MinValue;
+
+        public SphereQuestTrigger()
         {
-            if (trigger.Quest.ComponentId == trigger.Sphere.ComponentID)
+            Triggers = new List<SphereQuestTrigger>();
+        }
+
+        public void UpdateUnits()
+        {
+            Triggers = SphereQuestManager.Instance.GetSphereQuestTriggers();
+        }
+
+        public void ApplyEffects()
+        {
+            foreach (var trigger in Triggers)
             {
-                var xyzSphereQuest = new Vector3(trigger.Sphere.X, trigger.Sphere.Y, trigger.Sphere.Z);
-                // TODO срабатывает триггер в радиусе от центра сферы
-                if (MathUtil.CalculateDistance(trigger.Owner.Transform.World.Position, xyzSphereQuest, true) < trigger.Sphere.Radius)
+                if (trigger.Quest.ComponentId == trigger.Sphere.ComponentID)
                 {
-                    trigger.Owner.Quests.OnEnterSphere(trigger.Sphere);
-                    SphereQuestManager.Instance.RemoveSphereQuestTrigger(trigger);
+                    var xyzSphereQuest = new Vector3(trigger.Sphere.X, trigger.Sphere.Y, trigger.Sphere.Z);
+                    // TODO срабатывает триггер в радиусе от центра сферы
+                    if (MathUtil.CalculateDistance(trigger.Owner.Transform.World.Position, xyzSphereQuest, true) < trigger.Sphere.Radius)
+                    {
+                        trigger.Owner.Quests.OnEnterSphere(trigger.Sphere);
+                        SphereQuestManager.Instance.RemoveSphereQuestTrigger(trigger);
+                    }
                 }
             }
         }
-    }
 
-    public void Tick(TimeSpan delta)
-    {
-        UpdateUnits();
-        if (TickRate > 0)
-            if ((DateTime.UtcNow - _lastTick).TotalMilliseconds > TickRate)
-            {
-                ApplyEffects();
-                _lastTick = DateTime.UtcNow;
-            }
+        public void Tick(TimeSpan delta)
+        {
+            UpdateUnits();
+            if (TickRate > 0)
+                if ((DateTime.UtcNow - _lastTick).TotalMilliseconds > TickRate)
+                {
+                    ApplyEffects();
+                    _lastTick = DateTime.UtcNow;
+                }
+        }
     }
 }

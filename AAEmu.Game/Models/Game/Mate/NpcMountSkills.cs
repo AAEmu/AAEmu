@@ -1,8 +1,9 @@
-﻿namespace AAEmu.Game.Models.Game.Mate;
-
-public class NpcMountSkills
+﻿namespace AAEmu.Game.Models.Game.Mate
 {
-    public uint Id { get; set; }
-    public uint NpcId { get; set; }
-    public uint MountSkillId { get; set; }
+    public class NpcMountSkills
+    {
+        public uint Id { get; set; }
+        public uint NpcId { get; set; }
+        public uint MountSkillId { get; set; }
+    }
 }

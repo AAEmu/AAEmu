@@ -3,43 +3,44 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
 
-namespace AAEmu.Game.Scripts.Commands;
-
-public class AddXP : ICommand
+namespace AAEmu.Game.Scripts.Commands
 {
-    public void OnLoad()
+    public class AddXP : ICommand
     {
-        string[] name = { "addxp", "add_xp", "givexp", "xp" };
-        CommandManager.Instance.Register(name, this);
-    }
-
-    public string GetCommandLineHelp()
-    {
-        return "(target) <xp>";
-    }
-
-    public string GetCommandHelpText()
-    {
-        return "Adds experience points (to target player)";
-    }
-
-    public void Execute(Character character, string[] args)
-    {
-        if (args.Length == 0)
+        public void OnLoad()
         {
-            character.SendMessage("[XP] " + CommandManager.CommandPrefix + "add_xp (target) <exp>");
-            return;
+            string[] name = { "addxp", "add_xp", "givexp", "xp" };
+            CommandManager.Instance.Register(name, this);
         }
 
-        Character targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
-
-        var xptoadd = 0;
-        if (int.TryParse(args[firstarg + 0], out int parsexp))
+        public string GetCommandLineHelp()
         {
-            xptoadd = parsexp;
+            return "(target) <xp>";
         }
 
-        if (xptoadd > 0)
-            targetPlayer.AddExp(xptoadd, true);
+        public string GetCommandHelpText()
+        {
+            return "Adds experience points (to target player)";
+        }
+
+        public void Execute(Character character, string[] args)
+        {
+            if (args.Length == 0)
+            {
+                character.SendMessage("[XP] " + CommandManager.CommandPrefix + "add_xp (target) <exp>");
+                return;
+            }
+
+            Character targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
+
+            var xptoadd = 0;
+            if (int.TryParse(args[firstarg + 0], out int parsexp))
+            {
+                xptoadd = parsexp;
+            }
+
+            if (xptoadd > 0)
+                targetPlayer.AddExp(xptoadd, true);
+        }
     }
 }

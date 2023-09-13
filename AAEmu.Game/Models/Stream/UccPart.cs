@@ -1,9 +1,10 @@
-namespace AAEmu.Game.Models.Stream;
-
-public class UccPart
+namespace AAEmu.Game.Models.Stream
 {
-    public int Total { get; set; }
-    public uint Index { get; set; }
-    public int Size { get; set; }
-    public byte[] Data { get; set; }
+    public class UccPart
+    {
+        public int Total { get; set; }
+        public uint Index { get; set; }
+        public int Size { get; set; }
+        public byte[] Data { get; set; }
+    }
 }

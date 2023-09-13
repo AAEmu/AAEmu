@@ -2,26 +2,27 @@
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCCharacterListPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly bool _last;
-    private readonly Character[] _characters;
-
-    public SCCharacterListPacket(bool last, Character[] characters) : base(SCOffsets.SCCharacterListPacket, 1)
+    public class SCCharacterListPacket : GamePacket
     {
-        _last = last;
-        _characters = characters;
-    }
+        private readonly bool _last;
+        private readonly Character[] _characters;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_last);
-        stream.Write((byte)_characters.Length);
-        foreach (var character in _characters)
-            character.Write(stream);
+        public SCCharacterListPacket(bool last, Character[] characters) : base(SCOffsets.SCCharacterListPacket, 1)
+        {
+            _last = last;
+            _characters = characters;
+        }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_last);
+            stream.Write((byte)_characters.Length);
+            foreach (var character in _characters)
+                character.Write(stream);
+
+            return stream;
+        }
     }
 }

@@ -2,27 +2,28 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCJoinedTeamPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly Team _team;
-
-    public SCJoinedTeamPacket(Team team) : base(SCOffsets.SCJoinedTeamPacket, 1)
+    public class SCJoinedTeamPacket : GamePacket
     {
-        _team = team;
-    }
+        private readonly Team _team;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_team);
-        foreach (var member in _team.Members)
+        public SCJoinedTeamPacket(Team team) : base(SCOffsets.SCJoinedTeamPacket, 1)
         {
-            if (member?.Character == null)
-                continue;
-            stream.Write(member);
+            _team = team;
         }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_team);
+            foreach (var member in _team.Members)
+            {
+                if (member?.Character == null)
+                    continue;
+                stream.Write(member);
+            }
+
+            return stream;
+        }
     }
 }

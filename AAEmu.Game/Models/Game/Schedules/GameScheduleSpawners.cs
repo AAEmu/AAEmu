@@ -1,8 +1,9 @@
-﻿namespace AAEmu.Game.Models.Game.Schedules;
-
-public class GameScheduleSpawners
+﻿namespace AAEmu.Game.Models.Game.Schedules
 {
-    public int Id { get; set; }
-    public int GameScheduleId { get; set; }
-    public int SpawnerId { get; set; }
+    public class GameScheduleSpawners
+    {
+        public int Id { get; set; }
+        public int GameScheduleId { get; set; }
+        public int SpawnerId { get; set; }
+    }
 }

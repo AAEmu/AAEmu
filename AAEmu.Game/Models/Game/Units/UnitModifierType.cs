@@ -1,7 +1,8 @@
-namespace AAEmu.Game.Models.Game.Units;
-
-public enum UnitModifierType : byte
+namespace AAEmu.Game.Models.Game.Units
 {
-    Value = 0,
-    Percent = 1
+    public enum UnitModifierType : byte
+    {
+        Value = 0,
+        Percent = 1
+    }
 }

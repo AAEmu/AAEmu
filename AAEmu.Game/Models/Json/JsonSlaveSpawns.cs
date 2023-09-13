@@ -1,8 +1,9 @@
-﻿namespace AAEmu.Game.Models.Json;
-
-public class JsonSlaveSpawns
+﻿namespace AAEmu.Game.Models.Json
 {
-    public uint Id { get; set; }
-    public uint UnitId { get; set; }
-    public JsonPosition Position { get; set; }
+    public class JsonSlaveSpawns
+    {
+        public uint Id { get; set; }
+        public uint UnitId { get; set; }
+        public JsonPosition Position { get; set; }
+    }
 }

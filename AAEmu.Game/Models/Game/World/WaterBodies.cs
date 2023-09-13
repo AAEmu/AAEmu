@@ -4,88 +4,89 @@ using System.Numerics;
 using AAEmu.Commons.Utils;
 using Newtonsoft.Json;
 
-namespace AAEmu.Game.Models.Game.World;
-
-public class WaterBodies
+namespace AAEmu.Game.Models.Game.World
 {
-    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-    public float OceanLevel { get; set; }
-
-    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-    public List<WaterBodyArea> Areas { get; set; }
-
-    [JsonIgnore] public object _lock;
-
-    public WaterBodies()
+    public class WaterBodies
     {
-        _lock = new object();
-        Areas = new List<WaterBodyArea>();
-    }
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public float OceanLevel { get; set; }
 
-    public bool IsWater(Vector3 point)
-    {
-        if (point.Z <= OceanLevel)
-            return true;
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public List<WaterBodyArea> Areas { get; set; }
 
-        lock (_lock)
+        [JsonIgnore] public object _lock;
+
+        public WaterBodies()
         {
-            foreach (var area in Areas)
-                if (area.IsWater(point))
-                    return true;
-        }
-        return false;
-    }
-
-    public float GetWaterSurface(Vector3 point)
-    {
-        if (point.Z <= OceanLevel)
-            return OceanLevel;
-
-        lock (_lock)
-        {
-            foreach (var area in Areas)
-                if (area.GetSurface(point, out var surfacePoint))
-                    return surfacePoint.Z;
+            _lock = new object();
+            Areas = new List<WaterBodyArea>();
         }
 
-        return OceanLevel;
-    }
-
-    public static bool Save(string fileName, WaterBodies waterBodies)
-    {
-        try
+        public bool IsWater(Vector3 point)
         {
-            lock (waterBodies._lock)
+            if (point.Z <= OceanLevel)
+                return true;
+
+            lock (_lock)
             {
-                var jsonString = JsonConvert.SerializeObject(waterBodies, Formatting.Indented);
-                File.WriteAllText(fileName, jsonString);
+                foreach (var area in Areas)
+                    if (area.IsWater(point))
+                        return true;
             }
-        }
-        catch
-        {
             return false;
-            // Ignore
         }
-        return true;
-    }
 
-    public static bool Load(string fileName, out WaterBodies waterBodies)
-    {
-        waterBodies = null;
-        try
+        public float GetWaterSurface(Vector3 point)
         {
-            var jsonString = File.ReadAllText(fileName);
-            if (!JsonHelper.TryDeserializeObject<WaterBodies>(jsonString, out var newData, out var error))
+            if (point.Z <= OceanLevel)
+                return OceanLevel;
+
+            lock (_lock)
+            {
+                foreach (var area in Areas)
+                    if (area.GetSurface(point, out var surfacePoint))
+                        return surfacePoint.Z;
+            }
+
+            return OceanLevel;
+        }
+
+        public static bool Save(string fileName, WaterBodies waterBodies)
+        {
+            try
+            {
+                lock (waterBodies._lock)
+                {
+                    var jsonString = JsonConvert.SerializeObject(waterBodies, Formatting.Indented);
+                    File.WriteAllText(fileName, jsonString);
+                }
+            }
+            catch
+            {
                 return false;
-            foreach (var area in newData.Areas)
-                area.UpdateBounds();
-            waterBodies = newData;
+                // Ignore
+            }
+            return true;
         }
-        catch
+
+        public static bool Load(string fileName, out WaterBodies waterBodies)
         {
-            return false;
-            // Ignore
+            waterBodies = null;
+            try
+            {
+                var jsonString = File.ReadAllText(fileName);
+                if (!JsonHelper.TryDeserializeObject<WaterBodies>(jsonString, out var newData, out var error))
+                    return false;
+                foreach (var area in newData.Areas)
+                    area.UpdateBounds();
+                waterBodies = newData;
+            }
+            catch
+            {
+                return false;
+                // Ignore
+            }
+            return true;
         }
-        return true;
     }
 }

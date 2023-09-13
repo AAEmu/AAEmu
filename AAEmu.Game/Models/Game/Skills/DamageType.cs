@@ -1,10 +1,11 @@
-﻿namespace AAEmu.Game.Models.Game.Skills;
-
-public enum DamageType
+﻿namespace AAEmu.Game.Models.Game.Skills
 {
-    Melee = 1,
-    Magic = 2,
-    Siege = 3,
-    Ranged = 4,
-    Heal = 5
+    public enum DamageType
+    {
+        Melee = 1,
+        Magic = 2,
+        Siege = 3,
+        Ranged = 4,
+        Heal = 5
+    }
 }

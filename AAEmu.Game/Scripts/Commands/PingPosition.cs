@@ -3,46 +3,47 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
 
-namespace AAEmu.Game.Scripts.Commands;
-
-public class PingPosition : ICommand
+namespace AAEmu.Game.Scripts.Commands
 {
-    public void OnLoad()
+    public class PingPosition : ICommand
     {
-        string[] names = { "pingpos", "ping_pos", "pingposition" };
-        CommandManager.Instance.Register(names, this);
-    }
-
-    public string GetCommandLineHelp()
-    {
-        return "";
-    }
-
-    public string GetCommandHelpText()
-    {
-        return "Displays information about your pinged position. (map marker)";
-    }
-
-    public void Execute(Character character, string[] args)
-    {
-
-        if ((character.LocalPingPosition.X == 0f) && (character.LocalPingPosition.Y == 0f))
+        public void OnLoad()
         {
-            character.SendMessage("|cFFFFFF00[PingPos] Make sure you marked a location on the map WHILE IN A PARTY OR RAID, using this command.\n" +
-                "If required, you can use the /soloparty command to make a party of just yourself.|r");
+            string[] names = { "pingpos", "ping_pos", "pingposition" };
+            CommandManager.Instance.Register(names, this);
         }
-        else
+
+        public string GetCommandLineHelp()
         {
-            var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.X, character.LocalPingPosition.Y);
-            if (height == 0f)
+            return "";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "Displays information about your pinged position. (map marker)";
+        }
+
+        public void Execute(Character character, string[] args)
+        {
+
+            if ((character.LocalPingPosition.X == 0f) && (character.LocalPingPosition.Y == 0f))
             {
-                character.SendMessage("|cFFFF0000[PingPos] |cFFFFFFFFX:" + character.LocalPingPosition.X.ToString("0.0") + " Y:" + character.LocalPingPosition.Y.ToString("0.0") + " Z: ???|r");
+                character.SendMessage("|cFFFFFF00[PingPos] Make sure you marked a location on the map WHILE IN A PARTY OR RAID, using this command.\n" +
+                    "If required, you can use the /soloparty command to make a party of just yourself.|r");
             }
             else
             {
-                character.SendMessage("|cFFFF0000[PingPos] |cFFFFFFFFX:" + character.LocalPingPosition.X.ToString("0.0") + " Y:" + character.LocalPingPosition.Y.ToString("0.0") + " Z:" + height.ToString("0.0") + "|r");
+                var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.X, character.LocalPingPosition.Y);
+                if (height == 0f)
+                {
+                    character.SendMessage("|cFFFF0000[PingPos] |cFFFFFFFFX:" + character.LocalPingPosition.X.ToString("0.0") + " Y:" + character.LocalPingPosition.Y.ToString("0.0") + " Z: ???|r");
+                }
+                else
+                {
+                    character.SendMessage("|cFFFF0000[PingPos] |cFFFFFFFFX:" + character.LocalPingPosition.X.ToString("0.0") + " Y:" + character.LocalPingPosition.Y.ToString("0.0") + " Z:" + height.ToString("0.0") + "|r");
+                }
             }
-        }
 
+        }
     }
 }

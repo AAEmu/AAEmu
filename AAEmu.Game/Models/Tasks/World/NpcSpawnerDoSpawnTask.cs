@@ -1,20 +1,21 @@
 ﻿using AAEmu.Game.Models.Game.NPChar;
 
-namespace AAEmu.Game.Models.Tasks.World;
-
-public class NpcSpawnerDoSpawnTask : Task
+namespace AAEmu.Game.Models.Tasks.World
 {
-    private readonly NpcSpawner _npcSpawner;
-    private readonly bool _all;
-
-    public NpcSpawnerDoSpawnTask(NpcSpawner npcSpawner, bool all = false)
+    public class NpcSpawnerDoSpawnTask : Task
     {
-        _npcSpawner = npcSpawner;
-        _all = all;
-    }
+        private readonly NpcSpawner _npcSpawner;
+        private readonly bool _all;
 
-    public override void Execute()
-    {
-        _npcSpawner?.DoSpawn(_all);
+        public NpcSpawnerDoSpawnTask(NpcSpawner npcSpawner, bool all = false)
+        {
+            _npcSpawner = npcSpawner;
+            _all = all;
+        }
+
+        public override void Execute()
+        {
+            _npcSpawner?.DoSpawn(_all);
+        }
     }
 }

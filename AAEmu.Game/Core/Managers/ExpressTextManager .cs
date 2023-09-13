@@ -6,39 +6,40 @@ using AAEmu.Game.Utils.DB;
 
 using NLog;
 
-namespace AAEmu.Game.Core.Managers;
-
-public class ExpressTextManager : Singleton<ExpressTextManager>, IExpressTextManager
+namespace AAEmu.Game.Core.Managers
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
-
-    private Dictionary<uint, uint> _expressTexts;
-
-    public uint GetExpressAnimId(uint emotionId)
+    public class ExpressTextManager : Singleton<ExpressTextManager>, IExpressTextManager
     {
-        return _expressTexts.ContainsKey(emotionId) ? _expressTexts[emotionId] : 0;
-    }
+        private static Logger _log = LogManager.GetCurrentClassLogger();
 
-    public void Load()
-    {
-        _expressTexts = new Dictionary<uint, uint>();
+        private Dictionary<uint, uint> _expressTexts;
 
-        _log.Info("Loading express text...");
-
-        using var connection = SQLite.CreateConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM express_texts";
-        command.Prepare();
-        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
-        while (reader.Read())
+        public uint GetExpressAnimId(uint emotionId)
         {
-            var template = new ExpressText();
-            template.Id = reader.GetUInt32("id");
-            template.AnimId = reader.GetUInt32("anim_id");
+            return _expressTexts.ContainsKey(emotionId) ? _expressTexts[emotionId] : 0;
+        }
 
-            if (!_expressTexts.ContainsKey(template.Id))
+        public void Load()
+        {
+            _expressTexts = new Dictionary<uint, uint>();
+
+            _log.Info("Loading express text...");
+
+            using var connection = SQLite.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT * FROM express_texts";
+            command.Prepare();
+            using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+            while (reader.Read())
             {
-                _expressTexts.Add(template.Id, template.AnimId);
+                var template = new ExpressText();
+                template.Id = reader.GetUInt32("id");
+                template.AnimId = reader.GetUInt32("anim_id");
+
+                if (!_expressTexts.ContainsKey(template.Id))
+                {
+                    _expressTexts.Add(template.Id, template.AnimId);
+                }
             }
         }
     }

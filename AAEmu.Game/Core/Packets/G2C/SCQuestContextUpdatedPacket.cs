@@ -2,27 +2,28 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Quests;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCQuestContextUpdatedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly Quest _quest;
-    private readonly uint _componentId;
-
-    public SCQuestContextUpdatedPacket(Quest quest, uint componentId) : base(SCOffsets.SCQuestContextUpdatedPacket, 1)
+    public class SCQuestContextUpdatedPacket : GamePacket
     {
-        _quest = quest;
-        _componentId = componentId;
-    }
+        private readonly Quest _quest;
+        private readonly uint _componentId;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_quest);
-        stream.Write(_componentId); // componentId
-        stream.Write(0); // type
-        stream.Write(0); // type
-        stream.Write(0); // type
-        stream.Write(0); // type
-        return stream;
+        public SCQuestContextUpdatedPacket(Quest quest, uint componentId) : base(SCOffsets.SCQuestContextUpdatedPacket, 1)
+        {
+            _quest = quest;
+            _componentId = componentId;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_quest);
+            stream.Write(_componentId); // componentId
+            stream.Write(0); // type
+            stream.Write(0); // type
+            stream.Write(0); // type
+            stream.Write(0); // type
+            return stream;
+        }
     }
 }

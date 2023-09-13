@@ -5,51 +5,52 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
-
-public class DoodadFuncPulse : DoodadPhaseFuncTemplate
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    public bool Flag { get; set; }
-
-    public override bool Use(BaseUnit caster, Doodad owner)
+    public class DoodadFuncPulse : DoodadPhaseFuncTemplate
     {
-        _log.Debug($"DoodadFuncPulse: Flag {Flag}");
+        public bool Flag { get; set; }
 
-        if (caster is not null)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
-            var aroundDoodads = WorldManager.GetAround<Doodad>(caster);
-            var doodads = new List<Doodad>();
-            if (owner?.Spawner != null)
+            _log.Debug($"DoodadFuncPulse: Flag {Flag}");
+
+            if (caster is not null)
             {
-                if (owner.Spawner.RelatedIds != null)
+                var aroundDoodads = WorldManager.GetAround<Doodad>(caster);
+                var doodads = new List<Doodad>();
+                if (owner?.Spawner != null)
                 {
-                    foreach (var relatedId in owner.Spawner.RelatedIds)
+                    if (owner.Spawner.RelatedIds != null)
                     {
-                        if (aroundDoodads != null)
+                        foreach (var relatedId in owner.Spawner.RelatedIds)
                         {
-                            doodads.AddRange(aroundDoodads.Where(doodad => doodad.TemplateId == relatedId));
+                            if (aroundDoodads != null)
+                            {
+                                doodads.AddRange(aroundDoodads.Where(doodad => doodad.TemplateId == relatedId));
+                            }
                         }
                     }
-                }
 
-                foreach (var doodad in doodads)
-                {
-                    var funcGroup = DoodadManager.Instance.GetPhaseFunc(doodad.FuncGroupId);
-                    foreach (var func in funcGroup)
+                    foreach (var doodad in doodads)
                     {
-                        switch (func.FuncType)
+                        var funcGroup = DoodadManager.Instance.GetPhaseFunc(doodad.FuncGroupId);
+                        foreach (var func in funcGroup)
                         {
-                            case "DoodadFuncPulseTrigger":
-                                {
-                                    DoodadFuncPulseTrigger.Halt = false; // разрешаем однократное выполнение // allow one-time execution
-                                    doodad.DoChangePhase(caster, (int)doodad.FuncGroupId);
-                                    break;
-                                }
+                            switch (func.FuncType)
+                            {
+                                case "DoodadFuncPulseTrigger":
+                                    {
+                                        DoodadFuncPulseTrigger.Halt = false; // разрешаем однократное выполнение // allow one-time execution
+                                        doodad.DoChangePhase(caster, (int)doodad.FuncGroupId);
+                                        break;
+                                    }
+                            }
                         }
                     }
                 }
             }
+            return false;
         }
-        return false;
     }
 }

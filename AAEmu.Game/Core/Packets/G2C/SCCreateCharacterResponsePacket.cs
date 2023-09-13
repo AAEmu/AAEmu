@@ -2,19 +2,20 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCCreateCharacterResponsePacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly Character _character;
-
-    public SCCreateCharacterResponsePacket(Character character) : base(SCOffsets.SCCreateCharacterResponsePacket, 1)
+    public class SCCreateCharacterResponsePacket : GamePacket
     {
-        _character = character;
-    }
+        private readonly Character _character;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        return _character.Write(stream);
+        public SCCreateCharacterResponsePacket(Character character) : base(SCOffsets.SCCreateCharacterResponsePacket, 1)
+        {
+            _character = character;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            return _character.Write(stream);
+        }
     }
 }

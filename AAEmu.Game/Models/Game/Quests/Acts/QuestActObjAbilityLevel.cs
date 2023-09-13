@@ -5,32 +5,33 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
 using System.Collections.Generic;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActObjAbilityLevel : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public byte AbilityId { get; set; }
-    public byte Level { get; set; }
-    public bool UseAlias { get; set; }
-    public uint QuestActObjAliasId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActObjAbilityLevel : QuestActTemplate
     {
-        _log.Warn("QuestActObjAbilityLevel");
+        public byte AbilityId { get; set; }
+        public byte Level { get; set; }
+        public bool UseAlias { get; set; }
+        public uint QuestActObjAliasId { get; set; }
 
-        var completes = new List<bool>();
-        for (var i = 1; i < 11; i++)
+        public override bool Use(ICharacter character, Quest quest, int objective)
         {
-            completes.Add(false);
-        }
+            _log.Warn("QuestActObjAbilityLevel");
 
-        for (var i = 0; i < 10; i++)
-        {
-            var ability = character.Abilities.Abilities[(AbilityType)i + 1];
-            int abLevel = ExpirienceManager.Instance.GetLevelFromExp(ability.Exp);
-            completes[i] = abLevel >= Level;
-        }
+            var completes = new List<bool>();
+            for (var i = 1; i < 11; i++)
+            {
+                completes.Add(false);
+            }
 
-        return completes.All(a => a == true);
+            for (var i = 0; i < 10; i++)
+            {
+                var ability = character.Abilities.Abilities[(AbilityType)i + 1];
+                int abLevel = ExpirienceManager.Instance.GetLevelFromExp(ability.Exp);
+                completes[i] = abLevel >= Level;
+            }
+
+            return completes.All(a => a == true);
+        }
     }
 }

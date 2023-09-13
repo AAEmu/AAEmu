@@ -7,30 +7,31 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.Skills.Effects;
-
-public class ScopedFEffect : EffectTemplate
+namespace AAEmu.Game.Models.Game.Skills.Effects
 {
-    public int Range { get; set; }
-    public bool Key { get; set; }
-    public uint DoodadId { get; set; }
-
-    public override bool OnActionTime => false;
-
-    public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-        CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
-        CompressedGamePackets packetBuilder = null)
+    public class ScopedFEffect : EffectTemplate
     {
-        _log.Trace("ScopedFEffect");
-        if (caster is not Character character) { return; }
+        public int Range { get; set; }
+        public bool Key { get; set; }
+        public uint DoodadId { get; set; }
 
-        var doodads = WorldManager.GetAround<Doodad>(character, Range / 1000f);
-        foreach (var doodad in doodads)
+        public override bool OnActionTime => false;
+
+        public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
+            CompressedGamePackets packetBuilder = null)
         {
-            if (doodad.TemplateId != DoodadId) { continue; }
+            _log.Trace("ScopedFEffect");
+            if (caster is not Character character) { return; }
 
-            doodad.Use(caster, source.Skill.Id);
-            break;
+            var doodads = WorldManager.GetAround<Doodad>(character, Range / 1000f);
+            foreach (var doodad in doodads)
+            {
+                if (doodad.TemplateId != DoodadId) { continue; }
+
+                doodad.Use(caster, source.Skill.Id);
+                break;
+            }
         }
     }
 }

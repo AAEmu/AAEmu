@@ -4,40 +4,41 @@ using AAEmu.Game.Models.Game.Units;
 
 using NLog;
 
-namespace AAEmu.Game.Models.Tasks.Doodads;
-
-public class DoodadFuncTodTask : DoodadFuncTask
+namespace AAEmu.Game.Models.Tasks.Doodads
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
-    private BaseUnit _caster;
-    private Doodad _owner;
-    private uint _skillId;
-    private int _nextPhase;
-
-    public DoodadFuncTodTask(BaseUnit caster, Doodad owner, uint skillId, int nextPhase) : base(caster, owner, skillId)
+    public class DoodadFuncTodTask : DoodadFuncTask
     {
-        _caster = caster;
-        _owner = owner;
-        _skillId = skillId;
-        _nextPhase = nextPhase;
-    }
-    public override void Execute()
-    {
-        if (_caster is Character)
-            _log.Debug("[Doodad] DoodadFuncTodTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
-        else
-            _log.Trace("[Doodad] DoodadFuncTodTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
+        private static Logger _log = LogManager.GetCurrentClassLogger();
+        private BaseUnit _caster;
+        private Doodad _owner;
+        private uint _skillId;
+        private int _nextPhase;
 
-        if (_owner.FuncTask != null)
+        public DoodadFuncTodTask(BaseUnit caster, Doodad owner, uint skillId, int nextPhase) : base(caster, owner, skillId)
         {
-            _ = _owner.FuncTask.CancelAsync();
-            _owner.FuncTask = null;
-            if (_caster is Character)
-                _log.Debug("DoodadFuncTodTask: The current timer has been ended.");
-            else
-                _log.Trace("DoodadFuncTodTask: The current timer has been ended.");
+            _caster = caster;
+            _owner = owner;
+            _skillId = skillId;
+            _nextPhase = nextPhase;
         }
+        public override void Execute()
+        {
+            if (_caster is Character)
+                _log.Debug("[Doodad] DoodadFuncTodTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
+            else
+                _log.Trace("[Doodad] DoodadFuncTodTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
 
-        _owner.DoChangePhase(_caster, _nextPhase);
+            if (_owner.FuncTask != null)
+            {
+                _ = _owner.FuncTask.CancelAsync();
+                _owner.FuncTask = null;
+                if (_caster is Character)
+                    _log.Debug("DoodadFuncTodTask: The current timer has been ended.");
+                else
+                    _log.Trace("DoodadFuncTodTask: The current timer has been ended.");
+            }
+
+            _owner.DoChangePhase(_caster, _nextPhase);
+        }
     }
 }

@@ -1,7 +1,8 @@
-﻿namespace AAEmu.Game.IO;
-
-public enum ClientSourceType
+﻿namespace AAEmu.Game.IO
 {
-    Directory,
-    GamePak
+    public enum ClientSourceType
+    {
+        Directory,
+        GamePak
+    }
 }

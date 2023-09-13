@@ -1,26 +1,27 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCHouseFarmPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly string _name;
-    private readonly int _total;
-    private readonly int _harvestable;
-
-    public SCHouseFarmPacket(string name, int total, int harvestable) : base(SCOffsets.SCHouseFarmPacket, 1)
+    public class SCHouseFarmPacket : GamePacket
     {
-        _name = name;
-        _total = total;
-        _harvestable = harvestable;
-    }
+        private readonly string _name;
+        private readonly int _total;
+        private readonly int _harvestable;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_name);
-        stream.Write(_total);
-        stream.Write(_harvestable);
-        return stream;
+        public SCHouseFarmPacket(string name, int total, int harvestable) : base(SCOffsets.SCHouseFarmPacket, 1)
+        {
+            _name = name;
+            _total = total;
+            _harvestable = harvestable;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_name);
+            stream.Write(_total);
+            stream.Write(_harvestable);
+            return stream;
+        }
     }
 }

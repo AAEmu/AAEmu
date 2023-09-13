@@ -1,12 +1,13 @@
-﻿namespace AAEmu.Commons.Network;
-
-public enum PacketLogLevel
+﻿namespace AAEmu.Commons.Network
 {
-    Off,
-    Trace,
-    Debug,
-    Info,
-    Warning,
-    Error,
-    Fatal
+    public enum PacketLogLevel
+    {
+        Off,
+        Trace,
+        Debug,
+        Info,
+        Warning,
+        Error,
+        Fatal
+    }
 }

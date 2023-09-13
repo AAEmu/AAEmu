@@ -2,19 +2,20 @@
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActConAcceptDoodad : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public uint DoodadId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActConAcceptDoodad : QuestActTemplate
     {
-        _log.Warn("QuestActConAcceptDoodad: DoodadId {0}", DoodadId);
+        public uint DoodadId { get; set; }
 
-        quest.QuestAcceptorType = QuestAcceptorType.Doodad;
-        quest.AcceptorType = DoodadId;
+        public override bool Use(ICharacter character, Quest quest, int objective)
+        {
+            _log.Warn("QuestActConAcceptDoodad: DoodadId {0}", DoodadId);
 
-        return true;
+            quest.QuestAcceptorType = QuestAcceptorType.Doodad;
+            quest.AcceptorType = DoodadId;
+
+            return true;
+        }
     }
 }

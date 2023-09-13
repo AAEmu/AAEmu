@@ -1,11 +1,12 @@
 using AAEmu.Game.Models.Game.AI.Framework;
 
-namespace AAEmu.Game.Models.Game.AI.UnitTypes;
-
-public class SiegeweaponPlaceAI : AbstractAI
+namespace AAEmu.Game.Models.Game.AI.UnitTypes
 {
-    public override Framework.States GetNextState(State previous)
+    public class SiegeweaponPlaceAI : AbstractAI
     {
-        throw new System.NotImplementedException();
+        public override Framework.States GetNextState(State previous)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

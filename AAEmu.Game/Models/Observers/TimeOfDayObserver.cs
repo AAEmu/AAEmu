@@ -2,29 +2,30 @@ using System;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Models.Observers;
-
-public class TimeOfDayObserver : IObserver<float>
+namespace AAEmu.Game.Models.Observers
 {
-    private readonly Character _owner;
-
-    public TimeOfDayObserver(Character owner)
+    public class TimeOfDayObserver : IObserver<float>
     {
-        _owner = owner;
-    }
+        private readonly Character _owner;
 
-    public void OnCompleted()
-    {
-        throw new NotImplementedException();
-    }
+        public TimeOfDayObserver(Character owner)
+        {
+            _owner = owner;
+        }
 
-    public void OnError(Exception error)
-    {
-        throw new NotImplementedException();
-    }
+        public void OnCompleted()
+        {
+            throw new NotImplementedException();
+        }
 
-    public void OnNext(float value)
-    {
-        _owner.SendPacket(new SCTimeOfDayPacket(value));
+        public void OnError(Exception error)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void OnNext(float value)
+        {
+            _owner.SendPacket(new SCTimeOfDayPacket(value));
+        }
     }
 }

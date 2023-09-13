@@ -1,11 +1,12 @@
 ﻿using AAEmu.Game.Core.Managers;
 
-namespace AAEmu.Game.Models.Tasks.Transfers;
-
-public class TransferTickStartTask : Task
+namespace AAEmu.Game.Models.Tasks.Transfers
 {
-    public override void Execute()
+    public class TransferTickStartTask : Task
     {
-        TransferManager.Instance.TransferTick();
+        public override void Execute()
+        {
+            TransferManager.Instance.TransferTick();
+        }
     }
 }

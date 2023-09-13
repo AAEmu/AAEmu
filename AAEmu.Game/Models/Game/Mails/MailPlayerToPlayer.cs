@@ -5,100 +5,101 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 
-namespace AAEmu.Game.Models.Game.Mails;
-
-
-public class MailPlayerToPlayer : BaseMail
+namespace AAEmu.Game.Models.Game.Mails
 {
-    private ICharacter _sender;
 
-    public MailPlayerToPlayer(ICharacter sender, string receiverPlayerName) : base()
+    public class MailPlayerToPlayer : BaseMail
     {
-        _sender = sender;
-        Header.SenderId = sender.Id;
-        Header.SenderName = sender.Name;
-        Header.ReceiverId = NameManager.Instance.GetCharacterId(receiverPlayerName);
-        ReceiverName = receiverPlayerName;
-    }
+        private ICharacter _sender;
 
-    public int GetMailFee()
-    {
-        // Calculate mail fee
-        var mailFee = 0;
-        var attachmentCost = 0;
-        var attachmentCountForFee = Body.Attachments.Count;
-
-        if (Body.CopperCoins > 0)
-            attachmentCountForFee++;
-
-        if (MailType == MailType.Normal)
+        public MailPlayerToPlayer(ICharacter sender, string receiverPlayerName) : base()
         {
-            mailFee += MailManager.CostNormal;
-            attachmentCost = MailManager.CostNormalAttachment;
+            _sender = sender;
+            Header.SenderId = sender.Id;
+            Header.SenderName = sender.Name;
+            Header.ReceiverId = NameManager.Instance.GetCharacterId(receiverPlayerName);
+            ReceiverName = receiverPlayerName;
         }
-        else if (MailType == MailType.Express)
+
+        public int GetMailFee()
         {
-            mailFee += MailManager.CostExpress;
-            attachmentCost = MailManager.CostExpressAttachment;
-        }
-        // If Invalid mail type, assume zero cost
+            // Calculate mail fee
+            var mailFee = 0;
+            var attachmentCost = 0;
+            var attachmentCountForFee = Body.Attachments.Count;
 
-        // Add cost based on attachments past the first one
-        if (attachmentCountForFee > MailManager.CostFreeAttachmentCount)
-            mailFee += (attachmentCountForFee - MailManager.CostFreeAttachmentCount) * attachmentCost;
+            if (Body.CopperCoins > 0)
+                attachmentCountForFee++;
 
-        return mailFee;
-    }
-
-    /// <summary>
-    /// Provide a list of item slots to take attachments from, does not remove items from inventory at this point, use FinalizeAttachents when ready
-    /// </summary>
-    /// <param name="itemSlotsForMail"></param>
-    /// <returns></returns>
-    public bool PrepareAttachmentItems(List<(SlotType, byte)> itemSlotsForMail)
-    {
-        Body.Attachments.Clear();
-        foreach (var mailSlots in itemSlotsForMail)
-        {
-            if (mailSlots.Item1 != 0)
+            if (MailType == MailType.Normal)
             {
-                var tempItem = _sender.Inventory.GetItem(mailSlots.Item1, mailSlots.Item2);
-                if ((tempItem == null) || (tempItem.SlotType != SlotType.Inventory))
+                mailFee += MailManager.CostNormal;
+                attachmentCost = MailManager.CostNormalAttachment;
+            }
+            else if (MailType == MailType.Express)
+            {
+                mailFee += MailManager.CostExpress;
+                attachmentCost = MailManager.CostExpressAttachment;
+            }
+            // If Invalid mail type, assume zero cost
+
+            // Add cost based on attachments past the first one
+            if (attachmentCountForFee > MailManager.CostFreeAttachmentCount)
+                mailFee += (attachmentCountForFee - MailManager.CostFreeAttachmentCount) * attachmentCost;
+
+            return mailFee;
+        }
+
+        /// <summary>
+        /// Provide a list of item slots to take attachments from, does not remove items from inventory at this point, use FinalizeAttachents when ready
+        /// </summary>
+        /// <param name="itemSlotsForMail"></param>
+        /// <returns></returns>
+        public bool PrepareAttachmentItems(List<(SlotType, byte)> itemSlotsForMail)
+        {
+            Body.Attachments.Clear();
+            foreach (var mailSlots in itemSlotsForMail)
+            {
+                if (mailSlots.Item1 != 0)
                 {
-                    // Attchment Items do not match player inventory, abort
+                    var tempItem = _sender.Inventory.GetItem(mailSlots.Item1, mailSlots.Item2);
+                    if ((tempItem == null) || (tempItem.SlotType != SlotType.Inventory))
+                    {
+                        // Attchment Items do not match player inventory, abort
+                        return false;
+                    }
+                    Body.Attachments.Add(tempItem);
+                }
+            }
+            Header.Attachments = GetTotalAttachmentCount();
+            return true;
+        }
+
+        /// <summary>
+        /// Takes all item attachments from sender's inventory and moves them to the mail container for sending
+        /// </summary>
+        /// <returns></returns>
+        public bool FinalizeAttachments()
+        {
+            for (var i = 0; i < Body.Attachments.Count; i++)
+            {
+                var tempItem = Body.Attachments[i];
+                // Move Item to sender's Mail ItemContainer, technically speaking this can never fail
+                if (_sender.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Invalid, tempItem))
+                {
+                    _sender.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Mail, new List<ItemTask>() { new ItemRemove(tempItem) }, new List<ulong>()));
+                    // Technically not needed, I just want to sync it up
+                    tempItem.SlotType = SlotType.Mail;
+                    tempItem.Slot = i;
+                    // tempItem.OwnerId = mailTemplate.Header.ReceiverId;
+                }
+                else
+                {
+                    // Should never be able to fail, abort
                     return false;
                 }
-                Body.Attachments.Add(tempItem);
             }
+            return true;
         }
-        Header.Attachments = GetTotalAttachmentCount();
-        return true;
-    }
-
-    /// <summary>
-    /// Takes all item attachments from sender's inventory and moves them to the mail container for sending
-    /// </summary>
-    /// <returns></returns>
-    public bool FinalizeAttachments()
-    {
-        for (var i = 0; i < Body.Attachments.Count; i++)
-        {
-            var tempItem = Body.Attachments[i];
-            // Move Item to sender's Mail ItemContainer, technically speaking this can never fail
-            if (_sender.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Invalid, tempItem))
-            {
-                _sender.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Mail, new List<ItemTask>() { new ItemRemove(tempItem) }, new List<ulong>()));
-                // Technically not needed, I just want to sync it up
-                tempItem.SlotType = SlotType.Mail;
-                tempItem.Slot = i;
-                // tempItem.OwnerId = mailTemplate.Header.ReceiverId;
-            }
-            else
-            {
-                // Should never be able to fail, abort
-                return false;
-            }
-        }
-        return true;
     }
 }

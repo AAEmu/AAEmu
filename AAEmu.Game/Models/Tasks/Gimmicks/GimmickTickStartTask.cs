@@ -1,11 +1,12 @@
 ﻿using AAEmu.Game.Core.Managers;
 
-namespace AAEmu.Game.Models.Tasks.Gimmicks;
-
-public class GimmickTickStartTask : Task
+namespace AAEmu.Game.Models.Tasks.Gimmicks
 {
-    public override void Execute()
+    public class GimmickTickStartTask : Task
     {
-        GimmickManager.Instance.GimmickTick();
+        public override void Execute()
+        {
+            GimmickManager.Instance.GimmickTick();
+        }
     }
 }

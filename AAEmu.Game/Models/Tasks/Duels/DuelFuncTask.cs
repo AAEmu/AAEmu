@@ -1,13 +1,14 @@
-﻿namespace AAEmu.Game.Models.Tasks.Duels;
-
-public abstract class DuelFuncTask : Task
+﻿namespace AAEmu.Game.Models.Tasks.Duels
 {
-    protected uint _challengerId;
-    protected uint _challengedId;
-
-    protected DuelFuncTask(uint challengerId, uint challengedId)
+    public abstract class DuelFuncTask : Task
     {
-        _challengerId = challengerId;
-        _challengedId = challengedId;
+        protected uint _challengerId;
+        protected uint _challengedId;
+
+        protected DuelFuncTask(uint challengerId, uint challengedId)
+        {
+            _challengerId = challengerId;
+            _challengedId = challengedId;
+        }
     }
 }

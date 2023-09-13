@@ -1,18 +1,19 @@
 ﻿using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Tasks.Gimmicks;
-
-public abstract class GimmickTask : Task
+namespace AAEmu.Game.Models.Tasks.Gimmicks
 {
-    protected BaseUnit _caster;
-    protected Gimmick _owner;
-    protected uint _skillId;
-
-    protected GimmickTask(BaseUnit caster, Gimmick owner, uint skillId)
+    public abstract class GimmickTask : Task
     {
-        _caster = caster;
-        _owner = owner;
-        _skillId = skillId;
+        protected BaseUnit _caster;
+        protected Gimmick _owner;
+        protected uint _skillId;
+
+        protected GimmickTask(BaseUnit caster, Gimmick owner, uint skillId)
+        {
+            _caster = caster;
+            _owner = owner;
+            _skillId = skillId;
+        }
     }
 }

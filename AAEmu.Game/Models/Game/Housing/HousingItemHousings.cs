@@ -1,12 +1,13 @@
-﻿namespace AAEmu.Game.Models.Game.Housing;
-
-public class HousingItemHousings
+﻿namespace AAEmu.Game.Models.Game.Housing
 {
-    public uint Id { get; set; }
-    public uint Item_Id { get; set; }
-    public uint Design_Id { get; set; }
-
-    public HousingItemHousings()
+    public class HousingItemHousings
     {
+        public uint Id { get; set; }
+        public uint Item_Id { get; set; }
+        public uint Design_Id { get; set; }
+
+        public HousingItemHousings()
+        {
+        }
     }
 }

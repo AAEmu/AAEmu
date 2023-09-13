@@ -1,20 +1,21 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCMineAmountPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly int _amount;
-
-    public SCMineAmountPacket(int amount) : base(SCOffsets.SCMineAmountPacket, 1)
+    public class SCMineAmountPacket : GamePacket
     {
-        _amount = amount;
-    }
+        private readonly int _amount;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_amount);
-        return stream;
+        public SCMineAmountPacket(int amount) : base(SCOffsets.SCMineAmountPacket, 1)
+        {
+            _amount = amount;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_amount);
+            return stream;
+        }
     }
 }

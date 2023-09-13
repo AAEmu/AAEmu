@@ -1,17 +1,18 @@
 ﻿using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
-
-public class DoodadFuncClimb : DoodadFuncTemplate
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    // doodad_funcs
-    public uint ClimbTypeId { get; set; }
-    public bool AllowHorizontalMultiHanger { get; set; }
-
-    public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
+    public class DoodadFuncClimb : DoodadFuncTemplate
     {
-        _log.Trace("DoodadFuncClimb");
+        // doodad_funcs
+        public uint ClimbTypeId { get; set; }
+        public bool AllowHorizontalMultiHanger { get; set; }
 
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        {
+            _log.Trace("DoodadFuncClimb");
+
+        }
     }
 }

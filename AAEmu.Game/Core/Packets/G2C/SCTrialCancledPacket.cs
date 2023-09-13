@@ -1,19 +1,20 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCTrialCancledPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _trialId;
+    public class SCTrialCancledPacket : GamePacket
+    {
+        private readonly uint _trialId;
 
-    public SCTrialCancledPacket(uint trialId) : base(SCOffsets.SCTrialCancledPacket, 1)
-    {
-        _trialId = trialId;
-    }
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_trialId);
-        return stream;
+        public SCTrialCancledPacket(uint trialId) : base(SCOffsets.SCTrialCancledPacket, 1)
+        {
+            _trialId = trialId;
+        }
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_trialId);
+            return stream;
+        }
     }
 }

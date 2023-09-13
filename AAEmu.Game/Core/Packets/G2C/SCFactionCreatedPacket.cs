@@ -2,35 +2,36 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Faction;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCFactionCreatedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly SystemFaction _faction;
-    private readonly uint _ownerObjId;
-    private readonly (uint memberObjId, uint memberId, string name)[] _members;
-
-    public SCFactionCreatedPacket(SystemFaction faction, uint ownerObjId, (uint memberObjId, uint memberId, string name)[] members) :
-        base(SCOffsets.SCFactionCreatedPacket, 1)
+    public class SCFactionCreatedPacket : GamePacket
     {
-        _faction = faction;
-        _ownerObjId = ownerObjId;
-        _members = members;
-    }
+        private readonly SystemFaction _faction;
+        private readonly uint _ownerObjId;
+        private readonly (uint memberObjId, uint memberId, string name)[] _members;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_faction);
-
-        stream.WriteBc(_ownerObjId);
-        stream.Write((byte)_members.Length); // TODO max length 4
-        foreach (var (objId, id, name) in _members)
+        public SCFactionCreatedPacket(SystemFaction faction, uint ownerObjId, (uint memberObjId, uint memberId, string name)[] members) :
+            base(SCOffsets.SCFactionCreatedPacket, 1)
         {
-            stream.WriteBc(objId);
-            stream.Write(id);
-            stream.Write(name);
+            _faction = faction;
+            _ownerObjId = ownerObjId;
+            _members = members;
         }
 
-        return stream;
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_faction);
+
+            stream.WriteBc(_ownerObjId);
+            stream.Write((byte)_members.Length); // TODO max length 4
+            foreach (var (objId, id, name) in _members)
+            {
+                stream.WriteBc(objId);
+                stream.Write(id);
+                stream.Write(name);
+            }
+
+            return stream;
+        }
     }
 }

@@ -1,9 +1,10 @@
-﻿namespace AAEmu.Game.Models.Game.Skills;
-
-public class SkillReagent
+﻿namespace AAEmu.Game.Models.Game.Skills
 {
-    public uint Id;
-    public uint SkillId;
-    public uint ItemId;
-    public int Amount;
+    public class SkillReagent
+    {
+        public uint Id;
+        public uint SkillId;
+        public uint ItemId;
+        public int Amount;
+    }
 }

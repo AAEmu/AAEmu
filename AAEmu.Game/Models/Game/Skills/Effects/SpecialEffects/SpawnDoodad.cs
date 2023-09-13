@@ -6,35 +6,36 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
-namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
-
-public class SpawnDoodad : SpecialEffectAction
+namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
-    protected override SpecialType SpecialEffectActionType => SpecialType.SpawnDoodad;
-
-    public override void Execute(BaseUnit caster,
-        SkillCaster casterObj,
-        BaseUnit target,
-        SkillCastTarget targetObj,
-        CastAction castObj,
-        Skill skill,
-        SkillObject skillObject,
-        DateTime time,
-        int doodadId,
-        int value2, // sometimes 1000
-        int value3,
-        int value4
-    )
+    public class SpawnDoodad : SpecialEffectAction
     {
-        // TODO ...
-        if (caster is Character) { _log.Debug("Special effects: SpawnDoodad doodadId {0}, value2 {1}, value3 {2}, value4 {3}", doodadId, value2, value3, value4); }
+        protected override SpecialType SpecialEffectActionType => SpecialType.SpawnDoodad;
 
-        var doodad = DoodadManager.Instance.Create(0, (uint)doodadId, caster);
-        doodad.Transform = caster.Transform.CloneDetached(doodad);
-        var rpy = target.Transform.World.ToRollPitchYawDegrees();
-        var (xx, yy) = MathUtil.AddDistanceToFrontDeg(1f, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, rpy.Z + 90f); //  + 90f to Front
-        doodad.SetPosition(xx, yy, WorldManager.Instance.GetHeight(doodad.Transform), rpy.X, rpy.Y, rpy.Z);
+        public override void Execute(BaseUnit caster,
+            SkillCaster casterObj,
+            BaseUnit target,
+            SkillCastTarget targetObj,
+            CastAction castObj,
+            Skill skill,
+            SkillObject skillObject,
+            DateTime time,
+            int doodadId,
+            int value2, // sometimes 1000
+            int value3,
+            int value4
+        )
+        {
+            // TODO ...
+            if (caster is Character) { _log.Debug("Special effects: SpawnDoodad doodadId {0}, value2 {1}, value3 {2}, value4 {3}", doodadId, value2, value3, value4); }
 
-        doodad.Spawn();
+            var doodad = DoodadManager.Instance.Create(0, (uint)doodadId, caster);
+            doodad.Transform = caster.Transform.CloneDetached(doodad);
+            var rpy = target.Transform.World.ToRollPitchYawDegrees();
+            var (xx, yy) = MathUtil.AddDistanceToFrontDeg(1f, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, rpy.Z + 90f); //  + 90f to Front
+            doodad.SetPosition(xx, yy, WorldManager.Instance.GetHeight(doodad.Transform), rpy.X, rpy.Y, rpy.Z);
+
+            doodad.Spawn();
+        }
     }
 }

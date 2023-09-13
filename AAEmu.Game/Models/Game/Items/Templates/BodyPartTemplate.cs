@@ -1,14 +1,15 @@
 ﻿using System;
 
-namespace AAEmu.Game.Models.Game.Items.Templates;
-
-public class BodyPartTemplate : ItemTemplate
+namespace AAEmu.Game.Models.Game.Items.Templates
 {
-    public override Type ClassType => typeof(BodyPart);
+    public class BodyPartTemplate : ItemTemplate
+    {
+        public override Type ClassType => typeof(BodyPart);
 
-    public uint ModelId { get; set; }
-    public bool NpcOnly { get; set; }
-    public bool BeautyShopOnly { get; set; }
-    public uint ItemId { get; set; }
-    public uint SlotTypeId { get; set; }
+        public uint ModelId { get; set; }
+        public bool NpcOnly { get; set; }
+        public bool BeautyShopOnly { get; set; }
+        public uint ItemId { get; set; }
+        public uint SlotTypeId { get; set; }
+    }
 }

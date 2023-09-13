@@ -2,20 +2,21 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCFamilyCreatedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly Family _family;
-
-    public SCFamilyCreatedPacket(Family family) : base(SCOffsets.SCFamilyCreatedPacket, 1)
+    public class SCFamilyCreatedPacket : GamePacket
     {
-        _family = family;
-    }
+        private readonly Family _family;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_family);
-        return stream;
+        public SCFamilyCreatedPacket(Family family) : base(SCOffsets.SCFamilyCreatedPacket, 1)
+        {
+            _family = family;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_family);
+            return stream;
+        }
     }
 }

@@ -1,16 +1,17 @@
 ﻿using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
-
-public class DoodadFuncConsumeChangerModelItem : DoodadPhaseFuncTemplate
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    public uint DoodadFuncConsumeChangerModelId { get; set; }
-    public uint ItemId { get; set; }
-
-    public override bool Use(BaseUnit caster, Doodad owner)
+    public class DoodadFuncConsumeChangerModelItem : DoodadPhaseFuncTemplate
     {
-        _log.Trace("DoodadFuncConsumeChangerModelItem");
-        return false;
+        public uint DoodadFuncConsumeChangerModelId { get; set; }
+        public uint ItemId { get; set; }
+
+        public override bool Use(BaseUnit caster, Doodad owner)
+        {
+            _log.Trace("DoodadFuncConsumeChangerModelItem");
+            return false;
+        }
     }
 }

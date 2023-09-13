@@ -1,16 +1,17 @@
 ﻿using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
-
-public class DoodadFuncConvertFishItem : DoodadPhaseFuncTemplate
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    public uint DoodadFuncConvertFishId { get; set; }
-    public uint ItemId { get; set; }
-    public uint LootPackId { get; set; }
-    public override bool Use(BaseUnit caster, Doodad owner)
+    public class DoodadFuncConvertFishItem : DoodadPhaseFuncTemplate
     {
-        _log.Trace("DoodadFuncConvertFishItem");
-        return false;
+        public uint DoodadFuncConvertFishId { get; set; }
+        public uint ItemId { get; set; }
+        public uint LootPackId { get; set; }
+        public override bool Use(BaseUnit caster, Doodad owner)
+        {
+            _log.Trace("DoodadFuncConvertFishItem");
+            return false;
+        }
     }
 }

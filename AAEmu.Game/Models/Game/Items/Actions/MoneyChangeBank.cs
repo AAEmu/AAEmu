@@ -1,21 +1,22 @@
 ﻿using AAEmu.Commons.Network;
 
-namespace AAEmu.Game.Models.Game.Items.Actions;
-
-public class MoneyChangeBank : ItemTask
+namespace AAEmu.Game.Models.Game.Items.Actions
 {
-    private readonly int _amount;
-
-    public MoneyChangeBank(int amount)
+    public class MoneyChangeBank : ItemTask
     {
-        _type = ItemAction.ChangeBankMoneyAmount;
-        _amount = amount;
-    }
+        private readonly int _amount;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        base.Write(stream);
-        stream.Write(_amount);
-        return stream;
+        public MoneyChangeBank(int amount)
+        {
+            _type = ItemAction.ChangeBankMoneyAmount;
+            _amount = amount;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            base.Write(stream);
+            stream.Write(_amount);
+            return stream;
+        }
     }
 }

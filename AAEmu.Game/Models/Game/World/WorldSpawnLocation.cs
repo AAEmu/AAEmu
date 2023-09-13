@@ -1,14 +1,15 @@
 ﻿using AAEmu.Game.Models.Game.World.Transform;
 
-namespace AAEmu.Game.Models.Game.World;
-
-public class WorldSpawnLocation
+namespace AAEmu.Game.Models.Game.World
 {
-    public string Name { get; set; }
-    public WorldSpawnPosition SpawnPosition { get; set; }
-
-    public override string ToString()
+    public class WorldSpawnLocation
     {
-        return Name + " - " + SpawnPosition;
+        public string Name { get; set; }
+        public WorldSpawnPosition SpawnPosition { get; set; }
+
+        public override string ToString()
+        {
+            return Name + " - " + SpawnPosition;
+        }
     }
 }

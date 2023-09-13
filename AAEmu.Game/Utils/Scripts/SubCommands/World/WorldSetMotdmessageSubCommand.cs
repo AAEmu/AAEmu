@@ -3,27 +3,28 @@ using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Utils.Scripts.SubCommands.World;
-
-public class WorldSetMotdmessageSubCommand : SubCommandBase
+namespace AAEmu.Game.Utils.Scripts.SubCommands.World
 {
-    public WorldSetMotdmessageSubCommand()
+    public class WorldSetMotdmessageSubCommand : SubCommandBase
     {
-        Title = "[World Set MOTD]";
-        Description = "Setting the MOTD";
-        CallPrefix = $"{CommandManager.CommandPrefix}motd";
-        AddParameter(new StringSubCommandParameter("MOTD", "MOTD", true));
-    }
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
-    {
-        string motd = parameters["MOTD"];
-        if (motd is "")
+        public WorldSetMotdmessageSubCommand()
         {
-            SendColorMessage(character, Color.Coral, $"MOTD message must not be an empty string |r");
-            return;
+            Title = "[World Set MOTD]";
+            Description = "Setting the MOTD";
+            CallPrefix = $"{CommandManager.CommandPrefix}motd";
+            AddParameter(new StringSubCommandParameter("MOTD", "MOTD", true));
         }
-        character.SetMotdMessage(motd);
-        SendMessage(character, $"Set MOTD {motd}");
-        _log.Warn($"{Title}: {motd}");
+        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+        {
+            string motd = parameters["MOTD"];
+            if (motd is "")
+            {
+                SendColorMessage(character, Color.Coral, $"MOTD message must not be an empty string |r");
+                return;
+            }
+            character.SetMotdMessage(motd);
+            SendMessage(character, $"Set MOTD {motd}");
+            _log.Warn($"{Title}: {motd}");
+        }
     }
 }

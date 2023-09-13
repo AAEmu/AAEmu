@@ -1,7 +1,8 @@
-namespace AAEmu.Game.Models.Game.AI.v2.Params.WildBoar;
-
-public class WildBoarAiSpurtSkill
+namespace AAEmu.Game.Models.Game.AI.v2.Params.WildBoar
 {
-    public uint SkillType { get; set; }
-    public uint HealthCondition { get; set; }
+    public class WildBoarAiSpurtSkill
+    {
+        public uint SkillType { get; set; }
+        public uint HealthCondition { get; set; }
+    }
 }

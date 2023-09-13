@@ -1,11 +1,12 @@
 ﻿using AAEmu.Game.Core.Managers;
 
-namespace AAEmu.Game.Models.Tasks.Item;
-
-public class ItemTimerTask : Task
+namespace AAEmu.Game.Models.Tasks.Item
 {
-    public override void Execute()
+    public class ItemTimerTask : Task
     {
-        ItemManager.Instance.UpdateItemTimers();
+        public override void Execute()
+        {
+            ItemManager.Instance.UpdateItemTimers();
+        }
     }
 }

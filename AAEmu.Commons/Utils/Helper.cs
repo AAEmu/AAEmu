@@ -46,62 +46,63 @@ using System.Runtime.CompilerServices;
  *  }
  */
 
-namespace AAEmu.Commons.Utils;
-
-public static class Helper
+namespace AAEmu.Commons.Utils
 {
-    static Dictionary<Tuple<object, int>, DateTime> intervals = new();
-
-    /// <summary>
-    /// Возвращает true если прошло не менее указанного интервала времени (после предыдущего срабатывания)
-    /// </summary>
-    public static bool CheckInterval(this object caller, int interval = 1000, [CallerLineNumber] int lineNumber = 0)
+    public static class Helper
     {
-        // получаем текущее время
-        var now = DateTime.UtcNow;
+        static Dictionary<Tuple<object, int>, DateTime> intervals = new();
 
-        // формируем ключ состоящий из вызывающего объекта и номера строки из которой вызывается метод
-        var key = new Tuple<object, int>(caller, lineNumber);
+        /// <summary>
+        /// Возвращает true если прошло не менее указанного интервала времени (после предыдущего срабатывания)
+        /// </summary>
+        public static bool CheckInterval(this object caller, int interval = 1000, [CallerLineNumber] int lineNumber = 0)
+        {
+            // получаем текущее время
+            var now = DateTime.UtcNow;
 
-        // получаем время следующего срабатывания для данного ключа
-        DateTime next;
-        if (!intervals.TryGetValue(key, out next))
-            next = now;// если в словаре еще нет времени - считаем что сработать нужно сейчас
+            // формируем ключ состоящий из вызывающего объекта и номера строки из которой вызывается метод
+            var key = new Tuple<object, int>(caller, lineNumber);
 
-        // время еще не пришло?
-        if (next > now)
-            return false;
+            // получаем время следующего срабатывания для данного ключа
+            DateTime next;
+            if (!intervals.TryGetValue(key, out next))
+                next = now;// если в словаре еще нет времени - считаем что сработать нужно сейчас
 
-        // формируем время следующего срабатывания
-        intervals[key] = now.AddMilliseconds(interval);
+            // время еще не пришло?
+            if (next > now)
+                return false;
 
-        // время пришло - возвращаем true
-        return true;
-    }
+            // формируем время следующего срабатывания
+            intervals[key] = now.AddMilliseconds(interval);
 
-    static ConcurrentDictionary<Tuple<object, int>, bool> conditions = new();
-
-    /// <summary>
-    /// Возвращает true если условие изменилось с false на true
-    /// </summary>
-    public static bool Triggered(this object sender, bool condition, [CallerLineNumber] int lineNumber = 0)
-    {
-        // формируем ключ состоящий из вызывающего объекта и номера строки из которой вызывается метод
-        var key = new Tuple<object, int>(sender, lineNumber);
-
-        // получаем предыдущее значение условия
-        bool old;
-        if (!conditions.TryGetValue(key, out old))
-            old = false;
-
-        // запоминаем новое состояние
-        conditions[key] = condition;
-
-        // если сейчас условие выполняется, а раньше - не выполнялось - возвращаем true
-        if (condition && !old)
+            // время пришло - возвращаем true
             return true;
+        }
 
-        // иначе - возвращаем false
-        return false;
+        static ConcurrentDictionary<Tuple<object, int>, bool> conditions = new();
+
+        /// <summary>
+        /// Возвращает true если условие изменилось с false на true
+        /// </summary>
+        public static bool Triggered(this object sender, bool condition, [CallerLineNumber] int lineNumber = 0)
+        {
+            // формируем ключ состоящий из вызывающего объекта и номера строки из которой вызывается метод
+            var key = new Tuple<object, int>(sender, lineNumber);
+
+            // получаем предыдущее значение условия
+            bool old;
+            if (!conditions.TryGetValue(key, out old))
+                old = false;
+
+            // запоминаем новое состояние
+            conditions[key] = condition;
+
+            // если сейчас условие выполняется, а раньше - не выполнялось - возвращаем true
+            if (condition && !old)
+                return true;
+
+            // иначе - возвращаем false
+            return false;
+        }
     }
 }

@@ -1,6 +1,7 @@
-﻿namespace AAEmu.Game.Models.Spheres;
-
-public class SphereBubbles
+﻿namespace AAEmu.Game.Models.Spheres
 {
-    public uint Id { get; set; }
+    public class SphereBubbles
+    {
+        public uint Id { get; set; }
+    }
 }

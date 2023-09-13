@@ -1,23 +1,24 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCCancelCharacterDeleteResponsePacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _characterId;
-    private readonly byte _deleteStatus;
-
-    public SCCancelCharacterDeleteResponsePacket(uint characterId, byte deleteStatus) : base(SCOffsets.SCCancelCharacterDeleteResponsePacket, 1)
+    public class SCCancelCharacterDeleteResponsePacket : GamePacket
     {
-        _characterId = characterId;
-        _deleteStatus = deleteStatus;
-    }
+        private readonly uint _characterId;
+        private readonly byte _deleteStatus;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_characterId);
-        stream.Write(_deleteStatus);
-        return stream;
+        public SCCancelCharacterDeleteResponsePacket(uint characterId, byte deleteStatus) : base(SCOffsets.SCCancelCharacterDeleteResponsePacket, 1)
+        {
+            _characterId = characterId;
+            _deleteStatus = deleteStatus;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_characterId);
+            stream.Write(_deleteStatus);
+            return stream;
+        }
     }
 }

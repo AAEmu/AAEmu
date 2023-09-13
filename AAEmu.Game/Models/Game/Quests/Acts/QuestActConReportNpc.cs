@@ -2,21 +2,22 @@
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActConReportNpc : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public uint NpcId { get; set; }
-    public bool UseAlias { get; set; }
-    public uint QuestActObjAliasId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActConReportNpc : QuestActTemplate
     {
-        _log.Debug("QuestActConReportNpc");
+        public uint NpcId { get; set; }
+        public bool UseAlias { get; set; }
+        public uint QuestActObjAliasId { get; set; }
 
-        if (!(character.CurrentTarget is Npc npc))
-            return false;
+        public override bool Use(ICharacter character, Quest quest, int objective)
+        {
+            _log.Debug("QuestActConReportNpc");
 
-        return npc.TemplateId == NpcId;
+            if (!(character.CurrentTarget is Npc npc))
+                return false;
+
+            return npc.TemplateId == NpcId;
+        }
     }
 }

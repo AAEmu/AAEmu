@@ -7,44 +7,45 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
-
-public class DoodadFuncSkillHit : DoodadFuncTemplate
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    // doodad_funcs
-    public uint SkillId { get; set; }
-
-    public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
+    public class DoodadFuncSkillHit : DoodadFuncTemplate
     {
-        if (caster is Character character)
+        // doodad_funcs
+        public uint SkillId { get; set; }
+
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            if (SkillId > 0)
+            if (caster is Character character)
             {
-                var skillCaster = SkillCaster.GetByType(SkillCasterType.Item);
-                skillCaster.ObjId = ObjectIdManager.Instance.GetNextId();
-
-                var target = SkillCastTarget.GetByType(SkillCastTargetType.Doodad);
-                target.ObjId = owner.ObjId;
-
-                var skill = new Skill(SkillManager.Instance.GetSkillTemplate(SkillId));
-
-                if (skillCaster is SkillItem sc)
+                if (SkillId > 0)
                 {
-                    foreach (var skillEffect in skill.Template.Effects)
+                    var skillCaster = SkillCaster.GetByType(SkillCasterType.Item);
+                    skillCaster.ObjId = ObjectIdManager.Instance.GetNextId();
+
+                    var target = SkillCastTarget.GetByType(SkillCastTargetType.Doodad);
+                    target.ObjId = owner.ObjId;
+
+                    var skill = new Skill(SkillManager.Instance.GetSkillTemplate(SkillId));
+
+                    if (skillCaster is SkillItem sc)
                     {
-                        var template = SkillManager.Instance.GetEffectTemplate(skillEffect.EffectId);
-                        if (template is SpecialEffect specialEffect)
+                        foreach (var skillEffect in skill.Template.Effects)
                         {
-                            var itemId = (uint)specialEffect.Value1;
-                            sc.ItemTemplateId = itemId;
-                            var item = ItemManager.Instance.Create(itemId, 1, 0);
-                            var res = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, item.TemplateId, item.Count, item.Grade);
-                            skill.Use(caster, skillCaster, target);
+                            var template = SkillManager.Instance.GetEffectTemplate(skillEffect.EffectId);
+                            if (template is SpecialEffect specialEffect)
+                            {
+                                var itemId = (uint)specialEffect.Value1;
+                                sc.ItemTemplateId = itemId;
+                                var item = ItemManager.Instance.Create(itemId, 1, 0);
+                                var res = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, item.TemplateId, item.Count, item.Grade);
+                                skill.Use(caster, skillCaster, target);
+                            }
                         }
                     }
                 }
             }
+            owner.ToNextPhase = SkillId == skillId;
         }
-        owner.ToNextPhase = SkillId == skillId;
     }
 }

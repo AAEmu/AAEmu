@@ -3,23 +3,24 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 
-namespace AAEmu.Game.Core.Packets.C2G;
-
-public class CSAuctionLowestPricePacket : GamePacket
+namespace AAEmu.Game.Core.Packets.C2G
 {
-    public CSAuctionLowestPricePacket() : base(CSOffsets.CSAuctionLowestPricePacket, 1)
+    public class CSAuctionLowestPricePacket : GamePacket
     {
-    }
+        public CSAuctionLowestPricePacket() : base(CSOffsets.CSAuctionLowestPricePacket, 1)
+        {
+        }
 
-    public override void Read(PacketStream stream)
-    {
-        var npcObjId = stream.ReadBc();
-        var itemTemplateId = stream.ReadUInt32();
-        var itemGrade = stream.ReadByte();
+        public override void Read(PacketStream stream)
+        {
+            var npcObjId = stream.ReadBc();
+            var itemTemplateId = stream.ReadUInt32();
+            var itemGrade = stream.ReadByte();
 
-        var cheapestItem = AuctionManager.Instance.GetCheapestAuctionItem(itemTemplateId);
+            var cheapestItem = AuctionManager.Instance.GetCheapestAuctionItem(itemTemplateId);
 
-        Connection.ActiveChar.SendPacket(new SCAuctionLowestPricePacket(cheapestItem));
+            Connection.ActiveChar.SendPacket(new SCAuctionLowestPricePacket(cheapestItem));
 
+        }
     }
 }

@@ -2,20 +2,21 @@
 using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Network.Stream;
 
-namespace AAEmu.Game.Core.Packets.C2S;
-
-public class CTEmblemStreamDownloadStatusPacket : StreamPacket
+namespace AAEmu.Game.Core.Packets.C2S
 {
-    public CTEmblemStreamDownloadStatusPacket() : base(CTOffsets.CTEmblemStreamDownloadStatusPacket)
+    public class CTEmblemStreamDownloadStatusPacket : StreamPacket
     {
-    }
+        public CTEmblemStreamDownloadStatusPacket() : base(CTOffsets.CTEmblemStreamDownloadStatusPacket)
+        {
+        }
 
-    public override void Read(PacketStream stream)
-    {
-        var type = stream.ReadUInt64();
-        var status = stream.ReadByte();
-        var count = stream.ReadInt32();
+        public override void Read(PacketStream stream)
+        {
+            var type = stream.ReadUInt64();
+            var status = stream.ReadByte();
+            var count = stream.ReadInt32();
 
-        UccManager.Instance.DownloadStatus(Connection, type, status, count);
+            UccManager.Instance.DownloadStatus(Connection, type, status, count);
+        }
     }
 }

@@ -1,16 +1,17 @@
 ﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActSupplyExp : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public int Exp { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActSupplyExp : QuestActTemplate
     {
-        _log.Debug("QuestActSupplyExp");
-        quest.QuestRewardExpPool += Exp;
-        return true;
+        public int Exp { get; set; }
+
+        public override bool Use(ICharacter character, Quest quest, int objective)
+        {
+            _log.Debug("QuestActSupplyExp");
+            quest.QuestRewardExpPool += Exp;
+            return true;
+        }
     }
 }

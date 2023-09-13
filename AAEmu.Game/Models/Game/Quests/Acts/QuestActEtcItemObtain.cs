@@ -1,50 +1,51 @@
 ﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActEtcItemObtain : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public uint ItemId { get; set; }
-    public int Count { get; set; }
-    public uint HighlightDooadId { get; set; }
-    public bool Cleanup { get; set; }
-
-    public static int ItemObtainStatus = 0;
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActEtcItemObtain : QuestActTemplate
     {
-        _log.Warn("QuestActEtcItemObtain");
+        public uint ItemId { get; set; }
+        public int Count { get; set; }
+        public uint HighlightDooadId { get; set; }
+        public bool Cleanup { get; set; }
 
-        if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
+        public static int ItemObtainStatus = 0;
+
+        public override bool Use(ICharacter character, Quest quest, int objective)
         {
-            ItemObtainStatus = objective * Count; // Count в данном случае % за единицу
-            quest.OverCompletionPercent = ItemObtainStatus + QuestActObjItemUse.ItemUseStatus + QuestActObjMonsterHunt.HuntStatus + QuestActObjMonsterGroupHunt.GroupHuntStatus + QuestActObjInteraction.InteractionStatus;
+            _log.Warn("QuestActEtcItemObtain");
 
-            if (quest.Template.LetItDone)
+            if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
             {
-                if (quest.OverCompletionPercent >= quest.Template.Score * 3 / 5)
-                    quest.EarlyCompletion = true;
+                ItemObtainStatus = objective * Count; // Count в данном случае % за единицу
+                quest.OverCompletionPercent = ItemObtainStatus + QuestActObjItemUse.ItemUseStatus + QuestActObjMonsterHunt.HuntStatus + QuestActObjMonsterGroupHunt.GroupHuntStatus + QuestActObjInteraction.InteractionStatus;
 
-                if (quest.OverCompletionPercent > quest.Template.Score)
-                    quest.ExtraCompletion = true;
+                if (quest.Template.LetItDone)
+                {
+                    if (quest.OverCompletionPercent >= quest.Template.Score * 3 / 5)
+                        quest.EarlyCompletion = true;
+
+                    if (quest.OverCompletionPercent > quest.Template.Score)
+                        quest.ExtraCompletion = true;
+                }
+
+                return quest.OverCompletionPercent >= quest.Template.Score;
             }
-
-            return quest.OverCompletionPercent >= quest.Template.Score;
-        }
-        else
-        {
-            if (quest.Template.LetItDone)
+            else
             {
-                quest.OverCompletionPercent = objective * 100 / Count;
+                if (quest.Template.LetItDone)
+                {
+                    quest.OverCompletionPercent = objective * 100 / Count;
 
-                if (quest.OverCompletionPercent >= 60)
-                    quest.EarlyCompletion = true;
+                    if (quest.OverCompletionPercent >= 60)
+                        quest.EarlyCompletion = true;
 
-                if (quest.OverCompletionPercent > 100)
-                    quest.ExtraCompletion = true;
+                    if (quest.OverCompletionPercent > 100)
+                        quest.ExtraCompletion = true;
+                }
+                return objective >= Count;
             }
-            return objective >= Count;
         }
     }
 }

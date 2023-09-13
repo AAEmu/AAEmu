@@ -3,25 +3,26 @@ using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
-
-public class DoodadFuncRequireQuest : DoodadPhaseFuncTemplate
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    public WorldInteractionType WorldInteractionId { get; set; }
-    public uint QuestId { get; set; }
-
-    public override bool Use(BaseUnit caster, Doodad owner)
+    public class DoodadFuncRequireQuest : DoodadPhaseFuncTemplate
     {
-        _log.Trace("DoodadFuncRequireQuest QuestId: {0}, WorldIntId {1}", QuestId, WorldInteractionId);
+        public WorldInteractionType WorldInteractionId { get; set; }
+        public uint QuestId { get; set; }
 
-        if (caster is Character character)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
-            //character.Quests.OnInteraction(WorldInteractionId, character.CurrentTarget);
-            if (character.Quests.HasQuest(QuestId))
-                return false; // продолжим выполнение, подходящий квест
-            else
-                return true; // прерываем, не подходящий квест
+            _log.Trace("DoodadFuncRequireQuest QuestId: {0}, WorldIntId {1}", QuestId, WorldInteractionId);
+
+            if (caster is Character character)
+            {
+                //character.Quests.OnInteraction(WorldInteractionId, character.CurrentTarget);
+                if (character.Quests.HasQuest(QuestId))
+                    return false; // продолжим выполнение, подходящий квест
+                else
+                    return true; // прерываем, не подходящий квест
+            }
+            return true; // прерываем, не подходящий квест
         }
-        return true; // прерываем, не подходящий квест
     }
 }

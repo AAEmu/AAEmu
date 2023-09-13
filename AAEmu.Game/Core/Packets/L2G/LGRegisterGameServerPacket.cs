@@ -1,25 +1,26 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Login;
 
-namespace AAEmu.Game.Core.Packets.L2G;
-
-public class LGRegisterGameServerPacket : LoginPacket
+namespace AAEmu.Game.Core.Packets.L2G
 {
-    public LGRegisterGameServerPacket() : base(LGOffsets.LGRegisterGameServerPacket)
+    public class LGRegisterGameServerPacket : LoginPacket
     {
-    }
-
-    public override void Read(PacketStream stream)
-    {
-        var result = stream.ReadByte();
-        if (result != 0)
+        public LGRegisterGameServerPacket() : base(LGOffsets.LGRegisterGameServerPacket)
         {
-            _log.Error("Error registering on LoginServer");
-            Connection.Close(); // TODO or shutdown?
         }
-        else
+
+        public override void Read(PacketStream stream)
         {
-            _log.Info("Successfully registered on LoginServer");
+            var result = stream.ReadByte();
+            if (result != 0)
+            {
+                _log.Error("Error registering on LoginServer");
+                Connection.Close(); // TODO or shutdown?
+            }
+            else
+            {
+                _log.Info("Successfully registered on LoginServer");
+            }
         }
     }
 }

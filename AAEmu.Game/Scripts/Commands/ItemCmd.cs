@@ -5,37 +5,38 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Scripts.SubCommands.Items;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
-namespace AAEmu.Game.Scripts.Commands;
-
-public class ItemCmd : SubCommandBase, ICommand, ICommandV2
+namespace AAEmu.Game.Scripts.Commands
 {
-    public ItemCmd()
+    public class ItemCmd : SubCommandBase, ICommand, ICommandV2
     {
-        Title = "[Item]";
-        Description = "Root command to manage Items";
-        CallPrefix = $"{CommandManager.CommandPrefix}item";
+        public ItemCmd()
+        {
+            Title = "[Item]";
+            Description = "Root command to manage Items";
+            CallPrefix = $"{CommandManager.CommandPrefix}item";
 
-        Register(new ItemAddSubCommand(), "add");
-        Register(new ItemExpireSubCommand(), "expire");
-        Register(new ItemUnwrapSubCommand(), "unwrap");
-    }
+            Register(new ItemAddSubCommand(), "add");
+            Register(new ItemExpireSubCommand(), "expire");
+            Register(new ItemUnwrapSubCommand(), "unwrap");
+        }
 
-    public void OnLoad()
-    {
-        CommandManager.Instance.Register("item", this);
-    }
+        public void OnLoad()
+        {
+            CommandManager.Instance.Register("item", this);
+        }
 
-    public string GetCommandLineHelp()
-    {
-        return $"<{string.Join("||", SupportedCommands)}>";
-    }
+        public string GetCommandLineHelp()
+        {
+            return $"<{string.Join("||", SupportedCommands)}>";
+        }
 
-    public string GetCommandHelpText()
-    {
-        return CallPrefix;
-    }
-    public void Execute(Character character, string[] args)
-    {
-        throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        public string GetCommandHelpText()
+        {
+            return CallPrefix;
+        }
+        public void Execute(Character character, string[] args)
+        {
+            throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        }
     }
 }

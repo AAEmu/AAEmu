@@ -20,216 +20,217 @@ using Microsoft.Extensions.Hosting;
 using NLog;
 using AAEmu.Commons.Utils.DB;
 
-namespace AAEmu.Game;
-
-public sealed class GameService : IHostedService, IDisposable
+namespace AAEmu.Game
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
-
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public sealed class GameService : IHostedService, IDisposable
     {
-        _log.Info("Starting daemon: AAEmu.Game");
+        private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        // Check for updates
-        using (var connection = MySQL.CreateConnection())
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
-            if (!MySqlDatabaseUpdater.Run(connection, "aaemu_game", AppConfiguration.Instance.Connections.MySQLProvider.Database))
+            _log.Info("Starting daemon: AAEmu.Game");
+
+            // Check for updates
+            using (var connection = MySQL.CreateConnection())
             {
-                _log.Fatal("Failed to update database!");
+                if (!MySqlDatabaseUpdater.Run(connection, "aaemu_game", AppConfiguration.Instance.Connections.MySQLProvider.Database))
+                {
+                    _log.Fatal("Failed to update database!");
+                    _log.Fatal("Press Ctrl+C to quit");
+                    return;
+                }
+            }
+
+            ClientFileManager.Initialize();
+            if (ClientFileManager.ListSources().Count == 0)
+            {
+                _log.Fatal($"Failed up load client files! ({string.Join(", ", AppConfiguration.Instance.ClientData.Sources)})");
                 _log.Fatal("Press Ctrl+C to quit");
                 return;
             }
+
+            var stopWatch = new Stopwatch();
+
+            stopWatch.Start();
+
+            TickManager.Instance.Initialize();
+            TaskIdManager.Instance.Initialize();
+            TaskManager.Instance.Initialize();
+
+            WorldManager.Instance.Load();
+            FeaturesManager.Initialize();
+
+            LocalizationManager.Instance.Load();
+            ObjectIdManager.Instance.Initialize();
+            TradeIdManager.Instance.Initialize();
+
+            ZoneManager.Instance.Load();
+            var heightmapTask = Task.Run(() =>
+            {
+                WorldManager.Instance.LoadHeightmaps();
+            }, cancellationToken);
+
+            var waterBodyTask = Task.Run(() =>
+            {
+                WorldManager.Instance.LoadWaterBodies();
+            }, cancellationToken);
+
+            ContainerIdManager.Instance.Initialize();
+            ItemIdManager.Instance.Initialize();
+            DoodadIdManager.Instance.Initialize();
+            ChatManager.Instance.Initialize();
+            CharacterIdManager.Instance.Initialize();
+            FamilyIdManager.Instance.Initialize();
+            ExpeditionIdManager.Instance.Initialize();
+            VisitedSubZoneIdManager.Instance.Initialize();
+            PrivateBookIdManager.Instance.Initialize();
+            FriendIdManager.Instance.Initialize();
+            MateIdManager.Instance.Initialize();
+            HousingIdManager.Instance.Initialize();
+            HousingTldManager.Instance.Initialize();
+            TeamIdManager.Instance.Initialize();
+            LaborPowerManager.Initialize();
+            QuestIdManager.Instance.Initialize();
+            MailIdManager.Instance.Initialize();
+            UccIdManager.Instance.Initialize();
+            MusicIdManager.Instance.Initialize();
+            ShipyardIdManager.Instance.Initialize();
+            ShipyardManager.Instance.Initialize();
+
+            GameDataManager.Instance.LoadGameData();
+            QuestManager.Instance.Load();
+
+            SphereQuestManager.Instance.Load();
+            SphereQuestManager.Instance.Initialize();
+
+            FormulaManager.Instance.Load();
+            ExpirienceManager.Instance.Load();
+
+            TlIdManager.Instance.Initialize();
+            SpecialtyManager.Instance.Load();
+            ItemManager.Instance.Load();
+            ItemManager.Instance.LoadUserItems();
+            AnimationManager.Instance.Load();
+            PlotManager.Instance.Load();
+            SkillManager.Instance.Load();
+            CraftManager.Instance.Load();
+            MateManager.Instance.Load();
+            SlaveManager.Instance.Load();
+            TeamManager.Instance.Load();
+            AuctionManager.Instance.Load();
+            MailManager.Instance.Load();
+            ExpressTextManager.Instance.Load();
+
+            NameManager.Instance.Load();
+            FactionManager.Instance.Load();
+            ExpeditionManager.Instance.Load();
+            CharacterManager.Instance.Load();
+            FamilyManager.Instance.Load();
+            PortalManager.Instance.Load();
+            FriendMananger.Instance.Load();
+            ModelManager.Instance.Load();
+
+            AIManager.Instance.Initialize();
+
+            GameScheduleManager.Instance.Load();
+            NpcManager.Instance.Load();
+
+            DoodadManager.Instance.Load();
+            TaxationsManager.Instance.Load();
+            HousingManager.Instance.Load();
+            TransferManager.Instance.Load();
+            GimmickManager.Instance.Load();
+            ShipyardManager.Instance.Load();
+
+            SpawnManager.Instance.Load();
+
+            AccessLevelManager.Instance.Load();
+            CashShopManager.Instance.Load();
+            UccManager.Instance.Load();
+            MusicManager.Instance.Load();
+            AiGeoDataManager.Instance.Load();
+
+            ScriptCompiler.Compile();
+
+            TimeManager.Instance.Start();
+            TaskManager.Instance.Start();
+
+            DuelManager.Initialize();
+            SaveManager.Instance.Initialize();
+            AreaTriggerManager.Instance.Initialize();
+            SpecialtyManager.Initialize();
+            TransferManager.Instance.Initialize();
+            GimmickManager.Instance.Initialize();
+            SlaveManager.Initialize();
+            CashShopManager.Instance.Initialize();
+            GameDataManager.Instance.PostLoadGameData();
+            FishSchoolManager.Instance.Initialize();
+
+            if ((waterBodyTask != null) && (!waterBodyTask.IsCompleted))
+            {
+                _log.Info("Waiting on water to be loaded before proceeding, please wait ...");
+                await waterBodyTask;
+            }
+
+            if ((heightmapTask != null) && (!heightmapTask.IsCompleted))
+            {
+                _log.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
+                await heightmapTask;
+            }
+
+            var spawnSw = new Stopwatch();
+            _log.Info("Spawning units...");
+            spawnSw.Start();
+            HousingManager.Instance.SpawnAll(); // Houses need to be spawned before doodads
+            SpawnManager.Instance.SpawnAll();
+            TransferManager.Instance.SpawnAll();
+            spawnSw.Stop();
+            _log.Info("Units spawned in {0}", spawnSw.Elapsed);
+
+            // Start running Physics when everything is loaded
+            WorldManager.Instance.StartPhysics();
+
+            CharacterManager.CheckForDeletedCharacters();
+
+            GameNetwork.Instance.Start();
+            StreamNetwork.Instance.Start();
+            LoginNetwork.Instance.Start();
+
+            stopWatch.Stop();
+            _log.Info("Server started! Took {0}", stopWatch.Elapsed);
         }
 
-        ClientFileManager.Initialize();
-        if (ClientFileManager.ListSources().Count == 0)
+        public Task StopAsync(CancellationToken cancellationToken)
         {
-            _log.Fatal($"Failed up load client files! ({string.Join(", ", AppConfiguration.Instance.ClientData.Sources)})");
-            _log.Fatal("Press Ctrl+C to quit");
-            return;
+            _log.Info("Stopping daemon...");
+
+            SaveManager.Instance.Stop();
+
+            SpawnManager.Instance.Stop();
+            TaskManager.Instance.Stop();
+            GameNetwork.Instance.Stop();
+            StreamNetwork.Instance.Stop();
+            LoginNetwork.Instance.Stop();
+
+            /*
+            HousingManager.Instance.Save();
+            MailManager.Instance.Save();
+            ItemManager.Instance.Save();
+            */
+            WorldManager.Instance.Stop();
+
+            TickManager.Instance.Stop();
+            TimeManager.Instance.Stop();
+
+            ClientFileManager.ClearSources();
+            return Task.CompletedTask;
         }
 
-        var stopWatch = new Stopwatch();
-
-        stopWatch.Start();
-
-        TickManager.Instance.Initialize();
-        TaskIdManager.Instance.Initialize();
-        TaskManager.Instance.Initialize();
-
-        WorldManager.Instance.Load();
-        FeaturesManager.Initialize();
-
-        LocalizationManager.Instance.Load();
-        ObjectIdManager.Instance.Initialize();
-        TradeIdManager.Instance.Initialize();
-
-        ZoneManager.Instance.Load();
-        var heightmapTask = Task.Run(() =>
+        public void Dispose()
         {
-            WorldManager.Instance.LoadHeightmaps();
-        }, cancellationToken);
+            _log.Info("Disposing...");
 
-        var waterBodyTask = Task.Run(() =>
-        {
-            WorldManager.Instance.LoadWaterBodies();
-        }, cancellationToken);
-
-        ContainerIdManager.Instance.Initialize();
-        ItemIdManager.Instance.Initialize();
-        DoodadIdManager.Instance.Initialize();
-        ChatManager.Instance.Initialize();
-        CharacterIdManager.Instance.Initialize();
-        FamilyIdManager.Instance.Initialize();
-        ExpeditionIdManager.Instance.Initialize();
-        VisitedSubZoneIdManager.Instance.Initialize();
-        PrivateBookIdManager.Instance.Initialize();
-        FriendIdManager.Instance.Initialize();
-        MateIdManager.Instance.Initialize();
-        HousingIdManager.Instance.Initialize();
-        HousingTldManager.Instance.Initialize();
-        TeamIdManager.Instance.Initialize();
-        LaborPowerManager.Initialize();
-        QuestIdManager.Instance.Initialize();
-        MailIdManager.Instance.Initialize();
-        UccIdManager.Instance.Initialize();
-        MusicIdManager.Instance.Initialize();
-        ShipyardIdManager.Instance.Initialize();
-        ShipyardManager.Instance.Initialize();
-
-        GameDataManager.Instance.LoadGameData();
-        QuestManager.Instance.Load();
-
-        SphereQuestManager.Instance.Load();
-        SphereQuestManager.Instance.Initialize();
-
-        FormulaManager.Instance.Load();
-        ExpirienceManager.Instance.Load();
-
-        TlIdManager.Instance.Initialize();
-        SpecialtyManager.Instance.Load();
-        ItemManager.Instance.Load();
-        ItemManager.Instance.LoadUserItems();
-        AnimationManager.Instance.Load();
-        PlotManager.Instance.Load();
-        SkillManager.Instance.Load();
-        CraftManager.Instance.Load();
-        MateManager.Instance.Load();
-        SlaveManager.Instance.Load();
-        TeamManager.Instance.Load();
-        AuctionManager.Instance.Load();
-        MailManager.Instance.Load();
-        ExpressTextManager.Instance.Load();
-
-        NameManager.Instance.Load();
-        FactionManager.Instance.Load();
-        ExpeditionManager.Instance.Load();
-        CharacterManager.Instance.Load();
-        FamilyManager.Instance.Load();
-        PortalManager.Instance.Load();
-        FriendMananger.Instance.Load();
-        ModelManager.Instance.Load();
-
-        AIManager.Instance.Initialize();
-
-        GameScheduleManager.Instance.Load();
-        NpcManager.Instance.Load();
-
-        DoodadManager.Instance.Load();
-        TaxationsManager.Instance.Load();
-        HousingManager.Instance.Load();
-        TransferManager.Instance.Load();
-        GimmickManager.Instance.Load();
-        ShipyardManager.Instance.Load();
-
-        SpawnManager.Instance.Load();
-
-        AccessLevelManager.Instance.Load();
-        CashShopManager.Instance.Load();
-        UccManager.Instance.Load();
-        MusicManager.Instance.Load();
-        AiGeoDataManager.Instance.Load();
-
-        ScriptCompiler.Compile();
-
-        TimeManager.Instance.Start();
-        TaskManager.Instance.Start();
-
-        DuelManager.Initialize();
-        SaveManager.Instance.Initialize();
-        AreaTriggerManager.Instance.Initialize();
-        SpecialtyManager.Initialize();
-        TransferManager.Instance.Initialize();
-        GimmickManager.Instance.Initialize();
-        SlaveManager.Initialize();
-        CashShopManager.Instance.Initialize();
-        GameDataManager.Instance.PostLoadGameData();
-        FishSchoolManager.Instance.Initialize();
-
-        if ((waterBodyTask != null) && (!waterBodyTask.IsCompleted))
-        {
-            _log.Info("Waiting on water to be loaded before proceeding, please wait ...");
-            await waterBodyTask;
+            LogManager.Flush();
         }
-
-        if ((heightmapTask != null) && (!heightmapTask.IsCompleted))
-        {
-            _log.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
-            await heightmapTask;
-        }
-
-        var spawnSw = new Stopwatch();
-        _log.Info("Spawning units...");
-        spawnSw.Start();
-        HousingManager.Instance.SpawnAll(); // Houses need to be spawned before doodads
-        SpawnManager.Instance.SpawnAll();
-        TransferManager.Instance.SpawnAll();
-        spawnSw.Stop();
-        _log.Info("Units spawned in {0}", spawnSw.Elapsed);
-
-        // Start running Physics when everything is loaded
-        WorldManager.Instance.StartPhysics();
-
-        CharacterManager.CheckForDeletedCharacters();
-
-        GameNetwork.Instance.Start();
-        StreamNetwork.Instance.Start();
-        LoginNetwork.Instance.Start();
-
-        stopWatch.Stop();
-        _log.Info("Server started! Took {0}", stopWatch.Elapsed);
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        _log.Info("Stopping daemon...");
-
-        SaveManager.Instance.Stop();
-
-        SpawnManager.Instance.Stop();
-        TaskManager.Instance.Stop();
-        GameNetwork.Instance.Stop();
-        StreamNetwork.Instance.Stop();
-        LoginNetwork.Instance.Stop();
-
-        /*
-        HousingManager.Instance.Save();
-        MailManager.Instance.Save();
-        ItemManager.Instance.Save();
-        */
-        WorldManager.Instance.Stop();
-
-        TickManager.Instance.Stop();
-        TimeManager.Instance.Stop();
-
-        ClientFileManager.ClearSources();
-        return Task.CompletedTask;
-    }
-
-    public void Dispose()
-    {
-        _log.Info("Disposing...");
-
-        LogManager.Flush();
     }
 }

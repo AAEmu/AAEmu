@@ -1,16 +1,17 @@
 ﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts;
-
-public class QuestActObjAliase : QuestActTemplate
+namespace AAEmu.Game.Models.Game.Quests.Acts
 {
-    public string Name { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public class QuestActObjAliase : QuestActTemplate
     {
-        _log.Warn("QuestActObjAliase");
+        public string Name { get; set; }
 
-        return character.Quests.IsQuestComplete(quest.TemplateId);
+        public override bool Use(ICharacter character, Quest quest, int objective)
+        {
+            _log.Warn("QuestActObjAliase");
+
+            return character.Quests.IsQuestComplete(quest.TemplateId);
+        }
     }
 }

@@ -2,18 +2,19 @@
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Managers.World;
 
-namespace AAEmu.Game.Core.Packets.C2G;
-
-public class CSNotifyInGameCompletedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.C2G
 {
-    public CSNotifyInGameCompletedPacket() : base(CSOffsets.CSNotifyInGameCompletedPacket, 1)
+    public class CSNotifyInGameCompletedPacket : GamePacket
     {
-    }
+        public CSNotifyInGameCompletedPacket() : base(CSOffsets.CSNotifyInGameCompletedPacket, 1)
+        {
+        }
 
-    public override void Read(PacketStream stream)
-    {
+        public override void Read(PacketStream stream)
+        {
 
-        WorldManager.Instance.OnPlayerJoin(Connection.ActiveChar);
-        _log.Info("NotifyInGameCompleted SubZoneId {0}", Connection.ActiveChar.SubZoneId);
+            WorldManager.Instance.OnPlayerJoin(Connection.ActiveChar);
+            _log.Info("NotifyInGameCompleted SubZoneId {0}", Connection.ActiveChar.SubZoneId);
+        }
     }
 }

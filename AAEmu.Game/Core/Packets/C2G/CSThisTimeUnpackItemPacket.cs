@@ -4,23 +4,24 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Items;
 
-namespace AAEmu.Game.Core.Packets.C2G;
-
-public class CSThisTimeUnpackItemPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.C2G
 {
-    public CSThisTimeUnpackItemPacket() : base(CSOffsets.CSThisTimeUnpackItemPacket, 1)
+    public class CSThisTimeUnpackItemPacket : GamePacket
     {
+        public CSThisTimeUnpackItemPacket() : base(CSOffsets.CSThisTimeUnpackItemPacket, 1)
+        {
 
-    }
+        }
 
-    public override void Read(PacketStream stream)
-    {
-        var slotType = (SlotType)stream.ReadByte();
-        var slot = stream.ReadByte();
-        var itemId = stream.ReadUInt64();
+        public override void Read(PacketStream stream)
+        {
+            var slotType = (SlotType)stream.ReadByte();
+            var slot = stream.ReadByte();
+            var itemId = stream.ReadUInt64();
 
-        _log.Debug("CSThisTimeUnpackItemPacket, slotType: {0}, slot: {1}, itemId: {2}", slotType, slot, itemId);
-        if (!ItemManager.Instance.UnwrapItem(Connection.ActiveChar, slotType, slot, itemId))
-            Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ItemUpdateFail);
+            _log.Debug("CSThisTimeUnpackItemPacket, slotType: {0}, slot: {1}, itemId: {2}", slotType, slot, itemId);
+            if (!ItemManager.Instance.UnwrapItem(Connection.ActiveChar, slotType, slot, itemId))
+                Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ItemUpdateFail);
+        }
     }
 }

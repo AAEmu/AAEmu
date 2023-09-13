@@ -4,51 +4,52 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
 
-namespace AAEmu.Game.Scripts.Commands;
-
-public class BuildHouse : ICommand
+namespace AAEmu.Game.Scripts.Commands
 {
-    public void OnLoad()
+    public class BuildHouse : ICommand
     {
-        string[] name = { "build", "build_house" };
-        CommandManager.Instance.Register(name, this);
-    }
-
-    public string GetCommandLineHelp()
-    {
-        return "";
-    }
-
-    public string GetCommandHelpText()
-    {
-        return "Advances the targetted house one step further";
-    }
-
-    public void Execute(Character character, string[] args)
-    {
-        var targetHouse = character.CurrentTarget as House;
-        if (targetHouse == null)
+        public void OnLoad()
         {
-            character.SendMessage("You must target a house");
-            return;
+            string[] name = { "build", "build_house" };
+            CommandManager.Instance.Register(name, this);
         }
 
-        targetHouse.AddBuildAction();
-        character.BroadcastPacket(
-            new SCHouseBuildProgressPacket(
-                targetHouse.TlId,
-                targetHouse.ModelId,
-                targetHouse.AllAction,
-                targetHouse.CurrentStep == -1 ? targetHouse.AllAction : targetHouse.CurrentAction
-            ),
-            true
-        );
-
-        if (targetHouse.CurrentStep == -1)
+        public string GetCommandLineHelp()
         {
-            var doodads = targetHouse.AttachedDoodads.ToArray();
-            foreach (var doodad in doodads)
-                doodad.Spawn();
+            return "";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "Advances the targetted house one step further";
+        }
+
+        public void Execute(Character character, string[] args)
+        {
+            var targetHouse = character.CurrentTarget as House;
+            if (targetHouse == null)
+            {
+                character.SendMessage("You must target a house");
+                return;
+            }
+
+            targetHouse.AddBuildAction();
+            character.BroadcastPacket(
+                new SCHouseBuildProgressPacket(
+                    targetHouse.TlId,
+                    targetHouse.ModelId,
+                    targetHouse.AllAction,
+                    targetHouse.CurrentStep == -1 ? targetHouse.AllAction : targetHouse.CurrentAction
+                ),
+                true
+            );
+
+            if (targetHouse.CurrentStep == -1)
+            {
+                var doodads = targetHouse.AttachedDoodads.ToArray();
+                foreach (var doodad in doodads)
+                    doodad.Spawn();
+            }
         }
     }
 }

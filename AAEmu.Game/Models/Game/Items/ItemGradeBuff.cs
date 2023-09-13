@@ -1,5 +1,6 @@
-﻿namespace AAEmu.Game.Models.Game.Items;
-
-class ItemGradeBuff
+﻿namespace AAEmu.Game.Models.Game.Items
 {
+    class ItemGradeBuff
+    {
+    }
 }

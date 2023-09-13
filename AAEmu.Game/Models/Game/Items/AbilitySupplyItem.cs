@@ -1,8 +1,9 @@
-namespace AAEmu.Game.Models.Game.Items;
-
-public class AbilitySupplyItem
+namespace AAEmu.Game.Models.Game.Items
 {
-    public uint Id { get; set; }
-    public int Amount { get; set; }
-    public byte Grade { get; set; }
+    public class AbilitySupplyItem
+    {
+        public uint Id { get; set; }
+        public int Amount { get; set; }
+        public byte Grade { get; set; }
+    }
 }

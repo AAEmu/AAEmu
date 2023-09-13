@@ -2,36 +2,37 @@
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Scripts.Commands;
-
-class WipeAuctionHouse : ICommand
+namespace AAEmu.Game.Scripts.Commands
 {
-    public void OnLoad()
+    class WipeAuctionHouse : ICommand
     {
-        string[] name = { "wipeauctionhouse", "wipeah" };
-        CommandManager.Instance.Register(name, this);
-    }
-
-    public string GetCommandLineHelp()
-    {
-        return "Deletes ALL Items from the AH. No going back from this.";
-    }
-
-    public string GetCommandHelpText()
-    {
-        return "Deletes ALL Items from the AH. No going back from this.";
-    }
-    public void Execute(Character character, string[] args)
-    {
-        AuctionManager.Instance.Load();
-
-        foreach (var item in AuctionManager.Instance._auctionItems)
+        public void OnLoad()
         {
-            AuctionManager.Instance._deletedAuctionItemIds.Add((long)item.ID);
+            string[] name = { "wipeauctionhouse", "wipeah" };
+            CommandManager.Instance.Register(name, this);
         }
 
-        AuctionManager.Instance._auctionItems.Clear();
-        SaveManager.Instance.DoSave();
-        AuctionManager.Instance.Load();
+        public string GetCommandLineHelp()
+        {
+            return "Deletes ALL Items from the AH. No going back from this.";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "Deletes ALL Items from the AH. No going back from this.";
+        }
+        public void Execute(Character character, string[] args)
+        {
+            AuctionManager.Instance.Load();
+
+            foreach (var item in AuctionManager.Instance._auctionItems)
+            {
+                AuctionManager.Instance._deletedAuctionItemIds.Add((long)item.ID);
+            }
+
+            AuctionManager.Instance._auctionItems.Clear();
+            SaveManager.Instance.DoSave();
+            AuctionManager.Instance.Load();
+        }
     }
 }

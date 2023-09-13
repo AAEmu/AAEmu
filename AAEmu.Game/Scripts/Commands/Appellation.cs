@@ -3,42 +3,43 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Scripts.Commands;
-
-public class Appellation : ICommand
+namespace AAEmu.Game.Scripts.Commands
 {
-    public void OnLoad()
+    public class Appellation : ICommand
     {
-        string[] name = { "settitle", "set_title", "appellation" };
-        CommandManager.Instance.Register(name, this);
-    }
-
-    public string GetCommandLineHelp()
-    {
-        return "<titleId>";
-    }
-
-    public string GetCommandHelpText()
-    {
-        return "Sets your current title using <titleId>";
-    }
-
-    public void Execute(Character character, string[] args)
-    {
-        if (args.Length == 0)
+        public void OnLoad()
         {
-            character.SendMessage("[Title] " + CommandManager.CommandPrefix + "set_title <titleId>");
-            return;
+            string[] name = { "settitle", "set_title", "appellation" };
+            CommandManager.Instance.Register(name, this);
         }
 
-        if (uint.TryParse(args[0], out var id))
+        public string GetCommandLineHelp()
         {
-            if (CharacterManager.Instance.GetAppellationsTemplate(id) == null)
-                character.SendMessage("[Title] <titleId> {0} doesn't exist in the database ...", id);
+            return "<titleId>";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "Sets your current title using <titleId>";
+        }
+
+        public void Execute(Character character, string[] args)
+        {
+            if (args.Length == 0)
+            {
+                character.SendMessage("[Title] " + CommandManager.CommandPrefix + "set_title <titleId>");
+                return;
+            }
+
+            if (uint.TryParse(args[0], out var id))
+            {
+                if (CharacterManager.Instance.GetAppellationsTemplate(id) == null)
+                    character.SendMessage("[Title] <titleId> {0} doesn't exist in the database ...", id);
+                else
+                    character.Appellations.Add(id);
+            }
             else
-                character.Appellations.Add(id);
+                character.SendMessage("|cFFFF0000[Title] Error parsing <titleId> !|r");
         }
-        else
-            character.SendMessage("|cFFFF0000[Title] Error parsing <titleId> !|r");
     }
 }

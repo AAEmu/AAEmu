@@ -6,51 +6,52 @@ using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
-
-public class DoodadFuncFishSchool : DoodadPhaseFuncTemplate
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    public uint NpcSpawnerId { get; set; }
-
-    public override bool Use(BaseUnit caster, Doodad owner)
+    public class DoodadFuncFishSchool : DoodadPhaseFuncTemplate
     {
-        _log.Debug("DoodadFuncFishSchool");
+        public uint NpcSpawnerId { get; set; }
 
-        var npcSpawnerNpc = NpcGameData.Instance.GetNpcSpawnerNpc(NpcSpawnerId);
-        var unitId = npcSpawnerNpc.MemberId;
-
-        var spawner = SpawnManager.Instance.GetNpcSpawner(NpcSpawnerId, (byte)caster.Transform.WorldId);
-        if (spawner.Count == 0)
+        public override bool Use(BaseUnit caster, Doodad owner)
         {
-            spawner.Add(new NpcSpawner());
-            //var npcSpawnersIds = new List<uint> { NpcSpawnerId };//NpcGameData.Instance.GetSpawnerIds(unitId);
-            spawner[0].UnitId = unitId;
-            spawner[0].Id = NpcSpawnerId;
-            spawner[0].NpcSpawnerIds = new List<uint> { NpcSpawnerId };
-            spawner[0].Template = NpcGameData.Instance.GetNpcSpawnerTemplate(NpcSpawnerId);
-            if (spawner[0].Template == null)
+            _log.Debug("DoodadFuncFishSchool");
+
+            var npcSpawnerNpc = NpcGameData.Instance.GetNpcSpawnerNpc(NpcSpawnerId);
+            var unitId = npcSpawnerNpc.MemberId;
+
+            var spawner = SpawnManager.Instance.GetNpcSpawner(NpcSpawnerId, (byte)caster.Transform.WorldId);
+            if (spawner.Count == 0)
             {
-                return false;
+                spawner.Add(new NpcSpawner());
+                //var npcSpawnersIds = new List<uint> { NpcSpawnerId };//NpcGameData.Instance.GetSpawnerIds(unitId);
+                spawner[0].UnitId = unitId;
+                spawner[0].Id = NpcSpawnerId;
+                spawner[0].NpcSpawnerIds = new List<uint> { NpcSpawnerId };
+                spawner[0].Template = NpcGameData.Instance.GetNpcSpawnerTemplate(NpcSpawnerId);
+                if (spawner[0].Template == null)
+                {
+                    return false;
+                }
+
+                spawner[0].Template.Npcs = new List<NpcSpawnerNpc>();
+                var nsn = NpcGameData.Instance.GetNpcSpawnerNpc(NpcSpawnerId);
+                if (nsn == null)
+                {
+                    return false;
+                }
+
+                spawner[0].Template.Npcs.Add(nsn);
+                spawner[0].Template.Npcs[0].MemberId = unitId;
+                spawner[0].Template.Npcs[0].UnitId = unitId;
+
             }
+            using var spawnPos = owner.Transform.Clone();
+            //spawnPos.World.AddDistanceToFront(3f);
+            //spawnPos.World.SetHeight(WorldManager.Instance.GetHeight(spawnPos));
+            spawner[0].Position = spawnPos.CloneAsSpawnPosition();
+            spawner[0].Spawn(0);
 
-            spawner[0].Template.Npcs = new List<NpcSpawnerNpc>();
-            var nsn = NpcGameData.Instance.GetNpcSpawnerNpc(NpcSpawnerId);
-            if (nsn == null)
-            {
-                return false;
-            }
-
-            spawner[0].Template.Npcs.Add(nsn);
-            spawner[0].Template.Npcs[0].MemberId = unitId;
-            spawner[0].Template.Npcs[0].UnitId = unitId;
-
+            return false;
         }
-        using var spawnPos = owner.Transform.Clone();
-        //spawnPos.World.AddDistanceToFront(3f);
-        //spawnPos.World.SetHeight(WorldManager.Instance.GetHeight(spawnPos));
-        spawner[0].Position = spawnPos.CloneAsSpawnPosition();
-        spawner[0].Spawn(0);
-
-        return false;
     }
 }

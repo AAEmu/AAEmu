@@ -1,23 +1,24 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCAppellationChangedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly uint _objId;
-    private readonly uint _appellationId;
-
-    public SCAppellationChangedPacket(uint objId, uint appellationId) : base(SCOffsets.SCAppellationChangedPacket, 1)
+    public class SCAppellationChangedPacket : GamePacket
     {
-        _objId = objId;
-        _appellationId = appellationId;
-    }
+        private readonly uint _objId;
+        private readonly uint _appellationId;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.WriteBc(_objId);
-        stream.Write(_appellationId);
-        return stream;
+        public SCAppellationChangedPacket(uint objId, uint appellationId) : base(SCOffsets.SCAppellationChangedPacket, 1)
+        {
+            _objId = objId;
+            _appellationId = appellationId;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(_objId);
+            stream.Write(_appellationId);
+            return stream;
+        }
     }
 }
