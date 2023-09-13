@@ -13,3 +13,4 @@ namespace AAEmu.Game.Models.Game.Char
         public int DownPrice { get; set; }
     }
 }
+

@@ -20,3 +20,4 @@ namespace AAEmu.Game.Models.Game.Animation
         public int CombatSyncTime { get; set; }
     }
 }
+

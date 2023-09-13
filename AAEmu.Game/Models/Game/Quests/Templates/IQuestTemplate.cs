@@ -15,3 +15,4 @@ namespace AAEmu.Game.Models.Game.Quests.Templates
         QuestComponent[] GetComponents(QuestComponentKind step);
     }
 }
+

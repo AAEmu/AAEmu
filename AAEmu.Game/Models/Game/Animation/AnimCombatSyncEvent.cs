@@ -8,3 +8,4 @@ namespace AAEmu.Game.Models.Game.Animation
         public ConcurrentDictionary<string, AnimDuration> Animations { get; set; } = new ConcurrentDictionary<string, AnimDuration>();
     }
 }
+

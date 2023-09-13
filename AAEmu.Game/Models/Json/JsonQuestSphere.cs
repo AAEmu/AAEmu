@@ -9,3 +9,4 @@
         public JsonPosition Position { get; set; }
     }
 }
+

@@ -8,3 +8,4 @@ namespace AAEmu.Game.Models.Game.Emotion
         public uint AnimId { get; set; }
     }
 }
+

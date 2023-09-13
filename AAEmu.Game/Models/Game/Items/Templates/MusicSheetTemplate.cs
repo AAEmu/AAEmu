@@ -7,3 +7,4 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public override Type ClassType => typeof(MusicSheetItem);
     }
 }
+

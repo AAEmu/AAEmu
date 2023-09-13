@@ -6,3 +6,4 @@ namespace AAEmu.Game.Models.Game.AI.v2.Params.WildBoar
         public uint HealthCondition { get; set; }
     }
 }
+

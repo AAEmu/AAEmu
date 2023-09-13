@@ -8,3 +8,4 @@ namespace AAEmu.Game.Models.Game.Static
         Collision = 3
     }
 }
+

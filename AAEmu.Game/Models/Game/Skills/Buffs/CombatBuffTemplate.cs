@@ -15,3 +15,4 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs
         public bool IsHealSpell { get; set; }
     }
 }
+

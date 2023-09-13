@@ -19,3 +19,4 @@
         CursedObsidianWeapon = 16
     }
 }
+

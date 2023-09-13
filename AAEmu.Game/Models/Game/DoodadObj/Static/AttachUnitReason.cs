@@ -17,3 +17,4 @@
         HousingSlaveBinding = 12
     }
 }
+

@@ -7,3 +7,4 @@ namespace AAEmu.Game.Models.Game.World
         Building = 3
     }
 }
+

@@ -148,3 +148,4 @@ namespace AAEmu.Game.Models.Game.Skills.Static
         UrkOwnQuestItemGroup = 0x8E,
     }
 }
+

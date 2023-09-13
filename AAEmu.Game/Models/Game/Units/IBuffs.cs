@@ -37,3 +37,4 @@ namespace AAEmu.Game.Models.Game.Units
         void TriggerRemoveOn(BuffRemoveOn on, uint value = 0);
     }
 }
+

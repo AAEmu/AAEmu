@@ -11,3 +11,4 @@ namespace AAEmu.Game.Models.Game.NPChar
         public PassiveBuffTemplate PassiveBuff { get; set; }
     }
 }
+

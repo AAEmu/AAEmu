@@ -26,3 +26,4 @@ namespace AAEmu.Game.Models.Game.Skills.Static
         KillAny = 22,
     }
 }
+

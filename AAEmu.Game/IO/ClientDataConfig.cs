@@ -8,3 +8,4 @@ namespace AAEmu.Game.IO
         public bool PreferClientHeightMap { get; set; } = true;
     }
 }
+

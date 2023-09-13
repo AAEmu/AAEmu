@@ -24,7 +24,6 @@ namespace AAEmu.Game.Core.Packets.G2C
         }
     }
 }
-
 /*
 v3 = 10;
 do

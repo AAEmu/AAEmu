@@ -73,3 +73,4 @@ namespace AAEmu.Game.Models.Game.Items.Actions
         UpdateChargeUseSkillTime = 19,
     }
 }
+

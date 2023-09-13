@@ -34,3 +34,4 @@ namespace AAEmu.Game.Core.Packets.G2C
          */
     }
 }
+

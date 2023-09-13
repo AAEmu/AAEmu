@@ -8,3 +8,4 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs
         public uint TimeReduction { get; set; }
     }
 }
+

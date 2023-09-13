@@ -25,3 +25,4 @@ namespace AAEmu.Game.Models.Game.Models
         public float KeelOffsetZ { get; set; }
     }
 }
+

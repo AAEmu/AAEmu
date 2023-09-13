@@ -6,3 +6,4 @@
         public float Distance { get; set; }
     }
 }
+

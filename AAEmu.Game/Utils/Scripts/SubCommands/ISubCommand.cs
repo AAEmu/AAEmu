@@ -15,3 +15,4 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands
         void PreExecute(ICharacter character, string triggerArg, string[] args);
     }
 }
+

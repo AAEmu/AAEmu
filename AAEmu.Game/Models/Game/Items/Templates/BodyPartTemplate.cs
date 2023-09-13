@@ -13,3 +13,4 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public uint SlotTypeId { get; set; }
     }
 }
+

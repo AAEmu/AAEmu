@@ -10,3 +10,4 @@
         public double WaitTimeEnd { get; set; }
     }
 }
+

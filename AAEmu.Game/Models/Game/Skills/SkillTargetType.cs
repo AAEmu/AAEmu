@@ -24,3 +24,4 @@ namespace AAEmu.Game.Models.Game.Skills
         Building = 19
     }
 }
+

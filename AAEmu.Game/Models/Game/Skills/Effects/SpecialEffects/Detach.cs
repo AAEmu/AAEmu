@@ -49,3 +49,4 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         ReAttach = 0xE
     }
 }
+

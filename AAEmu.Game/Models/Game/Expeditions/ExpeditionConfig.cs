@@ -14,3 +14,4 @@ namespace AAEmu.Game.Models.Game.Expeditions
         public byte PartyMemberCount { get; set; }
     }
 }
+

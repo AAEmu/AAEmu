@@ -9,3 +9,4 @@ namespace AAEmu.Game.Models.Game.TowerDefs
         public bool DespawnOnNextStep { get; set; }
     }
 }
+

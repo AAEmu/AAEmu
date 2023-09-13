@@ -7,3 +7,4 @@
         public int DoodadId { get; set; }
     }
 }
+

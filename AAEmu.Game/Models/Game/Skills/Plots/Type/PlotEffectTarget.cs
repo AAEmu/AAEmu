@@ -9,3 +9,4 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Type
         Location = 5,
     }
 }
+

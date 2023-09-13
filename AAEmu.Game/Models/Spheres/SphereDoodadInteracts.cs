@@ -7,3 +7,4 @@
         public uint DoodadFamilyId { get; set; }
     }
 }
+

@@ -15,3 +15,4 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj, Skill skill, SkillObject skillObject, DateTime time, int value1, int value2, int value3, int value4);
     }
 }
+

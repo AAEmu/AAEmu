@@ -9,3 +9,4 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public uint NpcId { get; set; }
     }
 }
+

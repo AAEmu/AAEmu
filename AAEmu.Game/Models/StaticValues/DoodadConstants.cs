@@ -6,3 +6,4 @@
         public const uint SaltwaterFishSchool = 6448;
     }
 }
+

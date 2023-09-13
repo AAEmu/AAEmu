@@ -131,3 +131,4 @@ namespace AAEmu.Game.Models.Game.AI.V2.Params
         public bool Strafe { get; set; }
     }
 }
+

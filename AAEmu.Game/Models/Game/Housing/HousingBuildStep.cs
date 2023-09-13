@@ -10,3 +10,4 @@ namespace AAEmu.Game.Models.Game.Housing
         public int NumActions { get; set; }
     }
 }
+

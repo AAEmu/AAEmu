@@ -17,3 +17,4 @@ namespace AAEmu.Game.Models.Game.Quests
         bool Use(ICharacter character, Quest quest, int objective);
     }
 }
+

@@ -7,3 +7,4 @@ namespace AAEmu.Game.Models.Game.Char.Templates
         public int UnitAttributeId { get; set; }
     }
 }
+

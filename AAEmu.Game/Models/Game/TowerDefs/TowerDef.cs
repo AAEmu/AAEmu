@@ -20,3 +20,4 @@ namespace AAEmu.Game.Models.Game.TowerDefs
         public List<TowerDefProg> Progs;
     }
 }
+

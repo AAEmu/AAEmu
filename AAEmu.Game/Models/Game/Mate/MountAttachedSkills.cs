@@ -10,3 +10,4 @@ namespace AAEmu.Game.Models.Game.Mate
         public uint SkillId { get; set; }
     }
 }
+

@@ -19,3 +19,4 @@ namespace AAEmu.Game.Models.Spheres
         public string ChangeSpeakerName { get; set; }
     }
 }
+

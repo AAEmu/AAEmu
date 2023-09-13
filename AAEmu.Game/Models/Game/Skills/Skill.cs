@@ -1023,7 +1023,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
             }
 
-AlwaysHit:
+        AlwaysHit:
             switch (damageType)
             {
                 case DamageType.Melee:

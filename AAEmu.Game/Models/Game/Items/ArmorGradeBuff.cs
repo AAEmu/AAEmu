@@ -8,3 +8,4 @@ namespace AAEmu.Game.Models.Game.Items
         public uint BuffId { get; set; }
     }
 }
+

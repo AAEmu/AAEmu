@@ -7,3 +7,4 @@
         public int QuestId { get; set; }
     }
 }
+

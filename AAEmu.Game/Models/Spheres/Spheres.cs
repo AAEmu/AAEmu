@@ -18,3 +18,4 @@
         public bool TeamMsgTr { get; set; }
     }
 }
+

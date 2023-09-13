@@ -9,3 +9,4 @@ namespace AAEmu.Game.Models.Game.Units
         IBuffs Buffs { get; set; }
     }
 }
+

@@ -9,3 +9,4 @@
         public const ushort GLRequestInfoPacket = 0x003;
     }
 }
+

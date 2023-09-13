@@ -13,3 +13,4 @@ namespace AAEmu.Game.Models.Game.Slaves
         public float Scale { get; set; }
     }
 }
+

@@ -7,3 +7,4 @@ namespace AAEmu.Game.GameData.Framework
         // TODO : Does this need anything ?
     }
 }
+

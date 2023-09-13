@@ -9,3 +9,4 @@ namespace AAEmu.Game.Models.Spheres
         public QuestTrigger QuestTriggerId { get; set; }
     }
 }
+

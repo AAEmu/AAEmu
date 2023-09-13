@@ -13,3 +13,4 @@ namespace AAEmu.Game.Models.Game.NPChar
         public float SkillUseParam2 { get; set; }
     }
 }
+

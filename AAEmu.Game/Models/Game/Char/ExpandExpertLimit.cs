@@ -9,3 +9,4 @@ namespace AAEmu.Game.Models.Game.Char
         public int ItemCount { get; set; }
     }
 }
+

@@ -8,3 +8,4 @@ namespace AAEmu.Game.Models.Stream
         public byte[] Data { get; set; }
     }
 }
+

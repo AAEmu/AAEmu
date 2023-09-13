@@ -8,3 +8,4 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Type
         PreviousTarget = 4
     }
 }
+

@@ -49,3 +49,4 @@ namespace AAEmu.Game.Models.Game.Formulas
         BlessUthstinExtendMaxStat = 45,
     };
 }
+

@@ -10,3 +10,4 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs
         Independent = 6
     }
 }
+

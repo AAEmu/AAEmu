@@ -10,3 +10,4 @@ namespace AAEmu.Game.Models.Game.Trading
         public bool VendorExist { get; set; }
     }
 }
+

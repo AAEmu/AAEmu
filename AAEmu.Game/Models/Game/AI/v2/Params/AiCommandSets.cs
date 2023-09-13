@@ -7,3 +7,4 @@
         public bool CanInteract { get; set; } // can_interact
     }
 }
+

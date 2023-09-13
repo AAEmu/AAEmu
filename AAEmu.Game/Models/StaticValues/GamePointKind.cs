@@ -6,3 +6,4 @@
         Vocation = 1
     }
 }
+

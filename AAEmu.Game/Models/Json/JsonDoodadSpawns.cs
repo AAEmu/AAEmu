@@ -10,3 +10,4 @@ namespace AAEmu.Game.Models.Json
         public JsonPosition Position { get; set; }
     }
 }
+

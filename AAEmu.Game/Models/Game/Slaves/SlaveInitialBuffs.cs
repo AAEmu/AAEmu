@@ -7,3 +7,4 @@
         public uint BuffId { get; set; }
     }
 }
+

@@ -12,3 +12,4 @@ namespace AAEmu.Game.Models.Game.Units
         void UseSkill(uint skillId, IUnit target);
     }
 }
+

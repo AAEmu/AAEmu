@@ -9,3 +9,4 @@
         public const ushort LGRequestInfoPacket = 0x003;
     }
 }
+

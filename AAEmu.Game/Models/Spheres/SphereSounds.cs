@@ -7,3 +7,4 @@
         public bool Broadcast { get; set; }
     }
 }
+

@@ -13,3 +13,4 @@ namespace AAEmu.Game.Models.Game.Skills.Static
         GlidingMoveSpeedFast = 9
     }
 }
+

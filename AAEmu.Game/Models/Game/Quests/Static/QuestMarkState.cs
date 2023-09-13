@@ -20,3 +20,4 @@
         ReadyLivelihood = 15
     }
 }
+

@@ -15,3 +15,4 @@
         public bool AllowMeshOnGarden { get; set; }
     }
 }
+

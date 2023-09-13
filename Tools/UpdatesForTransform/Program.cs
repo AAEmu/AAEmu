@@ -124,12 +124,12 @@ namespace UpdatesForTransform
             }
 
             if (newSpawners.Count != oldSpawners.Count)
-                throw new Exception(string.Format("Not everything was converted for file {0}",fileName));
+                throw new Exception(string.Format("Not everything was converted for file {0}", fileName));
 
             File.Move(fileName, oldFileName);
             OldConvertedFiles.Add(oldFileName);
 
-            var newJsonData = JsonConvert.SerializeObject(newSpawners,Formatting.Indented);
+            var newJsonData = JsonConvert.SerializeObject(newSpawners, Formatting.Indented);
             File.WriteAllText(fileName, newJsonData);
             // File.WriteAllText(fileName + ".new", newJsonData);
         }
@@ -144,7 +144,7 @@ namespace UpdatesForTransform
             // var searchpath = Path.Combine("..", "..", "..", "..", "..", "AAEmu.Game", "Data");
             searchPath = Path.GetFullPath(searchPath);
             Console.WriteLine("Change Source Path ? (leave blank to keep default folder)");
-            Console.Write("{0} : ",searchPath);
+            Console.Write("{0} : ", searchPath);
             var customPath = Console.ReadLine();
             if (!string.IsNullOrEmpty(customPath))
             {
@@ -162,9 +162,9 @@ namespace UpdatesForTransform
             Console.WriteLine();
             Console.WriteLine("Found {0} files found ({1} NPC, {2} Doodad and {3} transfers).", allFiles.Count, npc_spawns_jsons.Count, doodad_spawns_jsons.Count, transfer_spawns_jsons.Count);
 
-            foreach(var f in allFiles)
+            foreach (var f in allFiles)
             {
-                if (File.Exists(f.FullName+".old"))
+                if (File.Exists(f.FullName + ".old"))
                     OldConvertedFiles.Add(f.FullName);
             }
             if (OldConvertedFiles.Count > 0)
@@ -225,7 +225,7 @@ namespace UpdatesForTransform
                 Console.WriteLine("");
                 System.Threading.Thread.Sleep(1500);
             }
-            Console.Write("Do you want to delete the {0} old files ? (y/N) : ",OldConvertedFiles.Count);
+            Console.Write("Do you want to delete the {0} old files ? (y/N) : ", OldConvertedFiles.Count);
             var doDelete = Console.ReadLine();
             var deleted = 0;
             if (doDelete.ToLower().StartsWith("y"))
@@ -236,7 +236,7 @@ namespace UpdatesForTransform
                         File.Delete(oldFName);
                         deleted++;
                     }
-                    catch 
+                    catch
                     {
                         Console.WriteLine("Failed to delete: {0}", oldFName);
                     }

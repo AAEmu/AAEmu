@@ -7,3 +7,4 @@
         public uint MountSkillId { get; set; }
     }
 }
+

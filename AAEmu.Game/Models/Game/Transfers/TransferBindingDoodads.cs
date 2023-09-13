@@ -11,3 +11,4 @@ namespace AAEmu.Game.Models.Game.Transfers
         public uint DoodadId { get; set; }
     }
 }
+

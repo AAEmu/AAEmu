@@ -16,3 +16,4 @@ namespace AAEmu.Game.Models.Game.Skills
         public bool Synergy { get; set; }
     }
 }
+

@@ -30,3 +30,4 @@ namespace AAEmu.Game.Models
         None = 5
     }
 }
+

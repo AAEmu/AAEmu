@@ -10,3 +10,4 @@ namespace AAEmu.Game.Models.Game.Skills
         Others = 5
     }
 }
+

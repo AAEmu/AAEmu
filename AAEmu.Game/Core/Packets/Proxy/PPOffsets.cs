@@ -27,3 +27,4 @@
         public const ushort FastPongPacket = 0x016;
     }
 }
+

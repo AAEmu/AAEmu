@@ -8,3 +8,4 @@
         public uint PassiveBuffId { get; set; }
     }
 }
+

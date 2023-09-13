@@ -74,3 +74,4 @@ namespace AAEmu.Login.Core.Packets.L2C
         */
     }
 }
+

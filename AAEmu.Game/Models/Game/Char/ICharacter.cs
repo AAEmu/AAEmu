@@ -35,3 +35,4 @@ namespace AAEmu.Game.Models.Game.Char
         public void SetGeoDataMode(bool value);
     }
 }
+

@@ -20,3 +20,4 @@
         public const ushort TCUccComplexCheckValidPacket = 0x00f;
     }
 }
+

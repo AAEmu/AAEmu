@@ -30,3 +30,4 @@ namespace AAEmu.Game.Core.Packets.G2C
         KickByInvalidDoodadInteraction = 0x3,
     }
 }
+

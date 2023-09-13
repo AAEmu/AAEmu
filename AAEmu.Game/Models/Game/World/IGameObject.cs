@@ -10,3 +10,4 @@ namespace AAEmu.Game.Models.Game.World
         void BroadcastPacket(GamePacket sCOneUnitMovementPacket, bool self);
     }
 }
+

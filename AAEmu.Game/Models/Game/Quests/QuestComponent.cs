@@ -25,3 +25,4 @@ namespace AAEmu.Game.Models.Game.Quests
         public uint BuffId { get; set; }
     }
 }
+

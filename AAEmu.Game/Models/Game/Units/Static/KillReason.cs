@@ -24,3 +24,4 @@ namespace AAEmu.Game.Models.Game.Units.Static
         SiegeEnd = 0x13,
     }
 }
+

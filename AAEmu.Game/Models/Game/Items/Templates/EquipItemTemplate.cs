@@ -16,3 +16,4 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public uint EquipItemSetId { get; set; }
     }
 }
+

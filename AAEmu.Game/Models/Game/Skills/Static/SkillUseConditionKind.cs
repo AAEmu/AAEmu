@@ -12,3 +12,4 @@ namespace AAEmu.Game.Models.Game.Skills.Static
         OnAlert = 7
     }
 }
+

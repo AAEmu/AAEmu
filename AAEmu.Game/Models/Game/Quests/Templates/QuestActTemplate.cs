@@ -11,3 +11,4 @@ namespace AAEmu.Game.Models.Game.Quests.Templates
         public abstract bool Use(ICharacter character, Quest quest, int objective);
     }
 }
+

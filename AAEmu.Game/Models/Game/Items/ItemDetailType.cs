@@ -17,3 +17,4 @@ namespace AAEmu.Game.Models.Game.Items
         TypeMax = 12,
     }
 }
+

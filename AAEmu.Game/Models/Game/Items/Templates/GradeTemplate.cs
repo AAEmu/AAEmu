@@ -24,3 +24,4 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public int CurrencyId { get; set; }
     }
 }
+

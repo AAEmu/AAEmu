@@ -1,4 +1,6 @@
-﻿namespace AAEmu.Commons.Network
+﻿using NLog;
+
+namespace AAEmu.Commons.Network
 {
     public abstract class PacketBase<T> : PacketMarshaler
     {

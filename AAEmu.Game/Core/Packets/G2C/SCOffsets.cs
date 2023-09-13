@@ -521,3 +521,4 @@
         public const ushort SCLevelRestrictionConfigPacket = 0x217;
     }
 }
+

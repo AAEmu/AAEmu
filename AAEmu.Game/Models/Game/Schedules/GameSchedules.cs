@@ -33,3 +33,4 @@
         public int EndTimeMin { get; set; }
     }
 }
+

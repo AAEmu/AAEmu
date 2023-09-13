@@ -5,3 +5,4 @@ namespace AAEmu.Game.Models.Game.Models
         public uint Id { get; set; }
     }
 }
+

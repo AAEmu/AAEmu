@@ -11,3 +11,4 @@
         DailyCompleted = 6
     }
 }
+

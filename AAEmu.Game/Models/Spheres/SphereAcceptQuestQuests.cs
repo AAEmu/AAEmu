@@ -7,3 +7,4 @@
         public uint QuestId { get; set; }
     }
 }
+

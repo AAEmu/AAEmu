@@ -38,3 +38,4 @@ namespace AAEmu.Game.Models.Game.Char
         Exploration = 34
     }
 }
+

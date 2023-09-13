@@ -29,3 +29,4 @@
         public float WaterResistance { get; set; }
     }
 }
+

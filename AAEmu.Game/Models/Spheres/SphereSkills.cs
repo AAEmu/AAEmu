@@ -8,3 +8,4 @@
         public uint MinRate { get; set; }
     }
 }
+

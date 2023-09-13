@@ -15,3 +15,4 @@ namespace AAEmu.Game.Models.Game.Skills.Static
         HighAbilityResourceCost = 14
     }
 }
+

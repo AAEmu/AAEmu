@@ -255,7 +255,7 @@ namespace AAEmu.Game.Core.Managers
                 if (duel.DuelFlag != null)
                 {
                     duel.DuelFlag.Delete(); //Remove Flag
-                                            // Remove Flag
+                    // Remove Flag
                     duel.SendPacketsBoth(new SCDoodadRemovedPacket(duel.DuelFlag.ObjId));
                 }
 

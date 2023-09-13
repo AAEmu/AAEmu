@@ -18,3 +18,4 @@
         public const ushort CARequestReconnectPacket = 0x00e;
     }
 }
+

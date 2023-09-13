@@ -11,3 +11,4 @@ namespace AAEmu.Game.Models.Game.AI.v2.Params
         public string Param2 { get; set; } // param2
     }
 }
+

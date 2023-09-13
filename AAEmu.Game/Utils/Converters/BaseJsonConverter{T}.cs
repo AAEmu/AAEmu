@@ -18,3 +18,4 @@ namespace AAEmu.Game.Utils.Converters
         public abstract void WriteJson(JsonWriter writer, T value, JsonSerializer serializer);
     }
 }
+
