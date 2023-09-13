@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.DB;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Tasks.LaborPower;
 
 using NLog;
@@ -55,66 +59,86 @@ namespace AAEmu.Game.Core.Managers
         }
         public void LaborPowerTick()
         {
-            var connections = GameConnectionTable.Instance.GetConnections();
-            foreach (var connection in connections)
+            using (var connection = MySQL.CreateConnection())
             {
-                foreach (var character in connection.Characters.Where(character => character.Value.IsOnline))
+                var characterIds = new List<uint>();
+                using (var command = connection.CreateCommand())
                 {
-                    if (character.Value.LaborPower >= UpLimit)
+                    command.Connection = connection;
+                    command.CommandText = "SELECT id FROM characters WHERE `deleted`=0";
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                            characterIds.Add(reader.GetUInt32("id"));
+                    }
+                }
+
+                foreach (var id in characterIds)
+                {
+                    var character = Character.Load(connection, id);
+
+                    var onlineCharacter = WorldManager.Instance.GetCharacterById(character.Id);
+                    if (onlineCharacter != null)
+                        character = onlineCharacter;
+
+                    if (character.LaborPower >= UpLimit)
                     {
                         // _log.Warn("No need to increase Labor Point, since they reached the limit {0} for Char: {1}", UpLimit, character.Value.Name);
                         continue;
                     }
 
-                    if (character.Value.LaborPower < 0)
+                    if (character.LaborPower < 0)
                     {
-                        _log.Warn("Char: {1} has negative {0} labor points, reseting to 0.", character.Value.LaborPower, character.Value.Name);
-                        character.Value.ChangeLabor((short)(character.Value.LaborPower * -1), 0);
-                        continue;
+                        _log.Warn("Char: {1} has negative {0} labor points, reseting to 0.", character.LaborPower, character.Name);
+                        character.ChangeLabor((short)(character.LaborPower * -1), 0);
                     }
 
-                    // Offline Regeneration: 10 Labor Points every 5 minutes
-                    if ((DateTime.UtcNow - character.Value.LaborPowerModified).TotalMinutes > Delay)
+                    if (character.IsOnline)
                     {
-                        var needAddOfflineLp = (DateTime.UtcNow - character.Value.LaborPowerModified).TotalMinutes / Delay * LpChangePremium;
-                        var calculatedOfflineLp = character.Value.LaborPower + needAddOfflineLp;
-                        if (needAddOfflineLp > short.MaxValue)
+                        // Online Regeneration: 10 Labor Points every 5 minutes
+                        var laborAmountUntilUpLimit = (short)(UpLimit - character.LaborPower);
+                        if (laborAmountUntilUpLimit >= LpChangePremium)
                         {
-                            needAddOfflineLp = short.MaxValue;
+                            _log.Debug("Character {1} gained {0} Labor Point(s)", LpChangePremium, character.Name);
+                            character.LaborPowerModified = DateTime.UtcNow;
+                            character.ChangeLabor(LpChangePremium, 0);
                         }
-                        if (calculatedOfflineLp <= UpLimit)
+                        else if (laborAmountUntilUpLimit > 0 && laborAmountUntilUpLimit < LpChangePremium)
                         {
-                            character.Value.LaborPowerModified = DateTime.UtcNow;
-                            character.Value.ChangeLabor((short)needAddOfflineLp, 0);
-                            _log.Debug("Character {1} gained {0} offline Labor Point(s)", needAddOfflineLp, character.Value.Name);
+                            _log.Debug("Character {1} gained {0} Labor Point(s)", laborAmountUntilUpLimit, character.Name);
+                            character.LaborPowerModified = DateTime.UtcNow;
+                            character.ChangeLabor(laborAmountUntilUpLimit, 0);
                         }
-                        else
-                        {
-                            var valueLp = (short)(UpLimit - character.Value.LaborPower);
-                            _log.Debug("Character {1} gained {0} offline Labor Point(s)", valueLp, character.Value.Name);
-                            character.Value.LaborPowerModified = DateTime.UtcNow;
-                            character.Value.ChangeLabor(valueLp, 0);
-                        }
-                        continue;
                     }
-
-                    // Online Regeneration: 10 Labor Points every 5 minutes
-                    var laborAmountUntilUpLimit = (short)(UpLimit - character.Value.LaborPower);
-                    if (laborAmountUntilUpLimit >= LpChangePremium)
+                    else
                     {
-                        _log.Debug("Character {1} gained {0} Labor Point(s)", LpChangePremium, character.Value.Name);
-                        character.Value.LaborPowerModified = DateTime.UtcNow;
-                        character.Value.ChangeLabor(LpChangePremium, 0);
-                    }
-                    else if (laborAmountUntilUpLimit > 0 && laborAmountUntilUpLimit < LpChangePremium)
-                    {
-                        _log.Debug("Character {1} gained {0} Labor Point(s)", laborAmountUntilUpLimit, character.Value.Name);
-                        character.Value.LaborPowerModified = DateTime.UtcNow;
-                        character.Value.ChangeLabor(laborAmountUntilUpLimit, 0);
+                        // Offline Regeneration: 10 Labor Points every 5 minutes
+                        if ((DateTime.UtcNow - character.LaborPowerModified).TotalMinutes > Delay)
+                        {
+                            var needAddOfflineLp = (DateTime.UtcNow - character.LaborPowerModified).TotalMinutes / Delay * LpChangePremium;
+                            var calculatedOfflineLp = character.LaborPower + needAddOfflineLp;
+                            if (needAddOfflineLp > short.MaxValue)
+                            {
+                                needAddOfflineLp = short.MaxValue;
+                            }
+                            if (calculatedOfflineLp <= UpLimit)
+                            {
+                                character.LaborPowerModified = DateTime.UtcNow;
+                                character.ChangeLabor((short)needAddOfflineLp, 0);
+                                _log.Debug("Character {1} gained {0} offline Labor Point(s)", needAddOfflineLp, character.Name);
+                            }
+                            else
+                            {
+                                var valueLp = (short)(UpLimit - character.LaborPower);
+                                _log.Debug("Character {1} gained {0} offline Labor Point(s)", valueLp, character.Name);
+                                character.LaborPowerModified = DateTime.UtcNow;
+                                character.ChangeLabor(valueLp, 0);
+                            }
+                        }
+                        character.SaveDirectlyToDatabase();
                     }
                 }
             }
         }
-
     }
 }
