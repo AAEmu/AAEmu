@@ -81,15 +81,17 @@ namespace AAEmu.Game.Core.Managers
                     if (onlineCharacter != null)
                         character = onlineCharacter;
 
-                    if (character.LaborPower >= UpLimit)
+                    if (character.LaborPower > UpLimit)
                     {
                         // _log.Warn("No need to increase Labor Point, since they reached the limit {0} for Char: {1}", UpLimit, character.Value.Name);
-                        continue;
+                        character.LaborPowerModified = DateTime.UtcNow;
+                        character.ChangeLabor((short)(UpLimit - character.LaborPower), 0, false);
                     }
 
                     if (character.LaborPower < 0)
                     {
                         _log.Warn("Char: {1} has negative {0} labor points, reseting to 0.", character.LaborPower, character.Name);
+                        character.LaborPowerModified = DateTime.UtcNow;
                         character.ChangeLabor((short)(character.LaborPower * -1), 0);
                     }
 
