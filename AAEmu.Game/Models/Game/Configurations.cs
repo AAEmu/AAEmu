@@ -48,12 +48,4 @@ namespace AAEmu.Game.Models.Game
         public double RatioRegenTickMinutes { get; set; } = 60f;
     }
 
-    public class LabowPowerConfig
-    {
-        public short LpChangePremium { get; set; } = 10;
-        public short LpChange { get; set; } = 5;
-        public short UpLimit { get; set; } = 5000;
-        public double Delay { get; set; } = 5;
-    }
-
 }

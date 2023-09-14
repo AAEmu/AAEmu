@@ -1383,7 +1383,7 @@ namespace AAEmu.Game.Models.Game.Char
         }
 
 
-        public void ChangeLabor(short change, int actabilityId, bool changeExp = true)
+        public void ChangeLabor(short change, int actabilityId)
         {
             var actabilityChange = 0;
             byte actabilityStep = 0;
@@ -1395,7 +1395,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             // Only grant xp if consuming labor
-            if (change < 0 && changeExp)
+            if (change < 0)
             {
                 var parameters = new Dictionary<string, double>();
                 parameters.Add("labor_power", -change);
