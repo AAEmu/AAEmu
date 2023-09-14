@@ -1,0 +1,8 @@
+{
+	"LabowPower": {
+		"LpChangePremium": 10,
+		"LpChange": 5,
+		"UpLimit": 5000,
+		"Delay": 5
+	}
+}

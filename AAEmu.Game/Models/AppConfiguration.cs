@@ -26,6 +26,7 @@ namespace AAEmu.Game.Models
         public AccountConfig Account { get; set; }
         public ClientDataConfig ClientData { get; set; } = new ClientDataConfig();
         public SpecialtyConfig Specialty { get; set; } = new SpecialtyConfig();
+        public LabowPowerConfig LabowPower { get; set; } = new LabowPowerConfig();
 
         public class NetworkConfig
         {

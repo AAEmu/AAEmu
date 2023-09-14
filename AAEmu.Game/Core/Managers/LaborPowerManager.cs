@@ -6,6 +6,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Tasks.LaborPower;
 
@@ -33,10 +34,10 @@ namespace AAEmu.Game.Core.Managers
 
         //private List<LaborPower> _onlineChar;
         //private List<LaborPower> _offlineChar;
-        private const short LpChangePremium = 10; // TODO in config
-        private const short LpChange = 5;
-        private const short UpLimit = 5000;
-        private const double Delay = 5; // min
+        //private const short LpChangePremium = 10; // TODO in config
+        //private const short LpChange = 5;
+        //private const short UpLimit = 5000;
+        //private const double Delay = 5; // min
 
         public LaborPowerManager()
         {
@@ -55,7 +56,7 @@ namespace AAEmu.Game.Core.Managers
             _log.Debug("LaborPowerTickStart: Started");
 
             var lpTickStartTask = new LaborPowerTickStartTask();
-            TaskManager.Instance.Schedule(lpTickStartTask, TimeSpan.FromMinutes(Delay), TimeSpan.FromMinutes(Delay));
+            TaskManager.Instance.Schedule(lpTickStartTask, TimeSpan.FromMinutes(AppConfiguration.Instance.LabowPower.Delay), TimeSpan.FromMinutes(AppConfiguration.Instance.LabowPower.Delay));
         }
         public void LaborPowerTick()
         {
@@ -81,11 +82,11 @@ namespace AAEmu.Game.Core.Managers
                     if (onlineCharacter != null)
                         character = onlineCharacter;
 
-                    if (character.LaborPower > UpLimit)
+                    if (character.LaborPower > AppConfiguration.Instance.LabowPower.UpLimit)
                     {
                         // _log.Warn("No need to increase Labor Point, since they reached the limit {0} for Char: {1}", UpLimit, character.Value.Name);
                         character.LaborPowerModified = DateTime.UtcNow;
-                        character.ChangeLabor((short)(UpLimit - character.LaborPower), 0, false);
+                        character.ChangeLabor((short)(AppConfiguration.Instance.LabowPower.UpLimit - character.LaborPower), 0, false);
                     }
 
                     if (character.LaborPower < 0)
@@ -98,14 +99,14 @@ namespace AAEmu.Game.Core.Managers
                     if (character.IsOnline)
                     {
                         // Online Regeneration: 10 Labor Points every 5 minutes
-                        var laborAmountUntilUpLimit = (short)(UpLimit - character.LaborPower);
-                        if (laborAmountUntilUpLimit >= LpChangePremium)
+                        var laborAmountUntilUpLimit = (short)(AppConfiguration.Instance.LabowPower.UpLimit - character.LaborPower);
+                        if (laborAmountUntilUpLimit >= AppConfiguration.Instance.LabowPower.LpChangePremium)
                         {
-                            _log.Debug("Character {1} gained {0} Labor Point(s)", LpChangePremium, character.Name);
+                            _log.Debug("Character {1} gained {0} Labor Point(s)", AppConfiguration.Instance.LabowPower.LpChangePremium, character.Name);
                             character.LaborPowerModified = DateTime.UtcNow;
-                            character.ChangeLabor(LpChangePremium, 0);
+                            character.ChangeLabor(AppConfiguration.Instance.LabowPower.LpChangePremium, 0);
                         }
-                        else if (laborAmountUntilUpLimit > 0 && laborAmountUntilUpLimit < LpChangePremium)
+                        else if (laborAmountUntilUpLimit > 0 && laborAmountUntilUpLimit < AppConfiguration.Instance.LabowPower.LpChangePremium)
                         {
                             _log.Debug("Character {1} gained {0} Labor Point(s)", laborAmountUntilUpLimit, character.Name);
                             character.LaborPowerModified = DateTime.UtcNow;
@@ -115,15 +116,16 @@ namespace AAEmu.Game.Core.Managers
                     else
                     {
                         // Offline Regeneration: 10 Labor Points every 5 minutes
-                        if ((DateTime.UtcNow - character.LaborPowerModified).TotalMinutes > Delay)
+                        if ((DateTime.UtcNow - character.LaborPowerModified).TotalMinutes > AppConfiguration.Instance.LabowPower.Delay)
                         {
-                            var needAddOfflineLp = (DateTime.UtcNow - character.LaborPowerModified).TotalMinutes / Delay * LpChangePremium;
+                            var needAddOfflineLp = (DateTime.UtcNow - character.LaborPowerModified).TotalMinutes / 
+                                AppConfiguration.Instance.LabowPower.Delay * AppConfiguration.Instance.LabowPower.LpChangePremium;
                             var calculatedOfflineLp = character.LaborPower + needAddOfflineLp;
                             if (needAddOfflineLp > short.MaxValue)
                             {
                                 needAddOfflineLp = short.MaxValue;
                             }
-                            if (calculatedOfflineLp <= UpLimit)
+                            if (calculatedOfflineLp <= AppConfiguration.Instance.LabowPower.UpLimit)
                             {
                                 character.LaborPowerModified = DateTime.UtcNow;
                                 character.ChangeLabor((short)needAddOfflineLp, 0);
@@ -131,7 +133,7 @@ namespace AAEmu.Game.Core.Managers
                             }
                             else
                             {
-                                var valueLp = (short)(UpLimit - character.LaborPower);
+                                var valueLp = (short)(AppConfiguration.Instance.LabowPower.UpLimit - character.LaborPower);
                                 _log.Debug("Character {1} gained {0} offline Labor Point(s)", valueLp, character.Name);
                                 character.LaborPowerModified = DateTime.UtcNow;
                                 character.ChangeLabor(valueLp, 0);
