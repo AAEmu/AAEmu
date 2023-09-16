@@ -12079,6 +12079,24 @@
     "FuncGroupId": 10657
   },
   {
+    "UnitId": 971, // Archeum Tree Sapling
+    "Position": {
+      "X": 3558.9,
+      "Y": 4435.2,
+      "Z": 105.8,
+      "Yaw": -90.0
+    }
+  },
+  {
+    "UnitId": 1512, // Archeum Tree Sapling
+    "Position": {
+      "X": 3554.1,
+      "Y": 4433.1,
+      "Z": 105.8,
+      "Yaw": 20.0
+    }
+  },
+  {
     "UnitId": 7133,
     "Position": {
       "X": 4384.372,
