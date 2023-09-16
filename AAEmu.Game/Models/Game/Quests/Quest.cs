@@ -21,6 +21,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Quests;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Quests;
 
@@ -1228,6 +1229,18 @@ EndLoop:
                             }
                             break;
                         }
+                    case "QuestActObjAggro":
+                        {
+                            // For help kill quests, trigger quest end phase
+                            // TODO: Less hacky way of doing this?
+                            var template = act.GetTemplate<QuestActObjAggro>();
+                            if (MathUtil.CalculateDistance(Owner.Transform.World.Position, npc.Transform.World.Position) <= template.Range)
+                            {
+                                Step = QuestComponentKind.Ready;
+                                Update();
+                            }
+                            break;
+                        }
                 }
                 _log.Warn($"[Quest] OnKill: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, checking {checking}, act.DetailType {act.DetailType}");
             }
@@ -1235,6 +1248,43 @@ EndLoop:
         Update(checking);
     }
 
+    /// <summary>
+    /// Used by "contribute to help kill a npc" type of quests
+    /// </summary>
+    /// <param name="npc"></param>
+    public void OnAggro(Npc npc)
+    {
+        //var checking = false;
+        Step = QuestComponentKind.Progress;
+        var components = Template.GetComponents(Step);
+        if (components.Length == 0)
+            return;
+
+        for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
+        {
+            var acts = _questManager.GetActs(components[componentIndex].Id);
+            foreach (var act in acts)
+            {
+                switch (act.DetailType)
+                {
+                    case "QuestActObjAggro":
+                        {
+                            var template = act.GetTemplate<QuestActObjAggro>();
+                            if (MathUtil.CalculateDistance(Owner.Transform.World.Position, npc.Transform.World.Position) <= template.Range)
+                            {
+                                //checking = true;
+                                Objectives[componentIndex]++;
+                            }
+                            break;
+                        }
+                }
+                _log.Warn($"[Quest] OnAggro: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, act.DetailType {act.DetailType}");
+            }
+        }
+        //Update(checking);
+    }
+
+    
     public void OnItemGather(Item item, int count)
     {
         var checking = false;

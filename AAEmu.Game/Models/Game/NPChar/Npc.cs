@@ -739,6 +739,7 @@ public class Npc : Unit
 
     public void AddUnitAggro(AggroKind kind, Unit unit, int amount)
     {
+        var player = unit as Character; 
         amount = (int)(amount * (unit.AggroMul / 100.0f));
         amount = (int)(amount * (IncomingAggroMul / 100.0f));
 
@@ -755,7 +756,18 @@ public class Npc : Unit
                 unit.Events.OnHealed += OnAbuserHealed;
                 unit.Events.OnDeath += OnAbuserDied;
             }
+            
+            // TODO: make this party/raid wide? Take into account pets/slaves?
+            // If there is a quest starter attached to this NPC, start it when unit gets added for the first time
+            // to the aggro list
+            if ((Template.EngageCombatGiveQuestId > 0) && player is not null)
+            {
+                if (!player.Quests.IsQuestComplete(Template.EngageCombatGiveQuestId) && !player.Quests.HasQuest(Template.EngageCombatGiveQuestId))
+                    player.Quests.AddStart(Template.EngageCombatGiveQuestId);
+            }
         }
+
+        player?.Quests.OnAggro(this);
     }
 
     public void ClearAggroOfUnit(Unit unit)

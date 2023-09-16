@@ -75,7 +75,7 @@ public class CharacterQuests
     }
 
     /// <summary>
-    /// Метод предназначен для вызова из скрита QuestCmd, команда /quest add (The method is intended to be called from the QuestCmd script, command /quest add) <questId>
+    /// Метод предназначен для вызова из скрита QuestCmd, команда /quest add (The method is intended to be called from the QuestCmd script, command /quest add) questId
     /// </summary>
     /// <param name="questId"></param>
     public void AddStart(uint questId)
@@ -246,8 +246,14 @@ public class CharacterQuests
 
     public void OnKill(Npc npc)
     {
-        foreach (var quest in Quests.Values.ToList())
+        foreach (var quest in Quests.Values)
             quest.OnKill(npc);
+    }
+
+    public void OnAggro(Npc npc)
+    {
+        foreach (var quest in Quests.Values)
+            quest.OnAggro(npc);
     }
 
     /// <summary>
