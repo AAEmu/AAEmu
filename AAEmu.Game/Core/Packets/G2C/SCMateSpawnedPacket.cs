@@ -2,40 +2,39 @@
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Core.Packets.G2C
+namespace AAEmu.Game.Core.Packets.G2C;
+
+public class SCMateSpawnedPacket : GamePacket
 {
-    public class SCMateSpawnedPacket : GamePacket
+    private readonly Mate _mate;
+
+    public SCMateSpawnedPacket(Mate mate) : base(SCOffsets.SCMateSpawnedPacket, 1)
     {
-        private readonly Mate _mate;
+        _mate = mate;
+    }
 
-        public SCMateSpawnedPacket(Mate mate) : base(SCOffsets.SCMateSpawnedPacket, 1)
+    public override PacketStream Write(PacketStream stream)
+    {
+        stream.Write(_mate.TlId);
+
+        stream.Write(_mate.Id);
+        stream.Write(_mate.ItemId);
+        stream.Write(_mate.UserState);
+        stream.Write(_mate.Experience);
+        stream.Write(_mate.Mileage);
+        stream.Write(_mate.SpawnDelayTime);
+
+        // TODO - max 10 skills
+        foreach (var skill in _mate.Skills)
         {
-            _mate = mate;
+            stream.Write(skill);
         }
 
-        public override PacketStream Write(PacketStream stream)
+        for (var i = 0; i < 10 - _mate.Skills.Count; i++)
         {
-            stream.Write(_mate.TlId);
-
-            stream.Write(_mate.Id);
-            stream.Write(_mate.ItemId);
-            stream.Write(_mate.UserState);
-            stream.Write(_mate.Experience);
-            stream.Write(_mate.Mileage);
-            stream.Write(_mate.SpawnDelayTime);
-
-            // TODO - max 10 skills
-            foreach (var skill in _mate.Skills)
-            {
-                stream.Write(skill);
-            }
-
-            for (var i = 0; i < 10 - _mate.Skills.Count; i++)
-            {
-                stream.Write(0);
-            }
-
-            return stream;
+            stream.Write(0);
         }
+
+        return stream;
     }
 }

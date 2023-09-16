@@ -1,166 +1,165 @@
 ﻿using System;
 using AAEmu.Commons.Network;
 
-namespace AAEmu.Game.Models.Game.Skills
+namespace AAEmu.Game.Models.Game.Skills;
+
+public enum SkillCasterType : byte
 {
-    public enum SkillCasterType : byte
+    Unit = 0,
+    Unk1 = 1, // Doodad
+    Item = 2,
+    Mount = 3, // TODO mountSkillType
+    Doodad = 4 // Gimmick
+}
+
+public abstract class SkillCaster : PacketMarshaler
+{
+    public SkillCasterType Type { get; set; }
+    public uint ObjId { get; set; }
+
+    public override void Read(PacketStream stream)
     {
-        Unit = 0,
-        Unk1 = 1, // Doodad
-        Item = 2,
-        Mount = 3, // TODO mountSkillType
-        Doodad = 4 // Gimmick
+        ObjId = stream.ReadBc();
     }
 
-    public abstract class SkillCaster : PacketMarshaler
+    public override PacketStream Write(PacketStream stream)
     {
-        public SkillCasterType Type { get; set; }
-        public uint ObjId { get; set; }
-
-        public override void Read(PacketStream stream)
-        {
-            ObjId = stream.ReadBc();
-        }
-
-        public override PacketStream Write(PacketStream stream)
-        {
-            stream.Write((byte) Type);
-            stream.WriteBc(ObjId);
-            return stream;
-        }
-
-        public static SkillCaster GetByType(SkillCasterType type)
-        {
-            SkillCaster obj;
-            switch (type)
-            {
-                case SkillCasterType.Unit:
-                    obj = new SkillCasterUnit();
-                    break;
-                case SkillCasterType.Unk1:
-                    obj = new SkillCasterUnk1();
-                    break;
-                case SkillCasterType.Item:
-                    obj = new SkillItem();
-                    break;
-                case SkillCasterType.Mount:
-                    obj = new SkillCasterMount();
-                    break;
-                case SkillCasterType.Doodad:
-                    obj = new SkillDoodad();
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
-            }
-
-            obj.Type = type;
-            return obj;
-        }
+        stream.Write((byte)Type);
+        stream.WriteBc(ObjId);
+        return stream;
     }
 
-    public class SkillCasterUnit : SkillCaster
+    public static SkillCaster GetByType(SkillCasterType type)
     {
-        public SkillCasterUnit()
+        SkillCaster obj;
+        switch (type)
         {
+            case SkillCasterType.Unit:
+                obj = new SkillCasterUnit();
+                break;
+            case SkillCasterType.Unk1:
+                obj = new SkillCasterUnk1();
+                break;
+            case SkillCasterType.Item:
+                obj = new SkillItem();
+                break;
+            case SkillCasterType.Mount:
+                obj = new SkillCasterMount();
+                break;
+            case SkillCasterType.Doodad:
+                obj = new SkillDoodad();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
 
-        public SkillCasterUnit(uint objId)
-        {
-            Type = SkillCasterType.Unit;
-            ObjId = objId;
-        }
+        obj.Type = type;
+        return obj;
+    }
+}
+
+public class SkillCasterUnit : SkillCaster
+{
+    public SkillCasterUnit()
+    {
     }
 
-    public class SkillCasterUnk1 : SkillCaster
+    public SkillCasterUnit(uint objId)
     {
-        public SkillCasterUnk1()
-        {
-        }
+        Type = SkillCasterType.Unit;
+        ObjId = objId;
+    }
+}
 
-        public SkillCasterUnk1(uint objId)
-        {
-            Type = SkillCasterType.Unk1;
-            ObjId = objId;
-        }
+public class SkillCasterUnk1 : SkillCaster
+{
+    public SkillCasterUnk1()
+    {
     }
 
-    public class SkillItem : SkillCaster
+    public SkillCasterUnk1(uint objId)
     {
-        public ulong ItemId { get; set; }
-        public uint ItemTemplateId { get; set; }
-        public byte Type1 { get; set; }
-        public uint Type2 { get; set; }
+        Type = SkillCasterType.Unk1;
+        ObjId = objId;
+    }
+}
 
-        public SkillItem()
-        {
-        }
+public class SkillItem : SkillCaster
+{
+    public ulong ItemId { get; set; }
+    public uint ItemTemplateId { get; set; }
+    public byte Type1 { get; set; }
+    public uint Type2 { get; set; }
 
-        public SkillItem(uint objId, ulong itemId, uint itemTemplateId)
-        {
-            Type = SkillCasterType.Item;
-            ObjId = objId;
-            ItemId = itemId;
-            ItemTemplateId = itemTemplateId;
-        }
-
-        public override void Read(PacketStream stream)
-        {
-            base.Read(stream);
-            ItemId = stream.ReadUInt64();
-            ItemTemplateId = stream.ReadUInt32();
-            Type1 = stream.ReadByte();
-            Type2 = stream.ReadUInt32();
-        }
-
-        public override PacketStream Write(PacketStream stream)
-        {
-            base.Write(stream);
-            stream.Write(ItemId);
-            stream.Write(ItemTemplateId);
-            stream.Write(Type1);
-            stream.Write(Type2);
-            return stream;
-        }
+    public SkillItem()
+    {
     }
 
-    public class SkillCasterMount : SkillCaster
+    public SkillItem(uint objId, ulong itemId, uint itemTemplateId)
     {
-        public uint MountSkillTemplateId { get; set; }
-
-        public SkillCasterMount()
-        {
-        }
-
-        public SkillCasterMount(uint objId)
-        {
-            Type = SkillCasterType.Mount;
-            ObjId = objId;
-        }
-
-        public override void Read(PacketStream stream)
-        {
-            base.Read(stream);
-            MountSkillTemplateId = stream.ReadUInt32();
-        }
-
-        public override PacketStream Write(PacketStream stream)
-        {
-            base.Write(stream);
-            stream.Write(MountSkillTemplateId);
-            return stream;
-        }
+        Type = SkillCasterType.Item;
+        ObjId = objId;
+        ItemId = itemId;
+        ItemTemplateId = itemTemplateId;
     }
 
-    public class SkillDoodad : SkillCaster
+    public override void Read(PacketStream stream)
     {
-        public SkillDoodad()
-        {
-        }
+        base.Read(stream);
+        ItemId = stream.ReadUInt64();
+        ItemTemplateId = stream.ReadUInt32();
+        Type1 = stream.ReadByte();
+        Type2 = stream.ReadUInt32();
+    }
 
-        public SkillDoodad(uint objId)
-        {
-            Type = SkillCasterType.Doodad;
-            ObjId = objId;
-        }
+    public override PacketStream Write(PacketStream stream)
+    {
+        base.Write(stream);
+        stream.Write(ItemId);
+        stream.Write(ItemTemplateId);
+        stream.Write(Type1);
+        stream.Write(Type2);
+        return stream;
+    }
+}
+
+public class SkillCasterMount : SkillCaster
+{
+    public uint MountSkillTemplateId { get; set; }
+
+    public SkillCasterMount()
+    {
+    }
+
+    public SkillCasterMount(uint objId)
+    {
+        Type = SkillCasterType.Mount;
+        ObjId = objId;
+    }
+
+    public override void Read(PacketStream stream)
+    {
+        base.Read(stream);
+        MountSkillTemplateId = stream.ReadUInt32();
+    }
+
+    public override PacketStream Write(PacketStream stream)
+    {
+        base.Write(stream);
+        stream.Write(MountSkillTemplateId);
+        return stream;
+    }
+}
+
+public class SkillDoodad : SkillCaster
+{
+    public SkillDoodad()
+    {
+    }
+
+    public SkillDoodad(uint objId)
+    {
+        Type = SkillCasterType.Doodad;
+        ObjId = objId;
     }
 }

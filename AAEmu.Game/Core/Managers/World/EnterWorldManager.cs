@@ -14,160 +14,159 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Team;
 using NLog;
 
-namespace AAEmu.Game.Core.Managers.World
+namespace AAEmu.Game.Core.Managers.World;
+
+public class EnterWorldManager : Singleton<EnterWorldManager>
 {
-    public class EnterWorldManager : Singleton<EnterWorldManager>
+    private static Logger _log = LogManager.GetCurrentClassLogger();
+
+    private Dictionary<uint, uint> _accounts;
+
+    protected EnterWorldManager()
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
+        _accounts = new Dictionary<uint, uint>();
+    }
 
-        private Dictionary<uint, uint> _accounts;
+    public void AddAccount(uint accountId, uint connectionId)
+    {
+        var connection = LoginNetwork.Instance.GetConnection();
+        var gsId = AppConfiguration.Instance.Id;
 
-        protected EnterWorldManager()
+        if (AccountManager.Instance.Contains(accountId))
+            connection.SendPacket(new GLPlayerEnterPacket(connectionId, gsId, 1));
+        else
         {
-            _accounts = new Dictionary<uint, uint>();
+            _accounts.Add(connectionId, accountId);
+            connection.SendPacket(new GLPlayerEnterPacket(connectionId, gsId, 0));
         }
+    }
 
-        public void AddAccount(uint accountId, uint connectionId)
+    public void Login(GameConnection connection, uint accountId, uint token)
+    {
+        if (_accounts.ContainsKey(token))
         {
-            var connection = LoginNetwork.Instance.GetConnection();
-            var gsId = AppConfiguration.Instance.Id;
-
-            if (AccountManager.Instance.Contains(accountId))
-                connection.SendPacket(new GLPlayerEnterPacket(connectionId, gsId, 1));
-            else
+            if (_accounts[token] == accountId)
             {
-                _accounts.Add(connectionId, accountId);
-                connection.SendPacket(new GLPlayerEnterPacket(connectionId, gsId, 0));
-            }
-        }
+                _accounts.Remove(token);
 
-        public void Login(GameConnection connection, uint accountId, uint token)
-        {
-            if (_accounts.ContainsKey(token))
-            {
-                if (_accounts[token] == accountId)
-                {
-                    _accounts.Remove(token);
+                connection.AccountId = accountId;
+                connection.State = GameState.Lobby;
 
-                    connection.AccountId = accountId;
-                    connection.State = GameState.Lobby;
+                AccountManager.Instance.Add(connection);
+                StreamManager.Instance.AddToken(connection.AccountId, connection.Id);
 
-                    AccountManager.Instance.Add(connection);
-                    StreamManager.Instance.AddToken(connection.AccountId, connection.Id);
-
-                    var port = AppConfiguration.Instance.StreamNetwork.Port;
-                    var gm = connection.GetAttribute("gmFlag") != null;
-                    connection.SendPacket(new X2EnterWorldResponsePacket(0, gm, connection.Id, port));
-                    connection.SendPacket(new ChangeStatePacket(0));
-                }
-                else
-                {
-                    // TODO ...
-                }
+                var port = AppConfiguration.Instance.StreamNetwork.Port;
+                var gm = connection.GetAttribute("gmFlag") != null;
+                connection.SendPacket(new X2EnterWorldResponsePacket(0, gm, connection.Id, port));
+                connection.SendPacket(new ChangeStatePacket(0));
             }
             else
             {
                 // TODO ...
             }
         }
-
-        public void Leave(GameConnection connection, byte type)
+        else
         {
-            switch (type)
-            {
-                case 0: // выход из игры, quit game
-                case 1: // выход к списку персонажей, go to character select
-                    if (connection.State == GameState.World)
+            // TODO ...
+        }
+    }
+
+    public static void Leave(GameConnection connection, byte type)
+    {
+        switch (type)
+        {
+            case 0: // выход из игры, quit game
+            case 1: // выход к списку персонажей, go to character select
+                if (connection.State == GameState.World)
+                {
+                    // Say goodbye if player is quitting (but not going to character select)
+                    if (type == 0)
+                        connection.ActiveChar?.SendMessage(ChatType.System, AppConfiguration.Instance.World.LogoutMessage);
+
+                    int logoutTime = 10000; // in ms
+
+                    // Make it 5 minutes if you're still in combat
+                    if (connection.ActiveChar?.IsInBattle ?? false)
+                        logoutTime *= 30;
+
+                    connection.SendPacket(new SCPrepareLeaveWorldPacket(logoutTime, type, false));
+
+                    connection.CancelTokenSource = new CancellationTokenSource();
+                    var token = connection.CancelTokenSource.Token;
+                    connection.LeaveTask = new Task(() =>
                     {
-                        // Say goodbye if player is quitting (but not going to character select)
-                        if (type == 0)
-                            connection.ActiveChar?.SendMessage(ChatType.System, AppConfiguration.Instance.World.LogoutMessage);
+                        Thread.Sleep(TimeSpan.FromMilliseconds(logoutTime));
+                        if (token.IsCancellationRequested)
+                            return;
+                        LeaveWorldTask(connection, type);
+                    }, token);
+                    connection.LeaveTask.Start();
+                }
 
-                        int logoutTime = 10000; // in ms
+                break;
+            case 2: // выбор сервера, server select
+                if (connection.State == GameState.Lobby)
+                {
+                    var gsId = AppConfiguration.Instance.Id;
+                    LoginNetwork
+                        .Instance
+                        .GetConnection()
+                        .SendPacket(new GLPlayerReconnectPacket(gsId, connection.AccountId, connection.Id));
+                }
 
-                        // Make it 5 minutes if you're still in combat
-                        if (connection.ActiveChar?.IsInBattle ?? false)
-                            logoutTime *= 30;
-                        
-                        connection.SendPacket(new SCPrepareLeaveWorldPacket(logoutTime, type, false));
+                break;
+            default:
+                _log.Warn("[Leave] Unknown type: {0}", type);
+                break;
+        }
+    }
 
-                        connection.CancelTokenSource = new CancellationTokenSource();
-                        var token = connection.CancelTokenSource.Token;
-                        connection.LeaveTask = new Task(() =>
-                        {
-                                Thread.Sleep(TimeSpan.FromMilliseconds(logoutTime));
-                                if (token.IsCancellationRequested)
-                                    return;
-                                LeaveWorldTask(connection, type);
-                        }, token);
-                        connection.LeaveTask.Start();
-                    }
+    public static void LeaveWorldTask(GameConnection connection, byte target)
+    {
+        if (connection.ActiveChar != null)
+        {
+            connection.ActiveChar.DisabledSetPosition = true;
+            connection.ActiveChar.IsOnline = false;
+            connection.ActiveChar.LeaveTime = DateTime.UtcNow;
 
-                    break;
-                case 2: // выбор сервера, server select
-                    if (connection.State == GameState.Lobby)
-                    {
-                        var gsId = AppConfiguration.Instance.Id;
-                        LoginNetwork
-                            .Instance
-                            .GetConnection()
-                            .SendPacket(new GLPlayerReconnectPacket(gsId, connection.AccountId, connection.Id));
-                    }
+            // Despawn and unmount everybody from owned Mates
+            MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(connection.ActiveChar);
 
-                    break;
-                default:
-                    _log.Warn("[Leave] Unknown type: {0}", type);
-                    break;
-            }
+            // Check if still mounted on somebody else's mount and dismount that if needed
+            connection.ActiveChar.ForceDismount(AttachUnitReason.PrefabChanged); // Dismounting a mount because of unsummoning sends "10" for this
+
+            // Remove from Team (raid/party)
+            TeamManager.Instance.MemberRemoveFromTeam(connection.ActiveChar, connection.ActiveChar, RiskyAction.Leave);
+
+            // Remove from all Chat
+            ChatManager.Instance.LeaveAllChannels(connection.ActiveChar);
+
+            // Handle Family
+            if (connection.ActiveChar.Family > 0)
+                FamilyManager.Instance.OnCharacterLogout(connection.ActiveChar);
+
+            // Handle Guild
+            connection.ActiveChar.Expedition?.OnCharacterLogout(connection.ActiveChar);
+
+            // Remove player from world (hides and release Id)
+            connection.ActiveChar.Delete();
+            // ObjectIdManager.Instance.ReleaseId(_connection.ActiveChar.ObjId);
+
+            // Cancel auto-regen
+            //_connection.ActiveChar.StopRegen();
+
+            // Clear Buyback table
+            connection.ActiveChar.BuyBackItems.Wipe();
+
+            // Remove subscribers
+            foreach (var subscriber in connection.ActiveChar.Subscribers)
+                subscriber.Dispose();
         }
 
-        public void LeaveWorldTask(GameConnection connection, byte target)
-        {
-            if (connection.ActiveChar != null)
-            {
-                connection.ActiveChar.DisabledSetPosition = true;
-                connection.ActiveChar.IsOnline = false;
-                connection.ActiveChar.LeaveTime = DateTime.UtcNow;
-
-                // Despawn and unmount everybody from owned Mates
-                MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(connection.ActiveChar);
-
-                // Check if still mounted on somebody else's mount and dismount that if needed
-                connection.ActiveChar.ForceDismount(AttachUnitReason.PrefabChanged); // Dismounting a mount because of unsummoning sends "10" for this
-
-                // Remove from Team (raid/party)
-                TeamManager.Instance.MemberRemoveFromTeam(connection.ActiveChar, connection.ActiveChar, RiskyAction.Leave);
-
-                // Remove from all Chat
-                ChatManager.Instance.LeaveAllChannels(connection.ActiveChar);
-
-                // Handle Family
-                if (connection.ActiveChar.Family > 0)
-                    FamilyManager.Instance.OnCharacterLogout(connection.ActiveChar);
-
-                // Handle Guild
-                connection.ActiveChar.Expedition?.OnCharacterLogout(connection.ActiveChar);
-
-                // Remove player from world (hides and release Id)
-                connection.ActiveChar.Delete();
-                // ObjectIdManager.Instance.ReleaseId(_connection.ActiveChar.ObjId);
-
-                // Cancel auto-regen
-                //_connection.ActiveChar.StopRegen();
-
-                // Clear Buyback table
-                connection.ActiveChar.BuyBackItems.Wipe();
-
-                // Remove subscribers
-                foreach (var subscriber in connection.ActiveChar.Subscribers)
-                    subscriber.Dispose();
-            }
-
-            connection.SaveAndRemoveFromWorld();
-            connection.State = GameState.Lobby;
-            connection.LeaveTask = null;
-            connection.SendPacket(new SCLeaveWorldGrantedPacket(target));
-            connection.SendPacket(new ChangeStatePacket(0));
-        }
+        connection.SaveAndRemoveFromWorld();
+        connection.State = GameState.Lobby;
+        connection.LeaveTask = null;
+        connection.SendPacket(new SCLeaveWorldGrantedPacket(target));
+        connection.SendPacket(new ChangeStatePacket(0));
     }
 }

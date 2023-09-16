@@ -1,8 +1,7 @@
-﻿namespace AAEmu.Game.Models.StaticValues
+﻿namespace AAEmu.Game.Models.StaticValues;
+
+public enum GamePointKind : byte
 {
-    public enum GamePointKind : byte
-    {
-        Honor = 0,
-        Vocation = 1
-    }
+    Honor = 0,
+    Vocation = 1
 }

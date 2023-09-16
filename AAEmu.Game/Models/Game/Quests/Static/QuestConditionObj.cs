@@ -1,10 +1,9 @@
-﻿namespace AAEmu.Game.Models.Game.Quests.Static
+﻿namespace AAEmu.Game.Models.Game.Quests.Static;
+
+public enum QuestConditionObj
 {
-    public enum QuestConditionObj
-    {
-        Complete = 1,
-        Fail = 2,
-        Ready = 3,
-        Progress = 4
-    }
+    Complete = 1,
+    Fail = 2,
+    Ready = 3,
+    Progress = 4
 }

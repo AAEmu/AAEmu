@@ -154,6 +154,5 @@
 
     <ItemGroup>
       <Folder Include="Models\ClientData" />
-      <Folder Include="Scripts\SubCommands" />
     </ItemGroup>
 </Project>

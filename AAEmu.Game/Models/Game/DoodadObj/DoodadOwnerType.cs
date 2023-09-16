@@ -1,10 +1,9 @@
-namespace AAEmu.Game.Models.Game.DoodadObj
+namespace AAEmu.Game.Models.Game.DoodadObj;
+
+public enum DoodadOwnerType
 {
-    public enum DoodadOwnerType
-    {
-        Slave = 2,
-        Housing = 3,
-        Character = 254,
-        System = 255
-    }
+    Slave = 2,
+    Housing = 3,
+    Character = 254,
+    System = 255
 }

@@ -1,9 +1,8 @@
 using System;
 
-namespace AAEmu.Game.Models.Game.Items.Templates
+namespace AAEmu.Game.Models.Game.Items.Templates;
+
+public class UccTemplate : ItemTemplate
 {
-    public class UccTemplate : ItemTemplate
-    {
-        public override Type ClassType => typeof(UccItem);
-    }
+    public override Type ClassType => typeof(UccItem);
 }

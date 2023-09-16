@@ -121,7 +121,49 @@ dotnet_naming_symbols.all_members.applicable_kinds = *
 
 dotnet_naming_style.pascal_case_style.capitalization = pascal_case
 
+# Diagnostics elevated as warnings
+dotnet_diagnostic.CA1000.severity = warning # Do not declare static members on generic types
+dotnet_diagnostic.CA1031.severity = none # Do not catch general exception types
+dotnet_diagnostic.CA1050.severity = warning # Declare types in namespaces
+dotnet_diagnostic.CA1063.severity = warning # Implement IDisposable correctly
+dotnet_diagnostic.CA1064.severity = warning # Exceptions should be public
+dotnet_diagnostic.CA1416.severity = warning # Validate platform compatibility
+dotnet_diagnostic.CA1508.severity = warning # Avoid dead conditional code
+dotnet_diagnostic.CA1852.severity = warning # Sealed classes
+dotnet_diagnostic.CA1859.severity = warning # Use concrete types when possible for improved performance
+dotnet_diagnostic.CA1860.severity = warning # Prefer comparing 'Count' to 0 rather than using 'Any()', both for clarity and for performance
+dotnet_diagnostic.CA2000.severity = warning # Call System.IDisposable.Dispose on object before all references to it are out of scope
+dotnet_diagnostic.CA2201.severity = warning # Exception type System.Exception is not sufficiently specific
+
+dotnet_diagnostic.IDE0001.severity = warning # Simplify name
+dotnet_diagnostic.IDE0005.severity = warning # Remove unnecessary using directives
+dotnet_diagnostic.IDE0018.severity = warning # Inline variable declaration
+dotnet_diagnostic.IDE0034.severity = warning # Simplify 'default' expression
+dotnet_diagnostic.IDE0035.severity = warning # Remove unreachable code
+dotnet_diagnostic.IDE0040.severity = warning # Add accessibility modifiers
+dotnet_diagnostic.IDE0049.severity = warning # Use language keywords instead of framework type names for type references
+dotnet_diagnostic.IDE0050.severity = warning # Convert anonymous type to tuple
+dotnet_diagnostic.IDE0051.severity = warning # Remove unused private member
+dotnet_diagnostic.IDE0055.severity = warning # Formatting rule
+dotnet_diagnostic.IDE0060.severity = none # Remove unused parameter
+dotnet_diagnostic.IDE0070.severity = warning # Use 'System.HashCode.Combine'
+dotnet_diagnostic.IDE0071.severity = warning # Simplify interpolation
+dotnet_diagnostic.IDE0073.severity = warning # Require file header
+dotnet_diagnostic.IDE0082.severity = warning # Convert typeof to nameof
+dotnet_diagnostic.IDE0090.severity = warning # Simplify new expression
+dotnet_diagnostic.IDE0130.severity = warning # Namespace does not match folder structure
+dotnet_diagnostic.IDE0161.severity = warning # Use file-scoped namespace
+
+# Code quality rules
+dotnet_code_quality_unused_parameters = all:suggestion
+dotnet_style_namespace_match_folder = true:suggestion
+dotnet_style_allow_multiple_blank_lines_experimental = false:error
+
 # CSharp code style settings:
+
+# IDE0048: Add parentheses for clarity
+dotnet_diagnostic.IDE0048.severity = none
+
 [*.cs]
 # Indentation preferences
 csharp_indent_block_contents = true
@@ -179,3 +221,6 @@ csharp_space_between_parentheses = false
 csharp_prefer_braces = true:silent
 csharp_preserve_single_line_blocks = true
 csharp_preserve_single_line_statements = true
+
+# Default severity for analyzer diagnostics with category 'Style'
+dotnet_analyzer_diagnostic.category-Style.severity = none

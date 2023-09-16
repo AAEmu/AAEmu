@@ -39,7 +39,7 @@ public class LootPack
         var lootGoldRate = (100f + player.LootGoldMul) / 100f;
         return GeneratePack(lootDropRate, lootGoldRate);
     }
-    
+
     /// <summary>
     /// Generates the contents of a LootPack, in the form of a list of tuples. This list is stored internally
     /// </summary>
@@ -51,7 +51,7 @@ public class LootPack
         // Use 8000022 as an example
 
         var items = new List<(uint itemId, int count, byte grade)>();
-        
+
         // _logger.Info($"Rolling loot pack {Id} containing max group Id: {GroupCount}");
 
         // For every group
@@ -62,7 +62,7 @@ public class LootPack
 
             if (!LootsByGroupNo.ContainsKey(gIdx))
                 continue;
-            
+
             // _logger.Debug($"Rolling loot with pack {Id}, Group {gIdx}/{GroupCount}, checking Groups conditions");
 
             // If that group has a LootGroup, roll the dice
@@ -71,28 +71,28 @@ public class LootPack
                 hasLootGroup = true;
                 lootGradeDistribId = lootGroup.ItemGradeDistributionId;
                 var dice = (long)Rand.Next(0, 10000000);
-                
+
                 // Use generic loot multiplier for the groups ?
                 dice = (long)Math.Floor(dice / (lootDropRate * AppConfiguration.Instance.World.LootRate));
-                
+
                 // _logger.Debug($"Rolling loot with pack {Id}, GroupNo {gIdx} rolled {dice}/{lootGroup.DropRate}");
-                
+
                 if ((lootGroup.DropRate > 1) && (dice > lootGroup.DropRate))
                     continue;
             }
 
             // _logger.Debug($"Rolling loot with pack {Id}, Group {gIdx}/{GroupCount}, checking ActAbilityGroups conditions");
-            
+
             // If that group has a LootActGroup, roll the dice
             if (ActabilityGroups.TryGetValue(gIdx, out var actabilityGroup))
             {
-                var dice = (long)Rand.Next(0, 10000); 
+                var dice = (long)Rand.Next(0, 10000);
 
                 // Use generic loot multiplier for the ActGroups ?
                 dice = (long)Math.Floor(dice / (lootDropRate * AppConfiguration.Instance.World.LootRate));
-                
+
                 // _logger.Debug($"Rolling loot with pack {Id}, ActAbilityGroupNo {gIdx} rolled {dice}/{actabilityGroup.MinDice}~{actabilityGroup.MaxDice}");
-                
+
                 // TODO: Use MinDice for something as well?
                 if (dice > actabilityGroup.MaxDice)
                     continue;
@@ -104,10 +104,10 @@ public class LootPack
 
             var uniqueItemDrop = loots[0].DropRate == 1;
             var itemRoll = Rand.Next(0, 10000000);
-            
+
             // Apply multiplier for loot drop rate
             itemRoll = (int)Math.Round(itemRoll / lootDropRate);
-            
+
             var itemStackingRoll = 0u;
 
             List<Loot> selected = new List<Loot>();
@@ -169,7 +169,7 @@ public class LootPack
 
         return itemList;
     }
-    
+
     /// <summary>
     /// Gives a lootpack to the specified player. It is possible to pass in a pre-generated list if we wanted to do some extra checks on our player's inventory.
     /// </summary>
@@ -197,7 +197,7 @@ public class LootPack
         }
     }
 
-    private byte GetGradeFromDistribution(uint id)
+    private static byte GetGradeFromDistribution(uint id)
     {
         byte gradeId = 0;
         var distributions = ItemManager.Instance.GetGradeDistributions((byte)id);

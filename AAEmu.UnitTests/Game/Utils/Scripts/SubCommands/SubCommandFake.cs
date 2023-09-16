@@ -3,32 +3,31 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
-namespace AAEmu.UnitTests.Game.Utils.Scripts.SubCommands
+namespace AAEmu.UnitTests.Game.Utils.Scripts.SubCommands;
+
+public class SubCommandFake : SubCommandBase
 {
-    public class SubCommandFake : SubCommandBase
+    public IDictionary<string, ParameterValue> Parameters { get; private set; }
+    public bool Executed { get; private set; }
+    public SubCommandFake(IEnumerable<SubCommandParameterBase> parameterDefinitions)
     {
-        public IDictionary<string, ParameterValue> Parameters { get; private set; }
-        public bool Executed { get; private set; }
-        public SubCommandFake(IEnumerable<SubCommandParameterBase> parameterDefinitions)
+        Title = "[Test]";
+        Description = "Test Subcommand";
+        CallPrefix = $"{CommandManager.CommandPrefix}test";
+        foreach (var parameterDefinition in parameterDefinitions)
         {
-            Title = "[Test]";
-            Description = "Test Subcommand";
-            CallPrefix = $"{CommandManager.CommandPrefix}test";
-            foreach (var parameterDefinition in parameterDefinitions)
-            {
-                AddParameter(parameterDefinition);
-            }
+            AddParameter(parameterDefinition);
         }
+    }
 
-        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
-        {
-            Executed = true;
-            Parameters = parameters;
-        }
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    {
+        Executed = true;
+        Parameters = parameters;
+    }
 
-        public void BaseSendHelpMessage(ICharacter character)
-        {
-            base.SendHelpMessage(character);
-        }
+    public void BaseSendHelpMessage(ICharacter character)
+    {
+        base.SendHelpMessage(character);
     }
 }
