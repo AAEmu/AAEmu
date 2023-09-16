@@ -504,7 +504,7 @@ public class NpcManager : Singleton<NpcManager>
                         template.NpcPostureSetId = reader.GetInt32("npc_posture_set_id");
                         template.MateEquipSlotPackId = reader.GetInt32("mate_equip_slot_pack_id", 0);
                         template.MateKindId = reader.GetInt32("mate_kind_id", 0);
-                        template.EngageCombatGiveQuestId = reader.GetInt32("engage_combat_give_quest_id", 0);
+                        template.EngageCombatGiveQuestId = reader.GetUInt32("engage_combat_give_quest_id", 0);
                         template.NoApplyTotalCustom = reader.GetBoolean("no_apply_total_custom", true);
                         template.BaseSkillStrafe = reader.GetBoolean("base_skill_strafe", true);
                         template.BaseSkillDelay = reader.GetFloat("base_skill_delay");

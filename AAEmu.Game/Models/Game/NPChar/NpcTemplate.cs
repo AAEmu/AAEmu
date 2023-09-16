@@ -109,7 +109,7 @@ public class NpcTemplate
     public int NpcPostureSetId { get; set; }
     public int MateEquipSlotPackId { get; set; }
     public int MateKindId { get; set; }
-    public int EngageCombatGiveQuestId { get; set; }
+    public uint EngageCombatGiveQuestId { get; set; }
     public bool NoApplyTotalCustom { get; set; }
     public bool BaseSkillStrafe { get; set; }
     public float BaseSkillDelay { get; set; }
