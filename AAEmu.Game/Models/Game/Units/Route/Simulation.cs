@@ -7,6 +7,7 @@ using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -28,41 +29,41 @@ namespace AAEmu.Game.Models.Game.Units.Route;
 /// </summary>
 public class Simulation : Patrol
 {
-    public Simulation(Unit unit)
+    public Simulation(GameObject unit)
     {
         Init(unit);
     }
 
     private static Logger _log = LogManager.GetCurrentClassLogger();
 
-    public Character Character;
-    public Npc Npc;
+    public Character Character { get; set; }
+    public Npc Npc { get; set; }
 
     public NpcDeleteTask NpcDeleteTask { get; set; }
 
     public bool AbandonTo { get; set; } = false; // to interrupt repeat()
-    public bool Cycle { get; set; } = false; // for non-stop movement along the route
-    public bool Remove { get; set; } = false; // удалить Npc в конце движения по маршруту
+    public bool Cycle { get; set; } // for non-stop movement along the route
+    public bool Remove { get; set; } // удалить Npc в конце движения по маршруту
     public Transform TargetPosition { get; set; } // Target position
 
     // movement data
-    public Dictionary<string, List<Vector3>> Paths; // available routes for Npc movement
-    public List<Vector3> Path;       //  points for moving along the route
-    public List<string> MovePath;     //  points for moving along the route
-    public List<string> RecordPath;   //  данные для записи пути
-    public int PointsCount { get; set; }              // кол-во поинтов в процессе записи пути
-    public bool SavePathEnabled { get; set; }         // флаг записи пути
-    public bool MoveToPathEnabled { get; set; }       // флаг движения по пути
-    public bool MoveToForward { get; set; }           // направление движения да - вперед, нет - назад
-    public bool RunningMode { get; set; } = false;    // режим движения да - бежать, нет - идти
-    public int MoveStepIndex { get; set; }            // текущ. чекпоинт (куда бежим сейчас)
-    float oldX, oldY, oldZ;
+    public Dictionary<string, List<Vector3>> Paths { get; set; } // available routes for Npc movement
+    public List<Vector3> Path { get; set; }       //  points for moving along the route
+    public List<string> MovePath { get; set; }    //  points for moving along the route
+    public List<string> RecordPath { get; set; }  //  данные для записи пути
+    public int PointsCount { get; set; }          // кол-во поинтов в процессе записи пути
+    public bool SavePathEnabled { get; set; }     // флаг записи пути
+    public bool MoveToPathEnabled { get; set; }   // флаг движения по пути
+    public bool MoveToForward { get; set; }       // направление движения да - вперед, нет - назад
+    public bool RunningMode { get; set; }         // режим движения да - бежать, нет - идти
+    public int MoveStepIndex { get; set; }        // текущ. чекпоинт (куда бежим сейчас)
+    private Vector3 OldPos { get; set; } = Vector3.Zero;
     //*******************************************************
-    public string RecordFilesPath = @"./Data/Path/";  // путь где хранятся наши файлы
-    public string RecordFileExt = @".path";           // расширение по умолчанию
-    public string MoveFilesPath = @"./Data/Path/";    // путь где хранятся наши файлы
-    public string MoveFileExt = @".path";             // расширение по умолчанию
-    public string MoveFileName = "";                  // имя файла для маршрута
+    private const string RecordFilesPath = @"./Data/Path/"; // путь где хранятся наши файлы
+    private const string RecordFileExt = @".path"; // расширение по умолчанию
+    private const string MoveFilesPath = @"./Data/Path/"; // путь где хранятся наши файлы
+    private const string MoveFileExt = @".path"; // расширение по умолчанию
+    public string MoveFileName { get; set; } = string.Empty; // имя файла для маршрута
 
     //Not used
     //private float MovingDistance = 0.25f; //0.3f;
@@ -232,16 +233,19 @@ public class Simulation : Patrol
         SavePathEnabled = false;
     }
     //***************************************************************
-    public string GetRecordFileName()
+
+    private string GetRecordFileName()
     {
-        var result = RecordFilesPath + MoveFileName + RecordFileExt;
+        var result = System.IO.Path.Combine(RecordFilesPath, MoveFileName + RecordFileExt);
         return result;
     }
-    public string GetMoveFileName()
+
+    private string GetMoveFileName()
     {
-        var result = MoveFilesPath + MoveFileName + MoveFileExt;
+        var result = System.IO.Path.Combine(MoveFilesPath, MoveFileName + MoveFileExt);
         return result;
     }
+    
     //***************************************************************
     public void ParseMoveClient(Npc npc)
     {
@@ -293,11 +297,9 @@ public class Simulation : Patrol
         //Character.SendMessage($"[MoveTo] checkpoint #{i}");
         var s = MovePath[MoveStepIndex];
         TargetPosition.World.SetPosition(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
-        if (Math.Abs(oldX - TargetPosition.World.Position.X) > tolerance && Math.Abs(oldY - TargetPosition.World.Position.Y) > tolerance && Math.Abs(oldZ - TargetPosition.World.Position.Z) > tolerance)
+        if (Math.Abs(OldPos.X - TargetPosition.World.Position.X) > tolerance && Math.Abs(OldPos.Y - TargetPosition.World.Position.Y) > tolerance && Math.Abs(OldPos.Z - TargetPosition.World.Position.Z) > tolerance)
         {
-            oldX = TargetPosition.World.Position.X;
-            oldY = TargetPosition.World.Position.Y;
-            oldZ = TargetPosition.World.Position.Z;
+            OldPos = new Vector3(TargetPosition.World.Position.X, TargetPosition.World.Position.Y, TargetPosition.World.Position.Z);
         }
         RepeatMove(this, npc, TargetPosition.World.Position);
     }
@@ -571,8 +573,9 @@ public class Simulation : Patrol
         Paths = new Dictionary<string, List<Vector3>>();
     }
 
-    public void ReadPath() // Called when the script is enabled
+    private void ReadPath() // Called when the script is enabled
     {
+        // Read MovePath
         try
         {
             if (Paths.ContainsKey(MoveFileName))
@@ -581,16 +584,28 @@ public class Simulation : Patrol
             }
 
             MovePath = new List<string>();
-            MovePath = File.ReadLines(GetMoveFileName()).ToList();
+            var pathFileName = GetMoveFileName();
+            if (File.Exists(pathFileName))
+            {
+                MovePath = File.ReadLines(pathFileName).ToList();
+            }
+            else
+            {
+                if (Npc != null)
+                    _log.Debug($"Missing path file {pathFileName} for NPC {Npc.Name}, TemplateId: {Npc.TemplateId}, ObjId:{Npc.ObjId}");
+                if (Character != null)
+                    _log.Debug($"Missing path file {pathFileName} for Character {Character.Name}, ObjId:{Character.ObjId}");
+            }
 
             AddPaths();
         }
         catch (Exception e)
         {
             _log.Warn($"Error in read MovePath: {e.Message}");
-            //Character.SendMessage($"[MoveTo] Error in read MovePath: {e.Message}");
             StopMove(Npc);
         }
+        
+        // Read RecordPath
         try
         {
             RecordPath = new List<string>();
@@ -619,9 +634,9 @@ public class Simulation : Patrol
     private List<Vector3> GetPaths(string moveFileName)
     {
         var route = new List<Vector3>();
-        if (Paths.ContainsKey(moveFileName))
+        if (Paths.TryGetValue(moveFileName, out var path))
         {
-            route = Paths[moveFileName];
+            route = path;
         }
 
         return route;
