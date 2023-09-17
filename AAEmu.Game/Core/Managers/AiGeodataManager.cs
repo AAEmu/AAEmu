@@ -258,7 +258,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             }
         }
 
-        _log.Warn($"# Found near position index: {index}...");
+        // _log.Warn($"# Found near position index: {index}...");
         return (index, point);
     }
 

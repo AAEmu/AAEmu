@@ -5,6 +5,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCBuffRemovedPacket : GamePacket
 {
+    public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
+    
     private uint _objId;
     private uint _index;
 
