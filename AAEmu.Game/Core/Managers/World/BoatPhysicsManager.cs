@@ -26,6 +26,10 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
 {
+    /// <summary>
+    /// Ticks per second for the physics engine
+    /// </summary>
+    private float TargetPhysicsTps { get; set; } = 15f;
     private Thread _thread;
     private static Logger _log = LogManager.GetCurrentClassLogger();
 
@@ -94,8 +98,8 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
             };
             while (ThreadRunning && Thread.CurrentThread.IsAlive)
             {
-                Thread.Sleep(1000 / 60);
-                _physWorld.Step(1 / 60.0f, false);
+                Thread.Sleep((int)Math.Floor(1000f / TargetPhysicsTps));
+                _physWorld.Step(1f / TargetPhysicsTps, false);
                 _tickCount++;
 
                 lock (_slaveListLock)

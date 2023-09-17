@@ -63,7 +63,9 @@ public abstract class BaseCombatBehavior : Behavior
                 // TODO найдем путь к abuser
                 Ai.Owner.FindPath((Unit)target);
                 stopWatch.Stop();
-                _log.Info($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}");
+                // Toss warning if it took a long time
+                if (stopWatch.Elapsed.Ticks >= TimeSpan.TicksPerMillisecond)
+                    _log.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId}");
                 // запомним новые координаты цели
                 Ai.PathNode.pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
             }
