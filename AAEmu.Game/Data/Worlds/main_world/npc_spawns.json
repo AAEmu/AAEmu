@@ -57642,7 +57642,8 @@
         "Position": {
             "X": 22707.65,
             "Y": 10747.61,
-            "Z": 355.0523
+            "Z": 359.35,
+			"Yaw": -87.18
         }
     },
     {
@@ -68866,7 +68867,7 @@
         "Position": {
             "X": 15141.799,
             "Y": 8158.96,
-            "Z": 101.79843
+            "Z": 114.186
         }
     },
     {
@@ -68898,23 +68899,23 @@
         "Position": {
             "X": 15038.739,
             "Y": 8136.51,
-            "Z": 98.67338
+            "Z": 119.338
         }
     },
     {
-        "UnitId": 2921,
+        "UnitId": 2921, // Blacksail Crewmember
         "Position": {
             "X": 15088.545,
             "Y": 8154.01,
-            "Z": 100.860916
+            "Z": 119.079
         }
     },
     {
-        "UnitId": 2921,
+        "UnitId": 2921, // Blacksail Crewmember
         "Position": {
             "X": 15106.613,
             "Y": 8126.94,
-            "Z": 101.42342
+            "Z": 144.72
         }
     },
     {
@@ -68958,11 +68959,11 @@
         }
     },
     {
-        "UnitId": 2921,
+        "UnitId": 2921, // Blacksail Crewmember
         "Position": {
             "X": 15076.887,
             "Y": 8185.24,
-            "Z": 98.985886
+            "Z": 128.722
         }
     },
     {
@@ -68982,27 +68983,27 @@
         }
     },
     {
-        "UnitId": 2921,
+        "UnitId": 2921, // Blacksail Crewmember
         "Position": {
             "X": 15126.64,
             "Y": 8130.93,
-            "Z": 101.36092
+            "Z": 113.927
         }
     },
     {
-        "UnitId": 2921,
+        "UnitId": 2921, // Blacksail Crewmember
         "Position": {
             "X": 15088.487,
             "Y": 8118.62,
-            "Z": 102.54844
+            "Z": 139.3
         }
     },
     {
-        "UnitId": 2921,
+        "UnitId": 2921, // Blacksail Crewmember
         "Position": {
             "X": 15065.325,
             "Y": 8109.7197,
-            "Z": 99.62652
+            "Z": 119.321
         }
     },
     {
@@ -69010,7 +69011,7 @@
         "Position": {
             "X": 15037.307,
             "Y": 8137.73,
-            "Z": 98.73588
+            "Z": 162.511
         }
     },
     {
@@ -69018,15 +69019,15 @@
         "Position": {
             "X": 15087.248,
             "Y": 8164.11,
-            "Z": 99.7984
+            "Z": 119.078
         }
     },
     {
-        "UnitId": 2921,
+        "UnitId": 2921, // Blacksail Crewmember
         "Position": {
             "X": 15099.889,
             "Y": 8107.57,
-            "Z": 103.360954
+            "Z": 129.665
         }
     },
     {
@@ -69038,11 +69039,11 @@
         }
     },
     {
-        "UnitId": 2921,
+        "UnitId": 2921, // Blacksail Crewmember
         "Position": {
             "X": 15087.41,
             "Y": 8124.73,
-            "Z": 101.29842
+            "Z": 113.88
         }
     },
     {
@@ -69054,11 +69055,11 @@
         }
     },
     {
-        "UnitId": 2921,
+        "UnitId": 2921, // Blacksail Crewmember
         "Position": {
             "X": 15117.623,
             "Y": 8078.07,
-            "Z": 101.98593
+            "Z": 118.06
         }
     },
     {
@@ -69066,15 +69067,15 @@
         "Position": {
             "X": 15067.195,
             "Y": 8153.6,
-            "Z": 98.985886
+            "Z": 119.353
         }
     },
     {
-        "UnitId": 2921,
+        "UnitId": 2921, // Blacksail Crewmember
         "Position": {
             "X": 15091.436,
             "Y": 8178.54,
-            "Z": 99.7984
+            "Z": 119.136
         }
     },
     {
@@ -69118,27 +69119,27 @@
         }
     },
     {
-        "UnitId": 2923,
+        "UnitId": 2923, // Blacksail Cannoneer
         "Position": {
             "X": 15134.1875,
             "Y": 8062.37,
-            "Z": 108.720406
+            "Z": 117.956
         }
     },
     {
-        "UnitId": 2924,
+        "UnitId": 2924, // Blacksail Cannoneer
         "Position": {
             "X": 15179.098,
             "Y": 8180.1,
-            "Z": 100.97029
+            "Z": 111.94
         }
     },
     {
-        "UnitId": 2924,
+        "UnitId": 2924, // Blacksail Cannoneer
         "Position": {
             "X": 15046.698,
             "Y": 8172.35,
-            "Z": 97.92337
+            "Z": 119.059
         }
     },
     {
@@ -69154,23 +69155,23 @@
         "Position": {
             "X": 15127.03,
             "Y": 8230.23,
-            "Z": 100.67341
+            "Z": 100.86
         }
     },
     {
-        "UnitId": 2924,
+        "UnitId": 2924, // Blacksail Cannoneer
         "Position": {
             "X": 15097.396,
             "Y": 8130.37,
-            "Z": 101.67342
+            "Z": 113.95
         }
     },
     {
-        "UnitId": 2924,
+        "UnitId": 2924, // Blacksail Cannoneer
         "Position": {
             "X": 15085.53,
             "Y": 8276.811,
-            "Z": 96.798355
+            "Z": 108.789
         }
     },
     {
@@ -69182,11 +69183,11 @@
         }
     },
     {
-        "UnitId": 2924,
+        "UnitId": 2924, // Blacksail Cannoneer
         "Position": {
             "X": 15052.586,
             "Y": 8128.25,
-            "Z": 98.923386
+            "Z": 119.353
         }
     },
     {
@@ -69214,67 +69215,67 @@
         }
     },
     {
-        "UnitId": 2924,
+        "UnitId": 2924, // Blacksail Cannoneer
         "Position": {
             "X": 15088.425,
             "Y": 8186.4,
-            "Z": 99.7984
+            "Z": 119.446
         }
     },
     {
-        "UnitId": 2924,
+        "UnitId": 2924, // Blacksail Cannoneer
         "Position": {
             "X": 15100.256,
             "Y": 8175.5303,
-            "Z": 101.235916
+            "Z": 119.039
         }
     },
     {
-        "UnitId": 2924,
+        "UnitId": 2924, // Blacksail Cannoneer
         "Position": {
             "X": 15277.866,
             "Y": 7921.534,
-            "Z": 262.55087
+            "Z": 262.51087
         }
     },
     {
-        "UnitId": 2924,
+        "UnitId": 2924, // Blacksail Cannoneer
         "Position": {
             "X": 15081.434,
             "Y": 8100.7803,
-            "Z": 101.67342
+            "Z": 119.384
         }
     },
     {
-        "UnitId": 2924,
+        "UnitId": 2924, // Blacksail Cannoneer
         "Position": {
             "X": 15091.26,
             "Y": 8190.7197,
-            "Z": 99.9859
+            "Z": 138.781
         }
     },
     {
-        "UnitId": 2924,
+        "UnitId": 2924, // Blacksail Cannoneer
         "Position": {
             "X": 15117.137,
             "Y": 8059.93,
-            "Z": 107.7829
+            "Z": 117.956
         }
     },
     {
-        "UnitId": 2924,
+        "UnitId": 2924, // Blacksail Cannoneer
         "Position": {
             "X": 15051.748,
             "Y": 8115.24,
-            "Z": 99.62652
+            "Z": 119.2
         }
     },
     {
-        "UnitId": 2924,
+        "UnitId": 2924, // Blacksail Cannoneer
         "Position": {
             "X": 15097.908,
             "Y": 8119.26,
-            "Z": 102.29844
+            "Z": 113.953
         }
     },
     {
@@ -69282,7 +69283,7 @@
         "Position": {
             "X": 15153.092,
             "Y": 8130.01,
-            "Z": 102.54844
+            "Z": 112.063
         }
     },
     {
@@ -69290,15 +69291,15 @@
         "Position": {
             "X": 15090.364,
             "Y": 8134.41,
-            "Z": 101.048416
+            "Z": 113.891
         }
     },
     {
-        "UnitId": 2926,
+        "UnitId": 2926, // Captain Frelli
         "Position": {
             "X": 15062.173,
             "Y": 8182.64,
-            "Z": 98.23587
+            "Z": 143.495
         }
     },
     {
@@ -69390,19 +69391,19 @@
         }
     },
     {
-        "UnitId": 2936,
+        "UnitId": 2936, // Blacksail Medic
         "Position": {
             "X": 15081.332,
             "Y": 8179.96,
-            "Z": 99.173386
+            "Z": 119.168
         }
     },
     {
-        "UnitId": 2936,
+        "UnitId": 2936, // Blacksail Medic
         "Position": {
             "X": 15072.579,
             "Y": 8171.5303,
-            "Z": 98.67338
+            "Z": 143.645
         }
     },
     {
@@ -69414,35 +69415,35 @@
         }
     },
     {
-        "UnitId": 2937,
+        "UnitId": 2937, // Blacksail Cook Shoota
         "Position": {
             "X": 15183.942,
             "Y": 8172.88,
-            "Z": 101.67342
+            "Z": 112.089
         }
     },
     {
-        "UnitId": 2938,
+        "UnitId": 2938, // Blacksail Medic Whitney
         "Position": {
             "X": 15044.559,
             "Y": 8126.51,
-            "Z": 98.923386
+            "Z": 119.338
         }
     },
     {
-        "UnitId": 2939,
+        "UnitId": 2939, // Cannon Officer Wyld
         "Position": {
             "X": 15107.745,
             "Y": 8066.12,
-            "Z": 103.610954
+            "Z": 118.08
         }
     },
     {
-        "UnitId": 2940,
+        "UnitId": 2940,// First Mate Lamelda
         "Position": {
             "X": 15072.374,
             "Y": 8184.19,
-            "Z": 98.860886
+            "Z": 119.046
         }
     },
     {
@@ -75614,7 +75615,7 @@
         "Position": {
             "X": 21350.676,
             "Y": 8973.84,
-            "Z": 499.47638
+            "Z": 460.26
         }
     },
     {
@@ -139928,51 +139929,51 @@
         }
     },
     {
-        "UnitId": 790,
+        "UnitId": 790, // Garriot Blackbeard
         "Position": {
             "X": 12405.99,
             "Y": 12815.207,
-            "Z": 106.12662
+            "Z": 109.36
         }
     },
     {
-        "UnitId": 791,
+        "UnitId": 791, // Blackbeard Thieves Pyromancer
         "Position": {
             "X": 12432.78,
             "Y": 12826.829,
-            "Z": 105.11098
+            "Z": 109.68
         }
     },
     {
-        "UnitId": 791,
+        "UnitId": 791, // Blackbeard Thieves Pyromancer
         "Position": {
             "X": 12414.32,
             "Y": 12843.409,
-            "Z": 106.2985
+            "Z": 110.545
         }
     },
     {
-        "UnitId": 791,
+        "UnitId": 791, // Blackbeard Thieves Pyromancer
         "Position": {
             "X": 12433.84,
             "Y": 12811.277,
-            "Z": 105.673485
+            "Z": 109.735
         }
     },
     {
-        "UnitId": 792,
+        "UnitId": 792, // Blackbeard Thieves Cutthroat
         "Position": {
             "X": 12471.849,
             "Y": 12823.168,
-            "Z": 105.1891
+            "Z": 104.816
         }
     },
     {
-        "UnitId": 792,
+        "UnitId": 792, // Blackbeard Thieves Cutthroat
         "Position": {
             "X": 12415.61,
             "Y": 12828.766,
-            "Z": 105.360985
+            "Z": 105.305
         }
     },
     {
@@ -139984,11 +139985,11 @@
         }
     },
     {
-        "UnitId": 792,
+        "UnitId": 792, // Blackbeard Thieves Cutthroat
         "Position": {
             "X": 12406.03,
             "Y": 12907.442,
-            "Z": 122.23624
+            "Z": 123.096
         }
     },
     {
