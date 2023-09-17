@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading;
 using System.Threading.Tasks;
 using ThreadTask = System.Threading.Tasks.Task;
 using AAEmu.Commons.Utils;
@@ -58,9 +57,14 @@ public class TaskManager : Singleton<TaskManager>, ITaskManager
             return;
         }
 
-        task.Id = TaskIdManager.Instance.GetNextId();
-        while (await _generalScheduler.CheckExists(new JobKey(task.Name + task.Id, task.Name)))
+        var jobKey = new JobKey(string.Empty);
+        do
+        {
             task.Id = TaskIdManager.Instance.GetNextId();
+            jobKey.Name = task.Name + task.Id;
+            jobKey.Group = task.Name;
+        }
+        while (await _generalScheduler.CheckExists(jobKey));
 
         IJobDetail job;
         var newJob = task.JobDetail == null;
@@ -271,9 +275,6 @@ public sealed class TaskJob : IJob
 
     private static void Clear(uint taskId)
     {
-        var thread = new Thread(id =>
-            TaskIdManager.Instance.ReleaseId((uint)id)
-        );
-        thread.Start(taskId);
+        ThreadTask.Run(() => TaskIdManager.Instance.ReleaseId(taskId));
     }
 }
