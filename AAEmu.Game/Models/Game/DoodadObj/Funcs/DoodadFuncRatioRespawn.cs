@@ -14,16 +14,20 @@ public class DoodadFuncRatioRespawn : DoodadPhaseFuncTemplate
         _log.Trace("DoodadFuncRatioRespawn : Ratio {0}, SpawnDoodadId {1}", Ratio, SpawnDoodadId);
 
         // Doodad spawn
-        if (owner.PhaseRatio <= Ratio)
+        if ((owner.PhaseRatio <= Ratio) && ((owner.Spawner?.Id ?? 0) > 0))
         {
+            /*
             var doodad = DoodadManager.Instance.Create(0, SpawnDoodadId);
             doodad.Transform = owner.Transform.Clone();
             doodad.Spawn();
             owner.Delete();
+            */
+            owner.Spawner.RespawnDoodadTemplateId = SpawnDoodadId;
 
-            return true; // прерываем фазовую функцию
+            return true; // Interrupt the PhaseFunc as new doodad is spawned
         }
 
+        owner.CumulativePhaseRatio -= Ratio;
         return false;
     }
 }

@@ -90,6 +90,9 @@ public class Around : ICommand
                 for (var i = 0; i < doodads.Count; i++)
                 {
                     character.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString() + " - @DOODAD_NAME(" + doodads[i].TemplateId.ToString() + ")" + ", FuncGroupId: " + doodads[i].FuncGroupId.ToString());
+                    
+                    character.SendMessage("#{0} -> SpawnerID = {1}, Respawns Template: {2}\n", (i + 1).ToString(), doodads[i].Spawner?.Id.ToString() ?? "none", doodads[i].Spawner?.RespawnDoodadTemplateId.ToString() ?? "default");
+                    
                     // sb.AppendLine("#" + (i + 1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString());
                     if (verbose)
                     {
@@ -97,6 +100,7 @@ public class Around : ICommand
                         var shortString = "(short[3])(r:" + shorts.Item1.ToString() + " p:" + shorts.Item2.ToString() + " y:" + shorts.Item3.ToString() + ")";
                         character.SendMessage("#{0} -> {1} = {2}\n", (i + 1).ToString(), doodads[i].Transform.ToString(), shortString);
                     }
+
                 }
                 character.SendMessage(sb.ToString());
                 character.SendMessage("[Around] Doodad count: {0}", doodads.Count);
