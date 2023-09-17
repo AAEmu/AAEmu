@@ -12,7 +12,7 @@ public class DoodadFuncRatioChange : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        if (owner.PhaseRatio/* + owner.CumulativePhaseRatio*/ <= Ratio)
+        if (owner.PhaseRatio + owner.CumulativePhaseRatio <= Ratio)
         {
             owner.OverridePhase = NextPhase; // Since phases trigger all at once let the doodad know its okay to stop here if the roll succeeded
             if (caster is Character)

@@ -42,6 +42,6 @@ public class DoodadFuncFinal : DoodadPhaseFuncTemplate
             TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(delay));
         }
 
-        return false;
+        return true;
     }
 }
