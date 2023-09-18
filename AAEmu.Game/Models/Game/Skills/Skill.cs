@@ -94,7 +94,7 @@ public class Skill
                     // Will delay for 150 Milliseconds to eliminate the hanging of the skill
                     if (!caster.CheckInterval(delay))
                     {
-                        _log.Warn($"Skill: CooldownTime [{delay}]!");
+                        _log.Trace($"Skill: CooldownTime [{delay}]!");
                         return SkillResult.CooldownTime;
                     }
                 }
@@ -105,7 +105,7 @@ public class Skill
                     // Will delay for 50 Milliseconds to eliminate the hanging of the skill
                     if (!caster.CheckInterval(delay))
                     {
-                        _log.Warn($"Skill: CooldownTime [{delay}]!");
+                        _log.Trace($"Skill: CooldownTime [{delay}]!");
                         return SkillResult.CooldownTime;
                     }
                 }
@@ -127,8 +127,8 @@ public class Skill
         InitialTarget = target;
         if (target == null)
         {
-            _log.Warn("Skill: SkillResult.NoTarget!");
-            return SkillResult.NoTarget;//We should try to make sure this doesnt happen
+            _log.Trace("Skill: SkillResult.NoTarget!");
+            return SkillResult.NoTarget; // We should try to make sure this doesnt happen, but can happen with NPC skills
         }
 
         TlId = SkillManager.Instance.NextId();

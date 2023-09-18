@@ -6,6 +6,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCSkillFiredPacket : GamePacket
 {
+    public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
+    
     private uint _id;
     private ushort _tl;
     private SkillCaster _caster;

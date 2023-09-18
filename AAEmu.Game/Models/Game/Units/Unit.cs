@@ -777,17 +777,14 @@ public class Unit : BaseUnit, IUnit
             if (unit is Npc npc)
             {
                 // TODO UnitModelPosture
-                if (npc.Faction.GuardHelp)
+                if (npc.Faction.GuardHelp == false)
                 {
-                    stream.Write((byte)modelPostureType); // оставим это для того, чтобы NPC могли заниматься своими делами // let's leave it so that the NPCs can go about their business
-                    Log.Warn($"baseUnitType={baseUnitType}, modelPostureType={modelPostureType}");
+                    // для NPC на которых можно напасть и чтобы они шевелили ногами (для людей особенно)
+                    // for NPCs that can be attacked and that they move their legs (especially for people)
+                    modelPostureType = 0;
                 }
-                else
-                {
-                    modelPostureType = 0; // для NPC на которых можно напасть и чтобы они шевелили ногами (для людей особенно) // for NPCs that can be attacked and that they move their legs (especially for people)
-                    stream.Write((byte)modelPostureType);
-                    Log.Warn($"baseUnitType={baseUnitType}, modelPostureType={modelPostureType}");
-                }
+                stream.Write((byte)modelPostureType);
+                Log.Warn($"baseUnitType={baseUnitType}, modelPostureType={modelPostureType} for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
             }
         }
         else // other
@@ -816,11 +813,11 @@ public class Unit : BaseUnit, IUnit
                 stream.Write(animActionId == 0xFFFFFFFF ? npc.Template.AnimActionId : animActionId); // TODO to check for AnimActionId substitution
                 if (animActionId == 0xFFFFFFFF)
                 {
-                    Log.Warn($"npc.Template.AnimActionId={npc.Template.AnimActionId}");
+                    Log.Warn($"NPC.Template.AnimActionId={npc.Template.AnimActionId}, missing animActionId for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
                 }
                 else
                 {
-                    Log.Warn($"npc.Template.AnimActionId={animActionId}");
+                    Log.Debug($"NPC.Template.AnimActionId={animActionId} for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
                 }
 
                 stream.Write(true); // activate

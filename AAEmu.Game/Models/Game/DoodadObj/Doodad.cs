@@ -184,7 +184,7 @@ public class Doodad : BaseUnit
                 Log.Trace("Use: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
 
             ToNextPhase = false; // по умолчанию не выполняем следующую фазу
-            ListGroupId = new List<uint>();
+            ListGroupId.Clear();
 
             //  first we find the functions, then we execute
             var funcWithSkill = DoodadManager.Instance.GetFunc(FuncGroupId, skillId); // if skillId > 0
@@ -200,7 +200,7 @@ public class Doodad : BaseUnit
                 {
                     if (DoFunc(caster, 0, funcWithoutSkill))
                     {
-                        ListGroupId = new List<uint>();
+                        ListGroupId.Clear();
                         return;
                     }
                 }
@@ -317,7 +317,7 @@ public class Doodad : BaseUnit
     /// </summary>
     /// <param name="caster"></param>
     /// <param name="nextPhase"></param>
-    /// <returns>if true, it did not pass the check for the quest (it must be aborted)</returns>
+    /// <returns>if true, it did not pass the check for the phase (it must be aborted)</returns>
     private bool DoPhaseFuncs(BaseUnit caster, ref int nextPhase)
     {
         if (nextPhase <= 0) { return true; }
@@ -340,11 +340,11 @@ public class Doodad : BaseUnit
                 else
                     Log.Trace("DoPhase: Finished execution with recurse: TemplateId {0}, Using phase {1}", TemplateId, FuncGroupId);
 
-                ListGroupId = new List<uint>();
+                ListGroupId.Clear();
                 return true;
             }
             // например, если это ID=898, Prison Gate, то не надо прервать рекурсию
-            ListGroupId = new List<uint>();
+            ListGroupId.Clear();
         }
 
         if (FuncTask is DoodadFuncTimerTask)
