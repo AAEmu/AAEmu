@@ -13,6 +13,7 @@ publish/
 **/AAEmu.Game.xml
 *.aelcf
 **/TestResults/
+**/launchSettings.json
 /AAEmu.Game/Properties/PublishProfiles
 /AAEmu.Game/ClientData/*
 /AAEmu.Game/Config.json

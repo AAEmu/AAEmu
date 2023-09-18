@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "AAEmu.Game": {
-      "commandName": "Project",
-      "commandLineArgs": "compiler-check"
-    }
-  }
-}
