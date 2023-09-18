@@ -11,7 +11,7 @@ using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.SubCommands.Npcs;
 
-public class NpcPositionSubCommand : SubCommandBase2
+public class NpcPositionSubCommand : SubCommandBase
 {
     public NpcPositionSubCommand()
     {
