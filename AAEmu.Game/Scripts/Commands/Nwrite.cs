@@ -12,12 +12,13 @@ using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using Newtonsoft.Json;
 using System.IO;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Scripts.Commands;
 
 public class Nwrite : ICommand
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _log = LogManager.GetCurrentClassLogger();
     public void OnLoad()
     {
         string[] name = { "nwrite", "nw" };
