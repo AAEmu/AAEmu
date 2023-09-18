@@ -3057,6 +3057,8 @@
   },
   {
     "UnitId": 14312,
+    "Title": "Vile Gourdhead",
+    "NpcSpawnerIds": [ 900001 ],
     "Position": {
       "X": 3380.147,
       "Y": 4361.33,
