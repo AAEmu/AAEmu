@@ -390,6 +390,9 @@ public class SpawnManager : Singleton<SpawnManager>
                         var x = reader.GetFloat("x");
                         var y = reader.GetFloat("y");
                         var z = reader.GetFloat("z");
+                        var roll = reader.GetFloat("roll");
+                        var pitch = reader.GetFloat("pitch");
+                        var yaw = reader.GetFloat("yaw");
                         var plantTime = reader.GetDateTime("plant_time");
                         var growthTime = reader.GetDateTime("growth_time");
                         // var phaseTime = reader.GetDateTime("phase_time"); // Not used
@@ -407,7 +410,7 @@ public class SpawnManager : Singleton<SpawnManager>
                         doodad.Spawner = new DoodadSpawner();
                         doodad.Spawner.UnitId = templateId;
                         doodad.DbId = dbId;
-                        doodad.FuncGroupId = phaseId;
+                        // doodad.FuncGroupId = phaseId;
                         doodad.OwnerId = ownerId;
                         doodad.OwnerType = ownerType;
                         doodad.AttachPoint = AttachPointKind.None;
@@ -422,9 +425,6 @@ public class SpawnManager : Singleton<SpawnManager>
                         doodad.UccId = sourceItem?.UccId ?? 0;
                         doodad.SetData(data); // Directly assigning to Data property would trigger a .Save()
 
-                        doodad.Transform.Local.SetPosition(x, y, z);
-                        doodad.Transform.Local.SetRotation(reader.GetFloat("roll"), reader.GetFloat("pitch"), reader.GetFloat("yaw"));
-
                         // Apparently this is only a reference value, so might not actually need to parent it
                         if (parentDoodad > 0)
                         {
@@ -436,13 +436,13 @@ public class SpawnManager : Singleton<SpawnManager>
                             }
                             else
                             {
-                                //doodad.Transform.Parent = pDoodad.Transform;
-                                //doodad.ParentObj = pDoodad;
-                                //doodad.ParentObjId = pDoodad.ObjId;
+                                doodad.Transform.Parent = pDoodad.Transform;
+                                doodad.ParentObj = pDoodad;
+                                doodad.ParentObjId = pDoodad.ObjId;
                             }
                         }
 
-                        if (houseId > 0)
+                        if ((houseId > 0) && (doodad.ParentObjId <= 0))
                         {
                             var owningHouse = HousingManager.Instance.GetHouseById(doodad.DbHouseId);
                             if (owningHouse == null)
@@ -456,6 +456,9 @@ public class SpawnManager : Singleton<SpawnManager>
                                 doodad.ParentObjId = owningHouse.ObjId;
                             }
                         }
+
+                        doodad.Transform.Local.SetPosition(x, y, z);
+                        doodad.Transform.Local.SetRotation(roll, pitch, yaw);
 
                         // Attach ItemContainer to coffer if needed
                         if (doodad is DoodadCoffer coffer)
@@ -474,6 +477,21 @@ public class SpawnManager : Singleton<SpawnManager>
                                 coffer.InitializeCoffer(ownerId);
                                 newCoffers.Add(coffer); // Mark for saving again later when we're done with this loop
                             }
+                        }
+
+                        if (phaseId != doodad.FuncGroupId)
+                        {
+                            // Temporary hack to prevent re-saving on load
+                            doodad.DbId = 0;
+                            try
+                            {
+                                doodad.DoChangePhase(null, (int)phaseId);
+                            }
+                            catch (Exception e)
+                            {
+                                _log.Warn($"Was unable to set Doodad phase on load DB Id {dbId}, template {templateId}: {e.InnerException}");
+                            }
+                            doodad.DbId = dbId;
                         }
 
                         _playerDoodads.Add(doodad);
