@@ -340,7 +340,7 @@ public class GameNetwork : Singleton<GameNetwork>
         if (_server?.IsStarted ?? false)
             _server.Stop();
 
-        _log.Info("Network stoped");
+        _log.Info("Network stopped");
     }
 
     private void RegisterPacket(uint type, byte level, Type classType)

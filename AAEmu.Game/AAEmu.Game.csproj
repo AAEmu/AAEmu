@@ -63,7 +63,11 @@
       <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
       <None Include="ClientData\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="ClientData\" />
     </ItemGroup>
-
+  
+    <ItemGroup>
+      <Folder Include="Models\ClientData" />
+    </ItemGroup>
+  
     <ItemGroup>
         <PackageReference Include="Discord.Net" Version="3.7.2" />
         <PackageReference Include="Jace" Version="0.9.2" />
@@ -149,10 +153,5 @@
       <None Update="Scripts\Commands\GetAttribute.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Models\ClientData" />
-      <Folder Include="Scripts\SubCommands" />
     </ItemGroup>
 </Project>

@@ -16,6 +16,7 @@ public partial class AppConfiguration : Singleton<AppConfiguration>
     public NetworkConfig Network { get; set; }
     public NetworkConfig StreamNetwork { get; set; }
     public NetworkConfig LoginNetwork { get; set; }
+    public NetworkConfig WebApiNetwork { get; set; }
     public string CharacterNameRegex { get; set; }
     public int MaxConcurencyThreadPool { get; set; }
     public bool HeightMapsEnable { get; set; }
