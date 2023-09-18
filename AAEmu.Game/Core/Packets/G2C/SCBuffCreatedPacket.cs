@@ -8,6 +8,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCBuffCreatedPacket : GamePacket
 {
+    public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
+    
     private readonly Buff _buff;
 
     public SCBuffCreatedPacket(Buff buff) : base(SCOffsets.SCBuffCreatedPacket, 1)

@@ -90,6 +90,15 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     private void ActiveRegionTick(TimeSpan delta)
     {
+        // TODO: Not sure why this was is so complicated for just ticking combat/regen/breath on all players
+        foreach (var character in _characters.Values)
+        {
+            CombatTick(character);
+            RegenTick(character);
+            BreathTick(character);
+        }
+        
+        /*
         //var sw = new Stopwatch();
         //sw.Start();
         var activeRegions = new HashSet<Region>();
@@ -106,7 +115,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 foreach (var activeRegion in region.GetNeighbors())
                 {
                     activeRegions.Add(activeRegion);
-                    var units = activeRegion.GetList(new List<Unit>(), 0);
+                    var units = activeRegion.GetList<Unit>(new(), 0);
                     foreach (var unit in units)
                     {
                         if (unit is not Character character) { continue; }
@@ -119,6 +128,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
         //sw.Stop();
         //_log.Warn("ActiveRegionTick took {0}ms", sw.ElapsedMilliseconds);
+        */
     }
 
     private static void CombatTick(Character character)

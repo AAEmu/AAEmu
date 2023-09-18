@@ -26,12 +26,14 @@ public class DoodadSpawner : Spawner<Doodad>
     private List<Doodad> _spawned;
     private int _scheduledCount;
     private int _spawnCount;
+    
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     [DefaultValue(1f)]
     public uint Count { get; set; } = 1;
     private bool _permanent { get; set; }
     public List<uint> RelatedIds { get; set; }
     //---
+    public uint RespawnDoodadTemplateId { get; set; }
 
     public DoodadSpawner()
     {
@@ -95,6 +97,11 @@ public class DoodadSpawner : Spawner<Doodad>
         return doodad;
     }
 
+    /// <summary>
+    /// Spawn a doodad (mostly used by respawns)
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
     public override Doodad Spawn(uint objId) // TODO: clean up each doodad uses the same call
     {
         _permanent = true; // Doodad not on the schedule.
@@ -104,10 +111,13 @@ public class DoodadSpawner : Spawner<Doodad>
 
         if (objId != 0) { return null; }
 
-        var doodad = DoodadManager.Instance.Create(objId, UnitId, null);
+        var newUnitId = RespawnDoodadTemplateId > 0 ? RespawnDoodadTemplateId : UnitId;
+        RespawnDoodadTemplateId = 0; // reset it after 1 spawn
+
+        var doodad = DoodadManager.Instance.Create(objId, newUnitId, null);
         if (doodad == null)
         {
-            _log.Warn("Doodad {0}, from spawn not exist at db", UnitId);
+            _log.Warn("Doodad Temaplte {0}, used in Spawn() does not exist in db", newUnitId);
             return null;
         }
 
@@ -122,7 +132,7 @@ public class DoodadSpawner : Spawner<Doodad>
 
         if (doodad.Transform == null)
         {
-            _log.Error("Can't spawn doodad {1} from spawn {0}", Id, UnitId);
+            _log.Error("Can't spawn doodad {1} from spawn {0}", Id, newUnitId);
             return null;
         }
 
