@@ -33,14 +33,8 @@ public static class Program
 
     public static async Task<int> Main(string[] args)
     {
-        Initialization();
         _launchArgs = args;
-        if (!LoadConfiguration())
-        {
-            return 0;
-        }
-
-        _log.Info($"{Name} version {Version}");
+        Initialization();
 
         if (args.Length > 0 && args[0] == "compiler-check")
         {
@@ -59,6 +53,12 @@ public static class Program
             }
         }
 
+        if (!LoadConfiguration())
+        {
+            return 1;
+        }
+
+
         // Apply MySQL Configuration
         MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
 
@@ -73,7 +73,7 @@ public static class Program
         {
             _log.Fatal(ex, "MySQL connection failed, check your configuration!");
             LogManager.Flush();
-            return 0;
+            return 1;
         }
 
         try
@@ -85,7 +85,7 @@ public static class Program
         {
             _log.Fatal(ex, "Failed to load compact.sqlite3 database check if it exists!");
             LogManager.Flush();
-            return 0;
+            return 1;
         }
 
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
@@ -121,6 +121,7 @@ public static class Program
 
     private static void Initialization()
     {
+        _log.Info($"{Name} version {Version}");
         _thread.Name = "AA.Game Base Thread";
         _startTime = DateTime.UtcNow;
     }
