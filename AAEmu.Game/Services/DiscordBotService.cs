@@ -8,7 +8,7 @@ using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 
-namespace AAEmu.Game.Genesis;
+namespace AAEmu.Game.Services;
 
 public class DiscordBotService : IHostedService
 {

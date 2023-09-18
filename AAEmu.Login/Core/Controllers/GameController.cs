@@ -74,7 +74,7 @@ public class GameController : Singleton<GameController>
         {
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM game_servers WHERE hidden = 0";
+                command.CommandText = "SELECT * FROM aaemu_login.game_servers WHERE hidden = 0";
                 command.Prepare();
                 using (var reader = command.ExecuteReader())
                 {

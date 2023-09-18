@@ -16,5 +16,6 @@ publish/
 /AAEmu.Game/Properties/PublishProfiles
 /AAEmu.Game/ClientData/*
 /AAEmu.Game/Config.json
+/AAEmu.Login/Config.json
 /AAEmu.IntegrationTests/Config.json
 *.sqlite3

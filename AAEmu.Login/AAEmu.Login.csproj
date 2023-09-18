@@ -24,7 +24,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Config.json" />
     <None Remove="ExampleConfig.json" />
+    <Content Include="Config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="ExampleConfig.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
