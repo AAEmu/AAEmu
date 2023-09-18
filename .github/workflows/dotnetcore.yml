@@ -23,7 +23,7 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
       - name: Scripts Compile
-        run: dotnet run ./AAEmu.Game/bin/Release/net6.0/AAEmu.Game.dll compiler-check
+        run: dotnet run /home/runner/work/AAEmu/AAEmu/AAEmu.Game/bin/Release/net6.0/AAEmu.Game.dll compiler-check
       - name: Test
         run: dotnet test --filter FullyQualifiedName!~AAEmu.IntegrationTests /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov
       - name: Coveralls GitHub Action
