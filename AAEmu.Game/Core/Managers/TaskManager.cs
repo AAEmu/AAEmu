@@ -9,6 +9,7 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Simpl;
 using Task = AAEmu.Game.Models.Tasks.Task;
+using System.Collections.Generic;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -19,6 +20,16 @@ public class TaskManager : Singleton<TaskManager>, ITaskManager
 
     private DefaultThreadPool _generalPool;
     private IScheduler _generalScheduler;
+
+    public async Task<int> GetExecutingJobsCount()
+        => (await _generalScheduler.GetCurrentlyExecutingJobs()).Count;
+
+    public async IAsyncEnumerable<Task> GetExecutingTasks()
+    {
+        var jobs = await _generalScheduler.GetCurrentlyExecutingJobs();
+        foreach(var job in jobs)
+            yield return (Task)job.JobDetail.JobDataMap.Get("Task");
+    }
 
     public async void Initialize()
     {
