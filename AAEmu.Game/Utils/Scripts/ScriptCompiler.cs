@@ -23,7 +23,7 @@ public static class ScriptCompiler
     {
         EnsureDirectory("Scripts/");
 
-        if (!CompileScripts(out var assembly))
+        if (!CompileScripts(out var assembly, out _))
             return false;
 
         _assembly = assembly;
@@ -69,7 +69,31 @@ public static class ScriptCompiler
         // throw new Exception("There were errors in the user scripts !");
     }
 
-    public static bool CompileScripts(out Assembly assembly)
+    public static bool CompileScriptsWithAllDependencies(out Assembly assembly, out ImmutableArray<Diagnostic> diagnostics)
+    {
+        var references = new List<MetadataReference>();
+
+        foreach (AssemblyName assemblyName in Assembly.GetEntryAssembly().GetReferencedAssemblies())
+            references.Add(MetadataReference.CreateFromFile(Assembly.Load(assemblyName).Location));
+
+        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies().Where(p => !p.IsDynamic && !string.IsNullOrEmpty(p.Location)))
+            references.Add(MetadataReference.CreateFromFile(asm.Location));
+
+        references = references.Distinct().ToList();
+
+        return CompileScripts(references, out assembly, out diagnostics);
+    }
+
+    public static bool CompileScripts(out Assembly assembly, out ImmutableArray<Diagnostic> diagnostics)
+    {
+        var references = new List<MetadataReference>();
+        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies().Where(p => !p.IsDynamic && !string.IsNullOrEmpty(p.Location)))
+            references.Add(MetadataReference.CreateFromFile(asm.Location));
+
+        return CompileScripts(references, out assembly, out diagnostics);
+    }
+
+    public static bool CompileScripts(IEnumerable<MetadataReference> references, out Assembly assembly, out ImmutableArray<Diagnostic> diagnostics)
     {
         _log.Info("Compiling scripts...");
         var files = GetScripts("*.cs");
@@ -79,15 +103,12 @@ public static class ScriptCompiler
         {
             _log.Info("Compile done (no files found)");
             assembly = null;
+            diagnostics = ImmutableArray<Diagnostic>.Empty;
             return true;
         }
 
         var syntaxTrees = ParseScripts(files);
         var assemblyName = Path.GetRandomFileName();
-
-        var references = new List<MetadataReference>();
-        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies().Where(p => !p.IsDynamic && !string.IsNullOrEmpty(p.Location)))
-            references.Add(MetadataReference.CreateFromFile(asm.Location));
 
         var compilation = CSharpCompilation.Create(
             assemblyName,
@@ -100,6 +121,7 @@ public static class ScriptCompiler
         using (var ms = new MemoryStream())
         {
             var result = compilation.Emit(ms);
+            diagnostics = result.Diagnostics;
             if (result.Success)
             {
                 ms.Seek(0, SeekOrigin.Begin);

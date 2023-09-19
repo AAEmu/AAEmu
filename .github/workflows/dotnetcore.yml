@@ -22,6 +22,8 @@ jobs:
         run: dotnet restore
       - name: Build
         run: dotnet build --configuration Release --no-restore
+      - name: Scripts Compile
+        run: dotnet run --project AAEmu.Game/AAEmu.Game.csproj compiler-check
       - name: Test
         run: dotnet test --filter FullyQualifiedName!~AAEmu.IntegrationTests /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov
       - name: Coveralls GitHub Action

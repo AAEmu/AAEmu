@@ -9,6 +9,8 @@ using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Models;
 using AAEmu.Game.Services;
 using AAEmu.Game.Utils.DB;
+using AAEmu.Game.Utils.Scripts;
+using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -29,16 +31,33 @@ public static class Program
     public static int UpTime => (int)(DateTime.UtcNow - _startTime).TotalSeconds;
     private static string[] _launchArgs;
 
-    public static async Task Main(string[] args)
+    public static async Task<int> Main(string[] args)
     {
-        Initialization();
         _launchArgs = args;
-        if (!LoadConfiguration())
+        Initialization();
+
+        if (args.Length > 0 && args[0] == "compiler-check")
         {
-            return;
+            _log.Info("Check compilation");
+            var result = ScriptCompiler.CompileScriptsWithAllDependencies(out _, out var diagnostics);
+
+            if (result)
+            {
+                _log.Info("Compilation successful");
+                return 0;
+            }
+            else
+            {
+                _log.Error(new CompilationErrorException("Compilation failed", diagnostics), "Compilation failed");
+                return 1;
+            }
         }
 
-        _log.Info($"{Name} version {Version}");
+        if (!LoadConfiguration())
+        {
+            return 1;
+        }
+
 
         // Apply MySQL Configuration
         MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
@@ -54,7 +73,7 @@ public static class Program
         {
             _log.Fatal(ex, "MySQL connection failed, check your configuration!");
             LogManager.Flush();
-            return;
+            return 1;
         }
 
         try
@@ -66,7 +85,7 @@ public static class Program
         {
             _log.Fatal(ex, "Failed to load compact.sqlite3 database check if it exists!");
             LogManager.Flush();
-            return;
+            return 1;
         }
 
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
@@ -97,10 +116,12 @@ public static class Program
         {
             _log.Fatal(ocex.Message);
         }
+        return 0;
     }
 
     private static void Initialization()
     {
+        _log.Info($"{Name} version {Version}");
         _thread.Name = "AA.Game Base Thread";
         _startTime = DateTime.UtcNow;
     }

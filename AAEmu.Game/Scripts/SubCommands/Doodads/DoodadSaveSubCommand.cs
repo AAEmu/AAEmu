@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Json;
 using AAEmu.Game.Utils.Converters;
 using Newtonsoft.Json;
 using AAEmu.Game.Utils.Scripts.SubCommands;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Scripts.SubCommands.Doodads;
 
