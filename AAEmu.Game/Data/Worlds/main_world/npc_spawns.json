@@ -344,11 +344,11 @@
         }
     },
     {
-        "UnitId": 3111,
+        "UnitId": 3111, // Gorgon
         "Position": {
             "X": 23899.08,
             "Y": 11978.39,
-            "Z": 326.23935
+            "Z": 253.0
         }
     },
     {
@@ -3562,13 +3562,32 @@
         }
     },
     {
-        "UnitId": 3284,
+        "UnitId": 3284, // Flooded Tomb Ghost
+		"NpcSpawnerIds": [ 86962 ],
         "Position": {
             "X": 23896.89,
             "Y": 11989.54,
-            "Z": 321.8018
+            "Z": 253.12
         }
     },
+    {
+		"UnitId": 3309, // Royal Tomb Guardian
+		"Position": {
+		"X": 23895.32,
+		"Y": 11984.0605,
+		"Z": 252.643,
+		"Yaw": 0.0
+    }
+    },
+    {
+		"UnitId": 3309, // Royal Tomb Guardian
+		"Position": {
+		"X": 23890.96,
+		"Y": 11985.83,
+		"Z": 252.964,
+		"Yaw": 0.0
+    }
+	},
     {
         "UnitId": 3287,
         "Position": {
@@ -41716,11 +41735,11 @@
         }
     },
     {
-        "UnitId": 2232,
+        "UnitId": 2232, // Corpse Eagle
         "Position": {
             "X": 21749.52,
             "Y": 6546.087,
-            "Z": 163.79938
+            "Z": 185.79
         }
     },
     {
@@ -41732,11 +41751,11 @@
         }
     },
     {
-        "UnitId": 2232,
+        "UnitId": 2232, // Corpse Eagle
         "Position": {
             "X": 21820.46,
             "Y": 6576.492,
-            "Z": 178.7996
+            "Z": 195.79
         }
     },
     {
