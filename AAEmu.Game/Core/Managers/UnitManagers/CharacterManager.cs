@@ -109,9 +109,8 @@ public class CharacterManager : Singleton<CharacterManager>
                         template.ModelId = reader.GetUInt32("model_id");
                         template.FactionId = reader.GetUInt32("faction_id");
                         template.ZoneId = reader.GetUInt32("starting_zone_id");
-                        template.ReturnDictrictId = reader.GetUInt32("default_return_district_id");
-                        template.ResurrectionDictrictId =
-                            reader.GetUInt32("default_resurrection_district_id");
+                        template.ReturnDistrictId = reader.GetUInt32("default_return_district_id");
+                        template.ResurrectionDistrictId = reader.GetUInt32("default_resurrection_district_id");
                         using (var command2 = connection.CreateCommand())
                         {
                             command2.CommandText = "SELECT * FROM item_body_parts WHERE model_id=@model_id";
@@ -436,8 +435,8 @@ public class CharacterManager : Singleton<CharacterManager>
             character.Ability1 = (AbilityType)ability1;
             character.Ability2 = AbilityType.None;
             character.Ability3 = AbilityType.None;
-            character.ReturnDictrictId = template.ReturnDictrictId;
-            character.ResurrectionDictrictId = template.ResurrectionDictrictId;
+            character.ReturnDistrictId = template.ReturnDistrictId;
+            character.ResurrectionDistrictId = template.ResurrectionDistrictId;
             character.Slots = new ActionSlot[Character.MaxActionSlots];
             for (var i = 0; i < character.Slots.Length; i++)
                 character.Slots[i] = new ActionSlot();

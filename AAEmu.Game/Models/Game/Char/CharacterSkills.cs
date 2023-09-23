@@ -40,7 +40,7 @@ public class CharacterSkills
             template.AbilityId != (byte)Owner.Ability2 &&
             template.AbilityId != (byte)Owner.Ability3)
             return;
-        var points = ExpirienceManager.Instance.GetSkillPointsForLevel(Owner.Level);
+        var points = ExperienceManager.Instance.GetSkillPointsForLevel(Owner.Level);
         points -= GetUsedSkillPoints();
         if (template.SkillPoints > points)
             return;
@@ -73,7 +73,7 @@ public class CharacterSkills
            template.AbilityId != (byte)Owner.Ability2 &&
            template.AbilityId != (byte)Owner.Ability3)
             return;
-        var points = ExpirienceManager.Instance.GetSkillPointsForLevel(Owner.Level);
+        var points = ExperienceManager.Instance.GetSkillPointsForLevel(Owner.Level);
         points -= GetUsedSkillPoints();
         if (template.ReqPoints > points)
             return;

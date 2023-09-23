@@ -127,7 +127,7 @@ CREATE TABLE `characters` (
   `gender` tinyint(1) NOT NULL,
   `unit_model_params` blob NOT NULL,
   `level` tinyint NOT NULL,
-  `expirience` int NOT NULL,
+  `experience` int NOT NULL,
   `recoverable_exp` int NOT NULL,
   `hp` int NOT NULL,
   `mp` int NOT NULL,

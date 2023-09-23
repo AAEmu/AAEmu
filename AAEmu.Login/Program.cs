@@ -87,6 +87,7 @@ public static class Program
         var configJsonFile = Path.Combine(FileManager.AppPath, "Config.json");
         var configurationBuilder = new ConfigurationBuilder()
             .AddJsonFile(mainConfigJson)
+            .AddUserSecrets<LoginService>()
             .AddCommandLine(args)
             .Build();
 

@@ -264,7 +264,7 @@ public class PlotCondition
         if (caster is Character character)
         {
             var ability = character.Abilities.Abilities[(AbilityType)abilityType];
-            int abLevel = ExpirienceManager.Instance.GetLevelFromExp(ability.Exp);
+            int abLevel = ExperienceManager.Instance.GetLevelFromExp(ability.Exp);
             return abLevel >= min && abLevel <= max;
         }
         //Should this ever not be a character using this condition?

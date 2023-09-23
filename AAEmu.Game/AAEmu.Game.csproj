@@ -7,7 +7,8 @@
         <VersionPrefix>0.0.2.0</VersionPrefix>
         <VersionSuffix>alpha</VersionSuffix>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    </PropertyGroup>
+      <UserSecretsId>426ad5c3-9a72-44e9-88f5-4b5940b98c28</UserSecretsId>
+  </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\AAEmu.Commons\AAEmu.Commons.csproj" />
@@ -18,9 +19,13 @@
         <Content Include="Configurations\AccessLevels.json">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+        <Content Include="Config.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
         <Content Include="NLog.config">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+        <None Remove="Config.json" />
         <None Remove="ExampleConfig.xml" />
         <Content Include="ExampleConfig.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -37,7 +42,7 @@
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
           <LinkBase>Scripts\</LinkBase>
         </None>
-        <None Update="Config.json">
+        <None Update="Config3.json">
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
         <None Update="Configurations\Expedition.json">

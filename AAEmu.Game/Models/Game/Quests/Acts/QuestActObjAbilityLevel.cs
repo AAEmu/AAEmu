@@ -27,7 +27,7 @@ public class QuestActObjAbilityLevel : QuestActTemplate
         for (var i = 0; i < 10; i++)
         {
             var ability = character.Abilities.Abilities[(AbilityType)i + 1];
-            int abLevel = ExpirienceManager.Instance.GetLevelFromExp(ability.Exp);
+            int abLevel = ExperienceManager.Instance.GetLevelFromExp(ability.Exp);
             completes[i] = abLevel >= Level;
         }
 

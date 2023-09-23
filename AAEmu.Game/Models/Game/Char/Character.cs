@@ -97,13 +97,13 @@ public partial class Character : Unit, ICharacter
     public int PrevPoint { get; set; }
     public int Point { get; set; }
     public int Gift { get; set; }
-    public int Expirience { get; set; }
+    public int Experience { get; set; }
     public int RecoverableExp { get; set; }
     public DateTime Created { get; set; } // время создания персонажа
     public DateTime Updated { get; set; } // время внесения изменений
 
-    public uint ReturnDictrictId { get; set; }
-    public uint ResurrectionDictrictId { get; set; }
+    public uint ReturnDistrictId { get; set; }
+    public uint ResurrectionDistrictId { get; set; }
 
     public override UnitCustomModelParams ModelParams { get; set; }
     public override float Scale => 1f;
@@ -1285,7 +1285,7 @@ public partial class Character : Unit, ICharacter
             var totalExp = exp * AppConfiguration.Instance.World.ExpRate;
             exp = (int)totalExp;
         }
-        Expirience = Math.Min(Expirience + exp, ExpirienceManager.Instance.GetExpForLevel(55));
+        Experience = Math.Min(Experience + exp, ExperienceManager.Instance.GetExpForLevel(55));
         if (shouldAddAbilityExp)
             Abilities.AddActiveExp(exp); // TODO ... or all?
         SendPacket(new SCExpChangedPacket(ObjId, exp, shouldAddAbilityExp));
@@ -1295,13 +1295,13 @@ public partial class Character : Unit, ICharacter
 
     public void CheckLevelUp()
     {
-        var needExp = ExpirienceManager.Instance.GetExpForLevel((byte)(Level + 1));
+        var needExp = ExperienceManager.Instance.GetExpForLevel((byte)(Level + 1));
         var change = false;
-        while (Expirience >= needExp)
+        while (Experience >= needExp)
         {
             change = true;
             Level++;
-            needExp = ExpirienceManager.Instance.GetExpForLevel((byte)(Level + 1));
+            needExp = ExperienceManager.Instance.GetExpForLevel((byte)(Level + 1));
         }
 
         if (change)
@@ -1313,14 +1313,14 @@ public partial class Character : Unit, ICharacter
 
     public void CheckExp()
     {
-        var needExp = ExpirienceManager.Instance.GetExpForLevel(Level);
-        if (Expirience < needExp)
-            Expirience = needExp;
-        needExp = ExpirienceManager.Instance.GetExpForLevel((byte)(Level + 1));
-        while (Expirience >= needExp)
+        var needExp = ExperienceManager.Instance.GetExpForLevel(Level);
+        if (Experience < needExp)
+            Experience = needExp;
+        needExp = ExperienceManager.Instance.GetExpForLevel((byte)(Level + 1));
+        while (Experience >= needExp)
         {
             Level++;
-            needExp = ExpirienceManager.Instance.GetExpForLevel((byte)(Level + 1));
+            needExp = ExperienceManager.Instance.GetExpForLevel((byte)(Level + 1));
         }
     }
 
@@ -1430,7 +1430,7 @@ public partial class Character : Unit, ICharacter
     public override int GetAbLevel(AbilityType type)
     {
         if (type == AbilityType.General) return Level;
-        return ExpirienceManager.Instance.GetLevelFromExp(Abilities.Abilities[type].Exp);
+        return ExperienceManager.Instance.GetLevelFromExp(Abilities.Abilities[type].Exp);
     }
 
     public void ResetSkillCooldown(uint skillId, bool gcd)
@@ -1834,7 +1834,7 @@ public partial class Character : Unit, ICharacter
                     character.Race = (Race)reader.GetByte("race");
                     character.Gender = (Gender)reader.GetByte("gender");
                     character.Level = reader.GetByte("level");
-                    character.Expirience = reader.GetInt32("expirience");
+                    character.Experience = reader.GetInt32("experience");
                     character.RecoverableExp = reader.GetInt32("recoverable_exp");
                     character.Hp = reader.GetInt32("hp");
                     character.Mp = reader.GetInt32("mp");
@@ -1880,7 +1880,7 @@ public partial class Character : Unit, ICharacter
                     character.ExpandedExpert = reader.GetByte("expanded_expert");
                     character.Created = reader.GetDateTime("created_at");
                     character.Updated = reader.GetDateTime("updated_at");
-                    character.ReturnDictrictId = reader.GetUInt32("return_district");
+                    character.ReturnDistrictId = reader.GetUInt32("return_district");
 
                     character.Inventory = new Inventory(character);
 
@@ -1942,7 +1942,7 @@ public partial class Character : Unit, ICharacter
                     character.Race = (Race)reader.GetByte("race");
                     character.Gender = (Gender)reader.GetByte("gender");
                     character.Level = reader.GetByte("level");
-                    character.Expirience = reader.GetInt32("expirience");
+                    character.Experience = reader.GetInt32("experience");
                     character.RecoverableExp = reader.GetInt32("recoverable_exp");
                     character.Hp = reader.GetInt32("hp");
                     character.Mp = reader.GetInt32("mp");
@@ -1988,7 +1988,7 @@ public partial class Character : Unit, ICharacter
                     character.ExpandedExpert = reader.GetByte("expanded_expert");
                     character.Created = reader.GetDateTime("created_at");
                     character.Updated = reader.GetDateTime("updated_at");
-                    character.ReturnDictrictId = reader.GetUInt32("return_district");
+                    character.ReturnDistrictId = reader.GetUInt32("return_district");
 
                     character.Inventory = new Inventory(character);
 
@@ -2204,7 +2204,7 @@ public partial class Character : Unit, ICharacter
                 // ----
                 command.CommandText =
                     "REPLACE INTO `characters` " +
-                    "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`," +
+                    "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`experience`,`recoverable_exp`," +
                     "`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`," +
                     "`world_id`,`zone_id`,`x`,`y`,`z`,`roll`,`pitch`,`yaw`," +
                     "`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`," +
@@ -2212,7 +2212,7 @@ public partial class Character : Unit, ICharacter
                     "`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
                     "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`created_at`,`updated_at`,`return_district`" +
                     ") VALUES (" +
-                    "@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp," +
+                    "@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@experience,@recoverable_exp," +
                     "@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3," +
                     "@world_id,@zone_id,@x,@y,@z,@yaw,@pitch,@roll," +
                     "@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time," +
@@ -2228,7 +2228,7 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@gender", (byte)Gender);
                 command.Parameters.AddWithValue("@unit_model_params", unitModelParams);
                 command.Parameters.AddWithValue("@level", Level);
-                command.Parameters.AddWithValue("@expirience", Expirience);
+                command.Parameters.AddWithValue("@experience", Experience);
                 command.Parameters.AddWithValue("@recoverable_exp", RecoverableExp);
                 command.Parameters.AddWithValue("@hp", Hp);
                 command.Parameters.AddWithValue("@mp", Mp);
@@ -2278,7 +2278,7 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@slots", GetActionSlotsAsBlob());
                 command.Parameters.AddWithValue("@created_at", Created);
                 command.Parameters.AddWithValue("@updated_at", Updated);
-                command.Parameters.AddWithValue("@return_district", ReturnDictrictId);
+                command.Parameters.AddWithValue("@return_district", ReturnDistrictId);
                 command.ExecuteNonQuery();
             }
 

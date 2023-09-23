@@ -53,26 +53,26 @@ public class ChangeLevel : ICommand
 
         if (targetPlayer.Ability1 != AbilityType.None)
         {
-            var expfora1 = ExpirienceManager.Instance.GetExpNeededToGivenLevel(targetPlayer.Abilities.Abilities[targetPlayer.Ability1].Exp, level);
+            var expfora1 = ExperienceManager.Instance.GetExpNeededToGivenLevel(targetPlayer.Abilities.Abilities[targetPlayer.Ability1].Exp, level);
             if (expfora1 > maxexptoadd)
                 maxexptoadd = expfora1;
         }
 
         if (targetPlayer.Ability2 != AbilityType.None)
         {
-            var expfora2 = ExpirienceManager.Instance.GetExpNeededToGivenLevel(targetPlayer.Abilities.Abilities[targetPlayer.Ability2].Exp, level);
+            var expfora2 = ExperienceManager.Instance.GetExpNeededToGivenLevel(targetPlayer.Abilities.Abilities[targetPlayer.Ability2].Exp, level);
             if (expfora2 > maxexptoadd)
                 maxexptoadd = expfora2;
         }
 
         if (targetPlayer.Ability3 != AbilityType.None)
         {
-            var expfora3 = ExpirienceManager.Instance.GetExpNeededToGivenLevel(targetPlayer.Abilities.Abilities[targetPlayer.Ability3].Exp, level);
+            var expfora3 = ExperienceManager.Instance.GetExpNeededToGivenLevel(targetPlayer.Abilities.Abilities[targetPlayer.Ability3].Exp, level);
             if (expfora3 > maxexptoadd)
                 maxexptoadd = expfora3;
         }
 
-        var expforlevel = ExpirienceManager.Instance.GetExpForLevel(level) - targetPlayer.Expirience;
+        var expforlevel = ExperienceManager.Instance.GetExpForLevel(level) - targetPlayer.Experience;
         if (expforlevel > maxexptoadd)
             maxexptoadd = expforlevel;
 
@@ -84,7 +84,7 @@ public class ChangeLevel : ICommand
         if (level > targetPlayer.Level)
         {
             targetPlayer.Level = level;
-            targetPlayer.Expirience = expforlevel;
+            targetPlayer.Experience = expforlevel;
 
             targetPlayer.Hp = targetPlayer.MaxHp;
             targetPlayer.Mp = targetPlayer.MaxMp;
