@@ -8,6 +8,7 @@ using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Models;
 using AAEmu.Game.Services;
+using AAEmu.Game.Services.WebApi;
 using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Utils.Scripts;
 using Microsoft.CodeAnalysis.Scripting;
@@ -158,6 +159,7 @@ public static class Program
         {
             _log.Info($"Config: {file}");
             configurationBuilder.AddJsonFile(file);
+            configurationBuilder.AddUserSecrets<GameService>();
         }
 
         // Add command-line arguments
