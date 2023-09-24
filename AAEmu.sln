@@ -17,7 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{37933EC9
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Applications", "Applications", "{B20B2996-83AC-4BAB-9A7C-638DBEEDF47A}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AddicionalFiles", "AddicionalFiles", "{ADE4FB05-479F-4C5A-9E6E-1E785A26C158}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Additional Files", "Additional Files", "{ADE4FB05-479F-4C5A-9E6E-1E785A26C158}"
 	ProjectSection(SolutionItems) = preProject
 		.dockerignore = .dockerignore
 		.editorconfig = .editorconfig
@@ -38,11 +38,82 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SQL", "SQL", "{DC5065BC-D9B
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Updates", "Updates", "{6573E369-7092-4B93-825A-36E81B5DD714}"
+	ProjectSection(SolutionItems) = preProject
+		SQL\updates\2019-02-04_aaemu_game.sql = SQL\updates\2019-02-04_aaemu_game.sql
+		SQL\updates\2019-02-11_aaemu_game.sql = SQL\updates\2019-02-11_aaemu_game.sql
+		SQL\updates\2019-02-12_aaemu_game.sql = SQL\updates\2019-02-12_aaemu_game.sql
+		SQL\updates\2019-02-18_aaemu_game.sql = SQL\updates\2019-02-18_aaemu_game.sql
+		SQL\updates\2019-02-27_aaemu_game.sql = SQL\updates\2019-02-27_aaemu_game.sql
+		SQL\updates\2019-02-28_aaemu_game.sql = SQL\updates\2019-02-28_aaemu_game.sql
+		SQL\updates\2019-03-06_aaemu_game.sql = SQL\updates\2019-03-06_aaemu_game.sql
+		SQL\updates\2019-03-09_aaemu_game.sql = SQL\updates\2019-03-09_aaemu_game.sql
+		SQL\updates\2019-03-13_aaemu_game.sql = SQL\updates\2019-03-13_aaemu_game.sql
+		SQL\updates\2019-03-16_aaemu_game.sql = SQL\updates\2019-03-16_aaemu_game.sql
+		SQL\updates\2019-03-20_aaemu_game.sql = SQL\updates\2019-03-20_aaemu_game.sql
+		SQL\updates\2019-03-23_aaemu_game.sql = SQL\updates\2019-03-23_aaemu_game.sql
+		SQL\updates\2019-05-07_aaemu_game.sql = SQL\updates\2019-05-07_aaemu_game.sql
+		SQL\updates\2019-09-07_aaemu_game.sql = SQL\updates\2019-09-07_aaemu_game.sql
+		SQL\updates\2020-04-29_aaemu_game_auction_house.sql = SQL\updates\2020-04-29_aaemu_game_auction_house.sql
+		SQL\updates\2020-04-30_aaemu_game.sql = SQL\updates\2020-04-30_aaemu_game.sql
+		SQL\updates\2020-04-30_aaemu_game_items.sql = SQL\updates\2020-04-30_aaemu_game_items.sql
+		SQL\updates\2020-05-09_aaemu_game_items.sql = SQL\updates\2020-05-09_aaemu_game_items.sql
+		SQL\updates\2020-05-10_aaemu_game_mails.sql = SQL\updates\2020-05-10_aaemu_game_mails.sql
+		SQL\updates\2020-05-14_aaemu_game_items.sql = SQL\updates\2020-05-14_aaemu_game_items.sql
+		SQL\updates\2020-05-16_aaemu_game_auction_hourse.sql = SQL\updates\2020-05-16_aaemu_game_auction_hourse.sql
+		SQL\updates\2020-05-25_aaemu_game_auction_house.sql = SQL\updates\2020-05-25_aaemu_game_auction_house.sql
+		SQL\updates\2020-12-04_aaemu_game_auction_house.sql = SQL\updates\2020-12-04_aaemu_game_auction_house.sql
+		SQL\updates\2020-12-09_aaemu_game_accounts.sql = SQL\updates\2020-12-09_aaemu_game_accounts.sql
+		SQL\updates\2020-12-09_aaemu_game_items.sql = SQL\updates\2020-12-09_aaemu_game_items.sql
+		SQL\updates\2020-12-10_aaemu_game_doodads.sql = SQL\updates\2020-12-10_aaemu_game_doodads.sql
+		SQL\updates\2020-12-10_aaemu_game_hostile_faction_kills.sql = SQL\updates\2020-12-10_aaemu_game_hostile_faction_kills.sql
+		SQL\updates\2020-12-10_aaemu_game_housing.sql = SQL\updates\2020-12-10_aaemu_game_housing.sql
+		SQL\updates\2020-12-26_aaemu_game_fix_world_id.sql = SQL\updates\2020-12-26_aaemu_game_fix_world_id.sql
+		SQL\updates\2021-04-10_aaemu_game_ucc.sql = SQL\updates\2021-04-10_aaemu_game_ucc.sql
+		SQL\updates\2021-07-11_aaemu_game_transform.sql = SQL\updates\2021-07-11_aaemu_game_transform.sql
+		SQL\updates\2021-07-15_aaemu_game_furniture.sql = SQL\updates\2021-07-15_aaemu_game_furniture.sql
+		SQL\updates\2021-07-21_aaemu_game_transform.sql = SQL\updates\2021-07-21_aaemu_game_transform.sql
+		SQL\updates\2021-09-11_aaemu_game_ucc.sql = SQL\updates\2021-09-11_aaemu_game_ucc.sql
+		SQL\updates\2021-09-23_aaemu_game_music.sql = SQL\updates\2021-09-23_aaemu_game_music.sql
+		SQL\updates\2021-11-12_aaemu_game_index_fix.sql = SQL\updates\2021-11-12_aaemu_game_index_fix.sql
+		SQL\updates\2022-02-10_aaemu_game_characters-return_district.sql = SQL\updates\2022-02-10_aaemu_game_characters-return_district.sql
+		SQL\updates\2022-02-18_aaemu_game_characters-create_at&update_at_fix.sql = SQL\updates\2022-02-18_aaemu_game_characters-create_at&update_at_fix.sql
+		SQL\updates\2022-05-14_aaemu_game_item_containers.sql = SQL\updates\2022-05-14_aaemu_game_item_containers.sql
+		SQL\updates\2022-07-07_aaemu_game_coffers.sql = SQL\updates\2022-07-07_aaemu_game_coffers.sql
+		SQL\updates\2022-07-08_aaemu_game_doodad_data.sql = SQL\updates\2022-07-08_aaemu_game_doodad_data.sql
+		SQL\updates\2022-07-28_aaemu_game_expire_item.sql = SQL\updates\2022-07-28_aaemu_game_expire_item.sql
+		SQL\updates\2022-09-22_aaemu_game_mail_text.sql = SQL\updates\2022-09-22_aaemu_game_mail_text.sql
+		SQL\updates\2022-09-23_aaemu_game_characters_experience.sql = SQL\updates\2022-09-23_aaemu_game_characters_experience.sql
+		SQL\updates\readme.txt = SQL\updates\readme.txt
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{4D10DE27-69C5-4826-8758-322DD4E7AFE5}"
 	ProjectSection(SolutionItems) = preProject
 		Docs\docker-help.txt = Docs\docker-help.txt
 		Docs\known_issues.txt = Docs\known_issues.txt
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{66EEB549-6D3C-4ABC-834E-9DC59720DF4E}"
+	ProjectSection(SolutionItems) = preProject
+		SQL\examples\cash_shop_item.sql = SQL\examples\cash_shop_item.sql
+		SQL\examples\cash_shop_item_Славь.sql = SQL\examples\cash_shop_item_Славь.sql
+		SQL\examples\example-cash-shop.sql = SQL\examples\example-cash-shop.sql
+		SQL\examples\example-server.sql = SQL\examples\example-server.sql
+		SQL\examples\magazin_dlay_testerov_Славь.sql = SQL\examples\magazin_dlay_testerov_Славь.sql
+		SQL\examples\test-user.sql = SQL\examples\test-user.sql
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{2A4FF077-4CA2-4FB5-A16C-D98F4F30D485}"
+	ProjectSection(SolutionItems) = preProject
+		Scripts\clear-caches.sh = Scripts\clear-caches.sh
+		Scripts\publish.sh = Scripts\publish.sh
+		Scripts\start AAEmu.Game.bat = Scripts\start AAEmu.Game.bat
+		Scripts\start AAEmu.Login.bat = Scripts\start AAEmu.Login.bat
+		Scripts\start.sh = Scripts\start.sh
+		Scripts\StartGameServer.bat = Scripts\StartGameServer.bat
+		Scripts\StartLoginServer.bat = Scripts\StartLoginServer.bat
+		Scripts\start_AAEmu_publish.bat = Scripts\start_AAEmu_publish.bat
+		Scripts\stop-reset-db.sh = Scripts\stop-reset-db.sh
+		Scripts\stop.sh = Scripts\stop.sh
 	EndProjectSection
 EndProject
 Global
@@ -84,6 +155,8 @@ Global
 		{DC5065BC-D9B9-4B81-97D9-45527C90A0B6} = {ADE4FB05-479F-4C5A-9E6E-1E785A26C158}
 		{6573E369-7092-4B93-825A-36E81B5DD714} = {DC5065BC-D9B9-4B81-97D9-45527C90A0B6}
 		{4D10DE27-69C5-4826-8758-322DD4E7AFE5} = {ADE4FB05-479F-4C5A-9E6E-1E785A26C158}
+		{66EEB549-6D3C-4ABC-834E-9DC59720DF4E} = {DC5065BC-D9B9-4B81-97D9-45527C90A0B6}
+		{2A4FF077-4CA2-4FB5-A16C-D98F4F30D485} = {ADE4FB05-479F-4C5A-9E6E-1E785A26C158}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {63FD3F6D-B455-40CC-8555-5F97A1068D2B}
