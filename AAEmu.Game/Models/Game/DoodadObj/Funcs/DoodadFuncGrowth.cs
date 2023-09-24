@@ -19,6 +19,33 @@ public class DoodadFuncGrowth : DoodadPhaseFuncTemplate
         //TODO add doodad scaling transformation
         owner.Scale = StartScale / 1000f;
         var customDelay = Delay / AppConfiguration.Instance.World.GrowthRate; // decrease delay
+        var timeLeft = customDelay;
+
+        if (owner.OverridePhaseTime > DateTime.MinValue)
+        {
+            // Reset the override
+            owner.PhaseTime = owner.OverridePhaseTime;
+            owner.OverridePhaseTime = DateTime.MinValue;
+
+            var timeSincePhaseStart = DateTime.UtcNow - owner.PhaseTime;
+            timeLeft = customDelay - timeSincePhaseStart.TotalMilliseconds;
+        }
+
+        if (timeLeft < 1)
+            timeLeft = 1;
+
+        // Not needed anymore?
+        if (owner.OverrideGrowthTime > DateTime.MinValue)
+        {
+            // Reset the override
+            owner.GrowthTime = owner.OverrideGrowthTime;
+            owner.OverrideGrowthTime = DateTime.MinValue;
+        }
+        else
+        {
+            // owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(timeLeft);
+        }
+        owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(timeLeft);
 
         if (caster is Character)
             _log.Debug("DoodadFuncGrowth: Delay {0}, StartScale {1}, EndScale {2}, NextPhase {3}", Delay, StartScale, EndScale, NextPhase);
@@ -26,8 +53,7 @@ public class DoodadFuncGrowth : DoodadPhaseFuncTemplate
             _log.Trace("DoodadFuncGrowth: Delay {0}, StartScale {1}, EndScale {2}, NextPhase {3}", Delay, StartScale, EndScale, NextPhase);
 
         owner.FuncTask = new DoodadFuncGrowthTask(caster, owner, 0, NextPhase, EndScale / 1000f);
-        owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(customDelay);
-        TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(customDelay));
+        TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(timeLeft));
 
         return false;
     }

@@ -25,11 +25,41 @@ public class DoodadFuncTimer : DoodadPhaseFuncTemplate
             else
                 _log.Trace("DoodadFuncTimer: TemplateId {0},  Delay {1}, NextPhase {2}, KeepRequester {3}, ShowTip {4}, ShowEndTime {5}, Tip {6}", owner.TemplateId, Delay, NextPhase, KeepRequester, ShowTip, ShowEndTime, Tip);
 
+            double customDelay = Delay;
+            var timeLeft = customDelay;
+
+            if (owner.OverridePhaseTime > DateTime.MinValue)
+            {
+                // Reset the override
+                owner.PhaseTime = owner.OverridePhaseTime;
+                owner.OverridePhaseTime = DateTime.MinValue;
+
+                var timeSincePhaseStart = DateTime.UtcNow - owner.PhaseTime;
+                timeLeft = customDelay - timeSincePhaseStart.TotalMilliseconds;
+            }
+
+            if (timeLeft < 1)
+                timeLeft = 1;
+
+            // Not needed anymore?
+            if (owner.OverrideGrowthTime > DateTime.MinValue)
+            {
+                // Reset the override
+                owner.GrowthTime = owner.OverrideGrowthTime;
+                owner.OverrideGrowthTime = DateTime.MinValue;
+            }
+            else
+            {
+                // owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(timeLeft);
+            }
+            owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(timeLeft);
+
             owner.FuncTask = new DoodadFuncTimerTask(caster, owner, 0, NextPhase);
-            owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(Delay);
-            TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Delay));
+            TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(timeLeft));
         }
 
-        return false; // никогда не прерываем последовательность фазовых функций
+        // никогда не прерываем последовательность фазовых функций
+        // we never interrupt the sequence of phase functions
+        return false;
     }
 }

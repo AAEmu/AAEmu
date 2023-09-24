@@ -1063,6 +1063,7 @@ public class HousingManager : Singleton<HousingManager>
 
                     // Is furniture, but doesn't restore, destroy it
                     f.Transform.DetachAll();
+                    f.ItemId = 0;
                     f.Delete();
                 }
                 else
@@ -1089,6 +1090,7 @@ public class HousingManager : Singleton<HousingManager>
                 {
                     returnedItems.Add(thisDoodadsItem);
                     returnedThisItem = true;
+                    f.ItemId = 0; // don't auto-delete
                 }
             }
             else
