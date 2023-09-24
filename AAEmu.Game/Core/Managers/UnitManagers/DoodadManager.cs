@@ -18,6 +18,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -2237,7 +2238,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         template.SimRadius = reader.GetInt32("sim_radius", 0);
                         template.CollideShip = reader.GetBoolean("collide_ship", true);
                         template.CollideVehicle = reader.GetBoolean("collide_vehicle", true);
-                        template.ClimateId = reader.GetUInt32("climate_id", 0);
+                        template.ClimateId = (Climate)reader.GetUInt32("climate_id", 0);
                         template.SaveIndun = reader.GetBoolean("save_indun", true);
                         template.ForceUpAction = reader.GetBoolean("force_up_action", true);
                         template.Parentable = reader.GetBoolean("parentable", true);
@@ -2300,29 +2301,48 @@ public class DoodadManager : Singleton<DoodadManager>
         return -1;
     }
 
-    public Doodad Create(uint bcId, uint id, GameObject obj = null)
+    public Doodad Create(uint bcId, uint templateId, GameObject ownerObject = null)
     {
-        if (!_templates.ContainsKey(id))
+        if (!_templates.TryGetValue(templateId, out var template))
             return null;
-        var template = _templates[id];
         Doodad doodad = null;
 
         // Check if template is a Coffer
         if (template is DoodadCofferTemplate doodadCofferTemplate)
             doodad = new DoodadCoffer { Capacity = doodadCofferTemplate.Capacity };
 
-        if (doodad == null)
-            doodad = new Doodad();
+        doodad ??= new Doodad();
 
         doodad.ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
-        doodad.TemplateId = template.Id; // duplicate Id
+        doodad.TemplateId = template.Id; // copy the templateId
         doodad.Template = template;
-        doodad.OwnerObjId = obj?.ObjId ?? 0;
+        doodad.OwnerObjId = ownerObject?.ObjId ?? 0;
         doodad.PlantTime = DateTime.UtcNow;
         doodad.OwnerType = DoodadOwnerType.System;
         doodad.FuncGroupId = doodad.GetFuncGroupId();
 
-        switch (obj)
+        // Calculate growth time from all growing phases (if any)
+        // TODO: put this in template loading
+        var totalGrothTime = 0;
+        foreach (var funcGroup in template.FuncGroups)
+        {
+            var funcGroups = Instance.GetFuncsForGroup(funcGroup.Id);
+            foreach (var doodadFunc in funcGroups)
+            {
+                var thisFuncTemplate = Instance.GetPhaseFuncTemplate(doodadFunc.FuncId, doodadFunc.FuncType);
+                if (thisFuncTemplate is DoodadFuncGrowth growthFunc)
+                {
+                    totalGrothTime += growthFunc.Delay;
+                }
+            }
+        }
+
+        if (totalGrothTime <= 0)
+            totalGrothTime = template.GrowthTime;
+
+        doodad.GrowthTime = doodad.PlantTime.AddMilliseconds(totalGrothTime);
+
+        switch (ownerObject)
         {
             case Character character:
                 doodad.OwnerId = character.Id;
@@ -2427,8 +2447,8 @@ public class DoodadManager : Singleton<DoodadManager>
 
         if (_templates.ContainsKey(doodadTemplateId))
         {
-            var doodaTemplates = _templates[doodadTemplateId];
-            listDoodadFuncGroups.AddRange(doodaTemplates.FuncGroups);
+            var doodadTemplates = _templates[doodadTemplateId];
+            listDoodadFuncGroups.AddRange(doodadTemplates.FuncGroups);
         }
         return listDoodadFuncGroups;
     }
@@ -2441,8 +2461,8 @@ public class DoodadManager : Singleton<DoodadManager>
 
         if (_templates.ContainsKey(doodadTemplateId))
         {
-            var doodaTemplates = _templates[doodadTemplateId];
-            listDoodadFuncGroups.AddRange(doodaTemplates.FuncGroups);
+            var doodadTemplates = _templates[doodadTemplateId];
+            listDoodadFuncGroups.AddRange(doodadTemplates.FuncGroups);
             foreach (var item in listDoodadFuncGroups)
             {
                 listId.Add(item.Id);
@@ -2475,11 +2495,11 @@ public class DoodadManager : Singleton<DoodadManager>
     }
 
     /// <summary>
-    /// Saves and creates a doodad 
+    /// Saves and creates a doodad
     /// </summary>
     public static Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId)
     {
-        _log.Warn("{0} is placing a doodad {1} at position {2} {3} {4}", character.Name, id, x, y, z);
+        _log.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
 
         var targetHouse = HousingManager.Instance.GetHouseAtLocation(x, y);
 
@@ -2512,12 +2532,19 @@ public class DoodadManager : Singleton<DoodadManager>
         var items = ItemManager.Instance.GetItemIdsFromDoodad(id);
         var preferredItem = character.Inventory.Bag.GetItemByItemId(itemId);
 
+        if (preferredItem == null)
+        {
+            _log.Error($"Unable to create doodad because source item (Id: {itemId}) does not exist in {character.Name}'s bag inventory.");
+            doodad.Delete();
+            return null;
+        }
+
         doodad.ItemTemplateId = preferredItem.TemplateId;
+        if (preferredItem.Template.MaxCount > 1)
+            doodad.ItemId = 0; // If it's a stackable item, don't store the actual itemId, but only it's templateId
 
         if (doodad is DoodadCoffer coffer)
-        {
             coffer.InitializeCoffer(character.Id);
-        }
 
         foreach (var item in items)
             character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1, preferredItem);

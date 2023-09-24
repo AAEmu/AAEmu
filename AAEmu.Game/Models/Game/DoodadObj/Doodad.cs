@@ -5,6 +5,7 @@ using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -13,6 +14,8 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Doodads;
 
@@ -86,7 +89,8 @@ public class Doodad : BaseUnit
             if (value != _funcGroupId)
             {
                 _funcGroupId = value;
-                if (DbId > 0)
+                PhaseTime = DateTime.UtcNow; // Save PhaseTime at start of new phase (group)
+                if (IsPersistent)
                     Save();
             }
         }
@@ -98,6 +102,7 @@ public class Doodad : BaseUnit
     public uint ItemTemplateId { get; set; }
     public DateTime GrowthTime { get; set; }
     public DateTime PlantTime { get; set; }
+    public DateTime PhaseTime { get; set; }
     public uint OwnerId { get; set; }
     public uint OwnerObjId { get; set; }
     public uint ParentObjId { get; set; }
@@ -113,7 +118,7 @@ public class Doodad : BaseUnit
             if (value != _data)
             {
                 _data = value;
-                if (DbId > 0)
+                if (IsPersistent)
                     Save();
             }
         }
@@ -127,12 +132,21 @@ public class Doodad : BaseUnit
     public uint TimeLeft =>
         GrowthTime > DateTime.UtcNow
             ? (uint)(GrowthTime - DateTime.UtcNow).TotalMilliseconds
-            : 0; // TODO formula time of phase
+            : 0; // TODO: formula time of phase
 
     public bool ToNextPhase { get; set; }
     public int PhaseRatio { get; set; }
     public int CumulativePhaseRatio { get; set; }
+
+    /// <summary>
+    /// Used to indicate the starting phase of the doodad should be overriden when loading player doodads
+    /// </summary>
     public int OverridePhase { get; set; }
+    /// <summary>
+    /// Used to indicate the phase end time of the doodad should be overriden when loading player doodads
+    /// </summary>
+    public DateTime OverrideGrowthTime { get; set; } = DateTime.MinValue;
+    public DateTime OverridePhaseTime { get; set; } = DateTime.MinValue;
     private bool _deleted = false;
     public VehicleSeat Seat { get; set; }
     private List<uint> ListGroupId { get; set; }
@@ -551,7 +565,14 @@ public class Doodad : BaseUnit
         base.Delete();
         _deleted = true;
 
-        if (DbId > 0)
+        // Delete associated item if expired
+        if (ItemId > 0)
+        {
+            var item = ItemManager.Instance.GetItemByItemId(ItemId);
+            if (item != null && (item._holdingContainer.ContainerType == SlotType.None || item._holdingContainer.ContainerType == SlotType.System))
+                item._holdingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
+        }
+        if (IsPersistent)
         {
             using (var connection = MySQL.CreateConnection())
             {
@@ -563,6 +584,8 @@ public class Doodad : BaseUnit
                     command.ExecuteNonQuery();
                 }
             }
+
+            IsPersistent = false;
         }
     }
 
@@ -590,7 +613,7 @@ public class Doodad : BaseUnit
                 command.Parameters.AddWithValue("@current_phase_id", FuncGroupId);
                 command.Parameters.AddWithValue("@plant_time", PlantTime);
                 command.Parameters.AddWithValue("@growth_time", GrowthTime);
-                command.Parameters.AddWithValue("@phase_time", DateTime.MinValue);
+                command.Parameters.AddWithValue("@phase_time", PhaseTime);
                 // We save it's world position, and upon loading, we re-parent things depending on the data
                 command.Parameters.AddWithValue("@x", Transform?.Local.Position.X ?? 0f);
                 command.Parameters.AddWithValue("@y", Transform?.Local.Position.Y ?? 0f);
@@ -620,7 +643,7 @@ public class Doodad : BaseUnit
         // Only allow removal if there is no other persistent Doodads stacked on top of this
         foreach (var child in Transform.Children)
         {
-            if ((child.GameObject is Doodad doodad) && (doodad.DbId > 0))
+            if (child.GameObject is Doodad { IsPersistent: true })
                 return false;
         }
 

@@ -395,7 +395,7 @@ public class SpawnManager : Singleton<SpawnManager>
                         var yaw = reader.GetFloat("yaw");
                         var plantTime = reader.GetDateTime("plant_time");
                         var growthTime = reader.GetDateTime("growth_time");
-                        // var phaseTime = reader.GetDateTime("phase_time"); // Not used
+                        var phaseTime = reader.GetDateTime("phase_time");
                         var ownerId = reader.GetUInt32("owner_id");
                         var ownerType = (DoodadOwnerType)reader.GetByte("owner_type");
                         var itemId = reader.GetUInt64("item_id");
@@ -407,15 +407,19 @@ public class SpawnManager : Singleton<SpawnManager>
 
                         var doodad = DoodadManager.Instance.Create(0, templateId);
 
-                        doodad.Spawner = new DoodadSpawner();
-                        doodad.Spawner.UnitId = templateId;
+                        //doodad.Spawner = new DoodadSpawner();
+                        //doodad.Spawner.UnitId = templateId;
+                        doodad.IsPersistent = true;
                         doodad.DbId = dbId;
                         // doodad.FuncGroupId = phaseId;
                         doodad.OwnerId = ownerId;
                         doodad.OwnerType = ownerType;
                         doodad.AttachPoint = AttachPointKind.None;
                         doodad.PlantTime = plantTime;
+                        doodad.OverrideGrowthTime = growthTime;
                         doodad.GrowthTime = growthTime;
+                        doodad.OverridePhaseTime = phaseTime;
+                        doodad.PhaseTime = phaseTime;
                         doodad.ItemId = itemId;
                         doodad.DbHouseId = houseId;
                         // Try to grab info from the actual item if it still exists
@@ -479,10 +483,9 @@ public class SpawnManager : Singleton<SpawnManager>
                             }
                         }
 
-                        if (phaseId != doodad.FuncGroupId)
+                        if ((phaseId != doodad.FuncGroupId) || (growthTime > DateTime.MinValue) || (phaseTime > DateTime.MinValue))
                         {
                             // Temporary hack to prevent re-saving on load
-                            doodad.DbId = 0;
                             try
                             {
                                 doodad.DoChangePhase(null, (int)phaseId);
@@ -491,7 +494,6 @@ public class SpawnManager : Singleton<SpawnManager>
                             {
                                 _log.Warn($"Was unable to set Doodad phase on load DB Id {dbId}, template {templateId}: {e.InnerException}");
                             }
-                            doodad.DbId = dbId;
                         }
 
                         _playerDoodads.Add(doodad);
@@ -609,9 +611,14 @@ public class SpawnManager : Singleton<SpawnManager>
         {
             foreach (var doodad in _playerDoodads)
             {
-                if (doodad.Spawner.Spawn(doodad.ObjId) == null)
+                if (doodad.Spawner == null)
                 {
                     doodad.Spawn();
+                }
+                else
+                {
+                    if (doodad.Spawner?.Spawn(doodad.ObjId) == null)
+                        _log.Error($"Failed to spawn player doodad DbId:{doodad.DbId}, TemplateId: {doodad.TemplateId}");
                 }
             }
         });
