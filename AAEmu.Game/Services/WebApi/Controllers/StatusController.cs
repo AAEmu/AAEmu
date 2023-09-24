@@ -10,11 +10,11 @@ namespace AAEmu.Game.Services.WebApi.Controllers;
 
 /// <summary>
 /// Status controller for the WebApi
-/// </summary>
+/// </summary>6
 internal class StatusController : IController
 {
     [WebApiGet("/status")]
-    public HttpResponse GetStatus()
+    public HttpResponse GetStatus(HttpRequest request)
     {
         var response = new HttpResponse((int)HttpStatusCode.OK);
         response.SetContentType("text/html");
@@ -33,7 +33,7 @@ Total number of Schedule Requests: {TaskManager.Instance.ScheduleRequestCount}";
     }
 
     [WebApiPost("/status")]
-    public HttpResponse PostStatus()
+    public HttpResponse PostStatus(HttpRequest request)
     {
         var response = new HttpResponse((int)HttpStatusCode.MethodNotAllowed);
         response.SetContentType("text/html");

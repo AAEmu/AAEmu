@@ -15,7 +15,7 @@ public class WebApiSession : HttpSession
 
     protected override void OnReceivedRequest(HttpRequest request)
     {
-        var response = RouteMapper.GetRoute(request.Url, new HttpMethod(request.Method))?.Invoke();
+        var response = RouteMapper.GetRoute(request.Url, new HttpMethod(request.Method))?.Invoke(request);
 
         if (response is null)
         {

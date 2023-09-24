@@ -7,13 +7,13 @@ using NetCoreServer;
 namespace AAEmu.Game.Services.WebApi;
 internal class RouteMapper
 {
-    private static Dictionary<string, Func<HttpResponse>> _routes = new(StringComparer.CurrentCultureIgnoreCase);
-    public static void RegisterRoute(string path, HttpMethod method, Func<HttpResponse> func)
+    private static Dictionary<string, Func<HttpRequest, HttpResponse>> _routes = new(StringComparer.CurrentCultureIgnoreCase);
+    public static void RegisterRoute(string path, HttpMethod method, Func<HttpRequest, HttpResponse> func)
     {
         _routes.Add(GetRouteKey(path, method), func);
     }
 
-    public static Func<HttpResponse> GetRoute(string path, HttpMethod method)
+    public static Func<HttpRequest, HttpResponse> GetRoute(string path, HttpMethod method)
     {
         if (_routes.TryGetValue(GetRouteKey(path, method), out var routeHandler))
         {
@@ -45,14 +45,14 @@ internal class RouteMapper
                 if (getAttribute.Length > 0)
                 {
                     var get = getAttribute[0] as WebApiGetAttribute;
-                    RegisterRoute(get.Path, HttpMethod.Get, () => (HttpResponse)method.Invoke(Activator.CreateInstance(type), null));
+                    RegisterRoute(get.Path, HttpMethod.Get, (HttpRequest request) => (HttpResponse)method.Invoke(Activator.CreateInstance(type), new[] { request }));
                 }
 
                 var postAttribute = method.GetCustomAttributes(typeof(WebApiPostAttribute), true);
                 if (postAttribute.Length > 0)
                 {
                     var post = postAttribute[0] as WebApiPostAttribute;
-                    RegisterRoute(post.Path, HttpMethod.Post, () => (HttpResponse)method.Invoke(Activator.CreateInstance(type), null));
+                    RegisterRoute(post.Path, HttpMethod.Post, (HttpRequest request) => (HttpResponse)method.Invoke(Activator.CreateInstance(type), new[] { request }));
                 }
             }
         }
