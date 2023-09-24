@@ -10,6 +10,7 @@ publish/
 *.bak
 *.packet
 *.csproj.user
+*.DotSettings.user
 **/AAEmu.Game.xml
 *.aelcf
 **/TestResults/

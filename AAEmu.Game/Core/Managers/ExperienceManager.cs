@@ -6,11 +6,11 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class ExpirienceManager : Singleton<ExpirienceManager>
+public class ExperienceManager : Singleton<ExperienceManager>
 {
     private static Logger _log = LogManager.GetCurrentClassLogger();
 
-    private Dictionary<byte, ExpirienceLevelTemplate> _levels;
+    private Dictionary<byte, ExperienceLevelTemplate> _levels;
 
     public int GetExpForLevel(byte level, bool mate = false)
     {
@@ -49,10 +49,10 @@ public class ExpirienceManager : Singleton<ExpirienceManager>
 
     public void Load()
     {
-        _levels = new Dictionary<byte, ExpirienceLevelTemplate>();
+        _levels = new Dictionary<byte, ExperienceLevelTemplate>();
         using (var connection = SQLite.CreateConnection())
         {
-            _log.Info("Loading expirience data...");
+            _log.Info("Loading experience data...");
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM levels";
@@ -62,7 +62,7 @@ public class ExpirienceManager : Singleton<ExpirienceManager>
                 {
                     while (reader.Read())
                     {
-                        var level = new ExpirienceLevelTemplate();
+                        var level = new ExperienceLevelTemplate();
                         level.Level = reader.GetByte("id");
                         level.TotalExp = reader.GetInt32("total_exp");
                         level.TotalMateExp = reader.GetInt32("total_mate_exp");
@@ -72,7 +72,7 @@ public class ExpirienceManager : Singleton<ExpirienceManager>
                 }
             }
 
-            _log.Info("Expirience data loaded");
+            _log.Info("Experience data loaded");
         }
     }
 }

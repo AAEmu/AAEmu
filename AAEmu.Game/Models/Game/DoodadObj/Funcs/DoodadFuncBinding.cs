@@ -29,7 +29,7 @@ public class DoodadFuncBinding : DoodadFuncTemplate
 
         if (portal != null)
         {
-            character.ReturnDictrictId = DistrictId;
+            character.ReturnDistrictId = DistrictId;
             var portals = character.Portals.DistrictPortals.Values.ToArray();
             character.SendPacket(new SCCharacterReturnDistrictsPacket(portals, portal.Id));
             _log.Trace($"DoodadFuncBinding: ReturnPointId {returnPointId} ==> Portal.Id {portal.Id}");

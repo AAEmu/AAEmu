@@ -112,7 +112,7 @@ public class CharacterPortals
         if (DistrictPortals.Count > 0)
         {
             var portals = DistrictPortals.Values.ToArray();
-            var ReturnPointId = PortalManager.Instance.GetDistrictReturnPoint(Owner.ReturnDictrictId, Owner.Faction.Id);
+            var ReturnPointId = PortalManager.Instance.GetDistrictReturnPoint(Owner.ReturnDistrictId, Owner.Faction.Id);
             Owner.SendPacket(new SCCharacterReturnDistrictsPacket(portals, ReturnPointId)); // INFO - What is returnDistrictId? Table district_return_point, field district_id => return_point_id
         }
     }

@@ -10,8 +10,8 @@ public class CharacterTemplate
     public uint ModelId { get; set; }
     public uint ZoneId { get; set; }
     public uint FactionId { get; set; }
-    public uint ReturnDictrictId { get; set; }
-    public uint ResurrectionDictrictId { get; set; }
+    public uint ReturnDistrictId { get; set; }
+    public uint ResurrectionDistrictId { get; set; }
     public WorldSpawnPosition SpawnPosition { get; set; }
     public uint[] Items { get; set; }
     public List<uint> Buffs { get; set; }

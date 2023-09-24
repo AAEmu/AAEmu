@@ -35,7 +35,7 @@ public class Return : SpecialEffectAction
         if (value1 == 0)
         {
             // Memory Tome for Recall skill
-            returnPointId = PortalManager.Instance.GetDistrictReturnPoint(character.ReturnDictrictId, character.Faction.Id);
+            returnPointId = PortalManager.Instance.GetDistrictReturnPoint(character.ReturnDistrictId, character.Faction.Id);
             trp = PortalManager.Instance.GetRecallById(returnPointId);
             if (returnPointId == 0) { return; }
         }

@@ -5,7 +5,7 @@ FRAMEWORK=netcoreapp2.2
 
 CONFIGURATION=Debug
 #CONFIGURATION=Release
-
+cd ..
 mkdir -p publish;
 mkdir -p publish/$CONFIGURATION;
 

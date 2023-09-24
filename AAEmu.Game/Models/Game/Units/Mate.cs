@@ -522,13 +522,13 @@ public sealed class Mate : Unit
 
     public void CheckLevelUp()
     {
-        var needExp = ExpirienceManager.Instance.GetExpForLevel((byte)(Level + 1));
+        var needExp = ExperienceManager.Instance.GetExpForLevel((byte)(Level + 1));
         var change = false;
         while (Experience >= needExp)
         {
             change = true;
             Level++;
-            needExp = ExpirienceManager.Instance.GetExpForLevel((byte)(Level + 1));
+            needExp = ExperienceManager.Instance.GetExpForLevel((byte)(Level + 1));
         }
 
         if (change)

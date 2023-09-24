@@ -49,7 +49,7 @@ public class ItemManager : Singleton<ItemManager>
     private Dictionary<int, GradeTemplate> _gradesOrdered;
     private Dictionary<uint, ItemGradeEnchantingSupport> _enchantingSupports;
 
-    // Gemming
+    // Socketing
     private Dictionary<uint, uint> _socketChance;
     private Dictionary<uint, List<BonusTemplate>> _itemUnitModifiers;
     private Dictionary<uint, ItemCapScale> _itemCapScales;

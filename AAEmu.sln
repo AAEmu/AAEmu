@@ -24,10 +24,25 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AddicionalFiles", "Addicion
 		.env = .env
 		.gitignore = .gitignore
 		.gitlab-ci.yml = .gitlab-ci.yml
+		AAEmu.sln.DotSettings = AAEmu.sln.DotSettings
 		CONTRIBUTING.md = CONTRIBUTING.md
 		docker-compose.yaml = docker-compose.yaml
 		global.json = global.json
 		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SQL", "SQL", "{DC5065BC-D9B9-4B81-97D9-45527C90A0B6}"
+	ProjectSection(SolutionItems) = preProject
+		SQL\aaemu_game.sql = SQL\aaemu_game.sql
+		SQL\aaemu_login.sql = SQL\aaemu_login.sql
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Updates", "Updates", "{6573E369-7092-4B93-825A-36E81B5DD714}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{4D10DE27-69C5-4826-8758-322DD4E7AFE5}"
+	ProjectSection(SolutionItems) = preProject
+		Docs\docker-help.txt = Docs\docker-help.txt
+		Docs\known_issues.txt = Docs\known_issues.txt
 	EndProjectSection
 EndProject
 Global
@@ -66,6 +81,9 @@ Global
 		{B17DD122-1843-4176-A0CB-8A4A8B434044} = {B20B2996-83AC-4BAB-9A7C-638DBEEDF47A}
 		{0E614BCF-6BA2-4986-85DA-8A0AA9C57C6B} = {37933EC9-EBED-4B75-B7E9-796BEE2CA3D3}
 		{9D26DA94-2E47-45D5-9A23-14C52FA2638A} = {37933EC9-EBED-4B75-B7E9-796BEE2CA3D3}
+		{DC5065BC-D9B9-4B81-97D9-45527C90A0B6} = {ADE4FB05-479F-4C5A-9E6E-1E785A26C158}
+		{6573E369-7092-4B93-825A-36E81B5DD714} = {DC5065BC-D9B9-4B81-97D9-45527C90A0B6}
+		{4D10DE27-69C5-4826-8758-322DD4E7AFE5} = {ADE4FB05-479F-4C5A-9E6E-1E785A26C158}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {63FD3F6D-B455-40CC-8555-5F97A1068D2B}

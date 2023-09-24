@@ -55,7 +55,7 @@ public class CharacterMates
             Name = LocalizationManager.Instance.Get("npcs", "name", npctemplate.Id, npctemplate.Name), // npctemplate.Name,
             Owner = Owner.Id,
             Mileage = 0,
-            Xp = ExpirienceManager.Instance.GetExpForLevel(npctemplate.Level, true),
+            Xp = ExperienceManager.Instance.GetExpForLevel(npctemplate.Level, true),
             Hp = 9999,
             Mp = 9999,
             UpdatedAt = DateTime.UtcNow,
