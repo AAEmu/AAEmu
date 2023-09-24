@@ -40,9 +40,15 @@ public class InteractionEffect : EffectTemplate
         }
 
         if (caster is not Character character) { return; }
-        if (target is Doodad)
+        if (target is Doodad doodad)
         {
-            character.Quests.OnInteraction(WorldInteraction, target);
+            //character.Quests.OnInteraction(WorldInteraction, target);
+            // инициируем событие
+            character.Events?.OnAcceptDoodad(this, new OnAcceptDoodadArgs
+            {
+                DoodadId = doodad.TemplateId
+            });
+
         }
     }
 }

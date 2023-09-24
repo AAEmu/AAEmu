@@ -715,7 +715,14 @@ public class Npc : Unit
                 mate.AddExp(KillExp);
                 character.SendMessage($"Pet gained {KillExp} XP");
             }
-            character.Quests.OnKill(this);
+            //character.Quests.OnKill(this);
+            // Инициируем событие
+            character.Events?.OnMonsterHunt(this, new OnMonsterHuntArgs
+            {
+                NpcId = TemplateId,
+                Count = 1,
+                Position = Transform
+            });
         }
 
         Spawner?.DecreaseCount(this);

@@ -28,7 +28,7 @@ public class QuestCommandUtil
                 break;
             case "list":
                 character.SendMessage("[Quest] LIST");
-                foreach (var quest in character.Quests.Quests.Values)
+                foreach (var quest in character.Quests.ActiveQuests.Values)
                 {
                     var objectives = quest.GetObjectives(quest.Step).Select(t => t.ToString()).ToList();
                     character.SendMessage("Quest {0}: Step({1}), Objectives({2})", quest.Template.Id, quest.Step, string.Join(", ", objectives));
@@ -87,7 +87,7 @@ public class QuestCommandUtil
                     {
                         if (character.Quests.HasQuest(questId))
                         {
-                            var quest = character.Quests.Quests[questId];
+                            var quest = character.Quests.ActiveQuests[questId];
                             if (quest.Step == QuestComponentKind.None)
                                 quest.Step = QuestComponentKind.Start;
                             if (quest.Step == QuestComponentKind.Start)

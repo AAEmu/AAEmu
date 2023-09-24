@@ -25,7 +25,7 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Quests;
 
-public class Quest : PacketMarshaler
+public partial class Quest : PacketMarshaler
 {
     private const int ObjectiveCount = 5;
     private readonly ISphereQuestManager _sphereQuestManager;
@@ -35,34 +35,32 @@ public class Quest : PacketMarshaler
     private readonly IExpressTextManager _expressTextManager;
     private readonly IWorldManager _worldManager;
     public long Id { get; set; }
-    public uint TemplateId { get; set; }
+    public uint TemplateId { get; set; } // QuestId
     public IQuestTemplate Template { get; set; }
+    internal int[] Objectives { get; set; }
     public QuestStatus Status { get; set; }
-    public int[] Objectives { get; set; }
     public QuestComponentKind Step { get; set; }
+    public QuestConditionObj Condition { get; set; }
     public DateTime Time { get; set; }
     public ICharacter Owner { get; set; }
-    public int LeftTime => Time > DateTime.UtcNow ? (int)(Time - DateTime.UtcNow).TotalMilliseconds : -1;
-    public int SupplyItem { get; set; }
+    private int LeftTime => Time > DateTime.UtcNow ? (int)(Time - DateTime.UtcNow).TotalMilliseconds : -1;
+    private int SupplyItem { get; set; }
     public bool EarlyCompletion { get; set; }
     public bool ExtraCompletion { get; set; }
     public int OverCompletionPercent { get; set; }
     public long DoodadId { get; set; }
-    public long ObjId { get; set; }
-    public uint ComponentId { get; set; }
-    public QuestAcceptorType QuestAcceptorType { get; set; }
-    public uint AcceptorType { get; set; }
-    public QuestCompleteTask QuestTask { get; set; }
+    private long ObjId { get; set; }
+    public uint ComponentId { get; set; } // нужно для пакета SCQuestContext...
+    public QuestAcceptorType QuestAcceptorType { get; set; } // нужно для пакета SCQuestContext...
+    public uint AcceptorType { get; set; } // нужно для пакета SCQuestContext...
+    private QuestCompleteTask QuestTask { get; set; }
     public List<ItemCreationDefinition> QuestRewardItemsPool { get; set; }
     public int QuestRewardCoinsPool { get; set; }
     public int QuestRewardExpPool { get; set; }
 
-    public uint GetActiveComponent()
-    {
-        return Template.GetFirstComponent(Step).Id;
-    }
-
-    public Quest(IQuestTemplate questTemplate, IQuestManager questManager, ISphereQuestManager sphereQuestManager, ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager, IWorldManager worldManager)
+    public Quest(IQuestTemplate questTemplate, IQuestManager questManager, ISphereQuestManager sphereQuestManager,
+        ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager,
+        IWorldManager worldManager)
     {
         _questManager = questManager;
         _sphereQuestManager = sphereQuestManager;
@@ -105,6 +103,11 @@ public class Quest : PacketMarshaler
         ExpressTextManager.Instance,
         WorldManager.Instance)
     {
+    }
+
+    public uint GetActiveComponentId()
+    {
+        return Template.GetFirstComponent(Step).Id;
     }
 
     private QuestStatus CalculateQuestStatus(QuestComponent currentComponent)
@@ -756,7 +759,7 @@ EndLoop:
     /// Use Skill на себя или на Npc, с которым взаимодействуем (Use Skill on yourself or on the Npc you interact with)
     /// </summary>
     /// <param name="component"></param>
-    private void UseSkillAndBuff(QuestComponent component)
+    public void UseSkillAndBuff(QuestComponent component)
     {
         if (component == null) { return; }
         UseSkill(component);
@@ -1773,5 +1776,6 @@ EndLoop:
         stream.Write(Time);
         return stream.GetBytes();
     }
+
     #endregion
 }

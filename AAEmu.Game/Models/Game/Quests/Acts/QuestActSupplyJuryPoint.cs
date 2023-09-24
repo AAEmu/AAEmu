@@ -10,6 +10,6 @@ public class QuestActSupplyJuryPoint : QuestActTemplate
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
         Logger.Warn("QuestActSupplyJuryPoint");
-        return false;
+        return true;
     }
 }

@@ -13,6 +13,7 @@ public class QuestActObjMonsterHunt : QuestActTemplate
     public int HighlightDoodadPhase { get; set; }
 
     public static int HuntStatus { get; private set; } = 0;
+    private int Objective { get; set; }
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
@@ -33,23 +34,22 @@ public class QuestActObjMonsterHunt : QuestActTemplate
                     quest.ExtraCompletion = true;
             }
 
-            Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, HuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}",
+            _log.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, HuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}",
                 NpcId, Count, HuntStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
             return quest.OverCompletionPercent >= quest.Template.Score;
         }
-        else
-        {
-            if (quest.Template.LetItDone)
-            {
-                quest.OverCompletionPercent = objective * 100 / Count;
 
-                if (quest.OverCompletionPercent >= 60)
-                    quest.EarlyCompletion = true;
+        if (quest.Template.LetItDone)
+        {
+            quest.OverCompletionPercent = objective * 100 / Count;
+
+            if (quest.OverCompletionPercent >= 60)
+                quest.EarlyCompletion = true;
 
                 if (quest.OverCompletionPercent > 100)
                     quest.ExtraCompletion = true;
             }
-            Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, quest {2}, objective {3}",
+            _log.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, quest {2}, objective {3}",
                 NpcId, Count, quest.TemplateId, objective);
             return objective >= Count;
         }

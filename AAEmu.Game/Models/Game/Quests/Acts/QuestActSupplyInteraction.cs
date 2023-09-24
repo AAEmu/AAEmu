@@ -11,6 +11,6 @@ public class QuestActSupplyInteraction : QuestActTemplate
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
         Logger.Warn("QuestActSupplyInteraction: WorldInteractionId {0}", WorldInteractionId);
-        return false;
+        return true;
     }
 }

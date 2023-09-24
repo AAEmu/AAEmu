@@ -1565,7 +1565,13 @@ public partial class Character : Unit, ICharacter
         var item = Inventory.GetItemById(id);
         if (item is { Count: > 0 })
         {
-            Quests.OnItemUse(item);
+            //Quests.OnItemUse(item);
+            // инициируем событие
+            Events?.OnItemUse(this, new OnItemUseArgs
+            {
+                ItemId = item.TemplateId,
+                Count = item.Count
+            });
         }
     }
 

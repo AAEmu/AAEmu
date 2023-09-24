@@ -19,7 +19,7 @@ public class QuestActConAcceptNpc : QuestActTemplate
         quest.QuestAcceptorType = QuestAcceptorType.Npc;
         quest.AcceptorType = NpcId;
 
-        //CUrrent target is the expected?
+        // Current target is the expected?
         return character.CurrentTarget.TemplateId == NpcId;
     }
 }

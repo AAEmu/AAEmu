@@ -1,19 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Quests;
 using AAEmu.Game.Utils.DB;
+
 using Microsoft.Data.Sqlite;
+
 using NLog;
+
 using QuestNpcAiName = AAEmu.Game.Models.Game.Quests.Static.QuestNpcAiName;
 
 namespace AAEmu.Game.Core.Managers;
@@ -24,7 +29,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     private bool _loaded = false;
     protected Dictionary<uint, QuestTemplate> _templates;
     protected Dictionary<byte, QuestSupplies> _supplies;
-    protected Dictionary<uint, List<QuestAct>> _acts;
+    protected Dictionary<uint, List<IQuestAct>> _acts;
     private Dictionary<uint, QuestAct> _actsDic;
     protected Dictionary<string, Dictionary<uint, QuestActTemplate>> _actTemplates;
     private Dictionary<uint, List<uint>> _groupItems;
@@ -33,18 +38,19 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
 
     public QuestTemplate GetTemplate(uint id)
     {
-        return _templates.ContainsKey(id) ? _templates[id] : null;
+        return _templates.TryGetValue(id, out var template) ? template : null;
     }
 
     public QuestSupplies GetSupplies(byte level)
     {
-        return _supplies.ContainsKey(level) ? _supplies[level] : null;
+        return _supplies.TryGetValue(level, out var supply) ? supply : null;
     }
 
     public IQuestAct[] GetActs(uint id)
     {
-        var res = (_acts.ContainsKey(id) ? _acts[id] : new List<QuestAct>()).ToArray();
-        Array.Sort(res);
+        var res = (_acts.TryGetValue(id, out var act) ? act : new List<IQuestAct>()).ToArray();
+        //Array.Sort(res); // На некоторых данных вызывает System.InvalidOperationException: Failed to compare two elements in the array. System.InvalidOperationException: Failed to compare two elements in the array.
+        // 
         return res;
     }
 
@@ -64,7 +70,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
 
     public List<uint> GetGroupItems(uint groupId)
     {
-        return _groupItems.ContainsKey(groupId) ? (_groupItems[groupId]) : new List<uint>();
+        return _groupItems.TryGetValue(groupId, out var item) ? (item) : new List<uint>();
     }
 
     public bool CheckGroupItem(uint groupId, uint itemId)
@@ -109,7 +115,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
 
         _templates = new Dictionary<uint, QuestTemplate>();
         _supplies = new Dictionary<byte, QuestSupplies>();
-        _acts = new Dictionary<uint, List<QuestAct>>();
+        _acts = new Dictionary<uint, List<IQuestAct>>();
         _actsDic = new Dictionary<uint, QuestAct>();
         _actTemplates = new Dictionary<string, Dictionary<uint, QuestActTemplate>>();
         _groupItems = new Dictionary<uint, List<uint>>();
@@ -143,85 +149,73 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
 
     private void LoadQuestMonsterNpcs(SqliteConnection connection)
     {
-        using (var command = connection.CreateCommand())
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM quest_monster_npcs";
+        command.Prepare();
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
         {
-            command.CommandText = "SELECT * FROM quest_monster_npcs";
-            command.Prepare();
-            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            var groupId = reader.GetUInt32("quest_monster_group_id");
+            var npcId = reader.GetUInt32("npc_id");
+            List<uint> npcs;
+            if (!_groupNpcs.ContainsKey(groupId))
             {
-                while (reader.Read())
-                {
-                    var groupId = reader.GetUInt32("quest_monster_group_id");
-                    var npcId = reader.GetUInt32("npc_id");
-                    List<uint> npcs;
-                    if (!_groupNpcs.ContainsKey(groupId))
-                    {
-                        npcs = new List<uint>();
-                        _groupNpcs.Add(groupId, npcs);
-                    }
-                    else
-                        npcs = _groupNpcs[groupId];
-                    npcs.Add(npcId);
-                }
+                npcs = new List<uint>();
+                _groupNpcs.Add(groupId, npcs);
             }
+            else
+                npcs = _groupNpcs[groupId];
+            npcs.Add(npcId);
         }
     }
 
     private void LoadQuestItemGroups(SqliteConnection connection)
     {
-        using (var command = connection.CreateCommand())
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM quest_item_group_items";
+        command.Prepare();
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
         {
-            command.CommandText = "SELECT * FROM quest_item_group_items";
-            command.Prepare();
-            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            var groupId = reader.GetUInt32("quest_item_group_id");
+            var itemId = reader.GetUInt32("item_id");
+            List<uint> items;
+            if (!_groupItems.ContainsKey(groupId))
             {
-                while (reader.Read())
-                {
-                    var groupId = reader.GetUInt32("quest_item_group_id");
-                    var itemId = reader.GetUInt32("item_id");
-                    List<uint> items;
-                    if (!_groupItems.ContainsKey(groupId))
-                    {
-                        items = new List<uint>();
-                        _groupItems.Add(groupId, items);
-                    }
-                    else
-                        items = _groupItems[groupId];
-
-                    items.Add(itemId);
-                }
+                items = new List<uint>();
+                _groupItems.Add(groupId, items);
             }
+            else
+                items = _groupItems[groupId];
+
+            items.Add(itemId);
         }
     }
 
     private void LoadQuestActs(SqliteConnection connection)
     {
-        using (var command = connection.CreateCommand())
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM quest_acts ORDER BY quest_component_id ASC, id ASC";
+        command.Prepare();
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
         {
-            command.CommandText = "SELECT * FROM quest_acts ORDER BY quest_component_id ASC, id ASC";
-            command.Prepare();
-            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            var template = new QuestAct();
+            template.Id = reader.GetUInt32("id");
+            template.ComponentId = reader.GetUInt32("quest_component_id");
+            template.DetailId = reader.GetUInt32("act_detail_id");
+            template.DetailType = reader.GetString("act_detail_type");
+            List<IQuestAct> list;
+            if (_acts.TryGetValue(template.ComponentId, out var act))
+                list = act;
+            else
             {
-                while (reader.Read())
-                {
-                    var template = new QuestAct();
-                    template.Id = reader.GetUInt32("id");
-                    template.ComponentId = reader.GetUInt32("quest_component_id");
-                    template.DetailId = reader.GetUInt32("act_detail_id");
-                    template.DetailType = reader.GetString("act_detail_type");
-                    List<QuestAct> list;
-                    if (_acts.ContainsKey(template.ComponentId))
-                        list = _acts[template.ComponentId];
-                    else
-                    {
-                        list = new List<QuestAct>();
-                        _acts.Add(template.ComponentId, list);
-                    }
-
-                    list.Add(template);
-                    _actsDic.Add(template.Id, template);
-                }
+                list = new List<IQuestAct>();
+                _acts.Add(template.ComponentId, list);
             }
+
+            list.Add(template);
+            _actsDic.Add(template.Id, template);
         }
     }
 
@@ -249,72 +243,64 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
 
     private void LoadQuestComponents(SqliteConnection connection)
     {
-        using (var command = connection.CreateCommand())
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM quest_components ORDER BY quest_context_id ASC, component_kind_id ASC, id ASC";
+        command.Prepare();
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
         {
-            command.CommandText = "SELECT * FROM quest_components ORDER BY quest_context_id ASC, component_kind_id ASC, id ASC";
-            command.Prepare();
-            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-            {
-                while (reader.Read())
-                {
-                    var questId = reader.GetUInt32("quest_context_id");
-                    if (!_templates.ContainsKey(questId))
-                        continue;
+            var questId = reader.GetUInt32("quest_context_id");
+            if (!_templates.ContainsKey(questId))
+                continue;
 
-                    var template = new QuestComponent();
-                    template.Id = reader.GetUInt32("id");
-                    template.KindId = (QuestComponentKind)reader.GetByte("component_kind_id");
-                    template.NextComponent = reader.GetUInt32("next_component", 0);
-                    template.NpcAiId = (QuestNpcAiName)reader.GetUInt32("npc_ai_id", 0);
-                    template.NpcId = reader.GetUInt32("npc_id", 0);
-                    template.SkillId = reader.GetUInt32("skill_id", 0);
-                    template.SkillSelf = reader.GetBoolean("skill_self", true);
-                    template.AiPathName = reader.GetString("ai_path_name", string.Empty);
-                    template.AiPathTypeId = (PathType)reader.GetUInt32("ai_path_type_id");
-                    template.NpcSpawnerId = reader.GetUInt32("npc_spawner_id", 0);
-                    template.PlayCinemaBeforeBubble = reader.GetBoolean("play_cinema_before_bubble", true);
-                    template.AiCommandSetId = reader.GetUInt32("ai_command_set_id", 0);
-                    template.OrUnitReqs = reader.GetBoolean("or_unit_reqs", true);
-                    template.CinemaId = reader.GetUInt32("cinema_id", 0);
-                    template.BuffId = reader.GetUInt32("buff_id", 0);
-                    _templates[questId].Components.Add(template.Id, template);
-                }
-            }
+            var template = new QuestComponent();
+            template.Id = reader.GetUInt32("id");
+            template.KindId = (QuestComponentKind)reader.GetByte("component_kind_id");
+            template.NextComponent = reader.GetUInt32("next_component", 0);
+            template.NpcAiId = (QuestNpcAiName)reader.GetUInt32("npc_ai_id", 0);
+            template.NpcId = reader.GetUInt32("npc_id", 0);
+            template.SkillId = reader.GetUInt32("skill_id", 0);
+            template.SkillSelf = reader.GetBoolean("skill_self", true);
+            template.AiPathName = reader.GetString("ai_path_name", string.Empty);
+            template.AiPathTypeId = (PathType)reader.GetUInt32("ai_path_type_id");
+            template.NpcSpawnerId = reader.GetUInt32("npc_spawner_id", 0);
+            template.PlayCinemaBeforeBubble = reader.GetBoolean("play_cinema_before_bubble", true);
+            template.AiCommandSetId = reader.GetUInt32("ai_command_set_id", 0);
+            template.OrUnitReqs = reader.GetBoolean("or_unit_reqs", true);
+            template.CinemaId = reader.GetUInt32("cinema_id", 0);
+            template.BuffId = reader.GetUInt32("buff_id", 0);
+            _templates[questId].Components.Add(template.Id, template);
         }
     }
 
     private void LoadQuestContexts(SqliteConnection connection)
     {
-        using (var command = connection.CreateCommand())
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM quest_contexts ORDER BY id ASC";
+        command.Prepare();
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
         {
-            command.CommandText = "SELECT * FROM quest_contexts ORDER BY id ASC";
-            command.Prepare();
-            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-            {
-                while (reader.Read())
-                {
-                    var template = new QuestTemplate();
-                    template.Id = reader.GetUInt32("id");
-                    template.Repeatable = reader.GetBoolean("repeatable", true);
-                    template.Level = reader.GetByte("level", 0);
-                    template.Selective = reader.GetBoolean("selective", true);
-                    template.Successive = reader.GetBoolean("successive", true);
-                    template.RestartOnFail = reader.GetBoolean("restart_on_fail", true);
-                    template.ChapterIdx = reader.GetUInt32("chapter_idx", 0);
-                    template.QuestIdx = reader.GetUInt32("quest_idx", 0);
-                    template.MilestoneId = reader.GetUInt32("milestone_id", 0);
-                    template.LetItDone = reader.GetBoolean("let_it_done", true);
-                    template.DetailId = (QuestDetail)reader.GetUInt32("detail_id");
-                    template.ZoneId = reader.GetUInt32("zone_id");
-                    template.Degree = reader.GetInt32("degree", 0);
-                    template.UseQuestCamera = reader.GetBoolean("use_quest_camera", true);
-                    template.Score = reader.GetInt32("score", 0);
-                    template.UseAcceptMessage = reader.GetBoolean("use_accept_message", true);
-                    template.UseCompleteMessage = reader.GetBoolean("use_complete_message", true);
-                    template.GradeId = reader.GetUInt32("grade_id", 0);
-                    _templates.Add(template.Id, template);
-                }
-            }
+            var template = new QuestTemplate();
+            template.Id = reader.GetUInt32("id");
+            template.Repeatable = reader.GetBoolean("repeatable", true);
+            template.Level = reader.GetByte("level", 0);
+            template.Selective = reader.GetBoolean("selective", true);
+            template.Successive = reader.GetBoolean("successive", true);
+            template.RestartOnFail = reader.GetBoolean("restart_on_fail", true);
+            template.ChapterIdx = reader.GetUInt32("chapter_idx", 0);
+            template.QuestIdx = reader.GetUInt32("quest_idx", 0);
+            template.MilestoneId = reader.GetUInt32("milestone_id", 0);
+            template.LetItDone = reader.GetBoolean("let_it_done", true);
+            template.DetailId = (QuestDetail)reader.GetUInt32("detail_id");
+            template.ZoneId = reader.GetUInt32("zone_id");
+            template.Degree = reader.GetInt32("degree", 0);
+            template.UseQuestCamera = reader.GetBoolean("use_quest_camera", true);
+            template.Score = reader.GetInt32("score", 0);
+            template.UseAcceptMessage = reader.GetBoolean("use_accept_message", true);
+            template.UseCompleteMessage = reader.GetBoolean("use_complete_message", true);
+            template.GradeId = reader.GetUInt32("grade_id", 0);
+            _templates.Add(template.Id, template);
         }
     }
 
@@ -1472,5 +1458,67 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
                 }
             }
         }
+    }
+
+    public void DoReportEvents(Character owner, uint questContextId, uint npcObjId, uint doodadObjId, int selected)
+    {
+        if (npcObjId > 0)
+        {
+            var npc = WorldManager.Instance.GetNpc(npcObjId);
+            if (npc == null)
+            {
+                return;
+            }
+
+            //Connection.ActiveChar.Quests.OnReportToNpc(_npcObjId, _questContextId, _selected);
+            // инициируем событие доклада Npc о выполнении задания
+            owner.Events?.OnReportNpc(this, new OnReportNpcArgs
+            {
+                QuestId = questContextId,
+                NpcId = npc.TemplateId,
+                Selected = selected
+            });
+        }
+        else if (doodadObjId > 0)
+        {
+            var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+            if (doodad == null)
+            {
+                return;
+            }
+
+            //Connection.ActiveChar.Quests.OnReportToDoodad(_doodadObjId, _questContextId, _selected);
+            // инициируем событие
+            owner.Events?.OnReportDoodad(this, new OnReportDoodadArgs
+            {
+                QuestId = questContextId,
+                DoodadId = doodad.TemplateId,
+                Selected = selected
+            });
+        }
+        else
+        {
+            owner.Quests.Complete(questContextId, selected, true);
+        }
+    }
+    public void DoConsumedEvents(Character owner, uint templateId, int count)
+    {
+        //Owner?.Quests?.OnItemUse(item);
+        // инициируем событие
+        owner?.Events?.OnItemUse(this, new OnItemUseArgs
+        {
+            ItemId = templateId,
+            Count = count
+        });
+    }
+    public void DoAcquiredEvents(Character owner, uint templateId, int count)
+    {
+        //Owner?.Quests?.OnItemGather(item, count);
+        // инициируем событие
+        owner?.Events?.OnItemGather(this, new OnItemGatherArgs
+        {
+            ItemId = templateId,
+            Count = count
+        });
     }
 }
