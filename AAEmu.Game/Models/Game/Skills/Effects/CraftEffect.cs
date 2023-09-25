@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.Threading.Tasks;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
@@ -138,7 +138,9 @@ public class CraftEffect : EffectTemplate
                     break;
             }
 
-            character.Quests.OnInteraction(WorldInteraction, target);
+            //character.Quests.OnInteraction(WorldInteraction, target);
+            // инициируем событие
+            Task.Run(() => QuestManager.Instance.DoInteractionEvents((Character)caster, target.TemplateId));
         }
     }
 }

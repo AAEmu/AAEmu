@@ -23,7 +23,7 @@ public abstract class QuestState
     public QuestComponent CurrentComponent { get; set; }
     public QuestComponentKind Step { get; set; }
 
-    public abstract bool Start();
+    public abstract bool Start(bool forcibly = false);
     public abstract bool Update();
     public abstract bool Complete();
     public abstract void Fail();
@@ -158,14 +158,22 @@ public abstract class QuestState
 // Конкретные классы, представляющие различные состояния
 public class QuestNoneState : QuestState
 {
-    public override bool Start()
+    public override bool Start(bool forcibly = false)
     {
         _log.Info($"[QuestNoneState][Start] Quest: {Quest.TemplateId} начался!");
 
-        var result = CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
+        var results = new List<bool>();
+        if (forcibly)
+        {
+            results.Add(true);
+        }
+        else
+        {
+            results = CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
+        }
 
         CurrentComponent = CurrentQuestComponent.GetFirstComponent();
-        if (result.Any(b => b == true))
+        if (results.Any(b => b == true))
         {
             Quest.ComponentId = CurrentComponent.Id;
 
@@ -177,7 +185,7 @@ public class QuestNoneState : QuestState
             }
             else
             {
-                Quest.Status = result.Any(b => b == true) ? QuestStatus.Ready : QuestStatus.Progress;
+                Quest.Status = results.Any(b => b == true) ? QuestStatus.Ready : QuestStatus.Progress;
             }
             switch (Quest.Status)
             {
@@ -238,14 +246,22 @@ public class QuestNoneState : QuestState
 }
 public class QuestStartState : QuestState
 {
-    public override bool Start()
+    public override bool Start(bool forcibly = false)
     {
         _log.Info($"[QuestStartState][Start] Quest: {Quest.TemplateId} начался!");
 
-        var result = CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
+        var results = new List<bool>();
+        if (forcibly)
+        {
+            results.Add(true); // применяем квест насильно командой '/quest add <questId>', даже если нет рядом нужного Npc
+        }
+        else
+        {
+            results = CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
+        }
 
         CurrentComponent = CurrentQuestComponent.GetFirstComponent();
-        if (result.Any(b => b == true))
+        if (results.Any(b => b == true))
         {
             Quest.ComponentId = CurrentComponent.Id;
 
@@ -257,13 +273,13 @@ public class QuestStartState : QuestState
             }
             else
             {
-                Quest.Status = result.Any(b => b == true) ? QuestStatus.Ready : QuestStatus.Progress;
+                Quest.Status = results.Any(b => b == true) ? QuestStatus.Ready : QuestStatus.Progress;
             }
             switch (Quest.Status)
             {
                 case QuestStatus.Progress:
                 case QuestStatus.Ready:
-                    Quest.Step++; // Supply
+                    //Quest.Step++; // Supply не нужен
                     Quest.Condition = QuestConditionObj.Progress;
                     break;
                 default:
@@ -324,7 +340,7 @@ public class QuestStartState : QuestState
 }
 public class QuestSupplyState : QuestState
 {
-    public override bool Start()
+    public override bool Start(bool forcibly = false)
     {
         _log.Info($"[QuestSupplyState][Start] Quest: {Quest.TemplateId} в процессе выполнения.");
         _log.Info($"[QuestSupplyState][Start] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
@@ -346,7 +362,7 @@ public class QuestSupplyState : QuestState
     public override bool Complete()
     {
         _log.Info($"[QuestSupplyState][Complete] Quest: {Quest.TemplateId}. Ничего не делаем!");
-        Quest.Step++; // переход к следующему шагу
+        //Quest.Step++; // переход к следующему шагу
         Quest.Status = QuestStatus.Progress;
         Quest.Condition = QuestConditionObj.Progress;
         _log.Info($"[QuestSupplyState][Complete] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
@@ -375,7 +391,7 @@ public class QuestSupplyState : QuestState
 }
 public class QuestProgressState : QuestState
 {
-    public override bool Start()
+    public override bool Start(bool forcibly = false)
     {
         _log.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId} уже в процессе выполнения.");
         _log.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
@@ -392,14 +408,15 @@ public class QuestProgressState : QuestState
 
     public override bool Update()
     {
-        // нужно посмотреть в инвентарь, так как после Start() ещё не знаем, есть предмет в инвентаре или нет (we need to look in the inventory, because after Start() we don't know yet if the item is in the inventory or not)
+        // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет
+        // we need to look in the inventory, because we don't know yet if the item is in the inventory or not
         var objectiveCount = Quest.GetObjectives(Step);
 
         //var result = CurrentActs.Select(act => act.Use(Quest.Owner, Quest, 0)).ToList();
-        var result = CurrentQuestComponent.Execute(Quest.Owner, Quest, objectiveCount[0]);
+        var results = CurrentQuestComponent.Execute(Quest.Owner, Quest, objectiveCount[0]);
 
         CurrentComponent = CurrentQuestComponent.GetFirstComponent();
-        if (result.All(b => b == true))
+        if (results.All(b => b == true))
         {
             _log.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}. Не надо подписываться на события.");
             Quest.ComponentId = CurrentComponent.Id;
@@ -413,98 +430,220 @@ public class QuestProgressState : QuestState
         }
 
         _log.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}. Подписываемся на события, которые требуются для активных актов");
-        var result2 = true;
-        foreach (var act in CurrentActs)
+        bool res;
+        var results2 = new List<bool>();
+
+        foreach (var component in CurrentComponents)
         {
-            switch (act?.DetailType)
+            var acts = QuestManager.Instance.GetActs(component.Id);
+
+            foreach (var act in acts)
             {
-                case "QuestActObjMonsterHunt":
-                    //case "QuestActObjMonsterGroupHunt":
+                switch (act?.DetailType)
+                {
+                    case "QuestActObjMonsterHunt":
+                        {
+                            // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет
+                            // we need to look in the inventory, because we don't know yet if the item is in the inventory or not
+                            res = CheckCount(act);
+                            //result2 = act.Template.IsCompleted();
+                            if (res)
+                            {
+                                results2.Add(true); // уже выполнили задание, выход
+                                break;
+                            }
 
-                    //result2 = act.Template.IsCompleted();
-                    if (result2) { break; }
+                            // подписка одна на всех
+                            Quest.Owner.Events.OnMonsterHunt -= Quest.Owner.Quests.OnMonsterHuntHandler;
+                            Quest.Owner.Events.OnMonsterHunt += Quest.Owner.Quests.OnMonsterHuntHandler;
 
-                    Quest.Owner.Events.OnMonsterHunt -= Quest.Owner.Quests.OnMonsterHuntHandler;
-                    Quest.Owner.Events.OnMonsterHunt += Quest.Owner.Quests.OnMonsterHuntHandler;
-                    _log.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Event: 'OnMonsterHunt', Handler: 'OnMonsterHuntHandler'");
-                    result2 = false;
-                    break;
-                case "QuestActObjItemGather":
-                    //case "QuestActObjItemGroupGather":
+                            _log.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Event: 'OnMonsterHunt', Handler: 'OnMonsterHuntHandler'");
+                            results2.Add(false); // будем ждать события
+                            break;
+                        }
+                    case "QuestActObjMonsterGroupHunt":
+                        {
+                            // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет
+                            // we need to look in the inventory, because we don't know yet if the item is in the inventory or not
+                            res = CheckCount(act);
+                            //result2 = act.Template.IsCompleted();
+                            if (res)
+                            {
+                                results2.Add(true); // уже выполнили задание, выход
+                                break;
+                            }
 
-                    // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет (we need to look in the inventory, because we don't know yet if the item is in the inventory or not)
-                    result2 = CheckCount(act);
-                    //result2 = act.Template.IsCompleted();
-                    if (result2) { break; } // уже выполнили задание, выхлд
+                            // подписка одна на всех
+                            Quest.Owner.Events.OnMonsterGroupHunt -= Quest.Owner.Quests.OnMonsterGroupHuntHandler;
+                            Quest.Owner.Events.OnMonsterGroupHunt += Quest.Owner.Quests.OnMonsterGroupHuntHandler;
 
-                    Quest.Owner.Events.OnItemGather -= Quest.Owner.Quests.OnItemGatherHandler;
-                    Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
-                    _log.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Event: 'OnItemGather', Handler: 'OnItemGatherHandler'");
-                    result2 = false;
-                    break;
-                case "QuestActObjItemUse":
-                    //case "QuestActObjItemGroupUse":
+                            _log.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Event: 'OnMonsterHunt', Handler: 'OnMonsterHuntHandler'");
+                            results2.Add(false); // будем ждать события
+                            break;
+                        }
+                    case "QuestActObjItemGather":
+                        {
+                            // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет
+                            // we need to look in the inventory, because we don't know yet if the item is in the inventory or not
+                            res = CheckCount(act);
+                            //result2 = act.Template.IsCompleted();
+                            if (res)
+                            {
+                                results2.Add(true); // уже выполнили задание, выход
+                                break;
+                            }
 
-                    // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет (we need to look in the inventory, because we don't know yet if the item is in the inventory or not)
-                    result2 = CheckCount(act);
-                    //result2 = act.Template.IsCompleted();
-                    if (result2) { break; }
+                            // подписка одна на всех
+                            Quest.Owner.Events.OnItemGather -= Quest.Owner.Quests.OnItemGatherHandler;
+                            Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
 
-                    Quest.Owner.Events.OnItemUse -= Quest.Owner.Quests.OnItemUseHandler;
-                    Quest.Owner.Events.OnItemUse += Quest.Owner.Quests.OnItemUseHandler;
-                    _log.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Event: 'OnItemUse', Handler: 'OnItemUseHandler'");
-                    result2 = false;
-                    break;
-                case "QuestActObjInteraction":
-                    //Quest.Owner.Events.OnInteraction += Quest.Owner.Quests.OnInteractionHandler;
-                    //result2 = false;
-                    break;
-                case "QuestActObjLevel":
-                    //Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
-                    //result2 = false;
-                    break;
-                case "QuestActObjMateLevel":
-                    //Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
-                    //result2 = false;
-                    break;
-                case "QuestActObjSphere":
-                    //Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
-                    //result2 = false;
-                    break;
-                case "QuestActObjTalk":
-                    //case "QuestActObjTalkNpcGroup":
-                    //Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
-                    break;
-                case "QuestActObjExpressFire":
-                    //Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
-                    break;
-                case "QuestActObjAggro":
-                    //Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
-                    //result2 = false;
-                    break;
-                case "QuestActObjAbilityLevel":
-                    //Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
-                    //result2 = false;
-                    break;
-                case "QuestActObjCompleteQuest":
-                    //Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
-                    //result2 = false;
-                    break;
+                            _log.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Event: 'OnItemGather', Handler: 'OnItemGatherHandler'");
+                            results2.Add(false); // будем ждать события
+                            break;
+                        }
+                    case "QuestActObjItemGroupGather":
+                        {
+                            // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет
+                            // we need to look in the inventory, because we don't know yet if the item is in the inventory or not
+                            res = CheckCount(act);
+                            //result2 = act.Template.IsCompleted();
+                            if (res)
+                            {
+                                results2.Add(true); // уже выполнили задание, выход
+                                break;
+                            }
+
+                            // подписка одна на всех
+                            Quest.Owner.Events.OnItemGroupGather -= Quest.Owner.Quests.OnItemGroupGatherHandler;
+                            Quest.Owner.Events.OnItemGroupGather += Quest.Owner.Quests.OnItemGroupGatherHandler;
+
+                            _log.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Event: 'OnItemGather', Handler: 'OnItemGatherHandler'");
+                            results2.Add(false); // будем ждать события
+                            break;
+                        }
+                    case "QuestActObjItemUse":
+                        {
+                            //case "QuestActObjItemGroupUse":
+
+                            // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет
+                            // we need to look in the inventory, because we don't know yet if the item is in the inventory or not
+                            res = CheckCount(act);
+                            //result2 = act.Template.IsCompleted();
+                            if (res)
+                            {
+                                results2.Add(true); // уже выполнили задание, выход
+                                break;
+                            }
+
+                            // подписка одна на всех
+                            Quest.Owner.Events.OnItemUse -= Quest.Owner.Quests.OnItemUseHandler;
+                            Quest.Owner.Events.OnItemUse += Quest.Owner.Quests.OnItemUseHandler;
+
+                            _log.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Event: 'OnItemUse', Handler: 'OnItemUseHandler'");
+                            results2.Add(false); // будем ждать события
+                            break;
+                        }
+                    case "QuestActObjInteraction":
+                        {
+                            // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет
+                            // we need to look in the inventory, because we don't know yet if the item is in the inventory or not
+                            res = CheckCount(act);
+                            //result2 = act.Template.IsCompleted();
+                            if (res)
+                            {
+                                results2.Add(true); // уже выполнили задание, выход
+                                break;
+                            }
+
+                            // подписка одна на всех
+                            Quest.Owner.Events.OnInteraction -= Quest.Owner.Quests.OnInteractionHandler;
+                            Quest.Owner.Events.OnInteraction += Quest.Owner.Quests.OnInteractionHandler;
+
+                            _log.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Event: 'OnInteraction', Handler: 'OnInteractionHandler'");
+                            results2.Add(false); // будем ждать события
+                            break;
+                        }
+                    case "QuestActObjLevel":
+                        {
+                            //Quest.Owner.Events.OnLevel += Quest.Owner.Quests.OnLevelHandler;
+                            //result2 = false;
+                            break;
+                        }
+                    case "QuestActObjMateLevel":
+                        {
+                            //Quest.Owner.Events.OnMateLevel += Quest.Owner.Quests.OnMateLevelHandler;
+                            //result2 = false;
+                            break;
+                        }
+                    case "QuestActObjSphere":
+                        {
+                            //Quest.Owner.Events.OnSphere += Quest.Owner.Quests.OnSphereHandler;
+                            //result2 = false;
+                            break;
+                        }
+                    case "QuestActObjTalk":
+                        {
+                            //case "QuestActObjTalkNpcGroup":
+
+                            // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет
+                            // we need to look in the inventory, because we don't know yet if the item is in the inventory or not
+                            res = CheckCount(act);
+                            //result2 = act.Template.IsCompleted();
+                            if (res)
+                            {
+                                results2.Add(true); // уже выполнили задание, выход
+                                break;
+                            }
+
+                            // подписка одна на всех
+                            Quest.Owner.Events.OnTalkMade -= Quest.Owner.Quests.OnTalkMadeHandler;
+                            Quest.Owner.Events.OnTalkMade += Quest.Owner.Quests.OnTalkMadeHandler;
+
+                            _log.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Event: 'OnInteraction', Handler: 'OnInteractionHandler'");
+                            results2.Add(false); // будем ждать события
+                            break;
+                        }
+                    case "QuestActObjExpressFire":
+                        {
+                            //Quest.Owner.Events.OnExpressFire += Quest.Owner.Quests.OnExpressFireHandler;
+                            break;
+                        }
+                    case "QuestActObjAggro":
+                        {
+                            //Quest.Owner.Events.OnAggro += Quest.Owner.Quests.OnAggroHandler;
+                            //result2 = false;
+                            break;
+                        }
+                    case "QuestActObjAbilityLevel":
+                        {
+                            //Quest.Owner.Events.OnAbilityLevel += Quest.Owner.Quests.OnAbilityLevelHandler;
+                            //result2 = false;
+                            break;
+                        }
+                    case "QuestActObjCompleteQuest":
+                        {
+                            //Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
+                            //result2 = false;
+                            break;
+                        }
+                }
             }
         }
 
-        if (result2)
+        if (results2.All(b => b == true))
         {
+            Quest.ComponentId = CurrentComponent.Id;
             Quest.Status = QuestStatus.Ready;
             Quest.Condition = QuestConditionObj.Ready;
             _log.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
-            // не нужен здесь?
+            // нужен здесь
             Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
 
             return true;
         }
 
+        Quest.ComponentId = 0;
         Quest.Status = QuestStatus.Progress;
         Quest.Condition = QuestConditionObj.Progress;
         _log.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
@@ -515,9 +654,10 @@ public class QuestProgressState : QuestState
         return false;
     }
 
-    private bool CheckCount(QuestAct act)
+    private bool CheckCount(IQuestAct act)
     {
-        // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет (we need to look in the inventory, because we don't know yet if the item is in the inventory or not)
+        // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет
+        // we need to look in the inventory, because we don't know yet if the item is in the inventory or not
         var objectiveCount = 0;
         switch (act.DetailType)
         {
@@ -535,29 +675,27 @@ public class QuestProgressState : QuestState
                 }
             case "QuestActObjItemUse":
                 {
-                    var template = act.GetTemplate<QuestActObjItemUse>(); // для доступа к переменным требуется привидение к нужному типу
+                    //var template = act.GetTemplate<QuestActObjItemUse>(); // для доступа к переменным требуется привидение к нужному типу
+                    //objectiveCount = Quest.Owner.Inventory.GetItemsCount(template.ItemId);
+                    break;
+                }
+            case "QuestActObjTalk":
+                {
+                    var template = act.GetTemplate<QuestActObjTalk>(); // для доступа к переменным требуется привидение к нужному типу
                     objectiveCount = Quest.Owner.Inventory.GetItemsCount(template.ItemId);
                     break;
                 }
         }
 
-
         //var objective = act.Template.GetCount();
         var result = CurrentQuestComponent.Execute(Quest.Owner, Quest, objectiveCount).Any(b => b == true);
-        return result;
-    }
-    private bool CheckCount2(QuestAct act)
-    {
-
-        var objective = act.Template.GetCount();
-        var result = CurrentQuestComponent.Execute(Quest.Owner, Quest, objective).Any(b => b == true);
         return result;
     }
 
     public override bool Complete()
     {
         _log.Info($"[QuestProgressState][Complete] Quest: {Quest.TemplateId}. Шаг успешно завершен!");
-        Quest.Step++; // переход к следующему шагу
+        //Quest.Step++; // переход к следующему шагу
         Quest.Status = QuestStatus.Progress;
         Quest.Condition = QuestConditionObj.Progress;
         _log.Info($"[QuestProgressState][Complete] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
@@ -586,7 +724,7 @@ public class QuestProgressState : QuestState
 }
 public class QuestReadyState : QuestState
 {
-    public override bool Start()
+    public override bool Start(bool forcibly = false)
     {
         _log.Info($"[QuestReadyState][Start] Quest: {Quest.TemplateId} уже в процессе выполнения.");
         _log.Info($"[QuestReadyState][Start] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
@@ -594,12 +732,11 @@ public class QuestReadyState : QuestState
     }
     public override bool Update()
     {
-        //var result = CurrentActs.Select(act => act.Use(Quest.Owner, Quest, 0)).ToList();
-        var result = CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
+        var results = CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
 
         CurrentComponent = CurrentQuestComponent.GetFirstComponent();
 
-        if (result.All(b => b == true))
+        if (results.All(b => b == true))
         {
             _log.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}. Не надо подписываться на события.");
             Quest.ComponentId = CurrentComponent.Id;
@@ -613,36 +750,53 @@ public class QuestReadyState : QuestState
         }
 
         _log.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}. Подписываемся на события, которые требуются для активных актов");
-        var result2 = true;
-        foreach (var act in CurrentActs)
+        bool res;
+        var results2 = new List<bool>();
+
+        foreach (var component in CurrentComponents)
         {
-            switch (act?.DetailType)
+            var acts = QuestManager.Instance.GetActs(component.Id);
+
+            foreach (var act in acts)
             {
-                case "QuestActConReportNpc":
-                    Quest.Owner.Events.OnReportNpc += Quest.Owner.Quests.OnReportNpcHandler;
-                    _log.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
-                    result2 = false;
-                    break;
-                case "QuestActConReportDoodad":
-                    Quest.Owner.Events.OnReportDoodad += Quest.Owner.Quests.OnReportDoodadHandler;
-                    _log.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Event: 'OnReportDoodad', Handler: 'OnReportDoodadHandler'");
-                    result2 = false;
-                    break;
-                case "QuestActConReportJournal":
-                    //Quest.Owner.Events.OnReportJournal += Quest.Owner.Quests.OnReportJournalHandler;
-                    _log.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Event: 'OnReportJournal', Handler: 'OnReportJournalHandler'");
-                    result2 = false;
-                    break;
-                case "QuestActConAutoComplete":
-                    //Quest.Owner.Events.OnQuestComplete += Quest.Owner.Quests.OnQuestCompleteHandler;
-                    _log.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Event: 'OnQuestComplete', Handle: 'OnEventsOnQuestComplete'");
-                    result2 = false;
-                    break;
+                switch (act?.DetailType)
+                {
+                    case "QuestActConReportNpc":
+                        {
+                            Quest.Owner.Events.OnReportNpc += Quest.Owner.Quests.OnReportNpcHandler;
+                            _log.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
+                            results2.Add(false); // будем ждать события
+                            break;
+                        }
+                    case "QuestActConReportDoodad":
+                        {
+                            Quest.Owner.Events.OnReportDoodad += Quest.Owner.Quests.OnReportDoodadHandler;
+                            _log.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Event: 'OnReportDoodad', Handler: 'OnReportDoodadHandler'");
+                            results2.Add(false); // будем ждать события
+                            break;
+                        }
+                    case "QuestActConReportJournal":
+                        {
+                            //Quest.Owner.Events.OnReportJournal += Quest.Owner.Quests.OnReportJournalHandler;
+                            _log.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Event: 'OnReportJournal', Handler: 'OnReportJournalHandler'");
+                            results2.Add(false); // будем ждать события
+                            break;
+                        }
+                    case "QuestActConAutoComplete":
+                        {
+                            //Quest.Owner.Events.OnQuestComplete += Quest.Owner.Quests.OnQuestCompleteHandler;
+                            _log.Info(
+                                $"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Event: 'OnQuestComplete', Handle: 'OnEventsOnQuestComplete'");
+                            results2.Add(false); // будем ждать события
+                            break;
+                        }
+                }
             }
         }
 
-        if (result2)
+        if (results2.All(b => b == true))
         {
+            Quest.ComponentId = CurrentComponent.Id;
             Quest.Status = QuestStatus.Ready;
             Quest.Condition = QuestConditionObj.Ready;
             _log.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
@@ -653,6 +807,7 @@ public class QuestReadyState : QuestState
             return true;
         }
 
+        Quest.ComponentId = 0;
         Quest.Status = QuestStatus.Progress;
         Quest.Condition = QuestConditionObj.Progress;
         _log.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
@@ -664,7 +819,7 @@ public class QuestReadyState : QuestState
     }
     public override bool Complete()
     {
-        Quest.Step++; // переход к следующему шагу
+        //Quest.Step++; // переход к следующему шагу
         Quest.Status = QuestStatus.Progress;
         Quest.Condition = QuestConditionObj.Progress;
         _log.Info($"[QuestReadyState][Complete] Quest: {Quest.TemplateId}. Шаг успешно завершен!");
@@ -703,7 +858,7 @@ public class QuestReadyState : QuestState
 }
 public class QuestRewardState : QuestState
 {
-    public override bool Start()
+    public override bool Start(bool forcibly = false)
     {
         _log.Info($"[QuestRewardState][Start] Quest: {Quest.TemplateId}. Уже в процессе выполнения.");
         _log.Info($"[QuestRewardState][Start] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");

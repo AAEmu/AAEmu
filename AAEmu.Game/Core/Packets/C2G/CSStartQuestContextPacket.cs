@@ -22,6 +22,6 @@ public class CSStartQuestContextPacket : GamePacket
         _doodadObjId = stream.ReadBc();        // doodadObjId
         _sphereId = stream.ReadUInt32();       // selected
 
-        Connection.ActiveChar.Quests.Add(_questContextId, _npcObjId, _doodadObjId, _sphereId);
+        Connection.ActiveChar.Quests.Add(_questContextId, false, _npcObjId, _doodadObjId, _sphereId);
     }
 }

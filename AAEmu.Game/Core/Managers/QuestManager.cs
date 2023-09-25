@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
@@ -39,6 +40,13 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     public QuestTemplate GetTemplate(uint id)
     {
         return _templates.TryGetValue(id, out var template) ? template : null;
+    }
+    public QuestComponent[] GetTemplate(uint id, uint componentId)
+    {
+        _templates.TryGetValue(id, out var template);
+        var results = template?.GetComponents(componentId);
+
+        return results;
     }
 
     public QuestSupplies GetSupplies(byte level)
@@ -1519,6 +1527,56 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         {
             ItemId = templateId,
             Count = count
+        });
+        owner?.Events?.OnItemGroupGather(this, new OnItemGroupGatherArgs
+        {
+            ItemId = templateId,
+            Count = count
+        });
+    }
+    public void DoInteractionEvents(Character owner, uint templateId)
+    {
+        //character.Quests.OnInteraction(WorldInteraction, target);
+        // инициируем событие
+        owner?.Events?.OnInteraction(this, new OnInteractionArgs
+        {
+            DoodadId = templateId
+        });
+    }
+    public void DoTalkMadeEvents(Character owner, uint npcObjId, uint questContextId, uint questComponentId, uint questActId)
+    {
+        if (npcObjId <= 0) { return; }
+
+        var npc = WorldManager.Instance.GetNpc(npcObjId);
+        if (npc == null) { return; }
+
+        //Connection.ActiveChar.Quests.OnTalkMade(_npcObjId, _questContextId, _questCompId, _questActId);
+        // инициируем событие доклада Npc о выполнении задания
+        owner.Events?.OnTalkMade(this, new OnTalkMadeArgs
+        {
+            QuestId = questContextId,
+            NpcId = npc.TemplateId,
+            QuestComponentId = questComponentId,
+            QuestActId = questActId
+        });
+    }
+    public void DoOnMonsterHuntEvents(Character owner, Npc npc)
+    {
+        if (npc == null) { return; }
+
+        //character.Quests.OnKill(this);
+        // инициируем событие доклада Npc о выполнении задания
+        owner.Events?.OnMonsterHunt(this, new OnMonsterHuntArgs
+        {
+            NpcId = npc.TemplateId,
+            Count = 1,
+            Position = npc.Transform
+        });
+        owner.Events?.OnMonsterGroupHunt(this, new OnMonsterGroupHuntArgs
+        {
+            NpcId = npc.TemplateId,
+            Count = 1,
+            Position = npc.Transform
         });
     }
 }

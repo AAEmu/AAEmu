@@ -39,9 +39,11 @@ public class UnitEvents
     public EventHandler<OnAcceptDoodadArgs> OnAcceptDoodad = delegate { };
     // на шаге Progress
     public EventHandler<OnMonsterHuntArgs> OnMonsterHunt = delegate { };
+    public EventHandler<OnMonsterGroupHuntArgs> OnMonsterGroupHunt = delegate { };
     public EventHandler<OnTalkMadeArgs> OnTalkMade = delegate { };
     public EventHandler<OnAggroArgs> OnAggro = delegate { };
     public EventHandler<OnItemGatherArgs> OnItemGather = delegate { };
+    public EventHandler<OnItemGroupGatherArgs> OnItemGroupGather = delegate { };
     public EventHandler<OnItemUseArgs> OnItemUse = delegate { };
     public EventHandler<OnInteractionArgs> OnInteraction = delegate { };
     public EventHandler<OnExpressFireArgs> OnExpressFire = delegate { };
@@ -63,13 +65,28 @@ public class OnMonsterHuntArgs : EventArgs
     public uint Count { get; set; }
     public Transform Position { get; set; }
 }
+public class OnMonsterGroupHuntArgs : EventArgs
+{
+    public uint NpcId { get; set; }
+    public uint Count { get; set; }
+    public Transform Position { get; set; }
+}
 public class OnItemGatherArgs : EventArgs
+{
+    public uint ItemId { get; set; }
+    public int Count { get; set; }
+}
+public class OnItemGroupGatherArgs : EventArgs
 {
     public uint ItemId { get; set; }
     public int Count { get; set; }
 }
 public class OnTalkMadeArgs : EventArgs
 {
+    public uint QuestId { get; set; } // QuestContextId
+    public uint NpcId { get; set; } // Npc.TemplateId
+    public uint QuestComponentId { get; set; }
+    public uint QuestActId { get; set; }
 }
 public class OnAggroArgs : EventArgs
 {
@@ -81,6 +98,11 @@ public class OnItemUseArgs : EventArgs
 }
 public class OnInteractionArgs : EventArgs
 {
+    public uint DoodadId { get; set; } // Doodad.TemplateId
+}
+public class OnCraftArgs : EventArgs
+{
+    public uint DoodadId { get; set; } // Doodad.TemplateId
 }
 public class OnExpressFireArgs : EventArgs
 {
@@ -89,9 +111,6 @@ public class OnLevelUpArgs : EventArgs
 {
 }
 public class OnEnterSphereArgs : EventArgs
-{
-}
-public class OnCraftArgs : EventArgs
 {
 }
 public class OnReportNpcArgs : EventArgs

@@ -142,7 +142,7 @@ public class CurrentQuestComponent : IQuestComponent
 
         foreach (var component in subQuestComponents)
         {
-            reults = component.Execute(character, quest, objective);
+            reults.AddRange(component.Execute(character, quest, objective));
         }
 
         return reults;

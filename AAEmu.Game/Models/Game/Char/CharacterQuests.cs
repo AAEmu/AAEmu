@@ -43,12 +43,20 @@ public partial class CharacterQuests
         return ActiveQuests.ContainsKey(questId);
     }
 
-    public void Add(uint questContextId, uint npcObjId = 0, uint doodadObjId = 0, uint sphereId = 0)
+    public void Add(uint questContextId, bool forcibly = false, uint npcObjId = 0, uint doodadObjId = 0, uint sphereId = 0)
     {
         if (ActiveQuests.ContainsKey(questContextId))
         {
-            Logger.Warn("Duplicate quest {0}, not added!", questId);
-            return;
+            if (forcibly)
+            {
+                Logger.Info("[GM] quest {0}, added!", questContextId);
+                Drop(questContextId, true);
+            }
+            else
+            {
+                Logger.Info("Duplicate quest {0}, not added!", questContextId);
+                return;
+            }
         }
 
         var template = QuestManager.Instance.GetTemplate(questContextId);
@@ -82,8 +90,8 @@ public partial class CharacterQuests
         }
 
         // TODO new quests
-        quest.CreateContextInstance(); // установим начальный контекст в Progress State
-        var res = quest.StartQuest(); // Начало квеста
+        quest.CreateContextInstance();     // установим начальный контекст
+        var res = quest.StartQuest(forcibly); // начало квеста
         //var res = quest.Start();
         if (!res)
         {
@@ -101,26 +109,26 @@ public partial class CharacterQuests
     /// Метод предназначен для вызова из скрита QuestCmd, команда /quest add (The method is intended to be called from the QuestCmd script, command /quest add) questId
     /// </summary>
     /// <param name="questId"></param>
-    public void AddStart(uint questId)
-    {
-        if (ActiveQuests.ContainsKey(questId))
-        {
-            Logger.Warn("Duplicate quest {0}, added!", questId);
-            Drop(questId, true);
-        }
+    //public void AddStart(uint questId)
+    //{
+    //    if (ActiveQuests.ContainsKey(questId))
+    //    {
+    //        _log.Warn("Duplicate quest {0}, added!", questId);
+    //        Drop(questId, true);
+    //    }
 
-        var template = QuestManager.Instance.GetTemplate(questId);
-        if (template == null)
-            return;
-        var quest = new Quest(template);
-        quest.Id = QuestIdManager.Instance.GetNextId();
-        quest.Status = QuestStatus.Progress;
-        quest.Owner = Owner;
-        quest.CreateContextInstance(); // установим начальный контекст в Progress State
-        ActiveQuests.Add(quest.TemplateId, quest);
-        quest.StartFirstOnly();
-        quest.Owner.SendMessage("[Quest] {0}, quest {1} added.", Owner.Name, questId);
-    }
+    //    var template = QuestManager.Instance.GetTemplate(questId);
+    //    if (template == null)
+    //        return;
+    //    var quest = new Quest(template);
+    //    quest.Id = QuestIdManager.Instance.GetNextId();
+    //    quest.Status = QuestStatus.Progress;
+    //    quest.Owner = Owner;
+    //    quest.CreateContextInstance(); // установим начальный контекст в Progress State
+    //    ActiveQuests.Add(quest.TemplateId, quest);
+    //    quest.StartFirstOnly();
+    //    quest.Owner.SendMessage("[Quest] {0}, quest {1} added.", Owner.Name, questId);
+    //}
 
     public void Complete(uint questId, int selected, bool supply = true)
     {

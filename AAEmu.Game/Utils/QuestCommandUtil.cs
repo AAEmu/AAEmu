@@ -18,7 +18,7 @@ public class QuestCommandUtil
                 {
                     if (uint.TryParse(args[1], out questId))
                     {
-                        character.Quests.AddStart(questId);
+                        character.Quests.Add(questId, true);
                     }
                 }
                 else

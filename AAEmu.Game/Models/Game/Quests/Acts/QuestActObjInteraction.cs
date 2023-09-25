@@ -17,6 +17,7 @@ public class QuestActObjInteraction : QuestActTemplate
     public uint Phase { get; set; }
 
     public static int InteractionStatus { get; private set; } = 0;
+    private int Objective { get; set; }
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
@@ -34,25 +35,41 @@ public class QuestActObjInteraction : QuestActTemplate
                 if (quest.OverCompletionPercent > quest.Template.Score)
                     quest.ExtraCompletion = true;
             }
-            Logger.Debug("QuestActObjInteraction: DoodadId {0}, Count {1}, InteractionStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}",
-                DoodadId, Count, InteractionStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
+            Logger.Debug("QuestActObjInteraction: DoodadId {0}, Count {1}, InteractionStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}", DoodadId, Count, InteractionStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
+
+            Update();
+
             return quest.OverCompletionPercent >= quest.Template.Score;
         }
-        else
+
+        if (quest.Template.LetItDone)
         {
-            if (quest.Template.LetItDone)
-            {
-                quest.OverCompletionPercent = objective * 100 / Count;
+            quest.OverCompletionPercent = objective * 100 / Count;
 
-                if (quest.OverCompletionPercent >= 60)
-                    quest.EarlyCompletion = true;
+            if (quest.OverCompletionPercent >= 60)
+                quest.EarlyCompletion = true;
 
-                if (quest.OverCompletionPercent > 100)
-                    quest.ExtraCompletion = true;
-            }
-            Logger.Debug("QuestActObjInteraction: DoodadId {0}, Count {1}, quest {2}, objective {3}",
-                DoodadId, Count, quest.TemplateId, objective);
-            return objective >= Count;
+            if (quest.OverCompletionPercent > 100)
+                quest.ExtraCompletion = true;
         }
+        Logger.Debug("QuestActObjInteraction: DoodadId {0}, Count {1}, quest {2}, objective {3}", DoodadId, Count, quest.TemplateId, objective);
+
+        Update();
+
+        return objective >= Count;
+    }
+    public override void Update()
+    {
+        Objective++;
+    }
+    public override bool IsCompleted()
+    {
+        return Objective >= Count;
+    }
+    public override int GetCount()
+    {
+        Logger.Info("Получим, сколько уже имеем предметов по заданию.");
+
+        return Objective;
     }
 }

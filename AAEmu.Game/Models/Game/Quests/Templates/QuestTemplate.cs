@@ -42,4 +42,10 @@ public class QuestTemplate : IQuestTemplate
                 .Where(cp => cp.KindId == step)
                 .ToArray();
     }
+    public QuestComponent[] GetComponents(uint compinentId)
+    {
+        return Components.Values
+                .Where(cp => cp.Id == compinentId)
+                .ToArray();
+    }
 }

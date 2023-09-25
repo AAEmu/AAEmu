@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
-
+using System.Threading.Tasks;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -716,13 +716,8 @@ public class Npc : Unit
                 character.SendMessage($"Pet gained {KillExp} XP");
             }
             //character.Quests.OnKill(this);
-            // Инициируем событие
-            character.Events?.OnMonsterHunt(this, new OnMonsterHuntArgs
-            {
-                NpcId = TemplateId,
-                Count = 1,
-                Position = Transform
-            });
+            // инициируем событие
+            Task.Run(() => QuestManager.Instance.DoOnMonsterHuntEvents(character, this));
         }
 
         Spawner?.DecreaseCount(this);
@@ -788,7 +783,7 @@ public class Npc : Unit
             if ((Template.EngageCombatGiveQuestId > 0) && player is not null)
             {
                 if (!player.Quests.IsQuestComplete(Template.EngageCombatGiveQuestId) && !player.Quests.HasQuest(Template.EngageCombatGiveQuestId))
-                    player.Quests.AddStart(Template.EngageCombatGiveQuestId);
+                    player.Quests.Add(Template.EngageCombatGiveQuestId);
             }
         }
 
