@@ -29,7 +29,7 @@ public class DiscordBotService : IHostedService
         _client.MessageReceived += MessageReceived;
 
         await UpdatePlayerCountPeriodically(TimeSpan.FromSeconds(5), CancellationToken.None);
-        await Task.Delay(-1);
+        await Task.Delay(-1, cancellationToken);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
@@ -49,7 +49,7 @@ public class DiscordBotService : IHostedService
         }
     }
 
-    public async Task MessageReceived(SocketMessage message)
+    public static async Task MessageReceived(SocketMessage message)
     {
         if (message.Content == "/online")
         {
