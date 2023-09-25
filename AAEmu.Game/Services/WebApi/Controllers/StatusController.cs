@@ -10,7 +10,7 @@ namespace AAEmu.Game.Services.WebApi.Controllers;
 
 /// <summary>
 /// Status controller for the WebApi
-/// </summary>6
+/// </summary>
 internal class StatusController : IController
 {
     [WebApiGet("/status")]
