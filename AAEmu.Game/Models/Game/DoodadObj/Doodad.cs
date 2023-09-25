@@ -391,7 +391,7 @@ public class Doodad : BaseUnit
             Log.Trace("DoPhaseFuncs: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
 
         var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(FuncGroupId);
-        if (phaseFuncs.Length == 0)
+        if (phaseFuncs.Count == 0)
         {
             return false; // no phase functions for FuncGroupId
         }
