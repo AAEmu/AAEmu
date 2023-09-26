@@ -1,5 +1,5 @@
 ﻿using System;
-
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.Units;
@@ -48,6 +48,7 @@ public class UnitEvents
     public EventHandler<OnInteractionArgs> OnInteraction = delegate { };
     public EventHandler<OnExpressFireArgs> OnExpressFire = delegate { };
     public EventHandler<OnLevelUpArgs> OnLevelUp = delegate { };
+    public EventHandler<OnAbilityLevelUpArgs> OnAbilityLevelUp = delegate { };
     public EventHandler<OnEnterSphereArgs> OnEnterSphere = delegate { };
     public EventHandler<OnCraftArgs> OnCraft = delegate { };
     // на шаге Ready
@@ -63,7 +64,7 @@ public class OnMonsterHuntArgs : EventArgs
 {
     public uint NpcId { get; set; }
     public uint Count { get; set; }
-    public Transform Position { get; set; }
+    public Transform Transform { get; set; }
 }
 public class OnMonsterGroupHuntArgs : EventArgs
 {
@@ -90,6 +91,8 @@ public class OnTalkMadeArgs : EventArgs
 }
 public class OnAggroArgs : EventArgs
 {
+    public uint NpcId { get; set; }
+    public Transform Transform { get; set; }
 }
 public class OnItemUseArgs : EventArgs
 {
@@ -102,16 +105,23 @@ public class OnInteractionArgs : EventArgs
 }
 public class OnCraftArgs : EventArgs
 {
-    public uint DoodadId { get; set; } // Doodad.TemplateId
+    public uint CraftId { get; set; }
 }
 public class OnExpressFireArgs : EventArgs
 {
+    public uint NpcId { get; set; } // Npc.TemplateId
+    public uint EmotionId { get; set; }
 }
 public class OnLevelUpArgs : EventArgs
 {
 }
+public class OnAbilityLevelUpArgs : EventArgs
+{
+}
 public class OnEnterSphereArgs : EventArgs
 {
+    public SphereQuest SphereQuest { get; set; }
+
 }
 public class OnReportNpcArgs : EventArgs
 {

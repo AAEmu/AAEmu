@@ -1271,7 +1271,10 @@ public partial class Character : Unit, ICharacter
             Abilities.AddActiveExp(exp); // TODO ... or all?
         SendPacket(new SCExpChangedPacket(ObjId, exp, shouldAddAbilityExp));
         CheckLevelUp();
-        Quests.OnLevelUp(); // TODO added for quest Id=5967
+
+        //Quests.OnLevelUp(); // TODO added for quest Id=5967
+        // инициируем событие
+        Task.Run(() => QuestManager.Instance.DoOnLevelUpEvents(Connection.ActiveChar));
     }
 
     public void CheckLevelUp()

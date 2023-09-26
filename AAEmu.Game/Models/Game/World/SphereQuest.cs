@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading.Tasks;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
@@ -58,7 +60,11 @@ public class SphereQuestTrigger
                 // TODO срабатывает триггер в радиусе от центра сферы
                 if (MathUtil.CalculateDistance(trigger.Owner.Transform.World.Position, xyzSphereQuest, true) < trigger.Sphere.Radius)
                 {
-                    trigger.Owner.Quests.OnEnterSphere(trigger.Sphere);
+                    //trigger.Owner.Quests.OnEnterSphere(trigger.Sphere);
+                    // инициируем событие
+                    Task.Run(() => QuestManager.Instance.DoOnEnterSphereEvents((Character)trigger.Owner, trigger.Sphere));
+
+
                     SphereQuestManager.Instance.RemoveSphereQuestTrigger(trigger);
                 }
             }

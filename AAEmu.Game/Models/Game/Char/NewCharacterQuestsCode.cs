@@ -62,6 +62,42 @@ public partial class CharacterQuests
             foreach (var quest in ActiveQuests.Values)
                 quest.OnMonsterGroupHuntHandler(this, eventArgs);
     }
+    public void OnAggroHandler(object sender, EventArgs eventArgs)
+    {
+        lock (_lock)
+            foreach (var quest in ActiveQuests.Values)
+                quest.OnAggroHandler(this, eventArgs);
+    }
+    public void OnExpressFireHandler(object sender, EventArgs eventArgs)
+    {
+        lock (_lock)
+            foreach (var quest in ActiveQuests.Values)
+                quest.OnExpressFireHandler(this, eventArgs);
+    }
+    public void OnLevelUpHandler(object sender, EventArgs eventArgs)
+    {
+        lock (_lock)
+            foreach (var quest in ActiveQuests.Values)
+                quest.OnLevelUpHandler(this, eventArgs);
+    }
+    public void OnAbilityLevelUpHandler(object sender, EventArgs eventArgs)
+    {
+        lock (_lock)
+            foreach (var quest in ActiveQuests.Values)
+                quest.OnAbilityLevelUpHandler(this, eventArgs);
+    }
+    public void OnCraftHandler(object sender, EventArgs eventArgs)
+    {
+        lock (_lock)
+            foreach (var quest in ActiveQuests.Values)
+                quest.OnCraftHandler(this, eventArgs);
+    }
+    public void OnEnterSphereHandler(object sender, EventArgs eventArgs)
+    {
+        lock (_lock)
+            foreach (var quest in ActiveQuests.Values)
+                quest.OnEnterSphereHandler(this, eventArgs);
+    }
 
     // Внимание!!!
     // для этого события будет известен QuestId

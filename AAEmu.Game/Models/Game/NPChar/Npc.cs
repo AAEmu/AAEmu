@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Threading.Tasks;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -787,7 +788,13 @@ public class Npc : Unit
             }
         }
 
-        player?.Quests.OnAggro(this);
+        if (player == null)
+        {
+            return;
+        }
+        //player?.Quests.OnAggro(this);
+        // инициируем событие
+        Task.Run(() => QuestManager.Instance.DoOnAggroEvents(player, this));
     }
 
     public void ClearAggroOfUnit(Unit unit)

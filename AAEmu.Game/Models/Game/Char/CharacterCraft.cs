@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items;
@@ -88,7 +89,9 @@ public class CharacterCraft
             Owner.Inventory.Bag.ConsumeItem(ItemTaskType.CraftActSaved, material.ItemId, material.Amount, null);
         }
 
-        Owner.Quests.OnCraft(_craft); // TODO added for quest Id=6024
+        //Owner.Quests.OnCraft(_craft); // TODO added for quest Id=6024
+        // инициируем событие
+        Task.Run(() => QuestManager.Instance.DoOnCraftEvents(Owner, _craft.Id));
 
         if (_count > 0)
         {
