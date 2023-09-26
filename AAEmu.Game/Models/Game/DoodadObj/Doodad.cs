@@ -143,9 +143,8 @@ public class Doodad : BaseUnit
     /// </summary>
     public int OverridePhase { get; set; }
     /// <summary>
-    /// Used to indicate the phase end time of the doodad should be overriden when loading player doodads
+    /// Used to indicate that the phase starting time should be overriden on timing related funcs
     /// </summary>
-    public DateTime OverrideGrowthTime { get; set; } = DateTime.MinValue;
     public DateTime OverridePhaseTime { get; set; } = DateTime.MinValue;
     private bool _deleted = false;
     public VehicleSeat Seat { get; set; }
