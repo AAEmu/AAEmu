@@ -38,19 +38,6 @@ public class DoodadFuncGrowth : DoodadPhaseFuncTemplate
         if (timeLeft < 1)
             timeLeft = 1;
 
-        // Not needed anymore?
-        /*
-        if (owner.OverrideGrowthTime > DateTime.MinValue)
-        {
-            // Reset the override
-            owner.GrowthTime = owner.OverrideGrowthTime;
-            owner.OverrideGrowthTime = DateTime.MinValue;
-        }
-        else
-        {
-            // owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(timeLeft);
-        }
-        */
         owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(timeLeft);
 
         if (caster is Character)

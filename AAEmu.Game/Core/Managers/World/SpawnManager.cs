@@ -418,7 +418,6 @@ public class SpawnManager : Singleton<SpawnManager>
                         doodad.OwnerType = ownerType;
                         doodad.AttachPoint = AttachPointKind.None;
                         doodad.PlantTime = plantTime;
-                        doodad.OverrideGrowthTime = growthTime;
                         doodad.GrowthTime = growthTime;
                         doodad.OverridePhaseTime = phaseTime;
                         doodad.PhaseTime = phaseTime;
