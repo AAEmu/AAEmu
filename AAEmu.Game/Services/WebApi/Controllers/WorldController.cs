@@ -5,8 +5,6 @@ using NetCoreServer;
 
 namespace AAEmu.Game.Services.WebApi.Controllers;
 
-#pragma warning disable CA1822 // Mark members as static
-
 /// <summary>
 /// Character controller for the WebApi
 /// </summary>6
