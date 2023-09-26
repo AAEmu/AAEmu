@@ -42,6 +42,7 @@ public class DoodadFuncTimer : DoodadPhaseFuncTemplate
                 timeLeft = 1;
 
             // Not needed anymore?
+            /*
             if (owner.OverrideGrowthTime > DateTime.MinValue)
             {
                 // Reset the override
@@ -52,6 +53,7 @@ public class DoodadFuncTimer : DoodadPhaseFuncTemplate
             {
                 // owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(timeLeft);
             }
+            */
             owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(timeLeft);
 
             owner.FuncTask = new DoodadFuncTimerTask(caster, owner, 0, NextPhase);

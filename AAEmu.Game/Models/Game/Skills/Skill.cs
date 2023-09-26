@@ -607,8 +607,9 @@ public class Skill
         Doodad doodad = null;
         if (Template.ChannelingDoodadId > 0)
         {
-            doodad = DoodadManager.Instance.Create(0, Template.ChannelingDoodadId, caster);
+            doodad = DoodadManager.Instance.Create(0, Template.ChannelingDoodadId, caster, true);
             doodad.Transform = caster.Transform.CloneDetached(doodad);
+            doodad.InitDoodad();
             doodad.Spawn();
         }
 

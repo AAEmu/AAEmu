@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-
+using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -114,7 +114,7 @@ public class DoodadSpawner : Spawner<Doodad>
         var newUnitId = RespawnDoodadTemplateId > 0 ? RespawnDoodadTemplateId : UnitId;
         RespawnDoodadTemplateId = 0; // reset it after 1 spawn
 
-        var doodad = DoodadManager.Instance.Create(objId, newUnitId, null);
+        var doodad = DoodadManager.Instance.Create(objId, newUnitId);
         if (doodad == null)
         {
             _log.Warn("Doodad Temaplte {0}, used in Spawn() does not exist in db", newUnitId);

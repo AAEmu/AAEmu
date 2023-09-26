@@ -60,7 +60,7 @@ public class PutDownBackpackEffect : EffectTemplate
             // Spawn doodad
             _log.Trace("PutDownPackEffect");
 
-            var doodad = DoodadManager.Instance.Create(0, BackpackDoodadId, character);
+            var doodad = DoodadManager.Instance.Create(0, BackpackDoodadId, character, true);
             if (doodad == null)
             {
                 _log.Warn("Doodad {0}, from BackpackDoodadId could not be created", BackpackDoodadId);
@@ -83,6 +83,7 @@ public class PutDownBackpackEffect : EffectTemplate
                 doodad.Transform.Parent = targetHouse.Transform; // Does not work as intended yet
             }
 
+            doodad.InitDoodad();
             doodad.Spawn();
             doodad.Save();
 

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
@@ -38,7 +39,7 @@ public class DoodadChainSubCommand : SubCommandBase
             _log.Info($"{Title} FuncGroupId: {doodad.FuncGroupId}");
             // Get all doodad_phase_funcs
             var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(doodad.FuncGroupId);
-            if (phaseFuncs.Length == 0)
+            if (phaseFuncs.Count == 0)
             {
                 _log.Info($"{Title} PhaseFunc: GroupId {0}, FuncId 0", doodad.FuncGroupId);
             }
