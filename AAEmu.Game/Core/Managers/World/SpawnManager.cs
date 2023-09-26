@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Commons.Exceptions;
@@ -372,13 +373,13 @@ public class SpawnManager : Singleton<SpawnManager>
         }
 
         _log.Info("Loading persistent doodads...");
-        List<Doodad> newCoffers = new List<Doodad>();
+        var newCoffers = new List<Doodad>();
         using (var connection = MySQL.CreateConnection())
         {
             using (var command = connection.CreateCommand())
             {
                 // Sorting required to make make sure parenting doesn't produce invalid parents (normally)
-                command.CommandText = "SELECT * FROM doodads ORDER BY `plant_time` ASC";
+                command.CommandText = "SELECT * FROM doodads ORDER BY `plant_time`";
                 command.Prepare();
                 using (var reader = command.ExecuteReader())
                 {
@@ -405,13 +406,14 @@ public class SpawnManager : Singleton<SpawnManager>
                         var itemContainerId = reader.GetUInt64("item_container_id");
                         var data = reader.GetInt32("data");
 
-                        var doodad = DoodadManager.Instance.Create(0, templateId);
+                        var doodad = DoodadManager.Instance.Create(0, templateId, null, true);
 
                         //doodad.Spawner = new DoodadSpawner();
                         //doodad.Spawner.UnitId = templateId;
                         doodad.IsPersistent = true;
                         doodad.DbId = dbId;
-                        // doodad.FuncGroupId = phaseId;
+                        doodad.FuncGroupId = phaseId;
+                        //doodad._funcGroupId = phaseId;
                         doodad.OwnerId = ownerId;
                         doodad.OwnerType = ownerType;
                         doodad.AttachPoint = AttachPointKind.None;
@@ -483,6 +485,8 @@ public class SpawnManager : Singleton<SpawnManager>
                             }
                         }
 
+                        doodad.InitDoodad();
+                        /*
                         if ((phaseId != doodad.FuncGroupId) || (growthTime > DateTime.MinValue) || (phaseTime > DateTime.MinValue))
                         {
                             // Temporary hack to prevent re-saving on load
@@ -495,6 +499,7 @@ public class SpawnManager : Singleton<SpawnManager>
                                 _log.Warn($"Was unable to set Doodad phase on load DB Id {dbId}, template {templateId}: {e.InnerException}");
                             }
                         }
+                        */
 
                         _playerDoodads.Add(doodad);
                     }

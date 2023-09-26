@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Security.Policy;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -16,9 +18,11 @@ public class DoodadFuncGrowth : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        //TODO add doodad scaling transformation
+        // TODO: Add doodad scaling transformation
         owner.Scale = StartScale / 1000f;
         var customDelay = Delay / AppConfiguration.Instance.World.GrowthRate; // decrease delay
+        if (ZoneManager.Instance.DoodadHasMatchingClimate(owner))
+            customDelay = (double)customDelay * 0.73f;
         var timeLeft = customDelay;
 
         if (owner.OverridePhaseTime > DateTime.MinValue)
@@ -35,6 +39,7 @@ public class DoodadFuncGrowth : DoodadPhaseFuncTemplate
             timeLeft = 1;
 
         // Not needed anymore?
+        /*
         if (owner.OverrideGrowthTime > DateTime.MinValue)
         {
             // Reset the override
@@ -45,6 +50,7 @@ public class DoodadFuncGrowth : DoodadPhaseFuncTemplate
         {
             // owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(timeLeft);
         }
+        */
         owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(timeLeft);
 
         if (caster is Character)

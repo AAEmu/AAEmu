@@ -6,6 +6,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.Char;
@@ -32,7 +33,7 @@ public class DoodadManager : Singleton<DoodadManager>
 {
     // ReSharper disable once FieldCanBeMadeReadOnly.Local
     private static Logger _log = LogManager.GetCurrentClassLogger();
-    private bool _loaded = false;
+    private bool _loaded;
 
     private Dictionary<uint, DoodadTemplate> _templates;
     private Dictionary<uint, DoodadFuncGroups> _allFuncGroups;
@@ -2629,7 +2630,37 @@ public class DoodadManager : Singleton<DoodadManager>
             #endregion
         }
 
+        CreateTemplateCaches();
         _loaded = true;
+    }
+
+    /// <summary>
+    /// Creates and cache various values that would otherwise consume too much time to be calculating all the time at runtime
+    /// </summary>
+    private void CreateTemplateCaches()
+    {
+        // For all doodad templates
+        foreach (var template in _templates.Values)
+        {
+
+            // Cache Total Growth Times for doodads that have them
+            template.TotalDoodadGrowthTime = 0;
+            foreach (var funcGroup in template.FuncGroups)
+            {
+                var funcGroups = Instance.GetFuncsForGroup(funcGroup.Id);
+                foreach (var doodadFunc in funcGroups)
+                {
+                    var thisFuncTemplate = Instance.GetPhaseFuncTemplate(doodadFunc.FuncId, doodadFunc.FuncType);
+                    if (thisFuncTemplate is DoodadFuncGrowth growthFunc)
+                    {
+                        template.TotalDoodadGrowthTime += growthFunc.Delay;
+                    }
+                }
+            }
+            if (template.TotalDoodadGrowthTime <= 0)
+                template.TotalDoodadGrowthTime = template.GrowthTime;
+        }
+
     }
 
     /// <summary>
@@ -2666,7 +2697,7 @@ public class DoodadManager : Singleton<DoodadManager>
         return -1;
     }
 
-    public Doodad Create(uint bcId, uint templateId, GameObject ownerObject = null)
+    public Doodad Create(uint bcId, uint templateId, GameObject ownerObject = null, bool skipPhaseInitialization = false)
     {
         if (!_templates.TryGetValue(templateId, out var template))
             return null;
@@ -2685,27 +2716,7 @@ public class DoodadManager : Singleton<DoodadManager>
         doodad.PlantTime = DateTime.UtcNow;
         doodad.OwnerType = DoodadOwnerType.System;
         doodad.FuncGroupId = doodad.GetFuncGroupId();
-
-        // Calculate growth time from all growing phases (if any)
-        // TODO: put this in template loading
-        var totalGrowthTime = 0;
-        foreach (var funcGroup in template.FuncGroups)
-        {
-            var funcGroups = Instance.GetFuncsForGroup(funcGroup.Id);
-            foreach (var doodadFunc in funcGroups)
-            {
-                var thisFuncTemplate = Instance.GetPhaseFuncTemplate(doodadFunc.FuncId, doodadFunc.FuncType);
-                if (thisFuncTemplate is DoodadFuncGrowth growthFunc)
-                {
-                    totalGrowthTime += growthFunc.Delay;
-                }
-            }
-        }
-
-        if (totalGrowthTime <= 0)
-            totalGrowthTime = template.GrowthTime;
-
-        doodad.GrowthTime = doodad.PlantTime.AddMilliseconds(totalGrowthTime);
+        // doodad.GrowthTime = doodad.PlantTime.AddMilliseconds(doodad.Template.TotalDoodadGrowthTime);
 
         switch (ownerObject)
         {
@@ -2727,7 +2738,8 @@ public class DoodadManager : Singleton<DoodadManager>
                 break;
         }
 
-        Task.Run(() => doodad.InitDoodad());
+        if (!skipPhaseInitialization)
+            Task.Run(() => doodad.InitDoodad());
 
         //_log.Debug($"Create: TemplateId {doodad.TemplateId}, ObjId {doodad.ObjId}, FuncGroupId {doodad.FuncGroupId}");
 
@@ -2854,7 +2866,7 @@ public class DoodadManager : Singleton<DoodadManager>
         var targetHouse = HousingManager.Instance.GetHouseAtLocation(x, y);
 
         // Create doodad
-        var doodad = Instance.Create(0, id, character);
+        var doodad = Instance.Create(0, id, character, true);
         doodad.IsPersistent = true;
         doodad.Transform = character.Transform.CloneDetached(doodad);
         doodad.Transform.Local.SetPosition(x, y, z);
@@ -2899,6 +2911,7 @@ public class DoodadManager : Singleton<DoodadManager>
         foreach (var item in items)
             character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1, preferredItem);
 
+        doodad.InitDoodad();
         doodad.Spawn();
         doodad.Save();
 
@@ -2961,7 +2974,7 @@ public class DoodadManager : Singleton<DoodadManager>
             return false;
 
         // For Coffers validate if select option is applicable
-        if (doodad is DoodadCoffer coffer)
+        if (doodad is DoodadCoffer)
         {
             switch (data)
             {

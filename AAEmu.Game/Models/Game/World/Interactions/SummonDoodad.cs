@@ -10,12 +10,13 @@ public class SummonDoodad : IWorldInteraction
     public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
         uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
     {
-        var doodad = DoodadManager.Instance.Create(0, (uint)doodadId, caster);
+        var doodad = DoodadManager.Instance.Create(0, (uint)doodadId, caster, true);
         if (doodad == null)
         {
             return;
         }
         doodad.Transform = target.Transform.CloneDetached(doodad);
+        doodad.InitDoodad();
         doodad.Spawn();
     }
 }

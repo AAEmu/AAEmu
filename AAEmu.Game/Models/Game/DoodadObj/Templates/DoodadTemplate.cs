@@ -37,6 +37,9 @@ public class DoodadTemplate
 
     public List<DoodadFuncGroups> FuncGroups { get; set; }
 
+    // Helper Properties
+    public int TotalDoodadGrowthTime { get; set; }
+
     public DoodadTemplate()
     {
         FuncGroups = new List<DoodadFuncGroups>();

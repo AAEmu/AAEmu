@@ -80,11 +80,12 @@ public sealed class House : Unit
             {
                 foreach (var bindingDoodad in Template.HousingBindingDoodad)
                 {
-                    var doodad = DoodadManager.Instance.Create(0, bindingDoodad.DoodadId, this);
+                    var doodad = DoodadManager.Instance.Create(0, bindingDoodad.DoodadId, this, true);
                     doodad.AttachPoint = bindingDoodad.AttachPointId;
                     doodad.Transform.Parent = this.Transform;
                     doodad.Transform.ApplyWorldSpawnPosition(bindingDoodad.Position);
                     doodad.ParentObj = this;
+                    doodad.InitDoodad();
 
                     AttachedDoodads.Add(doodad);
                 }

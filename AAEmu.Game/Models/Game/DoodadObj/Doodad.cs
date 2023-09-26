@@ -398,7 +398,8 @@ public class Doodad : BaseUnit
 
         //CumulativePhaseRatio = 0; // не требуется
         var stop = false;
-        // perform the phase functions one after the other
+
+        // Perform the phase functions one after the other
         foreach (var phaseFunc in phaseFuncs)
         {
             if (phaseFunc == null) { continue; }
@@ -493,8 +494,13 @@ public class Doodad : BaseUnit
     /// </summary>
     public void InitDoodad()
     {
-        // TODO has already been called in Create() - this eliminates re-initialization of plants/trees/animals
-        //FuncGroupId = GetFuncGroupId();  // Start phase
+        // Apply Climate settings
+        var growTime = Template.TotalDoodadGrowthTime / AppConfiguration.Instance.World.GrowthRate;
+        if (Template.TotalDoodadGrowthTime > 0 && ZoneManager.Instance.DoodadHasMatchingClimate(this))
+            growTime = (int)Math.Round((double)growTime * 0.73f);
+        GrowthTime = PlantTime.AddMilliseconds(growTime);
+
+        // Actually do the phase change
         var unit = WorldManager.Instance.GetUnit(OwnerObjId);
         DoChangePhase(unit, (int)FuncGroupId);
     }

@@ -1226,7 +1226,7 @@ public class HousingManager : Singleton<HousingManager>
                 var yMultiplier = (postId / 2) == 0 ? -1 : 1f;
                 var zRot = ((135f + (90f * postId) % 360)).DegToRad();
 
-                var doodad = DoodadManager.Instance.Create(0, ForSaleMarkerDoodadId);
+                var doodad = DoodadManager.Instance.Create(0, ForSaleMarkerDoodadId, null, true);
                 // location
                 doodad.Transform.Local.SetPosition(
                     (house.Template.GardenRadius * xMultiplier) + house.Transform.World.Position.X,
@@ -1244,6 +1244,7 @@ public class HousingManager : Singleton<HousingManager>
                 doodad.AttachPoint = AttachPointKind.None;
                 doodad.OwnerType = DoodadOwnerType.Housing;
                 doodad.DbHouseId = house.Id;
+                doodad.InitDoodad();
 
                 doodad.Spawn();
             }
@@ -1594,7 +1595,7 @@ public class HousingManager : Singleton<HousingManager>
         }
         */
 
-        var doodad = DoodadManager.Instance.Create(0, decorationDesign.DoodadId);
+        var doodad = DoodadManager.Instance.Create(0, decorationDesign.DoodadId, house, true);
         doodad.Transform.Parent = house.Transform;
         doodad.Transform.Local.SetPosition(pos.X, pos.Y, pos.Z);
         doodad.Transform.Local.ApplyFromQuaternion(quat);
@@ -1622,6 +1623,7 @@ public class HousingManager : Singleton<HousingManager>
             coffer.InitializeCoffer(player.Id);
         }
 
+        doodad.InitDoodad();
         doodad.Spawn();
         doodad.Save();
 
