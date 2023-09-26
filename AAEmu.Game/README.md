@@ -71,7 +71,7 @@ This is the preferred option as it won't expose your database credentials in the
 
     ```
     LoginNetwork:Port = 1234
-    LoginNetwork:Host = localhost
+    LoginNetwork:Host = 127.0.0.1
     Connections:MySQLProvider:User = root
     Connections:MySQLProvider:Port = 3306
     Connections:MySQLProvider:Password = yourpassword

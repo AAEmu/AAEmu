@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using NetCoreServer;
@@ -15,12 +16,29 @@ public class WebApiSession : HttpSession
 
     protected override void OnReceivedRequest(HttpRequest request)
     {
-        var response = RouteMapper.GetRoute(request.Url, new HttpMethod(request.Method))?.Invoke(request);
-
-        if (response is null)
+        HttpResponse response = null;
+        try
         {
-            response = new HttpResponse((int)HttpStatusCode.NotFound);
-            response.SetBody("Not found");
+            response = RouteMapper.GetRoute(request.Url, new HttpMethod(request.Method))?.Invoke(request);
+
+            if (response is null)
+            {
+                response = new HttpResponse((int)HttpStatusCode.NotFound);
+                response.SetBody("Not found");
+            }
+        }
+        catch (Exception e)
+        {
+            _log.Error(e);
+            response = new HttpResponse((int)HttpStatusCode.InternalServerError);
+            response.SetContentType("text/html");
+            var htmlError =
+                @$"<h1>Internal server error</h1>
+                   <h3>Error:{e.Message}</h3>
+                   <h2>Stack trace:</h3>
+                   <pre>{e.StackTrace}</pre>";
+
+            response.SetBody(htmlError);
         }
 
         SendResponseAsync(response);
