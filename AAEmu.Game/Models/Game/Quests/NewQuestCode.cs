@@ -287,7 +287,7 @@ public partial class Quest : PacketMarshaler
     // что-бы по два раза не вызывались надо перед подпиской на событие отписываться!!!
     public void OnInteractionHandler(object sender, EventArgs eventArgs)
     {
-        // Quest: 3353
+        // Quest: 3353, 1213, 1218
         // OnInteraction - похож на OnTalkMadeHandler
         var args = eventArgs as OnInteractionArgs;
         if (args == null)
@@ -313,6 +313,7 @@ public partial class Quest : PacketMarshaler
                 if (act.DetailType != "QuestActObjInteraction")
                 {
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -351,13 +352,13 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
 
-        // для завершения у всех objective компонентов должно быть выполнено
-        if (results.All(b => results.Count != 0 && b == true))
+        // для завершения не у всех objective компонентов должно быть выполнено
+        if (results.Any(b => results.Count != 0 && b == true))
         {
             _log.Info($"[OnInteractionHandler] Отписываемся от события.");
             _log.Info($"[OnInteractionHandler] Quest {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
@@ -385,7 +386,7 @@ public partial class Quest : PacketMarshaler
     }
     public void OnMonsterHuntHandler(object sender, EventArgs eventArgs)
     {
-        // Quest: 250
+        // Quest: 250, 1573, 4289
         var args = eventArgs as OnMonsterHuntArgs;
         if (args == null)
             return;
@@ -413,6 +414,7 @@ public partial class Quest : PacketMarshaler
                 if (act.DetailType != "QuestActObjMonsterHunt")
                 {
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -451,13 +453,13 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
 
-        // для завершения у всех objective компонентов должно быть выполнено
-        if (results.All(b => results.Count != 0 && b == true) || selective && !(EarlyCompletion || ExtraCompletion))
+        // для завершения не у всех objective компонентов должно быть выполнено
+        if (results.Any(b => results.Count != 0 && b == true) || selective && !(EarlyCompletion || ExtraCompletion))
         {
             _log.Info($"[OnMonsterHuntHandler] Отписываемся от события.");
             _log.Info($"[OnMonsterHuntHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
@@ -486,7 +488,7 @@ public partial class Quest : PacketMarshaler
     }
     public void OnMonsterGroupHuntHandler(object sender, EventArgs eventArgs)
     {
-        // Quest: 250
+        // Quest: 1233
         var args = eventArgs as OnMonsterGroupHuntArgs;
         if (args == null)
             return;
@@ -514,6 +516,7 @@ public partial class Quest : PacketMarshaler
                 if (act.DetailType != "QuestActObjMonsterGroupHunt")
                 {
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -552,13 +555,13 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
 
-        // для завершения у всех objective компонентов должно быть выполнено
-        if (results.All(b => results.Count != 0 && b == true) || selective && !(EarlyCompletion || ExtraCompletion))
+        // для завершения не у всех objective компонентов должно быть выполнено
+        if (results.Any(b => results.Count != 0 && b == true) || selective && !(EarlyCompletion || ExtraCompletion))
         {
             _log.Info($"[OnMonsterGroupHuntHandler] Отписываемся от события.");
             _log.Info($"[OnMonsterGroupHuntHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
@@ -587,7 +590,7 @@ public partial class Quest : PacketMarshaler
     }
     public void OnItemUseHandler(object sender, EventArgs eventArgs)
     {
-        // Quest: 252
+        // Quest: 252, 1222
         var args = eventArgs as OnItemUseArgs;
         if (args == null)
             return;
@@ -615,6 +618,7 @@ public partial class Quest : PacketMarshaler
                 if (act.DetailType != "QuestActObjItemUse")
                 {
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -653,13 +657,13 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
 
-        // для завершения у всех objective компонентов должно быть выполнено
-        if (results.All(b => results.Count != 0 && b == true) || selective && !(EarlyCompletion || ExtraCompletion))
+        // для завершения не у всех objective компонентов должно быть выполнено
+        if (results.Any(b => results.Count != 0 && b == true) || selective && !(EarlyCompletion || ExtraCompletion))
         {
             _log.Info($"[OnItemUseHandler] Отписываемся от события.");
             _log.Info($"[OnItemUseHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
@@ -715,6 +719,7 @@ public partial class Quest : PacketMarshaler
                 if (act.DetailType != "QuestActObjItemGroupUse")
                 {
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -753,13 +758,13 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
 
-        // для завершения у всех objective компонентов должно быть выполнено
-        if (results.All(b => results.Count != 0 && b == true) || selective && !(EarlyCompletion || ExtraCompletion))
+        // для завершения не у всех objective компонентов должно быть выполнено
+        if (results.Any(b => results.Count != 0 && b == true) || selective && !(EarlyCompletion || ExtraCompletion))
         {
             _log.Info($"[OnItemGroupUseHandler] Отписываемся от события.");
             _log.Info($"[OnItemGroupUseHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
@@ -787,7 +792,7 @@ public partial class Quest : PacketMarshaler
     }
     public void OnItemGatherHandler(object sender, EventArgs eventArgs)
     {
-        // Quest: 251, 324
+        // Quest: 251, 324, 953, 1215, 1216, 1233, 2300
         var args = eventArgs as OnItemGatherArgs;
         if (args == null)
             return;
@@ -815,6 +820,7 @@ public partial class Quest : PacketMarshaler
                 if (act.DetailType != "QuestActObjItemGather")
                 {
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -856,13 +862,13 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
 
-        // для завершения у всех objective компонентов должно быть выполнено
-        if (results.All(b => results.Count != 0 && b == true) || selective && !(EarlyCompletion || ExtraCompletion))
+        // для завершения не у всех objective компонентов должно быть выполнено
+        if (results.Any(b => results.Count != 0 && b == true) || selective && !(EarlyCompletion || ExtraCompletion))
         {
             _log.Info($"[OnItemGatherHandler] Отписываемся от события.");
             _log.Info($"[OnItemGatherHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
@@ -890,7 +896,7 @@ public partial class Quest : PacketMarshaler
     }
     public void OnItemGroupGatherHandler(object sender, EventArgs eventArgs)
     {
-        // Quest: 251, 324
+        // Quest: 
         var args = eventArgs as OnItemGroupGatherArgs;
         if (args == null)
             return;
@@ -918,6 +924,7 @@ public partial class Quest : PacketMarshaler
                 if (act.DetailType != "QuestActObjItemGroupGather")
                 {
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -959,13 +966,13 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
 
-        // для завершения у всех objective компонентов должно быть выполнено
-        if (results.All(b => results.Count != 0 && b == true) || selective && !(EarlyCompletion || ExtraCompletion))
+        // для завершения не у всех objective компонентов должно быть выполнено
+        if (results.Any(b => results.Count != 0 && b == true) || selective && !(EarlyCompletion || ExtraCompletion))
         {
             _log.Info($"[OnItemGroupGatherHandler] Отписываемся от события.");
             _log.Info($"[OnItemGroupGatherHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
@@ -1018,6 +1025,7 @@ public partial class Quest : PacketMarshaler
                 if (act.DetailType != "QuestActObjAggro")
                 {
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -1048,7 +1056,7 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
@@ -1107,6 +1115,7 @@ public partial class Quest : PacketMarshaler
                 if (act.DetailType != "QuestActObjExpressFire")
                 {
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -1137,7 +1146,7 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
@@ -1196,6 +1205,7 @@ public partial class Quest : PacketMarshaler
                 if (act.DetailType != "QuestActObjAbilityLevel")
                 {
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -1226,7 +1236,7 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
@@ -1285,6 +1295,7 @@ public partial class Quest : PacketMarshaler
                 if (act.DetailType != "QuestActObjLevel")
                 {
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -1315,7 +1326,7 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
@@ -1374,6 +1385,7 @@ public partial class Quest : PacketMarshaler
                 if (act.DetailType != "QuestActObjCraft")
                 {
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -1404,7 +1416,7 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
@@ -1463,6 +1475,7 @@ public partial class Quest : PacketMarshaler
                 if (act.DetailType != "QuestActObjSphere")
                 {
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -1493,7 +1506,7 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
@@ -1557,6 +1570,7 @@ public partial class Quest : PacketMarshaler
                 {
                     //results.Add(false);
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -1647,7 +1661,7 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
@@ -1707,6 +1721,7 @@ public partial class Quest : PacketMarshaler
                 {
                     //results.Add(false);
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -1797,7 +1812,7 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
@@ -1857,6 +1872,7 @@ public partial class Quest : PacketMarshaler
                 if (act.DetailType != "QuestActConReportNpc")
                 {
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
 
@@ -1887,7 +1903,7 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }
@@ -1948,6 +1964,7 @@ public partial class Quest : PacketMarshaler
                 {
                     //results.Add(false);
                     ThisIsNotWhatYouNeed = true;
+                    results.Add(false);
                     continue;
                 }
                 var template = act.GetTemplate<QuestActConReportDoodad>(); // для доступа к переменным требуется привидение к нужному типу
@@ -1983,7 +2000,7 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && results.All(b => results.Count != 0 && b == false))
+        if (ThisIsNotWhatYouNeed && results.Count <= 1)
         {
             return;
         }

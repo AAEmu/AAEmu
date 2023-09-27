@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -417,7 +418,8 @@ public class QuestProgressState : QuestState
         ////var result = CurrentActs.Select(act => act.Use(Quest.Owner, Quest, 0)).ToList();
         //var results = CurrentQuestComponent.Execute(Quest.Owner, Quest, objectiveCount[0]);
 
-        //CurrentComponent = CurrentQuestComponent.GetFirstComponent();
+        CurrentComponent = CurrentQuestComponent.GetFirstComponent();
+
         //if (results.All(b => b == true))
         //{
         //    _log.Info($"[QuestProgressState][Update] {Quest.Owner.Name}, Quest: {Quest.TemplateId}. Не надо подписываться на события.");
@@ -936,22 +938,22 @@ public class QuestReadyState : QuestState
     }
     public override bool Update()
     {
-        var results = CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
+        //var results = CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
 
         CurrentComponent = CurrentQuestComponent.GetFirstComponent();
 
-        if (results.All(b => b == true))
-        {
-            _log.Info($"[QuestReadyState][Update] {Quest.Owner.Name}, Quest: {Quest.TemplateId}. Не надо подписываться на события.");
-            Quest.ComponentId = CurrentComponent.Id;
-            Quest.Status = QuestStatus.Ready;
-            Quest.Condition = QuestConditionObj.Ready;
-            _log.Info($"[QuestReadyState][Update] {Quest.Owner.Name}, Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
+        //if (results.All(b => b == true))
+        //{
+        //    _log.Info($"[QuestReadyState][Update] {Quest.Owner.Name}, Quest: {Quest.TemplateId}. Не надо подписываться на события.");
+        //    Quest.ComponentId = CurrentComponent.Id;
+        //    Quest.Status = QuestStatus.Ready;
+        //    Quest.Condition = QuestConditionObj.Ready;
+        //    _log.Info($"[QuestReadyState][Update] {Quest.Owner.Name}, Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
-            Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
+        //    Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
 
-            return true;
-        }
+        //    return true;
+        //}
 
         _log.Info($"[QuestReadyState][Update] {Quest.Owner.Name}, Quest: {Quest.TemplateId}. Подписываемся на события, которые требуются для активных актов");
         bool res;
