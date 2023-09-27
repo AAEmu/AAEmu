@@ -38,6 +38,12 @@ public partial class CharacterQuests
             foreach (var quest in ActiveQuests.Values.ToList())
                 quest.OnItemUseHandler(this, eventArgs);
     }
+    public void OnItemGroupUseHandler(object sender, EventArgs eventArgs)
+    {
+        lock (_lock)
+            foreach (var quest in ActiveQuests.Values.ToList())
+                quest.OnItemGroupUseHandler(this, eventArgs);
+    }
     public void OnItemGatherHandler(object sender, EventArgs eventArgs)
     {
         lock (_lock)
@@ -113,6 +119,20 @@ public partial class CharacterQuests
                 return;
 
             quest.OnTalkMadeHandler(this, eventArgs);
+        }
+    }
+    public void OnTalkNpcGroupMadeHandler(object sender, EventArgs eventArgs)
+    {
+        lock (_lock)
+        {
+            var args = eventArgs as OnTalkNpcGroupMadeArgs;
+            if (args == null)
+                throw new NotImplementedException();
+
+            if (!ActiveQuests.TryGetValue(args.QuestId, out var quest))
+                return;
+
+            quest.OnTalkNpcGroupMadeHandler(this, eventArgs);
         }
     }
     public void OnReportDoodadHandler(object sender, EventArgs eventArgs)

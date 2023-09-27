@@ -1518,6 +1518,11 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             ItemId = templateId,
             Count = count
         });
+        owner?.Events?.OnItemGroupUse(this, new OnItemGroupUseArgs
+        {
+            ItemGroupId = templateId,
+            Count = count
+        });
     }
     public void DoAcquiredEvents(Character owner, uint templateId, int count)
     {
@@ -1559,6 +1564,13 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             QuestComponentId = questComponentId,
             QuestActId = questActId
         });
+        owner.Events?.OnTalkNpcGroupMade(this, new OnTalkNpcGroupMadeArgs
+        {
+            QuestId = questContextId,
+            NpcGroupId = npc.TemplateId,
+            QuestComponentId = questComponentId,
+            QuestActId = questActId
+        });
     }
     public void DoOnMonsterHuntEvents(Character owner, Npc npc)
     {
@@ -1578,6 +1590,18 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             Position = npc.Transform
         });
     }
+    //public void DoOnMonsterGroupHuntEvents(Character owner, Npc npc)
+    //{
+    //    if (npc == null) { return; }
+
+    //    //character.Quests.OnKill(this);
+    //    owner.Events?.OnMonsterGroupHunt(this, new OnMonsterGroupHuntArgs
+    //    {
+    //        NpcId = npc.TemplateId,
+    //        Count = 1,
+    //        Position = npc.Transform
+    //    });
+    //}
     public void DoOnAggroEvents(Character owner, Npc npc)
     {
         if (npc == null) { return; }

@@ -41,10 +41,12 @@ public class UnitEvents
     public EventHandler<OnMonsterHuntArgs> OnMonsterHunt = delegate { };
     public EventHandler<OnMonsterGroupHuntArgs> OnMonsterGroupHunt = delegate { };
     public EventHandler<OnTalkMadeArgs> OnTalkMade = delegate { };
+    public EventHandler<OnTalkNpcGroupMadeArgs> OnTalkNpcGroupMade = delegate { };
     public EventHandler<OnAggroArgs> OnAggro = delegate { };
     public EventHandler<OnItemGatherArgs> OnItemGather = delegate { };
     public EventHandler<OnItemGroupGatherArgs> OnItemGroupGather = delegate { };
     public EventHandler<OnItemUseArgs> OnItemUse = delegate { };
+    public EventHandler<OnItemGroupUseArgs> OnItemGroupUse = delegate { };
     public EventHandler<OnInteractionArgs> OnInteraction = delegate { };
     public EventHandler<OnExpressFireArgs> OnExpressFire = delegate { };
     public EventHandler<OnLevelUpArgs> OnLevelUp = delegate { };
@@ -89,6 +91,13 @@ public class OnTalkMadeArgs : EventArgs
     public uint QuestComponentId { get; set; }
     public uint QuestActId { get; set; }
 }
+public class OnTalkNpcGroupMadeArgs : EventArgs
+{
+    public uint QuestId { get; set; } // QuestContextId
+    public uint NpcGroupId { get; set; } // Npc.TemplateId
+    public uint QuestComponentId { get; set; }
+    public uint QuestActId { get; set; }
+}
 public class OnAggroArgs : EventArgs
 {
     public uint NpcId { get; set; }
@@ -97,6 +106,11 @@ public class OnAggroArgs : EventArgs
 public class OnItemUseArgs : EventArgs
 {
     public uint ItemId { get; set; }
+    public int Count { get; set; }
+}
+public class OnItemGroupUseArgs : EventArgs
+{
+    public uint ItemGroupId { get; set; }
     public int Count { get; set; }
 }
 public class OnInteractionArgs : EventArgs

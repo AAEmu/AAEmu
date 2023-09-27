@@ -40,35 +40,6 @@ public class QuestComponent : IQuestComponent
     {
         throw new NotImplementedException();
     }
-    public void Subscribe(Quest quest)
-    {
-        var acts = QuestManager.Instance.GetActs(this.Id);
-        foreach (var act in acts)
-        {
-            //var QuestActObjItemUse = (QuestActObjItemUse)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActObjItemUse");
-            //var questItemGather = (QuestActObjItemGather)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActObjItemGather");
-            //var QuestActObjMonsterHunt = (QuestActObjMonsterHunt)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActObjMonsterHunt");
-            //var QuestActObjMonsterGroupHunt = (QuestActObjMonsterGroupHunt)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActObjMonsterGroupHunt");
-            //var QuestActObjLevel = (QuestActObjLevel)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActObjLevel");
-            //var QuestActObjTalk = (QuestActObjTalk)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActObjTalk");
-            //var QuestActObjSphere = (QuestActObjSphere)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActObjSphere");
-            //var QuestActObjInteraction = (QuestActObjInteraction)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActObjInteraction");
-            //var QuestActObjExpressFire = (QuestActObjExpressFire)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActObjExpressFire");
-            //var QuestActObjCraft = (QuestActObjCraft)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActObjCraft");
-
-            //var questActTemplate = QuestManager.Instance.GetActTemplate(act.DetailId, act.DetailType);
-            var questActObjMonsterHunt = (QuestActObjMonsterHunt)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActObjMonsterHunt");
-            if (questActObjMonsterHunt != null)
-            {
-                quest.Owner.Events.OnMonsterHunt += quest.Owner.Quests.OnMonsterHuntHandler;
-            }
-        }
-    }
-    public void UnSubscribe(Quest quest)
-    {
-        throw new NotImplementedException();
-    }
-
     public List<bool> Execute(ICharacter character, Quest quest, int objective)
     {
         var reults = new List<bool>();
@@ -80,7 +51,6 @@ public class QuestComponent : IQuestComponent
         }
         return reults;
     }
-
 }
 
 // Компонент-контейнер
