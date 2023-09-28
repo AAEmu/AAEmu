@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -9,6 +8,8 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.World;
+
+using MySqlX.XDevAPI.Common;
 
 using NLog;
 
@@ -25,6 +26,7 @@ public abstract class QuestState
     public List<QuestAct> CurrentActs { get; set; } = new();
     public QuestComponent CurrentComponent { get; set; }
     public QuestComponentKind Step { get; set; }
+    public List<bool> ComponentResults { get; set; }
 
     public abstract bool Start(bool forcibly = false);
     public abstract bool Update();
@@ -54,6 +56,11 @@ public abstract class QuestState
                         quest.QuestNoneState.State.CurrentQuestComponent = UpdateComponent(questComponents);
                         quest.QuestNoneState.State.CurrentComponents = UpdateComponents();
                         quest.QuestNoneState.State.CurrentActs = UpdateActs();
+                        quest.QuestNoneState.State.ComponentResults = new List<bool>();
+                        for (var i = 0; i < quest.QuestNoneState.State.CurrentComponents.Count; i++)
+                        {
+                            quest.QuestNoneState.State.ComponentResults.Add(false);
+                        }
                         exit = true;
                         break;
                     }
@@ -66,6 +73,11 @@ public abstract class QuestState
                         quest.QuestStartState.State.CurrentQuestComponent = UpdateComponent(questComponents);
                         quest.QuestStartState.State.CurrentComponents = UpdateComponents();
                         quest.QuestStartState.State.CurrentActs = UpdateActs();
+                        quest.QuestStartState.State.ComponentResults = new List<bool>();
+                        for (var i = 0; i < quest.QuestStartState.State.CurrentComponents.Count; i++)
+                        {
+                            quest.QuestStartState.State.ComponentResults.Add(false);
+                        }
                         exit = true;
                         break;
                     }
@@ -78,6 +90,11 @@ public abstract class QuestState
                         quest.QuestSupplyState.State.CurrentQuestComponent = UpdateComponent(questComponents);
                         quest.QuestSupplyState.State.CurrentComponents = UpdateComponents();
                         quest.QuestSupplyState.State.CurrentActs = UpdateActs();
+                        quest.QuestSupplyState.State.ComponentResults = new List<bool>();
+                        for (var i = 0; i < quest.QuestSupplyState.State.CurrentComponents.Count; i++)
+                        {
+                            quest.QuestSupplyState.State.ComponentResults.Add(false);
+                        }
                         exit = true;
                         break;
                     }
@@ -90,6 +107,11 @@ public abstract class QuestState
                         quest.QuestProgressState.State.CurrentQuestComponent = UpdateComponent(questComponents);
                         quest.QuestProgressState.State.CurrentComponents = UpdateComponents();
                         quest.QuestProgressState.State.CurrentActs = UpdateActs();
+                        quest.QuestProgressState.State.ComponentResults = new List<bool>();
+                        for (var i = 0; i < quest.QuestProgressState.State.CurrentComponents.Count; i++)
+                        {
+                            quest.QuestProgressState.State.ComponentResults.Add(false);
+                        }
                         exit = true;
                         break;
                     }
@@ -104,6 +126,11 @@ public abstract class QuestState
                         quest.QuestReadyState.State.CurrentQuestComponent = UpdateComponent(questComponents);
                         quest.QuestReadyState.State.CurrentComponents = UpdateComponents();
                         quest.QuestReadyState.State.CurrentActs = UpdateActs();
+                        quest.QuestReadyState.State.ComponentResults = new List<bool>();
+                        for (var i = 0; i < quest.QuestReadyState.State.CurrentComponents.Count; i++)
+                        {
+                            quest.QuestReadyState.State.ComponentResults.Add(false);
+                        }
                         exit = true;
                         break;
                     }
@@ -118,6 +145,11 @@ public abstract class QuestState
                         quest.QuestRewardState.State.CurrentQuestComponent = UpdateComponent(questComponents);
                         quest.QuestRewardState.State.CurrentComponents = UpdateComponents();
                         quest.QuestRewardState.State.CurrentActs = UpdateActs();
+                        quest.QuestRewardState.State.ComponentResults = new List<bool>();
+                        for (var i = 0; i < quest.QuestRewardState.State.CurrentComponents.Count; i++)
+                        {
+                            quest.QuestRewardState.State.ComponentResults.Add(false);
+                        }
                         exit = true;
                         break;
                     }
@@ -263,43 +295,124 @@ public class QuestStartState : QuestState
             results = CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
         }
 
-        CurrentComponent = CurrentQuestComponent.GetFirstComponent();
-        if (results.Any(b => b == true))
+        foreach (var component in CurrentComponents)
         {
-            Quest.ComponentId = CurrentComponent.Id;
-
-            if (Quest.QuestProgressState.State.CurrentQuestComponent != null)
+            var acts = QuestManager.Instance.GetActs(component.Id);
+            foreach (var act in acts)
             {
-                // если есть шаг Progress, то не надо завершать квест
-                Quest.Status = QuestStatus.Progress;
-                Quest.Condition = QuestConditionObj.Progress;
+                switch (act?.DetailType)
+                {
+                    case "QuestActCheckTimer":
+                        {
+                            // TODO настройка и старт таймера ограничения времени на квест (Timer - setting and starting time limit for the quest)
+                            var template = act.GetTemplate<QuestActCheckTimer>();
+                            var res = act.Use(Quest.Owner, Quest, template.LimitTime);
+                            _log.Info($"[QuestProgressState][Update] {Quest.Owner.Name}, Quest: {Quest.TemplateId}, Event: 'OnMonsterHunt', Handler: 'OnMonsterHuntHandler'");
+                            break;
+                        }
+                }
+            }
+            //CurrentComponent = CurrentQuestComponent.GetFirstComponent();
+            if (results.Any(b => b == true))
+            {
+                Quest.ComponentId = component.Id;
+
+                if (Quest.QuestProgressState.State.CurrentQuestComponent != null)
+                {
+                    // если есть шаг Progress, то не надо завершать квест
+                    Quest.Status = QuestStatus.Progress;
+                    Quest.Condition = QuestConditionObj.Progress;
+
+                    // проверим, что есть на этом шаге акт QuestActObjSphere
+                    var progressContexts = Quest.QuestProgressState.State.CurrentQuestComponent.GetComponents();
+                    foreach (var progressContext in progressContexts)
+                    {
+                        var actss = QuestManager.Instance.GetActs(progressContext.Id);
+                        foreach (var act in actss)
+                        {
+                            switch (act?.DetailType)
+                            {
+                                case "QuestActObjSphere":
+                                    {
+                                        // подготовим работу QuestSphere
+                                        // prepare QuestSphere's work
+                                        _log.Info($"[QuestStartState][Start] {Quest.Owner.Name}, Quest: {Quest.TemplateId}. Подписываемся на события, которые требуются для работы сферы");
+                                        Quest.CurrentComponentId = progressContext.Id;
+                                        var spheres = SphereQuestManager.Instance.GetQuestSpheres(progressContext.Id);
+                                        if (spheres != null)
+                                        {
+                                            foreach (var sphere in spheres)
+                                            {
+                                                var sphereQuestTrigger = new SphereQuestTrigger();
+                                                sphereQuestTrigger.Sphere = sphere;
+
+                                                if (sphereQuestTrigger.Sphere == null)
+                                                {
+                                                    _log.Info($"[QuestStartState][Start] QuestActObjSphere: Sphere not found with cquest {CurrentComponent.Id} in quest_sign_spheres.json!");
+                                                    break;
+                                                }
+
+                                                sphereQuestTrigger.Owner = Quest.Owner;
+                                                sphereQuestTrigger.Quest = Quest;
+                                                sphereQuestTrigger.TickRate = 500;
+
+                                                SphereQuestManager.Instance.AddSphereQuestTrigger(sphereQuestTrigger);
+                                            }
+
+                                            const int Duration = 500;
+                                            // TODO : Add a proper delay in here
+                                            Task.Run(async () =>
+                                            {
+                                                await Task.Delay(Duration);
+                                            });
+
+                                            // подписка одна на всех
+                                            Quest.Owner.Events.OnEnterSphere -= Quest.Owner.Quests.OnEnterSphereHandler;
+                                            Quest.Owner.Events.OnEnterSphere += Quest.Owner.Quests.OnEnterSphereHandler;
+
+                                            _log.Info($"[QuestStartState][Start] {Quest.Owner.Name}, Quest: {Quest.TemplateId}, Event: 'OnEnterSphere', Handler: 'OnEnterSphereHandler'");
+                                            break;
+                                        }
+
+                                        // если сфера по какой-то причине отсутствует, будем считать, что мы её посетили
+                                        // if the sphere is missing for some reason, we will assume that we have visited it
+                                        Quest.Owner.SendMessage("[Quest] {Quest.Owner.Name}, quest {Quest.TemplateId}, Sphere not found - skipped...");
+                                        _log.Info($"[QuestStartState][Start] {Quest.Owner.Name}, Quest {Quest.TemplateId}, Sphere not found - skipped...");
+                                        break;
+                                    }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    Quest.Status = results.Any(b => b == true) ? QuestStatus.Ready : QuestStatus.Progress;
+                }
+
+                switch (Quest.Status)
+                {
+                    case QuestStatus.Progress:
+                    case QuestStatus.Ready:
+                        //Quest.Step++; // Supply не нужен
+                        Quest.Condition = QuestConditionObj.Progress;
+                        break;
+                    default:
+                        Quest.Step = QuestComponentKind.Fail;
+                        Quest.Condition = QuestConditionObj.Fail;
+                        break;
+                }
+
+                _log.Info($"[QuestStartState][Start] {Quest.Owner.Name}, Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
             }
             else
             {
-                Quest.Status = results.Any(b => b == true) ? QuestStatus.Ready : QuestStatus.Progress;
-            }
-            switch (Quest.Status)
-            {
-                case QuestStatus.Progress:
-                case QuestStatus.Ready:
-                    //Quest.Step++; // Supply не нужен
-                    Quest.Condition = QuestConditionObj.Progress;
-                    break;
-                default:
-                    Quest.Step = QuestComponentKind.Fail;
-                    Quest.Condition = QuestConditionObj.Fail;
-                    break;
+                _log.Info($"[QuestStartState][Start] {Quest.Owner.Name}, Quest: {Quest.TemplateId} start failed.");
+                _log.Info($"[QuestStartState][Start] {Quest.Owner.Name}, Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
+                return false; // останавливаемся на этом шаге, сигнал на удаление квеста
             }
 
-            _log.Info($"[QuestStartState][Start] {Quest.Owner.Name}, Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
+            Quest.UseSkillAndBuff(CurrentComponent);
         }
-        else
-        {
-            _log.Info($"[QuestStartState][Start] {Quest.Owner.Name}, Quest: {Quest.TemplateId} start failed.");
-            _log.Info($"[QuestStartState][Start] {Quest.Owner.Name}, Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
-            return false; // останавливаемся на этом шаге, сигнал на удаление квеста
-        }
-        Quest.UseSkillAndBuff(CurrentComponent);
 
         return true;
     }
@@ -649,55 +762,56 @@ public class QuestProgressState : QuestState
                         }
                     case "QuestActObjSphere":
                         {
-                            // подготовим работу QuestSphere
-                            // prepare QuestSphere's work
-                            //Quest.Status = QuestStatus.Progress;
-                            //Quest.ComponentId = CurrentComponent.Id;
-                            var spheres = SphereQuestManager.Instance.GetQuestSpheres(CurrentComponent.Id);
-                            if (spheres != null)
-                            {
-                                foreach (var sphere in spheres)
-                                {
-                                    var sphereQuestTrigger = new SphereQuestTrigger();
-                                    sphereQuestTrigger.Sphere = sphere;
+                            // На шаге Start уже подписальсь на событие
 
-                                    if (sphereQuestTrigger.Sphere == null)
-                                    {
-                                        _log.Warn($"[Quest] QuestActObjSphere: Sphere not found with cquest {CurrentComponent.Id} in quest_sign_spheres.json!");
-                                        results2.Add(true); // уже выполнили задание, выход
-                                        break;
-                                    }
+                            //// подготовим работу QuestSphere
+                            //// prepare QuestSphere's work
+                            ////Quest.Status = QuestStatus.Progress;
+                            Quest.CurrentComponentId = component.Id;
+                            //var spheres = SphereQuestManager.Instance.GetQuestSpheres(CurrentComponent.Id);
+                            //if (spheres != null)
+                            //{
+                            //    foreach (var sphere in spheres)
+                            //    {
+                            //        var sphereQuestTrigger = new SphereQuestTrigger();
+                            //        sphereQuestTrigger.Sphere = sphere;
 
-                                    sphereQuestTrigger.Owner = Quest.Owner;
-                                    sphereQuestTrigger.Quest = Quest;
-                                    sphereQuestTrigger.TickRate = 500;
+                            //        if (sphereQuestTrigger.Sphere == null)
+                            //        {
+                            //            _log.Info($"[Quest] QuestActObjSphere: Sphere not found with cquest {CurrentComponent.Id} in quest_sign_spheres.json!");
+                            //            results2.Add(true); // уже выполнили задание, выход
+                            //            break;
+                            //        }
 
-                                    SphereQuestManager.Instance.AddSphereQuestTrigger(sphereQuestTrigger);
-                                }
+                            //        sphereQuestTrigger.Owner = Quest.Owner;
+                            //        sphereQuestTrigger.Quest = Quest;
+                            //        sphereQuestTrigger.TickRate = 500;
 
-                                const int Duration = 500;
-                                // TODO : Add a proper delay in here
-                                Task.Run(async () =>
-                                {
-                                    await Task.Delay(Duration);
-                                });
+                            //        SphereQuestManager.Instance.AddSphereQuestTrigger(sphereQuestTrigger);
+                            //    }
 
-                                // подписка одна на всех
-                                Quest.Owner.Events.OnEnterSphere -= Quest.Owner.Quests.OnEnterSphereHandler;
-                                Quest.Owner.Events.OnEnterSphere += Quest.Owner.Quests.OnEnterSphereHandler;
+                            //    const int Duration = 500;
+                            //    // TODO : Add a proper delay in here
+                            //    Task.Run(async () =>
+                            //    {
+                            //        await Task.Delay(Duration);
+                            //    });
 
-                                _log.Info($"[QuestProgressState][Update] {Quest.Owner.Name}, Quest: {Quest.TemplateId}, Event: 'OnEnterSphere', Handler: 'OnEnterSphereHandler'");
-                                results2.Add(false); // будем ждать события
-                                break;
-                            }
+                            // подписка одна на всех
+                            Quest.Owner.Events.OnEnterSphere -= Quest.Owner.Quests.OnEnterSphereHandler;
+                            Quest.Owner.Events.OnEnterSphere += Quest.Owner.Quests.OnEnterSphereHandler;
 
-                            // если сфера по какой-то причине отсутствует, будем считать, что мы её посетили
-                            // if the sphere is missing for some reason, we will assume that we have visited it
-                            //Quest.Status = QuestStatus.Progress;
-                            Quest.Owner.SendMessage($"[Quest] {Quest.Owner.Name}, quest {Quest.TemplateId}, Sphere not found - skipped...");
-                            _log.Info($"[QuestProgressState][Update] {Quest.Owner.Name}, Quest {Quest.TemplateId}, Sphere not found - skipped...");
                             _log.Info($"[QuestProgressState][Update] {Quest.Owner.Name}, Quest: {Quest.TemplateId}, Event: 'OnEnterSphere', Handler: 'OnEnterSphereHandler'");
-                            results2.Add(true); // не будем ждать события
+                            results2.Add(false); // будем ждать события
+                            //    break;
+                            //}
+
+                            //// если сфера по какой-то причине отсутствует, будем считать, что мы её посетили
+                            //// if the sphere is missing for some reason, we will assume that we have visited it
+                            ////Quest.Status = QuestStatus.Progress;
+                            //Quest.Owner.SendMessage($"[Quest] {Quest.Owner.Name}, quest {Quest.TemplateId}, Sphere not found - skipped...");
+                            //_log.Info($"[QuestProgressState][Update] {Quest.Owner.Name}, Quest {Quest.TemplateId}, Sphere not found - skipped...");
+                            //results2.Add(true); // не будем ждать события
                             break;
                         }
                     case "QuestActObjTalk":
@@ -991,8 +1105,7 @@ public class QuestReadyState : QuestState
                     case "QuestActConAutoComplete":
                         {
                             //Quest.Owner.Events.OnQuestComplete += Quest.Owner.Quests.OnQuestCompleteHandler;
-                            _log.Info(
-                                $"[QuestReadyState][Update] {Quest.Owner.Name}, Quest: {Quest.TemplateId}, Event: 'OnQuestComplete', Handle: 'OnEventsOnQuestComplete'");
+                            _log.Info($"[QuestReadyState][Update] {Quest.Owner.Name}, Quest: {Quest.TemplateId}, Event: 'OnQuestComplete', Handle: 'OnEventsOnQuestComplete'");
                             results2.Add(false); // будем ждать события
                             break;
                         }

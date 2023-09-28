@@ -54,7 +54,7 @@ public class SphereQuestTrigger
     {
         foreach (var trigger in Triggers)
         {
-            if (trigger.Quest.ComponentId == trigger.Sphere.ComponentID)
+            if (trigger.Quest.CurrentComponentId == trigger.Sphere.ComponentID)
             {
                 var xyzSphereQuest = new Vector3(trigger.Sphere.X, trigger.Sphere.Y, trigger.Sphere.Z);
                 // TODO срабатывает триггер в радиусе от центра сферы

@@ -37,6 +37,9 @@ public class QuestActObjMonsterGroupHunt : QuestActTemplate
 
             Logger.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, GroupHuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}",
                 QuestMonsterGroupId, Count, GroupHuntStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
+
+            Update();
+
             return quest.OverCompletionPercent >= quest.Template.Score;
         }
         else
@@ -53,6 +56,9 @@ public class QuestActObjMonsterGroupHunt : QuestActTemplate
             }
             Logger.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, quest {2}, objective {3}",
                 QuestMonsterGroupId, Count, quest.TemplateId, objective);
+
+            Update();
+
             return objective >= Count;
         }
     }
