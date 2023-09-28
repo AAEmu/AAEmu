@@ -9,7 +9,6 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -157,6 +156,8 @@ public class NpcSpawner : Spawner<Npc>
 
         // Select an NPC to spawn based on the spawnerId in npc_spawner_npcs
         var npcs = new List<Npc>();
+        var delnpcs = new List<Npc>();
+
         foreach (var spawnerId in npcSpawnerIds)
         {
             var template = NpcGameData.Instance.GetNpcSpawnerTemplate(spawnerId);
@@ -178,18 +179,18 @@ public class NpcSpawner : Spawner<Npc>
             var maxPopulation = template.MaxPopulation;
             var testRadiusPc = template.TestRadiusPc;
             var quantity = suspendSpawnCount;
-            var playerCount = 0u;
+            //var playerCount = 0u;
 
             // проверим есть ли рядом игроки
             // see if there are any players around
-            if (_lastSpawn != null)
-            {
-                playerCount = (uint)WorldManager.GetAround<Character>(_lastSpawn, testRadiusPc).Count;
-            }
+            //if (_lastSpawn != null)
+            //{
+            //    playerCount = (uint)WorldManager.GetAround<Character>(_lastSpawn, testRadiusPc).Count;
+            //}
 
             // если рядом игроки, то увеличим количество Npc
             // if there are players around, we'll increase the number of Npc
-            if (playerCount > 1) { quantity = suspendSpawnCount * playerCount; }
+            //if (playerCount > 1) { quantity = suspendSpawnCount * playerCount; }
 
             // проверим, что бы количество было не более максимальной популяции
             // check that the number is not more than the maximum population
@@ -202,16 +203,20 @@ public class NpcSpawner : Spawner<Npc>
             // Check if we did not go over MaxPopulation Spawn Count
             if (_spawnCount > maxPopulation)
             {
-                _log.Trace($"Let's not spawn Npc templateId {UnitId} from spawnerId {Template.Id} since exceeded MaxPopulation");
+                _log.Trace($"Let's not spawn Npc templateId {UnitId} from spawnerId {Template.Id} since exceeded MaxPopulation {maxPopulation}");
                 return;
             }
 
             foreach (var nsn in template.Npcs)
             {
                 if (nsn.MemberId != UnitId) { continue; }
-                npcs = nsn.Spawn(this, quantity);
+                npcs = nsn.Spawn(this, quantity, maxPopulation);
                 break;
             }
+
+            if (npcs == null) { continue; }
+
+            delnpcs.AddRange(npcs);
 
             _spawned.AddRange(npcs);
 
@@ -239,6 +244,17 @@ public class NpcSpawner : Spawner<Npc>
         if (_isScheduled)
         {
             DoDespawnSchedule(_lastSpawn, all);
+        }
+
+        // удалим чуть позже всех лишних Npc, оставим только одного
+        var deleteCount = delnpcs.Count - 1;
+        if (deleteCount > 1)
+        {
+            for (var i = 0; i < deleteCount; i++)
+            {
+                _log.Info($"Запланируем удаление npc {UnitId} from spawnerId {Template.Id}");
+                DoDespawnSchedule(delnpcs[i], false, 60); // через 1 минуту
+            }
         }
 
         if (IsNullOrEmpty(FollowPath)) { return; }
@@ -344,11 +360,19 @@ public class NpcSpawner : Spawner<Npc>
     /// </summary>
     /// <param name="npc"></param>
     /// <param name="all">to show everyone or not</param>
-    private void DoDespawnSchedule(Npc npc, bool all = false)
+    /// <param name="timeToDespawn"></param>
+    private void DoDespawnSchedule(Npc npc, bool all = false, float timeToDespawn = 0)
     {
         #region Schedule
 
+        // удалим по запросу
+        if (timeToDespawn > 0)
+        {
+            TaskManager.Instance.Schedule(new NpcSpawnerDoDespawnTask(npc), TimeSpan.FromSeconds(timeToDespawn));
+            return; // Reschedule when OK
+        }
         // Check if Time Of Day matches Template.StartTime or Template.EndTime
+
         if (Template.StartTime > 0.0f | Template.EndTime > 0.0f)
         {
             var curTime = TimeManager.Instance.GetTime();
@@ -473,10 +497,15 @@ public class NpcSpawner : Spawner<Npc>
 
         try
         {
+            if (n == null) { return; }
+
             foreach (var npc in n)
             {
                 _spawned.Add(npc);
-                npc.Spawner.RespawnTime = 0; // don't respawn
+                if (npc.Spawner != null)
+                {
+                    npc.Spawner.RespawnTime = 0; // don't respawn
+                }
 
                 if (effect.UseSummonerFaction)
                 {
@@ -496,19 +525,22 @@ public class NpcSpawner : Spawner<Npc>
                     {
                         npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, (Unit)caster, 1);
                     }
+
                     npc.Ai.OnAggroTargetChanged();
                     npc.Ai.GoToCombat();
                 }
 
                 if (effect.LifeTime > 0)
                 {
-                    TaskManager.Instance.Schedule(new NpcSpawnerDoDespawnTask(npc), TimeSpan.FromSeconds(effect.LifeTime));
+                    TaskManager.Instance.Schedule(new NpcSpawnerDoDespawnTask(npc),
+                        TimeSpan.FromSeconds(effect.LifeTime));
                 }
             }
         }
         catch (Exception)
         {
             _log.Error("Can't spawn npc {0} from spawner {1}", UnitId, template.Id);
+            return;
         }
 
         if (n.Count == 0)
