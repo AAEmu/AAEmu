@@ -252,7 +252,7 @@ public class NpcSpawner : Spawner<Npc>
         {
             for (var i = 0; i < deleteCount; i++)
             {
-                _log.Info($"Запланируем удаление npc {UnitId} from spawnerId {Template.Id}");
+                _log.Trace($"Запланируем удаление npc {UnitId} from spawnerId {Template.Id}");
                 DoDespawnSchedule(delnpcs[i], false, 60); // через 1 минуту
             }
         }

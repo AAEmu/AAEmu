@@ -103,7 +103,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
             if (count >= maxPopulation)
             {
                 npc.Delete();
-                _log.Info($"Let's not spawn Npc templateId {MemberId} from spawnerId {NpcSpawnerTemplateId} since exceeded MaxPopulation {maxPopulation}");
+                _log.Trace($"Let's not spawn Npc templateId {MemberId} from spawnerId {NpcSpawnerTemplateId} since exceeded MaxPopulation {maxPopulation}");
                 return null;
             }
 
