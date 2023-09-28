@@ -59,6 +59,7 @@ public class LootPack
         {
             var hasLootGroup = false;
             var lootGradeDistribId = 0u;
+            var alwaysDropGroup = gIdx == 0;
 
             if (!LootsByGroupNo.ContainsKey(gIdx))
                 continue;
@@ -113,17 +114,22 @@ public class LootPack
             List<Loot> selected = new List<Loot>();
 
 
-            if (uniqueItemDrop || hasLootGroup || (GroupCount <= 1))
+            if ((alwaysDropGroup == false) && (uniqueItemDrop || hasLootGroup || (GroupCount <= 1)))
             {
                 selected.Add(loots.RandomElementByWeight(l => l.DropRate));
             }
             else
             {
 
-                selected.AddRange(loots.Where(loot => loot.AlwaysDrop || loot.DropRate == 10000000).ToList());
+                selected.AddRange(loots.Where(loot => loot.AlwaysDrop || loot.DropRate == 10000000 || alwaysDropGroup).ToList());
 
-                foreach (var loot in loots.Where(loot => !(loot.AlwaysDrop || loot.DropRate == 10000000)))
+                foreach (var loot in loots.Where(loot => !(loot.AlwaysDrop || loot.DropRate == 10000000 || alwaysDropGroup)))
                 {
+                    if (alwaysDropGroup)
+                    {
+                        selected.Add(loot);
+                        continue;
+                    }
                     if (loot.DropRate + itemStackingRoll < itemRoll)
                     {
                         itemStackingRoll += loot.DropRate;
