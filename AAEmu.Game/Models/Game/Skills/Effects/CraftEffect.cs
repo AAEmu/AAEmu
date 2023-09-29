@@ -80,6 +80,7 @@ public class CraftEffect : EffectTemplate
                     }
                     break;
                 case WorldInteractionGroup.Collect:
+                    character.Craft.EndCraft();
                     break;
                 case WorldInteractionGroup.Building when target is House house:
                     // Get the house's current build step
