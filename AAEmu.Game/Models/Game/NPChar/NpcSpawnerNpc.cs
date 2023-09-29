@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -33,23 +34,23 @@ public class NpcSpawnerNpc : Spawner<Npc>
         NpcSpawnerTemplateId = spawnerTemplateId;
     }
 
-    public List<Npc> Spawn(NpcSpawner npcSpawner, uint maxPopulation = 1)
+    public List<Npc> Spawn(NpcSpawner npcSpawner, uint quantity = 1, uint maxPopulation = 1)
     {
         switch (MemberType)
         {
             case "Npc":
-                return SpawnNpc(npcSpawner, maxPopulation);
+                return SpawnNpc(npcSpawner, quantity, maxPopulation);
             case "NpcGroup":
-                return SpawnNpcGroup(npcSpawner, maxPopulation);
+                return SpawnNpcGroup(npcSpawner, quantity, maxPopulation);
             default:
                 throw new InvalidOperationException($"Tried spawning an unsupported line from NpcSpawnerNpc - Id: {Id}");
         }
     }
 
-    private List<Npc> SpawnNpc(NpcSpawner npcSpawner, uint maxPopulation = 1)
+    private List<Npc> SpawnNpc(NpcSpawner npcSpawner, uint quantity = 1, uint maxPopulation = 1)
     {
         var npcs = new List<Npc>();
-        for (var i = 0; i < maxPopulation; i++)
+        for (var i = 0; i < quantity; i++)
         {
             var npc = NpcManager.Instance.Create(0, MemberId);
             if (npc == null)
@@ -91,6 +92,21 @@ public class NpcSpawnerNpc : Spawner<Npc>
             npc.Spawner.Template = npcSpawner.Template;
             npc.Spawner.RespawnTime = (int)Rand.Next(npc.Spawner.Template.SpawnDelayMin, npc.Spawner.Template.SpawnDelayMax);
             npc.Spawn();
+
+            // check what's nearby
+            var aroundNpcs = WorldManager.GetAround<Npc>(npc, 15);
+            var count = 0u;
+            foreach (var n in aroundNpcs.Where(n => n.TemplateId == MemberId))
+            {
+                count++;
+            }
+            if (count >= maxPopulation)
+            {
+                npc.Delete();
+                _log.Trace($"Let's not spawn Npc templateId {MemberId} from spawnerId {NpcSpawnerTemplateId} since exceeded MaxPopulation {maxPopulation}");
+                return null;
+            }
+
             npc.Simulation = new Simulation(npc);
             npcs.Add(npc);
         }
@@ -100,8 +116,8 @@ public class NpcSpawnerNpc : Spawner<Npc>
         return npcs;
     }
 
-    private List<Npc> SpawnNpcGroup(NpcSpawner npcSpawner, uint maxPopulation)
+    private List<Npc> SpawnNpcGroup(NpcSpawner npcSpawner, uint quantity = 1, uint maxPopulation = 1)
     {
-        return SpawnNpc(npcSpawner, maxPopulation);
+        return SpawnNpc(npcSpawner, quantity, maxPopulation);
     }
 }
