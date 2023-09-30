@@ -1268,6 +1268,10 @@ public class DoodadManager : Singleton<DoodadManager>
                             EndScale = reader.GetInt32("end_scale"),
                             NextPhase = reader.GetInt32("next_phase", -1)
                         };
+                        // TODO: Remove testing stuff
+                        // if (func.Delay > 0)
+                        //     func.Delay = Math.Max(1, func.Delay / 1000);
+
                         _phaseFuncTemplates["DoodadFuncGrowth"].Add(func.Id, func);
                     }
                 }
@@ -2414,6 +2418,10 @@ public class DoodadManager : Singleton<DoodadManager>
                             ShowEndTime = reader.GetBoolean("show_end_time", true),
                             Tip = reader.GetString("tip")
                         };
+                        // TODO: Remove testing stuff
+                        // if (func.Delay > 0)
+                        //     func.Delay = Math.Max(1, func.Delay / 1000);
+
                         _phaseFuncTemplates["DoodadFuncTimer"].Add(func.Id, func);
                     }
                 }

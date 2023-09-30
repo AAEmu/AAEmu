@@ -297,9 +297,9 @@ public class Doodad : BaseUnit
                 // проверка нужна для Windstone id=1473
                 if (!HasOnlyGroupKindStart())
                 {
-                    if (FuncTask is DoodadFuncTimerTask)
+                    if (FuncTask != null)
                     {
-                        FuncTask?.CancelAsync();
+                        FuncTask.CancelAsync();
                         FuncTask = null;
                         Log.Debug($"DoFunc::DoodadFuncTimer: The current timer has been canceled. TemplateId {TemplateId}, ObjId {ObjId}, nextPhase {func.NextPhase}");
                     }
@@ -375,9 +375,10 @@ public class Doodad : BaseUnit
             ListGroupId.Clear();
         }
 
-        if (FuncTask is DoodadFuncTimerTask)
+        if (FuncTask != null)
         {
-            FuncTask?.CancelAsync();
+            FuncTask.CancelAsync();
+            FuncTask = null;
             if (caster is Character)
                 Log.Debug("DoPhaseFuncs:DoodadFuncTimer: The current timer has been canceled.");
             else
