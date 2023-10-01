@@ -37,22 +37,21 @@ public class SystemFaction : PacketMarshaler
         if (factionId == otherFactionId)
             return RelationState.Friendly;
 
-        //Not sure if we should prioritize mother faction here?
+        // Not sure if we should prioritize mother faction here?
         if (MotherId != 0)
         {
             var motherFaction = FactionManager.Instance.GetFaction(MotherId);
             if (motherFaction != null)
             {
-                var motherRelations = motherFaction.Relations;
-                if (motherRelations.ContainsKey(otherFactionId))
-                    return motherRelations[otherFactionId].State;
+                if (motherFaction.Relations.TryGetValue(otherFactionId, out var motherRelation))
+                    return motherRelation.State;
 
-                // TODO not found, so enemy (id = [1, 2, 3])
-                return RelationState.Hostile;
+                // TODO not found, so enemy (id = [1, 2, 3])?
+                return RelationState.Friendly;
             }
         }
 
-        return Relations.ContainsKey(otherFactionId) ? Relations[otherFactionId].State : RelationState.Neutral;
+        return Relations.TryGetValue(otherFactionId, out var relation) ? relation.State : RelationState.Neutral;
     }
 
     public override PacketStream Write(PacketStream stream)
