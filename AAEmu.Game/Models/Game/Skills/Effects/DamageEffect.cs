@@ -302,11 +302,11 @@ public class DamageEffect : EffectTemplate
             finalDamage *= TargetBuffBonusMul;
         }
 
-        //toughness reduction (PVP Only)
+        // Toughness reduction (PVP Only)
         if (caster is Character && trg is Character)
             finalDamage *= 1 - trg.BattleResist / (8000f + trg.BattleResist);
 
-        //Do Critical Dmgs
+        // Do Critical Dmgs
         switch (hitType)
         {
             case SkillHitType.MeleeCritical:
@@ -355,9 +355,10 @@ public class DamageEffect : EffectTemplate
         var healthStolen = (int)(value * (HealthStealRatio / 100.0f));
         var manaStolen = (int)(value * (ManaStealRatio / 100.0f));
 
-        //Safeguard to prevent accidental flagging
+        // Safeguard to prevent accidental flagging
         if (!caster.CanAttack(trg))
             return;
+
         trg.ReduceCurrentHp(caster, value);
         ((Unit)caster).SummarizeDamage += value;
 

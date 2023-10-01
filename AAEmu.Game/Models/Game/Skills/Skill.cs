@@ -685,12 +685,8 @@ public class Skill
         if (Template.TargetAreaRadius > 0)
         {
             var units = WorldManager.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius, true);
-            // TODO Fixed the work doodad ID=5090, "Stacked Lumber" and skill ID=18312, "Throw Torch" in Howling abyss.
-            if (units.Count == 1 && units[0] is not Doodad)
-            {
-                units.Add(targetSelf);
-                units = FilterAoeUnits(caster, units).ToList();
-            }
+            units.Add(targetSelf); // Add main target as well
+            units = FilterAoeUnits(caster, units).ToList();
 
             targets.AddRange(units);
             // TODO : Need to this if this is needed
@@ -705,7 +701,33 @@ public class Skill
         {
             if (target is Unit trg && Template.TargetType == SkillTargetType.Hostile)
             {
-                HitTypes.TryAdd(trg.ObjId, RollCombatDice(caster, trg));
+                var diceResult = RollCombatDice(caster, trg);
+                if (Template.LevelRuleNoConsideration)
+                {
+                    var damageType = (DamageType)Template.DamageTypeId;
+                    switch (damageType)
+                    {
+                        case DamageType.Melee:
+                            diceResult = SkillHitType.MeleeHit;
+                            break;
+                        case DamageType.Magic:
+                            diceResult = SkillHitType.SpellHit;
+                            break;
+                        case DamageType.Siege:
+                            diceResult = SkillHitType.RangedHit; // no siege version?
+                            break;
+                        case DamageType.Ranged:
+                            diceResult = SkillHitType.RangedHit;
+                            break;
+                        case DamageType.Heal:
+                            diceResult = SkillHitType.SpellHit;
+                            break;
+                        default:
+                            diceResult = SkillHitType.Invalid;
+                            break;
+                    }
+                }
+                HitTypes.TryAdd(trg.ObjId, diceResult);
             }
             if (target is Doodad doodad)
             {
