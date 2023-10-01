@@ -44,9 +44,9 @@ public class QuestActCheckTimer : QuestActTemplate
         }
 
 
-        TaskManager.Instance.Schedule(QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id][quest.TemplateId], TimeSpan.FromMilliseconds(objective));
-        character.SendMessage("[Quest] {0}, quest {1} will end in {2} minutes.", character.Name, quest.TemplateId, objective / 60000);
-        quest.Time = DateTime.UtcNow.AddMilliseconds(objective);
+        TaskManager.Instance.Schedule(QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id][quest.TemplateId], TimeSpan.FromMilliseconds(LimitTime));
+        character.SendMessage("[Quest] {0}, quest {1} will end in {2} minutes.", character.Name, quest.TemplateId, LimitTime / 60000);
+        quest.Time = DateTime.UtcNow.AddMilliseconds(LimitTime);
 
         return true;
     }

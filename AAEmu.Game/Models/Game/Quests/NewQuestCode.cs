@@ -90,13 +90,13 @@ public partial class Quest : PacketMarshaler
     /// <summary>
     /// Обработка контекста
     /// </summary>
-    public void ContextProcessing()
+    public void ContextProcessing(int selected = 0)
     {
-        _log.Info($"[ContextProcessing] квест {TemplateId}.");
+        //_log.Info($"[ContextProcessing] квест {TemplateId}.");
         var next = true;
         while (next)
         {
-            _log.Info($"[ContextProcessing][while] квест {TemplateId}.");
+            //_log.Info($"[ContextProcessing][while] квест {TemplateId}.");
             switch (Step)
             {
                 case QuestComponentKind.Supply when QuestSupplyState?.State?.CurrentQuestComponent != null:
@@ -104,12 +104,12 @@ public partial class Quest : PacketMarshaler
                     {
                         case QuestStatus.Progress when Condition == QuestConditionObj.Progress:
                         case QuestStatus.Ready when Condition == QuestConditionObj.Progress:
-                            _log.Info($"[ContextProcessing][QuestSupplyState][Update] квест {TemplateId}.");
+                            //_log.Info($"[ContextProcessing][QuestSupplyState][Update] квест {TemplateId}.");
                             QuestSupplyState.State.Update();
                             break;
                         case QuestStatus.Ready when Condition == QuestConditionObj.Ready:
-                            _log.Info($"[ContextProcessing][QuestSupplyState][Complete] квест {TemplateId}.");
-                            QuestSupplyState.State.Complete();
+                            //_log.Info($"[ContextProcessing][QuestSupplyState][Complete] квест {TemplateId}.");
+                            QuestSupplyState.State.Complete(selected);
                             Step++; // переход к следующему шагу
                             break;
                     }
@@ -119,12 +119,12 @@ public partial class Quest : PacketMarshaler
                     {
                         case QuestStatus.Progress when Condition == QuestConditionObj.Progress:
                         case QuestStatus.Ready when Condition == QuestConditionObj.Progress:
-                            _log.Info($"[ContextProcessing][QuestProgressState][Update] квест {TemplateId}.");
+                            //_log.Info($"[ContextProcessing][QuestProgressState][Update] квест {TemplateId}.");
                             if (!QuestProgressState.State.Update()) { next = false; } // подписка на события и прерываем цикл
                             break;
                         case QuestStatus.Ready when Condition == QuestConditionObj.Ready:
-                            _log.Info($"[ContextProcessing][QuestProgressState][Complete] квест {TemplateId}.");
-                            QuestProgressState.State.Complete();
+                            //_log.Info($"[ContextProcessing][QuestProgressState][Complete] квест {TemplateId}.");
+                            QuestProgressState.State.Complete(selected);
                             Step++; // переход к следующему шагу
                             break;
                     }
@@ -134,12 +134,12 @@ public partial class Quest : PacketMarshaler
                     {
                         case QuestStatus.Progress when Condition == QuestConditionObj.Progress:
                         case QuestStatus.Ready when Condition == QuestConditionObj.Progress:
-                            _log.Info($"[ContextProcessing][QuestReadyState][Update] квест {TemplateId}.");
+                            //_log.Info($"[ContextProcessing][QuestReadyState][Update] квест {TemplateId}.");
                             if (!QuestReadyState.State.Update()) { next = false; } // подписка на события и прерываем цикл
                             break;
                         case QuestStatus.Ready when Condition == QuestConditionObj.Ready:
-                            _log.Info($"[ContextProcessing][QuestReadyState][Complete] квест {TemplateId}.");
-                            QuestReadyState.State.Complete();
+                            //_log.Info($"[ContextProcessing][QuestReadyState][Complete] квест {TemplateId}.");
+                            QuestReadyState.State.Complete(selected);
                             Step++; // переход к следующему шагу
                             break;
                     }
@@ -149,12 +149,12 @@ public partial class Quest : PacketMarshaler
                     {
                         case QuestStatus.Progress when Condition == QuestConditionObj.Progress:
                         case QuestStatus.Ready when Condition == QuestConditionObj.Progress:
-                            _log.Info($"[ContextProcessing][QuestRewardState][Update] квест {TemplateId}.");
+                            //_log.Info($"[ContextProcessing][QuestRewardState][Update] квест {TemplateId}.");
                             QuestRewardState.State.Update();
                             break;
                         case QuestStatus.Ready when Condition == QuestConditionObj.Ready:
-                            _log.Info($"[ContextProcessing][QuestRewardState][Complete] квест {TemplateId}.");
-                            QuestRewardState.State.Complete();
+                            //_log.Info($"[ContextProcessing][QuestRewardState][Complete] квест {TemplateId}.");
+                            QuestRewardState.State.Complete(selected);
                             next = false; // прерываем цикл
                             break;
                     }
@@ -297,8 +297,8 @@ public partial class Quest : PacketMarshaler
 
         var complete = false;
         var ThisIsNotWhatYouNeed = false;
-
         var componentIndex = 0;
+
         foreach (var component in context.State.CurrentComponents)
         {
             ComponentId = component.Id;
@@ -312,13 +312,13 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnInteractionHandler] {Owner.Name}, Quest: {TemplateId}, взаимодействие с Doodad...");
-                
+                _log.Info($"[OnInteractionHandler] Quest: {TemplateId}, взаимодействие с Doodad...");
+
                 var template = act.GetTemplate<QuestActObjInteraction>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, что этотот Npc, может быть не тот, что надо по квесту
                 if (template?.DoodadId != args.DoodadId)
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
 
@@ -330,15 +330,7 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
-
-                //// проверка результатов на валидность (Validation of context.State.ComponentResults)
-                //if (Template.Selective)
-                //{
-                //    // разрешается быть подходящим одному предмету из нескольких (it is allowed to be matched to one item out of several)
-                //    if (context.State.ComponentResults.Any(b => b == true))
-                //        selective = true;
-                //}
+                context.State.ContextResults[componentIndex] = complete;
             }
 
             // если objective для текущего компонента готово, то запустим скилл и/или баф
@@ -349,20 +341,19 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено или selective == true
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true)
-            // || selective
+        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true)
             && !(EarlyCompletion || ExtraCompletion)
            )
         {
             _log.Info($"[OnInteractionHandler] Отписываемся от события.");
             _log.Info($"[OnInteractionHandler] Quest {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnInteractionHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnInteraction', Handler: 'OnInteractionHandler'");
+            _log.Info($"[OnInteractionHandler] Quest: {TemplateId}, Event: 'OnInteraction', Handler: 'OnInteractionHandler'");
             Owner.Events.OnInteraction -= Owner.Quests.OnInteractionHandler; // отписываемся
             Owner.Events.OnInteraction += Owner.Quests.OnInteractionHandler; // снова подписываемся
 
@@ -378,10 +369,11 @@ public partial class Quest : PacketMarshaler
 
         if (EarlyCompletion || ExtraCompletion)
         {
+            Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
         }
         // проверка результатов на валидность
-        Status = complete || ExtraCompletion ?
+        Status = EarlyCompletion || ExtraCompletion ?
             QuestStatus.Ready // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
             : QuestStatus.Progress; // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
 
@@ -403,11 +395,12 @@ public partial class Quest : PacketMarshaler
 
         var selective = false;
         var complete = false;
+        var results = false;
         EarlyCompletion = false;
         ExtraCompletion = false;
         var ThisIsNotWhatYouNeed = false;
-
         var componentIndex = 0;
+
         foreach (var component in context.State.CurrentComponents)
         {
             ComponentId = component.Id;
@@ -421,13 +414,13 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnMonsterHuntHandler] {Owner.Name}, Quest: {TemplateId}, Kill event triggered");
+                _log.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, Kill event triggered");
 
                 var template = act.GetTemplate<QuestActObjMonsterHunt>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, что убили того Npc, может быть не тот, что надо по квесту
                 if (template?.NpcId != args.NpcId)
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
 
@@ -439,44 +432,48 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
 
-                // проверка результатов на валидность (Validation of context.State.ComponentResults)
+                // проверка результатов на валидность (Validation of context.State.ContextResults)
                 if (Template.Selective)
                 {
                     // разрешается быть подходящим одному предмету из нескольких (it is allowed to be matched to one item out of several)
-                    if (context.State.ComponentResults.Any(b => b == true)) { selective = true; }
+                    if (context.State.ContextResults.Any(b => b == true)) { selective = true; }
                 }
-
-                // если objective для текущего компонента готово, то запустим скилл и/или баф
-                if (complete)
+                else if (Template.Score == 0 && componentIndex == context.State.CurrentComponents.Count - 1)
                 {
-                    UseSkillAndBuff(component);
+                    results = complete;
                 }
+            }
+
+            // если objective для текущего компонента готово, то запустим скилл и/или баф
+            if (complete)
+            {
+                UseSkillAndBuff(component);
             }
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено или selective == true
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true)
+        if (results
             || selective
             && !(EarlyCompletion || ExtraCompletion)
            )
         {
             _log.Info($"[OnMonsterHuntHandler] Отписываемся от события.");
-            _log.Info($"[OnMonsterHuntHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnMonsterHuntHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnMonsterHunt', Handler: 'OnMonsterHuntHandler'");
+            _log.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, Event: 'OnMonsterHunt', Handler: 'OnMonsterHuntHandler'");
             Owner.Events.OnMonsterHunt -= Owner.Quests.OnMonsterHuntHandler; // отписываемся
-            Owner.Events.OnMonsterHunt += Owner.Quests.OnMonsterHuntHandler; // снова пдписываемся
+            Owner.Events.OnMonsterHunt += Owner.Quests.OnMonsterHuntHandler; // снова подписываемся
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
-            _log.Info($"[OnMonsterHuntHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
             ContextProcessing();
@@ -486,16 +483,17 @@ public partial class Quest : PacketMarshaler
 
         if (EarlyCompletion || ExtraCompletion)
         {
+            Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
         }
         // проверка результатов на валидность
-        Status = complete || ExtraCompletion ?
+        Status = EarlyCompletion || ExtraCompletion ?
             QuestStatus.Ready // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
             : QuestStatus.Progress; // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
 
         ComponentId = 0;
         Condition = QuestConditionObj.Progress;
-        _log.Info($"[OnMonsterHuntHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+        _log.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
@@ -529,13 +527,13 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnMonsterGroupHuntHandler] {Owner.Name}, Quest: {TemplateId}, Kill event triggered");
+                _log.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, Kill event triggered");
 
                 var template = act.GetTemplate<QuestActObjMonsterGroupHunt>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, что убили того Npc, может быть не тот, что надо по квесту
                 if (!_questManager.CheckGroupNpc(template.QuestMonsterGroupId, args.NpcId))
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
 
@@ -547,45 +545,46 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
 
+                // это в компоненте Reward только
                 // проверка результатов на валидность, 2248 - выбор подарка
                 if (Template.Selective)
                 {
                     // разрешается быть подходящим одному предмету из нескольких
                     // it is allowed to be matched to one item out of several
-                    if (context.State.ComponentResults.Any(b => b == true)) { selective = true; }
+                    if (context.State.ContextResults.Any(b => b == true)) { selective = true; }
                 }
+            }
 
-                // если objective для текущего компонента готово, то запустим скилл и/или баф
-                if (complete)
-                {
-                    UseSkillAndBuff(component);
-                }
+            // если objective для текущего компонента готово, то запустим скилл и/или баф
+            if (complete)
+            {
+                UseSkillAndBuff(component);
             }
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено или selective == true
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true)
+        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true)
             || selective
             && !(EarlyCompletion || ExtraCompletion)
             )
         {
             _log.Info($"[OnMonsterGroupHuntHandler] Отписываемся от события.");
-            _log.Info($"[OnMonsterGroupHuntHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnMonsterGroupHuntHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnMonsterGroupHunt', Handler: 'OnMonsterGroupHuntHandler'");
+            _log.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, Event: 'OnMonsterGroupHunt', Handler: 'OnMonsterGroupHuntHandler'");
             Owner.Events.OnMonsterHunt -= Owner.Quests.OnMonsterGroupHuntHandler; // отписываемся
-            Owner.Events.OnMonsterHunt += Owner.Quests.OnMonsterGroupHuntHandler; // снова пдписываемся
+            Owner.Events.OnMonsterHunt += Owner.Quests.OnMonsterGroupHuntHandler; // снова подписываемся
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
-            _log.Info($"[OnMonsterGroupHuntHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
             ContextProcessing();
@@ -595,16 +594,17 @@ public partial class Quest : PacketMarshaler
 
         if (EarlyCompletion || ExtraCompletion)
         {
+            Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
         }
         // проверка результатов на валидность, 266 - GroupHunt & ItemGather
-        Status = complete || ExtraCompletion ?
+        Status = EarlyCompletion || ExtraCompletion ?
             QuestStatus.Ready // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
             : QuestStatus.Progress; // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
 
         ComponentId = 0;
         Condition = QuestConditionObj.Progress;
-        _log.Info($"[OnMonsterGroupHuntHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+        _log.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
@@ -620,6 +620,7 @@ public partial class Quest : PacketMarshaler
 
         var selective = false;
         var complete = false;
+        var results = false;
         EarlyCompletion = false;
         ExtraCompletion = false;
         var ThisIsNotWhatYouNeed = false;
@@ -638,13 +639,13 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnItemUseHandler] {Owner.Name}, Quest: {TemplateId}, использовали предмет из инвентаря...");
+                _log.Info($"[OnItemUseHandler] Quest: {TemplateId}, использовали предмет из инвентаря...");
 
                 var template = act.GetTemplate<QuestActObjItemUse>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, что там использовали, может быть не то, что надо по квесту
                 if (template?.ItemId != args.ItemId)
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
 
@@ -656,13 +657,20 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
 
-                // проверка результатов на валидность (Validation of context.State.ComponentResults)
+                // проверка результатов на валидность
+                // Validation of context.State.ContextResults
                 if (Template.Selective)
                 {
-                    // разрешается быть подходящим одному предмету из нескольких (it is allowed to be matched to one item out of several)
-                    if (context.State.ComponentResults.Any(b => b == true)) { selective = true; }
+                    // разрешается быть подходящим одному предмету из нескольких
+                    // it is allowed to be matched to one item out of several
+                    if (context.State.ContextResults.Any(b => b == true)) { selective = true; }
+                }
+
+                if (Template.Score == 0 && componentIndex == context.State.CurrentComponents.Count - 1)
+                {
+                    results = complete;
                 }
             }
 
@@ -671,30 +679,29 @@ public partial class Quest : PacketMarshaler
             {
                 UseSkillAndBuff(component);
             }
-
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено или selective == true
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true)
+        if (results
             || selective
             && !(EarlyCompletion || ExtraCompletion)
            )
         {
             _log.Info($"[OnItemUseHandler] Отписываемся от события.");
-            _log.Info($"[OnItemUseHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnItemUseHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnItemUse', Handler: 'OnItemUseHandler'");
+            _log.Info($"[OnItemUseHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnItemUseHandler] Quest: {TemplateId}, Event: 'OnItemUse', Handler: 'OnItemUseHandler'");
             Owner.Events.OnItemUse -= Owner.Quests.OnItemUseHandler; // отписываемся
-            Owner.Events.OnItemUse += Owner.Quests.OnItemUseHandler; // снова пдписываемся
+            Owner.Events.OnItemUse += Owner.Quests.OnItemUseHandler; // снова подписываемся
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
-            _log.Info($"[OnItemUseHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnItemUseHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
             ContextProcessing();
@@ -704,16 +711,17 @@ public partial class Quest : PacketMarshaler
 
         if (EarlyCompletion || ExtraCompletion)
         {
+            Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
         }
         // проверка результатов на валидность
-        Status = complete || ExtraCompletion ?
+        Status = EarlyCompletion || ExtraCompletion ?
             QuestStatus.Ready // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
             : QuestStatus.Progress; // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
 
         ComponentId = 0;
         Condition = QuestConditionObj.Progress;
-        _log.Info($"[OnItemUseHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+        _log.Info($"[OnItemUseHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
@@ -729,6 +737,7 @@ public partial class Quest : PacketMarshaler
 
         var selective = false;
         var complete = false;
+        var results = false;
         EarlyCompletion = false;
         ExtraCompletion = false;
         var ThisIsNotWhatYouNeed = false;
@@ -747,13 +756,13 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnItemGroupUseHandler] {Owner.Name}, Quest: {TemplateId}, использовали предмет из инвентаря...");
+                _log.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, использовали предмет из инвентаря...");
 
                 var template = act.GetTemplate<QuestActObjItemGroupUse>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, что там использовали, может быть не то, что надо по квесту
                 if (!_questManager.CheckGroupItem(template.ItemGroupId, args.ItemGroupId))
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
 
@@ -765,13 +774,17 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
 
-                // проверка результатов на валидность (Validation of context.State.ComponentResults)
+                // проверка результатов на валидность (Validation of context.State.ContextResults)
                 if (Template.Selective)
                 {
                     // разрешается быть подходящим одному предмету из нескольких (it is allowed to be matched to one item out of several)
-                    if (context.State.ComponentResults.Any(b => b == true)) { selective = true; }
+                    if (context.State.ContextResults.Any(b => b == true)) { selective = true; }
+                }
+                else if (Template.Score == 0 && componentIndex == context.State.CurrentComponents.Count - 1)
+                {
+                    results = complete;
                 }
             }
 
@@ -780,30 +793,29 @@ public partial class Quest : PacketMarshaler
             {
                 UseSkillAndBuff(component);
             }
-
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено или selective == true
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true)
+        if (results
             || selective
             && !(EarlyCompletion || ExtraCompletion)
            )
         {
             _log.Info($"[OnItemGroupUseHandler] Отписываемся от события.");
-            _log.Info($"[OnItemGroupUseHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnItemGroupUseHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnItemGroupUse', Handler: 'OnItemGroupUseHandler'");
+            _log.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, Event: 'OnItemGroupUse', Handler: 'OnItemGroupUseHandler'");
             Owner.Events.OnItemGroupUse -= Owner.Quests.OnItemGroupUseHandler; // отписываемся
-            Owner.Events.OnItemGroupUse += Owner.Quests.OnItemGroupUseHandler; // снова пдписываемся
+            Owner.Events.OnItemGroupUse += Owner.Quests.OnItemGroupUseHandler; // снова подписываемся
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
-            _log.Info($"[OnItemGroupUseHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
             ContextProcessing();
@@ -813,16 +825,17 @@ public partial class Quest : PacketMarshaler
 
         if (EarlyCompletion || ExtraCompletion)
         {
+            Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
         }
         // проверка результатов на валидность, 266 - GroupHunt & ItemGather
-        Status = complete || ExtraCompletion ?
+        Status = EarlyCompletion || ExtraCompletion ?
             QuestStatus.Ready // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
             : QuestStatus.Progress; // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
 
         ComponentId = 0;
         Condition = QuestConditionObj.Progress;
-        _log.Info($"[OnItemGroupUseHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+        _log.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
@@ -838,6 +851,7 @@ public partial class Quest : PacketMarshaler
 
         var selective = false;
         var complete = false;
+        var results = false;
         EarlyCompletion = false;
         ExtraCompletion = false;
         var ThisIsNotWhatYouNeed = false;
@@ -845,6 +859,7 @@ public partial class Quest : PacketMarshaler
         var componentIndex = 0;
         foreach (var component in context.State.CurrentComponents)
         {
+            complete = false;
             ComponentId = component.Id;
             var acts = _questManager.GetActs(component.Id);
             foreach (var act in acts)
@@ -856,19 +871,22 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnItemGatherHandler] {Owner.Name}, Quest: {TemplateId}, в инвентарь добавился предмет...");
+                _log.Info($"[OnItemGatherHandler] Quest: {TemplateId}, в инвентарь добавился предмет.");
 
                 var template = act.GetTemplate<QuestActObjItemGather>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, что там подобрали, может быть не то, что надо по квесту
                 if (template?.ItemId != args.ItemId)
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    _log.Info($"[OnItemGatherHandler] Это не тот предмет {template?.ItemId}, что нужен нам {args.ItemId}. Квест {TemplateId}.");
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
 
+                _log.Info($"[OnItemGatherHandler] Quest: {TemplateId}, в инвентаре есть нужный предмет {args.ItemId} в количестве {args.Count}.");
+
                 // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет
                 // we need to look in the inventory, because we don't know yet if the item is in the inventory or not
-                var objectiveCount = Owner.Inventory.GetItemsCount(template.ItemId);
+                var objectiveCount = Owner.Inventory.GetItemsCount(args.ItemId);
 
                 // увеличиваем objective
                 Objectives[componentIndex] = objectiveCount;
@@ -878,13 +896,17 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
 
-                // проверка результатов на валидность (Validation of context.State.ComponentResults)
+                // проверка результатов на валидность (Validation of context.State.ContextResults)
                 if (Template.Selective)
                 {
                     // разрешается быть подходящим одному предмету из нескольких (it is allowed to be matched to one item out of several)
-                    if (context.State.ComponentResults.Any(b => b == true)) { selective = true; }
+                    if (context.State.ContextResults.Any(b => b == true)) { selective = true; }
+                }
+                else if (Template.Score == 0 && componentIndex == context.State.CurrentComponents.Count - 1)
+                {
+                    results = complete;
                 }
             }
 
@@ -896,26 +918,26 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено или selective == true
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true)
+        if (results
             || selective
             && !(EarlyCompletion || ExtraCompletion)
            )
         {
             _log.Info($"[OnItemGatherHandler] Отписываемся от события.");
-            _log.Info($"[OnItemGatherHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnItemGatherHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnItemGather', Handler: 'OnItemGatherHandler'");
+            _log.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Event: 'OnItemGather', Handler: 'OnItemGatherHandler'");
             Owner.Events.OnItemGather -= Owner.Quests.OnItemGatherHandler; // отписываемся
-            Owner.Events.OnItemGather += Owner.Quests.OnItemGatherHandler; // снова пдписываемся
+            Owner.Events.OnItemGather += Owner.Quests.OnItemGatherHandler; // снова подписываемся
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
-            _log.Info($"[OnItemGatherHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
             ContextProcessing();
@@ -925,16 +947,17 @@ public partial class Quest : PacketMarshaler
 
         if (EarlyCompletion || ExtraCompletion)
         {
+            Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
         }
         // проверка результатов на валидность, 266 - GroupHunt & ItemGather
-        Status = complete || ExtraCompletion ?
+        Status = EarlyCompletion || ExtraCompletion ?
             QuestStatus.Ready // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
             : QuestStatus.Progress; // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
 
         ComponentId = 0;
         Condition = QuestConditionObj.Progress;
-        _log.Info($"[OnItemGatherHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+        _log.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
@@ -950,6 +973,7 @@ public partial class Quest : PacketMarshaler
 
         var selective = false;
         var complete = false;
+        var results = false;
         EarlyCompletion = false;
         ExtraCompletion = false;
         var ThisIsNotWhatYouNeed = false;
@@ -968,19 +992,21 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnItemGroupGatherHandler] {Owner.Name}, Quest: {TemplateId}, в инвентарь добавился предмет...");
+                _log.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, в инвентарь добавился предмет.");
 
                 var template = act.GetTemplate<QuestActObjItemGroupGather>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, что там подобрали, может быть не то, что надо по квесту
                 if (!_questManager.CheckGroupItem(template.ItemGroupId, args.ItemId))
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    _log.Info($"[OnItemGroupGatherHandler] Это не тот предмет {template.ItemGroupId}, что нужен нам {args.ItemId}. Квест {TemplateId}.");
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
+                _log.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, в инвентаре есть нужный предмет {args.ItemId} в количестве {args.Count}.");
 
                 // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет
                 // we need to look in the inventory, because we don't know yet if the item is in the inventory or not
-                var objectiveCount = Owner.Inventory.GetItemsCount(template.ItemGroupId);
+                var objectiveCount = Owner.Inventory.GetItemsCount(args.ItemId);
 
                 // увеличиваем objective
                 Objectives[componentIndex] = objectiveCount;
@@ -990,13 +1016,17 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
 
-                // проверка результатов на валидность (Validation of context.State.ComponentResults)
+                // проверка результатов на валидность (Validation of context.State.ContextResults)
                 if (Template.Selective)
                 {
                     // разрешается быть подходящим одному предмету из нескольких (it is allowed to be matched to one item out of several)
-                    if (context.State.ComponentResults.Any(b => b == true)) { selective = true; }
+                    if (context.State.ContextResults.Any(b => b == true)) { selective = true; }
+                }
+                if (Template.Score == 0 && componentIndex == context.State.CurrentComponents.Count - 1)
+                {
+                    results = complete;
                 }
             }
 
@@ -1008,26 +1038,26 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено или selective == true
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true)
+        if (results
             || selective
             && !(EarlyCompletion || ExtraCompletion)
            )
         {
             _log.Info($"[OnItemGroupGatherHandler] Отписываемся от события.");
-            _log.Info($"[OnItemGroupGatherHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnItemGroupGatherHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnItemGroupGather', Handler: 'OnItemGroupGatherHandler'");
+            _log.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, Event: 'OnItemGroupGather', Handler: 'OnItemGroupGatherHandler'");
             Owner.Events.OnItemGroupGather -= Owner.Quests.OnItemGroupGatherHandler; // отписываемся
-            Owner.Events.OnItemGroupGather += Owner.Quests.OnItemGroupGatherHandler; // снова пдписываемся
+            Owner.Events.OnItemGroupGather += Owner.Quests.OnItemGroupGatherHandler; // снова подписываемся
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
-            _log.Info($"[OnItemGroupGatherHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
             ContextProcessing();
@@ -1037,16 +1067,17 @@ public partial class Quest : PacketMarshaler
 
         if (EarlyCompletion || ExtraCompletion)
         {
+            Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
         }
         // проверка результатов на валидность, 266 - GroupHunt & ItemGather
-        Status = complete || ExtraCompletion ?
+        Status = EarlyCompletion || ExtraCompletion ?
             QuestStatus.Ready // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
             : QuestStatus.Progress; // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
 
         ComponentId = 0;
         Condition = QuestConditionObj.Progress;
-        _log.Info($"[OnItemGroupGatherHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+        _log.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
@@ -1061,7 +1092,7 @@ public partial class Quest : PacketMarshaler
             return;
 
         var complete = false;
-        context.State.ComponentResults = new List<bool>();
+        context.State.ContextResults = new List<bool>();
         var ThisIsNotWhatYouNeed = false;
 
         var componentIndex = 0;
@@ -1078,13 +1109,13 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnAggroHandler] {Owner.Name}, Quest: {TemplateId}, кто-то аггрится...");
+                _log.Info($"[OnAggroHandler] Quest: {TemplateId}, кто-то аггрится...");
 
                 var template = act.GetTemplate<QuestActObjAggro>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, может быть не то, что надо по квесту
                 if (MathUtil.CalculateDistance(Owner.Transform.World.Position, args.Transform.World.Position) > template.Range)
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
 
@@ -1096,7 +1127,7 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
             }
 
             // если objective для текущего компонента готово, то запустим скилл и/или баф
@@ -1107,23 +1138,23 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true))
+        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true))
         {
             _log.Info($"[OnAggroHandler] Отписываемся от события.");
-            _log.Info($"[OnAggroHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnAggroHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnAggro', Handler: 'OnAggroHandler'");
+            _log.Info($"[OnAggroHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnAggroHandler] Quest: {TemplateId}, Event: 'OnAggro', Handler: 'OnAggroHandler'");
             Owner.Events.OnAggro -= Owner.Quests.OnAggroHandler; // отписываемся
-            Owner.Events.OnAggro += Owner.Quests.OnAggroHandler; // снова пдписываемся
+            Owner.Events.OnAggro += Owner.Quests.OnAggroHandler; // снова подписываемся
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
-            _log.Info($"[OnAggroHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnAggroHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
             ContextProcessing();
@@ -1135,7 +1166,7 @@ public partial class Quest : PacketMarshaler
         ComponentId = 0;
         Status = QuestStatus.Progress;
         Condition = QuestConditionObj.Progress;
-        _log.Info($"[OnItemGatherHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+        _log.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
@@ -1166,13 +1197,13 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnExpressFireHandler] {Owner.Name}, Quest: {TemplateId}, Express Fire...");
+                _log.Info($"[OnExpressFireHandler] Quest: {TemplateId}, Express Fire...");
 
                 var template = act.GetTemplate<QuestActObjExpressFire>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, может быть не то, что надо по квесту
                 if (template.ExpressKeyId != args.EmotionId)
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
 
@@ -1184,7 +1215,7 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
             }
 
             // если objective для текущего компонента готово, то запустим скилл и/или баф
@@ -1195,23 +1226,23 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true))
+        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true))
         {
             _log.Info($"[OnExpressFireHandler] Отписываемся от события.");
-            _log.Info($"[OnExpressFireHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnExpressFireHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnExpressFire', Handler: 'OnExpressFireHandler'");
+            _log.Info($"[OnExpressFireHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnExpressFireHandler] Quest: {TemplateId}, Event: 'OnExpressFire', Handler: 'OnExpressFireHandler'");
             Owner.Events.OnExpressFire -= Owner.Quests.OnExpressFireHandler; // отписываемся
-            Owner.Events.OnExpressFire += Owner.Quests.OnExpressFireHandler; // снова пдписываемся
+            Owner.Events.OnExpressFire += Owner.Quests.OnExpressFireHandler; // снова подписываемся
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
-            _log.Info($"[OnExpressFireHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnExpressFireHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
             ContextProcessing();
@@ -1223,7 +1254,7 @@ public partial class Quest : PacketMarshaler
         ComponentId = 0;
         Status = QuestStatus.Progress;
         Condition = QuestConditionObj.Progress;
-        _log.Info($"[OnExpressFireHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+        _log.Info($"[OnExpressFireHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
@@ -1254,13 +1285,13 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnAbilityLevelUpHandler] {Owner.Name}, Quest: {TemplateId}, Ability Level Up...");
+                _log.Info($"[OnAbilityLevelUpHandler] Quest: {TemplateId}, Ability Level Up...");
 
                 //var template = act.GetTemplate<QuestActObjAbilityLevel>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, может быть не то, что надо по квесту
                 //if (template.Level < Owner.Level)
                 //{
-                //    context.State.ComponentResults[componentIndex] = false;
+                //    context.State.ContextResults[componentIndex] = false;
                 //    continue;
                 //}
 
@@ -1272,7 +1303,7 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
             }
 
             // если objective для текущего компонента готово, то запустим скилл и/или баф
@@ -1283,23 +1314,23 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true))
+        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true))
         {
             _log.Info($"[OnAbilityLevelUpHandler] Отписываемся от события.");
-            _log.Info($"[OnAbilityLevelUpHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnAbilityLevelUpHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnExpressFire', Handler: 'OnAbilityLevelUpHandler'");
+            _log.Info($"[OnAbilityLevelUpHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnAbilityLevelUpHandler] Quest: {TemplateId}, Event: 'OnExpressFire', Handler: 'OnAbilityLevelUpHandler'");
             Owner.Events.OnAbilityLevelUp -= Owner.Quests.OnAbilityLevelUpHandler; // отписываемся
-            Owner.Events.OnAbilityLevelUp += Owner.Quests.OnAbilityLevelUpHandler; // снова пдписываемся
+            Owner.Events.OnAbilityLevelUp += Owner.Quests.OnAbilityLevelUpHandler; // снова подписываемся
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
-            _log.Info($"[OnAbilityLevelUpHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnAbilityLevelUpHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
             ContextProcessing();
@@ -1311,7 +1342,7 @@ public partial class Quest : PacketMarshaler
         ComponentId = 0;
         Status = QuestStatus.Progress;
         Condition = QuestConditionObj.Progress;
-        _log.Info($"[OnAbilityLevelUpHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+        _log.Info($"[OnAbilityLevelUpHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
@@ -1342,13 +1373,13 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnLevelUpHandler] {Owner.Name}, Quest: {TemplateId}, Level Up...");
+                _log.Info($"[OnLevelUpHandler] Quest: {TemplateId}, Level Up...");
 
                 var template = act.GetTemplate<QuestActObjLevel>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, может быть не то, что надо по квесту
                 if (template.Level >= Owner.Level)
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
 
@@ -1360,7 +1391,7 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
             }
 
             // если objective для текущего компонента готово, то запустим скилл и/или баф
@@ -1371,23 +1402,23 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true))
+        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true))
         {
             _log.Info($"[OnLevelUpHandler] Отписываемся от события.");
-            _log.Info($"[OnLevelUpHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnLevelUpHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnLevelUp', Handler: 'OnLevelUpHandler'");
+            _log.Info($"[OnLevelUpHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnLevelUpHandler] Quest: {TemplateId}, Event: 'OnLevelUp', Handler: 'OnLevelUpHandler'");
             Owner.Events.OnLevelUp -= Owner.Quests.OnLevelUpHandler; // отписываемся
-            Owner.Events.OnLevelUp += Owner.Quests.OnLevelUpHandler; // снова пдписываемся
+            Owner.Events.OnLevelUp += Owner.Quests.OnLevelUpHandler; // снова подписываемся
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
-            _log.Info($"[OnLevelUpHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnLevelUpHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
             ContextProcessing();
@@ -1399,7 +1430,7 @@ public partial class Quest : PacketMarshaler
         ComponentId = 0;
         Status = QuestStatus.Progress;
         Condition = QuestConditionObj.Progress;
-        _log.Info($"[OnLevelUpHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+        _log.Info($"[OnLevelUpHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
@@ -1430,13 +1461,13 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnCraftHandler] {Owner.Name}, Quest: {TemplateId}, Level Up...");
+                _log.Info($"[OnCraftHandler] Quest: {TemplateId}, Level Up...");
 
                 var template = act.GetTemplate<QuestActObjCraft>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, может быть не то, что надо по квесту
                 if (template.CraftId != args.CraftId/* && Objectives[componentIndex] > template.Count*/)
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
 
@@ -1448,7 +1479,7 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
             }
 
             // если objective для текущего компонента готово, то запустим скилл и/или баф
@@ -1459,23 +1490,23 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true))
+        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true))
         {
             _log.Info($"[OnCraftHandler] Отписываемся от события.");
-            _log.Info($"[OnCraftHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnCraftHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnCraft', Handler: 'OnCraftHandler'");
+            _log.Info($"[OnCraftHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnCraftHandler] Quest: {TemplateId}, Event: 'OnCraft', Handler: 'OnCraftHandler'");
             Owner.Events.OnCraft -= Owner.Quests.OnCraftHandler; // отписываемся
-            Owner.Events.OnCraft += Owner.Quests.OnCraftHandler; // снова пдписываемся
+            Owner.Events.OnCraft += Owner.Quests.OnCraftHandler; // снова подписываемся
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
-            _log.Info($"[OnCraftHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnCraftHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
             ContextProcessing();
@@ -1487,7 +1518,7 @@ public partial class Quest : PacketMarshaler
         ComponentId = 0;
         Status = QuestStatus.Progress;
         Condition = QuestConditionObj.Progress;
-        _log.Info($"[OnCraftHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+        _log.Info($"[OnCraftHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
@@ -1518,13 +1549,13 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnEnterSphereHandler] {Owner.Name}, Quest: {TemplateId}, Enter Sphere...");
-                
+                _log.Info($"[OnEnterSphereHandler] Quest: {TemplateId}, Enter Sphere...");
+
                 var template = act.GetTemplate<QuestActObjSphere>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, может быть не то, что надо по квесту
                 if (component.Id != args.SphereQuest.ComponentID)
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
 
@@ -1536,7 +1567,7 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
             }
 
             // если objective для текущего компонента готово, то запустим скилл и/или баф
@@ -1547,23 +1578,23 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true))
+        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true))
         {
             _log.Info($"[OnEnterSphereHandler] Отписываемся от события.");
-            _log.Info($"[OnEnterSphereHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnEnterSphereHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnEnterSphere', Handler: 'OnEnterSphereHandler'");
+            _log.Info($"[OnEnterSphereHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnEnterSphereHandler] Quest: {TemplateId}, Event: 'OnEnterSphere', Handler: 'OnEnterSphereHandler'");
             Owner.Events.OnEnterSphere -= Owner.Quests.OnEnterSphereHandler; // отписываемся
-            Owner.Events.OnEnterSphere += Owner.Quests.OnEnterSphereHandler; // снова пдписываемся
+            Owner.Events.OnEnterSphere += Owner.Quests.OnEnterSphereHandler; // снова подписываемся
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
-            _log.Info($"[OnEnterSphereHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnEnterSphereHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
             ContextProcessing();
@@ -1575,7 +1606,7 @@ public partial class Quest : PacketMarshaler
         ComponentId = 0;
         Status = QuestStatus.Progress;
         Condition = QuestConditionObj.Progress;
-        _log.Info($"[OnEnterSphereHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+        _log.Info($"[OnEnterSphereHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
@@ -1610,13 +1641,13 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnTalkMadeHandler] {Owner.Name}, Quest: {TemplateId}, взаимодействие с Npc...");
+                _log.Info($"[OnTalkMadeHandler] Quest: {TemplateId}, взаимодействие с Npc...");
 
                 var template = act.GetTemplate<QuestActObjTalk>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, что этотот Npc, может быть не тот, что надо по квесту
                 if (template?.NpcId != args.NpcId)
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
 
@@ -1628,7 +1659,7 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
 
                 // запускаем AI для Npc
                 switch (component.NpcAiId)
@@ -1699,17 +1730,17 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true))
+        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true))
         {
             _log.Info($"[OnTalkMadeHandler] Отписываемся от события.");
             _log.Info($"[OnTalkMadeHandler] Quest {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnTalkMadeHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnTalkMade', Handler: 'OnTalkMadeHandler'");
+            _log.Info($"[OnTalkMadeHandler] Quest: {TemplateId}, Event: 'OnTalkMade', Handler: 'OnTalkMadeHandler'");
             Owner.Events.OnTalkMade -= Owner.Quests.OnTalkMadeHandler; // отписываемся
             //Owner.Events.OnTalkMade += Owner.Quests.OnTalkMadeHandler; // снова подписываемся
 
@@ -1758,13 +1789,13 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnTalkNpcGroupMadeHandler] {Owner.Name}, Quest: {TemplateId}, взаимодействие с Npc...");
+                _log.Info($"[OnTalkNpcGroupMadeHandler] Quest: {TemplateId}, взаимодействие с Npc...");
 
                 var template = act.GetTemplate<QuestActObjTalkNpcGroup>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, что этотот Npc, может быть не тот, что надо по квесту
                 if (template.NpcGroupId != args.NpcGroupId)
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
 
@@ -1776,7 +1807,7 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
 
                 // запускаем AI для Npc
                 switch (component.NpcAiId)
@@ -1847,17 +1878,17 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true))
+        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true))
         {
             _log.Info($"[OnTalkNpcGroupMadeHandler] Отписываемся от события.");
             _log.Info($"[OnTalkNpcGroupMadeHandler] Quest {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnTalkNpcGroupMadeHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnTalkNpcGroupMade', Handler: 'OnTalkNpcGroupMadeHandler'");
+            _log.Info($"[OnTalkNpcGroupMadeHandler] Quest: {TemplateId}, Event: 'OnTalkNpcGroupMade', Handler: 'OnTalkNpcGroupMadeHandler'");
             Owner.Events.OnTalkNpcGroupMade -= Owner.Quests.OnTalkNpcGroupMadeHandler; // отписываемся
             //Owner.Events.OnTalkNpcGroupMade += Owner.Quests.OnTalkNpcGroupMadeHandler; // снова подписываемся
 
@@ -1906,15 +1937,17 @@ public partial class Quest : PacketMarshaler
                     continue;
                 }
 
-                _log.Info($"[OnReportNpcHandler] Беседуем с Npc о завершении квеста {TemplateId}.");
+                _log.Info($"[OnReportNpcHandler] Начинаем беседу с Npc о завершении квеста {TemplateId}.");
 
                 var template = act.GetTemplate<QuestActConReportNpc>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, что тот Npc, что надо по квесту
                 if (template?.NpcId != args.NpcId)
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    _log.Info($"[OnReportNpcHandler] Это не тот Npc {args.NpcId} что нужен нам {template?.NpcId}. Квест {TemplateId}.");
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
+                _log.Info($"[OnReportNpcHandler] Беседуем с Npc {args.NpcId} о завершении квеста {TemplateId}.");
 
                 // увеличиваем objective
                 Objectives[componentIndex]++;
@@ -1924,7 +1957,7 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
             }
 
             // если objective для текущего компонента готово, то запустим скилл и/или баф
@@ -1935,25 +1968,25 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true))
+        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true))
         {
             _log.Info($"[OnReportNpcHandler] Отписываемся от события.");
-            _log.Info($"[OnReportNpcHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnReportNpcHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
+            _log.Info($"[OnReportNpcHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnReportNpcHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
             Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
-            _log.Info($"[OnReportNpcHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnReportNpcHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
-            ContextProcessing();
+            ContextProcessing(args.Selected);
 
             return;
         }
@@ -1962,7 +1995,7 @@ public partial class Quest : PacketMarshaler
         ComponentId = 0;
         Status = QuestStatus.Progress;
         Condition = QuestConditionObj.Progress;
-        _log.Info($"[OnReportNpcHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+        _log.Info($"[OnReportNpcHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
         Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
@@ -1991,14 +2024,14 @@ public partial class Quest : PacketMarshaler
                     ThisIsNotWhatYouNeed = true;
                     continue;
                 }
-                
-                _log.Info($"[OnReportDoodadHandler] {Owner.Name}, Quest: {TemplateId}, взаимодействие с doodad...");
+
+                _log.Info($"[OnReportDoodadHandler] Quest: {TemplateId}, взаимодействие с doodad...");
 
                 var template = act.GetTemplate<QuestActConReportDoodad>(); // для доступа к переменным требуется привидение к нужному типу
                 // сначала проверим, что этотот Doodad, может быть не тот, что надо по квесту
                 if (template?.DoodadId != args.DoodadId)
                 {
-                    context.State.ComponentResults[componentIndex] = false;
+                    context.State.ContextResults[componentIndex] = false;
                     continue;
                 }
                 // увеличиваем objective
@@ -2009,7 +2042,7 @@ public partial class Quest : PacketMarshaler
                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                 //complete = template.IsCompleted(Owner, this, 0);
 
-                context.State.ComponentResults[componentIndex] = complete;
+                context.State.ContextResults[componentIndex] = complete;
             }
             // если objective для текущего компонента готово, то запустим скилл и/или баф
             if (complete)
@@ -2019,17 +2052,17 @@ public partial class Quest : PacketMarshaler
             componentIndex++;
         }
 
-        if (ThisIsNotWhatYouNeed && context.State.ComponentResults.Count <= 1)
+        if (ThisIsNotWhatYouNeed && context.State.ContextResults.Count <= 1)
         {
             return;
         }
 
         // для завершения у всех objective компонентов должно быть выполнено
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true))
+        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true))
         {
             _log.Info($"[OnReportDoodadHandler] Отписываемся от события.");
             _log.Info($"[OnReportDoodadHandler] Quest {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnReportDoodadHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnReportDoodad', Handler: 'OnReportDoodadHandler'");
+            _log.Info($"[OnReportDoodadHandler] Quest: {TemplateId}, Event: 'OnReportDoodad', Handler: 'OnReportDoodadHandler'");
             Owner.Events.OnReportDoodad -= Owner.Quests.OnReportDoodadHandler; // отписываемся
 
             Status = QuestStatus.Ready;
@@ -2060,14 +2093,14 @@ public partial class Quest : PacketMarshaler
 
         // компонент - выполнен, отписываемся
         _log.Info($"[OnQuestCompleteHandler] Отписываемся от события.");
-        _log.Info($"[OnQuestCompleteHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-        _log.Info($"[OnQuestCompleteHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnQuestComplete', Handler: 'OnQuestCompleteHandler'");
+        _log.Info($"[OnQuestCompleteHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+        _log.Info($"[OnQuestCompleteHandler] Quest: {TemplateId}, Event: 'OnQuestComplete', Handler: 'OnQuestCompleteHandler'");
         Owner.Events.OnQuestComplete -= Owner.Quests.OnQuestCompleteHandler;
 
         Status = QuestStatus.Ready;
         Condition = QuestConditionObj.Complete;
         Step++;// = QuestComponentKind.Reward;
-        _log.Info($"[OnQuestCompleteHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+        _log.Info($"[OnQuestCompleteHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
         Owner.Quests.Complete(args.QuestId, args.Selected);
     }
@@ -2101,28 +2134,28 @@ public partial class Quest : PacketMarshaler
             if (act.DetailType != "QuestActConAcceptDoodad")
                 return;
 
-            _log.Info($"[OnAcceptDoodadHandler] {Owner.Name}, Quest: {TemplateId}, Взаимодействие с Doodad");
+            _log.Info($"[OnAcceptDoodadHandler] Quest: {TemplateId}, Взаимодействие с Doodad");
 
             var template = act.GetTemplate<QuestActConAcceptDoodad>(); // для доступа к переменным требуется привидение к нужному типу
 
             // сначала проверим, что этотот Doodad, может быть не тот, что надо по квесту
             if (template.DoodadId != args.DoodadId)
             {
-                context.State.ComponentResults[componentIndex] = false;
+                context.State.ContextResults[componentIndex] = false;
                 continue;
             }
             // возвращается результат проверки, все ли предметы собрали или нет
             complete = act.Use(Owner, this, 0);
             //complete = template.IsCompleted(Owner, this, 0);
 
-            context.State.ComponentResults[componentIndex] = complete;
+            context.State.ContextResults[componentIndex] = complete;
         }
 
-        if (context.State.ComponentResults.All(b => context.State.ComponentResults.Count != 0 && b == true)) // || selective && !(EarlyCompletion || ExtraCompletion))
+        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true)) // || selective && !(EarlyCompletion || ExtraCompletion))
         {
             _log.Info($"[OnAcceptDoodadHandler] Отписываемся от события.");
-            _log.Info($"[OnAcceptDoodadHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            _log.Info($"[OnAcceptDoodadHandler] {Owner.Name}, Quest: {TemplateId}, Event: 'OnAcceptDoodad', Handler: 'OnAcceptDoodadHandler'");
+            _log.Info($"[OnAcceptDoodadHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnAcceptDoodadHandler] Quest: {TemplateId}, Event: 'OnAcceptDoodad', Handler: 'OnAcceptDoodadHandler'");
             Owner.Events.OnAcceptDoodad -= Owner.Quests.OnAcceptDoodadHandler; // отписываемся
             ComponentId = component.Id;
             UseSkillAndBuff(component);
@@ -2130,7 +2163,7 @@ public partial class Quest : PacketMarshaler
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
             //Step++;
-            _log.Info($"[OnAcceptDoodadHandler] {Owner.Name}, Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
+            _log.Info($"[OnAcceptDoodadHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
             ContextProcessing();
