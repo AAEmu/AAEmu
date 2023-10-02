@@ -41,9 +41,9 @@ public class DoodadFuncUse : DoodadFuncTemplate
             }
             else if (house == null)
             {
-                //caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
+                // caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
                 // Added fail-safe in case a doodad wasn't properly deleted from a house
-                // The first try to recover the doodad will still give a error, but after that, it's free to recover by anyone. 
+                // The first try to recover the doodad will still give a error, but after that, it's free to recover by anyone.
                 owner.DbHouseId = 0;
                 owner.OwnerId = 0;
                 _log.Trace("Interaction failed because attached house does not exist for doodad {0}, resetting DbHouseId to public", owner.ObjId);
@@ -57,7 +57,7 @@ public class DoodadFuncUse : DoodadFuncTemplate
         }
 
         // TODO: check skill references and consume items if items are required for skills
-        // Make caster cast skill ? 
+        // Make caster cast skill ?
         if (SkillId > 0)
         {
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(SkillId);

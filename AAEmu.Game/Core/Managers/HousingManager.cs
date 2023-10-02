@@ -1290,7 +1290,7 @@ public class HousingManager : Singleton<HousingManager>
         if (buyerName == null)
             buyerName = "";
 
-        // Using the GM command does not send the seller (uses null), and thus will not require certificates 
+        // Using the GM command does not send the seller (uses null), and thus will not require certificates
         if (seller != null)
         {
             var certAmount = CalculateSaleCertifcates(house, price);
@@ -1385,13 +1385,13 @@ public class HousingManager : Singleton<HousingManager>
     /// <summary>
     /// Buys the house using money amount
     /// </summary>
-    /// <param name="houseId"></param>
+    /// <param name="houseTlId"></param>
     /// <param name="money"></param>
     /// <param name="character"></param>
     /// <returns>Returns true if successful</returns>
-    public bool BuyHouse(uint houseId, uint money, Character character)
+    public bool BuyHouse(ushort houseTlId, uint money, Character character)
     {
-        var house = GetHouseById(houseId);
+        var house = GetHouseByTlId(houseTlId);
 
         if (house == null)
         {
@@ -1547,14 +1547,14 @@ public class HousingManager : Singleton<HousingManager>
     /// Places a piece of furniture at a given location, using item and design
     /// </summary>
     /// <param name="player"></param>
-    /// <param name="houseId"></param>
+    /// <param name="houseTlId"></param>
     /// <param name="designId"></param>
     /// <param name="pos"></param>
     /// <param name="quat"></param>
     /// <param name="parentObjId"></param>
     /// <param name="itemId"></param>
     /// <returns></returns>
-    public bool DecorateHouse(Character player, ushort houseId, uint designId, Vector3 pos, Quaternion quat, uint parentObjId, ulong itemId)
+    public bool DecorateHouse(Character player, ushort houseTlId, uint designId, Vector3 pos, Quaternion quat, uint parentObjId, ulong itemId)
     {
         // Check Player
         if (player == null)
@@ -1569,8 +1569,8 @@ public class HousingManager : Singleton<HousingManager>
         }
 
         // Check House
-        var house = GetHouseById(houseId);
-        if ((house == null) || (house.Id != houseId))
+        var house = GetHouseByTlId(houseTlId);
+        if ((house == null) || (house.Id != houseTlId))
         {
             // Invalid House
             player.SendErrorMessage(ErrorMessageType.InvalidHouseInfo);
