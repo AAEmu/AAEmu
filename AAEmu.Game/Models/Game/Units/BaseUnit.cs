@@ -10,6 +10,8 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.StaticValues;
+using SQLitePCL;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -65,7 +67,15 @@ public class BaseUnit : GameObject, IBaseUnit
         var relation = GetRelationStateTo(target);
 
         var zone = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId);
-        var zoneFaction = FactionManager.Instance.GetFaction(zone.FactionId);
+        var zoneFactionId = zone?.FactionId ?? FactionsEnum.Neutral;
+        if (zoneFactionId <= 0)
+            zoneFactionId = FactionsEnum.Neutral;
+        var zoneFaction = FactionManager.Instance.GetFaction(zoneFactionId);
+        if (zoneFaction == null)
+        {
+            Log.Warn($"CanAttack zone faction is null {this.ObjId} - {target.ObjId}");
+            zoneFaction = FactionManager.Instance.GetFaction(FactionsEnum.Neutral);
+        }
         var targetMotherFaction = target.Faction?.MotherId ?? 0;
         if (targetMotherFaction != 0 && ((targetMotherFaction == zoneFaction.MotherId) || (targetMotherFaction == zoneFaction.Id)))
         {
