@@ -59,8 +59,8 @@ public class TestHouse : ICommand
             var a0 = args[0].ToLower();
             if (a0 == "info")
             {
-                character.SendMessage("[House] ObjId: {0} - HouseId: {1} - TemplateId: {2} - ModelId: {3} - {4}",
-                    house.ObjId, house.Id, house.TemplateId, house.ModelId, house.Name);
+                character.SendMessage("[House] ObjId: {0} - TlId: {5} - HouseId: {1} - TemplateId: {2} - ModelId: {3} - {4}",
+                    house.ObjId, house.Id, house.TemplateId, house.ModelId, house.Name, house.TlId);
 
                 HousingManager.Instance.CalculateBuildingTaxInfo(house.AccountId, house.Template, false,
                     out var totalTaxAmountDue, out var heavyTaxHouseCount, out var normalTaxHouseCount,
