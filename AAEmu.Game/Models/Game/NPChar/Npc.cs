@@ -7,14 +7,17 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.AStar;
+using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
 using static AAEmu.Game.Models.Game.Skills.SkillControllers.SkillController;
@@ -739,7 +742,25 @@ public class Npc : Unit
 
     public void AddUnitAggro(AggroKind kind, Unit unit, int amount)
     {
-        var player = unit as Character; 
+        var player = unit as Character;
+
+        player?.SendMessage(ChatType.System, $"AddUnitAggro {player.Name} + {amount} for {this.ObjId}");
+        /*
+        // check self buff tags
+        if (Buffs.CheckBuffTag((uint)TagsEnum.NoFight) || Buffs.CheckBuffTag((uint)TagsEnum.Returning))
+        {
+            ClearAggroOfUnit(unit);
+            return;
+        }
+
+        // check target buff tags
+        if ((unit?.Buffs?.CheckBuffTag((uint)TagsEnum.NoFight) ?? false) || (unit?.Buffs?.CheckBuffTag((uint)TagsEnum.Returning) ?? false))
+        {
+            ClearAggroOfUnit(unit);
+            return;
+        }
+        */
+
         amount = (int)(amount * (unit.AggroMul / 100.0f));
         amount = (int)(amount * (IncomingAggroMul / 100.0f));
 
@@ -756,7 +777,7 @@ public class Npc : Unit
                 unit.Events.OnHealed += OnAbuserHealed;
                 unit.Events.OnDeath += OnAbuserDied;
             }
-            
+
             // TODO: make this party/raid wide? Take into account pets/slaves?
             // If there is a quest starter attached to this NPC, start it when unit gets added for the first time
             // to the aggro list
@@ -772,6 +793,14 @@ public class Npc : Unit
 
     public void ClearAggroOfUnit(Unit unit)
     {
+        if (unit is null)
+            return;
+
+        var player = unit as Character;
+
+        player?.SendMessage(ChatType.System, $"ClearAggroOfUnit {player.Name} for {this.ObjId}");
+
+        var lastAggroCount = AggroTable.Count;
         if (AggroTable.TryRemove(unit.ObjId, out var value))
         {
             unit.Events.OnHealed -= OnAbuserHealed;
@@ -780,6 +809,23 @@ public class Npc : Unit
         else
         {
             Log.Warn("Failed to remove unit[{0}] aggro from NPC[{1}]", unit.ObjId, this.ObjId);
+        }
+
+        if (AggroTable.Count != lastAggroCount)
+            CheckIfEmptyAggroToReturn();
+    }
+
+    private void CheckIfEmptyAggroToReturn()
+    {
+        // If aggro table is empty, and too far from spawn, trigger a return to spawn effect.
+        if (AggroTable.Count <= 0)
+        {
+            if (Ai != null)
+            {
+                var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition.Local.Position, Ai.Owner.Transform.World.Position, true);
+                if (distanceToIdle > 4)
+                    Ai.GoToReturn();
+            }
         }
     }
 
@@ -795,7 +841,10 @@ public class Npc : Unit
             }
         }
 
+        var lastAggroCount = AggroTable.Count;
         AggroTable.Clear();
+        if (lastAggroCount > 0)
+            CheckIfEmptyAggroToReturn();
     }
 
     public void OnAbuserHealed(object sender, OnHealedArgs args)
@@ -825,14 +874,16 @@ public class Npc : Unit
         AddUnitAggro(AggroKind.Damage, attacker, amount);
         Ai.OnAggroTargetChanged();
 
-        /*var topAbuser = AggroTable.GetTopTotalAggroAbuserObjId();
+        /*
+        var topAbuser = AggroTable.GetTopTotalAggroAbuserObjId();
         if ((CurrentTarget?.ObjId ?? 0) != topAbuser)
         {
             CurrentAggroTarget = topAbuser; 
             var unit = WorldManager.Instance.GetUnit(topAbuser);
             SetTarget(unit);
             Ai?.OnAggroTargetChanged();
-        }*/
+        }
+        */
     }
 
     private const int decreaseMoveSpeed = 161;

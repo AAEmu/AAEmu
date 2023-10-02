@@ -6,10 +6,12 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -339,6 +341,15 @@ public class Buffs : IBuffs
                 buff.InUse = true;
                 buff.State = EffectState.Acting;
                 buff.Template.Start(buff.Caster, owner, buff); // TODO поменять на target
+            }
+
+            if (buffIds.Contains((uint)TagsEnum.NoFight) || buffIds.Contains((uint)TagsEnum.Returning))
+            {
+                // Unit entered a "safe zone"
+                if ((owner is Npc npc) && (npc.Ai != null))
+                {
+                    npc.ClearAllAggro();
+                }
             }
         }
 

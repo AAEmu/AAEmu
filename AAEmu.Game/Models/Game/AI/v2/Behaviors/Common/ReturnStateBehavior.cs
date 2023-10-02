@@ -14,7 +14,8 @@ public class ReturnStateBehavior : Behavior
     {
         // TODO : Autodisable
 
-        Ai.Owner.ClearAllAggro();
+        if (!Ai.Owner.AggroTable.IsEmpty)
+            Ai.Owner.ClearAllAggro();
         Ai.Owner.SetTarget(null);
         // TODO: Ai.Owner.DisableAggro();
 
