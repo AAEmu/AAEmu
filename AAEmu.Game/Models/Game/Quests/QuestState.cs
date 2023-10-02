@@ -465,6 +465,13 @@ public class QuestSupplyState : QuestState
         _log.Info($"[QuestSupplyState][Update] Quest: {Quest.TemplateId}. Получим нужные предметы для прохождения квеста.");
         CurrentQuestComponent.Execute(Quest.Owner, Quest, 0); // получим квестовые предметы
 
+        _log.Info($"[QuestSupplyState][Update] Quest: {Quest.TemplateId}. Подписываемся на события.");
+        // подписка одна на всех
+        Quest.Owner.Events.OnItemGather -= Quest.Owner.Quests.OnItemGatherHandler;
+        Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
+
+        _log.Info($"[QuestSupplyState][Update] Quest: {Quest.TemplateId}, Event: 'OnItemGather', Handler: 'OnItemGatherHandler'");
+
         Quest.Status = QuestStatus.Ready;
         Quest.Condition = QuestConditionObj.Ready;
         _log.Info($"[QuestSupplyState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
