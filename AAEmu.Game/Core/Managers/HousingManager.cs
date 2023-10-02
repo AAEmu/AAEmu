@@ -1573,7 +1573,7 @@ public class HousingManager : Singleton<HousingManager>
 
         // Check House
         var house = GetHouseByTlId(houseTlId);
-        if ((house == null) || (house.Id != houseTlId))
+        if ((house == null) || (house.TlId != houseTlId))
         {
             // Invalid House
             player.SendErrorMessage(ErrorMessageType.InvalidHouseInfo);
