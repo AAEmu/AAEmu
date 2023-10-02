@@ -1,8 +1,11 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Faction;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -56,23 +59,34 @@ public class BaseUnit : GameObject, IBaseUnit
     public bool CanAttack(BaseUnit target)
     {
         if (this.Faction == null || target.Faction == null)
-            return false;
+            return true;
         if (this.ObjId == target.ObjId)
             return false;
         var relation = GetRelationStateTo(target);
+
         var zone = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId);
+        var zoneFaction = FactionManager.Instance.GetFaction(zone.FactionId);
+        var targetMotherFaction = target.Faction?.MotherId ?? 0;
+        if (targetMotherFaction != 0 && ((targetMotherFaction == zoneFaction.MotherId) || (targetMotherFaction == zoneFaction.Id)))
+        {
+            // Target is protected by mother zone, can't attack it
+            return false;
+        }
+
         if (this is Character me && target is Character other)
         {
             var trgIsFlagged = other.Buffs.CheckBuff((uint)BuffConstants.Retribution);
 
-            //check safezone
-            if (other.Faction.MotherId != 0 && other.Faction.MotherId == zone.FactionId
-                && !me.IsActivelyHostile(other) && !trgIsFlagged)
+            // Check Safe-zone
+            if (other.Faction.MotherId != 0 &&
+                other.Faction.MotherId == zone.FactionId
+                && !me.IsActivelyHostile(other) &&
+                !trgIsFlagged)
             {
                 return false;
             }
 
-            bool isTeam = TeamManager.Instance.AreTeamMembers(me.Id, other.Id);
+            var isTeam = TeamManager.Instance.AreTeamMembers(me.Id, other.Id);
             if (trgIsFlagged && !isTeam && relation == RelationState.Friendly)
             {
                 return true;
@@ -84,14 +98,24 @@ public class BaseUnit : GameObject, IBaseUnit
         }
         else
         {
-            //handle non-players. Do we need to check target is Npc?
+            // Handle non-players. Do we need to check target is Npc?
 
-            //Check if npc is protected by safe zone
-            //TODO fix npc safety
-            //if (zone.FactionId != 0 && target.Faction.MotherId == zone.FactionId)
-            //return false;
+            // Check if npc is protected by safe zone
+            // TODO: fix npc safety
+            // if (zone.FactionId != 0 && target.Faction.MotherId == zone.FactionId)
+            //     return false;
         }
 
+        /*
+        // Debug info for player on attacking
+        if (this is Character player)
+        {
+            var targetName = target.Name;
+            if (target is Npc npc)
+                targetName = "@NPC_NAME(" + npc.TemplateId.ToString() + ")";
+            player.SendMessage(ChatType.Shout, $"CanAttack? in Zone:{zoneFaction.Name} => {player.Name} {player.Faction?.Name} => {targetName} ({target.ObjId}) {target.Faction?.Name} = {relation}");
+        }
+        */
 
         return relation == RelationState.Hostile;
     }

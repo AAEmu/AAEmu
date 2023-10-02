@@ -129,6 +129,12 @@ public class NpcSpawner : Spawner<Npc>
     /// <param name="all">to show everyone or not</param>
     public void DoDespawn(Npc npc, bool all = false)
     {
+        if (npc == null) { return; }
+
+        if (npc.IsInBattle)
+        {
+            return;
+        }
         if (all)
         {
             for (var i = 0; i < _spawnCount; i++)
