@@ -5,7 +5,9 @@ using System.Linq;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.StaticValues;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Framework;
@@ -107,6 +109,22 @@ public abstract class NpcAi
         if (Owner?.Region?.HasPlayerActivity() ?? false)
         {
             _currentBehavior?.Tick(delta);
+
+            // If aggro table is populated, check if current aggro targets need to be cleared
+            if (Owner.AggroTable.Count <= 0)
+                return;
+
+            var toRemove = new List<Unit>();
+            foreach (var (id, aggro) in Owner.AggroTable)
+                if (aggro.Owner.Buffs.CheckBuffTag((uint)TagsEnum.NoFight) ||
+                    aggro.Owner.Buffs.CheckBuffTag((uint)TagsEnum.Returning))
+                    toRemove.Add(aggro.Owner);
+
+            if (toRemove.Count <= 0)
+                return;
+
+            foreach (var unitToRemove in toRemove)
+                Owner.ClearAggroOfUnit(unitToRemove);
         }
     }
 

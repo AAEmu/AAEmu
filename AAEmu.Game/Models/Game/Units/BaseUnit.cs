@@ -89,7 +89,7 @@ public class BaseUnit : GameObject, IBaseUnit
 
             // Check Safe-zone
             if (other.Faction.MotherId != 0 &&
-                other.Faction.MotherId == zone.FactionId
+                other.Faction.MotherId == zoneFactionId
                 && !me.IsActivelyHostile(other) &&
                 !trgIsFlagged)
             {
