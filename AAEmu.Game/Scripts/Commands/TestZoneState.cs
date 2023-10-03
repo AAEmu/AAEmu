@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.World.Zones;
@@ -31,25 +32,13 @@ public class TestZoneState : ICommand
             foreach (var conflict in ZoneManager.Instance.GetConflicts())
             {
                 var zonegroup = ZoneManager.Instance.GetZoneGroupById(conflict.ZoneGroupId);
-                character.SendMessage("|cFFFFFFFF[ZoneState] |r ZoneGroup: " + zonegroup.Name + " (" + conflict.ZoneGroupId.ToString() + ") State: " + conflict.CurrentZoneState.ToString());
-
-                /*
-                Connection.SendPacket(
-                    new SCConflictZoneStatePacket(
-                        conflict.ZoneGroupId,
-                        ZoneConflictType.Trouble0,
-                        conflict.NoKillMin[0] > 0
-                            ? DateTime.UtcNow.AddMinutes(conflict.NoKillMin[0])
-                            : DateTime.MinValue
-                    )
-                );
-                */
+                character.SendMessage($"|cFFFFFFFF[ZoneState] |r ZoneGroup: {zonegroup.Name} ({conflict.ZoneGroupId}) State: {conflict.CurrentZoneState}");
             }
             return;
         }
 
-        byte zonestate = 0;
-        if ((args.Length > 0) && (byte.TryParse(args[0], out byte argzonestate)))
+        var zonestate = ZoneConflictType.Tension;
+        if ((args.Length > 0) && (ZoneConflictType.TryParse(args[0], out ZoneConflictType argzonestate)))
             zonestate = argzonestate;
 
         ushort zonegroupid = 0;
@@ -66,16 +55,18 @@ public class TestZoneState : ICommand
         if (zonegroupid > 0)
         {
             var zonegroup = ZoneManager.Instance.GetZoneGroupById(zonegroupid);
-            var zs = (ZoneConflictType)zonestate;
 
-            zonegroup.Conflict.SetState(zs);
-            //broadcast to all online clients in server
-            //WorldManager.Instance.BroadcastPacketToServer(new SCConflictZoneStatePacket(zonegroupid, (ZoneConflictType)zonestate, DateTime.MinValue));
-            character.SendMessage("|cFFFFFFFF[ZoneState] |rChanged ZoneGroup: " + zonegroupid.ToString() + " to State: " + zs.ToString());
+            if (zonegroup.Conflict == null)
+            {
+                character.SendMessage($"|cFFFF0000[ZoneState] ZoneGroup: {zonegroup.Name} ({zonegroup.Id}) does not have a conflict state defined in the game database and thus cannot be changed|r");
+                return;
+            }
+            zonegroup.Conflict.SetState(zonestate);
+            character.SendMessage($"|cFFFFFFFF[ZoneState] |rChanged ZoneGroup: {zonegroupid} to State: {zonestate}");
         }
         else
         {
-            character.SendMessage("|cFFFF0000[ZoneState] Invalid zone group id|r");
+            character.SendMessage($"|cFFFF0000[ZoneState] Invalid zone group id {zonegroupid}|r");
         }
     }
 }

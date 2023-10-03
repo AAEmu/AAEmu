@@ -6,6 +6,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.Char;
@@ -18,16 +19,21 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
+// ReSharper disable ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
+// ReSharper disable ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
 
 namespace AAEmu.Game.Core.Managers.UnitManagers;
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public class DoodadManager : Singleton<DoodadManager>
 {
+    // ReSharper disable once FieldCanBeMadeReadOnly.Local
     private static Logger _log = LogManager.GetCurrentClassLogger();
-    private bool _loaded = false;
+    private bool _loaded;
 
     private Dictionary<uint, DoodadTemplate> _templates;
     private Dictionary<uint, DoodadFuncGroups> _allFuncGroups;
@@ -69,52 +75,57 @@ public class DoodadManager : Singleton<DoodadManager>
         {
             #region doodad_funcs
             _log.Info("Loading doodad functions ...");
+
+            // doodad_func_groups
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM doodad_func_groups ORDER BY doodad_almighty_id ASC, doodad_func_group_kind_id ASC";
+                command.CommandText = "SELECT * FROM doodad_func_groups ORDER BY doodad_almighty_id, doodad_func_group_kind_id";
                 command.Prepare();
                 using (var sqliteDataReaderChild = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteDataReaderChild))
                 {
                     while (reader.Read())
                     {
-                        var funcGroups = new DoodadFuncGroups();
-                        funcGroups.Id = reader.GetUInt32("id");
-                        funcGroups.Almighty = reader.GetUInt32("doodad_almighty_id");
-                        funcGroups.GroupKindId = (DoodadFuncGroups.DoodadFuncGroupKind)reader.GetUInt32("doodad_func_group_kind_id");
-                        funcGroups.SoundId = reader.GetUInt32("sound_id", 0);
-                        funcGroups.Model = reader.GetString("model", "");
+                        var funcGroups = new DoodadFuncGroups
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Almighty = reader.GetUInt32("doodad_almighty_id"),
+                            GroupKindId = (DoodadFuncGroups.DoodadFuncGroupKind)reader.GetUInt32("doodad_func_group_kind_id"),
+                            SoundId = reader.GetUInt32("sound_id", 0),
+                            Model = reader.GetString("model", "")
+                        };
 
                         var template = GetTemplate(funcGroups.Almighty);
-                        if (template != null)
-                            template.FuncGroups.Add(funcGroups);
+                        template?.FuncGroups.Add(funcGroups);
                     }
                 }
             }
 
-
+            // doodad_funcs
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM doodad_funcs ORDER BY doodad_func_group_id ASC, actual_func_id ASC";
+                command.CommandText = "SELECT * FROM doodad_funcs ORDER BY doodad_func_group_id, actual_func_id";
                 command.Prepare();
                 using (var sqliteDataReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteDataReader))
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFunc();
-                        func.FuncKey = reader.GetUInt32("id");
-                        func.GroupId = reader.GetUInt32("doodad_func_group_id");
-                        func.FuncId = reader.GetUInt32("actual_func_id");
-                        func.FuncType = reader.GetString("actual_func_type");
-                        func.NextPhase = reader.GetInt32("next_phase", -1); // TODO next_phase = 0?
-                        func.SoundId = reader.IsDBNull("sound_id") ? 0 : reader.GetUInt32("sound_id");
-                        func.SkillId = reader.GetUInt32("func_skill_id", 0);
-                        func.PermId = reader.GetUInt32("perm_id");
-                        func.Count = reader.GetInt32("act_count", 0);
+                        var func = new DoodadFunc
+                        {
+                            FuncKey = reader.GetUInt32("id"),
+                            GroupId = reader.GetUInt32("doodad_func_group_id"),
+                            FuncId = reader.GetUInt32("actual_func_id"),
+                            FuncType = reader.GetString("actual_func_type"),
+                            NextPhase = reader.GetInt32("next_phase", -1), // TODO next_phase = 0?
+                            SoundId = reader.IsDBNull("sound_id") ? 0 : reader.GetUInt32("sound_id"),
+                            SkillId = reader.GetUInt32("func_skill_id", 0),
+                            PermId = reader.GetUInt32("perm_id"),
+                            Count = reader.GetInt32("act_count", 0)
+                        };
                         List<DoodadFunc> tempListGroups;
-                        if (_funcsByGroups.ContainsKey(func.GroupId))
-                            tempListGroups = _funcsByGroups[func.GroupId];
+                        if (_funcsByGroups.TryGetValue(func.GroupId, out var funcsByGroup))
+                            tempListGroups = funcsByGroup;
                         else
                         {
                             tempListGroups = new List<DoodadFunc>();
@@ -126,22 +137,24 @@ public class DoodadManager : Singleton<DoodadManager>
                 }
             }
 
+            // doodad_phase_funcs
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM doodad_phase_funcs ORDER BY doodad_func_group_id ASC, actual_func_id ASC";
+                command.CommandText = "SELECT * FROM doodad_phase_funcs ORDER BY doodad_func_group_id, actual_func_id";
                 command.Prepare();
                 using (var sqliteDataReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteDataReader))
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadPhaseFunc();
-                        func.GroupId = reader.GetUInt32("doodad_func_group_id");
-                        func.FuncId = reader.GetUInt32("actual_func_id");
-                        func.FuncType = reader.GetString("actual_func_type");
+                        var func = new DoodadPhaseFunc
+                        {
+                            GroupId = reader.GetUInt32("doodad_func_group_id"), FuncId = reader.GetUInt32("actual_func_id"),
+                            FuncType = reader.GetString("actual_func_type")
+                        };
                         List<DoodadPhaseFunc> list;
-                        if (_phaseFuncs.ContainsKey(func.GroupId))
-                            list = _phaseFuncs[func.GroupId];
+                        if (_phaseFuncs.TryGetValue(func.GroupId, out var phaseFunc))
+                            list = phaseFunc;
                         else
                         {
                             list = new List<DoodadPhaseFunc>();
@@ -153,6 +166,7 @@ public class DoodadManager : Singleton<DoodadManager>
                 }
             }
 
+            // doodad_func_animates
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_animates";
@@ -161,15 +175,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncAnimate();
-                        func.Id = reader.GetUInt32("id");
-                        func.Name = reader.GetString("name");
-                        func.PlayOnce = reader.GetBoolean("play_once", true);
+                        var func = new DoodadFuncAnimate
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Name = reader.GetString("name"),
+                            PlayOnce = reader.GetBoolean("play_once", true)
+                        };
                         _phaseFuncTemplates["DoodadFuncAnimate"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_area_triggers
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_area_triggers";
@@ -178,15 +195,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncAreaTrigger();
-                        func.Id = reader.GetUInt32("id");
-                        func.NpcId = reader.GetUInt32("npc_id", 0);
-                        func.IsEnter = reader.GetBoolean("is_enter", true);
+                        var func = new DoodadFuncAreaTrigger
+                        {
+                            Id = reader.GetUInt32("id"),
+                            NpcId = reader.GetUInt32("npc_id",0),
+                            IsEnter = reader.GetBoolean("is_enter", true)
+                        };
                         _funcTemplates["DoodadFuncAreaTrigger"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_attachments
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_attachments";
@@ -195,16 +215,19 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncAttachment();
-                        func.Id = reader.GetUInt32("id");
-                        func.AttachPointId = (AttachPointKind)reader.GetByte("attach_point_id");
-                        func.Space = reader.GetInt32("space");
-                        func.BondKindId = (BondKind)reader.GetByte("bond_kind_id");
+                        var func = new DoodadFuncAttachment
+                        {
+                            Id = reader.GetUInt32("id"),
+                            AttachPointId = (AttachPointKind)reader.GetByte("attach_point_id"),
+                            Space = reader.GetInt32("space"),
+                            BondKindId = (BondKind)reader.GetByte("bond_kind_id")
+                        };
                         _funcTemplates["DoodadFuncAttachment"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_bindings
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_bindings";
@@ -213,14 +236,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncBinding();
-                        func.Id = reader.GetUInt32("id");
-                        func.DistrictId = reader.GetUInt32("district_id");
+                        var func = new DoodadFuncBinding {
+                            Id = reader.GetUInt32("id"),
+                            DistrictId = reader.GetUInt32("district_id")
+                        };
                         _funcTemplates["DoodadFuncBinding"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_bubbles
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_bubbles";
@@ -229,14 +254,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncBubble();
-                        func.Id = reader.GetUInt32("id");
-                        func.BubbleId = reader.GetUInt32("bubble_id");
+                        var func = new DoodadFuncBubble
+                        {
+                            Id = reader.GetUInt32("id"),
+                            BubbleId = reader.GetUInt32("bubble_id")
+                        };
                         _funcTemplates["DoodadFuncBubble"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_buffs
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_buffs";
@@ -245,18 +273,21 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncBuff();
-                        func.Id = reader.GetUInt32("id");
-                        func.BuffId = reader.GetUInt32("buff_id");
-                        func.Radius = reader.GetFloat("radius");
-                        func.Count = reader.GetInt32("count");
-                        func.PermId = reader.GetUInt32("perm_id");
-                        func.RelationshipId = reader.GetUInt32("relationship_id");
+                        var func = new DoodadFuncBuff
+                        {
+                            Id = reader.GetUInt32("id"),
+                            BuffId = reader.GetUInt32("buff_id"),
+                            Radius = reader.GetFloat("radius"),
+                            Count = reader.GetInt32("count"),
+                            PermId = reader.GetUInt32("perm_id"),
+                            RelationshipId = reader.GetUInt32("relationship_id")
+                        };
                         _funcTemplates["DoodadFuncBuff"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_butchers
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_butchers";
@@ -265,14 +296,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncButcher();
-                        func.Id = reader.GetUInt32("id");
-                        func.CorpseModel = reader.GetString("corpse_model");
+                        var func = new DoodadFuncButcher
+                        {
+                            Id = reader.GetUInt32("id"),
+                            CorpseModel = reader.GetString("corpse_model")
+                        };
                         _funcTemplates["DoodadFuncButcher"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_buy_fish_items
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_buy_fish_items";
@@ -281,15 +315,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncBuyFishItem();
-                        func.Id = reader.GetUInt32("id");
-                        func.DoodadFuncBuyFishId = reader.GetUInt32("doodad_func_buy_fish_id");
-                        func.ItemId = reader.GetUInt32("item_id");
+                        var func = new DoodadFuncBuyFishItem
+                        {
+                            Id = reader.GetUInt32("id"),
+                            DoodadFuncBuyFishId = reader.GetUInt32("doodad_func_buy_fish_id"),
+                            ItemId = reader.GetUInt32("item_id")
+                        };
                         _phaseFuncTemplates["DoodadFuncBuyFishItem"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_buy_fish_models
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_buy_fish_models";
@@ -298,14 +335,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncBuyFishModel();
-                        func.Id = reader.GetUInt32("id");
-                        func.Name = reader.GetString("name");
+                        var func = new DoodadFuncBuyFishModel
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Name = reader.GetString("name")
+                        };
                         _phaseFuncTemplates["DoodadFuncBuyFishModel"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_buy_fishes
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_buy_fishes";
@@ -314,14 +354,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncBuyFish();
-                        func.Id = reader.GetUInt32("id");
-                        func.ItemId = reader.GetUInt32("item_id", 0);
+                        var func = new DoodadFuncBuyFish
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ItemId = reader.GetUInt32("item_id", 0)
+                        };
                         _funcTemplates["DoodadFuncBuyFish"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_catches
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_catches";
@@ -330,13 +373,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCatch();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncCatch
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncCatch"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_cereal_harvests
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_cereal_harvests";
@@ -345,13 +391,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCerealHarvest();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncCerealHarvest
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncCerealHarvest"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_cleanup_logic_links
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_cleanup_logic_links";
@@ -360,13 +409,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCleanupLogicLink();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncCleanupLogicLink
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncCleanupLogicLink"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_climate_reacts
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_climate_reacts";
@@ -375,14 +427,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncClimateReact();
-                        func.Id = reader.GetUInt32("id");
-                        func.NextPhase = reader.GetInt32("next_phase", -1);
+                        var func = new DoodadFuncClimateReact
+                        {
+                            Id = reader.GetUInt32("id"),
+                            NextPhase = reader.GetInt32("next_phase", -1)
+                        };
                         _phaseFuncTemplates["DoodadFuncClimateReact"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_climbs
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_climbs";
@@ -391,15 +446,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncClimb();
-                        func.Id = reader.GetUInt32("id");
-                        func.ClimbTypeId = reader.GetUInt32("climb_type_id");
-                        func.AllowHorizontalMultiHanger = reader.GetBoolean("allow_horizontal_multi_hanger", true);
+                        var func = new DoodadFuncClimb
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ClimbTypeId = reader.GetUInt32("climb_type_id"),
+                            AllowHorizontalMultiHanger = reader.GetBoolean("allow_horizontal_multi_hanger", true)
+                        };
                         _funcTemplates["DoodadFuncClimb"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_clouts
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_clouts";
@@ -408,25 +466,26 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncClout();
-                        func.Id = reader.GetUInt32("id");
-                        func.Duration = reader.GetInt32("duration");
-                        func.Tick = reader.GetInt32("tick");
-                        func.TargetRelation = (SkillTargetRelation)reader.GetUInt32("target_relation_id");
-                        func.BuffId = reader.GetUInt32("buff_id", 0);
-                        func.ProjectileId = reader.GetUInt32("projectile_id", 0);
-                        func.ShowToFriendlyOnly = reader.GetBoolean("show_to_friendly_only", true);
-                        func.NextPhase = reader.GetInt32("next_phase", -1);
-                        func.AoeShapeId = reader.GetUInt32("aoe_shape_id");
-                        func.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
-                        func.TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0);
-                        func.UseOriginSource = reader.GetBoolean("use_origin_source", true);
-                        func.Effects = new List<uint>();
+                        var func = new DoodadFuncClout
+                        {
+                            Id = reader.GetUInt32("id"), Duration = reader.GetInt32("duration"), Tick = reader.GetInt32("tick"),
+                            TargetRelation = (SkillTargetRelation)reader.GetUInt32("target_relation_id"),
+                            BuffId = reader.GetUInt32("buff_id", 0),
+                            ProjectileId = reader.GetUInt32("projectile_id", 0),
+                            ShowToFriendlyOnly = reader.GetBoolean("show_to_friendly_only", true),
+                            NextPhase = reader.GetInt32("next_phase", -1),
+                            AoeShapeId = reader.GetUInt32("aoe_shape_id"),
+                            TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0),
+                            TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0),
+                            UseOriginSource = reader.GetBoolean("use_origin_source", true),
+                            Effects = new List<uint>()
+                        };
                         _phaseFuncTemplates["DoodadFuncClout"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_clout_effects
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_clout_effects";
@@ -442,6 +501,7 @@ public class DoodadManager : Singleton<DoodadManager>
                 }
             }
 
+            // doodad_func_coffer_perms
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_coffer_perms";
@@ -450,13 +510,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCofferPerm();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncCofferPerm
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncCofferPerm"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_coffers
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_coffers";
@@ -465,14 +528,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCoffer();
-                        func.Id = reader.GetUInt32("id");
-                        func.Capacity = reader.GetInt32("capacity");
+                        var func = new DoodadFuncCoffer
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Capacity = reader.GetInt32("capacity")
+                        };
                         _phaseFuncTemplates["DoodadFuncCoffer"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_conditional_uses
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_conditional_uses";
@@ -481,19 +547,22 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncConditionalUse();
-                        func.Id = reader.GetUInt32("id");
-                        func.SkillId = reader.GetUInt32("skill_id", 0);
-                        func.FakeSkillId = reader.GetUInt32("fake_skill_id", 0);
-                        func.QuestId = reader.GetUInt32("quest_id", 0);
-                        func.QuestTriggerPhase = reader.GetUInt32("quest_trigger_phase", 0);
-                        func.ItemId = reader.GetUInt32("item_id", 0);
-                        func.ItemTriggerPhase = reader.GetUInt32("item_trigger_phase", 0);
+                        var func = new DoodadFuncConditionalUse
+                        {
+                            Id = reader.GetUInt32("id"),
+                            SkillId = reader.GetUInt32("skill_id", 0),
+                            FakeSkillId = reader.GetUInt32("fake_skill_id", 0),
+                            QuestId = reader.GetUInt32("quest_id", 0),
+                            QuestTriggerPhase = reader.GetUInt32("quest_trigger_phase", 0),
+                            ItemId = reader.GetUInt32("item_id", 0),
+                            ItemTriggerPhase = reader.GetUInt32("item_trigger_phase", 0)
+                        };
                         _funcTemplates["DoodadFuncConditionalUse"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_consume_changer_items
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_consume_changer_items";
@@ -502,15 +571,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncConsumeChangerItem();
-                        func.Id = reader.GetUInt32("id");
-                        func.DoodadFuncConsumeChangerId = reader.GetUInt32("doodad_func_consume_changer_id");
-                        func.ItemId = reader.GetUInt32("item_id");
+                        var func = new DoodadFuncConsumeChangerItem
+                        {
+                            Id = reader.GetUInt32("id"),
+                            DoodadFuncConsumeChangerId = reader.GetUInt32("doodad_func_consume_changer_id"),
+                            ItemId = reader.GetUInt32("item_id")
+                        };
                         _phaseFuncTemplates["DoodadFuncConsumeChangerItem"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_consume_changer_model_items
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_consume_changer_model_items";
@@ -519,15 +591,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncConsumeChangerModelItem();
-                        func.Id = reader.GetUInt32("id");
-                        func.DoodadFuncConsumeChangerModelId = reader.GetUInt32("doodad_func_consume_changer_model_id");
-                        func.ItemId = reader.GetUInt32("item_id");
+                        var func = new DoodadFuncConsumeChangerModelItem
+                        {
+                            Id = reader.GetUInt32("id"),
+                            DoodadFuncConsumeChangerModelId = reader.GetUInt32("doodad_func_consume_changer_model_id"),
+                            ItemId = reader.GetUInt32("item_id")
+                        };
                         _phaseFuncTemplates["DoodadFuncConsumeChangerModelItem"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_consume_changer_models
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_consume_changer_models";
@@ -536,14 +611,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncConsumeChangerModel();
-                        func.Id = reader.GetUInt32("id");
-                        func.Name = reader.GetString("name");
+                        var func = new DoodadFuncConsumeChangerModel
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Name = reader.GetString("name")
+                        };
                         _phaseFuncTemplates["DoodadFuncConsumeChangerModel"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_consume_changers
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_consume_changers";
@@ -552,15 +630,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncConsumeChanger();
-                        func.Id = reader.GetUInt32("id");
-                        func.SlotId = reader.GetUInt32("slot_id");
-                        func.Count = reader.GetInt32("count");
+                        var func = new DoodadFuncConsumeChanger
+                        {
+                            Id = reader.GetUInt32("id"),
+                            SlotId = reader.GetUInt32("slot_id"),
+                            Count = reader.GetInt32("count")
+                        };
                         _funcTemplates["DoodadFuncConsumeChanger"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_consume_items
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_consume_items";
@@ -569,15 +650,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncConsumeItem();
-                        func.Id = reader.GetUInt32("id");
-                        func.ItemId = reader.GetUInt32("item_id");
-                        func.Count = reader.GetInt32("count");
+                        var func = new DoodadFuncConsumeItem
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            Count = reader.GetInt32("count")
+                        };
                         _phaseFuncTemplates["DoodadFuncConsumeItem"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_convert_fish_items
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_convert_fish_items";
@@ -586,16 +670,19 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncConvertFishItem();
-                        func.Id = reader.GetUInt32("id");
-                        func.DoodadFuncConvertFishId = reader.GetUInt32("doodad_func_convert_fish_id");
-                        func.ItemId = reader.GetUInt32("item_id");
-                        func.LootPackId = reader.GetUInt32("loot_pack_id");
+                        var func = new DoodadFuncConvertFishItem
+                        {
+                            Id = reader.GetUInt32("id"),
+                            DoodadFuncConvertFishId = reader.GetUInt32("doodad_func_convert_fish_id"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            LootPackId = reader.GetUInt32("loot_pack_id")
+                        };
                         _phaseFuncTemplates["DoodadFuncConvertFishItem"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_convert_fishes
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_convert_fishes";
@@ -604,13 +691,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncConvertFish();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncConvertFish
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncConvertFish"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_craft_acts
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_craft_acts";
@@ -619,13 +709,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCraftAct();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncCraftAct
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncCraftAct"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_craft_cancels
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_craft_cancels";
@@ -634,13 +727,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCraftCancel();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncCraftCancel
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncCraftCancel"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_craft_directs
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_craft_directs";
@@ -649,14 +745,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCraftDirect();
-                        func.Id = reader.GetUInt32("id");
-                        func.NextPhase = reader.GetInt32("next_phase", -1);
+                        var func = new DoodadFuncCraftDirect
+                        {
+                            Id = reader.GetUInt32("id"),
+                            NextPhase = reader.GetInt32("next_phase", -1)
+                        };
                         _phaseFuncTemplates["DoodadFuncCraftDirect"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_craft_get_items
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_craft_get_items";
@@ -665,13 +764,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCraftGetItem();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncCraftGetItem
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncCraftGetItem"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_craft_infos
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_craft_infos";
@@ -680,13 +782,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCraftInfo();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncCraftInfo
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncCraftInfo"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_craft_packs
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_craft_packs";
@@ -695,14 +800,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCraftPack();
-                        func.Id = reader.GetUInt32("id");
-                        func.CraftPackId = reader.GetUInt32("craft_pack_id");
+                        var func = new DoodadFuncCraftPack
+                        {
+                            Id = reader.GetUInt32("id"),
+                            CraftPackId = reader.GetUInt32("craft_pack_id")
+                        };
                         _funcTemplates["DoodadFuncCraftPack"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_craft_start_crafts
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_craft_start_crafts";
@@ -711,15 +819,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCraftStartCraft();
-                        func.Id = reader.GetUInt32("id");
-                        func.DoodadFuncCraftStartId = reader.GetUInt32("doodad_func_craft_start_id");
-                        func.CraftId = reader.GetUInt32("craft_id");
+                        var func = new DoodadFuncCraftStartCraft
+                        {
+                            Id = reader.GetUInt32("id"),
+                            DoodadFuncCraftStartId = reader.GetUInt32("doodad_func_craft_start_id"),
+                            CraftId = reader.GetUInt32("craft_id")
+                        };
                         _phaseFuncTemplates["DoodadFuncCraftStartCraft"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_craft_starts
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_craft_starts";
@@ -728,13 +839,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCraftStart();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncCraftStart
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncCraftStart"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_crop_harvests
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_crop_harvests";
@@ -743,13 +857,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCropHarvest();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncCropHarvest
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncCropHarvest"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_crystal_collects
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_crystal_collects";
@@ -758,13 +875,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCrystalCollect();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncCrystalCollect
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncCrystalCollect"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_cutdownings
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_cutdownings";
@@ -773,13 +893,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCutdowning();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncCutdowning
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncCutdowning"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_cutdowns
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_cutdowns";
@@ -788,13 +911,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncCutdown();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncCutdown
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncCutdown"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_dairy_collects
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_dairy_collects";
@@ -803,13 +929,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncDairyCollect();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncDairyCollect
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncDairyCollect"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_declare_sieges
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_declare_sieges";
@@ -818,13 +947,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncDeclareSiege();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncDeclareSiege
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _phaseFuncTemplates["DoodadFuncDeclareSiege"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_digs
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_digs";
@@ -833,13 +965,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncDig();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncDig
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncDig"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_dig_terrains
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_dig_terrains";
@@ -848,15 +983,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncDigTerrain();
-                        func.Id = reader.GetUInt32("id");
-                        func.Radius = reader.GetInt32("radius");
-                        func.Life = reader.GetInt32("life");
+                        var func = new DoodadFuncDigTerrain
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Radius = reader.GetInt32("radius"),
+                            Life = reader.GetInt32("life")
+                        };
                         _funcTemplates["DoodadFuncDigTerrain"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_dyeingredient_collects
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_dyeingredient_collects";
@@ -865,13 +1003,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncDyeingredientCollect();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncDyeingredientCollect
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncDyeingredientCollect"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_enter_instances
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_enter_instances";
@@ -880,15 +1021,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncEnterInstance();
-                        func.Id = reader.GetUInt32("id");
-                        func.ZoneId = reader.GetUInt32("zone_id");
-                        func.ItemId = reader.GetUInt32("item_id", 0);
+                        var func = new DoodadFuncEnterInstance
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ZoneId = reader.GetUInt32("zone_id"),
+                            ItemId = reader.GetUInt32("item_id", 0)
+                        };
                         _funcTemplates["DoodadFuncEnterInstance"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_enter_sys_instances
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_enter_sys_instances";
@@ -897,15 +1041,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncEnterSysInstance();
-                        func.Id = reader.GetUInt32("id");
-                        func.ZoneId = reader.GetUInt32("zone_id");
-                        func.FactionId = reader.GetUInt32("faction_id", 0);
+                        var func = new DoodadFuncEnterSysInstance
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ZoneId = reader.GetUInt32("zone_id"),
+                            FactionId = reader.GetUInt32("faction_id", 0)
+                        };
                         _funcTemplates["DoodadFuncEnterSysInstance"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_evidence_item_loots
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_evidence_item_loots";
@@ -914,18 +1061,21 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncEvidenceItemLoot();
-                        func.Id = reader.GetUInt32("id");
-                        func.SkillId = reader.GetUInt32("skill_id");
-                        func.CrimeValue = reader.GetInt32("crime_value");
-                        func.CrimeKindId = reader.GetUInt32("crime_kind_id");
+                        var func = new DoodadFuncEvidenceItemLoot
+                        {
+                            Id = reader.GetUInt32("id"),
+                            SkillId = reader.GetUInt32("skill_id"),
+                            CrimeValue = reader.GetInt32("crime_value"),
+                            CrimeKindId = reader.GetUInt32("crime_kind_id")
+                        };
                         _funcTemplates["DoodadFuncEvidenceItemLoot"].Add(func.Id, func);
                     }
                 }
             }
 
-            // TODO doodad_func_exchange_items( id INT, doodad_func_exchange_id INT, item_id INT, loot_pack_id INT )
+            // TODO: doodad_func_exchange_items( id INT, doodad_func_exchange_id INT, item_id INT, loot_pack_id INT )
 
+            // doodad_func_exchanges
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_exchanges";
@@ -934,13 +1084,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncExchange();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncExchange
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _phaseFuncTemplates["DoodadFuncExchange"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_exit_induns
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_exit_induns";
@@ -949,14 +1102,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncExitIndun();
-                        func.Id = reader.GetUInt32("id");
-                        func.ReturnPointId = reader.GetUInt32("return_point_id", 0);
+                        var func = new DoodadFuncExitIndun
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ReturnPointId = reader.GetUInt32("return_point_id", 0)
+                        };
                         _funcTemplates["DoodadFuncExitIndun"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_fake_uses
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_fake_uses";
@@ -965,16 +1121,19 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncFakeUse();
-                        func.Id = reader.GetUInt32("id");
-                        func.SkillId = reader.GetUInt32("skill_id", 0);
-                        func.FakeSkillId = reader.GetUInt32("fake_skill_id", 0);
-                        func.TargetParent = reader.GetBoolean("target_parent", true);
+                        var func = new DoodadFuncFakeUse
+                        {
+                            Id = reader.GetUInt32("id"),
+                            SkillId = reader.GetUInt32("skill_id", 0),
+                            FakeSkillId = reader.GetUInt32("fake_skill_id", 0),
+                            TargetParent = reader.GetBoolean("target_parent", true)
+                        };
                         _funcTemplates["DoodadFuncFakeUse"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_feeds
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_feeds";
@@ -983,15 +1142,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncFeed();
-                        func.Id = reader.GetUInt32("id");
-                        func.ItemId = reader.GetUInt32("item_id");
-                        func.Count = reader.GetInt32("count");
+                        var func = new DoodadFuncFeed
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            Count = reader.GetInt32("count")
+                        };
                         _funcTemplates["DoodadFuncFeed"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_fiber_collects
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_fiber_collects";
@@ -1000,13 +1162,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncFiberCollect();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncFiberCollect
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncFiberCollect"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_finals
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_finals";
@@ -1015,20 +1180,23 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncFinal();
-                        func.Id = reader.GetUInt32("id");
-                        func.After = reader.GetInt32("after", 0);
-                        func.Respawn = reader.GetBoolean("respawn", true);
-                        func.MinTime = reader.GetInt32("min_time", 0);
-                        func.MaxTime = reader.GetInt32("max_time", 0);
-                        func.ShowTip = reader.GetBoolean("show_tip", true);
-                        func.ShowEndTime = reader.GetBoolean("show_end_time", true);
-                        func.Tip = reader.GetString("tip");
+                        var func = new DoodadFuncFinal
+                        {
+                            Id = reader.GetUInt32("id"),
+                            After = reader.GetInt32("after", 0),
+                            Respawn = reader.GetBoolean("respawn", true),
+                            MinTime = reader.GetInt32("min_time", 0),
+                            MaxTime = reader.GetInt32("max_time", 0),
+                            ShowTip = reader.GetBoolean("show_tip", true),
+                            ShowEndTime = reader.GetBoolean("show_end_time", true),
+                            Tip = reader.GetString("tip")
+                        };
                         _phaseFuncTemplates["DoodadFuncFinal"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_fish_schools
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_fish_schools";
@@ -1037,14 +1205,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncFishSchool();
-                        func.Id = reader.GetUInt32("id");
-                        func.NpcSpawnerId = reader.GetUInt32("npc_spawner_id");
+                        var func = new DoodadFuncFishSchool
+                        {
+                            Id = reader.GetUInt32("id"),
+                            NpcSpawnerId = reader.GetUInt32("npc_spawner_id")
+                        };
                         _phaseFuncTemplates["DoodadFuncFishSchool"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_fruit_picks
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_fruit_picks";
@@ -1053,13 +1224,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncFruitPick();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncFruitPick
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncFruitPick"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_gass_extracts
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_gass_extracts";
@@ -1068,13 +1242,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncGassExtract();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncGassExtract
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncGassExtract"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_growths
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_growths";
@@ -1083,17 +1260,24 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncGrowth();
-                        func.Id = reader.GetUInt32("id");
-                        func.Delay = reader.GetInt32("delay");
-                        func.StartScale = reader.GetInt32("start_scale");
-                        func.EndScale = reader.GetInt32("end_scale");
-                        func.NextPhase = reader.GetInt32("next_phase", -1);
+                        var func = new DoodadFuncGrowth
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Delay = reader.GetInt32("delay"),
+                            StartScale = reader.GetInt32("start_scale"),
+                            EndScale = reader.GetInt32("end_scale"),
+                            NextPhase = reader.GetInt32("next_phase", -1)
+                        };
+                        // TODO: Remove testing stuff
+                        // if (func.Delay > 0)
+                        //     func.Delay = Math.Max(1, func.Delay / 1000);
+
                         _phaseFuncTemplates["DoodadFuncGrowth"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_harvests
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_harvests";
@@ -1102,13 +1286,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncHarvest();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncHarvest
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncHarvest"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_house_farms
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_house_farms";
@@ -1117,14 +1304,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncHouseFarm();
-                        func.Id = reader.GetUInt32("id");
-                        func.ItemCategoryId = reader.GetUInt32("item_category_id");
+                        var func = new DoodadFuncHouseFarm
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ItemCategoryId = reader.GetUInt32("item_category_id")
+                        };
                         _phaseFuncTemplates["DoodadFuncHouseFarm"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_housing_areas
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_housing_areas";
@@ -1133,15 +1323,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncHousingArea();
-                        func.Id = reader.GetUInt32("id");
-                        func.FactionId = reader.GetUInt32("faction_id");
-                        func.Radius = reader.GetInt32("radius");
+                        var func = new DoodadFuncHousingArea
+                        {
+                            Id = reader.GetUInt32("id"),
+                            FactionId = reader.GetUInt32("faction_id"),
+                            Radius = reader.GetInt32("radius")
+                        };
                         _funcTemplates["DoodadFuncHousingArea"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_hungers
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_hungers";
@@ -1150,17 +1343,20 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncHunger();
-                        func.Id = (uint)reader.GetInt32("id");
-                        func.HungryTerm = reader.GetInt32("hungry_term");
-                        func.FullStep = reader.GetInt32("full_step");
-                        func.PhaseChangeLimit = reader.GetInt32("phase_change_limit");
-                        func.NextPhase = reader.GetInt32("next_phase", -1) >= 0 ? reader.GetInt32("next_phase") : -1;
+                        var func = new DoodadFuncHunger
+                        {
+                            Id = (uint)reader.GetInt32("id"),
+                            HungryTerm = reader.GetInt32("hungry_term"),
+                            FullStep = reader.GetInt32("full_step"),
+                            PhaseChangeLimit = reader.GetInt32("phase_change_limit"),
+                            NextPhase = reader.GetInt32("next_phase", -1) >= 0 ? reader.GetInt32("next_phase") : -1
+                        };
                         _phaseFuncTemplates["DoodadFuncHunger"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_insert_counters
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_insert_counters";
@@ -1169,16 +1365,19 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncInsertCounter();
-                        func.Id = reader.GetUInt32("id");
-                        func.Count = reader.GetInt32("count");
-                        func.ItemId = reader.GetUInt32("item_id");
-                        func.ItemCount = reader.GetInt32("item_count");
+                        var func = new DoodadFuncInsertCounter
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Count = reader.GetInt32("count"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            ItemCount = reader.GetInt32("item_count")
+                        };
                         _funcTemplates["DoodadFuncInsertCounter"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_logics
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_logics";
@@ -1187,15 +1386,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncLogic();
-                        func.Id = reader.GetUInt32("id");
-                        func.OperationId = reader.GetUInt32("operation_id");
-                        func.DelayId = reader.GetUInt32("delay_id");
+                        var func = new DoodadFuncLogic
+                        {
+                            Id = reader.GetUInt32("id"),
+                            OperationId = reader.GetUInt32("operation_id"),
+                            DelayId = reader.GetUInt32("delay_id")
+                        };
                         _phaseFuncTemplates["DoodadFuncLogic"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_logic_family_providers
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_logic_family_providers";
@@ -1204,14 +1406,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncLogicFamilyProvider();
-                        func.Id = reader.GetUInt32("id");
-                        func.FamilyId = reader.GetUInt32("family_id");
+                        var func = new DoodadFuncLogicFamilyProvider
+                        {
+                            Id = reader.GetUInt32("id"),
+                            FamilyId = reader.GetUInt32("family_id")
+                        };
                         _phaseFuncTemplates["DoodadFuncLogicFamilyProvider"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_logic_family_subscribers
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_logic_family_subscribers";
@@ -1220,14 +1425,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncLogicFamilySubscriber();
-                        func.Id = reader.GetUInt32("id");
-                        func.FamilyId = reader.GetUInt32("family_id");
+                        var func = new DoodadFuncLogicFamilySubscriber
+                        {
+                            Id = reader.GetUInt32("id"),
+                            FamilyId = reader.GetUInt32("family_id")
+                        };
                         _phaseFuncTemplates["DoodadFuncLogicFamilySubscriber"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_loot_items
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_loot_items";
@@ -1236,20 +1444,23 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncLootItem();
-                        func.Id = reader.GetUInt32("id");
-                        func.WorldInteractionId = (WorldInteractionType)reader.GetUInt32("wi_id");
-                        func.ItemId = reader.GetUInt32("item_id");
-                        func.CountMin = reader.GetInt32("count_min");
-                        func.CountMax = reader.GetInt32("count_max");
-                        func.Percent = reader.GetInt32("percent");
-                        func.RemainTime = reader.GetInt32("remain_time");
-                        func.GroupId = reader.GetUInt32("group_id");
+                        var func = new DoodadFuncLootItem
+                        {
+                            Id = reader.GetUInt32("id"),
+                            WorldInteractionId = (WorldInteractionType)reader.GetUInt32("wi_id"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            CountMin = reader.GetInt32("count_min"),
+                            CountMax = reader.GetInt32("count_max"),
+                            Percent = reader.GetInt32("percent"),
+                            RemainTime = reader.GetInt32("remain_time"),
+                            GroupId = reader.GetUInt32("group_id")
+                        };
                         _funcTemplates["DoodadFuncLootItem"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_loot_packs
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_loot_packs";
@@ -1258,14 +1469,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncLootPack();
-                        func.Id = reader.GetUInt32("id");
-                        func.LootPackId = reader.GetUInt32("loot_pack_id");
+                        var func = new DoodadFuncLootPack
+                        {
+                            Id = reader.GetUInt32("id"),
+                            LootPackId = reader.GetUInt32("loot_pack_id")
+                        };
                         _funcTemplates["DoodadFuncLootPack"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_machine_parts_collects
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_machine_parts_collects";
@@ -1274,13 +1488,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncMachinePartsCollect();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncMachinePartsCollect
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncMachinePartsCollect"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_medicalingredient_mines
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_medicalingredient_mines";
@@ -1289,13 +1506,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncMedicalingredientMine();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncMedicalingredientMine
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncMedicalingredientMine"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_mows
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_mows";
@@ -1304,13 +1524,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncMow();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncMow
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncMow"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_navi_mark_pos_to_maps
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_navi_mark_pos_to_maps";
@@ -1319,16 +1542,19 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncNaviMarkPosToMap();
-                        func.Id = reader.GetUInt32("id");
-                        func.X = reader.GetInt32("x");
-                        func.Y = reader.GetInt32("y");
-                        func.Z = reader.GetInt32("z");
+                        var func = new DoodadFuncNaviMarkPosToMap
+                        {
+                            Id = reader.GetUInt32("id"),
+                            X = reader.GetInt32("x"),
+                            Y = reader.GetInt32("y"),
+                            Z = reader.GetInt32("z")
+                        };
                         _funcTemplates["DoodadFuncNaviMarkPosToMap"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_navi_namings
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_navi_namings";
@@ -1337,13 +1563,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncNaviNaming();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncNaviNaming
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncNaviNaming"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_navi_open_bounties
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_navi_open_bounties";
@@ -1352,13 +1581,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncNaviOpenBounty();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncNaviOpenBounty
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncNaviOpenBounty"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_navi_open_mailboxes
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_navi_open_mailboxes";
@@ -1367,14 +1599,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncNaviOpenMailbox();
-                        func.Id = reader.GetUInt32("id");
-                        func.Duration = reader.GetInt32("duration");
+                        var func = new DoodadFuncNaviOpenMailbox
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Duration = reader.GetInt32("duration")
+                        };
                         _funcTemplates["DoodadFuncNaviOpenMailbox"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_navi_open_portals
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_navi_open_portals";
@@ -1383,13 +1618,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncNaviOpenPortal();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncNaviOpenPortal
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncNaviOpenPortal"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_navi_remove_timers
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_navi_remove_timers";
@@ -1398,14 +1636,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncNaviRemoveTimer();
-                        func.Id = reader.GetUInt32("id");
-                        func.After = reader.GetInt32("after");
+                        var func = new DoodadFuncNaviRemoveTimer
+                        {
+                            Id = reader.GetUInt32("id"),
+                            After = reader.GetInt32("after")
+                        };
                         _phaseFuncTemplates["DoodadFuncNaviRemoveTimer"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_navi_removes
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_navi_removes";
@@ -1414,14 +1655,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncNaviRemove();
-                        func.Id = reader.GetUInt32("id");
-                        func.ReqLaborPower = reader.GetInt32("req_lp");
+                        var func = new DoodadFuncNaviRemove
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ReqLaborPower = reader.GetInt32("req_lp")
+                        };
                         _funcTemplates["DoodadFuncNaviRemove"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_navi_teleports
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_navi_teleports";
@@ -1430,13 +1674,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncNaviTeleport();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncNaviTeleport
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncNaviTeleport"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_open_farm_infos
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_open_farm_infos";
@@ -1445,14 +1692,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncOpenFarmInfo();
-                        func.Id = reader.GetUInt32("id");
-                        func.FarmId = reader.GetUInt32("farm_id");
+                        var func = new DoodadFuncOpenFarmInfo
+                        {
+                            Id = reader.GetUInt32("id"),
+                            FarmId = reader.GetUInt32("farm_id")
+                        };
                         _funcTemplates["DoodadFuncOpenFarmInfo"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_open_papers
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_open_papers";
@@ -1461,15 +1711,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncOpenPaper();
-                        func.Id = reader.GetUInt32("id");
-                        func.BookPageId = reader.GetUInt32("book_page_id", 0);
-                        func.BookId = reader.GetUInt32("book_id", 0);
+                        var func = new DoodadFuncOpenPaper
+                        {
+                            Id = reader.GetUInt32("id"),
+                            BookPageId = reader.GetUInt32("book_page_id", 0),
+                            BookId = reader.GetUInt32("book_id", 0)
+                        };
                         _funcTemplates["DoodadFuncOpenPaper"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_ore_mines
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_ore_mines";
@@ -1478,13 +1731,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncOreMine();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncOreMine
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncOreMine"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_parent_infos
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_parent_infos";
@@ -1493,13 +1749,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncParentInfo();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncParentInfo
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncParentInfo"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_parrots
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_parrots";
@@ -1508,13 +1767,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncParrot();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncParrot
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _phaseFuncTemplates["DoodadFuncParrot"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_plant_collects
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_plant_collects";
@@ -1523,13 +1785,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncPlantCollect();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncPlantCollect
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncPlantCollect"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_play_flow_graphs
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_play_flow_graphs";
@@ -1538,15 +1803,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncPlayFlowGraph();
-                        func.Id = reader.GetUInt32("id");
-                        func.EventOnPhaseChangeId = reader.GetUInt32("event_on_phase_change_id");
-                        func.EventOnVisibleId = reader.GetUInt32("event_on_visible_id");
+                        var func = new DoodadFuncPlayFlowGraph
+                        {
+                            Id = reader.GetUInt32("id"),
+                            EventOnPhaseChangeId = reader.GetUInt32("event_on_phase_change_id"),
+                            EventOnVisibleId = reader.GetUInt32("event_on_visible_id")
+                        };
                         _phaseFuncTemplates["DoodadFuncPlayFlowGraph"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_pulse_triggers
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_pulse_triggers";
@@ -1555,15 +1823,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncPulseTrigger();
-                        func.Id = reader.GetUInt32("id");
-                        func.Flag = reader.GetBoolean("flag", true);
-                        func.NextPhase = reader.GetInt32("next_phase", -1) >= 0 ? reader.GetInt32("next_phase") : -1;
+                        var func = new DoodadFuncPulseTrigger
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Flag = reader.GetBoolean("flag", true),
+                            NextPhase = reader.GetInt32("next_phase", -1) >= 0 ? reader.GetInt32("next_phase") : -1
+                        };
                         _phaseFuncTemplates["DoodadFuncPulseTrigger"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_pulses
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_pulses";
@@ -1572,14 +1843,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncPulse();
-                        func.Id = reader.GetUInt32("id");
-                        func.Flag = reader.GetBoolean("flag", true);
+                        var func = new DoodadFuncPulse
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Flag = reader.GetBoolean("flag", true)
+                        };
                         _phaseFuncTemplates["DoodadFuncPulse"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_purchases
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_purchases";
@@ -1588,18 +1862,21 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncPurchase();
-                        func.Id = reader.GetUInt32("id");
-                        func.ItemId = reader.GetUInt32("item_id", 0);
-                        func.Count = reader.GetInt32("count");
-                        func.CoinItemId = reader.GetUInt32("coin_item_id", 0);
-                        func.CoinCount = reader.GetInt32("coin_count", 0);
-                        func.CurrencyId = reader.GetUInt32("currency_id");
+                        var func = new DoodadFuncPurchase
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ItemId = reader.GetUInt32("item_id", 0),
+                            Count = reader.GetInt32("count"),
+                            CoinItemId = reader.GetUInt32("coin_item_id", 0),
+                            CoinCount = reader.GetInt32("coin_count", 0),
+                            CurrencyId = reader.GetUInt32("currency_id")
+                        };
                         _funcTemplates["DoodadFuncPurchase"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_puzzle_ins
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_puzzle_ins";
@@ -1608,15 +1885,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncPuzzleIn();
-                        func.Id = reader.GetUInt32("id");
-                        func.GroupId = reader.GetUInt32("group_id");
-                        func.Ratio = reader.GetFloat("ratio");
+                        var func = new DoodadFuncPuzzleIn
+                        {
+                            Id = reader.GetUInt32("id"),
+                            GroupId = reader.GetUInt32("group_id"),
+                            Ratio = reader.GetFloat("ratio")
+                        };
                         _phaseFuncTemplates["DoodadFuncPuzzleIn"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_puzzle_outs
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_puzzle_outs";
@@ -1625,21 +1905,24 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncPuzzleOut();
-                        func.Id = reader.GetUInt32("id");
-                        func.GroupId = reader.GetUInt32("group_id");
-                        func.Ratio = reader.GetFloat("ratio");
-                        func.Anim = reader.GetString("anim");
-                        func.ProjectileId = reader.GetUInt32("projectile_id", 0);
-                        func.ProjectileDelay = reader.GetInt32("projectile_delay");
-                        func.LootPackId = reader.GetUInt32("loot_pack_id", 0);
-                        func.Delay = reader.GetInt32("delay");
-                        func.NextPhase = reader.GetInt32("next_phase", -1);
+                        var func = new DoodadFuncPuzzleOut
+                        {
+                            Id = reader.GetUInt32("id"),
+                            GroupId = reader.GetUInt32("group_id"),
+                            Ratio = reader.GetFloat("ratio"),
+                            Anim = reader.GetString("anim"),
+                            ProjectileId = reader.GetUInt32("projectile_id", 0),
+                            ProjectileDelay = reader.GetInt32("projectile_delay"),
+                            LootPackId = reader.GetUInt32("loot_pack_id", 0),
+                            Delay = reader.GetInt32("delay"),
+                            NextPhase = reader.GetInt32("next_phase", -1)
+                        };
                         _phaseFuncTemplates["DoodadFuncPuzzleOut"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_puzzle_rolls
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_puzzle_rolls";
@@ -1648,15 +1931,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncPuzzleRoll();
-                        func.Id = reader.GetUInt32("id");
-                        func.ItemId = reader.GetUInt32("item_id");
-                        func.Count = reader.GetInt32("count");
+                        var func = new DoodadFuncPuzzleRoll
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            Count = reader.GetInt32("count")
+                        };
                         _funcTemplates["DoodadFuncPuzzleRoll"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_quests
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_quests";
@@ -1665,15 +1951,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncQuest();
-                        func.Id = reader.GetUInt32("id");
-                        func.QuestKindId = reader.GetUInt32("quest_kind_id");
-                        func.QuestId = reader.GetUInt32("quest_id");
+                        var func = new DoodadFuncQuest
+                        {
+                            Id = reader.GetUInt32("id"),
+                            QuestKindId = reader.GetUInt32("quest_kind_id"),
+                            QuestId = reader.GetUInt32("quest_id")
+                        };
                         _funcTemplates["DoodadFuncQuest"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_ratio_changes
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_ratio_changes";
@@ -1682,15 +1971,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncRatioChange();
-                        func.Id = reader.GetUInt32("id");
-                        func.Ratio = reader.GetInt32("ratio");
-                        func.NextPhase = reader.GetInt32("next_phase", -1) >= 0 ? reader.GetInt32("next_phase") : -1;
+                        var func = new DoodadFuncRatioChange
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Ratio = reader.GetInt32("ratio"),
+                            NextPhase = reader.GetInt32("next_phase", -1) >= 0 ? reader.GetInt32("next_phase") : -1
+                        };
                         _phaseFuncTemplates["DoodadFuncRatioChange"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_ratio_respawns
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_ratio_respawns";
@@ -1699,15 +1991,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncRatioRespawn();
-                        func.Id = reader.GetUInt32("id");
-                        func.Ratio = reader.GetInt32("ratio");
-                        func.SpawnDoodadId = reader.GetUInt32("spawn_doodad_id");
+                        var func = new DoodadFuncRatioRespawn
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Ratio = reader.GetInt32("ratio"),
+                            SpawnDoodadId = reader.GetUInt32("spawn_doodad_id")
+                        };
                         _phaseFuncTemplates["DoodadFuncRatioRespawn"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_recover_items
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_recover_items";
@@ -1716,13 +2011,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncRecoverItem();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncRecoverItem
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncRecoverItem"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_remove_instances
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_remove_instances";
@@ -1731,14 +2029,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncRemoveInstance();
-                        func.Id = reader.GetUInt32("id");
-                        func.ZoneId = reader.GetUInt32("zone_id");
+                        var func = new DoodadFuncRemoveInstance
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ZoneId = reader.GetUInt32("zone_id")
+                        };
                         _funcTemplates["DoodadFuncRemoveInstance"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_remove_items
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_remove_items";
@@ -1747,15 +2048,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncRemoveItem();
-                        func.Id = reader.GetUInt32("id");
-                        func.ItemId = reader.GetUInt32("item_id");
-                        func.Count = reader.GetInt32("count");
+                        var func = new DoodadFuncRemoveItem
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            Count = reader.GetInt32("count")
+                        };
                         _funcTemplates["DoodadFuncRemoveItem"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_renew_items
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_renew_items";
@@ -1764,14 +2068,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncRenewItem();
-                        func.Id = reader.GetUInt32("id");
-                        func.SkillId = reader.GetUInt32("skill_id");
+                        var func = new DoodadFuncRenewItem
+                        {
+                            Id = reader.GetUInt32("id"),
+                            SkillId = reader.GetUInt32("skill_id")
+                        };
                         _funcTemplates["DoodadFuncRenewItem"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_require_items
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_require_items";
@@ -1780,15 +2087,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncRequireItem();
-                        func.Id = reader.GetUInt32("id");
-                        func.WorldInteractionId = (WorldInteractionType)reader.GetUInt32("wi_id");
-                        func.ItemId = reader.GetUInt32("item_id");
+                        var func = new DoodadFuncRequireItem
+                        {
+                            Id = reader.GetUInt32("id"),
+                            WorldInteractionId = (WorldInteractionType)reader.GetUInt32("wi_id"),
+                            ItemId = reader.GetUInt32("item_id")
+                        };
                         _phaseFuncTemplates["DoodadFuncRequireItem"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_require_quests
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_require_quests";
@@ -1797,15 +2107,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncRequireQuest();
-                        func.Id = reader.GetUInt32("id");
-                        func.WorldInteractionId = (WorldInteractionType)reader.GetUInt32("wi_id");
-                        func.QuestId = reader.GetUInt32("quest_id");
+                        var func = new DoodadFuncRequireQuest
+                        {
+                            Id = reader.GetUInt32("id"),
+                            WorldInteractionId = (WorldInteractionType)reader.GetUInt32("wi_id"),
+                            QuestId = reader.GetUInt32("quest_id")
+                        };
                         _phaseFuncTemplates["DoodadFuncRequireQuest"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_respawns
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_respawns";
@@ -1814,15 +2127,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncRespawn();
-                        func.Id = reader.GetUInt32("id");
-                        func.MinTime = reader.GetInt32("min_time");
-                        func.MaxTime = reader.GetInt32("max_time");
+                        var func = new DoodadFuncRespawn
+                        {
+                            Id = reader.GetUInt32("id"),
+                            MinTime = reader.GetInt32("min_time"),
+                            MaxTime = reader.GetInt32("max_time")
+                        };
                         _phaseFuncTemplates["DoodadFuncRespawn"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_rock_mines
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_rock_mines";
@@ -1831,13 +2147,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncRockMine();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncRockMine
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncRockMine"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_seed_collects
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_seed_collects";
@@ -1846,13 +2165,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncSeedCollect();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncSeedCollect
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncSeedCollect"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_shears
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_shears";
@@ -1861,15 +2183,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncShear();
-                        func.Id = reader.GetUInt32("id");
-                        func.ShearTypeId = reader.GetUInt32("shear_type_id");
-                        func.ShearTerm = reader.GetInt32("shear_term");
+                        var func = new DoodadFuncShear
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ShearTypeId = reader.GetUInt32("shear_type_id"),
+                            ShearTerm = reader.GetInt32("shear_term")
+                        };
                         _funcTemplates["DoodadFuncShear"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_siege_periods
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_siege_periods";
@@ -1878,16 +2203,19 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncSiegePeriod();
-                        func.Id = reader.GetUInt32("id");
-                        func.SiegePeriodId = reader.GetUInt32("siege_period_id");
-                        func.NextPhase = reader.GetInt32("next_phase", -1);
-                        func.Defense = reader.GetBoolean("defense", true);
+                        var func = new DoodadFuncSiegePeriod
+                        {
+                            Id = reader.GetUInt32("id"),
+                            SiegePeriodId = reader.GetUInt32("siege_period_id"),
+                            NextPhase = reader.GetInt32("next_phase", -1),
+                            Defense = reader.GetBoolean("defense", true)
+                        };
                         _phaseFuncTemplates["DoodadFuncSiegePeriod"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_signs
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_signs";
@@ -1896,15 +2224,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncSign();
-                        func.Id = reader.GetUInt32("id");
-                        func.Name = reader.GetString("name");
-                        func.PickNum = reader.GetInt32("pick_num");
+                        var func = new DoodadFuncSign
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Name = reader.GetString("name"),
+                            PickNum = reader.GetInt32("pick_num")
+                        };
                         _phaseFuncTemplates["DoodadFuncSign"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_skill_hits
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_skill_hits";
@@ -1913,14 +2244,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncSkillHit();
-                        func.Id = reader.GetUInt32("id");
-                        func.SkillId = reader.GetUInt32("skill_id");
+                        var func = new DoodadFuncSkillHit
+                        {
+                            Id = reader.GetUInt32("id"),
+                            SkillId = reader.GetUInt32("skill_id")
+                        };
                         _funcTemplates["DoodadFuncSkillHit"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_skin_offs
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_skin_offs";
@@ -1929,13 +2263,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncSkinOff();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncSkinOff
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncSkinOff"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_soil_collects
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_soil_collects";
@@ -1944,13 +2281,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncSoilCollect();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncSoilCollect
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncSoilCollect"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_spawn_gimmicks
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_spawn_gimmicks";
@@ -1959,26 +2299,29 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncSpawnGimmick();
-                        func.Id = reader.GetUInt32("id");
-                        func.GimmickId = reader.GetUInt32("gimmick_id");
-                        func.FactionId = reader.GetUInt32("faction_id");
-                        func.Scale = reader.GetFloat("scale");
-                        func.OffsetX = reader.GetFloat("offset_x");
-                        func.OffsetY = reader.GetFloat("offset_y");
-                        func.OffsetZ = reader.GetFloat("offset_z");
-                        func.VelocityX = reader.GetFloat("velocity_x");
-                        func.VelocityY = reader.GetFloat("velocity_y");
-                        func.VelocityZ = reader.GetFloat("velocity_z");
-                        func.AngleX = reader.GetFloat("angle_x");
-                        func.AngleY = reader.GetFloat("angle_y");
-                        func.AngleZ = reader.GetFloat("angle_z");
-                        func.NextPhase = reader.GetInt32("next_phase", -1);
+                        var func = new DoodadFuncSpawnGimmick
+                        {
+                            Id = reader.GetUInt32("id"),
+                            GimmickId = reader.GetUInt32("gimmick_id"),
+                            FactionId = reader.GetUInt32("faction_id"),
+                            Scale = reader.GetFloat("scale"),
+                            OffsetX = reader.GetFloat("offset_x"),
+                            OffsetY = reader.GetFloat("offset_y"),
+                            OffsetZ = reader.GetFloat("offset_z"),
+                            VelocityX = reader.GetFloat("velocity_x"),
+                            VelocityY = reader.GetFloat("velocity_y"),
+                            VelocityZ = reader.GetFloat("velocity_z"),
+                            AngleX = reader.GetFloat("angle_x"),
+                            AngleY = reader.GetFloat("angle_y"),
+                            AngleZ = reader.GetFloat("angle_z"),
+                            NextPhase = reader.GetInt32("next_phase", -1)
+                        };
                         _phaseFuncTemplates["DoodadFuncSpawnGimmick"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_spawn_mgmts
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_spawn_mgmts";
@@ -1987,16 +2330,19 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncSpawnMgmt();
-                        func.Id = reader.GetUInt32("id");
-                        func.GroupId = reader.GetUInt32("group_id");
-                        func.Spawn = reader.GetBoolean("spawn", true);
-                        func.ZoneId = reader.GetUInt32("zone_id");
+                        var func = new DoodadFuncSpawnMgmt
+                        {
+                            Id = reader.GetUInt32("id"),
+                            GroupId = reader.GetUInt32("group_id"),
+                            Spawn = reader.GetBoolean("spawn", true),
+                            ZoneId = reader.GetUInt32("zone_id")
+                        };
                         _phaseFuncTemplates["DoodadFuncSpawnMgmt"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_spice_collects
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_spice_collects";
@@ -2005,13 +2351,13 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncSpiceCollect();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncSpiceCollect { Id = reader.GetUInt32("id") };
                         _funcTemplates["DoodadFuncSpiceCollect"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_stamp_makers
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_stamp_makers";
@@ -2020,18 +2366,21 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncStampMaker();
-                        func.Id = reader.GetUInt32("id");
-                        func.ConsumeMoney = reader.GetInt32("consume_money");
-                        func.ItemId = reader.GetUInt32("item_id");
-                        func.ConsumeItemId = reader.GetUInt32("consume_item_id");
-                        func.ConsumeCount = reader.GetInt32("consume_count");
+                        var func = new DoodadFuncStampMaker
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ConsumeMoney = reader.GetInt32("consume_money"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            ConsumeItemId = reader.GetUInt32("consume_item_id"),
+                            ConsumeCount = reader.GetInt32("consume_count")
+                        };
                         _funcTemplates["DoodadFuncStampMaker"].Add(func.Id, func);
                     }
                 }
             }
 
-            // TODO 1.2                
+            // TODO 1.2
+            // doodad_func_store_uis
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_store_uis";
@@ -2040,14 +2389,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncStoreUi();
-                        func.Id = reader.GetUInt32("id");
-                        func.MerchantPackId = reader.GetUInt32("merchant_pack_id");
+                        var func = new DoodadFuncStoreUi
+                        {
+                            Id = reader.GetUInt32("id"),
+                            MerchantPackId = reader.GetUInt32("merchant_pack_id")
+                        };
                         _funcTemplates["DoodadFuncStoreUi"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_timers
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_timers";
@@ -2056,19 +2408,26 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncTimer();
-                        func.Id = reader.GetUInt32("id");
-                        func.Delay = reader.GetInt32("delay");
-                        func.NextPhase = reader.GetInt32("next_phase", -1);
-                        func.KeepRequester = reader.GetBoolean("keep_requester", true);
-                        func.ShowTip = reader.GetBoolean("show_tip", true);
-                        func.ShowEndTime = reader.GetBoolean("show_end_time", true);
-                        func.Tip = reader.GetString("tip");
+                        var func = new DoodadFuncTimer
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Delay = reader.GetInt32("delay"),
+                            NextPhase = reader.GetInt32("next_phase", -1),
+                            KeepRequester = reader.GetBoolean("keep_requester", true),
+                            ShowTip = reader.GetBoolean("show_tip", true),
+                            ShowEndTime = reader.GetBoolean("show_end_time", true),
+                            Tip = reader.GetString("tip")
+                        };
+                        // TODO: Remove testing stuff
+                        // if (func.Delay > 0)
+                        //     func.Delay = Math.Max(1, func.Delay / 1000);
+
                         _phaseFuncTemplates["DoodadFuncTimer"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_tods
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_tods";
@@ -2077,15 +2436,18 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncTod();
-                        func.Id = reader.GetUInt32("id");
-                        func.Tod = reader.GetInt32("tod");
-                        func.NextPhase = reader.GetInt32("next_phase", -1) >= 0 ? reader.GetInt32("next_phase") : -1;
+                        var func = new DoodadFuncTod
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Tod = reader.GetInt32("tod"),
+                            NextPhase = reader.GetInt32("next_phase", -1) >= 0 ? reader.GetInt32("next_phase") : -1
+                        };
                         _phaseFuncTemplates["DoodadFuncTod"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_tree_byproducts_collects
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_tree_byproducts_collects";
@@ -2094,13 +2456,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncTreeByProductsCollect();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncTreeByProductsCollect
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncTreeByProductsCollect"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_ucc_imprints
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_ucc_imprints";
@@ -2109,13 +2474,16 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncUccImprint();
-                        func.Id = reader.GetUInt32("id");
+                        var func = new DoodadFuncUccImprint
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
                         _funcTemplates["DoodadFuncUccImprint"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_uses
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_uses";
@@ -2124,14 +2492,17 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncUse();
-                        func.Id = reader.GetUInt32("id");
-                        func.SkillId = reader.GetUInt32("skill_id", 0);
+                        var func = new DoodadFuncUse
+                        {
+                            Id = reader.GetUInt32("id"),
+                            SkillId = reader.GetUInt32("skill_id", 0)
+                        };
                         _funcTemplates["DoodadFuncUse"].Add(func.Id, func);
                     }
                 }
             }
 
+            // doodad_func_water_volumes
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_water_volumes";
@@ -2140,16 +2511,19 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncWaterVolume();
-                        func.Id = reader.GetUInt32("id");
-                        func.LevelChange = reader.GetFloat("levelChange");
-                        func.Duration = reader.GetFloat("duration");
+                        var func = new DoodadFuncWaterVolume
+                        {
+                            Id = reader.GetUInt32("id"),
+                            LevelChange = reader.GetFloat("levelChange"),
+                            Duration = reader.GetFloat("duration")
+                        };
                         _phaseFuncTemplates["DoodadFuncWaterVolume"].Add(func.Id, func);
                     }
                 }
             }
 
-            // TODO 1.2                
+            // TODO 1.2
+            // doodad_func_zone_reacts
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_zone_reacts";
@@ -2158,10 +2532,12 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncZoneReact();
-                        func.Id = reader.GetUInt32("id");
-                        func.ZoneGroupId = reader.GetUInt32("zone_group_id");
-                        func.NextPhase = reader.GetInt32("next_phase", -1);
+                        var func = new DoodadFuncZoneReact
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ZoneGroupId = reader.GetUInt32("zone_group_id"),
+                            NextPhase = reader.GetInt32("next_phase", -1)
+                        };
 
                         _phaseFuncTemplates["DoodadFuncZoneReact"].Add(func.Id, func);
                     }
@@ -2186,11 +2562,13 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var funcGroups = new DoodadFuncGroups();
-                        funcGroups.Id = reader.GetUInt32("id");
-                        funcGroups.Almighty = reader.GetUInt32("doodad_almighty_id");
-                        funcGroups.GroupKindId = (DoodadFuncGroups.DoodadFuncGroupKind)reader.GetUInt32("doodad_func_group_kind_id");
-                        funcGroups.SoundId = reader.GetUInt32("sound_id", 0);
+                        var funcGroups = new DoodadFuncGroups
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Almighty = reader.GetUInt32("doodad_almighty_id"),
+                            GroupKindId = (DoodadFuncGroups.DoodadFuncGroupKind)reader.GetUInt32("doodad_func_group_kind_id"),
+                            SoundId = reader.GetUInt32("sound_id", 0)
+                        };
 
                         if (!_allFuncGroups.TryAdd(funcGroups.Id, funcGroups))
                             _log.Fatal($"Failed to add FuncGroups: {funcGroups.Id}");
@@ -2212,11 +2590,7 @@ public class DoodadManager : Singleton<DoodadManager>
 
                         var cofferCapacity = IsCofferTemplate(templateId);
 
-                        DoodadTemplate template;
-                        if (cofferCapacity > 0)
-                            template = new DoodadCofferTemplate() { Capacity = cofferCapacity };
-                        else
-                            template = new DoodadTemplate();
+                        var template = cofferCapacity > 0 ? new DoodadCofferTemplate() { Capacity = cofferCapacity } : new DoodadTemplate();
 
                         template.Id = templateId;
                         template.OnceOneMan = reader.GetBoolean("once_one_man", true);
@@ -2237,7 +2611,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         template.SimRadius = reader.GetInt32("sim_radius", 0);
                         template.CollideShip = reader.GetBoolean("collide_ship", true);
                         template.CollideVehicle = reader.GetBoolean("collide_vehicle", true);
-                        template.ClimateId = reader.GetUInt32("climate_id", 0);
+                        template.ClimateId = (Climate)reader.GetUInt32("climate_id", 0);
                         template.SaveIndun = reader.GetBoolean("save_indun", true);
                         template.ForceUpAction = reader.GetBoolean("force_up_action", true);
                         template.Parentable = reader.GetBoolean("parentable", true);
@@ -2257,15 +2631,44 @@ public class DoodadManager : Singleton<DoodadManager>
             foreach (var (_, funcGroups) in _allFuncGroups)
             {
                 var template = GetTemplate(funcGroups.Almighty);
-                if (template != null)
-                    template.FuncGroups.Add(funcGroups);
+                template?.FuncGroups.Add(funcGroups);
             }
 
-            _log.Info("Loaded {0} doodad templates", _templates.Count);
+            _log.Info($"Loaded {_templates.Count} doodad templates");
             #endregion
         }
 
+        CreateTemplateCaches();
         _loaded = true;
+    }
+
+    /// <summary>
+    /// Creates and cache various values that would otherwise consume too much time to be calculating all the time at runtime
+    /// </summary>
+    private void CreateTemplateCaches()
+    {
+        // For all doodad templates
+        foreach (var template in _templates.Values)
+        {
+
+            // Cache Total Growth Times for doodads that have them
+            template.TotalDoodadGrowthTime = 0;
+            foreach (var funcGroup in template.FuncGroups)
+            {
+                var funcGroups = Instance.GetFuncsForGroup(funcGroup.Id);
+                foreach (var doodadFunc in funcGroups)
+                {
+                    var thisFuncTemplate = Instance.GetPhaseFuncTemplate(doodadFunc.FuncId, doodadFunc.FuncType);
+                    if (thisFuncTemplate is DoodadFuncGrowth growthFunc)
+                    {
+                        template.TotalDoodadGrowthTime += growthFunc.Delay;
+                    }
+                }
+            }
+            if (template.TotalDoodadGrowthTime <= 0)
+                template.TotalDoodadGrowthTime = template.GrowthTime;
+        }
+
     }
 
     /// <summary>
@@ -2273,7 +2676,7 @@ public class DoodadManager : Singleton<DoodadManager>
     /// </summary>
     /// <param name="templateId"></param>
     /// <returns>Returns the Coffer Capacity if true, otherwise returns -1</returns>
-    public int IsCofferTemplate(uint templateId)
+    private int IsCofferTemplate(uint templateId)
     {
         if (templateId == 0)
             return -1;
@@ -2283,46 +2686,47 @@ public class DoodadManager : Singleton<DoodadManager>
         {
             if (funcGroup.Almighty != templateId)
                 continue;
-            if (_funcsByGroups.TryGetValue(funcGroup.Id, out var funcList))
+            if (!_funcsByGroups.TryGetValue(funcGroup.Id, out var funcList))
+                continue;
+
+            foreach (var func in funcList)
             {
-                foreach (var func in funcList)
-                {
-                    if (_phaseFuncTemplates.TryGetValue(func.FuncType, out var phaseFuncTemplates))
-                        if (phaseFuncTemplates.TryGetValue(func.FuncId, out var phaseFuncTemplate))
-                            if (phaseFuncTemplate is DoodadFuncCoffer funcCoffer)
-                            {
-                                return funcCoffer.Capacity;
-                            }
-                }
+                if (!_phaseFuncTemplates.TryGetValue(func.FuncType, out var phaseFuncTemplates))
+                    continue;
+
+                if (!phaseFuncTemplates.TryGetValue(func.FuncId, out var phaseFuncTemplate))
+                    continue;
+
+                if (phaseFuncTemplate is DoodadFuncCoffer funcCoffer)
+                    return funcCoffer.Capacity;
             }
         }
 
         return -1;
     }
 
-    public Doodad Create(uint bcId, uint id, GameObject obj = null)
+    public Doodad Create(uint bcId, uint templateId, GameObject ownerObject = null, bool skipPhaseInitialization = false)
     {
-        if (!_templates.ContainsKey(id))
+        if (!_templates.TryGetValue(templateId, out var template))
             return null;
-        var template = _templates[id];
         Doodad doodad = null;
 
         // Check if template is a Coffer
         if (template is DoodadCofferTemplate doodadCofferTemplate)
             doodad = new DoodadCoffer { Capacity = doodadCofferTemplate.Capacity };
 
-        if (doodad == null)
-            doodad = new Doodad();
+        doodad ??= new Doodad();
 
         doodad.ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
-        doodad.TemplateId = template.Id; // duplicate Id
+        doodad.TemplateId = template.Id; // copy the templateId
         doodad.Template = template;
-        doodad.OwnerObjId = obj?.ObjId ?? 0;
+        doodad.OwnerObjId = ownerObject?.ObjId ?? 0;
         doodad.PlantTime = DateTime.UtcNow;
         doodad.OwnerType = DoodadOwnerType.System;
         doodad.FuncGroupId = doodad.GetFuncGroupId();
+        // doodad.GrowthTime = doodad.PlantTime.AddMilliseconds(doodad.Template.TotalDoodadGrowthTime);
 
-        switch (obj)
+        switch (ownerObject)
         {
             case Character character:
                 doodad.OwnerId = character.Id;
@@ -2342,7 +2746,8 @@ public class DoodadManager : Singleton<DoodadManager>
                 break;
         }
 
-        Task.Run(() => doodad.InitDoodad());
+        if (!skipPhaseInitialization)
+            Task.Run(() => doodad.InitDoodad());
 
         //_log.Debug($"Create: TemplateId {doodad.TemplateId}, ObjId {doodad.ObjId}, FuncGroupId {doodad.FuncGroupId}");
 
@@ -2351,9 +2756,7 @@ public class DoodadManager : Singleton<DoodadManager>
 
     public DoodadFunc GetFunc(uint funcId)
     {
-        if (!_funcsById.ContainsKey(funcId))
-            return null;
-        return _funcsById[funcId];
+        return _funcsById.TryGetValue(funcId, out var res) ? res : null;
     }
 
     public DoodadFunc GetFunc(uint funcGroupId, uint skillId)
@@ -2366,14 +2769,14 @@ public class DoodadManager : Singleton<DoodadManager>
                 return func;
         }
 
-        // сначала пропускаем функции с NextPhase = -1
+        // First we skip functions with NextPhase = -1
         foreach (var func in _funcsByGroups[funcGroupId])
         {
             if (func.SkillId == 0 && func.NextPhase != -1)
                 return func;
         }
 
-        // затем ищем и с NextPhase = -1
+        // Then we search with NextPhase = -1
         foreach (var func in _funcsByGroups[funcGroupId])
         {
             if (func.SkillId == 0)
@@ -2385,24 +2788,19 @@ public class DoodadManager : Singleton<DoodadManager>
 
     public List<DoodadFunc> GetFuncsForGroup(uint funcGroupId)
     {
-        if (_funcsByGroups.ContainsKey(funcGroupId))
-            return _funcsByGroups[funcGroupId];
-        return new List<DoodadFunc>();
+        return _funcsByGroups.TryGetValue(funcGroupId, out var group) ? group : new List<DoodadFunc>();
     }
 
-    public DoodadPhaseFunc[] GetPhaseFunc(uint funcGroupId)
+    public List<DoodadPhaseFunc> GetPhaseFunc(uint funcGroupId)
     {
-        return _phaseFuncs.ContainsKey(funcGroupId) ? _phaseFuncs[funcGroupId].ToArray() : Array.Empty<DoodadPhaseFunc>();
+        return _phaseFuncs.TryGetValue(funcGroupId, out var func) ? func : new List<DoodadPhaseFunc>();
     }
 
     public DoodadFuncTemplate GetFuncTemplate(uint funcId, string funcType)
     {
-        if (!_funcTemplates.ContainsKey(funcType))
+        if (!_funcTemplates.TryGetValue(funcType, out var funcs))
             return null;
-        var funcs = _funcTemplates[funcType];
-        if (funcs.ContainsKey(funcId))
-            return funcs[funcId];
-        return null;
+        return funcs.TryGetValue(funcId, out var template) ? template : null;
     }
 
     public DoodadPhaseFuncTemplate GetPhaseFuncTemplate(uint funcId, string funcType)
@@ -2410,9 +2808,7 @@ public class DoodadManager : Singleton<DoodadManager>
         if (!_phaseFuncTemplates.ContainsKey(funcType))
             return null;
         var funcs = _phaseFuncTemplates[funcType];
-        if (funcs.ContainsKey(funcId))
-            return funcs[funcId];
-        return null;
+        return funcs.TryGetValue(funcId, out var template) ? template : null;
     }
 
 
@@ -2420,15 +2816,14 @@ public class DoodadManager : Singleton<DoodadManager>
     /// GetDoodadFuncGroups - Get a group of functions for a given TemplateId
     /// </summary>
     /// <param name="doodadTemplateId"></param>
-    /// <returns>List<DoodadFuncGroups></returns>
+    /// <returns>List of DoodadFuncGroups</returns>
     public List<DoodadFuncGroups> GetDoodadFuncGroups(uint doodadTemplateId)
     {
         var listDoodadFuncGroups = new List<DoodadFuncGroups>();
 
-        if (_templates.ContainsKey(doodadTemplateId))
+        if (_templates.TryGetValue(doodadTemplateId, out var template))
         {
-            var doodaTemplates = _templates[doodadTemplateId];
-            listDoodadFuncGroups.AddRange(doodaTemplates.FuncGroups);
+            listDoodadFuncGroups.AddRange(template.FuncGroups);
         }
         return listDoodadFuncGroups;
     }
@@ -2439,15 +2834,13 @@ public class DoodadManager : Singleton<DoodadManager>
 
         var listDoodadFuncGroups = new List<DoodadFuncGroups>();
 
-        if (_templates.ContainsKey(doodadTemplateId))
-        {
-            var doodaTemplates = _templates[doodadTemplateId];
-            listDoodadFuncGroups.AddRange(doodaTemplates.FuncGroups);
-            foreach (var item in listDoodadFuncGroups)
-            {
-                listId.Add(item.Id);
-            }
-        }
+        if (!_templates.TryGetValue(doodadTemplateId, out var template))
+            return listId;
+
+        listDoodadFuncGroups.AddRange(template.FuncGroups);
+        foreach (var item in listDoodadFuncGroups)
+            listId.Add(item.Id);
+
         return listId;
     }
 
@@ -2455,36 +2848,33 @@ public class DoodadManager : Singleton<DoodadManager>
     /// GetDoodadFuncs - Get all features
     /// </summary>
     /// <param name="doodadFuncGroupId"></param>
-    /// <returns>List<DoodadFunc></returns>
+    /// <returns>List of DoodadFunc</returns>
     public List<DoodadFunc> GetDoodadFuncs(uint doodadFuncGroupId)
     {
-        if (_funcsByGroups.ContainsKey(doodadFuncGroupId))
-            return _funcsByGroups[doodadFuncGroupId];
-        return new List<DoodadFunc>();
-    }
-    /// <summary>
-    /// GetDoodadPhaseFuncs - Получить все фазовые функции
-    /// </summary>
-    /// <param name="funcGroupId"></param>
-    /// <returns>DoodadFunc[]</returns>
-    public DoodadPhaseFunc[] GetDoodadPhaseFuncs(uint funcGroupId)
-    {
-        if (_phaseFuncs.ContainsKey(funcGroupId))
-            return _phaseFuncs[funcGroupId].ToArray();
-        return Array.Empty<DoodadPhaseFunc>();
+        return _funcsByGroups.TryGetValue(doodadFuncGroupId, out var funcs) ? funcs : new List<DoodadFunc>();
     }
 
     /// <summary>
-    /// Saves and creates a doodad 
+    /// GetDoodadPhaseFuncs - Get all phase functions
+    /// </summary>
+    /// <param name="funcGroupId"></param>
+    /// <returns>DoodadFunc[]</returns>
+    public List<DoodadPhaseFunc> GetDoodadPhaseFuncs(uint funcGroupId)
+    {
+        return _phaseFuncs.TryGetValue(funcGroupId, out var funcs) ? funcs : new List<DoodadPhaseFunc>();
+    }
+
+    /// <summary>
+    /// Saves and creates a doodad
     /// </summary>
     public static Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId)
     {
-        _log.Warn("{0} is placing a doodad {1} at position {2} {3} {4}", character.Name, id, x, y, z);
+        _log.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
 
         var targetHouse = HousingManager.Instance.GetHouseAtLocation(x, y);
 
         // Create doodad
-        var doodad = Instance.Create(0, id, character);
+        var doodad = Instance.Create(0, id, character, true);
         doodad.IsPersistent = true;
         doodad.Transform = character.Transform.CloneDetached(doodad);
         doodad.Transform.Local.SetPosition(x, y, z);
@@ -2512,16 +2902,24 @@ public class DoodadManager : Singleton<DoodadManager>
         var items = ItemManager.Instance.GetItemIdsFromDoodad(id);
         var preferredItem = character.Inventory.Bag.GetItemByItemId(itemId);
 
+        if (preferredItem == null)
+        {
+            _log.Error($"Unable to create doodad because source item (Id: {itemId}) does not exist in {character.Name}'s bag inventory.");
+            doodad.Delete();
+            return null;
+        }
+
         doodad.ItemTemplateId = preferredItem.TemplateId;
+        if (preferredItem.Template.MaxCount > 1)
+            doodad.ItemId = 0; // If it's a stackable item, don't store the actual itemId, but only it's templateId
 
         if (doodad is DoodadCoffer coffer)
-        {
             coffer.InitializeCoffer(character.Id);
-        }
 
         foreach (var item in items)
             character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1, preferredItem);
 
+        doodad.InitDoodad();
         doodad.Spawn();
         doodad.Save();
 
@@ -2531,7 +2929,7 @@ public class DoodadManager : Singleton<DoodadManager>
     public static bool OpenCofferDoodad(Character character, uint objId)
     {
         var doodad = WorldManager.Instance.GetDoodad(objId);
-        if (!(doodad is DoodadCoffer coffer))
+        if (doodad is not DoodadCoffer coffer)
             return false;
 
         // Somebody already using this ?
@@ -2542,14 +2940,14 @@ public class DoodadManager : Singleton<DoodadManager>
 
         coffer.OpenedBy = character;
 
-        if (character != null)
+        if (character == null)
+            return true;
+
+        byte firstSlot = 0;
+        while (firstSlot < coffer.Capacity)
         {
-            byte firstSlot = 0;
-            while (firstSlot < coffer.Capacity)
-            {
-                character.SendPacket(new SCCofferContentsUpdatePacket(coffer, firstSlot));
-                firstSlot += SCCofferContentsUpdatePacket.MaxSlotsToSend;
-            }
+            character.SendPacket(new SCCofferContentsUpdatePacket(coffer, firstSlot));
+            firstSlot += SCCofferContentsUpdatePacket.MaxSlotsToSend;
         }
 
         return true;
@@ -2558,7 +2956,7 @@ public class DoodadManager : Singleton<DoodadManager>
     public static bool CloseCofferDoodad(Character character, uint objId)
     {
         var doodad = WorldManager.Instance.GetDoodad(objId);
-        if (!(doodad is DoodadCoffer coffer))
+        if (doodad is not DoodadCoffer coffer)
             return false;
 
         // Used for GM commands
@@ -2584,17 +2982,16 @@ public class DoodadManager : Singleton<DoodadManager>
             return false;
 
         // For Coffers validate if select option is applicable
-        if (doodad is DoodadCoffer coffer)
+        if (doodad is DoodadCoffer)
         {
-            if ((data == (int)HousingPermission.Family) && (player.Family <= 0))
+            switch (data)
             {
-                player.SendErrorMessage(ErrorMessageType.FamilyNotExist); // Not sure 
-                return false;
-            }
-            if (data == (int)HousingPermission.Guild && (player.Expedition == null || player.Expedition.Id <= 0))
-            {
-                player.SendErrorMessage(ErrorMessageType.OnlyExpeditionMember); // Not sure
-                return false;
+                case (int)HousingPermission.Family when (player.Family <= 0):
+                    player.SendErrorMessage(ErrorMessageType.FamilyNotExist); // Not sure
+                    return false;
+                case (int)HousingPermission.Guild when player.Expedition is not { Id: > 0 }:
+                    player.SendErrorMessage(ErrorMessageType.OnlyExpeditionMember); // Not sure
+                    return false;
             }
         }
 
@@ -2604,6 +3001,4 @@ public class DoodadManager : Singleton<DoodadManager>
 
         return true;
     }
-    // }
-
 }

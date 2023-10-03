@@ -3,7 +3,7 @@ Files need to be named in the following format;
 
 YYYY-MM-DD_aaemu_XXXX*.sql
 
-Where YYY-MM-DD is the date you introduced this change, and "XXXX" is either "login" or "game".
+Where YYYY-MM-DD is the date you introduced this change, and "XXXX" is either "login" or "game".
 These scripts will get executed only one time at the start of running the Login or Game server. Installed scripts get logged into a updates table to the relevant to the server it's running for.
 A server will only check and run scripts that are relevant to themselves, therefor the naming of the files is important.
 

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Templates;
 
@@ -23,7 +24,7 @@ public class DoodadTemplate
     public int SimRadius { get; set; }
     public bool CollideShip { get; set; }
     public bool CollideVehicle { get; set; }
-    public uint ClimateId { get; set; }
+    public Climate ClimateId { get; set; }
     public bool SaveIndun { get; set; }
     public bool ForceUpAction { get; set; }
     public bool Parentable { get; set; }
@@ -35,6 +36,9 @@ public class DoodadTemplate
     public uint RestrictZoneId { get; set; }
 
     public List<DoodadFuncGroups> FuncGroups { get; set; }
+
+    // Helper Properties
+    public int TotalDoodadGrowthTime { get; set; }
 
     public DoodadTemplate()
     {
