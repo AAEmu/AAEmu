@@ -27,6 +27,7 @@ using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
+using NLog.LayoutRenderers;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -333,7 +334,7 @@ public class SlaveManager : Singleton<SlaveManager>
             Mp = 1,
             ModelParams = new UnitCustomModelParams(),
             Faction = owner.Faction,
-            Id = 0, // TODO (previously set to 10 which prevented the use of the slave doodads, captures show mostly 0 here
+            Id = tlId, // TODO (previously set to 10 which prevented the use of the slave doodads, captures show mostly 0 here
             Summoner = owner,
             SpawnTime = DateTime.UtcNow
         };
@@ -368,12 +369,15 @@ public class SlaveManager : Singleton<SlaveManager>
                 ParentObjId = summonedSlave.ObjId,
                 AttachPoint = doodadBinding.AttachPointId,
                 OwnerId = owner.Id,
-                PlantTime = DateTime.UtcNow,
+                PlantTime = summonedSlave.SpawnTime,
                 OwnerType = DoodadOwnerType.Slave,
-                DbHouseId = summonedSlave.Id,
+                OwnerDbId = summonedSlave.Id,
                 Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
-                Data = (byte)doodadBinding.AttachPointId,
-                ParentObj = summonedSlave
+                Data = (byte)doodadBinding.AttachPointId, // copy of AttachPointId
+                ParentObj = summonedSlave,
+                Faction = summonedSlave.Faction,
+                Type2 = 1u, // Flag: No idea why it's 1 for slave's doodads, seems to be 0 for everything else
+                Spawner = null,
             };
 
             doodad.SetScale(doodadBinding.Scale);
@@ -620,7 +624,7 @@ public class SlaveManager : Singleton<SlaveManager>
             doodad.OwnerId = slave.Id;
             doodad.PlantTime = DateTime.UtcNow;
             doodad.OwnerType = DoodadOwnerType.Slave;
-            doodad.DbHouseId = slave.Id;
+            doodad.OwnerDbId = slave.Id;
             doodad.Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId);
             doodad.Data = (byte)doodadBinding.AttachPointId;
             doodad.ParentObj = slave;
