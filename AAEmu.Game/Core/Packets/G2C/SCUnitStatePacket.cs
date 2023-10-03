@@ -46,7 +46,8 @@ public class SCUnitStatePacket : GamePacket
                 }
             case Slave _:
                 _baseUnitType = BaseUnitType.Slave;
-                _modelPostureType = ModelPostureType.None; // was TurretState = 8
+                _modelPostureType = ModelPostureType.TurretState;
+                // _modelPostureType = ModelPostureType.None; // was TurretState = 8
                 break;
             case House _:
                 _baseUnitType = BaseUnitType.Housing;
