@@ -405,6 +405,22 @@ public class SpawnManager : Singleton<SpawnManager>
                         var itemContainerId = reader.GetUInt64("item_container_id");
                         var data = reader.GetInt32("data");
 
+                        switch (ownerType)
+                        {
+                            case DoodadOwnerType.Slave:
+                                // Doodads owned by slaves need to be handled in the slave spawner
+                                continue;
+                            case DoodadOwnerType.Housing:
+                                // Houses should already be spawned at this point, so doodads are allowed on it
+                            case DoodadOwnerType.Character:
+                                // Player owned open world doodads (e.g. trade-packs on the ground)
+                            case DoodadOwnerType.System:
+                                // Anything else that might be persistent but isn't in the default world spawning list
+                                // GM placed objects for example
+                            default:
+                                break;
+                        }
+
                         var doodad = DoodadManager.Instance.Create(0, templateId, null, true);
 
                         //doodad.Spawner = new DoodadSpawner();

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
@@ -9,6 +10,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Details;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -40,6 +42,8 @@ public class DoodadManager : Singleton<DoodadManager>
     private Dictionary<uint, List<DoodadPhaseFunc>> _phaseFuncs;
     private Dictionary<string, Dictionary<uint, DoodadFuncTemplate>> _funcTemplates;
     private Dictionary<string, Dictionary<uint, DoodadPhaseFuncTemplate>> _phaseFuncTemplates;
+    // Details data
+    private Dictionary<uint, DoodadFuncConsumeChangerItem> _doodadFuncConsumeChangerItem;
 
     public bool Exist(uint templateId)
     {
@@ -68,6 +72,8 @@ public class DoodadManager : Singleton<DoodadManager>
                 _funcTemplates.Add(type.Name, new Dictionary<uint, DoodadFuncTemplate>());
             else if (type.BaseType == typeof(DoodadPhaseFuncTemplate))
                 _phaseFuncTemplates.Add(type.Name, new Dictionary<uint, DoodadPhaseFuncTemplate>());
+
+        _doodadFuncConsumeChangerItem = new Dictionary<uint, DoodadFuncConsumeChangerItem>();
 
         using (var connection = SQLite.CreateConnection())
         {
@@ -565,6 +571,7 @@ public class DoodadManager : Singleton<DoodadManager>
             }
 
             // doodad_func_consume_changer_items
+            // This is not actually a phase, but rather a collection of items that is available for doodad_func_consume_changers
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_consume_changer_items";
@@ -573,13 +580,13 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncConsumeChangerItem
+                        var entry = new DoodadFuncConsumeChangerItem
                         {
                             Id = reader.GetUInt32("id"),
                             DoodadFuncConsumeChangerId = reader.GetUInt32("doodad_func_consume_changer_id"),
                             ItemId = reader.GetUInt32("item_id")
                         };
-                        _phaseFuncTemplates["DoodadFuncConsumeChangerItem"].Add(func.Id, func);
+                        _doodadFuncConsumeChangerItem.TryAdd(entry.Id, entry);
                     }
                 }
             }
@@ -3002,5 +3009,10 @@ public class DoodadManager : Singleton<DoodadManager>
         doodad.BroadcastPacket(new SCDoodadChangedPacket(doodad.ObjId, doodad.Data), false);
 
         return true;
+    }
+
+    public List<uint> GetDoodadFuncConsumeChangerItemList(uint doodadFuncConsumeChangerId)
+    {
+        return _doodadFuncConsumeChangerItem.Values.Where(d => d.DoodadFuncConsumeChangerId == doodadFuncConsumeChangerId).Select(entry => entry.ItemId).ToList();
     }
 }
