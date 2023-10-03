@@ -108,7 +108,8 @@ public class Doodad : BaseUnit
     public uint ParentObjId { get; set; }
     public DoodadOwnerType OwnerType { get; set; }
     public AttachPointKind AttachPoint { get; set; }
-    public uint DbHouseId { get; set; }
+    public uint OwnerDbId { get; set; }
+    public uint Type2 { get; set; } = 0;
 
     public int Data
     {
@@ -552,14 +553,14 @@ public class Doodad : BaseUnit
         stream.Write(OwnerId); // characterId (Database relative)
         stream.Write(UccId);
         stream.Write(ItemTemplateId);
-        stream.Write(0u); //??type2
+        stream.Write(Type2); //??type2
         stream.Write(TimeLeft); // growing
         stream.Write(PlantTime); //Time stamp of when it was planted
         stream.Write(QuestGlow); //When this is higher than 0 it shows a blue orb over the doodad
         stream.Write(0); // family TODO
         stream.Write(PuzzleGroup); // puzzleGroup /for instances maybe?
         stream.Write((byte)OwnerType); // ownerType
-        stream.Write(DbHouseId); // dbHouseId
+        stream.Write(OwnerDbId); // dbHouseId
         stream.Write(Data); // data
 
         return stream;
@@ -627,7 +628,7 @@ public class Doodad : BaseUnit
                 command.Parameters.AddWithValue("@pitch", Transform?.Local.Rotation.Y ?? 0f);
                 command.Parameters.AddWithValue("@yaw", Transform?.Local.Rotation.Z ?? 0f);
                 command.Parameters.AddWithValue("@item_id", ItemId);
-                command.Parameters.AddWithValue("@house_id", DbHouseId);
+                command.Parameters.AddWithValue("@house_id", OwnerDbId);
                 command.Parameters.AddWithValue("@parent_doodad", parentDoodadId);
                 command.Parameters.AddWithValue("@item_template_id", ItemTemplateId);
                 command.Parameters.AddWithValue("@item_container_id", GetItemContainerId());

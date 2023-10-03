@@ -32,9 +32,9 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
                 }
 
                 // If it's on house property, check if the player has access to it
-                if (owner.DbHouseId > 0)
+                if (owner.OwnerDbId > 0)
                 {
-                    var house = HousingManager.Instance.GetHouseById(owner.DbHouseId);
+                    var house = HousingManager.Instance.GetHouseById(owner.OwnerDbId);
                     if (house != null && !house.AllowedToInteract(character))
                     {
                         character.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);

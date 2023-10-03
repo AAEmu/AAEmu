@@ -2746,7 +2746,7 @@ public class DoodadManager : Singleton<DoodadManager>
                 doodad.ParentObjId = house.ObjId;
                 doodad.OwnerId = house.OwnerId;
                 doodad.OwnerType = DoodadOwnerType.Housing;
-                doodad.DbHouseId = house.Id;
+                doodad.OwnerDbId = house.Id;
                 break;
             case Transfer transfer:
                 doodad.OwnerId = 0;
@@ -2892,7 +2892,7 @@ public class DoodadManager : Singleton<DoodadManager>
         doodad.PlantTime = DateTime.UtcNow;
         if (targetHouse != null)
         {
-            doodad.DbHouseId = targetHouse.Id;
+            doodad.OwnerDbId = targetHouse.Id;
             doodad.AttachPoint = AttachPointKind.None;
             doodad.OwnerType = DoodadOwnerType.Housing;
             doodad.ParentObj = targetHouse;
@@ -2901,7 +2901,7 @@ public class DoodadManager : Singleton<DoodadManager>
         }
         else
         {
-            doodad.DbHouseId = 0;
+            doodad.OwnerDbId = 0;
         }
 
         if (scale > 0f)

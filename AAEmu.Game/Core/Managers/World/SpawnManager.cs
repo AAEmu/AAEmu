@@ -437,7 +437,7 @@ public class SpawnManager : Singleton<SpawnManager>
                         doodad.OverridePhaseTime = phaseTime;
                         doodad.PhaseTime = phaseTime;
                         doodad.ItemId = itemId;
-                        doodad.DbHouseId = houseId;
+                        doodad.OwnerDbId = houseId;
                         // Try to grab info from the actual item if it still exists
                         var sourceItem = ItemManager.Instance.GetItemByItemId(itemId);
                         doodad.ItemTemplateId = sourceItem?.TemplateId ?? itemTemplateId;
@@ -464,7 +464,7 @@ public class SpawnManager : Singleton<SpawnManager>
 
                         if ((houseId > 0) && (doodad.ParentObjId <= 0))
                         {
-                            var owningHouse = HousingManager.Instance.GetHouseById(doodad.DbHouseId);
+                            var owningHouse = HousingManager.Instance.GetHouseById(doodad.OwnerDbId);
                             if (owningHouse == null)
                             {
                                 Logger.Warn($"Unable to place doodad {dbId} can't find it's owning house {houseId}");
