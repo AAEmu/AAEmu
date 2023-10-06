@@ -7,7 +7,7 @@ namespace AAEmu.Game.IO;
 
 public static class ClientFileManager
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static bool _initialized = false;
 
     private static List<ClientSource> Sources = new();

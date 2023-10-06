@@ -6,7 +6,7 @@ namespace AAEmu.Commons.Network;
 
 public class BufferManager
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private int _numBytes;
     private byte[] _buffer;

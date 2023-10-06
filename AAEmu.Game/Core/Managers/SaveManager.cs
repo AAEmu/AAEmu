@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class SaveManager : Singleton<SaveManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private double Delay = 1;
     private bool _enabled;

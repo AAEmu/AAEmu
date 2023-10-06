@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Char;
 
 public class CharacterAppellations
 {
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public List<uint> Appellations { get; set; }
     public uint ActiveAppellation { get; set; }

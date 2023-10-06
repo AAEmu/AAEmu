@@ -31,7 +31,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
     /// </summary>
     private float TargetPhysicsTps { get; set; } = 15f;
     private Thread _thread;
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private CollisionSystem _collisionSystem;
     private Jitter.World _physWorld;

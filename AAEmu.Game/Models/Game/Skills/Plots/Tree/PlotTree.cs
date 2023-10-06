@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree;
 
 public class PlotTree
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public uint PlotId { get; set; }
 

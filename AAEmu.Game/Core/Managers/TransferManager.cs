@@ -27,7 +27,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class TransferManager : Singleton<TransferManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _initialized = false;
 
     private Dictionary<uint, TransferTemplate> _templates;

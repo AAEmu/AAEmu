@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class FactionManager : Singleton<FactionManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
     private Dictionary<uint, SystemFaction> _systemFactions;

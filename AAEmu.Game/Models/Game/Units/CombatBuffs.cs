@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Units;
 
 public class CombatBuffs
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private BaseUnit _owner;
     private Dictionary<SkillHitType, List<CombatBuffTemplate>> _cbuffsByHitType;
 

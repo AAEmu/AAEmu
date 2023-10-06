@@ -25,7 +25,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class LaborPowerManager : Singleton<LaborPowerManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     //private List<LaborPower> _onlineChar;
     //private List<LaborPower> _offlineChar;

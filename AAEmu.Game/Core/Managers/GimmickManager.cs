@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class GimmickManager : Singleton<GimmickManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
     private Dictionary<uint, GimmickTemplate> _templates;

@@ -7,7 +7,7 @@ namespace AAEmu.Commons.Network;
 
 public class SocketAsyncEventArgsPool
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private ConcurrentStack<SocketAsyncEventArgs> _pool;
 
     public int Count => _pool.Count;

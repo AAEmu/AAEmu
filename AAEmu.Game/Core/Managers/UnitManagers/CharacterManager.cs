@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers;
 
 public class CharacterManager : Singleton<CharacterManager>
 {
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private readonly Dictionary<byte, CharacterTemplate> _templates;
     private readonly Dictionary<byte, AbilityItems> _abilityItems;

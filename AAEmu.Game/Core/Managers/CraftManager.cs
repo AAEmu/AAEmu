@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class CraftManager : Singleton<CraftManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, Craft> _crafts;
 

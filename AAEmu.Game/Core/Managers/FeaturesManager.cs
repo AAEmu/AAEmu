@@ -9,7 +9,7 @@ public class FeaturesManager : Singleton<FeaturesManager>
 {
     public static FeatureSet Fsets { get; private set; }
 
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public static void Initialize()
     {

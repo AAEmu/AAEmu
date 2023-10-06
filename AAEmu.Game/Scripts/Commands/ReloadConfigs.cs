@@ -8,7 +8,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 class ReloadConfigs : ICommand
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public void OnLoad()
     {
         string[] name = { "reloadconfig", "reload_configs", "reload_configurations" };

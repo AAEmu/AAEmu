@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class AnimationManager : Singleton<AnimationManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, Anim> _animations = new();
     private Dictionary<string, Anim> _animationsByName = new();

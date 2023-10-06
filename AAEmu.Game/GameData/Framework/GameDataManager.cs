@@ -10,7 +10,7 @@ namespace AAEmu.Game.GameData.Framework;
 
 public class GameDataManager : Singleton<GameDataManager>
 {
-    private Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private List<IGameDataLoader> _loaders;
     private bool _loadedGameData = false;
     private bool _postLoadedGameData = false;

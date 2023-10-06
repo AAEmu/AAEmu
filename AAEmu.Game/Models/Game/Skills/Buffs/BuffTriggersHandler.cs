@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs;
 
 public class BuffTriggersHandler
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Buff _owner;
     private List<BuffTrigger> _triggers;
 

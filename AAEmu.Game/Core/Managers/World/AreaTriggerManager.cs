@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class AreaTriggerManager : Singleton<AreaTriggerManager>
 {
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private readonly List<AreaTrigger> _areaTriggers;
     private List<AreaTrigger> _addQueue;

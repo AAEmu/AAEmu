@@ -36,7 +36,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     // Default World and Instance ID that will be assigned to all Transforms as a Default value
     public static uint DefaultWorldId { get; set; } = 0; // This will get reset to it's proper value when loading world data (which is usually 0)
     public static uint DefaultInstanceId { get; set; } = 0;
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
     private Dictionary<uint, InstanceWorld> _worlds;

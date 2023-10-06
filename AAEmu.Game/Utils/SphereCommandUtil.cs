@@ -17,7 +17,7 @@ namespace AAEmu.Game.Utils;
 
 public class SphereCommandUtil
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public static void GetCommandChoice(Character character, string choice, string[] args)
     {

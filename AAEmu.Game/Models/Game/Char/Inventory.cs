@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Char;
 
 public class Inventory
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public readonly ICharacter Owner;
 
     public Dictionary<SlotType, ItemContainer> _itemContainers { get; private set; }

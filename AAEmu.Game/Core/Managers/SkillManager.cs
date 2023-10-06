@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class SkillManager : Singleton<SkillManager>, ISkillManager
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
     private Dictionary<uint, SkillTemplate> _skills;

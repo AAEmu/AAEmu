@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class NameManager : Singleton<NameManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Regex _characterNameRegex;
     private Dictionary<uint, string> _characterNames;

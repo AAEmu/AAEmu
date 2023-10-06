@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class TaxationsManager : Singleton<TaxationsManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public Dictionary<uint, Taxation> taxations;
 

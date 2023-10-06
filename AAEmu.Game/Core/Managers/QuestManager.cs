@@ -20,7 +20,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class QuestManager : Singleton<QuestManager>, IQuestManager
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
     protected Dictionary<uint, QuestTemplate> _templates;
     protected Dictionary<byte, QuestSupplies> _supplies;

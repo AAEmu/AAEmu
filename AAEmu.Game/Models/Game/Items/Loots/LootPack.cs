@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Items.Loots;
 
 public class LootPack
 {
-    private Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public uint Id { get; set; }
     public uint GroupCount { get; set; }
     public List<Loot> Loots { get; set; }

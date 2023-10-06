@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.Char;
 
 public class CharacterQuests
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly List<uint> _removed;
 
     public Character Owner { get; set; }

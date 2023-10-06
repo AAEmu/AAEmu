@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class MusicManager : Singleton<MusicManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, SongData> _uploadQueue; // playerId, song
     private Dictionary<uint, SongData> _allSongs; // songId, song

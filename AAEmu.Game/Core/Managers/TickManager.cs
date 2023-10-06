@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class TickManager : Singleton<TickManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public delegate void OnTickEvent(TimeSpan delta);
     public TickEventHandler OnTick = new();
     private bool DoTickLoop = true;
@@ -61,7 +61,7 @@ public class TickManager : Singleton<TickManager>
     }
     public class TickEventHandler
     {
-        private static Logger Logger = LogManager.GetCurrentClassLogger();
+        private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
         public delegate void OnTickEvent(TimeSpan delta);
         private List<TickEventEntity> _eventList;

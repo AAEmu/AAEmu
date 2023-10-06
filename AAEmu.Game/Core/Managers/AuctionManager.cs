@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class AuctionManager : Singleton<AuctionManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public List<AuctionItem> _auctionItems;
     public List<long> _deletedAuctionItemIds;

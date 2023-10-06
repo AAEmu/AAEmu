@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class ExpressTextManager : Singleton<ExpressTextManager>, IExpressTextManager
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, uint> _expressTexts;
 

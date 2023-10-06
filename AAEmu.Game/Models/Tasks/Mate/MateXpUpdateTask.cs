@@ -6,7 +6,7 @@ namespace AAEmu.Game.Models.Tasks.Mate;
 
 public class MateXpUpdateTask : Task
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly Game.Units.Mate _mate;
     private readonly Character _owner;
     private const int Exp = 300;

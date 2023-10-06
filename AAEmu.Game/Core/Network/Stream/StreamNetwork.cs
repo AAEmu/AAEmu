@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Network.Stream;
 
 public class StreamNetwork : Singleton<StreamNetwork>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Server _server;
     private StreamProtocolHandler _handler;

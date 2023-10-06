@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class FamilyManager : Singleton<FamilyManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, Family> _families;
     private Dictionary<uint, FamilyMember> _familyMembers;

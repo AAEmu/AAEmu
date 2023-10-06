@@ -7,7 +7,7 @@ namespace AAEmu.Commons.Utils.DB;
 
 public static class MySQL
 {
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static string s_connectionString;
 
     static MySQL()

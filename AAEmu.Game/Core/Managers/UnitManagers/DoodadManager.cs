@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers;
 public class DoodadManager : Singleton<DoodadManager>
 {
     // ReSharper disable once FieldCanBeMadeReadOnly.Local
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded;
 
     private Dictionary<uint, DoodadTemplate> _templates;

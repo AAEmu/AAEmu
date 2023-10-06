@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class PortalManager : Singleton<PortalManager>
 {
-    private readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     //private Dictionary<uint, uint> _allDistrictPortalsKey;
     //private Dictionary<uint, Portal> _allDistrictPortals;

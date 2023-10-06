@@ -38,7 +38,7 @@ public class HousingManager : Singleton<HousingManager>
 {
     private const uint ForSaleMarkerDoodadId = 6760;
 
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Dictionary<uint, HousingTemplate> _housingTemplates;
     private Dictionary<uint, House> _houses;
     private Dictionary<ushort, House> _housesTl; // TODO or so mb tlId is id in the active zone? or type of house

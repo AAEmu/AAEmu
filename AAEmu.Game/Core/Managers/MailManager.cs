@@ -22,7 +22,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class MailManager : Singleton<MailManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public Dictionary<long, BaseMail> _allPlayerMails;
     private List<long> _deletedMailIds = new();

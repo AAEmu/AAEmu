@@ -16,7 +16,7 @@ namespace AAEmu.Login.Core.Controllers;
 
 public class GameController : Singleton<GameController>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Dictionary<byte, GameServer> _gameServers;
     private Dictionary<byte, byte> _mirrorsId;
 

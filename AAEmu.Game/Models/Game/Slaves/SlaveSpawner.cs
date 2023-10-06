@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Slaves;
 
 public class SlaveSpawner : Spawner<Slave>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private List<Slave> _spawned;
     public Slave _lastSpawn;

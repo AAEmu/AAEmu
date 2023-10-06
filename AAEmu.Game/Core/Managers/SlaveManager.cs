@@ -32,7 +32,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class SlaveManager : Singleton<SlaveManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Dictionary<uint, SlaveTemplate> _slaveTemplates;
     private Dictionary<uint, Slave> _activeSlaves;
     private Dictionary<uint, Slave> _tlSlaves;

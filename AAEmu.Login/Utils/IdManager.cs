@@ -11,7 +11,7 @@ namespace AAEmu.Login.Utils;
 
 public class IdManager
 {
-    protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private BitSet _freeIds;
     private int _freeIdCount;

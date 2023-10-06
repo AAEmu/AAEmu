@@ -23,7 +23,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class MateManager : Singleton<MateManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Regex _nameRegex;
 
     private Dictionary<uint, NpcMountSkills> _slaveMountSkills;

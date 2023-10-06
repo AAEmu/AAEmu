@@ -17,7 +17,7 @@ namespace AAEmu.Game.GameData;
 [GameData]
 public class AiGameData : Singleton<AiGameData>, IGameDataLoader
 {
-    private Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, AiParams> _aiParams;
     private Dictionary<uint, List<AiCommands>> _aiCommands;

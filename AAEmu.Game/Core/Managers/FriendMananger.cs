@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class FriendMananger : Singleton<FriendMananger>
 {
-    private readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Dictionary<uint, FriendTemplate> _allFriends; // temp id, template
 
     public void Load()

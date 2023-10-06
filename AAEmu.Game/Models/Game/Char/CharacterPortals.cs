@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Game.Char;
 
 public class CharacterPortals
 {
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Dictionary<uint, VisitedDistrict> VisitedDistricts { get; }
     private readonly List<uint> _removedVisitedDistricts;
     private readonly List<uint> _removedPrivatePortals;

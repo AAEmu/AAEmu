@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Transfers;
 
 public class TransferSpawner : Spawner<Transfer>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private List<Transfer> _spawned;
     private Transfer _lastSpawn;

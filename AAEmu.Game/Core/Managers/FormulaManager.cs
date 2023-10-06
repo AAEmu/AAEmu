@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class FormulaManager : Singleton<FormulaManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static bool _loaded = false;
 
     private Dictionary<FormulaOwnerType, Dictionary<UnitFormulaKind, UnitFormula>> _unitFormulas;

@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Network.Game;
 
 public class GameProtocolHandler : BaseProtocolHandler
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private ConcurrentDictionary<byte, ConcurrentDictionary<uint, Type>> _packets;
 

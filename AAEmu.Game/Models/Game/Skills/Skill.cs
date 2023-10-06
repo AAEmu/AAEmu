@@ -35,7 +35,7 @@ namespace AAEmu.Game.Models.Game.Skills;
 
 public class Skill
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public uint Id { get; set; }
     public SkillTemplate Template { get; set; }

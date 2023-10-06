@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class ZoneManager : Singleton<ZoneManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, uint> _zoneIdToKey;
     private Dictionary<uint, Zone> _zones;

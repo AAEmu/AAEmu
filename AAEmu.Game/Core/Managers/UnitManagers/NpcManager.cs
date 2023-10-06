@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers;
 
 public class NpcManager : Singleton<NpcManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
     private Dictionary<uint, NpcTemplate> _templates;

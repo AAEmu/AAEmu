@@ -10,7 +10,7 @@ namespace AAEmu.Login.Core.Network.Internal;
 
 public class InternalNetwork : Singleton<InternalNetwork>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Server _server;
     private InternalProtocolHandler _handler;

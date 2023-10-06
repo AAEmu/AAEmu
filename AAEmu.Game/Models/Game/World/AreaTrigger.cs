@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.World;
 
 public class AreaTrigger
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public AreaShape Shape { get; set; }
     public Doodad Owner { get; set; }
     public Unit Caster { get; set; }

@@ -21,7 +21,7 @@ namespace AAEmu.Game.Core.Managers.Stream;
 
 public class UccManager : Singleton<UccManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Dictionary<uint, Ucc> _uploadQueue;
     private Dictionary<uint, UccUploadHandle> _complexUploadParts;
     private Dictionary<ulong, Ucc> _uccs;

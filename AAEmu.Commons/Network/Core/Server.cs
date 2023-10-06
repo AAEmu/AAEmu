@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -10,7 +10,7 @@ namespace AAEmu.Commons.Network.Core;
 
 public class Server : TcpServer
 {
-    private Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private BaseProtocolHandler _protocolHandler;
     private readonly HashSet<Session> _sessions = new();
 

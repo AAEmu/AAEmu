@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class AccountManager : Singleton<AccountManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private ConcurrentDictionary<uint, GameConnection> _accounts;
 

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class ExperienceManager : Singleton<ExperienceManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<byte, ExperienceLevelTemplate> _levels;
 

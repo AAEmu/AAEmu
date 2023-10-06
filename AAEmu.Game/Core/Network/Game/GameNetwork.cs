@@ -13,7 +13,7 @@ public class GameNetwork : Singleton<GameNetwork>
 {
     private Server _server;
     private GameProtocolHandler _handler;
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private GameNetwork()
     {

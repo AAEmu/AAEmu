@@ -7,7 +7,7 @@ namespace AAEmu.Game.Services.WebApi;
 
 public class WebApiServer : HttpServer
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public WebApiServer(IPAddress address, int port) : base(address, port)
     {
         RegisterRoutes();

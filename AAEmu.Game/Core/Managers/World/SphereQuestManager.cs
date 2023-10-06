@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestManager
 {
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, List<SphereQuest>> _sphereQuests;
 

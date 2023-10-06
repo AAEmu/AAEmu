@@ -24,7 +24,7 @@ namespace AAEmu.Game;
 
 public sealed class GameService : IHostedService, IDisposable
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {

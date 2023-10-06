@@ -21,7 +21,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class DuelManager : Singleton<DuelManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private DoodadSpawner _combatFlag;
     private const double Delay = 1000; // 1 sec

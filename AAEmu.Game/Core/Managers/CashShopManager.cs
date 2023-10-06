@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class CashShopManager : Singleton<CashShopManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private List<CashShopItem> _cashShopItem;
     private Dictionary<uint, CashShopItemDetail> _cashShopItemDetail;

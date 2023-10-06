@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class PlotManager : Singleton<PlotManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
     private Dictionary<uint, Plot> _plots;

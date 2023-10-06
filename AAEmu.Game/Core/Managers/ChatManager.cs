@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class ChatManager : Singleton<ChatManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     /// <summary>
     /// nullChannel is used as a fallback channel, do not use directly

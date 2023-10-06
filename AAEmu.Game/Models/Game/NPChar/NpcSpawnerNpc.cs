@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.NPChar;
 
 public class NpcSpawnerNpc : Spawner<Npc>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public uint NpcSpawnerTemplateId { get; set; }
     public uint MemberId { get; set; }

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Utils.DB;
 
 public static class SQLite
 {
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public static SqliteConnection CreateConnection(string directory = "Data", string sqlite = "compact.sqlite3")
     {

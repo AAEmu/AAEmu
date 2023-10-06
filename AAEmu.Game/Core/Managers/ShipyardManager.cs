@@ -20,7 +20,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class ShipyardManager : Singleton<ShipyardManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public Dictionary<uint, ShipyardsTemplate> _shipyardsTemplate;
     private Dictionary<uint, Shipyard> _shipyard;

@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class EnterWorldManager : Singleton<EnterWorldManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, uint> _accounts;
 

@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class TaskManager : Singleton<TaskManager>, ITaskManager
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _initialized = false;
 
     private DefaultThreadPool _generalPool;

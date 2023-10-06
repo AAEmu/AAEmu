@@ -31,7 +31,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class ItemManager : Singleton<ItemManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded;
 
     private Dictionary<int, GradeTemplate> _grades;

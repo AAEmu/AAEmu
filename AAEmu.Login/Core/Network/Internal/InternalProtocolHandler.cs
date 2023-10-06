@@ -13,7 +13,7 @@ namespace AAEmu.Login.Core.Network.Internal;
 
 public class InternalProtocolHandler : BaseProtocolHandler
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private ConcurrentDictionary<uint, Type> _packets;
 

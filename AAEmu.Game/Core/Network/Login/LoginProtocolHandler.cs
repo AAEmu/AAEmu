@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Network.Login;
 
 public class LoginProtocolHandler : BaseProtocolHandler
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private ConcurrentDictionary<uint, Type> _packets;
     private PacketStream _lastPacket;

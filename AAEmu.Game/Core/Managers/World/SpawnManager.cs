@@ -29,7 +29,7 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class SpawnManager : Singleton<SpawnManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded;
 
     private bool _work = true;

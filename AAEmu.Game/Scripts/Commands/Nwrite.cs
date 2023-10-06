@@ -18,7 +18,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Nwrite : ICommand
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public void OnLoad()
     {
         string[] name = { "nwrite", "nw" };

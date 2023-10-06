@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class GameScheduleManager : Singleton<GameScheduleManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
     private Dictionary<int, GameSchedules> _gameSchedules; // GameScheduleId, GameSchedules
     private Dictionary<int, GameScheduleSpawners> _gameScheduleSpawners;

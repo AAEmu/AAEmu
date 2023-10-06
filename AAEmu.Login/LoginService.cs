@@ -14,7 +14,7 @@ namespace AAEmu.Login;
 
 public sealed class LoginService : IHostedService, IDisposable
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public Task StartAsync(CancellationToken cancellationToken)
     {

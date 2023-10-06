@@ -33,7 +33,7 @@ public class Simulation : Patrol
         Init(unit);
     }
 
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public Character Character { get; set; }
     public Npc Npc { get; set; }

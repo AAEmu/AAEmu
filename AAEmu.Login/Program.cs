@@ -16,7 +16,7 @@ namespace AAEmu.Login;
 
 public static class Program
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static Thread _thread = Thread.CurrentThread;
     private static DateTime _startTime;
     private static string Name => Assembly.GetExecutingAssembly().GetName().Name;

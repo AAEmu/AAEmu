@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Gimmicks;
 
 public class GimmickSpawner : Spawner<Gimmick>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public long EntityGuid { get; set; }
     public float WaitTime { get; set; }
     public float TopZ { get; set; }

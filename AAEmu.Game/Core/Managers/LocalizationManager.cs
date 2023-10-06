@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class LocalizationManager : Singleton<LocalizationManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<string, string> _translations;
     /// <summary>

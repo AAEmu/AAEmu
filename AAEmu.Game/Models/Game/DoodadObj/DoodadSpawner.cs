@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj;
 
 public class DoodadSpawner : Spawner<Doodad>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public float Scale { get; set; }
     public Doodad Last { get; set; }
 

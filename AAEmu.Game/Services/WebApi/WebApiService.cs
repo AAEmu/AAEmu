@@ -10,7 +10,7 @@ namespace AAEmu.Game.Services.WebApi;
 public class WebApiService : IHostedService
 {
     private WebApiServer _server;
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public Task StartAsync(CancellationToken cancellationToken)
     {

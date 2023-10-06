@@ -27,7 +27,7 @@ public class TradeTemplate
 
 public class TradeManager : Singleton<TradeManager>
 {
-    private readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly Dictionary<uint, TradeTemplate> _trades;
 
     public TradeManager()

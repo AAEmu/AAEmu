@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads;
 
 public class DoodadFuncTodTask : DoodadFuncTask
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private BaseUnit _caster;
     private Doodad _owner;
     private uint _skillId;

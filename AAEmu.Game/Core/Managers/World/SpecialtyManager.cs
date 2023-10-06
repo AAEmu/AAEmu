@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class SpecialtyManager : Singleton<SpecialtyManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, Specialty> _specialties;
     private Dictionary<uint, SpecialtyBundleItem> _specialtyBundleItems;

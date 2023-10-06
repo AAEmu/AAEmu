@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Framework;
 /// </summary>
 public abstract class NpcAi
 {
-    private Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     // Test
     public bool ShouldTick { get; set; }

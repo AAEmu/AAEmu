@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class FishSchoolManager : Singleton<FishSchoolManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private const double Delay = 500;
     private Dictionary<uint, List<Doodad>> FishSchools { get; set; } = new();
 

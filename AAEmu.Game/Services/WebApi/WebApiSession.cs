@@ -9,7 +9,7 @@ namespace AAEmu.Game.Services.WebApi;
 
 public class WebApiSession : HttpSession
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public WebApiSession(HttpServer server) : base(server)
     {
     }

@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Network.Stream;
 
 public class StreamProtocolHandler : BaseProtocolHandler
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private ConcurrentDictionary<uint, Type> _packets;
 

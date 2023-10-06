@@ -20,7 +20,7 @@ namespace AAEmu.Game.Core.Managers;
 // GeoData AiNavigation
 public class AiGeoDataManager : Singleton<AiGeoDataManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<byte, Dictionary<uint, List<AiNavigation>>> _aiNavigation;
     private Dictionary<byte, Dictionary<uint, string>> _areasMission;

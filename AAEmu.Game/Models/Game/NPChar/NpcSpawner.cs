@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.NPChar;
 
 public class NpcSpawner : Spawner<Npc>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private List<Npc> _spawned; // the list of Npc's that have been shown
     private Npc _lastSpawn;      // the last of the displayed Npc

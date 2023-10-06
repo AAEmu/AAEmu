@@ -15,7 +15,7 @@ namespace AAEmu.Game.Utils.Scripts;
 
 public static class ScriptCompiler
 {
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static Assembly _assembly;
     private static Dictionary<string, ScriptObject> _scriptsObjects = new();
 

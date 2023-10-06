@@ -11,7 +11,7 @@ namespace AAEmu.Commons.Utils.Updater;
 
 public static class MySqlDatabaseUpdater
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     /*
         CREATE TABLE `updates` (
           `script_name` varchar(255) NOT NULL,

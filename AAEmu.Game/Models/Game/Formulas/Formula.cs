@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Formulas;
 
 public class Formula
 {
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Func<Dictionary<string, double>, double> Expression { get; set; }
 
