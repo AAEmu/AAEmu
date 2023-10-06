@@ -12,7 +12,7 @@ public class QuestActObjCompleteQuest : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Debug("QuestActObjCompleteQuest");
+        Logger.Debug("QuestActObjCompleteQuest");
         return character.Quests.IsQuestComplete(QuestId) == AcceptWith;
     }
 }

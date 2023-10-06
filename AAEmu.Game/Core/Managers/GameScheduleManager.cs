@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class GameScheduleManager : Singleton<GameScheduleManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
     private Dictionary<int, GameSchedules> _gameSchedules; // GameScheduleId, GameSchedules
     private Dictionary<int, GameScheduleSpawners> _gameScheduleSpawners;
@@ -29,13 +29,13 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
         if (_loaded)
             return;
 
-        _log.Info("Loading schedules...");
+        _logger.Info("Loading schedules...");
 
         SchedulesGameData.Instance.PostLoad();
 
         LoadGameScheduleSpawnersData(); // добавил разделение spawnerId для Npc & Doodads
 
-        _log.Info("Loaded schedules");
+        _logger.Info("Loaded schedules");
 
         _loaded = true;
     }
@@ -402,6 +402,7 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
         return remainingDate;
     }
 
+    /* unused
     private static TimeSpan GetRemainingTime(GameSchedules value)
     {
         var curHours = DateTime.UtcNow.TimeOfDay.Hours;
@@ -469,7 +470,7 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
             }
         }
         return TimeSpan.FromHours(1);
-    }
+    }*/
 
     private static string GetCronExpression(GameSchedules value, bool start = true)
     {

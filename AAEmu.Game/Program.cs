@@ -22,7 +22,7 @@ namespace AAEmu.Game;
 
 public static class Program
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
     private static Thread _thread = Thread.CurrentThread;
     private static DateTime _startTime;
     private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
@@ -39,17 +39,17 @@ public static class Program
 
         if (args.Length > 0 && args[0] == "compiler-check")
         {
-            _log.Info("Check compilation");
+            _logger.Info("Check compilation");
             var result = ScriptCompiler.CompileScriptsWithAllDependencies(out _, out var diagnostics);
 
             if (result)
             {
-                _log.Info("Compilation successful");
+                _logger.Info("Compilation successful");
                 return 0;
             }
             else
             {
-                _log.Error(new CompilationErrorException("Compilation failed", diagnostics), "Compilation failed");
+                _logger.Error(new CompilationErrorException("Compilation failed", diagnostics), "Compilation failed");
                 return 1;
             }
         }
@@ -72,7 +72,7 @@ public static class Program
         }
         catch (Exception ex)
         {
-            _log.Fatal(ex, "MySQL connection failed, check your configuration!");
+            _logger.Fatal(ex, "MySQL connection failed, check your configuration!");
             LogManager.Flush();
             return 1;
         }
@@ -84,7 +84,7 @@ public static class Program
         }
         catch (Exception ex)
         {
-            _log.Fatal(ex, "Failed to load compact.sqlite3 database check if it exists!");
+            _logger.Fatal(ex, "Failed to load compact.sqlite3 database check if it exists!");
             LogManager.Flush();
             return 1;
         }
@@ -115,14 +115,14 @@ public static class Program
         }
         catch (OperationCanceledException ocex)
         {
-            _log.Fatal(ocex.Message);
+            _logger.Fatal(ocex.Message);
         }
         return 0;
     }
 
     private static void Initialization()
     {
-        _log.Info($"{Name} version {Version}");
+        _logger.Info($"{Name} version {Version}");
         _thread.Name = "AA.Game Base Thread";
         _startTime = DateTime.UtcNow;
     }
@@ -132,7 +132,7 @@ public static class Program
         var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
         if (!File.Exists(mainConfig))
         {
-            _log.Fatal($"{mainConfig} doesn't exist!");
+            _logger.Fatal($"{mainConfig} doesn't exist!");
             return false;
         }
 
@@ -157,7 +157,7 @@ public static class Program
         // Add config json files
         foreach (var file in configFiles)
         {
-            _log.Info($"Config: {file}");
+            _logger.Info($"Config: {file}");
             configurationBuilder.AddJsonFile(file);
             configurationBuilder.AddUserSecrets<GameService>();
         }
@@ -172,6 +172,6 @@ public static class Program
     private static void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
         var exceptionStr = e.ExceptionObject.ToString();
-        _log.Fatal(exceptionStr);
+        _logger.Fatal(exceptionStr);
     }
 }

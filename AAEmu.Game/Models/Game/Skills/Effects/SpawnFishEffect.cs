@@ -17,6 +17,6 @@ public class SpawnFishEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("SpawnFishEffect");
+        Logger.Trace("SpawnFishEffect");
     }
 }

@@ -21,13 +21,13 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Debug("NpcSpawnerSpawnEffect");
+        Logger.Debug("NpcSpawnerSpawnEffect");
 
         var spawners = SpawnManager.Instance.GetNpcSpawner(SpawnerId, (byte)caster.Transform.WorldId);
         foreach (var spawner in spawners)
         {
             spawner.DoSpawn();
-            _log.Debug("NpcSpawnerSpawnEffect id:{0}, Npc unitId:{1} spawnerId:{2}", Id, spawner.UnitId, SpawnerId);
+            Logger.Debug("NpcSpawnerSpawnEffect id:{0}, Npc unitId:{1} spawnerId:{2}", Id, spawner.UnitId, SpawnerId);
         }
     }
 }

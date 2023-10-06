@@ -16,7 +16,7 @@ public class QuestActObjAbilityLevel : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActObjAbilityLevel");
+        Logger.Warn("QuestActObjAbilityLevel");
 
         var completes = new List<bool>();
         for (var i = 1; i < 11; i++)

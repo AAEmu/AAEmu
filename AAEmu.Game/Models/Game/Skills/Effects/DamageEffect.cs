@@ -72,7 +72,7 @@ public class DamageEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("DamageEffect");
+        Logger.Trace("DamageEffect");
 
         var trg = target as Unit;
         if (trg == null || trg.Hp <= 0)

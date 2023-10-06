@@ -9,7 +9,7 @@ public class QuestActCheckCompleteComponent : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActCheckCompleteComponent: Complete Component {0}", CompleteComponent);
+        Logger.Warn("QuestActCheckCompleteComponent: Complete Component {0}", CompleteComponent);
         return false;
     }
 }

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class LocalizationManager : Singleton<LocalizationManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private Dictionary<string, string> _translations;
     /// <summary>
@@ -29,7 +29,7 @@ public class LocalizationManager : Singleton<LocalizationManager>
 
     public void Load()
     {
-        _log.Info("Loading translations ...", _translations.Count);
+        _logger.Info("Loading translations ...", _translations.Count);
 
         using (var connection = SQLite.CreateConnection())
         {
@@ -45,13 +45,13 @@ public class LocalizationManager : Singleton<LocalizationManager>
             }
         }
 
-        _log.Info("Loaded {0} translations ...", _translations.Count);
+        _logger.Info("Loaded {0} translations ...", _translations.Count);
     }
 
     public void AddTranslation(string tbl_name, string tbl_column, long index, string translationValue)
     {
         if (!_translations.TryAdd(GetLookupKey(tbl_name, tbl_column, index), translationValue))
-            _log.Error("Failed to add translation: {0}:{1}:{2}", tbl_name, tbl_column, index);
+            _logger.Error("Failed to add translation: {0}:{1}:{2}", tbl_name, tbl_column, index);
     }
 
     public string Get(string tbl_name, string tbl_column, long index, string fallbackValue = "")

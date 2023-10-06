@@ -10,7 +10,7 @@ public class QuestActSupplyLivingPoint : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActSupplyLivingPoint");
+        Logger.Warn("QuestActSupplyLivingPoint");
         character.ChangeGamePoints(GamePointKind.Vocation, Point);
         return true;
     }

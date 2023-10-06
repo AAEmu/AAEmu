@@ -36,7 +36,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     // Default World and Instance ID that will be assigned to all Transforms as a Default value
     public static uint DefaultWorldId { get; set; } = 0; // This will get reset to it's proper value when loading world data (which is usually 0)
     public static uint DefaultInstanceId { get; set; } = 0;
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
     private Dictionary<uint, InstanceWorld> _worlds;
@@ -97,7 +97,6 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             RegenTick(character);
             BreathTick(character);
         }
-        
         /*
         //var sw = new Stopwatch();
         //sw.Start();
@@ -179,7 +178,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         _worldIdByZoneId = new Dictionary<uint, uint>();
         _worldInteractionGroups = new Dictionary<uint, WorldInteractionGroup>();
 
-        _log.Info("Loading world data...");
+        _logger.Info("Loading world data...");
 
         #region LoadClientData
 
@@ -197,10 +196,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         var contents = File.Exists(spawnPositionFile) ? File.ReadAllText(spawnPositionFile) : "";
         var worldSpawnLookup = new List<WorldSpawnLocation>();
         if (string.IsNullOrWhiteSpace(contents))
-            _log.Error($"File {spawnPositionFile} doesn't exists or is empty.");
+            _logger.Error($"File {spawnPositionFile} doesn't exists or is empty.");
         else
             if (!JsonHelper.TryDeserializeObject(contents, out List<WorldSpawnLocation> worldSpawnLookupFromJson, out _))
-            _log.Error($"Error in {spawnPositionFile}.");
+            _logger.Error($"Error in {spawnPositionFile}.");
         else
             worldSpawnLookup = worldSpawnLookupFromJson;
 
@@ -284,12 +283,12 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                         idz.LocalizedName =
                             LocalizationManager.Instance.Get("indun_zones", "name", idz.ZoneGroupId, idz.Name);
                         if (!_indunZones.TryAdd(idz.ZoneGroupId, idz))
-                            _log.Fatal($"Unable to add zone_group_id: {idz.ZoneGroupId} from indun_zone");
+                            _logger.Fatal($"Unable to add zone_group_id: {idz.ZoneGroupId} from indun_zone");
                     }
                 }
             }
 
-            _log.Debug($"Loaded {_indunZones.Count} dungeon zones");
+            _logger.Debug($"Loaded {_indunZones.Count} dungeon zones");
             /*
             // add dummy main world as ID 0
             if (!_indunZones.TryAdd(0, new IndunZone() { ZoneGroupId = 0, Name = "Main World", LocalizedName = "Erenor" }))
@@ -345,7 +344,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         var heightMap = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "hmap.dat");
         if (!File.Exists(heightMap))
         {
-            _log.Trace($"HeightMap for `{world.Name}` not found");
+            _logger.Trace($"HeightMap for `{world.Name}` not found");
             return false;
         }
 
@@ -383,18 +382,18 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 }
                 else
                 {
-                    _log.Warn("{0}: Invalid heightmap cells, does not match world definition ...", world.Name);
+                    _logger.Warn("{0}: Invalid heightmap cells, does not match world definition ...", world.Name);
                     return false;
                 }
             }
             else
             {
-                _log.Warn("{0}: Heightmap version not supported {1}", world.Name, version);
+                _logger.Warn("{0}: Heightmap version not supported {1}", world.Name, version);
                 return false;
             }
         }
 
-        _log.Info("{0} heightmap loaded", world.Name);
+        _logger.Info("{0} heightmap loaded", world.Name);
         return true;
     }
 
@@ -430,7 +429,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                             var disableReCalc = false; // (version == VersionCalc.V1) // Version is never VersionCalc.V1
                             if (hmap.Read(br, disableReCalc) < 0)
                             {
-                                _log.Error($"Error reading {heightMapFile}");
+                                _logger.Error($"Error reading {heightMapFile}");
                                 continue;
                             }
 
@@ -491,7 +490,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                     }
             }
 
-        _log.Info("{0} heightmap loaded", world.Name);
+        _logger.Info("{0} heightmap loaded", world.Name);
         return true;
     }
 
@@ -499,7 +498,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         if (AppConfiguration.Instance.HeightMapsEnable) // TODO fastboot if HeightMapsEnable = false!
         {
-            _log.Info("Loading heightmaps...");
+            _logger.Info("Loading heightmaps...");
 
             var loaded = 0;
             foreach (var world in _worlds.Values)
@@ -512,7 +511,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                     loaded++;
             }
 
-            _log.Info($"Loaded {loaded}/{_worlds.Count} heightmaps");
+            _logger.Info($"Loaded {loaded}/{_worlds.Count} heightmaps");
         }
     }
 
@@ -543,7 +542,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         if (_worlds.TryGetValue(worldId, out var res))
             return res;
-        _log.Fatal("GetWorld(): No such WorldId {0}", worldId);
+        _logger.Fatal("GetWorld(): No such WorldId {0}", worldId);
         return null;
     }
 
@@ -556,14 +555,14 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         if (_worldIdByZoneId.TryGetValue(zoneId, out var worldId))
             return worldId;
-        _log.Fatal("GetWorldByZone(): No world defined for ZoneId {0}", zoneId);
+        _logger.Fatal("GetWorldByZone(): No world defined for ZoneId {0}", zoneId);
         return 0xffffffff; // -1
     }
     public InstanceWorld GetWorldByZone(uint zoneId)
     {
         if (_worldIdByZoneId.TryGetValue(zoneId, out var worldId))
             return GetWorld(worldId);
-        _log.Fatal("GetWorldByZone(): No world defined for ZoneId {0}", zoneId);
+        _logger.Fatal("GetWorldByZone(): No world defined for ZoneId {0}", zoneId);
         return null;
     }
 
@@ -571,7 +570,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         if (!_worlds.TryGetValue(worldId, out var world))
         {
-            _log.Fatal("GetZoneId(): No such WorldId {0}", worldId);
+            _logger.Fatal("GetZoneId(): No such WorldId {0}", worldId);
             return 0;
         }
         var sx = (int)(x / REGION_SIZE);
@@ -579,7 +578,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         if (!world.ValidRegion(sx, sy))
         {
-            _log.Fatal("GetZoneId(): Coordicates out of bounds for WorldId {0} - x:{1:#,0.#} - y: {2:#,0.#}", worldId, x, y);
+            _logger.Fatal("GetZoneId(): Coordicates out of bounds for WorldId {0} - x:{1:#,0.#} - y: {2:#,0.#}", worldId, x, y);
             return 0;
         }
 
@@ -970,7 +969,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     public static List<T> GetAroundByShape<T>(GameObject obj, AreaShape shape) where T : GameObject
     {
         if (shape.Value1 == 0 && shape.Value2 == 0 && shape.Value3 == 0)
-            _log.Warn("AreaShape with no size values was used");
+            _logger.Warn("AreaShape with no size values was used");
         if (shape.Type == AreaShapeType.Sphere)
         {
             var radius = shape.Value1;
@@ -986,7 +985,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             return res;
         }
 
-        _log.Error("AreaShape had impossible type");
+        _logger.Error("AreaShape had impossible type");
         throw new ArgumentNullException(nameof(shape), "AreaShape type does not exist!");
     }
 
@@ -1266,7 +1265,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             }
 
         if (bodiesLoaded > 0)
-            _log.Info($"{bodiesLoaded} waters bodies loaded for {world.Name}");
+            _logger.Info($"{bodiesLoaded} waters bodies loaded for {world.Name}");
         return true;
     }
 }

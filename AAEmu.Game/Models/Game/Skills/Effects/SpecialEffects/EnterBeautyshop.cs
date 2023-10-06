@@ -26,7 +26,7 @@ public class EnterBeautyshop : SpecialEffectAction
         // TODO ...
         if (caster is Character player)
         {
-            _log.Debug("Special effects: EnterBeautyshop value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
+            Logger.Debug("Special effects: EnterBeautyshop value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
             player.SendPacket(new SCToggleBeautyshopResponsePacket(1));
         }
     }

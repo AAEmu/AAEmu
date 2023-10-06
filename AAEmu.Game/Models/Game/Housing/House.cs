@@ -311,7 +311,7 @@ public sealed class House : Unit
 
     public void OnDeath(object sender, EventArgs args)
     {
-        Log.Debug("House died ObjId:{0} - TemplateId:{1} - {2}", ObjId, TemplateId, Name);
+        Logger.Debug("House died ObjId:{0} - TemplateId:{1} - {2}", ObjId, TemplateId, Name);
         HousingManager.Instance.RemoveDeadHouse(this);
     }
 

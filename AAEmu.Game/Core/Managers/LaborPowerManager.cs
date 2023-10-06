@@ -25,12 +25,12 @@ namespace AAEmu.Game.Core.Managers;
 
 public class LaborPowerManager : Singleton<LaborPowerManager>
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     //private List<LaborPower> _onlineChar;
     //private List<LaborPower> _offlineChar;
     private const short LpChangePremium = 10; // TODO in config
-    private const short LpChange = 5;
+    //private const short LpChange = 5;
     private const short UpLimit = 5000;
     private const double Delay = 5; // min
 
@@ -42,13 +42,13 @@ public class LaborPowerManager : Singleton<LaborPowerManager>
 
     public static void Initialize()
     {
-        _log.Info("Initialising Labor Power Manager...");
+        _logger.Info("Initialising Labor Power Manager...");
         LaborPowerTickStart();
     }
 
     public static void LaborPowerTickStart()
     {
-        _log.Debug("LaborPowerTickStart: Started");
+        _logger.Debug("LaborPowerTickStart: Started");
 
         var lpTickStartTask = new LaborPowerTickStartTask();
         TaskManager.Instance.Schedule(lpTickStartTask, TimeSpan.FromMinutes(Delay), TimeSpan.FromMinutes(Delay));
@@ -68,7 +68,7 @@ public class LaborPowerManager : Singleton<LaborPowerManager>
 
                 if (character.Value.LaborPower < 0)
                 {
-                    _log.Warn("Char: {1} has negative {0} labor points, reseting to 0.", character.Value.LaborPower, character.Value.Name);
+                    _logger.Warn("Char: {1} has negative {0} labor points, reseting to 0.", character.Value.LaborPower, character.Value.Name);
                     character.Value.ChangeLabor((short)(character.Value.LaborPower * -1), 0);
                     continue;
                 }
@@ -86,12 +86,12 @@ public class LaborPowerManager : Singleton<LaborPowerManager>
                     {
                         character.Value.LaborPowerModified = DateTime.UtcNow;
                         character.Value.ChangeLabor((short)needAddOfflineLp, 0);
-                        _log.Debug("Character {1} gained {0} offline Labor Point(s)", needAddOfflineLp, character.Value.Name);
+                        _logger.Debug("Character {1} gained {0} offline Labor Point(s)", needAddOfflineLp, character.Value.Name);
                     }
                     else
                     {
                         var valueLp = (short)(UpLimit - character.Value.LaborPower);
-                        _log.Debug("Character {1} gained {0} offline Labor Point(s)", valueLp, character.Value.Name);
+                        _logger.Debug("Character {1} gained {0} offline Labor Point(s)", valueLp, character.Value.Name);
                         character.Value.LaborPowerModified = DateTime.UtcNow;
                         character.Value.ChangeLabor(valueLp, 0);
                     }
@@ -102,13 +102,13 @@ public class LaborPowerManager : Singleton<LaborPowerManager>
                 var laborAmountUntilUpLimit = (short)(UpLimit - character.Value.LaborPower);
                 if (laborAmountUntilUpLimit >= LpChangePremium)
                 {
-                    _log.Debug("Character {1} gained {0} Labor Point(s)", LpChangePremium, character.Value.Name);
+                    _logger.Debug("Character {1} gained {0} Labor Point(s)", LpChangePremium, character.Value.Name);
                     character.Value.LaborPowerModified = DateTime.UtcNow;
                     character.Value.ChangeLabor(LpChangePremium, 0);
                 }
                 else if (laborAmountUntilUpLimit > 0 && laborAmountUntilUpLimit < LpChangePremium)
                 {
-                    _log.Debug("Character {1} gained {0} Labor Point(s)", laborAmountUntilUpLimit, character.Value.Name);
+                    _logger.Debug("Character {1} gained {0} Labor Point(s)", laborAmountUntilUpLimit, character.Value.Name);
                     character.Value.LaborPowerModified = DateTime.UtcNow;
                     character.Value.ChangeLabor(laborAmountUntilUpLimit, 0);
                 }

@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class AuctionManager : Singleton<AuctionManager>
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     public List<AuctionItem> _auctionItems;
     public List<long> _deletedAuctionItemIds;
@@ -281,8 +281,8 @@ public class AuctionManager : Singleton<AuctionManager>
 
         if (tempList.Count > 0)
         {
-            tempList.OrderByDescending(x => x.DirectMoney);
-            return tempList[0];
+            tempList = tempList.OrderByDescending(x => x.DirectMoney).ToList();
+            return tempList.First();
         }
         else
         {
@@ -336,7 +336,7 @@ public class AuctionManager : Singleton<AuctionManager>
 
     public void UpdateAuctionHouse()
     {
-        _log.Trace("Updating Auction House!");
+        _logger.Trace("Updating Auction House!");
         lock (_auctionItems)
         {
             var itemsToRemove = _auctionItems.Where(c => DateTime.UtcNow > c.EndTime);

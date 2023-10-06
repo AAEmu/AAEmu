@@ -9,7 +9,7 @@ public class QuestActSupplySkill : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActSupplySkill");
+        Logger.Warn("QuestActSupplySkill");
         return false;
     }
 }

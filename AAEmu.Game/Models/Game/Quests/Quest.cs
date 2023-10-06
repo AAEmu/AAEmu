@@ -567,7 +567,7 @@ EndLoop:
                                                         npc.Simulation.GoToPath(npc, true);
                                                         break;
                                                     default:
-                                                        throw new ArgumentOutOfRangeException();
+                                                        throw new NotSupportedException(nameof(currentComponent.AiPathTypeId));
                                                 }
                                                 break;
                                             }
@@ -585,7 +585,7 @@ EndLoop:
                                     case QuestNpcAiName.RunCommandSet:
                                         break;
                                     default:
-                                        throw new ArgumentOutOfRangeException();
+                                        throw new NotSupportedException(nameof(currentComponent.NpcAiId));
                                 }
                                 break;
                             }
@@ -1284,7 +1284,6 @@ EndLoop:
         //Update(checking);
     }
 
-    
     public void OnItemGather(Item item, int count)
     {
         var checking = false;

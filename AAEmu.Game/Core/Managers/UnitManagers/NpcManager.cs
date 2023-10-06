@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers;
 
 public class NpcManager : Singleton<NpcManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
     private Dictionary<uint, NpcTemplate> _templates;
@@ -121,7 +121,7 @@ public class NpcManager : Singleton<NpcManager>
             var buff = SkillManager.Instance.GetBuffTemplate(buffId);
             if (buff == null)
             {
-                _log.Warn("BuffId {0} for npc {1} not found", buffId, npc.TemplateId);
+                _logger.Warn("BuffId {0} for npc {1} not found", buffId, npc.TemplateId);
                 continue;
             }
 
@@ -222,12 +222,12 @@ public class NpcManager : Singleton<NpcManager>
                 // If anything in result, pick something random from it
                 if (possibleTotalCustoms.Count > 0)
                 {
-                    var r = _loadCustomRandom.Next(possibleTotalCustoms.Count());
+                    var r = _loadCustomRandom.Next(possibleTotalCustoms.Count);
                     totalCustomId = possibleTotalCustoms[r];
                 }
                 else
                 {
-                    _log.Trace($"No compatible TotalCharacterCustoms hair found for NPC: {template.Id}");
+                    _logger.Trace($"No compatible TotalCharacterCustoms hair found for NPC: {template.Id}");
                 }
             }
         }
@@ -330,7 +330,7 @@ public class NpcManager : Singleton<NpcManager>
         _totalCharacterCustoms = new Dictionary<uint, TotalCharacterCustom>();
         _itemBodyParts = new Dictionary<uint, Dictionary<uint, List<BodyPartTemplate>>>();
 
-        _log.Info("Loading npc templates...");
+        _logger.Info("Loading npc templates...");
         using (var connection = SQLite.CreateConnection())
         {
             using (var command = connection.CreateCommand())
@@ -758,8 +758,8 @@ public class NpcManager : Singleton<NpcManager>
                 }
             }
 
-            _log.Info("Loaded {0} npc templates", _templates.Count);
-            _log.Info("Loading merchant packs...");
+            _logger.Info("Loaded {0} npc templates", _templates.Count);
+            _logger.Info("Loading merchant packs...");
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM merchant_goods";
@@ -780,7 +780,7 @@ public class NpcManager : Singleton<NpcManager>
                 }
             }
 
-            _log.Info("Loaded {0} merchant packs", _goods.Count);
+            _logger.Info("Loaded {0} merchant packs", _goods.Count);
         }
 
         NpcGameData.Instance.LoadMemberAndSpawnerTemplateIds();

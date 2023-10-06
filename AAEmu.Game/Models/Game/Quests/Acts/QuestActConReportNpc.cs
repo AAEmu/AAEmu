@@ -12,7 +12,7 @@ public class QuestActConReportNpc : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Debug("QuestActConReportNpc");
+        Logger.Debug("QuestActConReportNpc");
 
         if (!(character.CurrentTarget is Npc npc))
             return false;

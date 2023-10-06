@@ -26,7 +26,7 @@ public class SkillUse : SpecialEffectAction
         int value4)
     {
         // TODO ...
-        if (caster is Character) { _log.Debug("Special effects: SkillUse skillId {0}, delay {1}, value3 {2}, value4 {3}", skillId, delay, chance, value4); }
+        if (caster is Character) { Logger.Debug("Special effects: SkillUse skillId {0}, delay {1}, value3 {2}, value4 {3}", skillId, delay, chance, value4); }
 
         if (Rand.Next(0, 100) > chance && chance != 0)
         {

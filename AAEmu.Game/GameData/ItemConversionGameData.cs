@@ -1,19 +1,16 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Data.Sqlite;
-using NLog;
 
 namespace AAEmu.Game.GameData;
 
 [GameData]
 public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDataLoader
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
-
     private List<ItemConversionReagent> _reagents;
     private List<ItemConversionProduct> _products;
     private List<int> _conversions;

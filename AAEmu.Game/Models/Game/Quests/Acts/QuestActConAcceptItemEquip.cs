@@ -9,7 +9,7 @@ public class QuestActConAcceptItemEquip : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActConAcceptItemEquip: ItemId {0}", ItemId);
+        Logger.Warn("QuestActConAcceptItemEquip: ItemId {0}", ItemId);
         return false;
     }
 }

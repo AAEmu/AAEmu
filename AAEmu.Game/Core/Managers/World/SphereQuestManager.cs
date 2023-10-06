@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestManager
 {
-    private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, List<SphereQuest>> _sphereQuests;
 
@@ -89,7 +89,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
         }
         catch (Exception e)
         {
-            _log.Error(e, "Error in SphereQuestTrigger tick !");
+            _logger.Error(e, "Error in SphereQuestTrigger tick !");
         }
     }
 
@@ -148,7 +148,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
     /// <returns></returns>
     private static Dictionary<uint, List<SphereQuest>> LoadQuestSpheres()
     {
-        _log.Info("Loading SphereQuest...");
+        _logger.Info("Loading SphereQuest...");
         var worlds = WorldManager.Instance.GetWorlds();
         Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
@@ -161,16 +161,16 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
             {
                 if (!uint.TryParse(Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(pathFileName))), out var zoneId))
                 {
-                    _log.Warn("Unable to parse zoneId from {0}", pathFileName);
+                    _logger.Warn("Unable to parse zoneId from {0}", pathFileName);
                     continue;
                 }
                 var contents = ClientFileManager.GetFileAsString(pathFileName);
                 if (string.IsNullOrWhiteSpace(contents))
                 {
-                    _log.Warn($"{pathFileName} doesn't exists or is empty.");
+                    _logger.Warn($"{pathFileName} doesn't exists or is empty.");
                     continue;
                 }
-                _log.Debug($"Loading {pathFileName}");
+                _logger.Debug($"Loading {pathFileName}");
 
                 var area = contents.ToLower().Split('\n').ToList();
 
@@ -222,8 +222,8 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
                         }
                         catch (Exception ex)
                         {
-                            _log.Error("Loading SphereQuest error!");
-                            _log.Fatal(ex);
+                            _logger.Error("Loading SphereQuest error!");
+                            _logger.Fatal(ex);
                             throw;
                         }
                     }

@@ -24,17 +24,17 @@ public class UserMusicSaveNotes : SpecialEffectAction
         // Not sure what to actually do with this other than validate the last uploaded song and create the item
         // There does not seem to be any reference to the source song, other than the used itemId to create it
         // TODO ...
-        if (caster is Character) { _log.Debug("Special effects: UserMusicSaveNotes value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is Character) { Logger.Debug("Special effects: UserMusicSaveNotes value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
         if ((caster is Character player) && (casterObj is SkillItem si))
         {
             var item = ItemManager.Instance.GetItemByItemId(si.ItemId);
             if (!MusicManager.Instance.CreateSheetMusic(player, item))
-                _log.Error("Special effects: UserMusicSaveNotes - Error saving music for {0} !", player.Name);
+                Logger.Error("Special effects: UserMusicSaveNotes - Error saving music for {0} !", player.Name);
         }
         else
         {
-            _log.Error("Special effects: UserMusicSaveNotes - Invalid Arguments");
+            Logger.Error("Special effects: UserMusicSaveNotes - Invalid Arguments");
         }
     }
 }

@@ -16,6 +16,6 @@ public class FlyingStateChangeEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("FlyingStateChangeEffect");
+        Logger.Trace("FlyingStateChangeEffect");
     }
 }

@@ -7,7 +7,7 @@ public class QuestActConReportJournal : QuestActTemplate
 {
     public override bool Use(ICharacter character, Quest quest, int objective) // take reward
     {
-        _log.Debug("QuestActConReportJournal");
+        Logger.Debug("QuestActConReportJournal");
 
         return true;
     }

@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class FactionManager : Singleton<FactionManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
     private Dictionary<uint, SystemFaction> _systemFactions;
@@ -41,7 +41,7 @@ public class FactionManager : Singleton<FactionManager>
         _relations = new List<FactionRelation>();
         using (var connection = SQLite.CreateConnection())
         {
-            _log.Info("Loading system factions...");
+            _logger.Info("Loading system factions...");
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM system_factions";
@@ -69,8 +69,8 @@ public class FactionManager : Singleton<FactionManager>
                 }
             }
 
-            _log.Info("Loaded {0} system factions", _systemFactions.Count);
-            _log.Info("Loading faction relations...");
+            _logger.Info("Loaded {0} system factions", _systemFactions.Count);
+            _logger.Info("Loading faction relations...");
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM system_faction_relations";
@@ -96,7 +96,7 @@ public class FactionManager : Singleton<FactionManager>
                 }
             }
 
-            _log.Info("Loaded {0} faction relations", _relations.Count);
+            _logger.Info("Loaded {0} faction relations", _relations.Count);
         }
 
         _loaded = true;

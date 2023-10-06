@@ -13,6 +13,6 @@ public class CSDeleteCharacterPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         var characterId = stream.ReadUInt32();
-        CharacterManager.Instance.SetDeleteCharacter(Connection, characterId);
+        CharacterManager.SetDeleteCharacter(Connection, characterId);
     }
 }

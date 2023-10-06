@@ -18,7 +18,7 @@ public class Charge : SpecialEffectAction
         CastAction castObj,
         Skill skill, SkillObject skillObject, DateTime time, int buffId, int minCharge, int maxCharge, int unused)
     {
-        if (caster is Character) { _log.Debug("Special effects: Charge buffId {0}, minCharge {1}, maxCharge {2}, unused {3}", buffId, minCharge, maxCharge, unused); }
+        if (caster is Character) { Logger.Debug("Special effects: Charge buffId {0}, minCharge {1}, maxCharge {2}, unused {3}", buffId, minCharge, maxCharge, unused); }
 
         lock (caster.ChargeLock)
         {

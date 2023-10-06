@@ -12,7 +12,7 @@ public class QuestActConAcceptNpcEmotion : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActConAcceptNpcEmotion: NpcId {0}, Emotion {1}", NpcId, Emotion);
+        Logger.Warn("QuestActConAcceptNpcEmotion: NpcId {0}, Emotion {1}", NpcId, Emotion);
 
         if (!(character.CurrentTarget is Npc))
             return false;

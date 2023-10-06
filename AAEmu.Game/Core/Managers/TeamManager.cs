@@ -8,7 +8,6 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.World.Transform;
-using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -19,7 +18,6 @@ public class TeamManager : Singleton<TeamManager>
      *
      * RE-DO LEAVE / KICK / DISMISS
      */
-    private static Logger _log = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, Team> _activeTeams; // teamId, Team
     private Dictionary<uint, InvitationTemplate> _activeInvitations; // targetId, InvitationTemplate

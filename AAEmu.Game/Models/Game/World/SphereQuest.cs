@@ -6,8 +6,6 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Utils;
 
-using NLog;
-
 namespace AAEmu.Game.Models.Game.World;
 
 public enum AreaSphereTriggerCondition
@@ -32,7 +30,6 @@ public class SphereQuest
 
 public class SphereQuestTrigger
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
     public SphereQuest Sphere { get; set; }
     public ICharacter Owner { get; set; }
     public Quest Quest { get; set; }

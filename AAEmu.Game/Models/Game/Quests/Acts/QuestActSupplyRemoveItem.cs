@@ -10,7 +10,7 @@ public class QuestActSupplyRemoveItem : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActSupplyRemoveItem");
+        Logger.Warn("QuestActSupplyRemoveItem");
         return quest.Template.Score > 0 ? objective * Count >= quest.Template.Score : objective >= Count;
     }
 }

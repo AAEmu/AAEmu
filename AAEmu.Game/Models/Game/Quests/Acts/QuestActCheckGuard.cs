@@ -9,7 +9,7 @@ public class QuestActCheckGuard : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActCheckGuard: NpcId {0}", NpcId);
+        Logger.Warn("QuestActCheckGuard: NpcId {0}", NpcId);
         return false;
     }
 }

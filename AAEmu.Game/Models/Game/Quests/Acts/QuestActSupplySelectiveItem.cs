@@ -12,7 +12,7 @@ public class QuestActSupplySelectiveItem : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActSupplySelectiveItem");
+        Logger.Warn("QuestActSupplySelectiveItem");
 
         quest.QuestRewardItemsPool.Add(new ItemCreationDefinition(ItemId, Count, GradeId));
         //character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId, 0);

@@ -43,7 +43,7 @@ public class GainLootPackItemEffect : EffectTemplate
         var sourceItem = character.Inventory.Bag.GetItemByItemId(skillItem.ItemId);
         if (sourceItem == null)
         {
-            _log.Warn($"Invalid loot result items {skillItem.ItemId} in lootpack {LootPackId}");
+            Logger.Warn($"Invalid loot result items {skillItem.ItemId} in lootpack {LootPackId}");
             return;
         }
 
@@ -59,6 +59,6 @@ public class GainLootPackItemEffect : EffectTemplate
         // Give the results
         pack.GiveLootPack(character, ItemTaskType.SkillEffectGainItem);
 
-        _log.Debug("GainLootPackItemEffect {0}", LootPackId);
+        Logger.Debug("GainLootPackItemEffect {0}", LootPackId);
     }
 }

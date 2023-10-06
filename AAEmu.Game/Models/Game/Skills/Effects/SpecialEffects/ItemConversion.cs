@@ -25,7 +25,7 @@ public class ItemConversion : SpecialEffectAction
         int value4)
     {
         // TODO ...
-        if (caster is Character) { _log.Debug("Special effects: ItemConversion value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is Character) { Logger.Debug("Special effects: ItemConversion value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
         if (caster is not Character character)
         {
@@ -56,7 +56,7 @@ public class ItemConversion : SpecialEffectAction
         var reagent = ItemConversionGameData.Instance.GetReagentForItem(targetItem.Grade, targetItem.Template.ImplId, id, targetItem.Template.Level);
         if (reagent == null)
         {
-            _log.Error($"Couldn't find Reagent for item {id}");
+            Logger.Error($"Couldn't find Reagent for item {id}");
             skill.Cancelled = true;
             return;
         }
@@ -64,7 +64,7 @@ public class ItemConversion : SpecialEffectAction
         var product = ItemConversionGameData.Instance.GetProductFromReagent(reagent);
         if (product == null)
         {
-            _log.Error($"Couldn't find Product from Reagent for item {id}");
+            Logger.Error($"Couldn't find Product from Reagent for item {id}");
             skill.Cancelled = true;
             return;
         }

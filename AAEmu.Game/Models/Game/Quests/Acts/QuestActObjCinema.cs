@@ -11,7 +11,7 @@ public class QuestActObjCinema : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActObjCinema");
+        Logger.Warn("QuestActObjCinema");
         return false;
     }
 }

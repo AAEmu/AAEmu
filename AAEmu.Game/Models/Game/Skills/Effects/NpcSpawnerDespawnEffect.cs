@@ -16,7 +16,7 @@ public class NpcSpawnerDespawnEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Debug("NpcSpawnerDespawnEffect");
+        Logger.Debug("NpcSpawnerDespawnEffect");
 
         //var spawner = SpawnManager.Instance.GetNpcSpawner(SpawnerId, (byte)caster.Transform.WorldId);
         //spawner.DoDespawn();

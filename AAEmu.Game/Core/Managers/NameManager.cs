@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class NameManager : Singleton<NameManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private Regex _characterNameRegex;
     private Dictionary<uint, string> _characterNames;
@@ -65,12 +65,12 @@ public class NameManager : Singleton<NameManager>
             }
         }
 
-        _log.Info("Loaded {0} character names", _characterNames.Count);
+        _logger.Info("Loaded {0} character names", _characterNames.Count);
     }
 
     public byte ValidationCharacterName(string name)
     {
-        if (_characterNames.Values.Contains(name))
+        if (_characterNames.ContainsValue(name))
             return 4; // Персонаж с таким именем уже существует. Выберите другое.
         if (name == "" || !_characterNameRegex.IsMatch(name)) // TODO ...
             return 5; // Это имя содержит недопустимую лексику.

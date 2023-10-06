@@ -7,12 +7,13 @@ namespace AAEmu.Game.Core.Managers;
 
 public class FeaturesManager : Singleton<FeaturesManager>
 {
-    public static FeatureSet Fsets;
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    public static FeatureSet Fsets { get; private set; }
+
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     public static void Initialize()
     {
-        _log.Info("Initializing Features ...");
+        _logger.Info("Initializing Features ...");
         Fsets = new FeatureSet();
 
         Fsets.PlayerLevelLimit = 55;
@@ -72,6 +73,6 @@ public class FeaturesManager : Singleton<FeaturesManager>
             if (FeaturesManager.Fsets.Check(f))
                 featsOn += f.ToString() + "  ";
         }
-        _log.Info("Enabled Features: {0}", featsOn);
+        _logger.Info("Enabled Features: {0}", featsOn);
     }
 }

@@ -22,6 +22,6 @@ public class SkillControllerTemplate : EffectTemplate
         CastAction castObj,
         EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
     {
-        _log.Debug("SkillControllerTemplate");
+        Logger.Debug("SkillControllerTemplate");
     }
 }

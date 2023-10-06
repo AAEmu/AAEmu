@@ -18,6 +18,6 @@ public class PhysicalExplosionEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("PhysicalExplosionEffect");
+        Logger.Trace("PhysicalExplosionEffect");
     }
 }

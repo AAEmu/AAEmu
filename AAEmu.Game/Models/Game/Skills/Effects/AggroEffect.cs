@@ -35,7 +35,7 @@ public class AggroEffect : EffectTemplate
         if (target is not Npc npc)
             return;
 
-        _log.Debug("AggroEffect");
+        Logger.Debug("AggroEffect");
 
         var min = 0.0f;
         var max = 0.0f;

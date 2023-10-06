@@ -11,7 +11,7 @@ public class QuestActConAcceptNpc : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Debug("QuestActConAcceptNpc");
+        Logger.Debug("QuestActConAcceptNpc");
 
         if (character.CurrentTarget is null or not Npc)
             return false;

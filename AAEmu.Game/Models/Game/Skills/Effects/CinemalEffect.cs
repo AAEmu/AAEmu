@@ -16,6 +16,6 @@ public class CinemalEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("CinemalEffect");
+        Logger.Trace("CinemalEffect");
     }
 }

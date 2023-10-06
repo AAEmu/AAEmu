@@ -23,7 +23,7 @@ public class PutDownBackpackEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("PutDownBackpackEffect");
+        Logger.Trace("PutDownBackpackEffect");
 
         Character character = (Character)caster;
         if (character == null) return;
@@ -58,12 +58,12 @@ public class PutDownBackpackEffect : EffectTemplate
         if (character.Inventory.SystemContainer.AddOrMoveExistingItem(Items.Actions.ItemTaskType.DropBackpack, item))
         {
             // Spawn doodad
-            _log.Trace("PutDownPackEffect");
+            Logger.Trace("PutDownPackEffect");
 
             var doodad = DoodadManager.Instance.Create(0, BackpackDoodadId, character, true);
             if (doodad == null)
             {
-                _log.Warn("Doodad {0}, from BackpackDoodadId could not be created", BackpackDoodadId);
+                Logger.Warn("Doodad {0}, from BackpackDoodadId could not be created", BackpackDoodadId);
                 return;
             }
             doodad.IsPersistent = true;

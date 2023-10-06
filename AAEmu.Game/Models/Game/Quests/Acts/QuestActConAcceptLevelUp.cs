@@ -9,7 +9,7 @@ public class QuestActConAcceptLevelUp : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Debug("QuestActConAcceptLevelUp");
+        Logger.Debug("QuestActConAcceptLevelUp");
 
         return character.Level >= Level;
     }

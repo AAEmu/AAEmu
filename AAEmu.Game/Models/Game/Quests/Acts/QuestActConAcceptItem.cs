@@ -13,7 +13,7 @@ public class QuestActConAcceptItem : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective) // triggered by using things
     {
-        _log.Debug("QuestActConAcceptItem: ItemId {0}", ItemId);
+        Logger.Debug("QuestActConAcceptItem: ItemId {0}", ItemId);
 
         quest.QuestAcceptorType = QuestAcceptorType.Item;
         quest.AcceptorType = ItemId;

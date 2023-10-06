@@ -20,7 +20,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class ShipyardManager : Singleton<ShipyardManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     public Dictionary<uint, ShipyardsTemplate> _shipyardsTemplate;
     private Dictionary<uint, Shipyard> _shipyard;
@@ -31,13 +31,13 @@ public class ShipyardManager : Singleton<ShipyardManager>
         _shipyardsTemplate = new Dictionary<uint, ShipyardsTemplate>();
         _shipyard = new Dictionary<uint, Shipyard>();
         _removedShipyards = new List<uint>();
-        _log.Info("Initialising Shipyard Manager...");
+        _logger.Info("Initialising Shipyard Manager...");
         ShipyardTickStart();
     }
 
     private static void ShipyardTickStart()
     {
-        _log.Warn("ShipyardUpdateInfoTick: Started");
+        _logger.Warn("ShipyardUpdateInfoTick: Started");
 
         var shipyardTickStartTask = new ShipyardTickTask();
         TaskManager.Instance.Schedule(shipyardTickStartTask, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
@@ -111,7 +111,7 @@ public class ShipyardManager : Singleton<ShipyardManager>
         if (!character.Inventory.CheckItems(SlotType.Inventory, designId, 1))
         {
             character.SendErrorMessage(ErrorMessageType.NotEnoughItem);
-            _log.Error("Not enough item Id={0}", designId);
+            _logger.Error("Not enough item Id={0}", designId);
             return false;
         }
 
@@ -142,7 +142,7 @@ public class ShipyardManager : Singleton<ShipyardManager>
                     }
 
                     enough = false;
-                    _log.Error("Not enough reagents Id={0}, Amount={1}", reagent.ItemId, reagent.Amount);
+                    _logger.Error("Not enough reagents Id={0}, Amount={1}", reagent.ItemId, reagent.Amount);
                 }
                 if (!enough)
                 {
@@ -164,7 +164,7 @@ public class ShipyardManager : Singleton<ShipyardManager>
         }
         else
         {
-            _log.Error("Could not find Reagents/Products for Template[{0}]", foundItems[0].Template.UseSkillId);
+            _logger.Error("Could not find Reagents/Products for Template[{0}]", foundItems[0].Template.UseSkillId);
             return false;
         }
 
@@ -249,7 +249,7 @@ public class ShipyardManager : Singleton<ShipyardManager>
             }
             else
             {
-                _log.Error("Unable to find Protection Buff template");
+                _logger.Error("Unable to find Protection Buff template");
             }
         }
         else
@@ -281,7 +281,7 @@ public class ShipyardManager : Singleton<ShipyardManager>
             }
             else
             {
-                _log.Error("Unable to find Deterioration Debuff template");
+                _logger.Error("Unable to find Deterioration Debuff template");
             }
         }
         else
@@ -293,7 +293,7 @@ public class ShipyardManager : Singleton<ShipyardManager>
 
     public void Load()
     {
-        _log.Info("Loading Shipyards...");
+        _logger.Info("Loading Shipyards...");
         using (var connection = SQLite.CreateConnection())
         {
             using (var command = connection.CreateCommand())
@@ -322,7 +322,7 @@ public class ShipyardManager : Singleton<ShipyardManager>
                     }
                 }
             }
-            _log.Info("Loaded {0} shipyards", _shipyardsTemplate.Count);
+            _logger.Info("Loaded {0} shipyards", _shipyardsTemplate.Count);
 
             using (var command = connection.CreateCommand())
             {

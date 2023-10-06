@@ -9,7 +9,7 @@ public class QuestActConAcceptBuff : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActConAcceptBuff: BuffId {0}", BuffId);
+        Logger.Warn("QuestActConAcceptBuff: BuffId {0}", BuffId);
         return false;
     }
 }

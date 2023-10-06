@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class SkillManager : Singleton<SkillManager>, ISkillManager
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
     private Dictionary<uint, SkillTemplate> _skills;
@@ -124,7 +124,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
         {
             var type = _types[id];
 
-            _log.Trace("Get Effect Template: type = {0}, id = {1}", type.Type, type.ActualId);
+            _logger.Trace("Get Effect Template: type = {0}, id = {1}", type.Type, type.ActualId);
 
             if (_effects.TryGetValue(type.Type, out var effect))
             {
@@ -132,7 +132,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
             }
             else
             {
-                _log.Warn("No such Effect Type[{0}] found.", type.Type);
+                _logger.Warn("No such Effect Type[{0}] found.", type.Type);
                 return null;
             }
         }
@@ -141,7 +141,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
 
     public EffectTemplate GetEffectTemplate(uint id, string type)
     {
-        _log.Trace("Get Effect Template: type = {0}, id = {1}", type, id);
+        _logger.Trace("Get Effect Template: type = {0}, id = {1}", type, id);
 
         if (_effects.TryGetValue(type, out var value))
         {
@@ -300,7 +300,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
 
         using (var connection = SQLite.CreateConnection())
         {
-            _log.Info("Loading skills...");
+            _logger.Info("Loading skills...");
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM skills";
@@ -425,7 +425,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                 }
             }
 
-            _log.Info("Loaded {0} skills", _skills.Count);
+            _logger.Info("Loaded {0} skills", _skills.Count);
 
             using (var command = connection.CreateCommand())
             {
@@ -471,7 +471,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                 }
             }
 
-            _log.Info("Loading skill effects/buffs...");
+            _logger.Info("Loading skill effects/buffs...");
 
             using (var command = connection.CreateCommand())
             {
@@ -1673,7 +1673,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                 }
             }
 
-            _log.Info("Skill effects loaded");
+            _logger.Info("Skill effects loaded");
 
             _buffTriggers = new Dictionary<uint, List<BuffTriggerTemplate>>();
             using (var command = connection.CreateCommand())
@@ -1708,7 +1708,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                     }
                 }
             }
-            _log.Info("Buff triggers loaded");
+            _logger.Info("Buff triggers loaded");
 
             using (var command = connection.CreateCommand())
             {
@@ -1730,7 +1730,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                     }
                 }
             }
-            _log.Info("Skill Reagents loaded");
+            _logger.Info("Skill Reagents loaded");
 
             using (var command = connection.CreateCommand())
             {
@@ -1751,7 +1751,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         _skillProducts.Add(template.Id, template);
                     }
                 }
-                _log.Info("Skill Products loaded");
+                _logger.Info("Skill Products loaded");
 
                 OnSkillsLoaded?.Invoke(this, new EventArgs());
             }

@@ -276,7 +276,7 @@ public class Unit : BaseUnit, IUnit
 
             if (AppConfiguration.Instance.World.GodMode)
             {
-                Log.Debug("{1}:{0}'s Damage disabled because of GM or Admin flag", character.Name, character.Id);
+                Logger.Debug("{1}:{0}'s Damage disabled because of GM or Admin flag", character.Name, character.Id);
                 return; // GodMode On : take 0 damage from Npc
             }
         }
@@ -784,7 +784,7 @@ public class Unit : BaseUnit, IUnit
                     modelPostureType = 0;
                 }
                 stream.Write((byte)modelPostureType);
-                Log.Warn($"baseUnitType={baseUnitType}, modelPostureType={modelPostureType} for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
+                Logger.Warn($"baseUnitType={baseUnitType}, modelPostureType={modelPostureType} for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
             }
         }
         else // other
@@ -813,11 +813,11 @@ public class Unit : BaseUnit, IUnit
                 stream.Write(animActionId == 0xFFFFFFFF ? npc.Template.AnimActionId : animActionId); // TODO to check for AnimActionId substitution
                 if (animActionId == 0xFFFFFFFF)
                 {
-                    Log.Warn($"NPC.Template.AnimActionId={npc.Template.AnimActionId}, missing animActionId for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
+                    Logger.Warn($"NPC.Template.AnimActionId={npc.Template.AnimActionId}, missing animActionId for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
                 }
                 else
                 {
-                    Log.Debug($"NPC.Template.AnimActionId={animActionId} for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
+                    Logger.Debug($"NPC.Template.AnimActionId={animActionId} for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
                 }
 
                 stream.Write(true); // activate

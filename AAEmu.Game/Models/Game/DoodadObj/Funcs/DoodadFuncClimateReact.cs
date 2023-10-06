@@ -13,7 +13,7 @@ public class DoodadFuncClimateReact : DoodadPhaseFuncTemplate
     {
         Logger.Trace("DoodadFuncClimateReact");
 
-        var inMatchingClimate = ZoneManager.Instance.DoodadHasMatchingClimate(owner);
+        var inMatchingClimate = ZoneManager.DoodadHasMatchingClimate(owner);
 
         // If no match, just move on to the next check
         if (!inMatchingClimate || NextPhase <= 0)

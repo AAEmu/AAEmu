@@ -21,7 +21,7 @@ public class ScopedFEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("ScopedFEffect");
+        Logger.Trace("ScopedFEffect");
         if (caster is not Character character) { return; }
 
         var doodads = WorldManager.GetAround<Doodad>(character, Range / 1000f);

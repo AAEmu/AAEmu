@@ -20,7 +20,7 @@ namespace AAEmu.Game.Core.Managers;
 // GeoData AiNavigation
 public class AiGeoDataManager : Singleton<AiGeoDataManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private Dictionary<byte, Dictionary<uint, List<AiNavigation>>> _aiNavigation;
     private Dictionary<byte, Dictionary<uint, string>> _areasMission;
@@ -224,7 +224,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             }
         }
 
-        _log.Warn($"# Found near position index: {index}...");
+        _logger.Warn($"# Found near position index: {index}...");
         return (index, point);
     }
 
@@ -399,7 +399,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
         }
 
         stopWatch.Stop();
-        _log.Info($"GetHeight2 took {stopWatch.Elapsed}");
+        _logger.Info($"GetHeight2 took {stopWatch.Elapsed}");
         return rrr;
     }
 
@@ -409,7 +409,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
 
     public void Load()
     {
-        _log.Info("Loading AI GeoData...");
+        _logger.Info("Loading AI GeoData...");
 
         _aiNavigation = new Dictionary<byte, Dictionary<uint, List<AiNavigation>>>();
         _areasMission = new Dictionary<byte, Dictionary<uint, string>>();
@@ -440,14 +440,14 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             var worldPathToFile = Path.Combine(worldPath, "server_ai_geo_data.sqlite3");
             if (!File.Exists(worldPathToFile))
             {
-                _log.Info($"World {world.Name} is missing {Path.GetFileName(worldPathToFile)}");
+                _logger.Info($"World {world.Name} is missing {Path.GetFileName(worldPathToFile)}");
             }
             else
             {
 #pragma warning disable CA2000 // Dispose objects before losing scope
                 using (var connection = SQLite.CreateConnection(worldPath, "server_ai_geo_data.sqlite3"))
                 {
-                    _log.Info("Loading ai_navigation...");
+                    _logger.Info("Loading ai_navigation...");
                     using (var command = connection.CreateCommand())
                     {
                         command.CommandText = "SELECT * FROM ai_navigation";
@@ -486,7 +486,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
                         }
                     }
 
-                    _log.Info("Loading areas_mission...");
+                    _logger.Info("Loading areas_mission...");
                     using (var command = connection.CreateCommand())
                     {
                         command.CommandText = "SELECT * FROM areas_mission";
@@ -508,7 +508,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
                         }
                     }
 
-                    _log.Info("Loading areas_mission_points...");
+                    _logger.Info("Loading areas_mission_points...");
                     using (var command = connection.CreateCommand())
                     {
                         command.CommandText = "SELECT * FROM areas_mission_points";

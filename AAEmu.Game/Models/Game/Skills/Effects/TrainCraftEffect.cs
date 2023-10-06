@@ -16,6 +16,6 @@ public class TrainCraftEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("TrainCraftEffect");
+        Logger.Trace("TrainCraftEffect");
     }
 }

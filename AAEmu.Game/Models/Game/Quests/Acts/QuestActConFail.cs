@@ -9,7 +9,7 @@ public class QuestActConFail : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActConFail");
+        Logger.Warn("QuestActConFail");
         return false;
     }
 }

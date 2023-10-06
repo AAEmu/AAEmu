@@ -31,7 +31,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
     /// </summary>
     private float TargetPhysicsTps { get; set; } = 15f;
     private Thread _thread;
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private CollisionSystem _collisionSystem;
     private Jitter.World _physWorld;
@@ -74,7 +74,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
         }
         catch (Exception e)
         {
-            _log.Error("{0}\n{1}", e.Message, e.StackTrace);
+            _logger.Error("{0}\n{1}", e.Message, e.StackTrace);
         }
     }
 
@@ -90,7 +90,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
     {
         try
         {
-            _log.Debug($"PhysicsThread Start: {Thread.CurrentThread.Name} ({Thread.CurrentThread.ManagedThreadId})");
+            _logger.Debug($"PhysicsThread Start: {Thread.CurrentThread.Name} ({Environment.CurrentManagedThreadId})");
             var simulatedSlaveTypeList = new[]
             {
                 SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.SmallSailingShip,
@@ -113,7 +113,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
                     {
                         if (slave.Transform.WorldId != SimulationWorld.Id)
                         {
-                            _log.Debug($"Skip {slave.Name}");
+                            _logger.Debug($"Skip {slave.Name}");
                             continue;
                         }
 
@@ -142,11 +142,11 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
                     }
                 }
             }
-            _log.Debug($"PhysicsThread End: {Thread.CurrentThread.Name} ({Thread.CurrentThread.ManagedThreadId})");
+            _logger.Debug($"PhysicsThread End: {Thread.CurrentThread.Name} ({Environment.CurrentManagedThreadId})");
         }
         catch (Exception e)
         {
-            _log.Error($"StartPhysics: {e}");
+            _logger.Error($"StartPhysics: {e}");
         }
     }
 
@@ -168,7 +168,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
         _buoyancy.Add(rigidBody, 3);
         _physWorld.AddBody(rigidBody);
         slave.RigidBody = rigidBody;
-        _log.Debug($"AddShip {slave.Name} -> {SimulationWorld.Name}");
+        _logger.Debug($"AddShip {slave.Name} -> {SimulationWorld.Name}");
     }
 
     public void RemoveShip(Slave slave)
@@ -176,7 +176,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
         if (slave.RigidBody == null) return;
         _buoyancy.Remove(slave.RigidBody);
         _physWorld.RemoveBody(slave.RigidBody);
-        _log.Debug($"RemoveShip {slave.Name} <- {SimulationWorld.Name}");
+        _logger.Debug($"RemoveShip {slave.Name} <- {SimulationWorld.Name}");
     }
 
     private void BoatPhysicsTick(Slave slave, RigidBody rigidBody)
@@ -239,7 +239,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
         var solidVolume = MathF.Abs(rigidBody.Mass - tubeVolume);
 
         var floor = WorldManager.Instance.GetHeight(slave.Transform); // получим уровень земли // get ground level
-        _log.Debug($"[Height] Z-Pos: {slave.Transform.World.Position.Z} - Floor: {floor}");
+        _logger.Debug($"[Height] Z-Pos: {slave.Transform.World.Position.Z} - Floor: {floor}");
         if (floor >= slave.Transform.World.Position.Z - boxSize.Z)
         {
             var damage = _random.Next(500, 750); // damage randomly 500-750
@@ -248,7 +248,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
                 slave.DoDamage((int)damage, false, KillReason.Collide);
             }
 
-            _log.Debug($"Slave: {slave.ObjId}, speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}, floor: {floor}, Z: {slave.Transform.World.Position.Z}, damage: {damage}");
+            _logger.Debug($"Slave: {slave.ObjId}, speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}, floor: {floor}, Z: {slave.Transform.World.Position.Z}, damage: {damage}");
 
             if (slave.Hp <= 0)
             {

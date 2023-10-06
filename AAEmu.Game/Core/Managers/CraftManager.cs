@@ -8,14 +8,14 @@ namespace AAEmu.Game.Core.Managers;
 
 public class CraftManager : Singleton<CraftManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, Craft> _crafts;
 
     public void Load()
     {
         _crafts = new Dictionary<uint, Craft>();
-        _log.Info("Loading crafts...");
+        _logger.Info("Loading crafts...");
 
         using (var connection = SQLite.CreateConnection())
         {
@@ -117,7 +117,7 @@ public class CraftManager : Singleton<CraftManager>
             }
         }
 
-        _log.Info("Loaded crafts", _crafts.Count);
+        _logger.Info("Loaded crafts", _crafts.Count);
     }
 
     public Craft GetCraftById(uint craftId)

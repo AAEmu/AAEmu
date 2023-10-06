@@ -18,7 +18,7 @@ public class QuestActSupplyItem : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActSupplyItem");
+        Logger.Warn("QuestActSupplyItem");
 
         if (objective >= Count) // checking for call recursion
         {

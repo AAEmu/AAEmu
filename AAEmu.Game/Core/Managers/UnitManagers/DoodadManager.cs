@@ -6,7 +6,6 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.Char;
@@ -32,7 +31,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers;
 public class DoodadManager : Singleton<DoodadManager>
 {
     // ReSharper disable once FieldCanBeMadeReadOnly.Local
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
     private bool _loaded;
 
     private Dictionary<uint, DoodadTemplate> _templates;
@@ -74,7 +73,7 @@ public class DoodadManager : Singleton<DoodadManager>
         using (var connection = SQLite.CreateConnection())
         {
             #region doodad_funcs
-            _log.Info("Loading doodad functions ...");
+            _logger.Info("Loading doodad functions ...");
 
             // doodad_func_groups
             using (var command = connection.CreateCommand())
@@ -149,7 +148,8 @@ public class DoodadManager : Singleton<DoodadManager>
                     {
                         var func = new DoodadPhaseFunc
                         {
-                            GroupId = reader.GetUInt32("doodad_func_group_id"), FuncId = reader.GetUInt32("actual_func_id"),
+                            GroupId = reader.GetUInt32("doodad_func_group_id"),
+                            FuncId = reader.GetUInt32("actual_func_id"),
                             FuncType = reader.GetString("actual_func_type")
                         };
                         List<DoodadPhaseFunc> list;
@@ -198,7 +198,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         var func = new DoodadFuncAreaTrigger
                         {
                             Id = reader.GetUInt32("id"),
-                            NpcId = reader.GetUInt32("npc_id",0),
+                            NpcId = reader.GetUInt32("npc_id", 0),
                             IsEnter = reader.GetBoolean("is_enter", true)
                         };
                         _funcTemplates["DoodadFuncAreaTrigger"].Add(func.Id, func);
@@ -236,7 +236,8 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncBinding {
+                        var func = new DoodadFuncBinding
+                        {
                             Id = reader.GetUInt32("id"),
                             DistrictId = reader.GetUInt32("district_id")
                         };
@@ -468,7 +469,9 @@ public class DoodadManager : Singleton<DoodadManager>
                     {
                         var func = new DoodadFuncClout
                         {
-                            Id = reader.GetUInt32("id"), Duration = reader.GetInt32("duration"), Tick = reader.GetInt32("tick"),
+                            Id = reader.GetUInt32("id"),
+                            Duration = reader.GetInt32("duration"),
+                            Tick = reader.GetInt32("tick"),
                             TargetRelation = (SkillTargetRelation)reader.GetUInt32("target_relation_id"),
                             BuffId = reader.GetUInt32("buff_id", 0),
                             ProjectileId = reader.GetUInt32("projectile_id", 0),
@@ -2544,13 +2547,13 @@ public class DoodadManager : Singleton<DoodadManager>
                 }
             }
 
-            _log.Info("Finished loading doodad functions ...");
+            _logger.Info("Finished loading doodad functions ...");
 
             #endregion
 
             #region doodads_and_func_groups
 
-            _log.Info("Loading doodad templates...");
+            _logger.Info("Loading doodad templates...");
 
             // First load all doodad_func_groups
             using (var command = connection.CreateCommand())
@@ -2571,7 +2574,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         };
 
                         if (!_allFuncGroups.TryAdd(funcGroups.Id, funcGroups))
-                            _log.Fatal($"Failed to add FuncGroups: {funcGroups.Id}");
+                            _logger.Fatal($"Failed to add FuncGroups: {funcGroups.Id}");
                     }
                 }
             }
@@ -2634,7 +2637,7 @@ public class DoodadManager : Singleton<DoodadManager>
                 template?.FuncGroups.Add(funcGroups);
             }
 
-            _log.Info($"Loaded {_templates.Count} doodad templates");
+            _logger.Info($"Loaded {_templates.Count} doodad templates");
             #endregion
         }
 
@@ -2869,7 +2872,7 @@ public class DoodadManager : Singleton<DoodadManager>
     /// </summary>
     public static Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId)
     {
-        _log.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
+        _logger.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
 
         var targetHouse = HousingManager.Instance.GetHouseAtLocation(x, y);
 
@@ -2904,7 +2907,7 @@ public class DoodadManager : Singleton<DoodadManager>
 
         if (preferredItem == null)
         {
-            _log.Error($"Unable to create doodad because source item (Id: {itemId}) does not exist in {character.Name}'s bag inventory.");
+            _logger.Error($"Unable to create doodad because source item (Id: {itemId}) does not exist in {character.Name}'s bag inventory.");
             doodad.Delete();
             return null;
         }

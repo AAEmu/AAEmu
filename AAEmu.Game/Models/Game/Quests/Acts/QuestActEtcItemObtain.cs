@@ -14,7 +14,7 @@ public class QuestActEtcItemObtain : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActEtcItemObtain");
+        Logger.Warn("QuestActEtcItemObtain");
 
         if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
         {

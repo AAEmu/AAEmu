@@ -805,7 +805,7 @@ public class Npc : Unit
         }
         else
         {
-            Log.Warn("Failed to remove unit[{0}] aggro from NPC[{1}]", unit.ObjId, this.ObjId);
+            Logger.Warn("Failed to remove unit[{0}] aggro from NPC[{1}]", unit.ObjId, this.ObjId);
         }
 
         if (AggroTable.Count != lastAggroCount)
@@ -1038,12 +1038,12 @@ public class Npc : Unit
         Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
         Ai.PathNode.findPath = Ai.PathNode.FindPath(Ai.PathNode.pos1, Ai.PathNode.pos2);
 
-        Log.Trace($"AStar: points found Total: {Ai.PathNode.findPath?.Count ?? 0}");
+        Logger.Trace($"AStar: points found Total: {Ai.PathNode.findPath?.Count ?? 0}");
         if (Ai.PathNode.findPath != null)
         {
             for (var i = 0; i < Ai.PathNode.findPath.Count; i++)
             {
-                Log.Trace($"AStar: point {i} coordinates X:{Ai.PathNode.findPath[i].X}, Y:{Ai.PathNode.findPath[i].Y}, Z:{Ai.PathNode.findPath[i].Z}");
+                Logger.Trace($"AStar: point {i} coordinates X:{Ai.PathNode.findPath[i].X}, Y:{Ai.PathNode.findPath[i].Y}, Z:{Ai.PathNode.findPath[i].Z}");
             }
         }
     }

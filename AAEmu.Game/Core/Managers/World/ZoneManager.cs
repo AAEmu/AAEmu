@@ -3,7 +3,6 @@ using System.Linq;
 using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
 using NLog;
@@ -12,7 +11,7 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class ZoneManager : Singleton<ZoneManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, uint> _zoneIdToKey;
     private Dictionary<uint, Zone> _zones;
@@ -63,7 +62,7 @@ public class ZoneManager : Singleton<ZoneManager>
         _conflicts = new Dictionary<ushort, ZoneConflict>();
         _groupBannedTags = new Dictionary<uint, ZoneGroupBannedTag>();
         _climateElem = new Dictionary<uint, ZoneClimateElem>();
-        _log.Info("Loading ZoneManager...");
+        _logger.Info("Loading ZoneManager...");
         using (var connection = SQLite.CreateConnection())
         {
             using (var command = connection.CreateCommand())
@@ -88,7 +87,7 @@ public class ZoneManager : Singleton<ZoneManager>
                 }
             }
 
-            _log.Info("Loaded {0} zones", _zones.Count);
+            _logger.Info("Loaded {0} zones", _zones.Count);
 
             using (var command = connection.CreateCommand())
             {
@@ -117,7 +116,7 @@ public class ZoneManager : Singleton<ZoneManager>
                 }
             }
 
-            _log.Info("Loaded {0} groups", _groups.Count);
+            _logger.Info("Loaded {0} groups", _groups.Count);
 
             using (var command = connection.CreateCommand())
             {
@@ -159,7 +158,7 @@ public class ZoneManager : Singleton<ZoneManager>
                                     .Conflict); // Set to Conflict for testing, normally it should start at Tension
                         }
                         else
-                            _log.Warn("ZoneGroupId: {1} doesn't exist for conflict", zoneGroupId);
+                            _logger.Warn("ZoneGroupId: {1} doesn't exist for conflict", zoneGroupId);
                     }
                 }
             }
@@ -182,7 +181,7 @@ public class ZoneManager : Singleton<ZoneManager>
                 }
             }
 
-            _log.Info("Loaded {0} group banned tags", _groupBannedTags.Count);
+            _logger.Info("Loaded {0} group banned tags", _groupBannedTags.Count);
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM zone_climate_elems";
@@ -200,7 +199,7 @@ public class ZoneManager : Singleton<ZoneManager>
                 }
             }
 
-            _log.Info("Loaded {0} climate elems", _climateElem.Count);
+            _logger.Info("Loaded {0} climate elems", _climateElem.Count);
         }
     }
 
@@ -247,7 +246,7 @@ public class ZoneManager : Singleton<ZoneManager>
     /// </summary>
     /// <param name="doodad"></param>
     /// <returns>Returns true if the doodad can have a growth time bonus, false if out of climate, or no climate defined for the doodad</returns>
-    public bool DoodadHasMatchingClimate(Doodad doodad)
+    public static bool DoodadHasMatchingClimate(Doodad doodad)
     {
         // If no climate defined, then don't give a bonus
         if (doodad.Template.ClimateId == Climate.Any || doodad.Template.ClimateId == Climate.Any)

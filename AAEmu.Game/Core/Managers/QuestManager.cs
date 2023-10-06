@@ -20,7 +20,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class QuestManager : Singleton<QuestManager>, IQuestManager
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
     protected Dictionary<uint, QuestTemplate> _templates;
     protected Dictionary<byte, QuestSupplies> _supplies;
@@ -86,7 +86,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     {
         owner.Quests.Drop(questId, true);
         owner.SendMessage("[Quest] {0}, quest {1} time is over, you didn't make it. Try again.", owner.Name, questId);
-        _log.Warn("[Quest] {0}, quest {1} time is over, you didn't make it. Try again.", owner.Name, questId);
+        _logger.Warn("[Quest] {0}, quest {1} time is over, you didn't make it. Try again.", owner.Name, questId);
     }
 
     private void UpdateQuestComponentActs()
@@ -119,7 +119,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             if (type.BaseType == typeof(QuestActTemplate))
                 _actTemplates.Add(type.Name, new Dictionary<uint, QuestActTemplate>());
 
-        _log.Info("Loading quests...");
+        _logger.Info("Loading quests...");
         using (var connection = SQLite.CreateConnection())
         {
             LoadQuestContexts(connection);
@@ -227,7 +227,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
 
     private void LoadQuestSupplies(SqliteConnection connection)
     {
-        _log.Info("Loaded {0} quests", _templates.Count);
+        _logger.Info("Loaded {0} quests", _templates.Count);
         using (var command = connection.CreateCommand())
         {
             command.CommandText = "SELECT * FROM quest_supplies";

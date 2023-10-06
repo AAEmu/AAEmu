@@ -14,6 +14,6 @@ public class ResetAoeDiminishingEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("ReportCrimeEffect");
+        Logger.Trace("ReportCrimeEffect");
     }
 }

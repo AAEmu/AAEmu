@@ -20,7 +20,7 @@ public class QuestActObjAggro : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActObjAggro");
+        Logger.Warn("QuestActObjAggro");
         return false;
     }
 }

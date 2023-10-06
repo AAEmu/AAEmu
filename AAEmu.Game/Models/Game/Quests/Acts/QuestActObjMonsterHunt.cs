@@ -16,7 +16,7 @@ public class QuestActObjMonsterHunt : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, UseAlias {2}, QuestActObjAliasId {3}, HighlightDoodadId {4}, HighlightDoodadPhase {5}, quest {6}, objective {7}",
+        Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, UseAlias {2}, QuestActObjAliasId {3}, HighlightDoodadId {4}, HighlightDoodadPhase {5}, quest {6}, objective {7}",
             NpcId, Count, UseAlias, QuestActObjAliasId, HighlightDoodadId, HighlightDoodadPhase, quest.TemplateId, objective);
 
         if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
@@ -33,7 +33,7 @@ public class QuestActObjMonsterHunt : QuestActTemplate
                     quest.ExtraCompletion = true;
             }
 
-            _log.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, HuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}",
+            Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, HuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}",
                 NpcId, Count, HuntStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
             return quest.OverCompletionPercent >= quest.Template.Score;
         }
@@ -49,7 +49,7 @@ public class QuestActObjMonsterHunt : QuestActTemplate
                 if (quest.OverCompletionPercent > 100)
                     quest.ExtraCompletion = true;
             }
-            _log.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, quest {2}, objective {3}",
+            Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, quest {2}, objective {3}",
                 NpcId, Count, quest.TemplateId, objective);
             return objective >= Count;
         }

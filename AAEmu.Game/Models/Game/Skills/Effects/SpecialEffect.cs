@@ -22,14 +22,14 @@ public class SpecialEffect : EffectTemplate
     {
         if (source == null) return;
 
-        _log.ConditionalTrace("SpecialEffect, Special: {0}, Value1: {1}, Value2: {2}, Value3: {3}, Value4: {4}",
+        Logger.ConditionalTrace("SpecialEffect, Special: {0}, Value1: {1}, Value2: {2}, Value3: {3}, Value4: {4}",
             SpecialEffectTypeId, Value1, Value2, Value3, Value4
         );
 
         var classType = Type.GetType("AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects." + SpecialEffectTypeId);
         if (classType == null)
         {
-            _log.Warn("Unknown special effect: {0}", SpecialEffectTypeId);
+            Logger.Warn("Unknown special effect: {0}", SpecialEffectTypeId);
             return;
         }
 

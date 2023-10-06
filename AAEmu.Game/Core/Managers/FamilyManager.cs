@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class FamilyManager : Singleton<FamilyManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, Family> _families;
     private Dictionary<uint, FamilyMember> _familyMembers;
@@ -23,7 +23,7 @@ public class FamilyManager : Singleton<FamilyManager>
         _families = new Dictionary<uint, Family>();
         _familyMembers = new Dictionary<uint, FamilyMember>();
 
-        _log.Info("Loading families...");
+        _logger.Info("Loading families...");
         using (var connection = MySQL.CreateConnection())
         {
             using (var command = connection.CreateCommand())
@@ -54,7 +54,7 @@ public class FamilyManager : Singleton<FamilyManager>
             }
         }
 
-        _log.Info("Loaded {0} families", _families.Count);
+        _logger.Info("Loaded {0} families", _families.Count);
     }
 
     public void SaveAllFamilies()

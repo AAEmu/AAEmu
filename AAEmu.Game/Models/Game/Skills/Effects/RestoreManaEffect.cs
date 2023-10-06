@@ -25,7 +25,7 @@ public class RestoreManaEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("RestoreManaEffect");
+        Logger.Trace("RestoreManaEffect");
 
         if (!(target is Unit))
             return;

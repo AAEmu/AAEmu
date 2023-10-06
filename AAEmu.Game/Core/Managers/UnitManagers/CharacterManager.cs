@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers;
 
 public class CharacterManager : Singleton<CharacterManager>
 {
-    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     private readonly Dictionary<byte, CharacterTemplate> _templates;
     private readonly Dictionary<byte, AbilityItems> _abilityItems;
@@ -89,7 +89,7 @@ public class CharacterManager : Singleton<CharacterManager>
 
     public void Load()
     {
-        Log.Info("Loading character templates...");
+        Logger.Info("Loading character templates...");
 
         using (var connection = SQLite.CreateConnection())
         {
@@ -393,7 +393,7 @@ public class CharacterManager : Singleton<CharacterManager>
         else
             throw new GameException($"CharacterManager: Error parsing {filePath} file");
 
-        Log.Info("Loaded {0} character templates", _templates.Count);
+        Logger.Info("Loaded {0} character templates", _templates.Count);
     }
 
     public static void PlayerRoll(Character Self, int max)
@@ -417,7 +417,7 @@ public class CharacterManager : Singleton<CharacterManager>
             character.Id = characterId; // duplicate Id
             character.TemplateId = characterId;
             character.AccountId = connection.AccountId;
-            character.Name = name.Substring(0, 1).ToUpper() + name.Substring(1);
+            character.Name = string.Concat(name.Substring(0, 1).ToUpper(), name.AsSpan(1));
             character.Race = (Race)race;
             character.Gender = (Gender)gender;
             character.Transform.ApplyWorldSpawnPosition(template.SpawnPosition);
@@ -578,7 +578,7 @@ public class CharacterManager : Singleton<CharacterManager>
         foreach (var (mailId, mail) in MailManager.Instance._allPlayerMails)
         {
             if (mail.CanReturnMail() && !mail.ReturnToSender())
-                Log.Warn(
+                Logger.Warn(
                     "DeleteCharacterAssets - Unable to return mail to sender for mail: {0}, deleted char: {1}({2}), sender: {3}({4})",
                     mail.Id,
                     mail.Header.ReceiverName, mail.Header.ReceiverId,
@@ -588,7 +588,7 @@ public class CharacterManager : Singleton<CharacterManager>
         if (!fullWipe)
             return;
 
-        Log.Warn("DeleteCharacterAssets - fullWipe is currently not implemented yet, charId: {0}", character.Id);
+        Logger.Warn("DeleteCharacterAssets - fullWipe is currently not implemented yet, charId: {0}", character.Id);
         // TODO: Wipe all mails
         // TODO: Wipe all items/gold (this also deletes all pets/vehicles)
     }
@@ -604,7 +604,7 @@ public class CharacterManager : Singleton<CharacterManager>
     {
         if ((character.DeleteTime > DateTime.MinValue) && (character.DeleteTime <= DateTime.UtcNow))
         {
-            Log.Info("CheckForDeletedCharactersDeletion - Deleting Account:{0} Id:{1} Name:{2}", character.AccountId, character.Id, character.Name);
+            Logger.Info("CheckForDeletedCharactersDeletion - Deleting Account:{0} Id:{1} Name:{2}", character.AccountId, character.Id, character.Name);
             using (var command = dbConnection.CreateCommand())
             {
                 var deletedName = character.Name;
@@ -642,7 +642,7 @@ public class CharacterManager : Singleton<CharacterManager>
         else
         if (character.DeleteRequestTime > DateTime.MinValue)
         {
-            Log.Warn("CheckForDeletedCharactersDeletion - Delete request for Account:{0} Id:{1} Name:{2}, but character is no longer marked for deletion (possibly cancelled delete)", character.AccountId, character.Id, character.Name);
+            Logger.Warn("CheckForDeletedCharactersDeletion - Delete request for Account:{0} Id:{1} Name:{2}, but character is no longer marked for deletion (possibly cancelled delete)", character.AccountId, character.Id, character.Name);
         }
         return false;
     }
@@ -652,7 +652,7 @@ public class CharacterManager : Singleton<CharacterManager>
         var nextCheckTime = DateTime.MaxValue;
         var deleteList = new List<(uint, uint)>(); // charId, accountId
 
-        Log.Debug("CheckForDeletedCharacters - Begin");
+        Logger.Debug("CheckForDeletedCharacters - Begin");
         using (var connection = MySQL.CreateConnection())
         {
             using (var command = connection.CreateCommand())
@@ -688,15 +688,15 @@ public class CharacterManager : Singleton<CharacterManager>
                 {
                     var accountConnection = GameConnectionTable.Instance?.GetConnectionByAccount(character.AccountId) ?? null;
                     if (CheckForDeletedCharactersDeletion(character, accountConnection, connection))
-                        Log.Info("CheckForDeletedCharacters - Delete charId:{0}", charId);
+                        Logger.Info("CheckForDeletedCharacters - Delete charId:{0}", charId);
                     else
                         // Failed to delete character from DB
-                        Log.Error("CheckForDeletedCharacters - Failed to delete character for deletion charId:{0}", charId);
+                        Logger.Error("CheckForDeletedCharacters - Failed to delete character for deletion charId:{0}", charId);
                 }
                 else
                 {
                     // Failed to load character for deletion somehow
-                    Log.Error("CheckForDeletedCharacters - Failed to load character for deletion charId:{0}", charId);
+                    Logger.Error("CheckForDeletedCharacters - Failed to load character for deletion charId:{0}", charId);
                 }
             }
         }
@@ -706,15 +706,15 @@ public class CharacterManager : Singleton<CharacterManager>
         {
             var deleteCheckTask = new CharacterDeleteTask();
             TaskManager.Instance?.Schedule(deleteCheckTask, nextCheckTime - DateTime.UtcNow);
-            Log.Debug("CheckForDeletedCharacters - Next delete scheduled at " + nextCheckTime.ToString());
+            Logger.Debug("CheckForDeletedCharacters - Next delete scheduled at " + nextCheckTime.ToString());
         }
         else
         {
-            Log.Debug("CheckForDeletedCharacters - No new deletions scheduled");
+            Logger.Debug("CheckForDeletedCharacters - No new deletions scheduled");
         }
     }
 
-    public void SetDeleteCharacter(GameConnection gameConnection, uint characterId)
+    public static void SetDeleteCharacter(GameConnection gameConnection, uint characterId)
     {
         if (gameConnection.Characters.ContainsKey(characterId))
         {
@@ -855,12 +855,12 @@ public class CharacterManager : Singleton<CharacterManager>
             if (!character.Equipment.AcquireDefaultItemEx(ItemTaskType.Invalid, hairModel, 1, -1,
                     out var newItemsList, out var _, character.Id, (int)EquipmentItemSlot.Hair))
             {
-                Log.Error($"Failed to add new hairstyle for player {character.Name} ({character.Id})!");
+                Logger.Error($"Failed to add new hairstyle for player {character.Name} ({character.Id})!");
             }
 
             if (newItemsList.Count != 1)
             {
-                Log.Error($"Something failed during hairstyle creation for player {character.Name} ({character.Id})!");
+                Logger.Error($"Something failed during hairstyle creation for player {character.Name} ({character.Id})!");
             }
         }
         character.ModelParams = modelParams;
@@ -868,7 +868,7 @@ public class CharacterManager : Singleton<CharacterManager>
         character.BroadcastPacket(new SCCharacterGenderAndModelModifiedPacket(character), true);
 
         if (character.Inventory.Bag.ConsumeItem(ItemTaskType.EditCosmetic, Item.SalonCertificate, 1, null) <= 0)
-            Log.Error($"Could not consume salon certificate for player {character.Name} ({character.Id})!");
+            Logger.Error($"Could not consume salon certificate for player {character.Name} ({character.Id})!");
 
         // The client will do a salon leave request after it gets the SCCharacterGenderAndModelModifiedPacket
     }

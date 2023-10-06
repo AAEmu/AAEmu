@@ -13,7 +13,7 @@ public class QuestActObjExpressFire : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActObjExpressFire");
+        Logger.Warn("QuestActObjExpressFire");
 
         return objective > 0;
     }

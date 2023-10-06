@@ -9,7 +9,7 @@ public class QuestActCheckSphere : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActCheckSphere: SphereId {0}", SphereId);
+        Logger.Warn("QuestActCheckSphere: SphereId {0}", SphereId);
         return false;
     }
 }

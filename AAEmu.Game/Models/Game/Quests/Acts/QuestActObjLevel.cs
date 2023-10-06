@@ -11,7 +11,7 @@ public class QuestActObjLevel : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Debug("QuestActObjLevel");
+        Logger.Debug("QuestActObjLevel");
         return character.Level >= Level;
     }
 }

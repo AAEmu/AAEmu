@@ -21,7 +21,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class DuelManager : Singleton<DuelManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private DoodadSpawner _combatFlag;
     private const double Delay = 1000; // 1 sec
@@ -40,7 +40,7 @@ public class DuelManager : Singleton<DuelManager>
 
     public static bool Initialize()
     {
-        _log.Info("Initialising Duel Manager...");
+        _logger.Info("Initialising Duel Manager...");
         return true;
     }
 
@@ -65,7 +65,7 @@ public class DuelManager : Singleton<DuelManager>
         var duel = new Duel(challenger, challenged);
         DuelAdd(duel);
         challenged.SendPacket(new SCDuelChallengedPacket(challenger.Id)); // we send only to the enemy
-        _log.Warn($"DuelRequest: challenger={challenger.Id}:{challenger.ObjId}, challenged={challengedId}:{challenged.Id}:{challenged.ObjId}");
+        _logger.Warn($"DuelRequest: challenger={challenger.Id}:{challenger.ObjId}, challenged={challengedId}:{challenged.Id}:{challenged.ObjId}");
     }
 
     public void DuelAccepted(Character challenged, uint challengerId)
@@ -107,12 +107,12 @@ public class DuelManager : Singleton<DuelManager>
                 TaskManager.Instance.Schedule(duel.DuelStartTask, TimeSpan.FromSeconds(3));
             }
             else
-                _log.Warn($"DuelAccepted: Duel with challengerId = {challengerId} is already started");
+                _logger.Warn($"DuelAccepted: Duel with challengerId = {challengerId} is already started");
         }
         catch (Exception e)
         {
             // id is missing in the database
-            _log.Warn($"DuelAccepted: Id = {challengerId} not found in duels[], error code: {e}");
+            _logger.Warn($"DuelAccepted: Id = {challengerId} not found in duels[], error code: {e}");
         }
     }
 
@@ -168,7 +168,7 @@ public class DuelManager : Singleton<DuelManager>
         catch (Exception e)
         {
             // id is missing in the database
-            _log.Warn($"DuelStart: Id = {id} not found in duels[], error code: {e}");
+            _logger.Warn($"DuelStart: Id = {id} not found in duels[], error code: {e}");
         }
     }
 
@@ -181,13 +181,13 @@ public class DuelManager : Singleton<DuelManager>
             if (errorMessage != 0)
                 duel.Challenger.SendErrorMessage(errorMessage);
 
-            _log.Warn($"DuelCancel: Duel with challengerId={challengerId} canceled, error={errorMessage}");
+            _logger.Warn($"DuelCancel: Duel with challengerId={challengerId} canceled, error={errorMessage}");
             DuelCleanUp(challengerId);
         }
         catch (Exception e)
         {
             // id is missing in the database
-            _log.Warn($"DuelCancel: Id={challengerId} not found in duels[], error code: {e}");
+            _logger.Warn($"DuelCancel: Id={challengerId} not found in duels[], error code: {e}");
         }
     }
 
@@ -217,7 +217,7 @@ public class DuelManager : Singleton<DuelManager>
         catch (Exception e)
         {
             // id is missing in the database
-            _log.Warn($"CleanUpDuel: Id={id} not found in duels[], error code: {e}");
+            _logger.Warn($"CleanUpDuel: Id={id} not found in duels[], error code: {e}");
         }
     }
 
@@ -225,7 +225,7 @@ public class DuelManager : Singleton<DuelManager>
     {
         try
         {
-            _log.Warn("DuelStop: Duel ended");
+            _logger.Warn("DuelStop: Duel ended");
             var duel = _duels[id];
             duel.DuelAllowed = false;
             // Duel is over, det 00=lose, 01=win, 02=surrender (Fled beyond the flag action border), 03=draw
@@ -233,19 +233,19 @@ public class DuelManager : Singleton<DuelManager>
             {
                 duel.SendPacketChallenged(new SCDuelEndedPacket(duel.Challenger.Id, duel.Challenged.Id, duel.Challenger.ObjId, duel.Challenged.ObjId, det));
                 duel.SendPacketChallenger(new SCDuelEndedPacket(duel.Challenged.Id, duel.Challenger.Id, duel.Challenged.ObjId, duel.Challenger.ObjId, det));
-                _log.Warn("DuelStop: Draw!");
+                _logger.Warn("DuelStop: Draw!");
             }
             else if (loseId != 0)
             {
                 if (loseId == duel.Challenger.Id)
                 {
                     duel.SendPacketsBoth(new SCDuelEndedPacket(duel.Challenged.Id, duel.Challenger.Id, duel.Challenged.ObjId, duel.Challenger.ObjId, det));
-                    _log.Warn($"DuelStop: Challenger:{duel.Challenger.Name} Lose, Challenged:{duel.Challenged.Name} Win!");
+                    _logger.Warn($"DuelStop: Challenger:{duel.Challenger.Name} Lose, Challenged:{duel.Challenged.Name} Win!");
                 }
                 else if (loseId == duel.Challenged.Id)
                 {
                     duel.SendPacketsBoth(new SCDuelEndedPacket(duel.Challenger.Id, duel.Challenged.Id, duel.Challenger.ObjId, duel.Challenged.ObjId, det));
-                    _log.Warn($"DuelStop: Challenger:{duel.Challenger.Name} Win, Challenged:{duel.Challenged.Name} Lose!");
+                    _logger.Warn($"DuelStop: Challenger:{duel.Challenger.Name} Win, Challenged:{duel.Challenged.Name} Lose!");
                 }
             }
             // Duel Status - Duel ended
@@ -272,7 +272,7 @@ public class DuelManager : Singleton<DuelManager>
         catch (Exception e)
         {
             // id is missing in the database
-            _log.Warn($"DuelStop: Id={id} not found in duels[], error code: {e}");
+            _logger.Warn($"DuelStop: Id={id} not found in duels[], error code: {e}");
         }
     }
 
@@ -294,7 +294,7 @@ public class DuelManager : Singleton<DuelManager>
         catch (Exception e)
         {
             // id is missing in the database
-            _log.Warn($"DuelResultСheck: Id={id} not found in duels[], error code: {e}");
+            _logger.Warn($"DuelResultСheck: Id={id} not found in duels[], error code: {e}");
             return false;
         }
         return false;
@@ -336,7 +336,7 @@ public class DuelManager : Singleton<DuelManager>
         catch (Exception e)
         {
             // id is missing in the database
-            _log.Warn($"DistanceСheck: Id={id} not found in duels[], error code: {e}");
+            _logger.Warn($"DistanceСheck: Id={id} not found in duels[], error code: {e}");
             return DuelDistance.Error;  // рядом с флагом
         }
         return DuelDistance.Near;  // рядом с флагом

@@ -16,7 +16,7 @@ namespace AAEmu.Login.Core.Controllers;
 
 public class GameController : Singleton<GameController>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
     private Dictionary<byte, GameServer> _gameServers;
     private Dictionary<byte, byte> _mirrorsId;
 
@@ -53,17 +53,17 @@ public class GameController : Singleton<GameController>
                 var ipString = ipAddress.ToString();
                 if (ipString.Split('.').Length == 4)
                 {
-                    _log.Debug($"Resolved {host} to {ipString}");
+                    _logger.Debug($"Resolved {host} to {ipString}");
                     return ipString;
                 }
             }
-            _log.Warn($"Unable to resolved {host}");
+            _logger.Warn($"Unable to resolved {host}");
             return host;
         }
         catch (Exception e)
         {
             // in case of errors, just return it un-parsed
-            _log.Error(e, $"Exception resolving {host}: {e.Message}");
+            _logger.Error(e, $"Exception resolving {host}: {e.Message}");
             return host;
         }
     }
@@ -89,26 +89,26 @@ public class GameController : Singleton<GameController>
                         _gameServers.Add(gameServer.Id, gameServer);
 
                         var extraInfo = host != loadedHost ? "from " + loadedHost : "";
-                        _log.Info($"Game Server {id}: {name} -> {host}:{port} {extraInfo}");
+                        _logger.Info($"Game Server {id}: {name} -> {host}:{port} {extraInfo}");
                     }
                 }
             }
 
             if (_gameServers.Count <= 0)
             {
-                _log.Fatal("No servers have been defined in the game_servers table!");
+                _logger.Fatal("No servers have been defined in the game_servers table!");
                 return;
             }
         }
 
-        _log.Info($"Loaded {_gameServers.Count} game server(s)");
+        _logger.Info($"Loaded {_gameServers.Count} game server(s)");
     }
 
     public void Add(byte gsId, List<byte> mirrorsId, InternalConnection connection)
     {
         if (!_gameServers.ContainsKey(gsId))
         {
-            _log.Error($"GameServer connection from {connection.Ip} is requesting an invalid WorldId {gsId}");
+            _logger.Error($"GameServer connection from {connection.Ip} is requesting an invalid WorldId {gsId}");
 
             Task.Run(() => SendPacketWithDelay(connection, 5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)));
             // connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
@@ -127,7 +127,7 @@ public class GameController : Singleton<GameController>
             _gameServers[mirrorId].Connection = connection;
             _mirrorsId.Add(mirrorId, gsId);
         }
-        _log.Info($"Registered GameServer {gameServer.Id} ({gameServer.Name}) from {connection.Ip}");
+        _logger.Info($"Registered GameServer {gameServer.Id} ({gameServer.Name}) from {connection.Ip}");
     }
 
     public void Remove(byte gsId)

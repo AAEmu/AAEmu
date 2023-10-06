@@ -23,7 +23,7 @@ public class QuestActCheckTimer : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActCheckTimer");
+        Logger.Warn("QuestActCheckTimer");
         // TODO add what to do with timer
         // TODO настройка и старт таймера ограничения времени на квест
         var task = new Dictionary<uint, QuestTimeoutTask>

@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Expeditions;
@@ -12,92 +10,9 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class ChatChannel
-{
-    public ChatType chatType;
-    public short subType; // used for things like zonekey for /shout
-    public uint faction;
-    public List<Character> members;
-    public long internalId;
-    public string internalName;
-
-    public ChatChannel()
-    {
-        chatType = ChatType.White;
-        subType = 0;
-        faction = 0;
-        members = new List<Character>();
-        internalId = 0;
-        internalName = string.Empty;
-    }
-
-    public bool JoinChannel(Character character)
-    {
-        if (character == null)
-            return false;
-
-        if (members.Contains(character))
-            return false;
-
-        // character.SendMessage(ChatType.System, "ChatManager.JoinChannel {0} - {1} - {2}", chatType, internalId, internalName);
-        members.Add(character);
-        character.SendPacket(new SCJoinedChatChannelPacket(chatType, subType, faction));
-
-        return true;
-    }
-
-    public bool LeaveChannel(Character character)
-    {
-        if (character == null)
-            return false;
-        // character.SendMessage(ChatType.System, "ChatManager.LeaveChannel {0} - {1} - {2}", chatType, internalId, internalName);
-        if (members.Remove(character))
-        {
-            character.SendPacket(new SCLeavedChatChannelPacket(chatType, subType, faction));
-            return true;
-        }
-        return false;
-    }
-
-    /// <summary>
-    /// Sends a message to all members of the channel
-    /// </summary>
-    /// <param name="origin">Can be null or be the charater that is the origin of the message</param>
-    /// <param name="msg">Text to send</param>
-    /// <param name="ability"></param>
-    /// <param name="languageType"></param>
-    /// <returns>Number of members the message was sent to</returns>
-    public int SendMessage(Character origin, string msg, int ability = 0, byte languageType = 0)
-    {
-        var res = 0;
-        foreach (var m in members)
-        {
-            m.SendPacket(new SCChatMessagePacket(chatType, origin != null ? origin : m, msg, ability, languageType));
-            res++;
-        }
-        return res;
-    }
-
-    /// <summary>
-    /// Sends a GamePacket to all members of the chat channel
-    /// </summary>
-    /// <param name="packet">Packet to send</param>
-    /// <returns>Number of members the packet was sent to</returns>
-    public int SendPacket(GamePacket packet)
-    {
-        var res = 0;
-        foreach (var m in members)
-        {
-            m.SendPacket(packet);
-            res++;
-        }
-        return res;
-    }
-}
-
 public class ChatManager : Singleton<ChatManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     /// <summary>
     /// nullChannel is used as a fallback channel, do not use directly
@@ -125,7 +40,7 @@ public class ChatManager : Singleton<ChatManager>
 
     public void Initialize()
     {
-        _log.Info("Initializing Chat Manager...");
+        _logger.Info("Initializing Chat Manager...");
 
         // Create Faction Channels
         AddFactionChannel(148, "Nuia");
@@ -273,7 +188,7 @@ public class ChatManager : Singleton<ChatManager>
         {
             var zoneGroupName = ZoneManager.Instance.GetZoneGroupById(zoneGroupId)?.Name ?? "ZoneGroup(" + zoneGroupId.ToString() + ")";
             if (!AddZoneChannel(zoneGroupId, zoneGroupName))
-                _log.Error("Failed to create zone chat channel !");
+                _logger.Error("Failed to create zone chat channel !");
         }
 
         if (_zoneChannels.TryGetValue(zoneGroupId, out var channel))
@@ -282,7 +197,7 @@ public class ChatManager : Singleton<ChatManager>
         }
         else
         {
-            _log.Error("Should not be able to get a null channel from GetZoneChat !");
+            _logger.Error("Should not be able to get a null channel from GetZoneChat !");
             return nullChannel;
         }
     }
@@ -300,7 +215,7 @@ public class ChatManager : Singleton<ChatManager>
         if (!_guildChannels.ContainsKey(guild.Id))
         {
             if (!AddGuildChannel(guild))
-                _log.Error("Failed to create guild chat channel !");
+                _logger.Error("Failed to create guild chat channel !");
         }
 
         if (_guildChannels.TryGetValue(guild.Id, out var channel))
@@ -309,7 +224,7 @@ public class ChatManager : Singleton<ChatManager>
         }
         else
         {
-            _log.Error("Should not be able to get a null channel from GetGuildChat !");
+            _logger.Error("Should not be able to get a null channel from GetGuildChat !");
             return nullChannel;
         }
     }
@@ -347,7 +262,7 @@ public class ChatManager : Singleton<ChatManager>
         if (!_partyChannels.ContainsKey(partyId))
         {
             if (!AddPartyChannel(partyId))
-                _log.Error("Failed to create party chat channel !");
+                _logger.Error("Failed to create party chat channel !");
         }
 
         if (_partyChannels.TryGetValue(partyId, out var channel))
@@ -357,7 +272,7 @@ public class ChatManager : Singleton<ChatManager>
         }
         else
         {
-            _log.Error("Should not be able to get a null channel from GetPartyChat !");
+            _logger.Error("Should not be able to get a null channel from GetPartyChat !");
             return nullChannel;
         }
     }
@@ -379,7 +294,7 @@ public class ChatManager : Singleton<ChatManager>
         if (!_raidChannels.ContainsKey(party.Id))
         {
             if (!AddRaidChannel(party.Id))
-                _log.Error("Failed to create party chat channel !");
+                _logger.Error("Failed to create party chat channel !");
         }
 
         if (_raidChannels.TryGetValue(party.Id, out var channel))
@@ -389,7 +304,7 @@ public class ChatManager : Singleton<ChatManager>
         }
         else
         {
-            _log.Error("Should not be able to get a null channel from GetRaidChat !");
+            _logger.Error("Should not be able to get a null channel from GetRaidChat !");
             return nullChannel;
         }
     }

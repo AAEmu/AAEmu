@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers;
 
 public class BuffTrigger
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
+    protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     protected Buff _buff;
     protected readonly BaseUnit _owner;
@@ -17,12 +17,12 @@ public class BuffTrigger
     public virtual void Execute(object sender, EventArgs eventArgs)
     {
         var args = eventArgs as OnTimeoutArgs;
-        _log.Trace("Buff[{0}] {1} executed. Applying {2}[{3}]!", _buff?.Template?.BuffId, GetType().Name, Template.Effect.GetType().Name, Template.Effect.Id);
+        Logger.Trace("Buff[{0}] {1} executed. Applying {2}[{3}]!", _buff?.Template?.BuffId, GetType().Name, Template.Effect.GetType().Name, Template.Effect.Id);
         //Template.Effect.Apply()
 
         if (_owner is not Unit)
         {
-            _log.Warn("Owner is not a Unit");
+            Logger.Warn("Owner is not a Unit");
             return;
         }
 

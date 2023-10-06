@@ -10,14 +10,10 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 
-using NLog;
-
 namespace AAEmu.Game.Models.Game.World;
 
 public class Region
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
-
     private readonly uint _worldId;
     private readonly object _objectsLock = new();
     private GameObject[] _objects;

@@ -23,7 +23,7 @@ public class QuestActObjZoneKill : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActObjZoneKill");
+        Logger.Warn("QuestActObjZoneKill");
         return objective >= CountNpc || objective >= CountPlayerKill;
     }
 }

@@ -17,7 +17,7 @@ public class QuestActObjItemUse : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActObjItemUse");
+        Logger.Warn("QuestActObjItemUse");
         if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
         {
             ItemUseStatus = objective * Count; // Count в данном случае % за единицу

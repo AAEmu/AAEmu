@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class MusicManager : Singleton<MusicManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, SongData> _uploadQueue; // playerId, song
     private Dictionary<uint, SongData> _allSongs; // songId, song
@@ -69,7 +69,7 @@ public class MusicManager : Singleton<MusicManager>
                 command.Prepare();
                 if (command.ExecuteNonQuery() != 1)
                 {
-                    _log.Warn("Error saving song to DB for {0} ({1})", songData.Title, songData.Id);
+                    _logger.Warn("Error saving song to DB for {0} ({1})", songData.Title, songData.Id);
                     return false;
                 }
             }
@@ -97,21 +97,21 @@ public class MusicManager : Singleton<MusicManager>
         // Check if a valid owned item
         if ((sourceItem == null) || (sourceItem._holdingContainer.OwnerId != player.Id))
         {
-            _log.Warn("Player {0} ({1}) does not own the used source item", player.Name, player.Id);
+            _logger.Warn("Player {0} ({1}) does not own the used source item", player.Name, player.Id);
             return false;
         }
 
         // Grab the related queued song (if any)
         if (!_uploadQueue.TryGetValue(player.Id, out var sud))
         {
-            _log.Warn("Player {0} ({1}) did not upload any music yet.", player.Name, player.Id);
+            _logger.Warn("Player {0} ({1}) did not upload any music yet.", player.Name, player.Id);
             return false;
         }
 
         if (player.Inventory.Bag.FreeSlotCount < 1)
         {
             player.SendErrorMessage(ErrorMessageType.BagFull);
-            _log.Warn("Player {0} ({1}) did not have enough space to aquire new music sheet {2} ({3})",
+            _logger.Warn("Player {0} ({1}) did not have enough space to aquire new music sheet {2} ({3})",
                 player.Name, player.Id, sud.Title, sud.Id);
             return false;
         }
@@ -127,7 +127,7 @@ public class MusicManager : Singleton<MusicManager>
             // Add Sheet Music to inventory
             if (!player.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.SaveMusicNotes, sheet))
             {
-                _log.Warn("Player {0} ({1}) had a unknown error when adding Sheet Music to inventory {2} ({3})",
+                _logger.Warn("Player {0} ({1}) had a unknown error when adding Sheet Music to inventory {2} ({3})",
                     player.Name, player.Id, sud.Title, sud.Id);
                 return false;
             }
@@ -135,7 +135,7 @@ public class MusicManager : Singleton<MusicManager>
             // Consume Music Paper
             if (player.Inventory.Bag.ConsumeItem(ItemTaskType.SaveMusicNotes, sourceItem.TemplateId, 1, sourceItem) <= 0)
             {
-                _log.Warn("Failed to consume source item while creating music for Player {0} ({1}) item {2} ({3})",
+                _logger.Warn("Failed to consume source item while creating music for Player {0} ({1}) item {2} ({3})",
                     player.Name, player.Id, sourceItem.Id, sourceItem.Template.Name);
             }
         }

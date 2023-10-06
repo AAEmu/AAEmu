@@ -13,7 +13,7 @@ public class QuestActObjDoodadPhaseCheck : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActObjDoodadPhaseCheck");
+        Logger.Warn("QuestActObjDoodadPhaseCheck");
         return false;
     }
 }

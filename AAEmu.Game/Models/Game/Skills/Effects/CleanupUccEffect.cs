@@ -18,7 +18,7 @@ public class CleanupUccEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("CleanupUccEffect");
+        Logger.Trace("CleanupUccEffect");
         if (!(target is Character player))
             return;
         if (!(casterObj is SkillItem skillItem))
