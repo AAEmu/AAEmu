@@ -12,7 +12,7 @@ public class DoodadFuncRequireItem : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncRequireItem");
+        Logger.Trace("DoodadFuncRequireItem");
         if (caster is Character character)
         {
             //character.Quests.OnInteraction(WorldInteractionId, character.CurrentTarget);

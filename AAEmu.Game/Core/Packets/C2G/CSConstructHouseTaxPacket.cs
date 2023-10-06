@@ -1,7 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -18,7 +18,7 @@ public class CSConstructHouseTaxPacket : GamePacket
         var y = Helpers.ConvertLongY(stream.ReadInt64());
         var z = stream.ReadSingle();
 
-        _log.Debug("ConstructHouseTax");
+        Logger.Debug("ConstructHouseTax");
         HousingManager.Instance.ConstructHouseTax(Connection, designId, x, y, z);
     }
 }

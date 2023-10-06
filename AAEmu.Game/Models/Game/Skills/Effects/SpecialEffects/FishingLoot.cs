@@ -7,7 +7,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
-class FishingLoot : SpecialEffectAction
+public class FishingLoot : SpecialEffectAction
 {
     protected override SpecialType SpecialEffectActionType => SpecialType.FishingLoot;
 
@@ -27,13 +27,13 @@ class FishingLoot : SpecialEffectAction
         if (caster is not Character character)
             return;
 
-        _log.Debug("Special effects: FishingLoot value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
+        Logger.Debug("Special effects: FishingLoot value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
 
         var zoneGroupId = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId).GroupId;
         var zoneGroup = ZoneManager.Instance.GetZoneGroupById(zoneGroupId);
         if (zoneGroup == null)
         {
-            _log.Warn($"{character.Name} seems to be trying to fish out of bounds.");
+            Logger.Warn($"{character.Name} seems to be trying to fish out of bounds.");
             return;
         }
 

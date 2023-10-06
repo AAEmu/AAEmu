@@ -6,7 +6,7 @@ namespace AAEmu.Game.Models.Tasks.Mate;
 
 public class MateXpUpdateTask : Task
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly Game.Units.Mate _mate;
     private readonly Character _owner;
     private const int Exp = 300;
@@ -23,6 +23,6 @@ public class MateXpUpdateTask : Task
         _mate.MateXpUpdateTask = null;
         _mate?.AddExp(Exp);
         _owner.SendMessage($"pet received {Exp} experience points");
-        _log.Debug($"[MateXpUpdateTask] Id {_mate?.Id}, ObjId {_mate?.ObjId}, DbInfo.Xp {_mate?.DbInfo.Xp}, AddExp {Exp}");
+        Logger.Debug($"[MateXpUpdateTask] Id {_mate?.Id}, ObjId {_mate?.ObjId}, DbInfo.Xp {_mate?.DbInfo.Xp}, AddExp {Exp}");
     }
 }

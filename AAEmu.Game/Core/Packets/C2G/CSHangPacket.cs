@@ -17,7 +17,7 @@ public class CSHangPacket : GamePacket
         var unitObjId = stream.ReadBc();
         var targetObjId = stream.ReadBc();
 
-        _log.Trace($"Hang, unitObjId: {unitObjId}, targetObjId: {targetObjId}");
+        Logger.Trace($"Hang, unitObjId: {unitObjId}, targetObjId: {targetObjId}");
         var character = WorldManager.Instance.GetBaseUnit(unitObjId);
         var target = WorldManager.Instance.GetGameObject(targetObjId);
         if (character != null && target != null)

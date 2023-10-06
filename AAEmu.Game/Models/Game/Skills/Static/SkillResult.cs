@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Skills.Static;
+﻿namespace AAEmu.Game.Models.Game.Skills.Static;
 
 public enum SkillResult
 {
@@ -74,7 +74,9 @@ public enum SkillResult
     LackSourceItemSet = 0x45,
     LackActability = 0x46,
     UrkStart = 0x47,
+#pragma warning disable CA1069 // Enums values should not be duplicated
     UrkLevel = 0x47,
+#pragma warning restore CA1069 // Enums values should not be duplicated
     UrkAbility = 0x48,
     UrkRace = 0x49,
     UrkGender = 0x4A,

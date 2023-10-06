@@ -15,11 +15,11 @@ public class QuestActObjItemGroupGather : QuestActTemplate
     public bool DropWhenDestroy { get; set; }
     public bool DestroyWhenDrop { get; set; }
 
-    public static int GroupGatherStatus = 0;
+    public static int GroupGatherStatus { get; private set; } = 0;
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActObjItemGroupGather");
+        Logger.Warn("QuestActObjItemGroupGather");
         if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
         {
             GroupGatherStatus = objective * Count; // Count в данном случае % за единицу

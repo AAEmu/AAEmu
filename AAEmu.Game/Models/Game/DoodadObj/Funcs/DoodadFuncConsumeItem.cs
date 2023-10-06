@@ -10,7 +10,7 @@ public class DoodadFuncConsumeItem : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncConsumeItem");
+        Logger.Trace("DoodadFuncConsumeItem");
         return false;
     }
 }

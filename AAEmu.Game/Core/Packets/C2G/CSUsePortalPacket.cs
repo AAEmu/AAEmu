@@ -15,7 +15,7 @@ public class CSUsePortalPacket : GamePacket
         var objId = stream.ReadBc();
         var onlyMyPortal = stream.ReadBoolean();
 
-        _log.Debug("UsePortal, ObjId: {0}, OnlyMyPortal: {1}", objId, onlyMyPortal);
+        Logger.Debug("UsePortal, ObjId: {0}, OnlyMyPortal: {1}", objId, onlyMyPortal);
 
         PortalManager.UsePortal(Connection.ActiveChar, objId);
     }

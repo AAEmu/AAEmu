@@ -1,28 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Models.Game;
-using NLog;
-using AAEmu.Game.Models.Game.Mails;
-using MySql.Data.MySqlClient;
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Models.Tasks.Mails;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Features;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Quests;
-using AAEmu.Commons.Exceptions;
+using AAEmu.Game.Models.Tasks.Mails;
+using MySql.Data.MySqlClient;
+using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
 
 public class MailManager : Singleton<MailManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public Dictionary<long, BaseMail> _allPlayerMails;
     private List<long> _deletedMailIds = new();
@@ -62,19 +62,19 @@ public class MailManager : Singleton<MailManager>
         var targetId = NameManager.Instance.GetCharacterId(mail.Header.ReceiverName);
         if (!string.Equals(targetName, mail.Header.ReceiverName, StringComparison.InvariantCultureIgnoreCase))
         {
-            _log.Debug("Send() - Failed to verify receiver name {0} != {1}", targetName, mail.Header.ReceiverName);
+            Logger.Debug("Send() - Failed to verify receiver name {0} != {1}", targetName, mail.Header.ReceiverName);
             return false; // Name mismatch
         }
         if (targetId != mail.Header.ReceiverId)
         {
-            _log.Debug("Send() - Failed to verify receiver id {0} != {1}", targetId, mail.Header.ReceiverId);
+            Logger.Debug("Send() - Failed to verify receiver id {0} != {1}", targetId, mail.Header.ReceiverId);
             return false; // Id mismatch
         }
 
         // Assign a Id if we didn't have one yet
         if (mail.Id <= 0)
         {
-            _log.Trace("Send() - Assign new mail Id");
+            Logger.Trace("Send() - Assign new mail Id");
             mail.Id = GetNewMailId();
         }
         _allPlayerMails.Add(mail.Id, mail);
@@ -108,7 +108,7 @@ public class MailManager : Singleton<MailManager>
     #region Database
     public void Load()
     {
-        _log.Info("Loading player mails ...");
+        Logger.Info("Loading player mails ...");
         _allPlayerMails = new Dictionary<long, BaseMail>();
         _deletedMailIds = new List<long>();
 
@@ -159,7 +159,7 @@ public class MailManager : Singleton<MailManager>
                                 }
                                 else
                                 {
-                                    _log.Warn("Found orphaned itemId {0} in mailId {1}, not loaded!", itemId, tempMail.Id);
+                                    Logger.Warn("Found orphaned itemId {0} in mailId {1}, not loaded!", itemId, tempMail.Id);
                                 }
                             }
                         }
@@ -171,7 +171,7 @@ public class MailManager : Singleton<MailManager>
                         if (tempMail.Body.MoneyAmount2 > 0)
                             attachmentCount++;
                         if (attachmentCount != tempMail.Header.Attachments)
-                            _log.Warn("Attachment count listed in mailId {0} did not match the number of attachments, possible mail or item corruption !", tempMail.Id);
+                            Logger.Warn("Attachment count listed in mailId {0} did not match the number of attachments, possible mail or item corruption !", tempMail.Id);
                         // Reset the attachment counter
                         tempMail.Header.Attachments = (byte)attachmentCount;
 
@@ -187,7 +187,7 @@ public class MailManager : Singleton<MailManager>
                 }
             }
         }
-        _log.Info("Loaded {0} player mails", _allPlayerMails.Count);
+        Logger.Info("Loaded {0} player mails", _allPlayerMails.Count);
 
         var mailCheckTask = new MailDeliveryTask();
         TaskManager.Instance.Schedule(mailCheckTask, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(5));
@@ -197,7 +197,7 @@ public class MailManager : Singleton<MailManager>
     {
         var deletedCount = 0;
         var updatedCount = 0;
-        // _log.Info("Saving mail data ...");
+        // Logger.Info("Saving mail data ...");
 
         lock (_deletedMailIds)
         {
@@ -298,7 +298,7 @@ public class MailManager : Singleton<MailManager>
 
     public static bool NotifyNewMailByNameIfOnline(BaseMail m, string receiverName)
     {
-        _log.Trace($"NotifyNewMailByNameIfOnline() - {receiverName}");
+        Logger.Trace($"NotifyNewMailByNameIfOnline() - {receiverName}");
         // If unread and ready to deliver
         if ((m.Header.Status != MailStatus.Read) && (m.Body.RecvDate <= DateTime.UtcNow) && (m.IsDelivered == false))
         {
@@ -319,7 +319,7 @@ public class MailManager : Singleton<MailManager>
 
     public static bool NotifyDeleteMailByNameIfOnline(BaseMail m, string receiverName)
     {
-        _log.Trace($"NotifyDeleteMailByNameIfOnline() - {receiverName}");
+        Logger.Trace($"NotifyDeleteMailByNameIfOnline() - {receiverName}");
         var player = WorldManager.Instance.GetCharacter(receiverName);
         if (player != null)
         {
@@ -334,14 +334,14 @@ public class MailManager : Singleton<MailManager>
     public void CheckAllMailTimings()
     {
         // Deliver yet "undelivered" mails
-        _log.Trace("CheckAllMailTimings");
+        Logger.Trace("CheckAllMailTimings");
         var undeliveredMails = _allPlayerMails.Where(x => (x.Value.Body.RecvDate <= DateTime.UtcNow) && (x.Value.IsDelivered == false)).ToDictionary(x => x.Key, x => x.Value);
         var delivered = 0;
         foreach (var mail in undeliveredMails)
             if (NotifyNewMailByNameIfOnline(mail.Value, mail.Value.Header.ReceiverName))
                 delivered++;
         if (delivered > 0)
-            _log.Debug($"{delivered}/{undeliveredMails.Count} mail(s) delivered");
+            Logger.Debug($"{delivered}/{undeliveredMails.Count} mail(s) delivered");
 
         // TODO: Return expired mails back to owner if undelivered/unread
     }
@@ -408,7 +408,7 @@ public class MailManager : Singleton<MailManager>
                 }
 
                 if (consumedCerts != 0)
-                    _log.Error("Something went wrong when paying tax for mailId {0}", mail.Id);
+                    Logger.Error("Something went wrong when paying tax for mailId {0}", mail.Id);
 
                 mail.Body.BillingAmount = consumedCerts;
 
@@ -430,7 +430,7 @@ public class MailManager : Singleton<MailManager>
         }
 
         if (!HousingManager.PayWeeklyTax(house))
-            _log.Error("Could not update protection time when paying taxes, mailId {0}", mail.Id);
+            Logger.Error("Could not update protection time when paying taxes, mailId {0}", mail.Id);
         else
         {
             if (mail.Header.Status != MailStatus.Read)

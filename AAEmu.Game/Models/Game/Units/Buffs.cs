@@ -188,7 +188,7 @@ public class Buffs : IBuffs
                     hiddenBuffs.Add(buff);
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new NotSupportedException(nameof(buff.Template.Kind));
             }
         }
     }

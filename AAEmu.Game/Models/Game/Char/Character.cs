@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
+using System.Drawing;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -13,43 +14,23 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.FishSchools;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.World.Transform;
-using MySql.Data.MySqlClient;
-using System.Drawing;
-using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.FishSchools;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
+using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char;
-
-public enum Race : byte
-{
-    None = 0,
-    Nuian = 1,
-    Fairy = 2,
-    Dwarf = 3,
-    Elf = 4,
-    Hariharan = 5,
-    Ferre = 6,
-    Returned = 7,
-    Warborn = 8
-}
-
-public enum Gender : byte
-{
-    Male = 1,
-    Female = 2
-}
 
 public partial class Character : Unit, ICharacter
 {
@@ -1421,7 +1402,7 @@ public partial class Character : Unit, ICharacter
                 VocationPoint += change;
                 break;
             default:
-                Log.Error($"ChangeGamePoints - Unknown Game Point Type {kind}");
+                Logger.Error($"ChangeGamePoints - Unknown Game Point Type {kind}");
                 return;
         }
         SendPacket(new SCGamePointChangedPacket((byte)kind, change));
@@ -1566,12 +1547,12 @@ public partial class Character : Unit, ICharacter
     {
         if (AccessLevel > 0)
         {
-            Log.Debug("{0}'s FallDamage disabled because of GM or Admin flag", Name);
+            Logger.Debug("{0}'s FallDamage disabled because of GM or Admin flag", Name);
             return 0; // GM & Admin take 0 damage from falling
             // TODO: Make this a option, or allow settings of minimum access level
         }
         var fallDamage = base.DoFallDamage(fallVel);
-        Log.Debug("FallDamage: {0} - Vel {1} DmgPerc: {2}, Damage {3}", Name, fallVel, (int)((fallVel - 8600) / 150f), fallDamage);
+        Logger.Debug("FallDamage: {0} - Vel {1} DmgPerc: {2}, Damage {3}", Name, fallVel, (int)((fallVel - 8600) / 150f), fallDamage);
         return fallDamage;
     }
 
@@ -1692,19 +1673,19 @@ public partial class Character : Unit, ICharacter
 
             if (!Inventory.Bag.Items.Contains(item) && !Equipment.Items.Contains(item))
             {
-                Log.Warn("Attempting to repair an item that isn't in your inventory or equipment, Item: {0}", item.Id);
+                Logger.Warn("Attempting to repair an item that isn't in your inventory or equipment, Item: {0}", item.Id);
                 continue;
             }
 
             if (!(item is EquipItem equipItem && item.Template is EquipItemTemplate))
             {
-                Log.Warn("Attempting to repair a non-equipment item, Item: {0}", item.Id);
+                Logger.Warn("Attempting to repair a non-equipment item, Item: {0}", item.Id);
                 continue;
             }
 
             if (equipItem.Durability >= equipItem.MaxDurability)
             {
-                Log.Warn("Attempting to repair an item that has max durability, Item: {0}", item.Id);
+                Logger.Warn("Attempting to repair an item that has max durability, Item: {0}", item.Id);
                 continue;
             }
 
@@ -1715,7 +1696,7 @@ public partial class Character : Unit, ICharacter
 
             if (!npc.Template.Blacksmith)
             {
-                Log.Warn("Attempting to repair an item while not at a blacksmith, Item: {0}, NPC: {1}", item.Id, npc);
+                Logger.Warn("Attempting to repair an item while not at a blacksmith, Item: {0}, NPC: {1}", item.Id, npc);
                 continue;
             }
 
@@ -1731,7 +1712,7 @@ public partial class Character : Unit, ICharacter
 
             if (Money < currentRepairCost)
             {
-                Log.Warn("Not enough money to repair, Item: {0}, Money: {1}, RepairCost: {2}", item.Id, Money, currentRepairCost);
+                Logger.Warn("Not enough money to repair, Item: {0}, Money: {1}, RepairCost: {2}", item.Id, Money, currentRepairCost);
                 continue;
             }
 
@@ -2042,7 +2023,7 @@ public partial class Character : Unit, ICharacter
                     }
                 default:
                     {
-                        Log.Error("LoadActionSlots, Unknown ActionSlotType!");
+                        Logger.Error("LoadActionSlots, Unknown ActionSlotType!");
                         break;
                     }
             }
@@ -2071,7 +2052,7 @@ public partial class Character : Unit, ICharacter
         }
         catch (Exception ex)
         {
-            Log.Warn($"LoadActionSlots, error while loading for character {Id}, {ex.Message}");
+            Logger.Warn($"LoadActionSlots, error while loading for character {Id}, {ex.Message}");
         }
     }
 
@@ -2102,7 +2083,7 @@ public partial class Character : Unit, ICharacter
                     }
                 default:
                     {
-                        Log.Error("GetActionSlotsAsBlob, Unknown ActionSlotType!");
+                        Logger.Error("GetActionSlotsAsBlob, Unknown ActionSlotType!");
                         break;
                     }
             }
@@ -2171,7 +2152,7 @@ public partial class Character : Unit, ICharacter
                 catch (Exception e)
                 {
                     saved = false;
-                    Log.Error(e, "Character save failed for {0} - {1}\n", Id, Name);
+                    Logger.Error(e, "Character save failed for {0} - {1}\n", Id, Name);
                     try
                     {
                         transaction.Rollback();
@@ -2179,7 +2160,7 @@ public partial class Character : Unit, ICharacter
                     catch (Exception eRollback)
                     {
                         // Really failed here
-                        Log.Fatal(eRollback, "Character save rollback failed for {0} - {1}\n", Id, Name);
+                        Logger.Fatal(eRollback, "Character save rollback failed for {0} - {1}\n", Id, Name);
                     }
                 }
             }
@@ -2313,7 +2294,7 @@ public partial class Character : Unit, ICharacter
         }
         catch (Exception ex)
         {
-            Log.Error(ex);
+            Logger.Error(ex);
             result = false;
         }
 

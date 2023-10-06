@@ -11,9 +11,9 @@ public class DoodadFuncCutdowning : DoodadFuncTemplate
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
         if (caster is Character)
-            _log.Debug("DoodadFuncCutdowning");
+            Logger.Debug("DoodadFuncCutdowning");
         else
-            _log.Trace("DoodadFuncCutdowning");
+            Logger.Trace("DoodadFuncCutdowning");
 
         //TODO Tree falling effect goes here?
         // DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId);

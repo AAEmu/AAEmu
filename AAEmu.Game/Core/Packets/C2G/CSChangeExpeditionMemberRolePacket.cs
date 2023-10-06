@@ -15,7 +15,7 @@ public class CSChangeExpeditionMemberRolePacket : GamePacket
         var role = stream.ReadByte();
         var id = stream.ReadUInt32(); // type(id)
 
-        _log.Debug("ChangeExpeditionMemberRole, Id: {0}, Role: {1}", id, role);
+        Logger.Debug("ChangeExpeditionMemberRole, Id: {0}, Role: {1}", id, role);
         ExpeditionManager.ChangeMemberRole(Connection, role, id);
     }
 }

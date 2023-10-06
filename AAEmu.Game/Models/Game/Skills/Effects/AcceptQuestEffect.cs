@@ -17,7 +17,7 @@ public class AcceptQuestEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("AcceptQuestEffect");
+        Logger.Trace("AcceptQuestEffect");
 
         if (target is Character character)
             character.Quests.Add(QuestId);

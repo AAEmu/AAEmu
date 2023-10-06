@@ -30,7 +30,7 @@ public class SpawnEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("SpawnEffect");
+        Logger.Trace("SpawnEffect");
 
         if (OwnerTypeId == 1) // NPC
         {

@@ -19,13 +19,13 @@ public class MailForSpeciality : BaseMail
     private int _interestRate;
     private string _tradePackName;
     private bool _sellerIsCrafter;
-    private int _itemCountTotal;
+    // unused private int _itemCountTotal;
 
-    public static TimeSpan TradePackMailDelay = TimeSpan.FromHours(8); // Default is 8 hours
-    public static string TradeDeliveryName = ".sellBackpack";
-    public static string TradeDeliveryTitle = "Speciality Payment";
-    public static string TradeDeliveryTitleSeller = "Speciality Payment [Delivery]";
-    public static string TradeDeliveryTitleCrafter = "Speciality Payment [Crafter]";
+    private static TimeSpan TradePackMailDelay = TimeSpan.FromHours(8); // Default is 8 hours
+    private static string TradeDeliveryName = ".sellBackpack";
+    private static string TradeDeliveryTitle = "Speciality Payment";
+    private static string TradeDeliveryTitleSeller = "Speciality Payment [Delivery]";
+    private static string TradeDeliveryTitleCrafter = "Speciality Payment [Crafter]";
 
     /*
      * Function from LUA in Trino 1.2
@@ -87,7 +87,7 @@ public class MailForSpeciality : BaseMail
         _itemCountBonus = itemCountBonus;
         _itemCountSeller = itemCountForSeller;
         _itemCountCrafter = itemCountForCrafter;
-        _itemCountTotal = _itemCountCrafter + _itemCountSeller;
+        // unused _itemCountTotal = _itemCountCrafter + _itemCountSeller;
         _interestRate = interestRate;
 
         // TODO: make name localized based on activeplayer locale

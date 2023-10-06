@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Models.Tasks.Characters;
 
-class CharacterDeleteTask : Task
+public class CharacterDeleteTask : Task
 {
     private static object _lock = new();
 

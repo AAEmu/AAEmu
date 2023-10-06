@@ -3,21 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
-using NLog;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
-using MySql.Data.MySqlClient;
 using AAEmu.Game.Models.Game.Mails;
+using MySql.Data.MySqlClient;
+using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
 public class AuctionManager : Singleton<AuctionManager>
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public List<AuctionItem> _auctionItems;
     public List<long> _deletedAuctionItemIds;
@@ -281,8 +281,8 @@ public class AuctionManager : Singleton<AuctionManager>
 
         if (tempList.Count > 0)
         {
-            tempList.OrderByDescending(x => x.DirectMoney);
-            return tempList[0];
+            tempList = tempList.OrderByDescending(x => x.DirectMoney).ToList();
+            return tempList.First();
         }
         else
         {
@@ -336,7 +336,7 @@ public class AuctionManager : Singleton<AuctionManager>
 
     public void UpdateAuctionHouse()
     {
-        _log.Trace("Updating Auction House!");
+        Logger.Trace("Updating Auction House!");
         lock (_auctionItems)
         {
             var itemsToRemove = _auctionItems.Where(c => DateTime.UtcNow > c.EndTime);

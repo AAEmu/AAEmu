@@ -14,6 +14,6 @@ public class CSAuctionMyBidListPacket : GamePacket
         var npcObjId = stream.ReadBc();
         var page = stream.ReadInt32();
 
-        _log.Warn("AuctionMyBidList, NpcObjId: {0}, Page: {1}", npcObjId, page);
+        Logger.Warn("AuctionMyBidList, NpcObjId: {0}, Page: {1}", npcObjId, page);
     }
 }

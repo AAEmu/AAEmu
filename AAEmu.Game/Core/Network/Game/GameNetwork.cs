@@ -13,7 +13,7 @@ public class GameNetwork : Singleton<GameNetwork>
 {
     private Server _server;
     private GameProtocolHandler _handler;
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private GameNetwork()
     {
@@ -332,7 +332,7 @@ public class GameNetwork : Singleton<GameNetwork>
         _server = new Server(config.Host.Equals("*") ? IPAddress.Any : IPAddress.Parse(config.Host), config.Port, _handler);
         _server.Start();
 
-        _log.Info("Network started");
+        Logger.Info("Network started");
     }
 
     public void Stop()
@@ -340,7 +340,7 @@ public class GameNetwork : Singleton<GameNetwork>
         if (_server?.IsStarted ?? false)
             _server.Stop();
 
-        _log.Info("Network stopped");
+        Logger.Info("Network stopped");
     }
 
     private void RegisterPacket(uint type, byte level, Type classType)

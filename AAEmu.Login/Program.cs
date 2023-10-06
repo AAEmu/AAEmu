@@ -16,7 +16,7 @@ namespace AAEmu.Login;
 
 public static class Program
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static Thread _thread = Thread.CurrentThread;
     private static DateTime _startTime;
     private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
@@ -33,12 +33,12 @@ public static class Program
             Configuration(args, mainConfig);
         else
         {
-            _log.Fatal($"{mainConfig} doesn't exist!");
+            Logger.Fatal($"{mainConfig} doesn't exist!");
             LogManager.Flush();
             return;
         }
 
-        _log.Info($"{Name} version {Version}");
+        Logger.Info($"{Name} version {Version}");
 
         // Apply MySQL Configuration
         MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
@@ -52,7 +52,7 @@ public static class Program
         }
         catch (Exception ex)
         {
-            _log.Fatal(ex, "MySQL connection failed, check your configuration!");
+            Logger.Fatal(ex, "MySQL connection failed, check your configuration!");
             LogManager.Flush();
             return;
         }

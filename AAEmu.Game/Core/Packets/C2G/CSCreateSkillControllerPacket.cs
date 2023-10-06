@@ -15,6 +15,6 @@ public class CSCreateSkillControllerPacket : GamePacket
         var scType = stream.ReadByte();
         var fallDamageImmune = stream.ReadBoolean();
 
-        _log.Debug("CreateSkillController, objId: {0}, scType: {1}, fallDamageImmune: {2}", objId, scType, fallDamageImmune);
+        Logger.Debug("CreateSkillController, objId: {0}, scType: {1}, fallDamageImmune: {2}", objId, scType, fallDamageImmune);
     }
 }

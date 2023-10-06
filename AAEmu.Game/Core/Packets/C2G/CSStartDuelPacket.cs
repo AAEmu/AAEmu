@@ -16,7 +16,7 @@ public class CSStartDuelPacket : GamePacket
         var challengerId = stream.ReadUInt32();  // ID of the one who challenged us to a duel
         var errorMessage = stream.ReadInt16();  // 0 - accepted the duel, 507 - refused
 
-        _log.Warn("StartDuel, Id: {0}, ErrorMessage: {1}", challengerId, errorMessage);
+        Logger.Warn("StartDuel, Id: {0}, ErrorMessage: {1}", challengerId, errorMessage);
 
         if (errorMessage != 0)
         {

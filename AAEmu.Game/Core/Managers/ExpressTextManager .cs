@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class ExpressTextManager : Singleton<ExpressTextManager>, IExpressTextManager
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, uint> _expressTexts;
 
@@ -23,7 +23,7 @@ public class ExpressTextManager : Singleton<ExpressTextManager>, IExpressTextMan
     {
         _expressTexts = new Dictionary<uint, uint>();
 
-        _log.Info("Loading express text...");
+        Logger.Info("Loading express text...");
 
         using var connection = SQLite.CreateConnection();
         using var command = connection.CreateCommand();

@@ -2,10 +2,6 @@
 
 public class AreasMission
 {
-    public AreasMission()
-    {
-    }
-
     public uint Id { get; set; }
     public uint ZoneKey { get; set; }
     public string Name { get; set; }

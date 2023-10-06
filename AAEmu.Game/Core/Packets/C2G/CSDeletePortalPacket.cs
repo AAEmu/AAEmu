@@ -15,7 +15,7 @@ public class CSDeletePortalPacket : GamePacket
         var portalType = stream.ReadByte();
         var portalId = stream.ReadUInt32(); // stream.ReadInt32() - Before
 
-        _log.Debug("DeletePortal, PortalType: {0}, PortalId: {1}", portalType, portalId);
+        Logger.Debug("DeletePortal, PortalType: {0}, PortalId: {1}", portalType, portalId);
 
         PortalManager.DeletePortal(Connection.ActiveChar, portalType, portalId);
     }

@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree;
 
 public class PlotNode
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     // Tree
     public PlotTree Tree;
@@ -49,7 +49,7 @@ public class PlotNode
 
     public void Execute(PlotState state, PlotTargetInfo targetInfo, CompressedGamePackets packets = null)
     {
-        //_log.Debug("Executing plot node with id {0}", Event.Id);
+        //Logger.Debug("Executing plot node with id {0}", Event.Id);
 
         var stopwatch = new Stopwatch();
         stopwatch.Start();
@@ -63,7 +63,7 @@ public class PlotNode
             catch (Exception e)
             {
                 state?.Caster?.SendPacket(new SCChatMessagePacket(Chat.ChatType.Notice, "Plot Effects Error - Check Logs"));
-                _log.Error("[Plot Effects Error]: {0}\n{1}", e.Message, e.StackTrace);
+                Logger.Error("[Plot Effects Error]: {0}\n{1}", e.Message, e.StackTrace);
             }
         }
 
@@ -95,7 +95,7 @@ public class PlotNode
             else
                 targetPlotObj = new PlotObject(targetInfo.Target);
 
-            byte targetCount = (byte)targetInfo.EffectedTargets.Count();
+            byte targetCount = (byte)targetInfo.EffectedTargets.Count;
 
             var packet = new SCPlotEventPacket(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj,
                 targetPlotObj, unkId, (ushort)castTime, flag, 0, targetCount);
@@ -105,7 +105,7 @@ public class PlotNode
             else
                 state.Caster.BroadcastPacket(packet, true);
 
-            _log.Trace($"Execute Took {stopwatch.ElapsedMilliseconds} to finish.");
+            Logger.Trace($"Execute Took {stopwatch.ElapsedMilliseconds} to finish.");
         }
     }
 }

@@ -10,13 +10,13 @@ namespace AAEmu.Game.Core.Managers;
 
 public class PlotManager : Singleton<PlotManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
     private Dictionary<uint, Plot> _plots;
     private Dictionary<uint, PlotEventTemplate> _eventTemplates;
     private Dictionary<uint, PlotCondition> _conditions;
-    private Dictionary<uint, PlotAoeCondition> _aoeConditions;
+    //private Dictionary<uint, PlotAoeCondition> _aoeConditions;
 
     public Plot GetPlot(uint id)
     {
@@ -40,10 +40,10 @@ public class PlotManager : Singleton<PlotManager>
         _plots = new Dictionary<uint, Plot>();
         _eventTemplates = new Dictionary<uint, PlotEventTemplate>();
         _conditions = new Dictionary<uint, PlotCondition>();
-        _aoeConditions = new Dictionary<uint, PlotAoeCondition>();
+        //_aoeConditions = new Dictionary<uint, PlotAoeCondition>();
         using (var connection = SQLite.CreateConnection())
         {
-            _log.Info("Loading plots...");
+            Logger.Info("Loading plots...");
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM plots";
@@ -60,9 +60,9 @@ public class PlotManager : Singleton<PlotManager>
                 }
             }
 
-            _log.Info("Loaded {0} plots", _plots.Count);
+            Logger.Info("Loaded {0} plots", _plots.Count);
 
-            _log.Info("Loading plot events...");
+            Logger.Info("Loading plot events...");
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM plot_events";
@@ -270,7 +270,7 @@ public class PlotManager : Singleton<PlotManager>
                 }
             }
 
-            _log.Info("Loaded {0} plot events", _eventTemplates.Count);
+            Logger.Info("Loaded {0} plot events", _eventTemplates.Count);
 
             foreach (var plot in _plots.Values)
             {

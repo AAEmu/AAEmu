@@ -14,7 +14,7 @@ public class CSICSMoneyRequestPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         // Empty struct
-        _log.Warn("ICSMoneyRequest");
+        Logger.Warn("ICSMoneyRequest");
 
         var points = CashShopManager.Instance.GetAccountCredits(Connection.AccountId);
         Connection.SendPacket(new SCICSCashPointPacket(points));

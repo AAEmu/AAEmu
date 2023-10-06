@@ -12,6 +12,6 @@ public class CSLeaveInstantGamePacket : GamePacket
     public override void Read(PacketStream stream)
     {
         // Empty struct
-        _log.Warn("LeaveInstantGame");
+        Logger.Warn("LeaveInstantGame");
     }
 }

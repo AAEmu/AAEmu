@@ -15,6 +15,6 @@ public class CSJurySummonedPacket : GamePacket
         var court = stream.ReadInt32();
         var jury = stream.ReadInt32();
 
-        _log.Warn("JurySummoned, Trial: {0}, Court: {1}, Jury: {2}", trial, court, jury);
+        Logger.Warn("JurySummoned, Trial: {0}, Court: {1}, Jury: {2}", trial, court, jury);
     }
 }

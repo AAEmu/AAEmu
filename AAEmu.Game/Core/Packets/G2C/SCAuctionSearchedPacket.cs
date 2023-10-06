@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
@@ -8,7 +7,7 @@ using AAEmu.Game.Models.Game.Auction;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-class SCAuctionSearchedPacket : GamePacket
+public class SCAuctionSearchedPacket : GamePacket
 {
     private List<AuctionItem> _auctionItems;
     private uint _page;
@@ -19,7 +18,7 @@ class SCAuctionSearchedPacket : GamePacket
     public SCAuctionSearchedPacket(List<AuctionItem> auctionItems, uint page) : base(SCOffsets.SCAuctionSearchedPacket, 1)
     {
         _auctionItems = auctionItems;
-        _count = (uint)_auctionItems.Count();
+        _count = (uint)_auctionItems.Count;
         _page = page;
     }
 

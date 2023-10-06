@@ -23,6 +23,6 @@ public class ActivateSavedAbilitySet : SpecialEffectAction
         int value4)
     {
         // TODO ...
-        if (caster is Character) { _log.Debug("Special effects: ActivateSavedAbilitySet value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is Character) { Logger.Debug("Special effects: ActivateSavedAbilitySet value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
     }
 }

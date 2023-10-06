@@ -16,7 +16,7 @@ public class TimeManager : Singleton<TimeManager>, IObservable<float>
     private float _time = 43200f; // TODO 12h 00m
     private float _tick = 3600f * Speed;
 
-    public static float Speed = .0016666f;
+    private static float Speed = .0016666f;
     public float GetTime() => _time / 3600f;
 
     public TimeManager()

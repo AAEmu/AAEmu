@@ -7,20 +7,17 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.AStar;
-using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
-using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
-
-using static AAEmu.Game.Models.Game.Skills.SkillControllers.SkillController;
 
 namespace AAEmu.Game.Models.Game.NPChar;
 
@@ -808,7 +805,7 @@ public class Npc : Unit
         }
         else
         {
-            Log.Warn("Failed to remove unit[{0}] aggro from NPC[{1}]", unit.ObjId, this.ObjId);
+            Logger.Warn("Failed to remove unit[{0}] aggro from NPC[{1}]", unit.ObjId, this.ObjId);
         }
 
         if (AggroTable.Count != lastAggroCount)
@@ -818,7 +815,7 @@ public class Npc : Unit
     private void CheckIfEmptyAggroToReturn()
     {
         // If aggro table is empty, and too far from spawn, trigger a return to spawn effect.
-        if (AggroTable.Count <= 0)
+        if (AggroTable.IsEmpty)
         {
             if (Ai != null)
             {
@@ -902,7 +899,7 @@ public class Npc : Unit
             return;
         }
 
-        if ((ActiveSkillController?.State ?? SCState.Ended) == SCState.Running)
+        if ((ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
             return;
 
         if (Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(shackle)) ||
@@ -1041,12 +1038,12 @@ public class Npc : Unit
         Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
         Ai.PathNode.findPath = Ai.PathNode.FindPath(Ai.PathNode.pos1, Ai.PathNode.pos2);
 
-        Log.Trace($"AStar: points found Total: {Ai.PathNode.findPath?.Count ?? 0}");
+        Logger.Trace($"AStar: points found Total: {Ai.PathNode.findPath?.Count ?? 0}");
         if (Ai.PathNode.findPath != null)
         {
             for (var i = 0; i < Ai.PathNode.findPath.Count; i++)
             {
-                Log.Trace($"AStar: point {i} coordinates X:{Ai.PathNode.findPath[i].X}, Y:{Ai.PathNode.findPath[i].Y}, Z:{Ai.PathNode.findPath[i].Z}");
+                Logger.Trace($"AStar: point {i} coordinates X:{Ai.PathNode.findPath[i].X}, Y:{Ai.PathNode.findPath[i].Y}, Z:{Ai.PathNode.findPath[i].Z}");
             }
         }
     }

@@ -13,6 +13,6 @@ public class CSReplyImprisonOrTrialPacket : GamePacket
     {
         var trial = stream.ReadBoolean();
 
-        _log.Warn("ReplyImprisonOrTrial, Trial: {0}", trial);
+        Logger.Warn("ReplyImprisonOrTrial, Trial: {0}", trial);
     }
 }

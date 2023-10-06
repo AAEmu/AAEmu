@@ -1,21 +1,21 @@
-﻿using AAEmu.Commons.Utils;
+﻿using System.Collections.Generic;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Utils.DB;
 using NLog;
-using System.Collections.Generic;
 
 namespace AAEmu.Game.Core.Managers;
 
 public class CraftManager : Singleton<CraftManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, Craft> _crafts;
 
     public void Load()
     {
         _crafts = new Dictionary<uint, Craft>();
-        _log.Info("Loading crafts...");
+        Logger.Info("Loading crafts...");
 
         using (var connection = SQLite.CreateConnection())
         {
@@ -117,7 +117,7 @@ public class CraftManager : Singleton<CraftManager>
             }
         }
 
-        _log.Info("Loaded crafts", _crafts.Count);
+        Logger.Info("Loaded crafts", _crafts.Count);
     }
 
     public Craft GetCraftById(uint craftId)

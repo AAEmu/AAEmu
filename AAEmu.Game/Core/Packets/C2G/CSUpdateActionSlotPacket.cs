@@ -31,7 +31,7 @@ public class CSUpdateActionSlotPacket : GamePacket
                 Connection.ActiveChar.SetAction(slot, type, itemId);
                 break;
             default:
-                _log.Error("UpdateActionSlot, Unknown ActionSlotType!");
+                Logger.Error("UpdateActionSlot, Unknown ActionSlotType!");
                 break;
         }
     }

@@ -37,14 +37,10 @@ public class Gimmick : Unit
     public DateTime WaitTime { get; set; }
     public uint TimeLeft => WaitTime > DateTime.UtcNow ? (uint)(WaitTime - DateTime.UtcNow).TotalMilliseconds : 0;
 
-    public Gimmick()
-    {
-    }
-
     public override void AddVisibleObject(Character character)
     {
         character.SendPacket(new SCGimmicksCreatedPacket(new[] { this }));
-        var temp = new Gimmick[0];
+        var temp = Array.Empty<Gimmick>();
         character.SendPacket(new SCGimmickJointsBrokenPacket(temp));
         base.AddVisibleObject(character);
     }

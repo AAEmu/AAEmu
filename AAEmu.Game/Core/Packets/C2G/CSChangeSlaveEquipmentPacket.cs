@@ -17,6 +17,6 @@ public class CSChangeSlaveEquipmentPacket : GamePacket
         var dbSlaveId = stream.ReadUInt32();
         var bts = stream.ReadBoolean();
 
-        _log.Debug("ChangeSlaveEquipment, Id: {0}, Tl: {1}, DbSlaveId: {2}, Bts: {3}", id, tl, dbSlaveId, bts);
+        Logger.Debug("ChangeSlaveEquipment, Id: {0}, Tl: {1}, DbSlaveId: {2}, Bts: {3}", id, tl, dbSlaveId, bts);
     }
 }

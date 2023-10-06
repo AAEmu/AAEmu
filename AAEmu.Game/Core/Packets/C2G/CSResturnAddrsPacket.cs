@@ -15,6 +15,6 @@ public class CSResturnAddrsPacket : GamePacket
         var codeSize = stream.ReadUInt32();
         var fn = stream.ReadUInt32();
 
-        _log.Warn("ResturnAddrs, CodeBase: {0}, CodeSize: {1}, Fn: {2}", codeBase, codeSize, fn);
+        Logger.Warn("ResturnAddrs, CodeBase: {0}, CodeSize: {1}, Fn: {2}", codeBase, codeSize, fn);
     }
 }

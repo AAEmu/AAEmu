@@ -22,7 +22,7 @@ public class CraftEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("CraftEffect, {0}", WorldInteraction);
+        Logger.Trace("CraftEffect, {0}", WorldInteraction);
 
         var wiGroup = WorldManager.Instance.GetWorldInteractionGroup((uint)WorldInteraction);
 
@@ -33,13 +33,13 @@ public class CraftEffect : EffectTemplate
 
         if (caster is Character character)
         {
-            // _log.Warn($"{character.Name} triggered wiGroup {wiGroup}({(int)wiGroup}) with wi {WorldInteraction}({(int)WorldInteraction})");
+            // Logger.Warn($"{character.Name} triggered wiGroup {wiGroup}({(int)wiGroup}) with wi {WorldInteraction}({(int)WorldInteraction})");
             switch (wiGroup)
             {
                 case WorldInteractionGroup.Craft:
                     if (target is Shipyard.Shipyard shipyard)
                     {
-                        _log.Trace("[Shipyard] ID {0}, objID {1}", shipyard.ShipyardData.TemplateId, shipyard.ObjId);
+                        Logger.Trace("[Shipyard] ID {0}, objID {1}", shipyard.ShipyardData.TemplateId, shipyard.ObjId);
 
                         var shipStep =
                             (shipyard.CurrentAction >= 0) && (shipyard.CurrentStep < shipyard.Template.ShipyardSteps.Count)
@@ -49,25 +49,25 @@ public class CraftEffect : EffectTemplate
                         // Compare if the used skill (correct pack) is still valid when used
                         if ((shipStep != null) && (usedSkill != shipStep.SkillId))
                         {
-                            _log.Warn("{0} tried to build a ship using the wrong skill, {1} instead of {2}", caster.Name, usedSkill, shipStep.SkillId);
+                            Logger.Warn("{0} tried to build a ship using the wrong skill, {1} instead of {2}", caster.Name, usedSkill, shipStep.SkillId);
                             source.Skill.Cancelled = true;
                         }
                         else
                         {
                             shipyard.AddBuildAction();
-                            //_log.Trace("[Shipyard] BaseAction {0}, NumAction {1}, CurrentAction {2}", shipyard.BaseAction, shipyard.NumAction, shipyard.CurrentAction);
-                            //_log.Trace("[Shipyard] AllAction {0}, CurrentStep {1}, ShipyardSteps.Count {2}", shipyard.AllAction, shipyard.CurrentStep, shipyard.Template.ShipyardSteps.Count);
+                            //Logger.Trace("[Shipyard] BaseAction {0}, NumAction {1}, CurrentAction {2}", shipyard.BaseAction, shipyard.NumAction, shipyard.CurrentAction);
+                            //Logger.Trace("[Shipyard] AllAction {0}, CurrentStep {1}, ShipyardSteps.Count {2}", shipyard.AllAction, shipyard.CurrentStep, shipyard.Template.ShipyardSteps.Count);
                             if (shipyard.CurrentStep == -1)
                             {
                                 shipyard.ShipyardData.Actions = shipyard.AllAction;
                                 shipyard.ShipyardData.Step = shipyard.Template.ShipyardSteps.Count;
-                                _log.Trace("[Shipyard] Actions {0}, Step {1}", shipyard.AllAction, shipyard.Template.ShipyardSteps.Count);
+                                Logger.Trace("[Shipyard] Actions {0}, Step {1}", shipyard.AllAction, shipyard.Template.ShipyardSteps.Count);
                             }
                             else
                             {
                                 shipyard.ShipyardData.Actions = shipyard.CurrentAction;
                                 shipyard.ShipyardData.Step = shipyard.CurrentStep;
-                                _log.Trace("[Shipyard] Actions {0}, Step {1}", shipyard.CurrentAction, shipyard.CurrentStep);
+                                Logger.Trace("[Shipyard] Actions {0}, Step {1}", shipyard.CurrentAction, shipyard.CurrentStep);
                             }
 
                             character.BroadcastPacket(new SCShipyardStatePacket(shipyard.ShipyardData), true);
@@ -92,7 +92,7 @@ public class CraftEffect : EffectTemplate
                     // Compare if the used skill (correct pack) is still valid when used
                     if ((currentStep != null) && (usedSkill != currentStep.SkillId))
                     {
-                        _log.Warn("{0} tried to building using the wrong skill, {1} instead of {2}", caster.Name, usedSkill, currentStep.SkillId);
+                        Logger.Warn("{0} tried to building using the wrong skill, {1} instead of {2}", caster.Name, usedSkill, currentStep.SkillId);
                         character.SkillTask.Skill.Cancelled = true;
                         character.InterruptSkills();
                     }
@@ -125,7 +125,7 @@ public class CraftEffect : EffectTemplate
                     }
                     break;
                 default:
-                    _log.Warn("CraftEffect, {0} not have wi group", WorldInteraction);
+                    Logger.Warn("CraftEffect, {0} not have wi group", WorldInteraction);
                     if (target is Shipyard.Shipyard sy)
                     {
                         if (sy.ShipyardData.OwnerName == caster.Name)

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Game.Core.Packets.G2C;
 using MySql.Data.MySqlClient;
 using NLog;
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Char;
 
 public class CharacterAppellations
 {
-    private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public List<uint> Appellations { get; set; }
     public uint ActiveAppellation { get; set; }
@@ -26,7 +26,7 @@ public class CharacterAppellations
         // SCAppellationGainedPacket
         if (Appellations.Contains(id))
         {
-            Log.Warn("Duplicate add {0}, ownerId {1}", id, Owner.Id);
+            Logger.Warn("Duplicate add {0}, ownerId {1}", id, Owner.Id);
             return;
         }
 
@@ -50,7 +50,7 @@ public class CharacterAppellations
             }
             else
             {
-                Log.Warn("Id {0} doesn't exist, owner {1}", id, Owner.Id);
+                Logger.Warn("Id {0} doesn't exist, owner {1}", id, Owner.Id);
             }
         }
 

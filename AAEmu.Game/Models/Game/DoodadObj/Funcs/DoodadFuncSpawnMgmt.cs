@@ -11,7 +11,7 @@ public class DoodadFuncSpawnMgmt : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncSpawnMgmt");
+        Logger.Trace("DoodadFuncSpawnMgmt");
         return false;
     }
 }

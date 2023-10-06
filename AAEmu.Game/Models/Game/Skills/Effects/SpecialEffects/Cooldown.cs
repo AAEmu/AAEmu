@@ -23,7 +23,7 @@ public class Cooldown : SpecialEffectAction
         int value4)
     {
         // TODO only for server
-        if (caster is Character) { _log.Debug("Special effects: Cooldown cooldownTime {0}, value2 {1}, value3 {2}, value4 {3}", cooldownTime, value2, value3, value4); }
+        if (caster is Character) { Logger.Debug("Special effects: Cooldown cooldownTime {0}, value2 {1}, value3 {2}, value4 {3}", cooldownTime, value2, value3, value4); }
 
         ((Unit)caster).Cooldowns.AddCooldown(skill.Template.Id, (uint)cooldownTime);
     }

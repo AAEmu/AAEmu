@@ -16,6 +16,6 @@ public class CSFamilyChangeOwnerPacket : GamePacket
 
         FamilyManager.Instance.ChangeOwner(Connection.ActiveChar, id);
 
-        _log.Debug("FamilyChangeOwner, Id: {0}", id);
+        Logger.Debug("FamilyChangeOwner, Id: {0}", id);
     }
 }

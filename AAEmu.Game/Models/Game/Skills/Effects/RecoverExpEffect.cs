@@ -20,6 +20,6 @@ public class RecoverExpEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("RecoverExpEffect");
+        Logger.Trace("RecoverExpEffect");
     }
 }

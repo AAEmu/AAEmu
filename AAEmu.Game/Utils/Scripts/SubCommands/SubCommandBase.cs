@@ -10,7 +10,7 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands;
 
 public abstract class SubCommandBase : ICommandV2
 {
-    protected Logger _log = LogManager.GetCurrentClassLogger();
+    protected Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly Dictionary<string, ICommandV2> _subCommands = new();
     private List<SubCommandParameterBase> _parameters = new();
 
@@ -109,7 +109,7 @@ public abstract class SubCommandBase : ICommandV2
         catch (Exception ex)
         {
             SendColorMessage(character, Color.Red, $"Unexpected error: {ex.Message}");
-            _log.Error(ex);
+            Logger.Error(ex);
         }
     }
 

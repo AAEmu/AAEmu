@@ -14,12 +14,12 @@ public class LGRegisterGameServerPacket : LoginPacket
         var result = stream.ReadByte();
         if (result != 0)
         {
-            _log.Error("Error registering on LoginServer");
+            Logger.Error("Error registering on LoginServer");
             Connection.Close(); // TODO or shutdown?
         }
         else
         {
-            _log.Info("Successfully registered on LoginServer");
+            Logger.Info("Successfully registered on LoginServer");
         }
     }
 }

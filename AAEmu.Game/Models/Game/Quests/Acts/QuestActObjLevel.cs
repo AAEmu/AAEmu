@@ -1,5 +1,5 @@
-using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -11,7 +11,7 @@ public class QuestActObjLevel : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Debug("QuestActObjLevel");
+        Logger.Debug("QuestActObjLevel");
         return character.Level >= Level;
     }
 }

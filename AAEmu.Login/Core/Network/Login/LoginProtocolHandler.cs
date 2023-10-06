@@ -11,7 +11,7 @@ namespace AAEmu.Login.Core.Network.Login;
 
 public class LoginProtocolHandler : BaseProtocolHandler
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private ConcurrentDictionary<uint, Type> _packets;
 
@@ -22,7 +22,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
 
     public override void OnConnect(Session session)
     {
-        _log.Debug($"Connection from {session.Ip} established, session id: {session.SessionId}");
+        Logger.Debug($"Connection from {session.Ip} established, session id: {session.SessionId}");
         try
         {
             var con = new LoginConnection(session);
@@ -32,7 +32,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
         catch (Exception e)
         {
             session.Close();
-            _log.Error(e);
+            Logger.Error(e);
         }
     }
 
@@ -40,7 +40,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
     {
         if (session is null)
         {
-            _log.Error("Unexpected null Session");
+            Logger.Error("Unexpected null Session");
             return;
         }
         try
@@ -52,10 +52,10 @@ public class LoginProtocolHandler : BaseProtocolHandler
         catch (Exception e)
         {
             session.Close();
-            _log.Error(e);
+            Logger.Error(e);
         }
 
-        _log.Debug($"Client from {session.Ip} disconnected");
+        Logger.Debug($"Client from {session.Ip} disconnected");
     }
 
     public override void OnReceive(Session session, byte[] buf, int bytes)
@@ -70,7 +70,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
         catch (Exception e)
         {
             session.Close();
-            _log.Error(e);
+            Logger.Error(e);
         }
     }
 
@@ -95,7 +95,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
                 }
                 catch (MarshalException)
                 {
-                    //_log.Warn("Error on reading type {0}", type);
+                    //Logger.Warn("Error on reading type {0}", type);
                     stream.Rollback();
                     connection.LastPacket = stream;
                     stream = null;
@@ -142,7 +142,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
         catch (Exception e)
         {
             connection?.Shutdown();
-            _log.Error(e);
+            Logger.Error(e);
         }
     }
 
@@ -159,6 +159,6 @@ public class LoginProtocolHandler : BaseProtocolHandler
         var dump = new StringBuilder();
         for (var i = stream.Pos; i < stream.Count; i++)
             dump.AppendFormat("{0:x2} ", stream.Buffer[i]);
-        _log.Error("Unknown packet 0x{0:x2} from {1}:\n{2}", (object)type, (object)connection.Ip, (object)dump);
+        Logger.Error("Unknown packet 0x{0:x2} from {1}:\n{2}", (object)type, (object)connection.Ip, (object)dump);
     }
 }

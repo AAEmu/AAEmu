@@ -3,7 +3,6 @@ using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using MySql.Data.MySqlClient;
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Char;
 
@@ -12,8 +11,6 @@ public class CharacterBlocked
     public Character Owner { get; set; }
     public Dictionary<uint, BlockedTemplate> BlockedList { get; set; } // bvId, Template
     private readonly List<uint> _removedBlocked; // blockedId
-
-    private static Logger _log = LogManager.GetCurrentClassLogger();
 
     public CharacterBlocked(Character owner)
     {

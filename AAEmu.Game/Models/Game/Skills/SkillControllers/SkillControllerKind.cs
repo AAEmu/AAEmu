@@ -1,6 +1,6 @@
 ﻿namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
 
-enum SkillControllerKind
+internal enum SkillControllerKind
 {
     None = 0x0,
     Floating = 0x1,

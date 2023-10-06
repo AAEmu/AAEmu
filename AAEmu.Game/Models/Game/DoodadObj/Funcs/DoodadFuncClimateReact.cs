@@ -1,7 +1,6 @@
 ﻿using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
 
@@ -11,9 +10,9 @@ public class DoodadFuncClimateReact : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncClimateReact");
+        Logger.Trace("DoodadFuncClimateReact");
 
-        var inMatchingClimate = ZoneManager.Instance.DoodadHasMatchingClimate(owner);
+        var inMatchingClimate = ZoneManager.DoodadHasMatchingClimate(owner);
 
         // If no match, just move on to the next check
         if (!inMatchingClimate || NextPhase <= 0)

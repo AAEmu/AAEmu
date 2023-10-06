@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
@@ -21,7 +21,7 @@ namespace AAEmu.Game.Core.Managers.Stream;
 
 public class UccManager : Singleton<UccManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Dictionary<uint, Ucc> _uploadQueue;
     private Dictionary<uint, UccUploadHandle> _complexUploadParts;
     private Dictionary<ulong, Ucc> _uccs;
@@ -122,7 +122,7 @@ public class UccManager : Singleton<UccManager>
                             if (File.Exists(uccFileName))
                                 ucc.Data.AddRange(File.ReadAllBytes(uccFileName));
                             else
-                                _log.Error("Missing UCC file: {0}", uccFileName);
+                                Logger.Error("Missing UCC file: {0}", uccFileName);
                             
 #else
 
@@ -140,13 +140,13 @@ public class UccManager : Singleton<UccManager>
                                 }
                                 else
                                 {
-                                    _log.Error("Read blob data size did not match suggested size for UCC {0}", ucc.Id);
+                                    Logger.Error("Read blob data size did not match suggested size for UCC {0}", ucc.Id);
                                     ucc.Data.Clear();
                                 }
                             }
                             else
                             {
-                                _log.Warn("CustomUcc has no data for UccId {0}", ucc.Id);
+                                Logger.Warn("CustomUcc has no data for UccId {0}", ucc.Id);
                             }
 
 #endif
@@ -212,7 +212,7 @@ public class UccManager : Singleton<UccManager>
 
     public void RequestUcc(StreamConnection connection, ulong id)
     {
-        _log.Warn("User {0} requesting UCC {1}", connection.GameConnection.ActiveChar.Name, id);
+        Logger.Warn("User {0} requesting UCC {1}", connection.GameConnection.ActiveChar.Name, id);
         if (!_uccs.TryGetValue(id, out var ucc))
             return;
 
@@ -222,8 +222,8 @@ public class UccManager : Singleton<UccManager>
             if (_downloadQueue.ContainsKey(connection.Id))
                 if (_downloadQueue[connection.Id] == id)
                 {
-                    //_log.Warn("User {0} is already requesting UCC {1}, skipping request !", connection.GameConnection.ActiveChar.Name, id);
-                    _log.Warn("User {0} is already requesting UCC {1}, sending first block !", connection.GameConnection.ActiveChar.Name, id);
+                    //Logger.Warn("User {0} is already requesting UCC {1}, skipping request !", connection.GameConnection.ActiveChar.Name, id);
+                    Logger.Warn("User {0} is already requesting UCC {1}, sending first block !", connection.GameConnection.ActiveChar.Name, id);
                     connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, 0));
                     return;
                 }
@@ -246,13 +246,13 @@ public class UccManager : Singleton<UccManager>
 
     public void RequestUccPart(StreamConnection connection, int previousIndex, int previousSize)
     {
-        _log.Warn("User {0} validated UCC part {1} ({2} bytes), sending next part", connection.GameConnection.ActiveChar.Name, previousIndex, previousSize);
+        Logger.Warn("User {0} validated UCC part {1} ({2} bytes), sending next part", connection.GameConnection.ActiveChar.Name, previousIndex, previousSize);
         ulong uccId = 0;
         lock (s_lockObject)
         {
             if (!_downloadQueue.TryGetValue(connection.Id, out var uccIdVal))
             {
-                _log.Warn("User {0} UCC {1} was not in the request queue",
+                Logger.Warn("User {0} UCC {1} was not in the request queue",
                     connection.GameConnection.ActiveChar.Name, previousIndex);
                 return;
             }
@@ -277,12 +277,12 @@ public class UccManager : Singleton<UccManager>
             {
                 _downloadQueue.Remove(connection.Id);
             }
-            _log.Warn("User {0} UCC {1}, sending end part TCEmblemStreamSendStatusPacket", connection.GameConnection.ActiveChar.Name, customUcc.Id);
+            Logger.Warn("User {0} UCC {1}, sending end part TCEmblemStreamSendStatusPacket", connection.GameConnection.ActiveChar.Name, customUcc.Id);
             connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, (EmblemStreamStatus)0)); // 1?
             return;
         }
 
-        _log.Warn("User {0} UCC {1}, sending part {2} ({3} => {4} / {5})", connection.GameConnection.ActiveChar.Name, customUcc.Id, index, startPos, endPos, customUcc.Data.Count);
+        Logger.Warn("User {0} UCC {1}, sending part {2} ({3} => {4} / {5})", connection.GameConnection.ActiveChar.Name, customUcc.Id, index, startPos, endPos, customUcc.Data.Count);
         connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, index));
 
     }
@@ -290,7 +290,7 @@ public class UccManager : Singleton<UccManager>
 
     public void DownloadStatus(StreamConnection connection, ulong id, byte status, int count)
     {
-        _log.Warn("DownloadStatus Id:{0}, Status: {1}, Count:{2}", id, status, count);
+        Logger.Warn("DownloadStatus Id:{0}, Status: {1}, Count:{2}", id, status, count);
         if (!_uccs.ContainsKey(id))
             return;
         var ucc = _uccs[id];
@@ -336,7 +336,7 @@ public class UccManager : Singleton<UccManager>
             var uccFileName = Path.Combine(FileManager.AppPath, "UserData", "UCC", id.ToString("000000") + ".dds");
             File.WriteAllBytes(uccFileName,customUcc.Data.ToArray());
             if (!File.Exists(uccFileName))
-                _log.Error("Failed to save UCC data to file {0}", uccFileName);
+                Logger.Error("Failed to save UCC data to file {0}", uccFileName);
         }
 #endif
 

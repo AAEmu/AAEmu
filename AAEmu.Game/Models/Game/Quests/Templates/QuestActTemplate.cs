@@ -5,7 +5,7 @@ namespace AAEmu.Game.Models.Game.Quests.Templates;
 
 public abstract class QuestActTemplate
 {
-    public static Logger _log = LogManager.GetCurrentClassLogger();
+    protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public uint Id { get; set; }
 
     public abstract bool Use(ICharacter character, Quest quest, int objective);

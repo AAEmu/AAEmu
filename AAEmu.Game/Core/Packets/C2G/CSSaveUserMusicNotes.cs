@@ -21,7 +21,7 @@ public class CSSaveUserMusicNotesPacket : GamePacket
         //var value4 = stream.ReadByte(); // 3.x status ? (observed 0)
 
         MusicManager.Instance.UploadSong(Connection.ActiveChar.Id, title, song, itemId);
-        _log.Debug("Uploading song, title: {0}, songsize: {1}, value2:{2}", title, songSize, value2);
-        _log.Trace("Song data: {0}", song);
+        Logger.Debug("Uploading song, title: {0}, songsize: {1}, value2:{2}", title, songSize, value2);
+        Logger.Trace("Song data: {0}", song);
     }
 }

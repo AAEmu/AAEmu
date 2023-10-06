@@ -3,16 +3,6 @@ using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Items.Templates;
 
-public enum ItemBindType
-{
-    Normal = 1,
-    BindOnPickup = 2,
-    BindOnEquip = 3,
-    BindOnUnpack = 4,
-    BindOnPickupPack = 5,
-    BindOnAuctionWin = 6,
-}
-
 public class ItemTemplate
 {
     public virtual Type ClassType => typeof(Item);

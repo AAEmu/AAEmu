@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Auction;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-class SCAuctionLowestPricePacket : GamePacket
+public class SCAuctionLowestPricePacket : GamePacket
 {
     private readonly AuctionItem _auctionItem;
 

@@ -12,7 +12,7 @@ public class QuestActObjZoneMonsterHunt : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActObjZoneMonsterHunt");
+        Logger.Warn("QuestActObjZoneMonsterHunt");
         return quest.Template.Score > 0 ? objective * Count >= quest.Template.Score : objective >= Count;
     }
 }

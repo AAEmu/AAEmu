@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class FormulaManager : Singleton<FormulaManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static bool _loaded = false;
 
     private Dictionary<FormulaOwnerType, Dictionary<UnitFormulaKind, UnitFormula>> _unitFormulas;
@@ -70,7 +70,7 @@ public class FormulaManager : Singleton<FormulaManager>
 
         using (var connection = SQLite.CreateConnection())
         {
-            _log.Info("Loading formulas...");
+            Logger.Info("Loading formulas...");
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * from unit_formulas";
@@ -161,7 +161,7 @@ public class FormulaManager : Singleton<FormulaManager>
                 }
             }
 
-            _log.Info("Formulas loaded");
+            Logger.Info("Formulas loaded");
         }
         _loaded = true;
     }

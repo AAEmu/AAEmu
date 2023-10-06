@@ -13,6 +13,6 @@ public class CSLootCloseBagPacket : GamePacket
     {
         var iid = stream.ReadUInt64();
 
-        _log.Warn("LootCloseBag, IId: {0}", iid);
+        Logger.Warn("LootCloseBag, IId: {0}", iid);
     }
 }

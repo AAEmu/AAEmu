@@ -20,16 +20,16 @@ public class InteractionEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Debug("InteractionEffect, {0}", WorldInteraction);
+        Logger.Debug("InteractionEffect, {0}", WorldInteraction);
 
         var classType = Type.GetType("AAEmu.Game.Models.Game.World.Interactions." + WorldInteraction);
         if (classType == null)
         {
-            _log.Error("InteractionEffect, Unknown world interaction: {0}", WorldInteraction);
+            Logger.Error("InteractionEffect, Unknown world interaction: {0}", WorldInteraction);
             return;
         }
 
-        _log.Debug("InteractionEffect, Action: {0}", classType); // TODO help to debug...
+        Logger.Debug("InteractionEffect, Action: {0}", classType); // TODO help to debug...
 
         caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.Interaction);
 

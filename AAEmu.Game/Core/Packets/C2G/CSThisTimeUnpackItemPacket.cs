@@ -19,7 +19,7 @@ public class CSThisTimeUnpackItemPacket : GamePacket
         var slot = stream.ReadByte();
         var itemId = stream.ReadUInt64();
 
-        _log.Debug("CSThisTimeUnpackItemPacket, slotType: {0}, slot: {1}, itemId: {2}", slotType, slot, itemId);
+        Logger.Debug("CSThisTimeUnpackItemPacket, slotType: {0}, slot: {1}, itemId: {2}", slotType, slot, itemId);
         if (!ItemManager.Instance.UnwrapItem(Connection.ActiveChar, slotType, slot, itemId))
             Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ItemUpdateFail);
     }

@@ -20,7 +20,7 @@ public class Detach : SpecialEffectAction
         int value3,
         int value4)
     {
-        if (caster is Character) { _log.Debug("Special effects: Detach value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is Character) { Logger.Debug("Special effects: Detach value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
         if (caster is Character chara)
         {
@@ -30,7 +30,7 @@ public class Detach : SpecialEffectAction
     }
 }
 
-enum DetachUnitReason : byte
+internal enum DetachUnitReason : byte
 {
     None = 0x0,
     Death = 0x1,

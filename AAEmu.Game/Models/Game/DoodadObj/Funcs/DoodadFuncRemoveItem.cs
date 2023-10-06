@@ -13,7 +13,7 @@ public class DoodadFuncRemoveItem : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Trace("DoodadFuncRemoveItem: ItemId {0}, Count {1}", ItemId, Count);
+        Logger.Trace("DoodadFuncRemoveItem: ItemId {0}, Count {1}", ItemId, Count);
 
         var character = (Character)caster;
         var balans = character?.Inventory.Bag.ConsumeItem(ItemTaskType.DoodadItemChanger, ItemId, Count, null); // DoodadItemChanger right for this ?

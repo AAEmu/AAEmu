@@ -8,9 +8,9 @@ using AAEmu.Game.Models.Game.Units.Route;
 
 namespace AAEmu.Game.Models.Game.Units;
 
-class Combat : Patrol
+public class Combat : Patrol
 {
-    readonly float _distance = 1.5f;
+    private readonly float _distance = 1.5f;
     public override void Execute(Npc npc)
     {
         if (npc == null)

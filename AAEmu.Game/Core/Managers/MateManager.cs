@@ -23,7 +23,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class MateManager : Singleton<MateManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Regex _nameRegex;
 
     private Dictionary<uint, NpcMountSkills> _slaveMountSkills;
@@ -88,7 +88,7 @@ public class MateManager : Singleton<MateManager>
         mateInfo.CurrentTarget = objId > 0 ? WorldManager.Instance.GetUnit(objId) : null;
         owner.BroadcastPacket(new SCTargetChangedPacket(mateInfo.ObjId, mateInfo.CurrentTarget?.ObjId ?? 0), true);
 
-        _log.Debug("ChangeTargetMate. tlId: {0}, objId: {1}, targetObjId: {2}", mateInfo.TlId, mateInfo.ObjId, objId);
+        Logger.Debug("ChangeTargetMate. tlId: {0}, objId: {1}, targetObjId: {2}", mateInfo.TlId, mateInfo.ObjId, objId);
     }
 
     public Mate RenameMount(GameConnection connection, uint tlId, string newName)
@@ -114,7 +114,7 @@ public class MateManager : Singleton<MateManager>
             // If first seat, check if it's the owner
             if ((attachPoint == AttachPointKind.Driver) && (mateInfo.OwnerObjId != character.ObjId))
             {
-                _log.Warn("MountMate. Non-owner {0} ({1}) tried to take the first seat on mount {2} ({3})",
+                Logger.Warn("MountMate. Non-owner {0} ({1}) tried to take the first seat on mount {2} ({3})",
                     character.Name, character.ObjId, mateInfo.Name, mateInfo.ObjId);
                 return;
             }
@@ -136,13 +136,13 @@ public class MateManager : Singleton<MateManager>
         }
         else
         {
-            _log.Warn("MountMate. Player {0} ({1}) tried to take a invalid seat {4} on mount {2} ({3})",
+            Logger.Warn("MountMate. Player {0} ({1}) tried to take a invalid seat {4} on mount {2} ({3})",
                 character.Name, character.ObjId, mateInfo.Name, mateInfo.ObjId, attachPoint);
             return;
         }
 
         character.Buffs.TriggerRemoveOn(BuffRemoveOn.Mount);
-        _log.Debug("MountMate. mountTlId: {0}, attachPoint: {1}, reason: {2}, seats: {3}",
+        Logger.Debug("MountMate. mountTlId: {0}, attachPoint: {1}, reason: {2}, seats: {3}",
             mateInfo.TlId, attachPoint, reason, string.Join(", ", mateInfo.Passengers.Values.ToList()));
     }
 
@@ -178,12 +178,12 @@ public class MateManager : Singleton<MateManager>
 
             mateInfo.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
             character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
-            _log.Debug("UnMountMate. mountTlId: {0}, targetObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId,
+            Logger.Debug("UnMountMate. mountTlId: {0}, targetObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId,
                 targetObj.ObjId, attachPoint, reason);
         }
         else
         {
-            _log.Warn("UnMountMate. No valid seat entry, mountTlId: {0}, characterObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId,
+            Logger.Warn("UnMountMate. No valid seat entry, mountTlId: {0}, characterObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId,
                 character?.ObjId ?? 0, attachPoint, reason);
         }
     }
@@ -203,7 +203,7 @@ public class MateManager : Singleton<MateManager>
         owner.SendPacket(new SCMateSpawnedPacket(mate));
         mate.Spawn();
 
-        _log.Debug("Mount spawned. ownerObjId: {0}, tlId: {1}, mateObjId: {2}", owner.ObjId, mate.TlId, mate.ObjId);
+        Logger.Debug("Mount spawned. ownerObjId: {0}, tlId: {1}, mateObjId: {2}", owner.ObjId, mate.TlId, mate.ObjId);
     }
 
     public void RemoveActiveMateAndDespawn(Character owner, uint tlId)
@@ -219,7 +219,7 @@ public class MateManager : Singleton<MateManager>
         ObjectIdManager.Instance.ReleaseId(mateInfo.ObjId);
         TlIdManager.Instance.ReleaseId(mateInfo.TlId);
 
-        _log.Debug("Mount removed. ownerObjId: {0}, tlId: {1}, mateObjId: {2}", owner.ObjId, mateInfo.TlId, mateInfo.ObjId);
+        Logger.Debug("Mount removed. ownerObjId: {0}, tlId: {1}, mateObjId: {2}", owner.ObjId, mateInfo.TlId, mateInfo.ObjId);
     }
 
     /// <summary>

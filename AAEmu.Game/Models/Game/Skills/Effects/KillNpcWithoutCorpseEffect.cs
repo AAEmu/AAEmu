@@ -23,7 +23,7 @@ public class KillNpcWithoutCorpseEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("KillNpcWithoutCorpseEffect");
+        Logger.Trace("KillNpcWithoutCorpseEffect");
 
         if (caster is Character) { return; } // does not apply to the character
         if (Vanish && Radius == 0)

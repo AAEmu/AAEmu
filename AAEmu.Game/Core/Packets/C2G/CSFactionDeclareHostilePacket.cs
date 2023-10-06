@@ -13,6 +13,6 @@ public class CSFactionDeclareHostilePacket : GamePacket
     {
         var id = stream.ReadUInt32();
 
-        _log.Debug("FactionDeclareHostile, Id: {0}", id);
+        Logger.Debug("FactionDeclareHostile, Id: {0}", id);
     }
 }

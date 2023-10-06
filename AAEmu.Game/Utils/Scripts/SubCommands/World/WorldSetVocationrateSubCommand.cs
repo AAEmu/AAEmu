@@ -24,6 +24,6 @@ public class WorldSetVocationrateSubCommand : SubCommandBase
         }
         character.SetVocationRate(vocationRate);
         SendMessage(character, "Set VocationRate {0}", vocationRate);
-        _log.Warn($"{Title}: {vocationRate}");
+        Logger.Warn($"{Title}: {vocationRate}");
     }
 }

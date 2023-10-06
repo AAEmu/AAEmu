@@ -8,7 +8,7 @@ public class DoodadFuncCatch : DoodadFuncTemplate
     // doodad_funcs
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Trace("DoodadFuncCatch");
+        Logger.Trace("DoodadFuncCatch");
 
     }
 }

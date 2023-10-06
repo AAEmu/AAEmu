@@ -14,6 +14,6 @@ public class CSChangeSlaveTargetPacket : GamePacket
         var targetId = stream.ReadBc();
         var slaveId = stream.ReadBc();
 
-        _log.Debug("ChangeSlaveTarget, Target: {0}, Slave: {1}", targetId, slaveId);
+        Logger.Debug("ChangeSlaveTarget, Target: {0}, Slave: {1}", targetId, slaveId);
     }
 }

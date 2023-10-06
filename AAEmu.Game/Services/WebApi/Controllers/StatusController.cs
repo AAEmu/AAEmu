@@ -1,9 +1,11 @@
 ﻿using System;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using NetCoreServer;
 
 namespace AAEmu.Game.Services.WebApi.Controllers;
+
+#pragma warning disable CA1822 // Mark members as static
 
 /// <summary>
 /// Status controller for the WebApi

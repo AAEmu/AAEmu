@@ -13,11 +13,11 @@ public class QuestActObjItemUse : QuestActTemplate
     public uint QuestActObjAliasId { get; set; }
     public bool DropWhenDestroy { get; set; }
 
-    public static int ItemUseStatus = 0;
+    public static int ItemUseStatus { get; private set; } = 0;
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActObjItemUse");
+        Logger.Warn("QuestActObjItemUse");
         if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
         {
             ItemUseStatus = objective * Count; // Count в данном случае % за единицу

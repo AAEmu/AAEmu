@@ -13,7 +13,7 @@ public class CSCompletedCinemaPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         // Empty struct
-        _log.Warn("CompletedCinema");
+        Logger.Warn("CompletedCinema");
 
         WorldManager.ResendVisibleObjectsToCharacter(Connection.ActiveChar);
     }

@@ -13,6 +13,6 @@ public class CSCleanupLogicLinkPacket : GamePacket
     {
         var objId = stream.ReadBc();
 
-        _log.Warn("CleanupLogicLink, ObjId: {0}", objId);
+        Logger.Warn("CleanupLogicLink, ObjId: {0}", objId);
     }
 }

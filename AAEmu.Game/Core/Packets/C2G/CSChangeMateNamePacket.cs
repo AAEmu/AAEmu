@@ -15,7 +15,7 @@ public class CSChangeMateNamePacket : GamePacket
         var tlId = stream.ReadUInt16();
         var name = stream.ReadString();
 
-        //_log.Warn("ChangeMateName, TlId: {0}, Name: {1}", tlId, name);
+        //Logger.Warn("ChangeMateName, TlId: {0}, Name: {1}", tlId, name);
         MateManager.Instance.RenameMount(Connection, tlId, name);
     }
 }

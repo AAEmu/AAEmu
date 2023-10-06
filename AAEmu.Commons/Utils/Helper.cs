@@ -50,7 +50,7 @@ namespace AAEmu.Commons.Utils;
 
 public static class Helper
 {
-    static Dictionary<Tuple<object, int>, DateTime> intervals = new();
+    private static Dictionary<Tuple<object, int>, DateTime> intervals = new();
 
     /// <summary>
     /// Возвращает true если прошло не менее указанного интервала времени (после предыдущего срабатывания)
@@ -64,8 +64,7 @@ public static class Helper
         var key = new Tuple<object, int>(caller, lineNumber);
 
         // получаем время следующего срабатывания для данного ключа
-        DateTime next;
-        if (!intervals.TryGetValue(key, out next))
+        if (!intervals.TryGetValue(key, out var next))
             next = now;// если в словаре еще нет времени - считаем что сработать нужно сейчас
 
         // время еще не пришло?
@@ -79,7 +78,7 @@ public static class Helper
         return true;
     }
 
-    static ConcurrentDictionary<Tuple<object, int>, bool> conditions = new();
+    private static ConcurrentDictionary<Tuple<object, int>, bool> conditions = new();
 
     /// <summary>
     /// Возвращает true если условие изменилось с false на true
@@ -90,8 +89,7 @@ public static class Helper
         var key = new Tuple<object, int>(sender, lineNumber);
 
         // получаем предыдущее значение условия
-        bool old;
-        if (!conditions.TryGetValue(key, out old))
+        if (!conditions.TryGetValue(key, out var old))
             old = false;
 
         // запоминаем новое состояние

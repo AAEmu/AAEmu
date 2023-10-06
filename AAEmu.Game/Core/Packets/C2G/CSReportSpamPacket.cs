@@ -13,6 +13,6 @@ public class CSReportSpamPacket : GamePacket
     {
         var mailId = stream.ReadInt64();
 
-        _log.Debug("ReportSpam, mailId: {0}", mailId);
+        Logger.Debug("ReportSpam, mailId: {0}", mailId);
     }
 }

@@ -13,7 +13,7 @@ public class CSIdleStatusPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         Connection.ActiveChar.IdleStatus = stream.ReadBoolean();
-        _log.Debug("IdleStatus: BcId {0}, {1}", Connection.ActiveChar.ObjId, Connection.ActiveChar.IdleStatus);
+        Logger.Debug("IdleStatus: BcId {0}, {1}", Connection.ActiveChar.ObjId, Connection.ActiveChar.IdleStatus);
         Connection.ActiveChar.BroadcastPacket(
             new SCUnitIdleStatusPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.IdleStatus), true);
     }

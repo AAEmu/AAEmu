@@ -17,6 +17,6 @@ public class CSFamilyChangeTitlePacket : GamePacket
 
         FamilyManager.Instance.ChangeTitle(Connection.ActiveChar, memberId, title);
 
-        _log.Debug("FamilyChangeTitle, memberId: {0}, title: {1}", memberId, title);
+        Logger.Debug("FamilyChangeTitle, memberId: {0}, title: {1}", memberId, title);
     }
 }

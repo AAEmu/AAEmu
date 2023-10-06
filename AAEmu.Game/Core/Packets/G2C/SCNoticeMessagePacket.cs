@@ -8,11 +8,11 @@ public class SCNoticeMessagePacket : GamePacket
 {
 
     //Initialize
-    readonly string _message = "";
-    readonly byte _type = 3;
-    readonly string _alphahex = "FF";
-    readonly string _colorhex = "80FF80";
-    readonly int _vistime = 1000;
+    private readonly string _message = "";
+    private readonly byte _type = 3;
+    private readonly string _alphahex = "FF";
+    private readonly string _colorhex = "80FF80";
+    private readonly int _vistime = 1000;
 
     public SCNoticeMessagePacket(byte type, Color ARGBColor, int vistime, string message) : base(SCOffsets.SCNoticeMessagePacket, 1)
     {

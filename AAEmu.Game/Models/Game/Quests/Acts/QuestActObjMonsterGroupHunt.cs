@@ -12,11 +12,11 @@ public class QuestActObjMonsterGroupHunt : QuestActTemplate
     public uint HighlightDoodadId { get; set; }
     public int HighlightDoodadPhase { get; set; }
 
-    public static int GroupHuntStatus = 0;
+    public static int GroupHuntStatus { get; private set; } = 0;
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, UseAlias {2}, QuestActObjAliasId {3}, HighlightDoodadId {4}, HighlightDoodadPhase {5}, quest {6}, objective {7}, Score {8}",
+        Logger.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, UseAlias {2}, QuestActObjAliasId {3}, HighlightDoodadId {4}, HighlightDoodadPhase {5}, quest {6}, objective {7}, Score {8}",
             QuestMonsterGroupId, Count, UseAlias, QuestActObjAliasId, HighlightDoodadId, HighlightDoodadPhase, quest.TemplateId, objective, quest.Template.Score);
 
 
@@ -34,7 +34,7 @@ public class QuestActObjMonsterGroupHunt : QuestActTemplate
                     quest.ExtraCompletion = true;
             }
 
-            _log.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, GroupHuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}",
+            Logger.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, GroupHuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}",
                 QuestMonsterGroupId, Count, GroupHuntStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
             return quest.OverCompletionPercent >= quest.Template.Score;
         }
@@ -50,7 +50,7 @@ public class QuestActObjMonsterGroupHunt : QuestActTemplate
                 if (quest.OverCompletionPercent > 100)
                     quest.ExtraCompletion = true;
             }
-            _log.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, quest {2}, objective {3}",
+            Logger.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, quest {2}, objective {3}",
                 QuestMonsterGroupId, Count, quest.TemplateId, objective);
             return objective >= Count;
         }

@@ -14,6 +14,6 @@ public class CSBoardingTransferPacket : GamePacket
         var tl = stream.ReadUInt16();
         var ap = stream.ReadByte();
 
-        _log.Warn("BoardingTransfer, Tl: {0}, Ap: {1}", tl, ap);
+        Logger.Warn("BoardingTransfer, Tl: {0}, Ap: {1}", tl, ap);
     }
 }

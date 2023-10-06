@@ -13,6 +13,6 @@ public class CSNaviTeleportPacket : GamePacket
     {
         var objId = stream.ReadBc();
 
-        _log.Warn("NaviTeleport, ObjId: {0}", objId);
+        Logger.Warn("NaviTeleport, ObjId: {0}", objId);
     }
 }

@@ -15,7 +15,7 @@ public class DoodadFuncEnterInstance : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Debug("DoodadFuncEnterInstance, ZoneId: {0}, ItemId: {1}", ZoneId, ItemId);
+        Logger.Debug("DoodadFuncEnterInstance, ZoneId: {0}, ItemId: {1}", ZoneId, ItemId);
 
         if (caster is Character character)
         {
@@ -53,7 +53,7 @@ public class DoodadFuncEnterInstance : DoodadFuncTemplate
                 character.InstanceId = world.Id; // TODO all instances now
             }
             else
-                _log.Warn("World #.{0}, not have default spawn position.", world.Id);
+                Logger.Warn("World #.{0}, not have default spawn position.", world.Id);
         }
     }
 }

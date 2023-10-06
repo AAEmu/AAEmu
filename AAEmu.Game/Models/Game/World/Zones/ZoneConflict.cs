@@ -1,15 +1,16 @@
 ﻿using System;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Tasks.Zones;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Tasks.Zones;
 
 namespace AAEmu.Game.Models.Game.World.Zones;
+
+#pragma warning disable IDE0052 // Remove unread private members
 
 public class ZoneConflict
 {
     private ZoneGroup _owner;
-
     public ushort ZoneGroupId { get; set; }
     public int[] NumKills { get; }
     public int[] NoKillMin { get; }

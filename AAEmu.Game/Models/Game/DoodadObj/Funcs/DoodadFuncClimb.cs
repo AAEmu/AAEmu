@@ -11,7 +11,7 @@ public class DoodadFuncClimb : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Trace("DoodadFuncClimb");
+        Logger.Trace("DoodadFuncClimb");
 
     }
 }

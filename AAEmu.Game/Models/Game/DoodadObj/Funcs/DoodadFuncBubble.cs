@@ -10,6 +10,6 @@ public class DoodadFuncBubble : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Trace("DoodadFuncBubble");
+        Logger.Trace("DoodadFuncBubble");
     }
 }

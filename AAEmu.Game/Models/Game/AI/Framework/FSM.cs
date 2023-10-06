@@ -1,28 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using NLog;
 
 namespace AAEmu.Game.Models.Game.AI.Framework;
-
-public enum States
-{
-    Idle = 0,
-    Roaming = 1,
-    MovingToTarget = 2,
-    UsingCombatSkills = 3,
-    AlmightyAttack = 4,
-    ReturnToIdle = 5,
-    BigMonsterAttack = 6
-}
-
-public class State
-{
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
-    public AbstractAI AI;
-    public virtual void Enter() { }
-    public virtual void Exit() { }
-    public virtual void Tick(TimeSpan delta) { }
-}
 
 public class FSM
 {

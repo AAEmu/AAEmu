@@ -14,7 +14,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class AddKit : ICommand
 {
-    private readonly Logger _log = LogManager.GetCurrentClassLogger();
+    private readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     public class GMItemKitItem
     {
@@ -106,20 +106,20 @@ public class AddKit : ICommand
             return;
         }
 
-        //_log.Debug("foreach kit in kitconfig.itemkits");
+        //Logger.Debug("foreach kit in kitconfig.itemkits");
         foreach (var kit in kitconfig.itemkits)
         {
-            //_log.Debug("kit.kitname: " + kit.kitname);
+            //Logger.Debug("kit.kitname: " + kit.kitname);
             if (!kit.kitnames.Contains(kitname))
                 continue;
 
-            //_log.Debug("kit.itemID: " + kit.itemID.ToString());
+            //Logger.Debug("kit.itemID: " + kit.itemID.ToString());
 
             var itemTemplate = ItemManager.Instance.GetTemplate(kit.itemId);
             if (itemTemplate == null)
             {
                 character.SendMessage("|cFFFF0000Item could not be created, ID: {0} ! |r", kit.itemId);
-                _log.Error("itemId not found: " + kit.itemId.ToString());
+                Logger.Error("itemId not found: " + kit.itemId.ToString());
                 continue;
             }
             else
@@ -136,7 +136,7 @@ public class AddKit : ICommand
                     targetPlayer.SendMessage("[GM] {0} has added a item to your inventory", character.Name);
                 }
                 itemsAdded++;
-                //_log.Debug("kit.itemID: " + kit.itemID.ToString()+ " added to " + targetPlayer.Name);
+                //Logger.Debug("kit.itemID: " + kit.itemID.ToString()+ " added to " + targetPlayer.Name);
             }
 
         }
@@ -158,7 +158,7 @@ public class AddKit : ICommand
 
     public void InitKits()
     {
-        //_log.Info("Init");
+        //Logger.Info("Init");
         kitconfig.Clear();
 
         GMItemKitConfig jsonkit = new GMItemKitConfig();
@@ -174,7 +174,7 @@ public class AddKit : ICommand
         }
         catch (Exception x)
         {
-            _log.Error("Exception: " + x.Message);
+            Logger.Error("Exception: " + x.Message);
         }
 
         // Create a enum for our "/kit ?" help command

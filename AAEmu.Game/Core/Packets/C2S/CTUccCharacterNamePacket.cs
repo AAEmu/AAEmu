@@ -19,6 +19,6 @@ public class CTUccCharacterNamePacket : StreamPacket
         if (name != null)
             Connection.SendPacket(new TCUccCharNamePacket(id, name));
 
-        _log.Debug("UccCharacterName, Id: {0}, Name: {1}", id, name);
+        Logger.Debug("UccCharacterName, Id: {0}, Name: {1}", id, name);
     }
 }

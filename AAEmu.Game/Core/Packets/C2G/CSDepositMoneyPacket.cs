@@ -15,7 +15,7 @@ public class CSDepositMoneyPacket : GamePacket
         var amount = stream.ReadInt32();
         var aapoint = stream.ReadInt32();
 
-        _log.Debug("DepositMoney: amount -> {0}, aa_point -> {1}", amount, aapoint);
+        Logger.Debug("DepositMoney: amount -> {0}, aa_point -> {1}", amount, aapoint);
 
         Connection.ActiveChar.ChangeMoney(SlotType.Inventory, SlotType.Bank, amount);
     }

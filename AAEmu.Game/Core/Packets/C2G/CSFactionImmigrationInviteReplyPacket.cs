@@ -16,6 +16,6 @@ public class CSFactionImmigrationInviteReplyPacket : GamePacket
         var unk2Id = stream.ReadUInt32();
         var answer = stream.ReadBoolean();
 
-        _log.Debug("FactionImmigrationInviteReply, Id: {0}, Id2: {1}, Answer: {2}", unkId, unk2Id, answer);
+        Logger.Debug("FactionImmigrationInviteReply, Id: {0}, Id2: {1}, Answer: {2}", unkId, unk2Id, answer);
     }
 }

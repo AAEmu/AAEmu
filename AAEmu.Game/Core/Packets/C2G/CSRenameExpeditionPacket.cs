@@ -15,6 +15,6 @@ public class CSRenameExpeditionPacket : GamePacket
         var name = stream.ReadString();
         var isExpedition = stream.ReadBoolean();
 
-        _log.Debug("RenameExpedition, Id: {0}, Name: {1}, IsExpedition: {2}", id, name, isExpedition);
+        Logger.Debug("RenameExpedition, Id: {0}, Name: {1}, IsExpedition: {2}", id, name, isExpedition);
     }
 }

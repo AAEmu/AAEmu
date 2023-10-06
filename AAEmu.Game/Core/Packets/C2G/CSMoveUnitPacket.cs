@@ -42,7 +42,7 @@ public class CSMoveUnitPacket : GamePacket
         // 0x06 : Jumping
         // 0x40 : Standing on something
         /*
-        _log.Debug("CSMoveUnitPacket(" + _moveType.Type + ") \nScType: " + _moveType.ScType + " - Flags: " +
+        Logger.Debug("CSMoveUnitPacket(" + _moveType.Type + ") \nScType: " + _moveType.ScType + " - Flags: " +
                    _moveType.Flags.ToString("X") + " - " +
                    "Phase: " + _moveType.Phase + " - Time: " + _moveType.Time + " - " +
                    "Sender: " + Connection.ActiveChar.Name + " (" + Connection.ActiveChar.ObjId + ") - " +
@@ -74,7 +74,7 @@ public class CSMoveUnitPacket : GamePacket
         {
             // TODO по какой то причине объект удалили из региона, наверное нужно его как то вернуть назад 
             // TODO for some reason the object has been removed from the region, you probably need to get it back somehow
-            _log.Warn("Invalid target {0} from {1}", _objId, character.Name);
+            Logger.Warn("Invalid target {0} from {1}", _objId, character.Name);
             return;
         }
 
@@ -85,7 +85,7 @@ public class CSMoveUnitPacket : GamePacket
                 {
                     // TODO: Validate if we are in the driver seat
                     // We are controlling a ship
-                    // _log.Debug("ShipRequestMoveType - Throttle: {0} - Steering {1}", srmt.Throttle, srmt.Steering);
+                    // Logger.Debug("ShipRequestMoveType - Throttle: {0} - Steering {1}", srmt.Throttle, srmt.Steering);
                     if (targetUnit is not Slave ship)
                         return;
 
@@ -105,7 +105,7 @@ public class CSMoveUnitPacket : GamePacket
                     // Steering: Value between -1.0 and +1.0
                     // WheelAngVel: Velocity on individual wheels? (note: cart/wagon has "no wheels")
                     /*
-                    _log.Debug("VehicleMoveType AngleVelocity XYZ: " + vmt.AngVelX.ToString("F1") + " , " +
+                    Logger.Debug("VehicleMoveType AngleVelocity XYZ: " + vmt.AngVelX.ToString("F1") + " , " +
                                vmt.AngVelY.ToString("F1") + " , " + vmt.AngVelZ.ToString("F1") + "\n" +
                                "Steering: " + vmt.Steering + " - WheelAngleVelocity: (" +
                                string.Join(" , ", vmt.WheelAngVel.ToArray()) + " )");
@@ -128,7 +128,7 @@ public class CSMoveUnitPacket : GamePacket
             case UnitMoveType dmt:
                 {
                     /*
-                    _log.Debug("ActorFlags: 0x{0} - ClimbData: {1} - GcId: {2}", 
+                    Logger.Debug("ActorFlags: 0x{0} - ClimbData: {1} - GcId: {2}", 
                         mType.ActorFlags.ToString("X"),
                         mType.ClimbData.ToString("X"), 
                         mType.GcId.ToString(("X")));
@@ -180,7 +180,7 @@ public class CSMoveUnitPacket : GamePacket
                         // Don't know why, but we need to Ignore Id 1, it probably has some special meaning like "current parent"
                         if (dmt.GcId == 1)
                         {
-                            // _log.Warn($"Flags: {dmt.Flags}, GcId: {dmt.GcId}, ClimbData: {dmt.ClimbData}, PartId: {dmt.GcPartId} ?");
+                            // Logger.Warn($"Flags: {dmt.Flags}, GcId: {dmt.GcId}, ClimbData: {dmt.ClimbData}, PartId: {dmt.GcPartId} ?");
                             parentObject = null;
                         }
 
@@ -189,7 +189,7 @@ public class CSMoveUnitPacket : GamePacket
 
                         if ((targetUnit.Transform.Parent != null) && (parentObject == null))
                         {
-                            //_log.Warn($"No longer standing on object {targetUnit.Transform.Parent.GameObject}...");
+                            //Logger.Warn($"No longer standing on object {targetUnit.Transform.Parent.GameObject}...");
                             // No longer standing on object ?
                             if (targetUnit.Transform.Parent.GameObject is Doodad)
                             {
@@ -247,7 +247,7 @@ public class CSMoveUnitPacket : GamePacket
                             (float)((dmt.ClimbData & 0x00FFE000) >> 13); // / 256f * 100f; // 11 bits
                         var stickyRotationOffset =
                             (float)((sbyte)((dmt.ClimbData & 0xFF000000) >> 24)) / 254f * 360f; // 8 bits
-                        _log.Debug(
+                        Logger.Debug(
                             "ClimbData - {0} ({1}) - Vertical: {2}/8192 , Horizontal: {3}/2048, Rotation: {4}°",
                             targetUnit.Name, targetUnit.ObjId,
                             stickyVerticalOffset, stickyHorizontalOffset, stickyRotationOffset.ToString("F1"));
@@ -265,8 +265,8 @@ public class CSMoveUnitPacket : GamePacket
                         (float)MathUtil.ConvertDirectionToRadian(dmt.RotationX),
                         (float)MathUtil.ConvertDirectionToRadian(dmt.RotationY),
                         (float)MathUtil.ConvertDirectionToRadian(dmt.RotationZ));
-                    //_log.Info($"SetPosition:World {targetUnit.ObjId} is moving X={targetUnit.Transform.World.Position.X} Y={targetUnit.Transform.World.Position.Y}");
-                    //_log.Info($"SetPosition:Local {targetUnit.ObjId} is moving X={dmt.X} Y={dmt.Y}");
+                    //Logger.Info($"SetPosition:World {targetUnit.ObjId} is moving X={targetUnit.Transform.World.Position.X} Y={targetUnit.Transform.World.Position.Y}");
+                    //Logger.Info($"SetPosition:Local {targetUnit.ObjId} is moving X={dmt.X} Y={dmt.Y}");
                     targetUnit.BroadcastPacket(new SCOneUnitMovementPacket(_objId, dmt), true);
                     targetUnit.Transform.FinalizeTransform(true);
 
@@ -280,7 +280,7 @@ public class CSMoveUnitPacket : GamePacket
                     break;
                 }
             default:
-                _log.Warn("Unknown MoveType: {0} by {1} for {2} ", _moveType, character.Name, targetUnit.Name);
+                Logger.Warn("Unknown MoveType: {0} by {1} for {2} ", _moveType, character.Name, targetUnit.Name);
                 break;
         }
     }

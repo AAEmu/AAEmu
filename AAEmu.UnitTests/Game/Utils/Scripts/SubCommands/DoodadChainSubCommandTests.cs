@@ -62,7 +62,7 @@ public class DoodadChainSubCommandTests
         var mockCharacter = new Mock<Character>(mockUnitCustomModelParams.Object);
 
         var testCommand = new TestCommand(new Dictionary<ICommandV2, string[]>());
-        testCommand.PreExecute(mockCharacter.Object, "doodad", new string[] { });
+        testCommand.PreExecute(mockCharacter.Object, "doodad", System.Array.Empty<string>());
     }
 
     [Theory]

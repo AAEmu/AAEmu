@@ -12,7 +12,7 @@ public class CSExpandExpertPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         // Empty struct
-        _log.Debug("ExpandExpert");
+        Logger.Debug("ExpandExpert");
 
         Connection.ActiveChar.Actability.ExpandExpert();
     }

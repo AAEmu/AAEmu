@@ -30,6 +30,6 @@ public class SpawnGimmickEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("SpawnGimmickEffect");
+        Logger.Trace("SpawnGimmickEffect");
     }
 }

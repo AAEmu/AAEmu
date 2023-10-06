@@ -24,7 +24,7 @@ public class ResetCooldown : SpecialEffectAction
         int value4)
     {
         // TODO ...
-        if (caster is Character) { _log.Debug("Special effects: ResetCooldown skillId {0}, tagId {1}, gcd {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is Character) { Logger.Debug("Special effects: ResetCooldown skillId {0}, tagId {1}, gcd {2}, value4 {3}", value1, value2, value3, value4); }
 
         uint skillId = (uint)value1;
         uint tagId = (uint)value2;

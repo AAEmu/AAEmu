@@ -21,7 +21,7 @@ public class ImprintUccEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("ImprintUccEffect");
+        Logger.Trace("ImprintUccEffect");
         if (!(target is Character player))
             return;
         if (!(casterObj is SkillItem skillItem))
@@ -47,7 +47,7 @@ public class ImprintUccEffect : EffectTemplate
         }
         else
         {
-            _log.Warn("ImprintUccEffect: Invalid item reference");
+            Logger.Warn("ImprintUccEffect: Invalid item reference");
         }
     }
 }

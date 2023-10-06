@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class AIManager : Singleton<AIManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _initialized = false;
 
     private List<NpcAi> _npcAis;
@@ -47,7 +47,7 @@ public class AIManager : Singleton<AIManager>
                 }
                 catch (Exception e)
                 {
-                    _log.Error(e);
+                    Logger.Error(e);
                 }
             }
         }

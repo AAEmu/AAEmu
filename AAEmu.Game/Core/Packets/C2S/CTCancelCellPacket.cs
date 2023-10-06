@@ -17,6 +17,6 @@ public class CTCancelCellPacket : StreamPacket
         var x = stream.ReadInt32();
         var y = stream.ReadInt32();
 
-        _log.Warn("CTCancelCellPacket #.{0} ({1},{2})", i, x, y);
+        Logger.Warn("CTCancelCellPacket #.{0} ({1},{2})", i, x, y);
     }
 }

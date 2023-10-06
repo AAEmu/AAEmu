@@ -31,7 +31,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class ItemManager : Singleton<ItemManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded;
 
     private Dictionary<int, GradeTemplate> _grades;
@@ -207,7 +207,7 @@ public class ItemManager : Singleton<ItemManager>
         {
             lootDropRate *= (100f + player.DropRateMul) / 100f;
             lootGoldRate *= (100f + player.LootGoldMul) / 100f;
-            _log.Info($"Unit killed without aggro: {unit.ObjId} ({unit.TemplateId}) by {player.Name}");
+            Logger.Info($"Unit killed without aggro: {unit.ObjId} ({unit.TemplateId}) by {player.Name}");
         }
 
         // Base ID used for identifying the loot
@@ -526,8 +526,8 @@ public class ItemManager : Singleton<ItemManager>
         }
         catch (Exception ex)
         {
-            _log.Error(ex);
-            _log.Error(ex.InnerException);
+            Logger.Error(ex);
+            Logger.Error(ex.InnerException);
             item = new Item(id, template, count);
         }
 
@@ -599,7 +599,7 @@ public class ItemManager : Singleton<ItemManager>
         SkillManager.Instance.OnSkillsLoaded += OnSkillsLoaded;
         using (var connection = SQLite.CreateConnection())
         {
-            _log.Info("Loading item templates ...");
+            Logger.Info("Loading item templates ...");
 
             // Read configuration related to item durability and the likes
             using (var command = connection.CreateCommand())
@@ -1487,7 +1487,7 @@ public class ItemManager : Singleton<ItemManager>
                 i.Value.searchString = (i.Value.Name + " " + LocalizationManager.Instance.Get("items", "name", i.Value.Id)).ToLower();
             }
 
-            _log.Info($"Loaded {_templates.Count} item templates (with {invalidItemCount} unused) ...");
+            Logger.Info($"Loaded {_templates.Count} item templates (with {invalidItemCount} unused) ...");
 
 
         }
@@ -1510,7 +1510,7 @@ public class ItemManager : Singleton<ItemManager>
         var deleteCount = 0;
         var updateCount = 0;
         var containerUpdateCount = 0;
-        // _log.Info("Saving items data ...");
+        // Logger.Info("Saving items data ...");
 
         // Remove deleted items from DB
         using (var command = connection.CreateCommand())
@@ -1530,7 +1530,7 @@ public class ItemManager : Singleton<ItemManager>
                     }
 
                     if (deleteCount != _removedItems.Count)
-                        _log.Error($"Some items could not be deleted, only {deleteCount}/{_removedItems.Count} items removed !");
+                        Logger.Error($"Some items could not be deleted, only {deleteCount}/{_removedItems.Count} items removed !");
                     _removedItems.Clear();
                 }
             }
@@ -1574,7 +1574,7 @@ public class ItemManager : Singleton<ItemManager>
                     }
                     catch (Exception e)
                     {
-                        _log.Error(e);
+                        Logger.Error(e);
                     }
                 }
             }
@@ -1599,7 +1599,7 @@ public class ItemManager : Singleton<ItemManager>
                     {
                         // Only give a error if it has no owner, otherwise it's likely a BuyBack item
                         if (item.OwnerId <= 0)
-                            _log.Warn(string.Format("Found SlotType.None in itemslist, skipping ID:{0} - Template:{1}", item.Id, item.TemplateId));
+                            Logger.Warn(string.Format("Found SlotType.None in itemslist, skipping ID:{0} - Template:{1}", item.Id, item.TemplateId));
                         continue;
                     }
 
@@ -1643,7 +1643,7 @@ public class ItemManager : Singleton<ItemManager>
 
                     if (command.ExecuteNonQuery() < 1)
                     {
-                        _log.Error($"Error updating items {item.Id} ({item.TemplateId}) !");
+                        Logger.Error($"Error updating items {item.Id} ({item.TemplateId}) !");
                     }
                     else
                     {
@@ -1724,7 +1724,7 @@ public class ItemManager : Singleton<ItemManager>
                 deleteCommand.Parameters.AddWithValue("@id", idToRemove);
                 deleteCommand.Prepare();
                 if (deleteCommand.ExecuteNonQuery() <= 0)
-                    _log.Error($"Failed to delete ItemContainer from DB container_id: {idToRemove}");
+                    Logger.Error($"Failed to delete ItemContainer from DB container_id: {idToRemove}");
             }
         }
 
@@ -1736,7 +1736,7 @@ public class ItemManager : Singleton<ItemManager>
         if (_loadedUserItems)
             return;
 
-        _log.Info("Loading user items ...");
+        Logger.Info("Loading user items ...");
         _allItems = new Dictionary<ulong, Item>();
         _allPersistantContainers = new Dictionary<ulong, ItemContainer>();
         // _timerSubscriptionsItems = new Dictionary<ulong, Item>();
@@ -1780,12 +1780,12 @@ public class ItemManager : Singleton<ItemManager>
                     }
                     catch (Exception ex)
                     {
-                        _log.Error(ex);
+                        Logger.Error(ex);
                     }
 
                     if (nClass == null)
                     {
-                        _log.Error("Item type {0} not found!", type);
+                        Logger.Error("Item type {0} not found!", type);
                         continue;
                     }
 
@@ -1796,8 +1796,8 @@ public class ItemManager : Singleton<ItemManager>
                     }
                     catch (Exception ex)
                     {
-                        _log.Error(ex);
-                        _log.Error(ex.InnerException);
+                        Logger.Error(ex);
+                        Logger.Error(ex.InnerException);
                         item = new Item();
                     }
 
@@ -1835,7 +1835,7 @@ public class ItemManager : Singleton<ItemManager>
                     if (!_allItems.TryAdd(item.Id, item))
                     {
                         ReleaseId(item.Id);
-                        _log.Error("Failed to load item with ID {0}, possible duplicate entries!", item.Id);
+                        Logger.Error("Failed to load item with ID {0}, possible duplicate entries!", item.Id);
                     }
 
                     if ((containerId > 0) && _allPersistantContainers.TryGetValue(containerId, out var container))
@@ -1844,11 +1844,11 @@ public class ItemManager : Singleton<ItemManager>
                         if (container.AddOrMoveExistingItem(ItemTaskType.Invalid, item, item.Slot))
                             item.IsDirty = false;
                         else
-                            _log.Fatal($"Failed to add item {item} to existing container {container.ContainerId} !");
+                            Logger.Fatal($"Failed to add item {item} to existing container {container.ContainerId} !");
                     }
                     else
                     {
-                        _log.Trace(
+                        Logger.Trace(
                             $"Can't find a container for Item {item.Id} ({item.Template.Name}), ContainerId: {containerId}");
                         // This Item does not have a valid container it can fit in
 
@@ -1863,14 +1863,14 @@ public class ItemManager : Singleton<ItemManager>
                             }
                             else
                             {
-                                _log.Fatal($"Failed to add owned item ({item.Id}){item} to new container (Id:{cContainer.ContainerId}) !");
+                                Logger.Fatal($"Failed to add owned item ({item.Id}){item} to new container (Id:{cContainer.ContainerId}) !");
                                 item.Slot = thisItemSlot;
                                 item.IsDirty = false;
                             }
                         }
                         else
                         {
-                            _log.Warn($"Could not find a new container for Orphaned item {item.Id} ({item.TemplateId}, ContainerId: {containerId}");
+                            Logger.Warn($"Could not find a new container for Orphaned item {item.Id} ({item.TemplateId}, ContainerId: {containerId}");
                             item.Slot = thisItemSlot; // Override the slot number again in case things didn't go as planned
                             item.IsDirty = false;
                         }
@@ -1879,7 +1879,7 @@ public class ItemManager : Singleton<ItemManager>
             }
         }
 
-        _log.Info("Starting Timed Items Task ...");
+        Logger.Info("Starting Timed Items Task ...");
         var itemTimerTask = new ItemTimerTask();
         TaskManager.Instance.Schedule(itemTimerTask, null, TimeSpan.FromSeconds(1));
 
@@ -1949,7 +1949,7 @@ public class ItemManager : Singleton<ItemManager>
         var res = 0;
         if (itemContainer == null)
         {
-            _log.Error("Invalid itemContainer when processing item timers");
+            Logger.Error("Invalid itemContainer when processing item timers");
             return res;
         }
 
@@ -2025,7 +2025,7 @@ public class ItemManager : Singleton<ItemManager>
             LastTimerCheck = now;
         }
 
-        // _log.Trace($"UpdateItemTimers - Tick, Delta: {delta.TotalMilliseconds}ms");
+        // Logger.Trace($"UpdateItemTimers - Tick, Delta: {delta.TotalMilliseconds}ms");
 
         // Timers are actually only checked when it's owner is actually online, so we loop the online characters for this.
         // You can clearly see this on retail after event items expired when you were offline, they will expire immediately
@@ -2042,7 +2042,7 @@ public class ItemManager : Singleton<ItemManager>
         }
 
         if (res > 0)
-            _log.Warn($"{res} item(s) expired and have been removed.");
+            Logger.Warn($"{res} item(s) expired and have been removed.");
     }
 
     public static GamePacket SetItemExpirationTime(Item item, DateTime newTime)
@@ -2050,7 +2050,7 @@ public class ItemManager : Singleton<ItemManager>
         if (item.ExpirationTime != newTime)
         {
             item.ExpirationTime = newTime;
-            _log.Warn($"Set ExpirationTime for item {item.Id}, {item.Template.Name} set to {newTime}");
+            Logger.Warn($"Set ExpirationTime for item {item.Id}, {item.Template.Name} set to {newTime}");
             return new SCSyncItemLifespanPacket(newTime > item.CreateTime, item.Id, item.TemplateId, newTime);
         }
 
@@ -2063,7 +2063,7 @@ public class ItemManager : Singleton<ItemManager>
         {
             var newTime = DateTime.UtcNow.AddMinutes(newMinutes);
             item.ExpirationOnlineMinutesLeft = newMinutes;
-            _log.Warn($"Set ExpirationOnlineMinutesLeft for item {item.Id}, {item.Template.Name} set to {newTime}");
+            Logger.Warn($"Set ExpirationOnlineMinutesLeft for item {item.Id}, {item.Template.Name} set to {newTime}");
             return new SCSyncItemLifespanPacket(newMinutes >= 0.0, item.Id, item.TemplateId, newTime);
         }
 
@@ -2084,7 +2084,7 @@ public class ItemManager : Singleton<ItemManager>
             return false;
         if ((item.SlotType != slotType) || (item.Slot != slot))
         {
-            _log.Warn($"UnwrapItem: Requested item position does not match up for {itemId} of user {character.Name}");
+            Logger.Warn($"UnwrapItem: Requested item position does not match up for {itemId} of user {character.Name}");
             return false;
         }
         item.UnpackTime = DateTime.UtcNow;//.AddDays(-30).AddSeconds(15);

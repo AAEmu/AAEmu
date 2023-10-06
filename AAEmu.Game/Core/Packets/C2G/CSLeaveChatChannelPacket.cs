@@ -13,6 +13,6 @@ public class CSLeaveChatChannelPacket : GamePacket
     {
         var chat = stream.ReadInt64(); // TODO нужно разложить
 
-        _log.Debug("LeaveChatChannel, Chat: {0}", chat);
+        Logger.Debug("LeaveChatChannel, Chat: {0}", chat);
     }
 }

@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class EnterWorldManager : Singleton<EnterWorldManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, uint> _accounts;
 
@@ -116,7 +116,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
 
                 break;
             default:
-                _log.Warn("[Leave] Unknown type: {0}", type);
+                Logger.Warn("[Leave] Unknown type: {0}", type);
                 break;
         }
     }

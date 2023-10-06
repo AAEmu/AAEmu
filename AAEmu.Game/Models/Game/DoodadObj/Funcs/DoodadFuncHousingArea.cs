@@ -11,7 +11,7 @@ public class DoodadFuncHousingArea : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Trace("DoodadFuncHousingArea");
+        Logger.Trace("DoodadFuncHousingArea");
 
     }
 }

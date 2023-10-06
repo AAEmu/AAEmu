@@ -13,7 +13,7 @@ public class MoveToTargetState : State
 
     public override void Enter()
     {
-        _log.Debug("Entering MoveToTargetState - {0}", Target.Name);
+        Logger.Debug("Entering MoveToTargetState - {0}", Target.Name);
         PreviousDistance = MathUtil.CalculateDistance(AI.Owner, Target, true);
     }
 

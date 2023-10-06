@@ -11,7 +11,7 @@ public class QuestActConAcceptNpcKill : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActConAcceptNpcKill: NpcId {0}", NpcId);
+        Logger.Warn("QuestActConAcceptNpcKill: NpcId {0}", NpcId);
 
         if (!(character.CurrentTarget is Npc))
             return false;

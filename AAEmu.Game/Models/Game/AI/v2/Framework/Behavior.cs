@@ -13,46 +13,12 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Framework;
 
-public enum BehaviorKind
-{
-    // Common
-    Alert,
-    AlmightyAttack,
-    Attack,
-    Dead,
-    Despawning,
-    DoNothing,
-    Dummy,
-    FollowPath,
-    FollowUnit,
-    HoldPosition,
-    Idle,
-    ReturnState,
-    Roaming,
-    RunCommandSet,
-    Spawning,
-    Talk,
-
-    // Archer
-    ArcherAttack,
-
-    // BigMonster
-    BigMonsterAttack,
-
-    // Flytrap
-    FlytrapAlert,
-    FlytrapAttack,
-
-    // WildBoar
-    WildBoarAttack
-}
-
 /// <summary>
 /// Represents an AI state. Called as such because of naming in the game's files.
 /// </summary>
 public abstract class Behavior
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
+    protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     protected DateTime _delayEnd;
     protected float _nextTimeToDelay;
@@ -111,7 +77,7 @@ public abstract class Behavior
 
             if (this.CheckInterval(delay1))
             {
-                _log.Warn("PickSkillAndUseIt:UseSelfSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplateSelf.Id);
+                Logger.Warn("PickSkillAndUseIt:UseSelfSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplateSelf.Id);
                 UseSkill(skillSelf, target);
             }
             return;
@@ -138,7 +104,7 @@ public abstract class Behavior
 
         if (this.CheckInterval(delay2))
         {
-            _log.Warn("PickSkillAndUseIt:UseSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2} on Target {3}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplate.Id, target.ObjId);
+            Logger.Warn("PickSkillAndUseIt:UseSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2} on Target {3}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplate.Id, target.ObjId);
             UseSkill(skill, target);
         }
     }

@@ -2,8 +2,8 @@
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Commons.Utils.Updater;
-using AAEmu.Game.IO;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -14,29 +14,29 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.IO;
 using AAEmu.Game.Models;
 using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
-using AAEmu.Commons.Utils.DB;
 
 namespace AAEmu.Game;
 
 public sealed class GameService : IHostedService, IDisposable
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _log.Info("Starting daemon: AAEmu.Game");
+        Logger.Info("Starting daemon: AAEmu.Game");
 
         // Check for updates
         using (var connection = MySQL.CreateConnection())
         {
             if (!MySqlDatabaseUpdater.Run(connection, "aaemu_game", AppConfiguration.Instance.Connections.MySQLProvider.Database))
             {
-                _log.Fatal("Failed to update database!");
-                _log.Fatal("Press Ctrl+C to quit");
+                Logger.Fatal("Failed to update database!");
+                Logger.Fatal("Press Ctrl+C to quit");
                 return;
             }
         }
@@ -44,8 +44,8 @@ public sealed class GameService : IHostedService, IDisposable
         ClientFileManager.Initialize();
         if (ClientFileManager.ListSources().Count == 0)
         {
-            _log.Fatal($"Failed up load client files! ({string.Join(", ", AppConfiguration.Instance.ClientData.Sources)})");
-            _log.Fatal("Press Ctrl+C to quit");
+            Logger.Fatal($"Failed up load client files! ({string.Join(", ", AppConfiguration.Instance.ClientData.Sources)})");
+            Logger.Fatal("Press Ctrl+C to quit");
             return;
         }
 
@@ -168,24 +168,24 @@ public sealed class GameService : IHostedService, IDisposable
 
         if ((waterBodyTask != null) && (!waterBodyTask.IsCompleted))
         {
-            _log.Info("Waiting on water to be loaded before proceeding, please wait ...");
+            Logger.Info("Waiting on water to be loaded before proceeding, please wait ...");
             await waterBodyTask;
         }
 
         if ((heightmapTask != null) && (!heightmapTask.IsCompleted))
         {
-            _log.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
+            Logger.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
             await heightmapTask;
         }
 
         var spawnSw = new Stopwatch();
-        _log.Info("Spawning units...");
+        Logger.Info("Spawning units...");
         spawnSw.Start();
         HousingManager.Instance.SpawnAll(); // Houses need to be spawned before doodads
         SpawnManager.Instance.SpawnAll();
         TransferManager.Instance.SpawnAll();
         spawnSw.Stop();
-        _log.Info("Units spawned in {0}", spawnSw.Elapsed);
+        Logger.Info("Units spawned in {0}", spawnSw.Elapsed);
 
         // Start running Physics when everything is loaded
         WorldManager.Instance.StartPhysics();
@@ -197,12 +197,12 @@ public sealed class GameService : IHostedService, IDisposable
         LoginNetwork.Instance.Start();
 
         stopWatch.Stop();
-        _log.Info("Server started! Took {0}", stopWatch.Elapsed);
+        Logger.Info("Server started! Took {0}", stopWatch.Elapsed);
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _log.Info("Stopping daemon...");
+        Logger.Info("Stopping daemon...");
 
         SaveManager.Instance.Stop();
 
@@ -228,7 +228,7 @@ public sealed class GameService : IHostedService, IDisposable
 
     public void Dispose()
     {
-        _log.Info("Disposing...");
+        Logger.Info("Disposing...");
 
         LogManager.Flush();
     }

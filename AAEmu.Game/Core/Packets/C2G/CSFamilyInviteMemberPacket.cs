@@ -15,7 +15,7 @@ public class CSFamilyInviteMemberPacket : GamePacket
         var name = stream.ReadString();
         var title = stream.ReadString();
 
-        _log.Debug("FamilyInviteMember, Name: {0}, Title: {1}", name, title);
+        Logger.Debug("FamilyInviteMember, Name: {0}, Title: {1}", name, title);
 
         FamilyManager.InviteToFamily(Connection.ActiveChar, name, title);
     }

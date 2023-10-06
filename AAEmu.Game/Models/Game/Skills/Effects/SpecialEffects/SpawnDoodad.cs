@@ -27,7 +27,7 @@ public class SpawnDoodad : SpecialEffectAction
     )
     {
         // TODO ...
-        if (caster is Character) { _log.Debug("Special effects: SpawnDoodad doodadId {0}, value2 {1}, value3 {2}, value4 {3}", doodadId, value2, value3, value4); }
+        if (caster is Character) { Logger.Debug("Special effects: SpawnDoodad doodadId {0}, value2 {1}, value3 {2}, value4 {3}", doodadId, value2, value3, value4); }
 
         var doodad = DoodadManager.Instance.Create(0, (uint)doodadId, caster, true);
         doodad.Transform = caster.Transform.CloneDetached(doodad);

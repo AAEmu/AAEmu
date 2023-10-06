@@ -12,6 +12,6 @@ public class CSResetQuestContextPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         var questId = stream.ReadUInt32();
-        _log.Debug("ResetQuestContext, Id: {0}", questId);
+        Logger.Debug("ResetQuestContext, Id: {0}", questId);
     }
 }

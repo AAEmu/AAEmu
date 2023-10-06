@@ -4,10 +4,12 @@ using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
+#pragma warning disable IDE0052 // Remove unread private members
+
 public class SCSkillFiredPacket : GamePacket
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
-    
+
     private uint _id;
     private ushort _tl;
     private SkillCaster _caster;

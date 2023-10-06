@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models;
 public partial class AppConfiguration : Singleton<AppConfiguration>
 {
     public byte Id { get; set; }
-    public byte[] AdditionalesId { get; set; } = new byte[0];
+    public byte[] AdditionalesId { get; set; } = System.Array.Empty<byte>();
     public string SecretKey { get; set; }
     public DBConnections Connections { get; set; }
     public NetworkConfig Network { get; set; }

@@ -7,7 +7,7 @@ namespace AAEmu.Game.IO;
 
 public static class ClientFileManager
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static bool _initialized = false;
 
     private static List<ClientSource> Sources = new();
@@ -39,7 +39,7 @@ public static class ClientFileManager
             if (newSource.Open())
             {
                 Sources.Add(newSource);
-                _log.Info($"Using Source [{Sources.Count}:{newSource.SourceType}]: {pathName}");
+                Logger.Info($"Using Source [{Sources.Count}:{newSource.SourceType}]: {pathName}");
                 return true;
             }
         }
@@ -51,17 +51,17 @@ public static class ClientFileManager
             if (newSource.Open())
             {
                 Sources.Add(newSource);
-                _log.Info($"Using Source [{Sources.Count}:{newSource.SourceType}]: {pathName}");
+                Logger.Info($"Using Source [{Sources.Count}:{newSource.SourceType}]: {pathName}");
                 return true;
             }
             else
             {
-                _log.Error($"Source could not be opened, or is invalid: {pathName}");
+                Logger.Error($"Source could not be opened, or is invalid: {pathName}");
                 return false;
             }
         }
 
-        _log.Warn($"Client Source not found {pathName}");
+        Logger.Warn($"Client Source not found {pathName}");
         return false;
     }
 
@@ -119,10 +119,10 @@ public static class ClientFileManager
         var source = GetFileSource(fileName);
         if (source == null)
         {
-            _log.Trace($"GetFileStream({fileName}) not found");
+            Logger.Trace($"GetFileStream({fileName}) not found");
             return null;
         }
-        //_log.Debug($"[{source.PathName}].GetFileStream({fileName})");
+        //Logger.Debug($"[{source.PathName}].GetFileStream({fileName})");
         return source.GetFileStream(fileName);
     }
 
@@ -143,10 +143,10 @@ public static class ClientFileManager
         foreach (var source in AppConfiguration.Instance.ClientData.Sources)
         {
             if (!AddSource(source))
-                _log.Warn($"{source} is not a valid source for client data");
+                Logger.Warn($"{source} is not a valid source for client data");
         }
         if (ListSources().Count <= 0)
-            _log.Error("No valid client sources have been defined or found, some features will not work !");
+            Logger.Error("No valid client sources have been defined or found, some features will not work !");
 
         _initialized = true;
     }

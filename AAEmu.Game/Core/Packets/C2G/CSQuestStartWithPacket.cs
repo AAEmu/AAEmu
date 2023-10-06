@@ -15,6 +15,6 @@ public class CSQuestStartWithPacket : GamePacket
         var unkId = stream.ReadUInt32();
         var unkId2 = stream.ReadUInt32();
         var unkId3 = stream.ReadUInt32();
-        _log.Warn("QuestStartWith, UnkId: {0}, UnkId2: {1}, UnkId3: {2}", unkId, unkId2, unkId3);
+        Logger.Warn("QuestStartWith, UnkId: {0}, UnkId2: {1}, UnkId3: {2}", unkId, unkId2, unkId3);
     }
 }

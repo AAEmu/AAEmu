@@ -28,7 +28,7 @@ public class BigMonsterAttackState : State
         base.Enter();
         if (!(AI.Owner is Npc npc))
         {
-            _log.Error("State applied to invalid unit type");
+            Logger.Error("State applied to invalid unit type");
             return;
         }
 

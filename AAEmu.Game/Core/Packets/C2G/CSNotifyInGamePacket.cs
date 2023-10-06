@@ -36,6 +36,6 @@ public class CSNotifyInGamePacket : GamePacket
 
         Connection.ActiveChar.UpdateGearBonuses(null, null);
 
-        _log.Info("NotifyInGame");
+        Logger.Info("NotifyInGame");
     }
 }

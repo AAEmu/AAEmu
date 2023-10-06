@@ -24,6 +24,6 @@ public class WorldSetExprateSubCommand : SubCommandBase
         }
         character.SetExpRate(expRate);
         SendMessage(character, "Set ExpRate {0}", expRate);
-        _log.Warn($"{Title}: {expRate}");
+        Logger.Warn($"{Title}: {expRate}");
     }
 }

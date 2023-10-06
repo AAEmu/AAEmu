@@ -4,6 +4,8 @@ using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
+#pragma warning disable IDE0052 // Remove unread private members
+
 public class SCSkillStartedPacket : GamePacket
 {
     private readonly uint _id;

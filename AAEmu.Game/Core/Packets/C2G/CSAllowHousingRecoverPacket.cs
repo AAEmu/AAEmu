@@ -14,7 +14,7 @@ public class CSAllowHousingRecoverPacket : GamePacket
     {
         var tl = stream.ReadUInt16();
 
-        _log.Debug("AllowHousingRecover, Tl: {0}", tl);
+        Logger.Debug("AllowHousingRecover, Tl: {0}", tl);
         HousingManager.Instance.HousingToggleAllowRecover(Connection.ActiveChar, tl);
     }
 }

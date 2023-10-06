@@ -1,5 +1,5 @@
-using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -10,7 +10,7 @@ public class QuestActSupplyHonorPoint : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActSupplyHonorPoint");
+        Logger.Warn("QuestActSupplyHonorPoint");
         character.ChangeGamePoints(GamePointKind.Honor, Point);
         return true;
     }

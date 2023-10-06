@@ -13,7 +13,7 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
     // doodad_funcs
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Debug($"DoodadFuncRecoverItem({Id}) - Caster:{caster.Name} - DoodadOwner Template:{owner?.TemplateId} - SkillId:{skillId} - Nextphase:{nextPhase}");
+        Logger.Debug($"DoodadFuncRecoverItem({Id}) - Caster:{caster.Name} - DoodadOwner Template:{owner?.TemplateId} - SkillId:{skillId} - Nextphase:{nextPhase}");
 
         var character = (Character)caster;
         var addedItem = false;
@@ -66,7 +66,7 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
         else
         {
             // No itemId was provided with the doodad, need to check what needs to be done with this
-            _log.Warn($"DoodadFuncRecoverItem: Doodad {owner?.ObjId} has no item information attached to it");
+            Logger.Warn($"DoodadFuncRecoverItem: Doodad {owner?.ObjId} has no item information attached to it");
         }
 
         if (addedItem && item != null && item._holdingContainer.ContainerType == SlotType.Equipment)

@@ -2,12 +2,6 @@
 
 namespace AAEmu.Game.Models.Game.Items.Loots;
 
-/*
- * Original Author: AAGene
- * Original Source: AAGenesis
- * Modified by: ZeromusXYZ
- */
-
 public class LootGroups : IComparable<LootGroups>
 {
     public uint Id { get; set; }

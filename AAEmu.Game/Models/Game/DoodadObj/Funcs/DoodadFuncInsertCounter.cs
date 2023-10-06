@@ -12,7 +12,7 @@ public class DoodadFuncInsertCounter : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Trace("DoodadFuncInsertCounter");
+        Logger.Trace("DoodadFuncInsertCounter");
 
     }
 }

@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class PortalManager : Singleton<PortalManager>
 {
-    private readonly Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     //private Dictionary<uint, uint> _allDistrictPortalsKey;
     //private Dictionary<uint, Portal> _allDistrictPortals;
@@ -152,7 +152,7 @@ public class PortalManager : Singleton<PortalManager>
         _respawnsKey = new Dictionary<uint, uint>();
         _worldgatesKey = new Dictionary<uint, uint>();
 
-        _log.Info("Loading Portals ...");
+        Logger.Info("Loading Portals ...");
 
         #region FileManager
 
@@ -182,7 +182,7 @@ public class PortalManager : Singleton<PortalManager>
         //else
         //    throw new Exception($"PortalManager: Parse {filePath} file");
 
-        //_log.Info("Loaded {0} District Portals", _allDistrictPortals.Count);
+        //Logger.Info("Loaded {0} District Portals", _allDistrictPortals.Count);
 
         var filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "recalls.json");
         if (!File.Exists(filePath))
@@ -219,7 +219,7 @@ public class PortalManager : Singleton<PortalManager>
         else
             throw new GameException($"PortalManager: Parse {filePath} file");
 
-        _log.Info("Loaded {0} Recall Portals", _recalls.Count);
+        Logger.Info("Loaded {0} Recall Portals", _recalls.Count);
 
         filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "respawns.json");
         if (!File.Exists(filePath))
@@ -243,7 +243,7 @@ public class PortalManager : Singleton<PortalManager>
         else
             throw new GameException($"PortalManager: Parse {filePath} file");
 
-        _log.Info("Loaded {0} Respawn Portals", _respawns.Count);
+        Logger.Info("Loaded {0} Respawn Portals", _respawns.Count);
 
         filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "worldgates.json");
         if (!File.Exists(filePath))
@@ -263,7 +263,7 @@ public class PortalManager : Singleton<PortalManager>
         else
             throw new GameException($"PortalManager: Parse {filePath} file");
 
-        _log.Info("Loaded {0} Worldgate Portals", _worldgates.Count);
+        Logger.Info("Loaded {0} Worldgate Portals", _worldgates.Count);
 
         #endregion
 
@@ -329,7 +329,7 @@ public class PortalManager : Singleton<PortalManager>
                 }
             }
         }
-        _log.Info("Loaded Portal Info");
+        Logger.Info("Loaded Portal Info");
         #endregion
     }
 

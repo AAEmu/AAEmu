@@ -35,7 +35,7 @@ public class HealEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("HealEffect {0}", Id);
+        Logger.Trace("HealEffect {0}", Id);
 
         if (!(target is Unit))
             return;

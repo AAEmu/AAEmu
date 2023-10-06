@@ -12,6 +12,6 @@ public class CSEnteredInstantGameWorldPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         var qualifiedId = stream.ReadUInt64();
-        _log.Warn("EnteredInstantGameWorld, QualifiedId: {0}", qualifiedId);
+        Logger.Warn("EnteredInstantGameWorld, QualifiedId: {0}", qualifiedId);
     }
 }

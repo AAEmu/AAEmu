@@ -15,6 +15,6 @@ public class CSSetTeamOfficerPacket : GamePacket
         var memberId = stream.ReadUInt32();
         var promote = stream.ReadBoolean();
 
-        _log.Warn("SetTeamOfficer, TeamId: {0}, MemberId: {1}, Promote: {2}", teamId, memberId, promote);
+        Logger.Warn("SetTeamOfficer, TeamId: {0}, MemberId: {1}, Promote: {2}", teamId, memberId, promote);
     }
 }

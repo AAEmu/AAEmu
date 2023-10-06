@@ -10,7 +10,7 @@ public class DoodadFuncPlayFlowGraph : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncPlayFlowGraph");
+        Logger.Trace("DoodadFuncPlayFlowGraph");
         return false;
     }
 }

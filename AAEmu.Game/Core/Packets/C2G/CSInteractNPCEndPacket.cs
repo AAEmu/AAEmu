@@ -13,7 +13,7 @@ public class CSInteractNPCEndPacket : GamePacket
     {
         var objId = stream.ReadBc();
 
-        _log.Debug("InteractNPCEnd, BcId: {0}", objId);
+        Logger.Debug("InteractNPCEnd, BcId: {0}", objId);
 
         Connection.ActiveChar.CurrentInteractionObject = null;
     }

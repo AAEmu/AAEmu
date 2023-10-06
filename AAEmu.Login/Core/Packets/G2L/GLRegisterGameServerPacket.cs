@@ -14,7 +14,7 @@ public class GLRegisterGameServerPacket : InternalPacket
     {
     }
 
-    async Task SendPacketWithDelay(int delay, InternalPacket message)
+    private async Task SendPacketWithDelay(int delay, InternalPacket message)
     {
         await Task.Delay(delay);
         Connection.SendPacket(message);
@@ -35,7 +35,7 @@ public class GLRegisterGameServerPacket : InternalPacket
         }
         else
         {
-            _log.Error($"Connection {Connection.Ip}, bad secret key");
+            Logger.Error($"Connection {Connection.Ip}, bad secret key");
             Task.Run(() => SendPacketWithDelay(5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)));
             // Connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
         }

@@ -19,7 +19,7 @@ public class MailForTax : BaseMail
 
     private House _house;
 
-    public static string TaxSenderName = ".houseTax";
+    private static string TaxSenderName = ".houseTax";
 
     public MailForTax(House house) : base()
     {

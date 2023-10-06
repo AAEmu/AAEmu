@@ -19,6 +19,6 @@ public class CSChangeMateEquipmentPacket : GamePacket
         var num = stream.ReadByte();
         // TODO read 2 items, and 2 slots (v)
 
-        _log.Warn("ChangeMateEquipment, TlId: {0}, Id: {1}, Id2: {2}", tl, unkId, unk2Id);
+        Logger.Warn("ChangeMateEquipment, TlId: {0}, Id: {1}, Id2: {2}", tl, unkId, unk2Id);
     }
 }

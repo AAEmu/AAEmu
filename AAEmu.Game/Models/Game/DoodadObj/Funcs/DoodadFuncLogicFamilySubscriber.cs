@@ -9,7 +9,7 @@ public class DoodadFuncLogicFamilySubscriber : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncLogicFamilySubscriber");
+        Logger.Trace("DoodadFuncLogicFamilySubscriber");
         return false;
     }
 }

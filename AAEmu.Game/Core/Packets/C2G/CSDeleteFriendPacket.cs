@@ -13,7 +13,7 @@ public class CSDeleteFriendPacket : GamePacket
     {
         var name = stream.ReadString();
 
-        _log.Info("CSDeleteFriendPacket, {0}", name);
+        Logger.Info("CSDeleteFriendPacket, {0}", name);
         Connection.ActiveChar.Friends.RemoveFriend(name);
     }
 }

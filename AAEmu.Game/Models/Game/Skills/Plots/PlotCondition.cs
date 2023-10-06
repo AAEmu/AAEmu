@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots;
 
 public class PlotCondition
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
+    protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public uint Id { get; set; }
     public bool NotCondition { get; set; }
     public PlotConditionType Kind { get; set; }
@@ -87,7 +87,7 @@ public class PlotCondition
                 break;
         }
 
-        _log.Trace("PlotCondition : {0} | Params : {1}, {2}, {3} | Result : {4}", Kind, Param1, Param2, Param3, NotCondition ? !res : res);
+        Logger.Trace("PlotCondition : {0} | Params : {1}, {2}, {3} | Result : {4}", Kind, Param1, Param2, Param3, NotCondition ? !res : res);
 
         return NotCondition ? !res : res;
     }
@@ -222,7 +222,7 @@ public class PlotCondition
             //TODO obtain variables directly from plot.
             return Caster.ActivePlotState.Variables[index] == value;
         }
-        _log.Error("Invalid Plot Variable Condition Operation[{0}]", operation);
+        Logger.Error("Invalid Plot Variable Condition Operation[{0}]", operation);
         return false;
     }
 

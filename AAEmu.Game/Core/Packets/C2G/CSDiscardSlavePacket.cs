@@ -15,7 +15,7 @@ public class CSDiscardSlavePacket : GamePacket
     {
         var tlId = stream.ReadUInt16();
 
-        _log.Debug("DiscardSlave, Tl: {0}", tlId);
+        Logger.Debug("DiscardSlave, Tl: {0}", tlId);
         SlaveManager.Instance.UnbindSlave(Connection.ActiveChar, tlId, AttachUnitReason.SlaveBinding);
     }
 }

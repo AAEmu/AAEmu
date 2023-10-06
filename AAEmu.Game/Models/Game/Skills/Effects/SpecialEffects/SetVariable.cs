@@ -23,7 +23,7 @@ public class SetVariable : SpecialEffectAction
         int value4)
     {
         // TODO ...
-        if (caster is Character) { _log.Debug("Special effects: SetVariable index {0}, value {1}, operation {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is Character) { Logger.Debug("Special effects: SetVariable index {0}, value {1}, operation {2}, value4 {3}", value1, value2, value3, value4); }
 
         int index = value1;
         int value = value2;
@@ -40,10 +40,10 @@ public class SetVariable : SpecialEffectAction
             else if (operation == 11)
                 skill.ActivePlotState.Variables[index] = value;
             else
-                _log.Error("Invalid Plot Variable Operation Kind.");
+                Logger.Error("Invalid Plot Variable Operation Kind.");
         }
         else
-            _log.Error("No active plot state located.");
-        _log.Trace("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
+            Logger.Error("No active plot state located.");
+        Logger.Trace("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
     }
 }

@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree;
 
 public class PlotTree
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public uint PlotId { get; set; }
 
@@ -31,7 +31,7 @@ public class PlotTree
     {
         var treeWatch = new Stopwatch();
         treeWatch.Start();
-        _log.Trace("Executing plot tree with ID {0}", PlotId);
+        Logger.Trace("Executing plot tree with ID {0}", PlotId);
         try
         {
             var stopWatch = new Stopwatch();
@@ -143,18 +143,18 @@ public class PlotTree
                 }
 
                 if (nodewatch.ElapsedMilliseconds > 100)
-                    _log.Trace($"Event:{node.Event.Id} Took {nodewatch.ElapsedMilliseconds} to finish.");
+                    Logger.Trace($"Event:{node.Event.Id} Took {nodewatch.ElapsedMilliseconds} to finish.");
             }
 
             FlushExecutionQueue(executeQueue, state);
         }
         catch (Exception e)
         {
-            _log.Error($"Main Loop Error: {e.Message}\n {e.StackTrace}");
+            Logger.Error($"Main Loop Error: {e.Message}\n {e.StackTrace}");
         }
 
         DoPlotEnd(state);
-        _log.Trace("Tree with ID {0} has finished executing took {1}ms", PlotId, treeWatch.ElapsedMilliseconds);
+        Logger.Trace("Tree with ID {0} has finished executing took {1}ms", PlotId, treeWatch.ElapsedMilliseconds);
     }
 
     private static void FlushExecutionQueue(Queue<(PlotNode node, PlotTargetInfo targetInfo)> executeQueue, PlotState state)

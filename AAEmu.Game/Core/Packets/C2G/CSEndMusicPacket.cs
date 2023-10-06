@@ -14,7 +14,7 @@ public class CSEndMusicPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        _log.Warn("CSEndMusicPacket");
+        Logger.Warn("CSEndMusicPacket");
 
         // remove all remaining music buffs is score memorization has ended already
         var b = Connection.ActiveChar.Buffs;

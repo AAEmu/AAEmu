@@ -14,7 +14,7 @@ public class WildBoatAttackBehavior : BaseCombatBehavior
     // },
 
     private WildBoarAiParams _aiParams;
-    private float _prevHealthRatio;
+    //unused private float _prevHealthRatio;
 
     public override void Enter()
     {
@@ -22,7 +22,7 @@ public class WildBoatAttackBehavior : BaseCombatBehavior
         if (_aiParams == null)
             return;
 
-        _prevHealthRatio = (Ai.Owner.Hp / (float)Ai.Owner.MaxHp) * 100;
+        //unused _prevHealthRatio = (Ai.Owner.Hp / (float)Ai.Owner.MaxHp) * 100;
 
         if (!UpdateTarget() || ShouldReturn)
         {

@@ -1,17 +1,13 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Faction;
-using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
-using SQLitePCL;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -73,7 +69,7 @@ public class BaseUnit : GameObject, IBaseUnit
         var zoneFaction = FactionManager.Instance.GetFaction(zoneFactionId);
         if (zoneFaction == null)
         {
-            Log.Warn($"CanAttack zone faction is null {this.ObjId} - {target.ObjId}");
+            Logger.Warn($"CanAttack zone faction is null {this.ObjId} - {target.ObjId}");
             zoneFaction = FactionManager.Instance.GetFaction(FactionsEnum.Neutral);
         }
         var targetMotherFaction = target.Faction?.MotherId ?? 0;

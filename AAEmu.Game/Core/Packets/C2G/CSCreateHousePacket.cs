@@ -23,7 +23,7 @@ public class CSCreateHousePacket : GamePacket
         var ht = stream.ReadInt32();
         var autoUseAaPoint = stream.ReadBoolean();
 
-        _log.Debug("CreateHouse, Id: {0}, X: {1}, Y: {2}, Z: {3}, ZRot: {4}", designId, x, y, z, zRot);
+        Logger.Debug("CreateHouse, Id: {0}, X: {1}, Y: {2}, Z: {3}, ZRot: {4}", designId, x, y, z, zRot);
 
         HousingManager.Instance.Build(
             Connection,

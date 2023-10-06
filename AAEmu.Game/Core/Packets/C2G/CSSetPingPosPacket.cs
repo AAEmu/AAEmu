@@ -22,7 +22,7 @@ public class CSSetPingPosPacket : GamePacket
         position.Z = stream.ReadSingle();
         var insId = stream.ReadUInt32();
 
-        // _log.Warn("SetPingPos, teamId {0}, hasPing {1}, insId {2}", teamId, hasPing, insId);
+        // Logger.Warn("SetPingPos, teamId {0}, hasPing {1}, insId {2}", teamId, hasPing, insId);
         var owner = Connection.ActiveChar;
         owner.LocalPingPosition = position;
         if (teamId > 0)

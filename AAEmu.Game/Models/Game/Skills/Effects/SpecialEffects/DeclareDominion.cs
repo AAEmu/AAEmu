@@ -27,7 +27,7 @@ public class DeclareDominion : SpecialEffectAction
         int value3,
         int value4)
     {
-        if (caster is Character) { _log.Debug("Special effects: DeclareDominion value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is Character) { Logger.Debug("Special effects: DeclareDominion value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
         if (((Unit)caster).Expedition == null)
             return;
@@ -92,7 +92,7 @@ public class DeclareDominion : SpecialEffectAction
                     Y = 0,
                     Z = 0,
                     ObjId = 4,
-                    UnkIds = new uint[] { }
+                    UnkIds = Array.Empty<uint>()
                 },
                 Unk2Data = new DominionUnkData()
                 {
@@ -104,7 +104,7 @@ public class DeclareDominion : SpecialEffectAction
                     Y = 0,
                     Z = 0,
                     ObjId = 0,
-                    UnkIds = new uint[] { }
+                    UnkIds = Array.Empty<uint>()
                 }
             },
             NonPvPDuration = 0,

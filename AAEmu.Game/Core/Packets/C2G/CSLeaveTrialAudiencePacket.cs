@@ -12,6 +12,6 @@ public class CSLeaveTrialAudiencePacket : GamePacket
     public override void Read(PacketStream stream)
     {
         // Empty struct
-        _log.Warn("LeaveTrialAudience");
+        Logger.Warn("LeaveTrialAudience");
     }
 }

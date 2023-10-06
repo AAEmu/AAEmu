@@ -11,7 +11,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Rotate : ICommand
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
+    protected static Logger Logger = LogManager.GetCurrentClassLogger();
     public void OnLoad()
     {
         CommandManager.Instance.Register("rotate", this);

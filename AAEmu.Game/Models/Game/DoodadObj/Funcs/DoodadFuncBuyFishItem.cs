@@ -10,7 +10,7 @@ public class DoodadFuncBuyFishItem : DoodadPhaseFuncTemplate
     public uint ItemId { get; set; }
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncBuyFishItem");
+        Logger.Trace("DoodadFuncBuyFishItem");
         return false;
     }
 }

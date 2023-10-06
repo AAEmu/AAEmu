@@ -16,7 +16,7 @@ public class CommercialMail : BaseMail
     private bool _isRefund;
     private string _purchasedItemTitle;
 
-    public static string InGameCashShopSenderName = ".inGameShop";
+    private static string InGameCashShopSenderName = ".inGameShop";
 
     /// <summary>
     /// Create mail for items bought from the in game cash shop. Items must be created beforehand.

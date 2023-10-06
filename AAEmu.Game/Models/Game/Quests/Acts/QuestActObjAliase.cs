@@ -9,7 +9,7 @@ public class QuestActObjAliase : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActObjAliase");
+        Logger.Warn("QuestActObjAliase");
 
         return character.Quests.IsQuestComplete(quest.TemplateId);
     }

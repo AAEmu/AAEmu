@@ -22,7 +22,7 @@ public class DoodadFuncSpawnGimmick : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncSpawnGimmick");
+        Logger.Trace("DoodadFuncSpawnGimmick");
         if (caster is Character)
         {
             //I think this is used to reschedule anything that needs triggered at a specific gametime

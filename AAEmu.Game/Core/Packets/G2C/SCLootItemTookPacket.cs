@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-class SCLootItemTookPacket : GamePacket
+public class SCLootItemTookPacket : GamePacket
 {
     private readonly uint _id;
     private readonly ulong _iId;

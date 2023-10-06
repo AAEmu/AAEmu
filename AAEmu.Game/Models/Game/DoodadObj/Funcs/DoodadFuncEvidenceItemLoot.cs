@@ -12,7 +12,7 @@ public class DoodadFuncEvidenceItemLoot : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Trace("DoodadFuncEvidenceItemLoot");
+        Logger.Trace("DoodadFuncEvidenceItemLoot");
 
     }
 }

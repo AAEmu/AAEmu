@@ -16,8 +16,6 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree;
 
 public class PlotTargetInfo
 {
-    // Unused private Logger _log = NLog.LogManager.GetCurrentClassLogger();
-
     public BaseUnit Source { get; set; }
     private BaseUnit PreviousSource { get; set; }
     public BaseUnit Target { get; set; }

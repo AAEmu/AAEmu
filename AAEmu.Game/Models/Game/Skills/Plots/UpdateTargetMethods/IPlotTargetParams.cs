@@ -2,7 +2,7 @@ using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.UpdateTargetMethods;
 
-interface IPlotTargetParams
+internal interface IPlotTargetParams
 {
     AreaShape Shape { get; set; } // TODO: Change to AreaShape object
     bool HitOnce { get; set; }

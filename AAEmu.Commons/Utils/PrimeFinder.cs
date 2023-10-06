@@ -5,7 +5,7 @@ namespace AAEmu.Commons.Utils;
 public static class PrimeFinder
 {
     private static bool _init;
-    public static int largestPrime = int.MaxValue;
+    private static int largestPrime = int.MaxValue;
 
     private static int[] primeCapacities =
     {

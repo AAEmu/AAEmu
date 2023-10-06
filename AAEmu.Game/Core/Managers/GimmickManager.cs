@@ -18,13 +18,13 @@ namespace AAEmu.Game.Core.Managers;
 
 public class GimmickManager : Singleton<GimmickManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
     private Dictionary<uint, GimmickTemplate> _templates;
     private Dictionary<uint, Gimmick> _activeGimmicks;
     private const double Delay = 50;
-    private const double DelayInit = 1;
+    //private const double DelayInit = 1;
     private Task GimmickTickTask { get; set; }
 
     public bool Exist(uint templateId)
@@ -76,7 +76,7 @@ public class GimmickManager : Singleton<GimmickManager>
         _templates = new Dictionary<uint, GimmickTemplate>();
         _activeGimmicks = new Dictionary<uint, Gimmick>();
 
-        _log.Info("Loading gimmick templates...");
+        Logger.Info("Loading gimmick templates...");
 
         #region SQLLite
         using (var connection = SQLite.CreateConnection())
@@ -135,7 +135,7 @@ public class GimmickManager : Singleton<GimmickManager>
 
     public void Initialize()
     {
-        _log.Warn("GimmickTickTask: Started");
+        Logger.Warn("GimmickTickTask: Started");
 
         //GimmickTickTask = new GimmickTickStartTask();
         //TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMinutes(DelayInit));

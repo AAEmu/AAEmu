@@ -35,7 +35,7 @@ public class DoodadFuncPurchase : DoodadFuncTemplate
         {
             if (!character.Inventory.TryEquipNewBackPack(ItemTaskType.QuestSupplyItems, ItemId, Count))
             {
-                _log.Error(string.Format("DoodadFuncPurchase: Failed to auto-equip backpack item {0} for player {1}", ItemId, character.Name));
+                Logger.Error(string.Format("DoodadFuncPurchase: Failed to auto-equip backpack item {0} for player {1}", ItemId, character.Name));
                 character.SendErrorMessage(ErrorMessageType.BackpackOccupied);
                 return;
             }
@@ -44,7 +44,7 @@ public class DoodadFuncPurchase : DoodadFuncTemplate
         {
             if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.DoodadInteraction, ItemId, Count))
             {
-                _log.Error(string.Format("DoodadFuncPurchase: Failed to create item {0} for player {1}", ItemId, character.Name));
+                Logger.Error(string.Format("DoodadFuncPurchase: Failed to create item {0} for player {1}", ItemId, character.Name));
             }
         }
     }

@@ -13,6 +13,6 @@ public class CSDestroySlavePacket : GamePacket
     {
         var tl = stream.ReadUInt16();
 
-        _log.Debug("DestroySlave, Tl: {0}", tl);
+        Logger.Debug("DestroySlave, Tl: {0}", tl);
     }
 }

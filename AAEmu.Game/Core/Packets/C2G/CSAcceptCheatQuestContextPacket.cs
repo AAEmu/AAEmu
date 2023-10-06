@@ -12,6 +12,6 @@ public class CSAcceptCheatQuestContextPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         var questId = stream.ReadUInt32();
-        _log.Debug("AcceptCheatQuestContext, Id: {0}", questId);
+        Logger.Debug("AcceptCheatQuestContext, Id: {0}", questId);
     }
 }

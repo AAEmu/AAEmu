@@ -17,7 +17,7 @@ public class DoodadFuncPuzzleOut : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncPuzzleOut");
+        Logger.Trace("DoodadFuncPuzzleOut");
         if (caster is Character)
         {
             //I think this is used to reschedule anything that needs triggered at a specific gametime

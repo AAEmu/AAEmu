@@ -48,17 +48,3 @@ public enum MailType : byte
     ExpeditionImmigrationReject = 43,
     ResidentBalance = 44
 }
-
-public enum CommercialMailTypes
-{
-    Charged = MailType.Charged,
-    MiaRecv = MailType.MiaRecv,
-    MiaSend = MailType.MiaSend,
-    Promotion = MailType.Promotion,
-}
-
-public enum MiaMailTypes
-{
-    MiaRecv = MailType.MiaRecv,
-    MiaSend = MailType.MiaSend,
-}

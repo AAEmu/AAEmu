@@ -16,7 +16,7 @@ public class CSNotifySubZonePacket : GamePacket
 
         Connection.ActiveChar.SubZoneId = subZoneId; // понадобилось хранить для составления точек Memory Tome (Recall)
 
-        _log.Info("Enter RegionId: {0} ", subZoneId);
+        Logger.Info("Enter RegionId: {0} ", subZoneId);
         Connection.ActiveChar.Portals.NotifySubZone(subZoneId);
     }
 }

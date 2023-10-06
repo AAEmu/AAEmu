@@ -14,7 +14,7 @@ public class CSBuyPriestBuffPacket : GamePacket
         var priestBuffId = stream.ReadUInt32();
         var npcUnitId = stream.ReadBc();
 
-        _log.Warn("BuyPriestBuff, PriestBuffId: {0}, NpcUnitId: {1}", priestBuffId, npcUnitId);
+        Logger.Warn("BuyPriestBuff, PriestBuffId: {0}, NpcUnitId: {1}", priestBuffId, npcUnitId);
     }
 
     // TODO if i miss

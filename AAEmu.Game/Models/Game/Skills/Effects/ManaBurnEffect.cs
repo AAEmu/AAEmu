@@ -23,7 +23,7 @@ public class ManaBurnEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("ManaBurnEffect");
+        Logger.Trace("ManaBurnEffect");
         var min = 0.0f;
         var max = 0.0f;
 

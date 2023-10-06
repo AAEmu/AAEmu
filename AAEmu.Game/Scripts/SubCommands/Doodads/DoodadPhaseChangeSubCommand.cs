@@ -38,7 +38,7 @@ public class DoodadPhaseChangeSubCommand : SubCommandBase
 
         SendMessage(character, "SetPhase {0}", phaseId);
         SendMessage(character, "TemplateId {0}: ObjId:{1}, ChangedPhase:{2}, Available phase ids (func groups): {3}", doodad.TemplateId, doodad.ObjId, phaseId, availablePhases);
-        _log.Warn($"{Title} Chain: TemplateId {doodad.TemplateId}, doodadObjId {doodad.ObjId}, SetPhase {phaseId}, Available phase ids (func groups): {availablePhases}");
+        Logger.Warn($"{Title} Chain: TemplateId {doodad.TemplateId}, doodadObjId {doodad.ObjId}, SetPhase {phaseId}, Available phase ids (func groups): {availablePhases}");
         doodad.DoChangePhase((Unit)character, phaseId);
     }
 }

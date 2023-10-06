@@ -15,8 +15,8 @@ public class CSPayChargeMoneyPacket : GamePacket
         var mailId = stream.ReadInt64();
         var autoUseAAPoint = stream.ReadBoolean();
 
-        _log.Debug("PayChargeMoney, mailId: {0}, autoUseAAPoint: {1}", mailId, autoUseAAPoint);
+        Logger.Debug("PayChargeMoney, mailId: {0}, autoUseAAPoint: {1}", mailId, autoUseAAPoint);
         if (!MailManager.Instance.PayChargeMoney(Connection.ActiveChar, mailId, autoUseAAPoint))
-            _log.Warn("PayChargeMoney failed, mailId: {0}, autoUseAAPoint: {1}", mailId, autoUseAAPoint);
+            Logger.Warn("PayChargeMoney failed, mailId: {0}, autoUseAAPoint: {1}", mailId, autoUseAAPoint);
     }
 }

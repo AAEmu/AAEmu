@@ -13,14 +13,14 @@ namespace AAEmu.Game.Core.Managers;
 
 public class FriendMananger : Singleton<FriendMananger>
 {
-    private readonly Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Dictionary<uint, FriendTemplate> _allFriends; // temp id, template
 
     public void Load()
     {
         _allFriends = new Dictionary<uint, FriendTemplate>();
 
-        _log.Info("Loading friends ...");
+        Logger.Info("Loading friends ...");
         using (var connection = MySQL.CreateConnection())
         {
             using (var command = connection.CreateCommand())
@@ -43,7 +43,7 @@ public class FriendMananger : Singleton<FriendMananger>
             }
         }
 
-        _log.Info("Loaded {0} friends", _allFriends.Count);
+        Logger.Info("Loaded {0} friends", _allFriends.Count);
     }
 
     public void AddToAllFriends(FriendTemplate template)

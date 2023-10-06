@@ -18,7 +18,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Nwrite : ICommand
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public void OnLoad()
     {
         string[] name = { "nwrite", "nw" };
@@ -77,7 +77,7 @@ public class Nwrite : ICommand
                         var contents = FileManager.GetFileContents(jsonPath);
                         if (string.IsNullOrWhiteSpace(contents))
                         {
-                            _log.Warn($"File {jsonPath} doesn't exists or is empty.");
+                            Logger.Warn($"File {jsonPath} doesn't exists or is empty.");
                         }
                         else
                         {
@@ -133,7 +133,7 @@ public class Nwrite : ICommand
             catch (Exception e)
             {
                 character.SendMessage(e.Message);
-                _log.Warn(e);
+                Logger.Warn(e);
             }
         }
         else if (saveAll)
@@ -150,7 +150,7 @@ public class Nwrite : ICommand
                         var contents = FileManager.GetFileContents(jsonPath);
                         if (string.IsNullOrWhiteSpace(contents))
                         {
-                            _log.Warn($"File {jsonPath} doesn't exists or is empty.");
+                            Logger.Warn($"File {jsonPath} doesn't exists or is empty.");
                         }
                         else
                         {
@@ -220,7 +220,7 @@ public class Nwrite : ICommand
                 }
                 catch (Exception e)
                 {
-                    _log.Error(e);
+                    Logger.Error(e);
                     character.SendMessage(e.Message);
                 }
             }
@@ -239,7 +239,7 @@ public class Nwrite : ICommand
 
                         var contents = FileManager.GetFileContents(jsonPath);
                         if (string.IsNullOrWhiteSpace(contents))
-                            _log.Warn($"File {jsonPath} doesn't exists or is empty.");
+                            Logger.Warn($"File {jsonPath} doesn't exists or is empty.");
                         if (JsonHelper.TryDeserializeObject(contents, out List<JsonNpcSpawns> spawners, out _))
                         {
                             // Is it a new spawner ?
@@ -294,7 +294,7 @@ public class Nwrite : ICommand
                 }
                 catch (Exception e)
                 {
-                    _log.Error(e);
+                    Logger.Error(e);
                     character.SendMessage(e.Message);
                 }
             }

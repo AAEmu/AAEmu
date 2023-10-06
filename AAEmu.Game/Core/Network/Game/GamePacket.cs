@@ -45,7 +45,7 @@ public abstract class GamePacket : PacketBase<GameConnection>
         }
         catch (Exception ex)
         {
-            _log.Fatal(ex);
+            Logger.Fatal(ex);
             throw;
         }
 
@@ -53,22 +53,22 @@ public abstract class GamePacket : PacketBase<GameConnection>
         switch (LogLevel)
         {
             case PacketLogLevel.Trace:
-                _log.Trace(logString);
+                Logger.Trace(logString);
                 break;
             case PacketLogLevel.Debug:
-                _log.Debug(logString);
+                Logger.Debug(logString);
                 break;
             case PacketLogLevel.Info:
-                _log.Info(logString);
+                Logger.Info(logString);
                 break;
             case PacketLogLevel.Warning:
-                _log.Warn(logString);
+                Logger.Warn(logString);
                 break;
             case PacketLogLevel.Error:
-                _log.Error(logString);
+                Logger.Error(logString);
                 break;
             case PacketLogLevel.Fatal:
-                _log.Fatal(logString);
+                Logger.Fatal(logString);
                 break;
             case PacketLogLevel.Off:
             default:
@@ -88,22 +88,22 @@ public abstract class GamePacket : PacketBase<GameConnection>
             switch (LogLevel)
             {
                 case PacketLogLevel.Trace:
-                    _log.Trace(logString);
+                    Logger.Trace(logString);
                     break;
                 case PacketLogLevel.Debug:
-                    _log.Debug(logString);
+                    Logger.Debug(logString);
                     break;
                 case PacketLogLevel.Info:
-                    _log.Info(logString);
+                    Logger.Info(logString);
                     break;
                 case PacketLogLevel.Warning:
-                    _log.Warn(logString);
+                    Logger.Warn(logString);
                     break;
                 case PacketLogLevel.Error:
-                    _log.Error(logString);
+                    Logger.Error(logString);
                     break;
                 case PacketLogLevel.Fatal:
-                    _log.Fatal(logString);
+                    Logger.Fatal(logString);
                     break;
                 case PacketLogLevel.Off:
                 default:
@@ -114,8 +114,8 @@ public abstract class GamePacket : PacketBase<GameConnection>
         }
         catch (Exception ex)
         {
-            _log.Error("GamePacket: C->S type {0:X3} {1}", TypeId, ToString()?.Substring(23));
-            _log.Fatal(ex);
+            Logger.Error("GamePacket: C->S type {0:X3} {1}", TypeId, ToString()?.Substring(23));
+            Logger.Fatal(ex);
             throw;
         }
 

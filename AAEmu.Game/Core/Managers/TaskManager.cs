@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using ThreadTask = System.Threading.Tasks.Task;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models;
@@ -9,13 +9,13 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Simpl;
 using Task = AAEmu.Game.Models.Tasks.Task;
-using System.Collections.Generic;
+using ThreadTask = System.Threading.Tasks.Task;
 
 namespace AAEmu.Game.Core.Managers;
 
 public class TaskManager : Singleton<TaskManager>, ITaskManager
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _initialized = false;
 
     private DefaultThreadPool _generalPool;
@@ -67,7 +67,7 @@ public class TaskManager : Singleton<TaskManager>, ITaskManager
 
         if (task == null)
         {
-            _log.Error("Task.Schedule: Task is NULL !!! StartTime: {0}, repeatInterval: {1}, count: {2}", startTime, repeatInterval, count);
+            Logger.Error("Task.Schedule: Task is NULL !!! StartTime: {0}, repeatInterval: {1}, count: {2}", startTime, repeatInterval, count);
             return;
         }
 
@@ -88,7 +88,7 @@ public class TaskManager : Singleton<TaskManager>, ITaskManager
                 .Create<TaskJob>()
                 .WithIdentity(task.Name + task.Id, task.Name)
                 .Build();
-            job.JobDataMap.Put("Logger", _log);
+            job.JobDataMap.Put("Logger", Logger);
             job.JobDataMap.Put("Task", task);
             task.JobDetail = job;
         }
@@ -137,14 +137,14 @@ public class TaskManager : Singleton<TaskManager>, ITaskManager
                 }
                 catch (Exception e)
                 {
-                    _log.Trace(e, "Rescheduling task");
+                    Logger.Trace(e, "Rescheduling task");
                     try
                     {
                         await _generalScheduler.RescheduleJob(task.Trigger.Key, task.Trigger);
                     }
                     catch (Exception exception)
                     {
-                        _log.Error(exception, "Error scheduling task");
+                        Logger.Error(exception, "Error scheduling task");
                     }
                 }
             }
@@ -156,13 +156,13 @@ public class TaskManager : Singleton<TaskManager>, ITaskManager
                 }
                 catch (Exception e)
                 {
-                    _log.Error(e, "Error scheduling task");
+                    Logger.Error(e, "Error scheduling task");
                 }
             }
         }
         catch (Exception e)
         {
-            _log.Error(e, "Error scheduling task");
+            Logger.Error(e, "Error scheduling task");
         }
     }
 
@@ -173,7 +173,7 @@ public class TaskManager : Singleton<TaskManager>, ITaskManager
 
         if (task == null)
         {
-            _log.Error("Task.Schedule: Task is NULL !!! StartTime: {0}, repeatInterval: {1}, count: {2}", startTime, repeatInterval, count);
+            Logger.Error("Task.Schedule: Task is NULL !!! StartTime: {0}, repeatInterval: {1}, count: {2}", startTime, repeatInterval, count);
             return;
         }
 
@@ -190,7 +190,7 @@ public class TaskManager : Singleton<TaskManager>, ITaskManager
                 .Create<TaskJob>()
                 .WithIdentity(task.Name + task.Id, task.Name)
                 .Build();
-            job.JobDataMap.Put("Logger", _log);
+            job.JobDataMap.Put("Logger", Logger);
             job.JobDataMap.Put("Task", task);
             task.JobDetail = job;
         }
@@ -231,7 +231,7 @@ public class TaskManager : Singleton<TaskManager>, ITaskManager
         }
         catch (Exception e)
         {
-            _log.Error(e, "Error cron scheduling task");
+            Logger.Error(e, "Error cron scheduling task");
         }
     }
 
@@ -253,7 +253,7 @@ public class TaskManager : Singleton<TaskManager>, ITaskManager
         }
         catch (SchedulerException e)
         {
-            _log.Warn(e, "Error canceling task");
+            Logger.Warn(e, "Error canceling task");
         }
 
         return task.Cancelled;

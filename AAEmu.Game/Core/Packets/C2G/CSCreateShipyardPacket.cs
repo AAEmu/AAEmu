@@ -37,7 +37,7 @@ public class CSCreateShipyardPacket : GamePacket
         shipyardData.Id = designItem;
         shipyardData.Step = 0;
 
-        _log.Warn("CreateShipyard, Id: {0}, X: {1}, Y: {2}, Z: {3}, DesignItem: {4}", id, x, y, z, designItem);
+        Logger.Warn("CreateShipyard, Id: {0}, X: {1}, Y: {2}, Z: {3}, DesignItem: {4}", id, x, y, z, designItem);
         ShipyardManager.Instance.Create(Connection.ActiveChar, shipyardData);
     }
 }

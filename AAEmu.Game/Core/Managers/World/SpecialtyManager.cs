@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class SpecialtyManager : Singleton<SpecialtyManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, Specialty> _specialties;
     private Dictionary<uint, SpecialtyBundleItem> _specialtyBundleItems;
@@ -40,7 +40,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
         _specialtyBundleItemsMapped = new Dictionary<uint, Dictionary<uint, SpecialtyBundleItem>>();
         _priceRatios = new Dictionary<uint, Dictionary<uint, double>>();
 
-        _log.Info("SpecialtyManager is loading...");
+        Logger.Info("SpecialtyManager is loading...");
 
         ItemManager.Instance.OnItemsLoaded += OnItemsLoaded;
 
@@ -110,7 +110,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
             }
         }
 
-        _log.Info("SpecialtyManager loaded");
+        Logger.Info("SpecialtyManager loaded");
     }
 
     public static void Initialize()

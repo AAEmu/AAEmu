@@ -4,7 +4,7 @@ using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.Params;
 
-class AiLua : Lua
+public class AiLua : Lua
 {
     public AiLua() : base()
     {

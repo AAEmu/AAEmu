@@ -16,7 +16,7 @@ public class CSLootItemPacket : GamePacket
         var iid = stream.ReadUInt64();
         var count = stream.ReadInt32();
 
-        _log.Warn("LootItem, IId: {0}, Count: {1}", iid, count);
+        Logger.Warn("LootItem, IId: {0}, Count: {1}", iid, count);
 
         var objId = (uint)(iid >> 32);
         var lootDropItems = ItemManager.Instance.GetLootDropItems(objId);

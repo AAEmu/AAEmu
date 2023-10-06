@@ -16,6 +16,6 @@ public class CSSellBackpackGoodsPacket : GamePacket
 
         SpecialtyManager.Instance.SellSpecialty(Connection.ActiveChar, objId);
 
-        _log.Warn("CSSellBackpackGoods, ObjId: {0}. BasePrice: {1}", objId);
+        Logger.Warn("CSSellBackpackGoods, ObjId: {0}. BasePrice: {1}", objId);
     }
 }

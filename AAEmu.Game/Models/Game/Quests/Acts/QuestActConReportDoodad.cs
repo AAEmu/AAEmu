@@ -11,7 +11,7 @@ public class QuestActConReportDoodad : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActConReportDoodad");
+        Logger.Warn("QuestActConReportDoodad");
         return true;
     }
 }

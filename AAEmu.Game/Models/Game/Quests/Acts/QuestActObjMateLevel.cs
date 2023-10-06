@@ -1,5 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Quests.Templates;
-using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -12,7 +12,7 @@ public class QuestActObjMateLevel : QuestActTemplate
     public uint QuestActObjAliasId { get; set; }
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActObjMateLevel");
+        Logger.Warn("QuestActObjMateLevel");
         return character.Mates.GetMateInfo(ItemId).Level >= Level;
     }
 }

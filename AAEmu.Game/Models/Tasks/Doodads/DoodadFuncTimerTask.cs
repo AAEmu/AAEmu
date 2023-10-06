@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads;
 
 public class DoodadFuncTimerTask : DoodadFuncTask
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private BaseUnit _caster;
     private Doodad _owner;
     private uint _skillId;
@@ -27,9 +27,9 @@ public class DoodadFuncTimerTask : DoodadFuncTask
     public override void Execute()
     {
         if (_caster is Character)
-            _log.Debug("[Doodad] DoodadFuncTimerTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
+            Logger.Debug("[Doodad] DoodadFuncTimerTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
         else
-            _log.Trace("[Doodad] DoodadFuncTimerTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
+            Logger.Trace("[Doodad] DoodadFuncTimerTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
 
         _owner.FuncTask = null;
         _owner.DoChangePhase(_caster, _nextPhase);

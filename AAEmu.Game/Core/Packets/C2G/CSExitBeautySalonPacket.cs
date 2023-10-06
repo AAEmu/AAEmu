@@ -13,7 +13,7 @@ public class CSExitBeautySalonPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        //_log.Debug("ExitBeautySalon");
+        //Logger.Debug("ExitBeautySalon");
         Connection.ActiveChar.SendPacket(new SCToggleBeautyshopResponsePacket(0));
         Connection.ActiveChar.Buffs.RemoveBuff((uint)BuffConstants.InBeautySalon);
     }

@@ -17,7 +17,7 @@ public class CSSendMailPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        _log.Debug("SendMail by {0}", Connection.ActiveChar.Name);
+        Logger.Debug("SendMail by {0}", Connection.ActiveChar.Name);
 
         var type = (MailType)stream.ReadByte();
         var receiverCharName = stream.ReadString();

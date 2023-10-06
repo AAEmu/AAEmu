@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class AreaTriggerManager : Singleton<AreaTriggerManager>
 {
-    private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private readonly List<AreaTrigger> _areaTriggers;
     private List<AreaTrigger> _addQueue;
@@ -76,7 +76,7 @@ public class AreaTriggerManager : Singleton<AreaTriggerManager>
         }
         catch (Exception e)
         {
-            _log.Error(e, "Error in AreaTrigger tick !");
+            Logger.Error(e, "Error in AreaTrigger tick !");
         }
     }
 }

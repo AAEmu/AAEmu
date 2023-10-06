@@ -17,7 +17,7 @@ public class CSRequestMusicNotesPacket : GamePacket
         // value2: Observed 1 after creating (request item info ?), 256 when requesting playing (create buff?)
         var value2 = stream.ReadUInt16();
 
-        _log.Warn("Request Song, id: {0}, value2:{1}", id64, value2);
+        Logger.Warn("Request Song, id: {0}, value2:{1}", id64, value2);
         if (value2 == 1)
         {
             Connection.ActiveChar.SendPacket(new SCUserNotesLoadedPacket((uint)id64));
@@ -28,7 +28,7 @@ public class CSRequestMusicNotesPacket : GamePacket
         }
         else
         {
-            _log.Warn("Unknown song request type id: {0}, value2:{1}", id64, value2);
+            Logger.Warn("Unknown song request type id: {0}, value2:{1}", id64, value2);
         }
     }
 }

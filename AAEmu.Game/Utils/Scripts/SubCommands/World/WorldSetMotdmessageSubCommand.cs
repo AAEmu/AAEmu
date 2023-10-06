@@ -24,6 +24,6 @@ public class WorldSetMotdmessageSubCommand : SubCommandBase
         }
         character.SetMotdMessage(motd);
         SendMessage(character, $"Set MOTD {motd}");
-        _log.Warn($"{Title}: {motd}");
+        Logger.Warn($"{Title}: {motd}");
     }
 }

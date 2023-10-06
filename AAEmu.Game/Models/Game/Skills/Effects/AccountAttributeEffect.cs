@@ -20,6 +20,6 @@ public class AccountAttributeEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("AccountAttributeEffect");
+        Logger.Trace("AccountAttributeEffect");
     }
 }

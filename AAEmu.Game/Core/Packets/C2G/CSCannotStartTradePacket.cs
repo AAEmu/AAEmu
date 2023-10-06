@@ -14,7 +14,7 @@ public class CSCannotStartTradePacket : GamePacket
         var objId = stream.ReadBc();
         var reason = stream.ReadInt32();
 
-        _log.Warn("CannotStartTrade, ObjId: {0}, Reason: {1}", objId, reason);
+        Logger.Warn("CannotStartTrade, ObjId: {0}, Reason: {1}", objId, reason);
         // TODO
     }
 }

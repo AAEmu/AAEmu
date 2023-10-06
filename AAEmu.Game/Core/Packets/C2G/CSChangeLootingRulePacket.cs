@@ -20,7 +20,7 @@ public class CSChangeLootingRulePacket : GamePacket
 
         var changeFlags = stream.ReadByte();
 
-        // _log.Warn("ChangeLootingRule, TeamId: {0}, Flag: {1}, Rule: {2}/{3}/{4}/{5}", teamId, changeFlags, lootingRule.LootMethod, lootingRule.Type,
+        // Logger.Warn("ChangeLootingRule, TeamId: {0}, Flag: {1}, Rule: {2}/{3}/{4}/{5}", teamId, changeFlags, lootingRule.LootMethod, lootingRule.Type,
         //     lootingRule.Id, lootingRule.RollForBop);
         TeamManager.Instance.ChangeLootingRule(Connection.ActiveChar, teamId, lootingRule, changeFlags);
     }

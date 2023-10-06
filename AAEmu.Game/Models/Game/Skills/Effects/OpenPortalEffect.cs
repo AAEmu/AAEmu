@@ -22,7 +22,7 @@ public class OpenPortalEffect : EffectTemplate
         var portalOwner = (Character)caster;
         // Private - [DEBUG] EffectTemplate - OpenPortalEffect, Owner: Lemes, PortalId: 4097, Type: 2, X: 20928, Y: 13145,9, Z:114,1004
         // District - [DEBUG] EffectTemplate - OpenPortalEffect, Owner: Lemes, PortalId: 3, Type: 1, X: 20921,96, Y: 13148,55, Z:114,2535
-        _log.Trace("OpenPortalEffect, Owner: {0}, PortalId: {1}, Type: {5}, X: {2}, Y: {3}, Z:{4}", portalOwner.Name, portalInfo.Id, portalInfo.X, portalInfo.Y, portalInfo.Z, portalInfo.Type);
+        Logger.Trace("OpenPortalEffect, Owner: {0}, PortalId: {1}, Type: {5}, X: {2}, Y: {3}, Z:{4}", portalOwner.Name, portalInfo.Id, portalInfo.X, portalInfo.Y, portalInfo.Z, portalInfo.Type);
 
         if (portalInfo.X > portalOwner.Transform.World.Position.X + Distance || portalInfo.Y > portalOwner.Transform.World.Position.Y + Distance)
         {

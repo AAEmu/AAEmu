@@ -32,7 +32,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class SlaveManager : Singleton<SlaveManager>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Dictionary<uint, SlaveTemplate> _slaveTemplates;
     private Dictionary<uint, Slave> _activeSlaves;
     private Dictionary<uint, Slave> _tlSlaves;
@@ -269,7 +269,7 @@ public class SlaveManager : Singleton<SlaveManager>
                 var world = WorldManager.Instance.GetWorld(spawnPos.WorldId);
                 if (world == null)
                 {
-                    _log.Fatal($"Unable to find world to spawn in {spawnPos.WorldId}");
+                    Logger.Fatal($"Unable to find world to spawn in {spawnPos.WorldId}");
                     return;
                 }
 
@@ -398,19 +398,19 @@ public class SlaveManager : Singleton<SlaveManager>
                         _attachPoints[template.ModelId][doodadBinding.AttachPointId].Roll,
                         _attachPoints[template.ModelId][doodadBinding.AttachPointId].Pitch,
                         _attachPoints[template.ModelId][doodadBinding.AttachPointId].Yaw);
-                    _log.Debug("Model id: {0} attachment {1} => pos {2} = {3}", template.ModelId,
+                    Logger.Debug("Model id: {0} attachment {1} => pos {2} = {3}", template.ModelId,
                         doodadBinding.AttachPointId, _attachPoints[template.ModelId][doodadBinding.AttachPointId],
                         doodad.Transform);
                 }
                 else
                 {
-                    _log.Warn("Model id: {0} incomplete attach point information", template.ModelId);
+                    Logger.Warn("Model id: {0} incomplete attach point information", template.ModelId);
                 }
             }
             else
             {
                 doodad.Transform = new Transform(doodad);
-                _log.Warn("Model id: {0} has no attach point information", template.ModelId);
+                Logger.Warn("Model id: {0} has no attach point information", template.ModelId);
             }
 
             template.AttachedDoodads.Add(doodad);
@@ -461,7 +461,7 @@ public class SlaveManager : Singleton<SlaveManager>
                 }
                 else
                 {
-                    _log.Warn("Model id: {0} incomplete attach point information");
+                    Logger.Warn("Model id: {0} incomplete attach point information");
                 }
             }
 
@@ -518,7 +518,7 @@ public class SlaveManager : Singleton<SlaveManager>
         slave.Transform.ApplyWorldSpawnPosition(spawner.Position);
         if (slave.Transform == null)
         {
-            _log.Error($"Can't spawn slave {spawner.UnitId}");
+            Logger.Error($"Can't spawn slave {spawner.UnitId}");
             return null;
         }
 
@@ -647,19 +647,19 @@ public class SlaveManager : Singleton<SlaveManager>
                         _attachPoints[slave.ModelId][doodadBinding.AttachPointId].Roll,
                         _attachPoints[slave.ModelId][doodadBinding.AttachPointId].Pitch,
                         _attachPoints[slave.ModelId][doodadBinding.AttachPointId].Yaw);
-                    _log.Debug("Model id: {0} attachment {1} => pos {2} = {3}", slave.ModelId,
+                    Logger.Debug("Model id: {0} attachment {1} => pos {2} = {3}", slave.ModelId,
                         doodadBinding.AttachPointId, _attachPoints[slave.ModelId][doodadBinding.AttachPointId],
                         doodad.Transform);
                 }
                 else
                 {
-                    _log.Warn("Model id: {0} incomplete attach point information", slave.ModelId);
+                    Logger.Warn("Model id: {0} incomplete attach point information", slave.ModelId);
                 }
             }
             else
             {
                 doodad.Transform = new Transform(doodad);
-                _log.Warn("Model id: {0} has no attach point information", slave.ModelId);
+                Logger.Warn("Model id: {0} has no attach point information", slave.ModelId);
             }
 
             slave.AttachedDoodads.Add(doodad);
@@ -708,7 +708,7 @@ public class SlaveManager : Singleton<SlaveManager>
                 }
                 else
                 {
-                    _log.Warn("Model id: {0} incomplete attach point information");
+                    Logger.Warn("Model id: {0} incomplete attach point information");
                 }
             }
 
@@ -741,7 +741,7 @@ public class SlaveManager : Singleton<SlaveManager>
 
     public void LoadSlaveAttachmentPointLocations()
     {
-        _log.Info("Loading Slave Model Attach Points...");
+        Logger.Info("Loading Slave Model Attach Points...");
 
         var filePath = Path.Combine(FileManager.AppPath, "Data", "slave_attach_points.json");
         var contents = FileManager.GetFileContents(filePath);
@@ -750,9 +750,9 @@ public class SlaveManager : Singleton<SlaveManager>
                 $"File {filePath} doesn't exists or is empty.");
 
         if (JsonHelper.TryDeserializeObject(contents, out List<SlaveModelAttachPoint> attachPoints, out _))
-            _log.Info("Slave model attach points loaded...");
+            Logger.Info("Slave model attach points loaded...");
         else
-            _log.Warn("Slave model attach points not loaded...");
+            Logger.Warn("Slave model attach points not loaded...");
 
         // Convert degrees from json to radian
         foreach (var vehicle in attachPoints)

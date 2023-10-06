@@ -171,7 +171,7 @@ public class SlaveSaveSubCommand : SubCommandBase
         }
 
         var contents = FileManager.GetFileContents(jsonPathIn);
-        _log.Info($"Loading spawns from file {jsonPathIn} ...");
+        Logger.Info($"Loading spawns from file {jsonPathIn} ...");
 
         if (string.IsNullOrWhiteSpace(contents))
         {

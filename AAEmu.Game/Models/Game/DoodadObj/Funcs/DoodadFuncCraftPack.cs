@@ -10,7 +10,7 @@ public class DoodadFuncCraftPack : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Trace("DoodadFuncCraftPack");
+        Logger.Trace("DoodadFuncCraftPack");
 
     }
 }

@@ -26,7 +26,7 @@ public class PlayUserMusic : SpecialEffectAction
         int value4)
     {
         // TODO ...
-        if (caster is Character) { _log.Debug("Special effects: PlayUserMusic value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is Character) { Logger.Debug("Special effects: PlayUserMusic value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
         // TODO: make sure the proper instrument buff gets applied
         // The related tags seems to be "Play Song" (1155) and "Music Play Animation" (1202)
@@ -55,13 +55,13 @@ public class PlayUserMusic : SpecialEffectAction
                     //    target.Buffs.AddBuff((uint)BuffConstants.DrumPlay, caster);
                     //    break;
                     default:
-                        _log.Trace("SpecialEffectAction - PlayUserMusic - Equipped instrument slot is not a known instrument !");
+                        Logger.Trace("SpecialEffectAction - PlayUserMusic - Equipped instrument slot is not a known instrument !");
                         break;
                 }
             }
             else
             {
-                _log.Trace("SpecialEffectAction - PlayUserMusic - No instrument equipped !");
+                Logger.Trace("SpecialEffectAction - PlayUserMusic - No instrument equipped !");
             }
         }
     }

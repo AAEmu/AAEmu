@@ -15,7 +15,7 @@ public class CSCreateExpeditionPacket : GamePacket
         var name = stream.ReadString();
         var id = stream.ReadUInt32(); // TODO character id?
 
-        _log.Debug("CreateExpedition, name: {0}, id: {1}", name, id);
+        Logger.Debug("CreateExpedition, name: {0}, id: {1}", name, id);
         ExpeditionManager.Instance.CreateExpedition(name, Connection);
     }
 }

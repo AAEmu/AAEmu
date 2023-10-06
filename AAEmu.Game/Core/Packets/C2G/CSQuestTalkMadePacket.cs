@@ -21,7 +21,7 @@ public class CSQuestTalkMadePacket : GamePacket
         _questCompId = stream.ReadUInt32();
         _questActId = stream.ReadUInt32();
 
-        _log.Warn("QuestTalkMade: npcObjId {0}, questContextId {1}, questCompId {2}, questActId {3}", _npcObjId, _questContextId, _questCompId, _questActId);
+        Logger.Warn("QuestTalkMade: npcObjId {0}, questContextId {1}, questCompId {2}, questActId {3}", _npcObjId, _questContextId, _questCompId, _questActId);
         Connection.ActiveChar.Quests.OnTalkMade(_npcObjId, _questContextId, _questCompId, _questActId);
     }
 }

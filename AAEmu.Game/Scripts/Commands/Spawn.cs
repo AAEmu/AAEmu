@@ -13,7 +13,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Spawn : ICommand
 {
-    // Unused protected static Logger _log = LogManager.GetCurrentClassLogger();
+    // Unused protected static Logger Logger = LogManager.GetCurrentClassLogger();
     public void OnLoad()
     {
         CommandManager.Instance.Register("spawn", this);

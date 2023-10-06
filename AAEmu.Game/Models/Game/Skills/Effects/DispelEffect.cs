@@ -19,7 +19,7 @@ public class DispelEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("DispelEffect {0}", Id);
+        Logger.Trace("DispelEffect {0}", Id);
 
         if (BuffTagId > 0 && !target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(BuffTagId)))
             return;

@@ -27,7 +27,7 @@ public class CTUploadEmblemStreamPacket : StreamPacket
             Data = data
         };
 
-        _log.Warn("CTUploadEmblemStreamPacket, total:{0}, size:{1}, index:{2}", total, partSize, index);
+        Logger.Warn("CTUploadEmblemStreamPacket, total:{0}, size:{1}, index:{2}", total, partSize, index);
 
         UccManager.Instance.UploadPart(Connection, uccPart);
     }

@@ -13,7 +13,7 @@ public class CSICSMenuListPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         // Empty struct
-        _log.Warn("ICSMenuList");
+        Logger.Warn("ICSMenuList");
 
         Connection.SendPacket(new SCICSMenuListPacket(1));
     }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -18,15 +17,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj;
 
 public class DoodadSpawner : Spawner<Doodad>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public float Scale { get; set; }
     public Doodad Last { get; set; }
 
-    //---
     private List<Doodad> _spawned;
     private int _scheduledCount;
     private int _spawnCount;
-    
+
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     [DefaultValue(1f)]
     public uint Count { get; set; } = 1;
@@ -69,7 +67,7 @@ public class DoodadSpawner : Spawner<Doodad>
 
         if (doodad == null)
         {
-            _log.Warn("Doodad {0}, from spawn not exist at db", UnitId);
+            Logger.Warn("Doodad {0}, from spawn not exist at db", UnitId);
             return null;
         }
 
@@ -88,7 +86,7 @@ public class DoodadSpawner : Spawner<Doodad>
 
         if (doodad.Transform == null)
         {
-            _log.Error("Can't spawn doodad {1} from spawn {0}", Id, UnitId);
+            Logger.Error("Can't spawn doodad {1} from spawn {0}", Id, UnitId);
             return null;
         }
 
@@ -117,7 +115,7 @@ public class DoodadSpawner : Spawner<Doodad>
         var doodad = DoodadManager.Instance.Create(objId, newUnitId);
         if (doodad == null)
         {
-            _log.Warn("Doodad Temaplte {0}, used in Spawn() does not exist in db", newUnitId);
+            Logger.Warn("Doodad Temaplte {0}, used in Spawn() does not exist in db", newUnitId);
             return null;
         }
 
@@ -132,7 +130,7 @@ public class DoodadSpawner : Spawner<Doodad>
 
         if (doodad.Transform == null)
         {
-            _log.Error("Can't spawn doodad {1} from spawn {0}", Id, newUnitId);
+            Logger.Error("Can't spawn doodad {1} from spawn {0}", Id, newUnitId);
             return null;
         }
 
@@ -177,8 +175,8 @@ public class DoodadSpawner : Spawner<Doodad>
             if (GameScheduleManager.Instance.CheckDoodadInGameSchedules(doodad.TemplateId))
             {
                 var delay = GameScheduleManager.Instance.GetRemainingTime((int)doodad.TemplateId, false);
-                _log.Debug("DoDespawn: Doodad TemplateId {0}, objId {1} FuncGroupId {2} despawn [1] reschedule next time...", UnitId, Last.ObjId, Last.FuncGroupId);
-                _log.Debug("DoDespawn: delay {0}", delay.ToString());
+                Logger.Debug("DoDespawn: Doodad TemplateId {0}, objId {1} FuncGroupId {2} despawn [1] reschedule next time...", UnitId, Last.ObjId, Last.FuncGroupId);
+                Logger.Debug("DoDespawn: delay {0}", delay.ToString());
                 TaskManager.Instance.Schedule(new DoodadSpawnerDoDespawnTask(doodad), delay);
                 return; // Reschedule when OK
             }
@@ -190,7 +188,7 @@ public class DoodadSpawner : Spawner<Doodad>
         #endregion Schedule
 
         Despawn(doodad);
-        _log.Debug("DoDespawn: Doodad TemplateId {0}, objId {1} FuncGroupId {2} spawn [2] reschedule next time...", UnitId, Last.ObjId, Last.FuncGroupId);
+        Logger.Debug("DoDespawn: Doodad TemplateId {0}, objId {1} FuncGroupId {2} spawn [2] reschedule next time...", UnitId, Last.ObjId, Last.FuncGroupId);
         TaskManager.Instance.Schedule(new DoodadSpawnerDoSpawnTask(this), TimeSpan.FromSeconds(1));
     }
 
@@ -205,8 +203,8 @@ public class DoodadSpawner : Spawner<Doodad>
             {
                 var delay = GameScheduleManager.Instance.GetRemainingTime((int)UnitId, true);
                 _permanent = false; // Doodad on the schedule.
-                _log.Debug("DoSpawn: Doodad TemplateId {0}, objId {1} FuncGroupId {2} despawn [1] reschedule next time...", UnitId, Last.ObjId, Last.FuncGroupId);
-                _log.Debug("DoSpawn: delay {0}", delay.ToString());
+                Logger.Debug("DoSpawn: Doodad TemplateId {0}, objId {1} FuncGroupId {2} despawn [1] reschedule next time...", UnitId, Last.ObjId, Last.FuncGroupId);
+                Logger.Debug("DoSpawn: delay {0}", delay.ToString());
                 TaskManager.Instance.Schedule(new DoodadSpawnerDoSpawnTask(this), delay);
                 return; // Reschedule when OK
             }
@@ -223,7 +221,7 @@ public class DoodadSpawner : Spawner<Doodad>
         _spawned.Add(Last);
         if (!_permanent)
         {
-            _log.Debug("DoSpawn: Doodad TemplateId {0}, objId {1} FuncGroupId {2} despawn [2] reschedule next time...", UnitId, Last.ObjId, Last.FuncGroupId);
+            Logger.Debug("DoSpawn: Doodad TemplateId {0}, objId {1} FuncGroupId {2} despawn [2] reschedule next time...", UnitId, Last.ObjId, Last.FuncGroupId);
             TaskManager.Instance.Schedule(new DoodadSpawnerDoDespawnTask(Last), TimeSpan.FromSeconds(1));
         }
 

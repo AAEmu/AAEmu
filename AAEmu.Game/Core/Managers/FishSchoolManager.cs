@@ -17,20 +17,20 @@ namespace AAEmu.Game.Core.Managers;
 
 public class FishSchoolManager : Singleton<FishSchoolManager>
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private const double Delay = 500;
     private Dictionary<uint, List<Doodad>> FishSchools { get; set; } = new();
 
     public void Initialize()
     {
         FishSchools = new Dictionary<uint, List<Doodad>>();
-        _log.Info("Initialising FishSchool Manager...");
+        Logger.Info("Initialising FishSchool Manager...");
     }
 
     public void Load(uint worldId)
     {
         var fishSchool = new List<Doodad>();
-        _log.Info("Loading FishSchool...");
+        Logger.Info("Loading FishSchool...");
         var doodads = WorldManager.Instance.GetAllDoodads();
         if (doodads != null)
         {
@@ -55,7 +55,7 @@ public class FishSchoolManager : Singleton<FishSchoolManager>
                 }
             }
         }
-        _log.Info($"Loaded {fishSchool.Count} FishSchool for worldId={worldId}...");
+        Logger.Info($"Loaded {fishSchool.Count} FishSchool for worldId={worldId}...");
     }
 
     public static void FishFinderStart(Character character)

@@ -23,9 +23,9 @@ public class DoodadFuncLootItem : DoodadFuncTemplate
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
         if (caster is Character)
-            _log.Debug("DoodadFuncLootItem: skillId {0}, nextPhase {1},  ItemId {2}, CountMin {3}, CountMax {4},  Percent {5}, RemainTime {6}, GroupId {7}", skillId, nextPhase, ItemId, CountMin, CountMax, Percent, RemainTime, GroupId);
+            Logger.Debug("DoodadFuncLootItem: skillId {0}, nextPhase {1},  ItemId {2}, CountMin {3}, CountMax {4},  Percent {5}, RemainTime {6}, GroupId {7}", skillId, nextPhase, ItemId, CountMin, CountMax, Percent, RemainTime, GroupId);
         else
-            _log.Trace("DoodadFuncLootItem: skillId {0}, nextPhase {1},  ItemId {2}, CountMin {3}, CountMax {4},  Percent {5}, RemainTime {6}, GroupId {7}", skillId, nextPhase, ItemId, CountMin, CountMax, Percent, RemainTime, GroupId);
+            Logger.Trace("DoodadFuncLootItem: skillId {0}, nextPhase {1},  ItemId {2}, CountMin {3}, CountMax {4},  Percent {5}, RemainTime {6}, GroupId {7}", skillId, nextPhase, ItemId, CountMin, CountMax, Percent, RemainTime, GroupId);
 
         var character = (Character)caster;
         var res = true;

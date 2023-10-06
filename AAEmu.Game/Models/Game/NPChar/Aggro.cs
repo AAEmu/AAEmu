@@ -1,13 +1,6 @@
 ﻿using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.NPChar;
-
-public enum AggroKind
-{
-    Damage,
-    Heal,
-    Etc
-}
 public class Aggro
 {
     private object _lock = new();

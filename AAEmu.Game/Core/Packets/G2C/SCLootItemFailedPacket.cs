@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-class SCLootItemFailedPacket : GamePacket
+public class SCLootItemFailedPacket : GamePacket
 {
     private readonly int _errorMessage;
     private readonly ulong _iId;

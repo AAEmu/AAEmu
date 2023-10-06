@@ -10,7 +10,7 @@ public class SCFactionRelationListPacket : GamePacket
 
     public SCFactionRelationListPacket() : base(0x008, 1)
     {
-        _relations = new FactionRelation[] { };
+        _relations = System.Array.Empty<FactionRelation>();
     }
 
     public SCFactionRelationListPacket(FactionRelation[] relations) : base(SCOffsets.SCFactionRelationListPacket, 1)

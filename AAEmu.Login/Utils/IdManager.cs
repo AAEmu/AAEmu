@@ -11,7 +11,7 @@ namespace AAEmu.Login.Utils;
 
 public class IdManager
 {
-    protected static readonly Logger _log = LogManager.GetCurrentClassLogger();
+    protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private BitSet _freeIds;
     private int _freeIdCount;
@@ -53,7 +53,7 @@ public class IdManager
                 var objectId = (int)(usedObjectId - _firstId);
                 if (usedObjectId < _firstId)
                 {
-                    _log.Warn("{0}: Object ID {1} in DB is less than {2}", _name, usedObjectId, _firstId);
+                    Logger.Warn("{0}: Object ID {1} in DB is less than {2}", _name, usedObjectId, _firstId);
                     continue;
                 }
 
@@ -64,12 +64,12 @@ public class IdManager
             }
 
             _nextFreeId = _freeIds.NextClear(0);
-            _log.Info("{0} successfully initialized", _name);
+            Logger.Info("{0} successfully initialized", _name);
         }
         catch (Exception e)
         {
-            _log.Error("{0} could not be initialized correctly", _name);
-            _log.Error(e);
+            Logger.Error("{0} could not be initialized correctly", _name);
+            Logger.Error(e);
             return false;
         }
 
@@ -108,7 +108,7 @@ public class IdManager
                     return Array.Empty<uint>();
 
                 var result = new uint[count];
-                _log.Info("{0}: Extracting {1} used id's from data tables...", _name, count);
+                Logger.Info("{0}: Extracting {1} used id's from data tables...", _name, count);
 
                 command.CommandText = query;
                 command.Prepare();
@@ -121,7 +121,7 @@ public class IdManager
                         idx++;
                     }
 
-                    _log.Info("{0}: Successfully extracted {1} used id's from data tables.", _name, idx);
+                    Logger.Info("{0}: Successfully extracted {1} used id's from data tables.", _name, idx);
                 }
 
                 return result;
@@ -140,7 +140,7 @@ public class IdManager
             Interlocked.Increment(ref _freeIdCount);
         }
         else
-            _log.Warn("{0}: release objectId {1} failed", _name, usedObjectId);
+            Logger.Warn("{0}: release objectId {1} failed", _name, usedObjectId);
     }
 
     public virtual void ReleaseId(IEnumerable<uint> usedObjectIds)

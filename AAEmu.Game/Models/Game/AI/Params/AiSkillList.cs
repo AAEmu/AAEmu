@@ -49,9 +49,3 @@ public class AiSkillList
         }
     }
 }
-public class AiSkill
-{
-    public uint SkillId { get; set; }
-    public float Delay { get; set; }
-    public bool Strafe { get; set; }
-}

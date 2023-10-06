@@ -14,7 +14,7 @@ public class QuestActObjTalk : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActObjTalk");
+        Logger.Warn("QuestActObjTalk");
         if (!(character.CurrentTarget is Npc npc))
             return false;
 

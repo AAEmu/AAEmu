@@ -15,6 +15,6 @@ public class CSJoinUserChatChannelPacket : GamePacket
         var pwd = stream.ReadString();
         var create = stream.ReadBoolean();
 
-        _log.Debug("JoinUserChatChannel, Name: {0}, Password: {1}, Create: {2}", name, pwd, create);
+        Logger.Debug("JoinUserChatChannel, Name: {0}, Password: {1}, Create: {2}", name, pwd, create);
     }
 }

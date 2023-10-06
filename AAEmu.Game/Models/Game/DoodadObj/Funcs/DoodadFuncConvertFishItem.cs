@@ -10,7 +10,7 @@ public class DoodadFuncConvertFishItem : DoodadPhaseFuncTemplate
     public uint LootPackId { get; set; }
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncConvertFishItem");
+        Logger.Trace("DoodadFuncConvertFishItem");
         return false;
     }
 }

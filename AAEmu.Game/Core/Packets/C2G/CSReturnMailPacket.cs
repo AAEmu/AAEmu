@@ -13,7 +13,7 @@ public class CSReturnMailPacket : GamePacket
     {
         var mailId = stream.ReadInt64();
 
-        _log.Debug("ReturnMail, mailId: {0}", mailId);
+        Logger.Debug("ReturnMail, mailId: {0}", mailId);
         Connection.ActiveChar.Mails.ReturnMail(mailId);
     }
 }

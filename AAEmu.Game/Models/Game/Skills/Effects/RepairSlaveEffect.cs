@@ -17,6 +17,6 @@ public class RepairSlaveEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        _log.Trace("RepairSlaveEffect");
+        Logger.Trace("RepairSlaveEffect");
     }
 }

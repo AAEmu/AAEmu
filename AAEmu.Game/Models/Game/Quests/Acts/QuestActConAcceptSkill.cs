@@ -10,7 +10,7 @@ public class QuestActConAcceptSkill : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActConAcceptSkill: SkillId {0}", SkillId);
+        Logger.Warn("QuestActConAcceptSkill: SkillId {0}", SkillId);
 
         quest.QuestAcceptorType = QuestAcceptorType.Skill;
         quest.AcceptorType = SkillId;

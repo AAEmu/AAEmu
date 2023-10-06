@@ -33,7 +33,8 @@ public sealed class Shipyard : Unit
             _allAction = _template.ShipyardSteps.Values.Sum(step => step.NumActions);
         }
     }
-    private bool IsDirty { get => _isDirty; set => _isDirty = value; }
+
+    public bool IsDirty { get => _isDirty; set => _isDirty = value; }
     public int AllAction { get => _allAction; set { _allAction = value; _isDirty = true; } }
     public int BaseAction
     {
@@ -438,7 +439,7 @@ public sealed class Shipyard : Unit
 
     private void OnDeath(object sender, EventArgs args)
     {
-        Log.Debug("Shipyard died ObjId:{0} - TemplateId:{1} - {2}", ObjId, ShipyardData.TemplateId, ShipyardData.OwnerName);
+        Logger.Debug("Shipyard died ObjId:{0} - TemplateId:{1} - {2}", ObjId, ShipyardData.TemplateId, ShipyardData.OwnerName);
         ShipyardManager.Instance.RemoveShipyard(this);
     }
 

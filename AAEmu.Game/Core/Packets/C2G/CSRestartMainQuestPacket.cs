@@ -13,6 +13,6 @@ public class CSRestartMainQuestPacket : GamePacket
     {
         var id = stream.ReadUInt32();
 
-        _log.Warn("RestartMainQuest, Id: {0}", id);
+        Logger.Warn("RestartMainQuest, Id: {0}", id);
     }
 }

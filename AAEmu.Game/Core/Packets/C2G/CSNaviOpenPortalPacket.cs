@@ -13,6 +13,6 @@ public class CSNaviOpenPortalPacket : GamePacket
     {
         var objId = stream.ReadBc();
 
-        _log.Warn("NaviOpenPortal, ObjId: {0}", objId);
+        Logger.Warn("NaviOpenPortal, ObjId: {0}", objId);
     }
 }

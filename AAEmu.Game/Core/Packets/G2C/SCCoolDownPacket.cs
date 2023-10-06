@@ -4,6 +4,8 @@ using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
+#pragma warning disable IDE0052 // Remove unread private members
+
 public class SCCooldownsPacket : GamePacket
 {
     private Character _chr;

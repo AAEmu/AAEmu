@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Units;
 
 public class CombatBuffs
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private BaseUnit _owner;
     private Dictionary<SkillHitType, List<CombatBuffTemplate>> _cbuffsByHitType;
 
@@ -90,7 +90,7 @@ public class CombatBuffs
             var target = unit;
             var source = unit;
 
-            _log.Warn("[{0}, Req:{1}] BTS: {2} BFS: {3} HT: {4}", cb.BuffId, cb.ReqBuffId, cb.BuffToSource, cb.BuffFromSource, cb.HitType);
+            Logger.Warn("[{0}, Req:{1}] BTS: {2} BFS: {3} HT: {4}", cb.BuffId, cb.ReqBuffId, cb.BuffToSource, cb.BuffFromSource, cb.HitType);
 
             var buffTempl = SkillManager.Instance.GetBuffTemplate(cb.BuffId);
             //if (cb.BuffToSource)

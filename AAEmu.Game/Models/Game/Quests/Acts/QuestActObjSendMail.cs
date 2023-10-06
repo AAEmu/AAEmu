@@ -1,5 +1,5 @@
-using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -17,7 +17,7 @@ public class QuestActObjSendMail : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        _log.Warn("QuestActObjSendMail");
+        Logger.Warn("QuestActObjSendMail");
         return false;
     }
 }
