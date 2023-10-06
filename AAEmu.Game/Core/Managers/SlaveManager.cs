@@ -246,8 +246,20 @@ public class SlaveManager : Singleton<SlaveManager>
         Transform spawnPos;
         var spawnOffsetPos = new Vector3();
 
-        // Replacing the position with the new coordinates from the method call parameters
+        // TODO: Attach Slave's DbId to the Item Details
+        // We currently fake the DbId using TlId instead
+        /*
+        var dbId = tlId;
+        if (item != null)
+        {
+            item.Detail[0] = 0x02;
+            item.Detail[1] = (byte)(dbId & 0x00FF);
+            item.Detail[2] = (byte)((dbId & 0xFF00) >> 8);
+            owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new ItemUpdate(item), new List<ulong>()));
+        }
+        */
 
+        // Replacing the position with the new coordinates from the method call parameters
         if (positionOverride != null)
         {
             // If manually defined a spawn location (i.e. created from ShipYard), use that location instead
@@ -319,7 +331,6 @@ public class SlaveManager : Singleton<SlaveManager>
         }
 #pragma warning restore CA2000 // Dispose objects before losing scope
 
-        // TODO
         owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, hideSpawnEffect, 0, owner.Name), true);
         var summonedSlave = new Slave
         {
@@ -334,7 +345,7 @@ public class SlaveManager : Singleton<SlaveManager>
             Mp = 1,
             ModelParams = new UnitCustomModelParams(),
             Faction = owner.Faction,
-            Id = tlId, // TODO (previously set to 10 which prevented the use of the slave doodads, captures show mostly 0 here
+            Id = dbId,
             Summoner = owner,
             SpawnTime = DateTime.UtcNow
         };
