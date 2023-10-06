@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers;
 
-class DeathBuffTrigger : BuffTrigger
+public class DeathBuffTrigger : BuffTrigger
 {
     public override void Execute(object sender, EventArgs eventArgs)
     {

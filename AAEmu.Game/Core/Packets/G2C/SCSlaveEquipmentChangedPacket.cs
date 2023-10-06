@@ -1,8 +1,10 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
+
+#pragma warning disable IDE0052 // Remove unread private members
 
 public class SCSlaveEquipmentChangedPacket : GamePacket
 {

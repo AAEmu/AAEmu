@@ -1,7 +1,7 @@
 ﻿using System;
 using AAEmu.Commons.Utils;
-using NLog;
 using AAEmu.Game.Models.Game.Features;
+using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 

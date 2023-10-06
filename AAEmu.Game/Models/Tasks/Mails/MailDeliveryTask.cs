@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Models.Tasks.Mails;
 
-class MailDeliveryTask : Task
+public class MailDeliveryTask : Task
 {
     public override void Execute()
     {

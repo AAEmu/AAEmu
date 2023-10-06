@@ -14,7 +14,7 @@ public class GLRegisterGameServerPacket : InternalPacket
     {
     }
 
-    async Task SendPacketWithDelay(int delay, InternalPacket message)
+    private async Task SendPacketWithDelay(int delay, InternalPacket message)
     {
         await Task.Delay(delay);
         Connection.SendPacket(message);

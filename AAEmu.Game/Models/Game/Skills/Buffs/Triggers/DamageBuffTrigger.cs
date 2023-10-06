@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers;
 
-class DamageBuffTrigger : BuffTrigger
+public class DamageBuffTrigger : BuffTrigger
 {
     public override void Execute(object sender, EventArgs eventArgs)
     {

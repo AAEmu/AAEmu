@@ -5,6 +5,8 @@ using AAEmu.Game.Models.Game.Chat;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
+#pragma warning disable IDE0052 // Remove unread private members
+
 public class SCChatMessagePacket : GamePacket
 {
     private readonly ChatType _type;

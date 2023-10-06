@@ -12,7 +12,7 @@ public class QuestActObjMonsterHunt : QuestActTemplate
     public uint HighlightDoodadId { get; set; }
     public int HighlightDoodadPhase { get; set; }
 
-    public static int HuntStatus = 0;
+    public static int HuntStatus { get; private set; } = 0;
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {

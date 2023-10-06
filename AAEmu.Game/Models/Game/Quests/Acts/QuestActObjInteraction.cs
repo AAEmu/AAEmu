@@ -16,7 +16,7 @@ public class QuestActObjInteraction : QuestActTemplate
     public uint QuestActObjAliasId { get; set; }
     public uint Phase { get; set; }
 
-    public static int InteractionStatus = 0;
+    public static int InteractionStatus { get; private set; } = 0;
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {

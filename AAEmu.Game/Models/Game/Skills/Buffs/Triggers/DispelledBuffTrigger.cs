@@ -3,8 +3,7 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers;
-
-class DispelledBuffTrigger : BuffTrigger
+public class DispelledBuffTrigger : BuffTrigger
 {
     public override void Execute(object sender, EventArgs eventArgs)
     {

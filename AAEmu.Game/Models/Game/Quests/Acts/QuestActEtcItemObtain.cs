@@ -10,7 +10,7 @@ public class QuestActEtcItemObtain : QuestActTemplate
     public uint HighlightDooadId { get; set; }
     public bool Cleanup { get; set; }
 
-    public static int ItemObtainStatus = 0;
+    public static int ItemObtainStatus { get; private set; } = 0;
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {

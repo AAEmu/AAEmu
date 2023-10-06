@@ -7,11 +7,10 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Units.Route;
 
-
-class Track : Patrol
+internal class Track : Patrol
 {
-    float distance = 1.5f;
-    float MovingDistance = 0.27f;
+    private float distance = 1.5f;
+    private float MovingDistance = 0.27f;
     public override void Execute(Npc npc)
     {
         Interrupt = false;

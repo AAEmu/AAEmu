@@ -7,7 +7,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
-class FishingLoot : SpecialEffectAction
+public class FishingLoot : SpecialEffectAction
 {
     protected override SpecialType SpecialEffectActionType => SpecialType.FishingLoot;
 

@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-class SCLootBagDataPacket : GamePacket
+public class SCLootBagDataPacket : GamePacket
 {
     private readonly List<Item> _items;
     private readonly bool _lootAll;

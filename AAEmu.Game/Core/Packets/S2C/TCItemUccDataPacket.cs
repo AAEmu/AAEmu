@@ -5,6 +5,8 @@ using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C;
 
+#pragma warning disable IDE0052 // Remove unread private members
+
 public class TCItemUccDataPacket : StreamPacket
 {
     private uint _playerId;

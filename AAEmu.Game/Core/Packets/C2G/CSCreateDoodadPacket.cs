@@ -1,7 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 

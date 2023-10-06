@@ -1,43 +1,9 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 
 namespace AAEmu.Game.Utils.Converters;
 
 public class ChatConverter
 {
-    private static byte[] Decrypt(string str)
-    {
-        var abc = new List<char>("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz*+".ToCharArray());
-        var size = (int)Math.Ceiling((double)str.Length * 6 / 8);
-        var result = new byte[size];
-
-        var res = new BitArray(size * 8);
-        res.SetAll(false);
-
-        var counter = 0;
-        var pos = 7;
-
-        for (var i = 0; i < str.Length; i++)
-        {
-            var h = new BitArray(new byte[] { (byte)abc.IndexOf(str[i]) });
-            for (var i2 = 0; i2 < 6; i2++)
-            {
-                res[pos--] = h[5 - i2];
-                counter++;
-                if (counter == 8)
-                {
-                    pos += 16;
-                    counter = 0;
-                }
-            }
-        }
-
-        res.CopyTo(result, 0);
-
-        return result;
-    }
-
     private static string Encrypt(int a1, int a3, byte[] a4)
     {
         var v9 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz*+\0".ToCharArray();

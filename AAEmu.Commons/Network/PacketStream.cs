@@ -1,12 +1,12 @@
 ﻿using System;
-using SBuffer = System.Buffer;
 using System.Collections;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
 using AAEmu.Commons.Conversion;
-using AAEmu.Commons.Utils;
 using AAEmu.Commons.Exceptions;
+using AAEmu.Commons.Utils;
+using SBuffer = System.Buffer;
 
 namespace AAEmu.Commons.Network;
 

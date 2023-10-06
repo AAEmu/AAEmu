@@ -30,7 +30,7 @@ public class CSICSGoodsListPacket : GamePacket
         {
             i++;
             var itemDetail = CashShopManager.Instance.GetCashShopItemDetail(item.CashShopId);
-            var end = i >= pageItems.Count();
+            var end = i >= pageItems.Count;
             Connection.SendPacket(new SCICSGoodListPacket(end, numPages, item));
             Connection.SendPacket(new SCICSGoodDetailPacket(end, itemDetail));
         }

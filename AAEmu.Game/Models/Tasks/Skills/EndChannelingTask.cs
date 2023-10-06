@@ -1,8 +1,10 @@
-using AAEmu.Game.Models.Game.DoodadObj;
+﻿using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Tasks.Skills;
+
+#pragma warning disable IDE0052 // Remove unread private members
 
 public class EndChannelingTask : SkillTask
 {

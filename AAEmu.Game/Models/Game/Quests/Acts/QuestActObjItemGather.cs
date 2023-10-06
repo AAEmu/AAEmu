@@ -15,7 +15,7 @@ public class QuestActObjItemGather : QuestActTemplate // Сбор предмет
     public bool DropWhenDestroy { get; set; }
     public bool DestroyWhenDrop { get; set; }
 
-    public static int GatherStatus = 0;
+    public static int GatherStatus { get; private set; } = 0;
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {

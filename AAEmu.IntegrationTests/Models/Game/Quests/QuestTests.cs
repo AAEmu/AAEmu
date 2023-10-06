@@ -24,6 +24,7 @@ using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Extensions.Configuration;
 using Moq;
@@ -49,6 +50,9 @@ public class QuestTests
         MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
 
         // Loads all quests from DB
+        TaskIdManager.Instance.Initialize();
+        TaskManager.Instance.Initialize();
+        ZoneManager.Instance.Load();
         QuestManager.Instance.Load();
         FormulaManager.Instance.Load();
         ItemManager.Instance.Load();
@@ -58,8 +62,6 @@ public class QuestTests
         ClientFileManager.Initialize();
         TlIdManager.Instance.Initialize();
         ObjectIdManager.Instance.Initialize();
-        TaskIdManager.Instance.Initialize();
-        TaskManager.Instance.Initialize();
         ContainerIdManager.Instance.Initialize();
         ItemIdManager.Instance.Initialize();
         ItemManager.Instance.LoadUserItems();

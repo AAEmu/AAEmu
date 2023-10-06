@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
-class ConsumeLaborPower : SpecialEffectAction
+public class ConsumeLaborPower : SpecialEffectAction
 {
     protected override SpecialType SpecialEffectActionType => SpecialType.ConsumeLaborPower;
 

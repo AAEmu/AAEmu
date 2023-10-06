@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
-
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
+using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
-using AAEmu.Game.Models.Game.Skills.SkillControllers;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors;
 

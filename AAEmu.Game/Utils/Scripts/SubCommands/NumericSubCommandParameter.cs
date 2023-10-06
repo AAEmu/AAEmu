@@ -103,7 +103,7 @@ public class NumericSubCommandParameter<T> : SubCommandParameterBase
 
         if (!isValidRange)
         {
-            throw new ArgumentOutOfRangeException(nameof(_minValue), $"Parameter [{DisplayName}] minimum value {minValue} must be less than or equal to maximum value");
+            throw new ArgumentOutOfRangeException(nameof(minValue), $"Parameter [{DisplayName}] minimum value {minValue} must be less than or equal to maximum value");
         }
     }
     public override ParameterResult Load(string argumentValue)

@@ -3,6 +3,8 @@ using AAEmu.Game.Core.Network.Connections;
 
 namespace AAEmu.Game.Models;
 
+#pragma warning disable IDE0052 // Remove unread private members
+
 public class AccountPayment
 {
     private GameConnection _connection;

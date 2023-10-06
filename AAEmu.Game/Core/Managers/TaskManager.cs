@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using ThreadTask = System.Threading.Tasks.Task;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models;
@@ -9,7 +9,7 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Simpl;
 using Task = AAEmu.Game.Models.Tasks.Task;
-using System.Collections.Generic;
+using ThreadTask = System.Threading.Tasks.Task;
 
 namespace AAEmu.Game.Core.Managers;
 

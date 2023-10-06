@@ -3,6 +3,8 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Tasks.UnitMove;
 
+#pragma warning disable IDE0052 // Remove unread private members
+
 public class UnitMove : Task
 {
     private readonly Patrol _patrol;

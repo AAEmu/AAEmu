@@ -2,8 +2,8 @@
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Commons.Utils.Updater;
-using AAEmu.Game.IO;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -14,11 +14,11 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.IO;
 using AAEmu.Game.Models;
 using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
-using AAEmu.Commons.Utils.DB;
 
 namespace AAEmu.Game;
 

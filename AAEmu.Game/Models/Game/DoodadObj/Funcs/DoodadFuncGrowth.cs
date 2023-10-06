@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Security.Policy;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;

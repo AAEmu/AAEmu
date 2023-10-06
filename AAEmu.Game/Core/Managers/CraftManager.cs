@@ -1,8 +1,8 @@
-﻿using AAEmu.Commons.Utils;
+﻿using System.Collections.Generic;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Utils.DB;
 using NLog;
-using System.Collections.Generic;
 
 namespace AAEmu.Game.Core.Managers;
 

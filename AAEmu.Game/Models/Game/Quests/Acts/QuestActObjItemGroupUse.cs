@@ -13,7 +13,7 @@ public class QuestActObjItemGroupUse : QuestActTemplate
     public uint QuestActObjAliasId { get; set; }
     public bool DropWhenDestroy { get; set; }
 
-    public static int ItemGroupUseStatus = 0;
+    public static int ItemGroupUseStatus { get; private set; } = 0;
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {

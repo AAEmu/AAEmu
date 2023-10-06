@@ -8,7 +8,7 @@ public class DoodadFuncPulseTrigger : DoodadPhaseFuncTemplate
     public bool Flag { get; set; }
     public int NextPhase { get; set; }
 
-    public static bool Halt = false;
+    public static bool Halt { get; set; } = false;
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {

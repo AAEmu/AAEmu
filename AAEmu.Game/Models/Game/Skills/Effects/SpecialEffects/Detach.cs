@@ -30,7 +30,7 @@ public class Detach : SpecialEffectAction
     }
 }
 
-enum DetachUnitReason : byte
+internal enum DetachUnitReason : byte
 {
     None = 0x0,
     Death = 0x1,

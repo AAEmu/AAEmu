@@ -78,7 +78,7 @@ public class NpcControlEffect : EffectTemplate
                                         timeout = aiCommands.Param1;
                                         break;
                                     default:
-                                        throw new ArgumentOutOfRangeException();
+                                        throw new NotSupportedException(nameof(aiCommands.CmdId));
                                 }
                             }
                             if (!string.IsNullOrEmpty(fileName))
@@ -96,7 +96,7 @@ public class NpcControlEffect : EffectTemplate
                         break;
                     }
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new NotSupportedException(nameof(CategoryId));
             }
         }
         if (caster is Character && target is Npc npc2)
@@ -143,7 +143,7 @@ public class NpcControlEffect : EffectTemplate
                                         timeout = aiCommands.Param1;
                                         break;
                                     default:
-                                        throw new ArgumentOutOfRangeException();
+                                        throw new NotSupportedException(nameof(aiCommands.CmdId));
                                 }
                             }
                             if (!string.IsNullOrEmpty(fileName))
@@ -160,7 +160,7 @@ public class NpcControlEffect : EffectTemplate
                         break;
                     }
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new NotSupportedException(nameof(CategoryId));
             }
         }
     }

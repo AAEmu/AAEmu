@@ -6,7 +6,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
-class ApplyReagents : SpecialEffectAction
+public class ApplyReagents : SpecialEffectAction
 {
     protected override SpecialType SpecialEffectActionType => SpecialType.ApplyReagents;
 

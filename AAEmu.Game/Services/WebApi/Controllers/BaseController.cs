@@ -6,11 +6,11 @@ namespace AAEmu.Game.Services.WebApi.Controllers;
 
 internal class BaseController : IController
 {
-    protected HttpResponse OkHtml(string html)
+    protected static HttpResponse OkHtml(string html)
     {
         return HtmlResponse(HttpStatusCode.OK, html);
     }
-    protected HttpResponse HtmlResponse(HttpStatusCode status, string html)
+    protected static HttpResponse HtmlResponse(HttpStatusCode status, string html)
     {
         var response = new HttpResponse((int)status);
         response.SetContentType("text/html");
@@ -18,16 +18,16 @@ internal class BaseController : IController
         return response;
     }
 
-    protected HttpResponse OkJson(object responseModel = null)
+    protected static HttpResponse OkJson(object responseModel = null)
     {
         return JsonResponse(HttpStatusCode.OK, responseModel);
     }
-    protected HttpResponse BadRequestJson(object responseModel = null)
+    protected static HttpResponse BadRequestJson(object responseModel = null)
     {
         return JsonResponse(HttpStatusCode.BadRequest, responseModel);
     }
 
-    protected HttpResponse JsonResponse(HttpStatusCode status, object responseModel = null)
+    protected static HttpResponse JsonResponse(HttpStatusCode status, object responseModel = null)
     {
         var response = new HttpResponse((int)status);
         response.SetContentType("application/json");

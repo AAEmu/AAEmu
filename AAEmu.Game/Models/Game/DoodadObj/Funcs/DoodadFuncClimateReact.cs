@@ -1,7 +1,6 @@
 ﻿using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
 
