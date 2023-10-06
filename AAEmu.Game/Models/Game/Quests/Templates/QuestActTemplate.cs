@@ -13,11 +13,11 @@ public abstract class QuestActTemplate
 
     public void Start()
     {
-        _log.Debug("Акт начат.");
+        Logger.Debug("Акт начат.");
     }
     public void Complete()
     {
-        _log.Debug("Акт завершен.");
+        Logger.Debug("Акт завершен.");
     }
     public virtual bool IsCompleted()
     {
@@ -25,12 +25,12 @@ public abstract class QuestActTemplate
     }
     public virtual int GetCount()
     {
-        _log.Debug("Получим, сколько уже имеем предметов по заданию.");
+        Logger.Debug("Получим, сколько уже имеем предметов по заданию.");
         return 0;
     }
     public virtual void Update()
     {
-        _log.Debug("Акт обновлен.");
+        Logger.Debug("Акт обновлен.");
     }
 
     public abstract bool Use(ICharacter character, Quest quest, int objective);

@@ -34,7 +34,7 @@ public class QuestActObjMonsterHunt : QuestActTemplate
                     quest.ExtraCompletion = true;
             }
 
-            _log.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, HuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}",
+            Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, HuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}",
                 NpcId, Count, HuntStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
             return quest.OverCompletionPercent >= quest.Template.Score;
         }
@@ -46,12 +46,11 @@ public class QuestActObjMonsterHunt : QuestActTemplate
             if (quest.OverCompletionPercent >= 60)
                 quest.EarlyCompletion = true;
 
-                if (quest.OverCompletionPercent > 100)
-                    quest.ExtraCompletion = true;
-            }
-            _log.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, quest {2}, objective {3}",
-                NpcId, Count, quest.TemplateId, objective);
-            return objective >= Count;
+            if (quest.OverCompletionPercent > 100)
+                quest.ExtraCompletion = true;
         }
+        Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, quest {2}, objective {3}",
+            NpcId, Count, quest.TemplateId, objective);
+        return objective >= Count;
     }
 }

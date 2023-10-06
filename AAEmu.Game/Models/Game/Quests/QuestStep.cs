@@ -167,7 +167,7 @@
 //    //    {
 //    //        if (listQuestComponentKind == QuestComponentKind.Start)
 //    //        {
-//    //            _log.Debug("Нашли нужный шаг");
+//    //            Logger.Debug("Нашли нужный шаг");
 //    //            var components = quest.Template.GetComponents(QuestComponentKind.Start);
 
 //    //            // собираем компоненты для шага квеста
@@ -188,18 +188,18 @@
 
 //    public override void EnterStep()
 //    {
-//        _log.Debug("Вход в начальное состояние");
+//        Logger.Debug("Вход в начальное состояние");
 //    }
 
 //    public override void UpdateStep()
 //    {
-//        _log.Debug("Обновление начального состояния");
+//        Logger.Debug("Обновление начального состояния");
 //        // Логика обработки начального состояния
 //        // Если условие для перехода в следующее состояние выполнено, переходим в следующее состояние
 //        // В противном случае остаемся в текущем состоянии
 
 //        // Логика для выполнения квеста
-//        _log.Debug("Выполняется квест...");
+//        Logger.Debug("Выполняется квест...");
 
 //        // Другая логика, связанная с выполнением квеста
 //        // ...
@@ -210,13 +210,13 @@
 
 //    public override void ExitStep()
 //    {
-//        _log.Debug("Выход из начального состояния");
+//        Logger.Debug("Выход из начального состояния");
 //    }
 
 //    public override void Execute()
 //    {
 //        // Логика для выполнения квеста
-//        _log.Debug("Выполняется квест...");
+//        Logger.Debug("Выполняется квест...");
 //        var result = currentQuestComponent.Execute(quest.Owner, quest, 0);
 
 //        // Другая логика, связанная с выполнением квеста

@@ -400,10 +400,10 @@ public class DoodadManager : Singleton<DoodadManager>
                 }
             }
 
-            // doodad_func_cleanup_logic_links
+            // doodad_func_cleanupLoggeric_links
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM doodad_func_cleanup_logic_links";
+                command.CommandText = "SELECT * FROM doodad_func_cleanupLoggeric_links";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
@@ -1379,10 +1379,10 @@ public class DoodadManager : Singleton<DoodadManager>
                 }
             }
 
-            // doodad_func_logics
+            // doodad_funcLoggerics
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM doodad_func_logics";
+                command.CommandText = "SELECT * FROM doodad_funcLoggerics";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
@@ -1399,10 +1399,10 @@ public class DoodadManager : Singleton<DoodadManager>
                 }
             }
 
-            // doodad_func_logic_family_providers
+            // doodad_funcLoggeric_family_providers
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM doodad_func_logic_family_providers";
+                command.CommandText = "SELECT * FROM doodad_funcLoggeric_family_providers";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
@@ -1418,10 +1418,10 @@ public class DoodadManager : Singleton<DoodadManager>
                 }
             }
 
-            // doodad_func_logic_family_subscribers
+            // doodad_funcLoggeric_family_subscribers
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM doodad_func_logic_family_subscribers";
+                command.CommandText = "SELECT * FROM doodad_funcLoggeric_family_subscribers";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {

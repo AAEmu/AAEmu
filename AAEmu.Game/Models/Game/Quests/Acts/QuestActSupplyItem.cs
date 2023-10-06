@@ -52,7 +52,7 @@ public class QuestActSupplyItem : QuestActTemplate
     }
     public override int GetCount()
     {
-        _log.Debug("Получим, сколько уже имеем предметов по заданию.");
+        Logger.Debug("Получим, сколько уже имеем предметов по заданию.");
 
         return Objective;
     }

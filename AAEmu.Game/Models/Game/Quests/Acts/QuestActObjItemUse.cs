@@ -67,7 +67,7 @@ public class QuestActObjItemUse : QuestActTemplate
     }
     public override int GetCount()
     {
-        _log.Info("Получим, сколько уже имеем предметов по заданию.");
+        Logger.Info("Получим, сколько уже имеем предметов по заданию.");
 
         return Objective;
     }

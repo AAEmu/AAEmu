@@ -113,7 +113,7 @@ public partial class CharacterQuests
     //{
     //    if (ActiveQuests.ContainsKey(questId))
     //    {
-    //        _log.Warn("Duplicate quest {0}, added!", questId);
+    //        Logger.Warn("Duplicate quest {0}, added!", questId);
     //        Drop(questId, true);
     //    }
 

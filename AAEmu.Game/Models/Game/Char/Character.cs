@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
+using System.Threading.Tasks;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
