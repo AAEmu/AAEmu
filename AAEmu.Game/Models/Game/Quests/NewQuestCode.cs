@@ -107,7 +107,7 @@ public partial class Quest : PacketMarshaler
                             //Logger.Info($"[ContextProcessing][QuestSupplyState][Update] квест {TemplateId}.");
                             QuestSupplyState.State.Update();
                             break;
-                        case QuestStatus.Ready when Condition == QuestConditionObj.Ready:
+                        case QuestConditionObj.Ready:
                             //Logger.Info($"[ContextProcessing][QuestSupplyState][Complete] квест {TemplateId}.");
                             QuestSupplyState.State.Complete(selected);
                             Step++; // переход к следующему шагу
@@ -117,12 +117,12 @@ public partial class Quest : PacketMarshaler
                 case QuestComponentKind.Progress when QuestProgressState?.State?.CurrentQuestComponent != null:
                     switch (Condition)
                     {
-                        case QuestStatus.Progress when Condition == QuestConditionObj.Progress:
+                        case QuestConditionObj.Progress:
                         //case QuestContextStatus.Ready when Condition == QuestConditionObj.Progress:
                             //Logger.Info($"[ContextProcessing][QuestProgressState][Update] квест {TemplateId}.");
                             if (!QuestProgressState.State.Update()) { next = false; } // подписка на события и прерываем цикл
                             break;
-                        case QuestStatus.Ready when Condition == QuestConditionObj.Ready:
+                        case QuestConditionObj.Ready:
                             //Logger.Info($"[ContextProcessing][QuestProgressState][Complete] квест {TemplateId}.");
                             QuestProgressState.State.Complete(selected);
                             Step++; // переход к следующему шагу
@@ -132,12 +132,12 @@ public partial class Quest : PacketMarshaler
                 case QuestComponentKind.Ready when QuestReadyState?.State?.CurrentQuestComponent != null:
                     switch (Condition)
                     {
-                        case QuestStatus.Progress when Condition == QuestConditionObj.Progress:
+                        case QuestConditionObj.Progress:
                         //case QuestContextStatus.Ready when Condition == QuestConditionObj.Progress:
                             //Logger.Info($"[ContextProcessing][QuestReadyState][Update] квест {TemplateId}.");
                             if (!QuestReadyState.State.Update()) { next = false; } // подписка на события и прерываем цикл
                             break;
-                        case QuestStatus.Ready when Condition == QuestConditionObj.Ready:
+                        case QuestConditionObj.Ready:
                             //Logger.Info($"[ContextProcessing][QuestReadyState][Complete] квест {TemplateId}.");
                             QuestReadyState.State.Complete(selected);
                             Step++; // переход к следующему шагу
@@ -147,12 +147,12 @@ public partial class Quest : PacketMarshaler
                 case QuestComponentKind.Reward when QuestRewardState?.State?.CurrentQuestComponent != null:
                     switch (Condition)
                     {
-                        case QuestStatus.Progress when Condition == QuestConditionObj.Progress:
+                        case QuestConditionObj.Progress:
                             //case QuestContextStatus.Ready when Condition == QuestConditionObj.Progress:
                             //Logger.Info($"[ContextProcessing][QuestRewardState][Update] квест {TemplateId}.");
                             QuestRewardState.State.Update();
                             break;
-                        case QuestStatus.Ready when Condition == QuestConditionObj.Ready:
+                        case QuestConditionObj.Ready:
                             //Logger.Info($"[ContextProcessing][QuestRewardState][Complete] квест {TemplateId}.");
                             QuestRewardState.State.Complete(selected);
                             next = false; // прерываем цикл
@@ -2261,7 +2261,7 @@ public partial class Quest : PacketMarshaler
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
 
-    // скорее всего не понадобятся
-    public void OnQuestCompleteHandler(object sender, EventArgs eventArgs)
+    #endregion Ready step
+
     #endregion Events
 }
