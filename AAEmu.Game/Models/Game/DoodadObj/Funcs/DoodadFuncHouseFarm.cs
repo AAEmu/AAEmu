@@ -9,7 +9,7 @@ public class DoodadFuncHouseFarm : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncHouseFarm");
+        Logger.Trace("DoodadFuncHouseFarm");
         // owner.Use(caster);
         return false;
     }

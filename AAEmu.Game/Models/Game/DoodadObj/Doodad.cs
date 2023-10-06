@@ -149,7 +149,6 @@ public class Doodad : BaseUnit
     private bool _deleted = false;
     public VehicleSeat Seat { get; set; }
     private List<uint> ListGroupId { get; set; }
-    private List<uint> ListFuncGroupId { get; set; }
 
     public Doodad()
     {
@@ -158,7 +157,6 @@ public class Doodad : BaseUnit
         AttachPoint = AttachPointKind.System;
         Seat = new VehicleSeat(this);
         ListGroupId = new List<uint>();
-        ListFuncGroupId = new List<uint>();
     }
 
     public void SetScale(float scale)
@@ -166,6 +164,7 @@ public class Doodad : BaseUnit
         _scale = scale;
     }
 
+    /* Unused
     private bool CheckPhase(uint anotherPhase)
     {
         return ListGroupId.Any(phase => phase == anotherPhase);
@@ -174,7 +173,7 @@ public class Doodad : BaseUnit
     private bool CheckFunc(uint anotherPhase)
     {
         return ListFuncGroupId.Any(phase => phase == anotherPhase);
-    }
+    }*/
 
     /*
      * 1. Создание (посадка) Doodad запускает на стартовой фазе PhaseFunc;
@@ -299,7 +298,7 @@ public class Doodad : BaseUnit
                 {
                     if (FuncTask != null)
                     {
-                        FuncTask.CancelAsync();
+                        FuncTask.CancelAsync().GetAwaiter().GetResult();
                         FuncTask = null;
                         Log.Debug($"DoFunc::DoodadFuncTimer: The current timer has been canceled. TemplateId {TemplateId}, ObjId {ObjId}, nextPhase {func.NextPhase}");
                     }
@@ -377,7 +376,7 @@ public class Doodad : BaseUnit
 
         if (FuncTask != null)
         {
-            FuncTask.CancelAsync();
+            FuncTask.CancelAsync().GetAwaiter().GetResult();
             FuncTask = null;
             if (caster is Character)
                 Log.Debug("DoPhaseFuncs:DoodadFuncTimer: The current timer has been canceled.");

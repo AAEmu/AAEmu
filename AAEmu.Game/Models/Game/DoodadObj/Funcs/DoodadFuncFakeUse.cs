@@ -17,9 +17,9 @@ public class DoodadFuncFakeUse : DoodadFuncTemplate
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
         if (caster is Character)
-            _log.Debug("DoodadFuncFakeUse: skillId {0}, nextPhase {1},  SkillId {2}, FakeSkillId {3}, TargetParent {4}", skillId, nextPhase, SkillId, FakeSkillId, TargetParent);
+            Logger.Debug("DoodadFuncFakeUse: skillId {0}, nextPhase {1},  SkillId {2}, FakeSkillId {3}, TargetParent {4}", skillId, nextPhase, SkillId, FakeSkillId, TargetParent);
         else
-            _log.Trace("DoodadFuncFakeUse: skillId {0}, nextPhase {1},  SkillId {2}, FakeSkillId {3}, TargetParent {4}", skillId, nextPhase, SkillId, FakeSkillId, TargetParent);
+            Logger.Trace("DoodadFuncFakeUse: skillId {0}, nextPhase {1},  SkillId {2}, FakeSkillId {3}, TargetParent {4}", skillId, nextPhase, SkillId, FakeSkillId, TargetParent);
 
         if (caster == null)
         {

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
@@ -8,12 +8,6 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Items.Loots;
-
-/*
- * Original Authors: AAGene, spiral
- * Original Source: AAGenesis
- * Modified by: ZeromusXYZ
- */
 
 public class LootPack
 {
@@ -25,7 +19,7 @@ public class LootPack
     public Dictionary<uint, LootActabilityGroups> ActabilityGroups { get; set; }
     public Dictionary<uint, List<Loot>> LootsByGroupNo { get; set; }
 
-    private List<(uint itemId, int count, byte grade)> _generatedPack;
+    // unused private List<(uint itemId, int count, byte grade)> _generatedPack;
 
 
     /// <summary>
@@ -159,7 +153,7 @@ public class LootPack
             }
         }
 
-        _generatedPack = items;
+        // unused _generatedPack = items;
         return items;
     }
 

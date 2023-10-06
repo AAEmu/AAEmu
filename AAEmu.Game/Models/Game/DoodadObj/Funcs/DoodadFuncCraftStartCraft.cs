@@ -10,7 +10,7 @@ public class DoodadFuncCraftStartCraft : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncCraftStartCraft");
+        Logger.Trace("DoodadFuncCraftStartCraft");
         return false;
     }
 }

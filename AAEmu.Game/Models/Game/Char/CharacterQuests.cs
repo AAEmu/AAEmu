@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.Char;
 
 public class CharacterQuests
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
     private readonly List<uint> _removed;
 
     public Character Owner { get; set; }
@@ -48,7 +48,7 @@ public class CharacterQuests
     {
         if (Quests.ContainsKey(questId))
         {
-            _log.Warn("Duplicate quest {0}, not added!", questId);
+            _logger.Warn("Duplicate quest {0}, not added!", questId);
             return;
         }
 
@@ -82,7 +82,7 @@ public class CharacterQuests
     {
         if (Quests.ContainsKey(questId))
         {
-            _log.Warn("Duplicate quest {0}, added!", questId);
+            _logger.Warn("Duplicate quest {0}, added!", questId);
             Drop(questId, true);
         }
 
@@ -103,7 +103,7 @@ public class CharacterQuests
     {
         if (!Quests.ContainsKey(questId))
         {
-            _log.Warn("Complete not exist quest {0}", questId);
+            _logger.Warn("Complete not exist quest {0}", questId);
             return;
         }
 
@@ -166,7 +166,7 @@ public class CharacterQuests
         _removed.Add(questId);
 
         quest.Owner.SendMessage("[Quest] for player: {0}, quest: {1} removed.", Owner.Name, questId);
-        _log.Warn("[Quest] for player: {0}, quest: {1} removed.", Owner.Name, questId);
+        _logger.Warn("[Quest] for player: {0}, quest: {1} removed.", Owner.Name, questId);
 
         if (QuestManager.Instance.QuestTimeoutTask.ContainsKey(quest.Owner.Id))
         {
@@ -404,7 +404,7 @@ public class CharacterQuests
                     if ((q.DetailId == qd) && (completeBlock.Body[id]))
                     {
                         completeBlock.Body[id] = false;
-                        _log.Info($"QuestReset by {Owner.Name}, reset {questId}");
+                        _logger.Info($"QuestReset by {Owner.Name}, reset {questId}");
                         if (sendIfChanged)
                         {
                             var body = new byte[8];

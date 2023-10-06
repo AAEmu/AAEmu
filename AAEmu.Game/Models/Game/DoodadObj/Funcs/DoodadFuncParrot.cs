@@ -7,7 +7,7 @@ public class DoodadFuncParrot : DoodadPhaseFuncTemplate
 {
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncParrot");
+        Logger.Trace("DoodadFuncParrot");
         return false;
     }
 }

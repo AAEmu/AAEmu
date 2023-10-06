@@ -16,7 +16,7 @@ public class DoodadFuncAttachment : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Trace("DoodadFuncAttachment");
+        Logger.Trace("DoodadFuncAttachment");
         if (caster is Character character)
         {
             if (BondKindId > BondKind.BondInvalid)

@@ -15,14 +15,6 @@ using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Housing;
 
-public enum HousingPermission : byte
-{
-    Private = 0,
-    Guild = 1,
-    Public = 2,
-    Family = 3
-}
-
 public sealed class House : Unit
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Housing;

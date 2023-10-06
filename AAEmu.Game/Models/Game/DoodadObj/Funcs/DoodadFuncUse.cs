@@ -17,9 +17,9 @@ public class DoodadFuncUse : DoodadFuncTemplate
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
         if (caster is Character)
-            _log.Debug("DoodadFuncUse: skillId {0}, nextPhase {1},  SkillId {2}", skillId, nextPhase, SkillId);
+            Logger.Debug("DoodadFuncUse: skillId {0}, nextPhase {1},  SkillId {2}", skillId, nextPhase, SkillId);
         else
-            _log.Trace("DoodadFuncUse: skillId {0}, nextPhase {1},  SkillId {2}", skillId, nextPhase, SkillId);
+            Logger.Trace("DoodadFuncUse: skillId {0}, nextPhase {1},  SkillId {2}", skillId, nextPhase, SkillId);
 
         if (caster == null)
         {
@@ -46,7 +46,7 @@ public class DoodadFuncUse : DoodadFuncTemplate
                 // The first try to recover the doodad will still give a error, but after that, it's free to recover by anyone.
                 owner.DbHouseId = 0;
                 owner.OwnerId = 0;
-                _log.Trace("Interaction failed because attached house does not exist for doodad {0}, resetting DbHouseId to public", owner.ObjId);
+                Logger.Trace("Interaction failed because attached house does not exist for doodad {0}, resetting DbHouseId to public", owner.ObjId);
                 //return;
             }
             else if (!house.AllowedToInteract(player))

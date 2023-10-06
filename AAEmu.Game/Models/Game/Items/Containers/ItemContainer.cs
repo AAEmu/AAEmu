@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers;
 
 public class ItemContainer
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
+    protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private int _containerSize;
     private int _freeSlotCount;
@@ -763,7 +763,7 @@ public class ItemContainer
     public string ContainerTypeName()
     {
         var cName = GetType().Name;
-        if (cName.Contains("."))
+        if (cName.Contains('.'))
             cName = cName.Substring(cName.LastIndexOf(".", StringComparison.InvariantCulture) + 1);
         return cName;
     }

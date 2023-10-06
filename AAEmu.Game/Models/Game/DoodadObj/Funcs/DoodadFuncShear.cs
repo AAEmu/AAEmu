@@ -11,6 +11,6 @@ public class DoodadFuncShear : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Trace("DoodadFuncShear");
+        Logger.Trace("DoodadFuncShear");
     }
 }

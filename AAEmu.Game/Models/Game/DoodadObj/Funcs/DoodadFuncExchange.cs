@@ -7,7 +7,7 @@ public class DoodadFuncExchange : DoodadPhaseFuncTemplate
 {
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncExchange");
+        Logger.Trace("DoodadFuncExchange");
         return false;
     }
 }

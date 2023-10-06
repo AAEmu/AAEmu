@@ -5,30 +5,6 @@ using AAEmu.Game.Models.Tasks.Duels;
 
 namespace AAEmu.Game.Models.Game.Duels;
 
-public enum DuelDetType : byte
-{
-    // det 00=lose, 01=win, 02=surrender (Fled beyond the flag action border), 03=draw
-    Lose = 0,
-    Win = 1,
-    Surrender = 2,
-    Draw = 3
-}
-public enum VictoryState : byte
-{
-    Invalid = 0,
-    Lose = 1,
-    Win = 2,
-    Draw = 3
-}
-
-public enum DuelDistance : sbyte
-{
-    Error = -1,
-    Near = 0,
-    ChallengerFar = 1,
-    ChallengedFar = 2,
-}
-
 public class Duel
 {
     public Character Challenger { get; set; }

@@ -16,7 +16,7 @@ public class DoodadFuncConditionalUse : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Debug($"DoodadFuncConditionalUse: skillId {SkillId}, fakeSkillId {FakeSkillId}, questId {QuestId}, questTriggerPhase {QuestTriggerPhase}, itemId {ItemId}, itemTriggerPhase {ItemTriggerPhase}");
+        Logger.Debug($"DoodadFuncConditionalUse: skillId {SkillId}, fakeSkillId {FakeSkillId}, questId {QuestId}, questTriggerPhase {QuestTriggerPhase}, itemId {ItemId}, itemTriggerPhase {ItemTriggerPhase}");
 
         // TODO for quest ID=3124, "A Familiar Machine"
         if (FakeSkillId != 0 || SkillId != 0)

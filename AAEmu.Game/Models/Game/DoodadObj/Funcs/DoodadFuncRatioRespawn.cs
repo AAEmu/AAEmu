@@ -11,7 +11,7 @@ public class DoodadFuncRatioRespawn : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncRatioRespawn : Ratio {0}, SpawnDoodadId {1}", Ratio, SpawnDoodadId);
+        Logger.Trace("DoodadFuncRatioRespawn : Ratio {0}, SpawnDoodadId {1}", Ratio, SpawnDoodadId);
 
         // Doodad spawn
         if ((owner.PhaseRatio <= Ratio) && ((owner.Spawner?.Id ?? 0) > 0))

@@ -1,11 +1,9 @@
 ﻿using System.Collections.Generic;
-using NLog;
 
 namespace AAEmu.Game.Models.Game.AI.Params;
 
-class HoldPositionAiParams : AiParamsOld
+public class HoldPositionAiParams : AiParamsOld
 {
-    private Logger _log = LogManager.GetCurrentClassLogger();
     public override AiParamType Type => AiParamType.HoldPosition;
 
     public int AlertDuration { get; set; }

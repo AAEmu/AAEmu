@@ -12,14 +12,14 @@ public class DoodadFuncCoffer : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Debug("DoodadFuncCoffer");
+        Logger.Debug("DoodadFuncCoffer");
         owner.ToNextPhase = false;
         if ((caster is Character character) && (owner is DoodadCoffer coffer))
             if (coffer.OpenedBy?.Id == character.Id)
                 DoodadManager.CloseCofferDoodad(character, owner.ObjId);
             else
                 DoodadManager.OpenCofferDoodad(character, owner.ObjId);
-        _log.Trace("DoodadFuncCoffer");
+        Logger.Trace("DoodadFuncCoffer");
         return false;
     }
 }

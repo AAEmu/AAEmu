@@ -58,26 +58,26 @@ public class DoodadFuncTod : DoodadPhaseFuncTemplate
             if (NextPhase <= 0)
             {
                 if (caster is Character)
-                    _log.Debug($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, NextPhase {owner.FuncGroupId}");
+                    Logger.Debug($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, NextPhase {owner.FuncGroupId}");
                 else
-                    _log.Trace($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, NextPhase {owner.FuncGroupId}");
+                    Logger.Trace($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, NextPhase {owner.FuncGroupId}");
 
                 return false; // nextPhase = -1, let's continue with the phase functions
             }
 
             if (caster is Character)
-                _log.Debug($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, OverridePhase {NextPhase}");
+                Logger.Debug($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, OverridePhase {NextPhase}");
             else
-                _log.Trace($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, OverridePhase {NextPhase}");
+                Logger.Trace($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, OverridePhase {NextPhase}");
 
             owner.OverridePhase = NextPhase;
             return true; // it is necessary to interrupt the phase functions and switch to NextPhase
         }
 
         if (caster is Character)
-            _log.Debug($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, NextPhase {owner.FuncGroupId}");
+            Logger.Debug($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, NextPhase {owner.FuncGroupId}");
         else
-            _log.Trace($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, NextPhase {owner.FuncGroupId}");
+            Logger.Trace($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, NextPhase {owner.FuncGroupId}");
 
         return false; // let's continue with the phase functions
     }

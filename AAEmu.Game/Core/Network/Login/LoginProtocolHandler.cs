@@ -82,8 +82,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
                     stream = null;
                 stream2.ReadUInt16(); //len
                 var type = stream2.ReadUInt16();
-                Type classType;
-                _packets.TryGetValue(type, out classType);
+                _packets.TryGetValue(type, out var classType);
                 if (classType == null)
                 {
                     HandleUnknownPacket(connection, type, stream2);

@@ -6,39 +6,6 @@ using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Items;
 
-[Flags]
-public enum ItemFlag : byte
-{
-    None = 0x00,
-    SoulBound = 0x01,
-    HasUCC = 0x02,
-    Secure = 0x04,
-    Skinized = 0x08,
-    Unpacked = 0x10,
-    AuctionWin = 0x20
-}
-
-public enum ShopCurrencyType : byte
-{
-    Money = 0,
-    Honor = 1,
-    VocationBadges = 2,
-    SiegeShop = 3,
-}
-
-public struct ItemLocation
-{
-    public SlotType slotType;
-    public byte Slot;
-}
-
-public struct ItemIdAndLocation
-{
-    public ulong Id;
-    public SlotType SlotType;
-    public byte Slot;
-}
-
 
 public class Item : PacketMarshaler, IComparable<Item>
 {
@@ -132,14 +99,14 @@ public class Item : PacketMarshaler, IComparable<Item>
     // Helper
     public ItemContainer _holdingContainer { get; set; }
 
-    public static uint Coins = 500;
-    public static uint TaxCertificate = 31891;
-    public static uint BoundTaxCertificate = 31892;
-    public static uint AppraisalCertificate = 28085;
-    public static uint CrestStamp = 17662;
-    public static uint CrestInk = 17663;
-    public static uint SheetMusic = 28051;
-    public static uint SalonCertificate = 30811;
+    public static uint Coins { get; } = 500;
+    public static uint TaxCertificate { get; } = 31891;
+    public static uint BoundTaxCertificate { get; } = 31892;
+    public static uint AppraisalCertificate { get; } = 28085;
+    public static uint CrestStamp { get; } = 17662;
+    public static uint CrestInk { get; } = 17663;
+    public static uint SheetMusic { get; } = 28051;
+    public static uint SalonCertificate { get; } = 30811;
 
     /// <summary>
     /// Sort will use itemSlot numbers

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -11,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Gimmicks;
 
 public class GimmickSpawner : Spawner<Gimmick>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
     public long EntityGuid { get; set; }
     public float WaitTime { get; set; }
     public float TopZ { get; set; }
@@ -24,12 +23,12 @@ public class GimmickSpawner : Spawner<Gimmick>
     //public Quaternion Rot { get; set; }
     public float Scale { get; set; }
     public Gimmick Last { get; set; }
-    private List<Gimmick> _spawned;
+    // unused private List<Gimmick> _spawned;
     public uint Count { get; set; }
 
     public GimmickSpawner()
     {
-        _spawned = new List<Gimmick>();
+        // unused_spawned = new List<Gimmick>();
         Count = 1;
     }
 
@@ -38,7 +37,7 @@ public class GimmickSpawner : Spawner<Gimmick>
         var gimmick = GimmickManager.Instance.Create(objId, UnitId, this);
         if (gimmick == null)
         {
-            _log.Warn("Gimmick {0}, from spawn not exist at db", UnitId);
+            _logger.Warn("Gimmick {0}, from spawn not exist at db", UnitId);
             return null;
         }
 
@@ -52,7 +51,7 @@ public class GimmickSpawner : Spawner<Gimmick>
 
         if (gimmick.Transform.World.IsOrigin())
         {
-            _log.Error("Can't spawn gimmick {1} from spawn {0}", Id, UnitId);
+            _logger.Error("Can't spawn gimmick {1} from spawn {0}", Id, UnitId);
             return null;
         }
 

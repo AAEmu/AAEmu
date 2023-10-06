@@ -10,7 +10,7 @@ public class DoodadFuncRemoveInstance : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Debug("DoodadFuncRemoveInstance, ZoneId: {0}", ZoneId);
+        Logger.Debug("DoodadFuncRemoveInstance, ZoneId: {0}", ZoneId);
 
     }
 }

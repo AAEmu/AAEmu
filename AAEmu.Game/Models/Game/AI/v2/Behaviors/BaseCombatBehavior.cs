@@ -9,8 +9,7 @@ using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
-
-using static AAEmu.Game.Models.Game.Skills.SkillControllers.SkillController;
+using AAEmu.Game.Models.Game.Skills.SkillControllers;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors;
 
@@ -37,7 +36,7 @@ public abstract class BaseCombatBehavior : Behavior
             return;
         }
 
-        if ((Ai.Owner.ActiveSkillController?.State ?? SCState.Ended) == SCState.Running)
+        if ((Ai.Owner.ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
             return;
 
         if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(shackle)) ||
@@ -65,7 +64,7 @@ public abstract class BaseCombatBehavior : Behavior
                 stopWatch.Stop();
                 // Toss warning if it took a long time
                 if (stopWatch.Elapsed.Ticks >= TimeSpan.TicksPerMillisecond)
-                    _log.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId}");
+                    Logger.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId}");
                 // запомним новые координаты цели
                 Ai.PathNode.pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
             }
@@ -138,7 +137,7 @@ public abstract class BaseCombatBehavior : Behavior
         {
             if (IsUsingSkill)
                 return false;
-            if ((Ai.Owner?.ActiveSkillController?.State ?? SCState.Ended) == SCState.Running)
+            if ((Ai.Owner?.ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
                 return false;
             if (Ai.Owner != null && Ai.Owner.Buffs.HasEffectsMatchingCondition(e => e.Template.Stun || e.Template.Sleep || e.Template.Silence))
                 return false;

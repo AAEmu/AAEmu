@@ -13,7 +13,7 @@ public class DoodadFuncConvertFish : DoodadFuncTemplate
     // doodad_funcs
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Trace("DoodadFuncConvertFish");
+        Logger.Trace("DoodadFuncConvertFish");
         if (caster is Character character)
         {
             var backpack = character.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);

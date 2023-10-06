@@ -9,7 +9,7 @@ public class DoodadFuncNaviRemoveTimer : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncNaviRemoveTimer");
+        Logger.Trace("DoodadFuncNaviRemoveTimer");
         return false;
     }
 }

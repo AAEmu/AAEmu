@@ -12,7 +12,7 @@ public class DoodadFuncExitIndun : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Debug("DoodadFuncExitIndun, ReturnPointId: {0}", ReturnPointId);
+        Logger.Debug("DoodadFuncExitIndun, ReturnPointId: {0}", ReturnPointId);
 
         if (caster is Character character)
         {
@@ -39,7 +39,7 @@ public class DoodadFuncExitIndun : DoodadFuncTemplate
             else
             {
                 // TODO in db not have a entries, but we can change this xD
-                _log.Warn("DoodadFuncExitIndun, Not have return point!");
+                Logger.Warn("DoodadFuncExitIndun, Not have return point!");
             }
         }
     }

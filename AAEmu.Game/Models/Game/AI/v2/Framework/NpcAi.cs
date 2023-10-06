@@ -111,7 +111,7 @@ public abstract class NpcAi
             _currentBehavior?.Tick(delta);
 
             // If aggro table is populated, check if current aggro targets need to be cleared
-            if (Owner.AggroTable.Count <= 0)
+            if (Owner?.AggroTable.Count <= 0)
                 return;
 
             var toRemove = new List<Unit>();

@@ -14,7 +14,7 @@ public class DoodadFuncFishSchool : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Debug("DoodadFuncFishSchool");
+        Logger.Debug("DoodadFuncFishSchool");
 
         var npcSpawnerNpc = NpcGameData.Instance.GetNpcSpawnerNpc(NpcSpawnerId);
         var unitId = npcSpawnerNpc.MemberId;

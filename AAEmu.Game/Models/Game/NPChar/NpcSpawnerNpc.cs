@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.NPChar;
 
 public class NpcSpawnerNpc : Spawner<Npc>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     public uint NpcSpawnerTemplateId { get; set; }
     public uint MemberId { get; set; }
@@ -55,11 +55,11 @@ public class NpcSpawnerNpc : Spawner<Npc>
             var npc = NpcManager.Instance.Create(0, MemberId);
             if (npc == null)
             {
-                _log.Warn($"Npc {MemberId}, from spawner Id {npcSpawner.Id} not exist at db");
+                _logger.Warn($"Npc {MemberId}, from spawner Id {npcSpawner.Id} not exist at db");
                 return null;
             }
 
-            _log.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawnerId {NpcSpawnerTemplateId}");
+            _logger.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawnerId {NpcSpawnerTemplateId}");
 
             if (!npc.CanFly)
             {
@@ -74,7 +74,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
             npc.Transform.ApplyWorldSpawnPosition(npcSpawner.Position);
             if (npc.Transform == null)
             {
-                _log.Error($"Can't spawn npc {MemberId} from spawnerId {NpcSpawnerTemplateId}");
+                _logger.Error($"Can't spawn npc {MemberId} from spawnerId {NpcSpawnerTemplateId}");
                 return null;
             }
 
@@ -103,7 +103,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
             if (count >= maxPopulation)
             {
                 npc.Delete();
-                _log.Trace($"Let's not spawn Npc templateId {MemberId} from spawnerId {NpcSpawnerTemplateId} since exceeded MaxPopulation {maxPopulation}");
+                _logger.Trace($"Let's not spawn Npc templateId {MemberId} from spawnerId {NpcSpawnerTemplateId} since exceeded MaxPopulation {maxPopulation}");
                 return null;
             }
 

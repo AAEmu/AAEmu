@@ -8,7 +8,7 @@ public class DoodadFuncHarvest : DoodadFuncTemplate
     // doodad_funcs
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Trace("DoodadFuncHarvest");
+        Logger.Trace("DoodadFuncHarvest");
         owner.ToNextPhase = true;
     }
 }

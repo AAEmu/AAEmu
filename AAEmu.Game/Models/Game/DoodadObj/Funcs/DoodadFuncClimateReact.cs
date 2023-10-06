@@ -11,7 +11,7 @@ public class DoodadFuncClimateReact : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncClimateReact");
+        Logger.Trace("DoodadFuncClimateReact");
 
         var inMatchingClimate = ZoneManager.Instance.DoodadHasMatchingClimate(owner);
 

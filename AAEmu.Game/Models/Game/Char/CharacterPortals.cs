@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Game.Char;
 
 public class CharacterPortals
 {
-    private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
     private Dictionary<uint, VisitedDistrict> VisitedDistricts { get; }
     private readonly List<uint> _removedVisitedDistricts;
     private readonly List<uint> _removedPrivatePortals;
@@ -77,7 +77,7 @@ public class CharacterPortals
             }
             PopulateDistrictPortals();
             Send();
-            _log.Info($"{portal.Name}:{subZoneId} added to return district list");
+            _logger.Info($"{portal.Name}:{subZoneId} added to return district list");
             Owner.SendMessage($"{portal.Name}:{subZoneId} added to visited district list in the portal book");
         }
     }

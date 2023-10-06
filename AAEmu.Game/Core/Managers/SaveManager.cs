@@ -11,13 +11,13 @@ namespace AAEmu.Game.Core.Managers;
 
 public class SaveManager : Singleton<SaveManager>
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _log = LogManager.GetCurrentClassLogger();
 
     private double Delay = 1;
     private bool _enabled;
     private bool _isSaving;
     private object _lock = new();
-    SaveTickStartTask saveTask;
+    private SaveTickStartTask saveTask;
 
     public SaveManager()
     {

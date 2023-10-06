@@ -15,13 +15,13 @@ public class MailForAuction : BaseMail
     private int _listingFee;
     private int _tradeTaxFee;
 
-    public static string AuctionName = "Auctioneer";
+    private static string AuctionName = "Auctioneer";
     // TODO: verify title names
-    public static string TitleSold = "Successful Auction Notice";
-    public static string TitleNotSold = "Failed Auction Notice";
-    public static string TitleBidWin = "Succesfull Purchase";
-    public static string TitleBidLost = "Failed Bid Notice";
-    public static string TitleCancel = "Cancelled Auction Notice";
+    private static string TitleSold = "Successful Auction Notice";
+    private static string TitleNotSold = "Failed Auction Notice";
+    private static string TitleBidWin = "Succesfull Purchase";
+    private static string TitleBidLost = "Failed Bid Notice";
+    private static string TitleCancel = "Cancelled Auction Notice";
 
     // Mail examples for 1.2
 

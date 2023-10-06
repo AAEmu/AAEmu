@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.NPChar;
 
 public class NpcSpawner : Spawner<Npc>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private List<Npc> _spawned; // the list of Npc's that have been shown
     private Npc _lastSpawn;      // the last of the displayed Npc
@@ -209,7 +209,7 @@ public class NpcSpawner : Spawner<Npc>
             // Check if we did not go over MaxPopulation Spawn Count
             if (_spawnCount > maxPopulation)
             {
-                _log.Trace($"Let's not spawn Npc templateId {UnitId} from spawnerId {Template.Id} since exceeded MaxPopulation {maxPopulation}");
+                _logger.Trace($"Let's not spawn Npc templateId {UnitId} from spawnerId {Template.Id} since exceeded MaxPopulation {maxPopulation}");
                 return;
             }
 
@@ -228,7 +228,7 @@ public class NpcSpawner : Spawner<Npc>
 
             if (npcs.Count == 0)
             {
-                _log.Error($"Can't spawn npc {UnitId} from spawnerId {Template.Id}");
+                _logger.Error($"Can't spawn npc {UnitId} from spawnerId {Template.Id}");
                 continue;
             }
 
@@ -258,7 +258,7 @@ public class NpcSpawner : Spawner<Npc>
         {
             for (var i = 0; i < deleteCount; i++)
             {
-                _log.Trace($"Запланируем удаление npc {UnitId} from spawnerId {Template.Id}");
+                _logger.Trace($"Запланируем удаление npc {UnitId} from spawnerId {Template.Id}");
                 DoDespawnSchedule(delnpcs[i], false, 60); // через 1 минуту
             }
         }
@@ -287,14 +287,14 @@ public class NpcSpawner : Spawner<Npc>
         if (Template == null)
         {
             // no spawner for TemplateId
-            _log.Warn($"Can't spawn npc {UnitId} from spawnerId {Id}");
+            _logger.Warn($"Can't spawn npc {UnitId} from spawnerId {Id}");
             return true;
         }
 
         // Check if population is within bounds
         if (_spawnCount >= Template.MaxPopulation)
         {
-            _log.Trace($"Let's not spawn Npc templateId {UnitId} from spawnerId {Template.Id} since exceeded MaxPopulation");
+            _logger.Trace($"Let's not spawn Npc templateId {UnitId} from spawnerId {Template.Id} since exceeded MaxPopulation");
             return true;
         }
 
@@ -344,8 +344,8 @@ public class NpcSpawner : Spawner<Npc>
 
             if (cronExpression is "" or "0 0 0 0 0 ?")
             {
-                _log.Warn($"DoSpawnSchedule: Can't reschedule spawn npc {UnitId} from spawnerId {Template.Id}");
-                _log.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
+                _logger.Warn($"DoSpawnSchedule: Can't reschedule spawn npc {UnitId} from spawnerId {Template.Id}");
+                _logger.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
                 return false;
             }
 
@@ -408,8 +408,8 @@ public class NpcSpawner : Spawner<Npc>
 
             if (cronExpression is "" or "0 0 0 0 0 ?")
             {
-                _log.Warn($"DoDespawnSchedule: Can't reschedule despawn npc {UnitId} from spawnerId {Template.Id}");
-                _log.Warn($"DoDespawnSchedule: cronExpression {cronExpression}");
+                _logger.Warn($"DoDespawnSchedule: Can't reschedule despawn npc {UnitId} from spawnerId {Template.Id}");
+                _logger.Warn($"DoDespawnSchedule: cronExpression {cronExpression}");
 
                 return;
             }
@@ -430,7 +430,7 @@ public class NpcSpawner : Spawner<Npc>
         if (Template == null)
         {
             // no spawner for TemplateId
-            _log.Error("Can't spawn npc {0} from spawnerId {1}", UnitId, Id);
+            _logger.Error("Can't spawn npc {0} from spawnerId {1}", UnitId, Id);
             return;
         }
 
@@ -466,12 +466,12 @@ public class NpcSpawner : Spawner<Npc>
         }
         catch (Exception)
         {
-            _log.Error("Can't spawn npc {0} from spawnerId {1}", UnitId, Template.Id);
+            _logger.Error("Can't spawn npc {0} from spawnerId {1}", UnitId, Template.Id);
         }
 
         if (n.Count == 0)
         {
-            _log.Error("Can't spawn npc {0} from spawnerId {1}", UnitId, Template.Id);
+            _logger.Error("Can't spawn npc {0} from spawnerId {1}", UnitId, Template.Id);
             return;
         }
         _lastSpawn = n[^1];
@@ -545,13 +545,13 @@ public class NpcSpawner : Spawner<Npc>
         }
         catch (Exception)
         {
-            _log.Error("Can't spawn npc {0} from spawner {1}", UnitId, template.Id);
+            _logger.Error("Can't spawn npc {0} from spawner {1}", UnitId, template.Id);
             return;
         }
 
         if (n.Count == 0)
         {
-            _log.Error("Can't spawn npc {0} from spawner {1}", UnitId, template.Id);
+            _logger.Error("Can't spawn npc {0} from spawner {1}", UnitId, template.Id);
             return;
         }
         _lastSpawn = n[^1];

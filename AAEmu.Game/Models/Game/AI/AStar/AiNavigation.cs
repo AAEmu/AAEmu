@@ -82,4 +82,9 @@ public class Point : IEquatable<Point>
 
     public override string ToString()
         => $"({X}, {Y}, {Z})";
+
+    public override bool Equals(object obj)
+    {
+        return Equals(obj as Point);
+    }
 }

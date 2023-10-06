@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class TransferTelescopeManager : Singleton<TransferTelescopeManager>
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _log = LogManager.GetCurrentClassLogger();
     private Task transferTelescopeTickStartTask { get; set; }
     private const double Delay = 250;
     private Character owner { get; set; }

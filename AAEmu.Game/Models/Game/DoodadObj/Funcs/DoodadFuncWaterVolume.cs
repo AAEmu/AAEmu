@@ -10,7 +10,7 @@ public class DoodadFuncWaterVolume : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        _log.Trace("DoodadFuncWaterVolume");
+        Logger.Trace("DoodadFuncWaterVolume");
         return false;
     }
 }

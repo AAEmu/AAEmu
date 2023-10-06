@@ -15,7 +15,7 @@ public class DoodadFuncEnterSysInstance : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        _log.Trace("DoodadFuncEnterSysInstance, ZoneId: {0}", ZoneId);
+        Logger.Trace("DoodadFuncEnterSysInstance, ZoneId: {0}", ZoneId);
         if (caster is Character character)
         {
             character.DisabledSetPosition = true;
@@ -50,7 +50,7 @@ public class DoodadFuncEnterSysInstance : DoodadFuncTemplate
                 character.InstanceId = world.Id; // TODO all instances are sys now
             }
             else
-                _log.Warn("World {0} (#.{1}), does not have a default spawn position.", world.Name, world.Id);
+                Logger.Warn("World {0} (#.{1}), does not have a default spawn position.", world.Name, world.Id);
         }
     }
 }

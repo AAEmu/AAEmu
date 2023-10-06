@@ -1,4 +1,6 @@
-﻿namespace AAEmu.Game.Models.Game.NPChar;
+﻿using System;
+
+namespace AAEmu.Game.Models.Game.NPChar;
 
 public class TotalCharacterCustom
 {
@@ -37,6 +39,6 @@ public class TotalCharacterCustom
 
     public TotalCharacterCustom()
     {
-        Modifier = new byte[0];
+        Modifier = Array.Empty<byte>();
     }
 }

@@ -6,10 +6,10 @@ namespace AAEmu.Game.Models.Game.FishSchools;
 public class FishSchool
 {
     public Task FishFinderTickTask { get; set; }
-    private Character Owner { get; set; }
+    //unused private Character Owner { get; set; }
 
     public FishSchool(Character character)
     {
-        Owner = character;
+        //unused Owner = character;
     }
 }
