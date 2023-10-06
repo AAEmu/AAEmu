@@ -604,7 +604,7 @@ public class CharacterManager : Singleton<CharacterManager>
     {
         if ((character.DeleteTime > DateTime.MinValue) && (character.DeleteTime <= DateTime.UtcNow))
         {
-            Logger.Info("CheckForDeletedCharactersDeletion - Deleting Account:{0} Id:{1} Name:{2}", character.AccountId, character.Id, character.Name);
+            Logger.Info("CheckForDeletedCharactersDeletion - Deleting Character Id:{0} Name:{1}", character.Id, character.Name);
             using (var command = dbConnection.CreateCommand())
             {
                 var deletedName = character.Name;
@@ -642,7 +642,7 @@ public class CharacterManager : Singleton<CharacterManager>
         else
         if (character.DeleteRequestTime > DateTime.MinValue)
         {
-            Logger.Warn("CheckForDeletedCharactersDeletion - Delete request for Account:{0} Id:{1} Name:{2}, but character is no longer marked for deletion (possibly cancelled delete)", character.AccountId, character.Id, character.Name);
+            Logger.Warn("CheckForDeletedCharactersDeletion - Delete request for Character Id:{0} Name:{1}, but character is no longer marked for deletion (possibly cancelled delete)", character.Id, character.Name);
         }
         return false;
     }
