@@ -93,7 +93,7 @@ public class SCUnitStatePacket : GamePacket
                 stream.Write(slave.Id);         // Id ?
                 stream.Write(slave.TlId);       // tl
                 stream.Write(slave.TemplateId); // templateId
-                stream.Write(slave.Summoner.ObjId); // ownerId
+                stream.Write(slave.Summoner?.Id ?? 0); // ownerId
                 break;
             case BaseUnitType.Housing:
                 var house = (House)_unit;
