@@ -100,10 +100,10 @@ public partial class Quest : PacketMarshaler
             switch (Step)
             {
                 case QuestComponentKind.Supply when QuestSupplyState?.State?.CurrentQuestComponent != null:
-                    switch (Status)
+                    switch (Condition)
                     {
-                        case QuestStatus.Progress when Condition == QuestConditionObj.Progress:
-                        case QuestStatus.Ready when Condition == QuestConditionObj.Progress:
+                        case QuestConditionObj.Progress:
+                        //case QuestContextStatus.Ready when Condition == QuestConditionObj.Progress:
                             //Logger.Info($"[ContextProcessing][QuestSupplyState][Update] квест {TemplateId}.");
                             QuestSupplyState.State.Update();
                             break;
@@ -115,10 +115,10 @@ public partial class Quest : PacketMarshaler
                     }
                     break;
                 case QuestComponentKind.Progress when QuestProgressState?.State?.CurrentQuestComponent != null:
-                    switch (Status)
+                    switch (Condition)
                     {
                         case QuestStatus.Progress when Condition == QuestConditionObj.Progress:
-                        case QuestStatus.Ready when Condition == QuestConditionObj.Progress:
+                        //case QuestContextStatus.Ready when Condition == QuestConditionObj.Progress:
                             //Logger.Info($"[ContextProcessing][QuestProgressState][Update] квест {TemplateId}.");
                             if (!QuestProgressState.State.Update()) { next = false; } // подписка на события и прерываем цикл
                             break;
@@ -130,10 +130,10 @@ public partial class Quest : PacketMarshaler
                     }
                     break;
                 case QuestComponentKind.Ready when QuestReadyState?.State?.CurrentQuestComponent != null:
-                    switch (Status)
+                    switch (Condition)
                     {
                         case QuestStatus.Progress when Condition == QuestConditionObj.Progress:
-                        case QuestStatus.Ready when Condition == QuestConditionObj.Progress:
+                        //case QuestContextStatus.Ready when Condition == QuestConditionObj.Progress:
                             //Logger.Info($"[ContextProcessing][QuestReadyState][Update] квест {TemplateId}.");
                             if (!QuestReadyState.State.Update()) { next = false; } // подписка на события и прерываем цикл
                             break;
@@ -145,10 +145,10 @@ public partial class Quest : PacketMarshaler
                     }
                     break;
                 case QuestComponentKind.Reward when QuestRewardState?.State?.CurrentQuestComponent != null:
-                    switch (Status)
+                    switch (Condition)
                     {
                         case QuestStatus.Progress when Condition == QuestConditionObj.Progress:
-                        case QuestStatus.Ready when Condition == QuestConditionObj.Progress:
+                            //case QuestContextStatus.Ready when Condition == QuestConditionObj.Progress:
                             //Logger.Info($"[ContextProcessing][QuestRewardState][Update] квест {TemplateId}.");
                             QuestRewardState.State.Update();
                             break;
@@ -281,7 +281,10 @@ public partial class Quest : PacketMarshaler
 
     #region Events
 
+    #region Progress step
+
     // Внимание!!!
+    // выполняются на шаге Progress
     // для этих событий не будет известен QuestId и будет перебор всех активных квестов
     // что-бы по два раза не вызывались надо перед подпиской на событие отписываться!!!
     public void OnInteractionHandler(object sender, EventArgs eventArgs)
@@ -292,8 +295,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             return;
 
-        if (GetQuestContext("QuestActObjInteraction", out var context, out var acts))
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Progress;
+        if (GetQuestContext("QuestActObjInteraction", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var complete = false;
         var results = false;
@@ -324,7 +330,7 @@ public partial class Quest : PacketMarshaler
                 // сначала проверим, что этотот Npc, может быть не тот, что надо по квесту
                 if (template?.DoodadId != args.DoodadId)
                 {
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
 
@@ -340,7 +346,8 @@ public partial class Quest : PacketMarshaler
                 if (Template.Score == 0 && componentIndex == context.State.CurrentComponents.Count - 1)
                 {
                     results = complete;
-                }}
+                }
+            }
 
             // если objective для текущего компонента готово, то запустим скилл и/или баф
             if (complete)
@@ -400,8 +407,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             return;
 
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Progress;
         if (GetQuestContext("QuestActObjMonsterHunt", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var selective = false;
         var complete = false;
@@ -435,7 +445,7 @@ public partial class Quest : PacketMarshaler
                 // сначала проверим, что убили того Npc, может быть не тот, что надо по квесту
                 if (template?.NpcId != args.NpcId)
                 {
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
 
@@ -522,8 +532,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             return;
 
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Progress;
         if (GetQuestContext("QuestActObjMonsterGroupHunt", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var selective = false;
         var complete = false;
@@ -557,7 +570,7 @@ public partial class Quest : PacketMarshaler
                 // сначала проверим, что убили того Npc, может быть не тот, что надо по квесту
                 if (!_questManager.CheckGroupNpc(template.QuestMonsterGroupId, args.NpcId))
                 {
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
 
@@ -644,8 +657,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             return;
 
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Progress;
         if (GetQuestContext("QuestActObjItemUse", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var selective = false;
         var complete = false;
@@ -678,7 +694,7 @@ public partial class Quest : PacketMarshaler
                 // сначала проверим, что там использовали, может быть не то, что надо по квесту
                 if (template?.ItemId != args.ItemId)
                 {
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
 
@@ -765,8 +781,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             return;
 
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Progress;
         if (GetQuestContext("QuestActObjItemGroupUse", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var selective = false;
         var complete = false;
@@ -799,7 +818,7 @@ public partial class Quest : PacketMarshaler
                 // сначала проверим, что там использовали, может быть не то, что надо по квесту
                 if (!_questManager.CheckGroupItem(template.ItemGroupId, args.ItemGroupId))
                 {
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
 
@@ -886,8 +905,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             return;
 
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Progress;
         if (GetQuestContext("QuestActObjItemGather", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var selective = false;
         var complete = false;
@@ -922,7 +944,7 @@ public partial class Quest : PacketMarshaler
                 if (template?.ItemId != args.ItemId)
                 {
                     Logger.Info($"[OnItemGatherHandler] Это предмет {args.ItemId} не тот, что нужен нам {template?.ItemId}. Квест {TemplateId}.");
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
 
@@ -953,11 +975,13 @@ public partial class Quest : PacketMarshaler
                 }
                 else if (context.State.ContextResults.All(b => b == true))
                 {
+                    // состоит из одного компонента и он выполнен
                     results = complete;
                     Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, выполнены все этапы с результатом {complete}.");
                 }
                 else if (Template.Score == 0 && componentIndex == context.State.CurrentComponents.Count - 1 && context.State.CurrentComponents.Count > 1)
                 {
+                    // выполнен последний компонент из нескольких
                     results = complete;
                     Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, выполнен последний {componentIndex} этап с результатом {complete}.");
                 }
@@ -980,7 +1004,7 @@ public partial class Quest : PacketMarshaler
         // для завершения у всех objective компонентов должно быть выполнено или selective == true
         if (results
             || selective
-            || OverCompletionPercent >= Template.Score && Template.Score != 0
+            || OverCompletionPercent >= Template.Score && Template.Score != 0 // для квеста 1135
             && !(EarlyCompletion || ExtraCompletion)
            )
         {
@@ -992,6 +1016,7 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+
             Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -1014,6 +1039,7 @@ public partial class Quest : PacketMarshaler
         Condition = QuestConditionObj.Progress;
         Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
 
+
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
     public void OnItemGroupGatherHandler(object sender, EventArgs eventArgs)
@@ -1023,8 +1049,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             return;
 
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Progress;
         if (GetQuestContext("QuestActObjItemGroupGather", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var selective = false;
         var complete = false;
@@ -1058,7 +1087,7 @@ public partial class Quest : PacketMarshaler
                 if (!_questManager.CheckGroupItem(template.ItemGroupId, args.ItemId))
                 {
                     Logger.Info($"[OnItemGroupGatherHandler] Это не тот предмет {template.ItemGroupId}, что нужен нам {args.ItemId}. Квест {TemplateId}.");
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
                 Logger.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, в инвентаре есть нужный предмет {args.ItemId} в количестве {args.Count}.");
@@ -1150,8 +1179,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             return;
 
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Progress;
         if (GetQuestContext("QuestActObjAggro", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var complete = false;
         context.State.ContextResults = new List<bool>();
@@ -1182,7 +1214,7 @@ public partial class Quest : PacketMarshaler
                 // сначала проверим, может быть не то, что надо по квесту
                 if (MathUtil.CalculateDistance(Owner.Transform.World.Position, args.Transform.World.Position) > template.Range)
                 {
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
 
@@ -1244,8 +1276,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             return;
 
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Progress;
         if (GetQuestContext("QuestActObjExpressFire", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var complete = false;
         var ThisIsNotWhatYouNeed = new List<bool>();
@@ -1275,7 +1310,7 @@ public partial class Quest : PacketMarshaler
                 // сначала проверим, может быть не то, что надо по квесту
                 if (template.ExpressKeyId != args.EmotionId)
                 {
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
 
@@ -1337,8 +1372,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             return;
 
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Progress;
         if (GetQuestContext("QuestActObjAbilityLevel", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var complete = false;
         var ThisIsNotWhatYouNeed = new List<bool>();
@@ -1368,7 +1406,7 @@ public partial class Quest : PacketMarshaler
                 // сначала проверим, может быть не то, что надо по квесту
                 //if (template.Level < Owner.Level)
                 //{
-                //    context.State.ContextResults[componentIndex] = false;
+                //    ThisIsNotWhatYouNeed[componentIndex] = true;
                 //    continue;
                 //}
 
@@ -1430,8 +1468,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             throw new NotImplementedException();
 
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Progress;
         if (GetQuestContext("QuestActObjLevel", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var complete = false;
         var ThisIsNotWhatYouNeed = new List<bool>();
@@ -1461,7 +1502,7 @@ public partial class Quest : PacketMarshaler
                 // сначала проверим, может быть не то, что надо по квесту
                 if (template.Level >= Owner.Level)
                 {
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
 
@@ -1523,8 +1564,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             throw new NotImplementedException();
 
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Progress;
         if (GetQuestContext("QuestActObjCraft", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var complete = false;
         var ThisIsNotWhatYouNeed = new List<bool>();
@@ -1554,7 +1598,7 @@ public partial class Quest : PacketMarshaler
                 // сначала проверим, может быть не то, что надо по квесту
                 if (template.CraftId != args.CraftId/* && Objectives[componentIndex] > template.Count*/)
                 {
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
 
@@ -1616,8 +1660,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             throw new NotImplementedException();
 
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Progress;
         if (GetQuestContext("QuestActObjSphere", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var complete = false;
         var ThisIsNotWhatYouNeed = new List<bool>();
@@ -1647,7 +1694,7 @@ public partial class Quest : PacketMarshaler
                 // сначала проверим, может быть не то, что надо по квесту
                 if (component.Id != args.SphereQuest.ComponentID)
                 {
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
 
@@ -1703,8 +1750,13 @@ public partial class Quest : PacketMarshaler
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }
 
+    #endregion Progress step
+
+    #region Ready step
+
     // Внимание!!!
     // для этого события будет известен QuestId
+    // выполняется на шаге Ready
     public void OnTalkMadeHandler(object sender, EventArgs eventArgs)
     {
         // Quest: 2037
@@ -1713,8 +1765,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             return;
 
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Ready;
         if (GetQuestContext("QuestActObjTalk", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var complete = false;
         var ThisIsNotWhatYouNeed = new List<bool>();
@@ -1744,7 +1799,7 @@ public partial class Quest : PacketMarshaler
                 // сначала проверим, что этотот Npc, может быть не тот, что надо по квесту
                 if (template?.NpcId != args.NpcId)
                 {
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
 
@@ -1866,8 +1921,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             return;
 
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Ready;
         if (GetQuestContext("QuestActObjTalkNpcGroup", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var complete = false;
         var ThisIsNotWhatYouNeed = new List<bool>();
@@ -1897,7 +1955,7 @@ public partial class Quest : PacketMarshaler
                 // сначала проверим, что этотот Npc, может быть не тот, что надо по квесту
                 if (template.NpcGroupId != args.NpcGroupId)
                 {
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
 
@@ -2019,8 +2077,11 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             return;
 
+        var step = Step; // сохраним, чтобы потом восстановить
+        Step = QuestComponentKind.Ready;
         if (GetQuestContext("QuestActConReportNpc", out var context, out var listQuestActs))
             return;
+        Step = step;
 
         var complete = false;
         var ThisIsNotWhatYouNeed = new List<bool>();
@@ -2052,7 +2113,7 @@ public partial class Quest : PacketMarshaler
                 if (template?.NpcId != args.NpcId)
                 {
                     Logger.Info($"[OnReportNpcHandler] Это Npc {args.NpcId} не тот, что нужен нам {template?.NpcId}. Квест {TemplateId}.");
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
 
@@ -2147,7 +2208,7 @@ public partial class Quest : PacketMarshaler
                 // сначала проверим, что этотот Doodad, может быть не тот, что надо по квесту
                 if (template?.DoodadId != args.DoodadId)
                 {
-                    context.State.ContextResults[componentIndex] = false;
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
                     continue;
                 }
                 // увеличиваем objective
@@ -2202,95 +2263,5 @@ public partial class Quest : PacketMarshaler
 
     // скорее всего не понадобятся
     public void OnQuestCompleteHandler(object sender, EventArgs eventArgs)
-    {
-        var args = eventArgs as OnQuestCompleteArgs;
-        if (args == null)
-            return;
-
-        // компонент - выполнен, отписываемся
-        Logger.Info($"[OnQuestCompleteHandler] Отписываемся от события.");
-        Logger.Info($"[OnQuestCompleteHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-        Logger.Info($"[OnQuestCompleteHandler] Quest: {TemplateId}, Event: 'OnQuestComplete', Handler: 'OnQuestCompleteHandler'");
-        Owner.Events.OnQuestComplete -= Owner.Quests.OnQuestCompleteHandler;
-
-        Status = QuestStatus.Ready;
-        Condition = QuestConditionObj.Complete;
-        Step++;// = QuestComponentKind.Reward;
-        Logger.Info($"[OnQuestCompleteHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-
-        Owner.Quests.Complete(args.QuestId, args.Selected);
-    }
-
-    // на шаге Start - не нужны
-    public void OnAcceptDoodadHandler(object sender, EventArgs eventArgs)
-    {
-        var args = eventArgs as OnAcceptDoodadArgs;
-        if (args == null)
-            return;
-
-        if (GetQuestContext("QuestActConAcceptDoodad", out var context, out var acts))
-            return;
-
-        // проверка, что есть такой эвент для этого квеста
-        if (acts.Any(act => act.DetailType != "QuestActConAcceptDoodad"))
-            return;
-
-        var complete = false;
-        EarlyCompletion = false;
-        ExtraCompletion = false;
-
-        var component = context.State.CurrentQuestComponent.GetFirstComponent();
-        var componentIndex = context.State.CurrentQuestComponent.GetComponentCount();
-        if (componentIndex > 1)
-            throw new NotImplementedException();
-
-        foreach (var act in acts)
-        {
-            // проверка, что есть такой эвент для этого квеста
-            if (act.DetailType != "QuestActConAcceptDoodad")
-                return;
-
-            Logger.Info($"[OnAcceptDoodadHandler] Quest: {TemplateId}, Взаимодействие с Doodad");
-
-            var template = act.GetTemplate<QuestActConAcceptDoodad>(); // для доступа к переменным требуется привидение к нужному типу
-
-            // сначала проверим, что этотот Doodad, может быть не тот, что надо по квесту
-            if (template.DoodadId != args.DoodadId)
-            {
-                context.State.ContextResults[componentIndex] = false;
-                continue;
-            }
-            // возвращается результат проверки, все ли предметы собрали или нет
-            complete = act.Use(Owner, this, 0);
-            //complete = template.IsCompleted(Owner, this, 0);
-
-            context.State.ContextResults[componentIndex] = complete;
-        }
-
-        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true)) // || selective && !(EarlyCompletion || ExtraCompletion))
-        {
-            Logger.Info($"[OnAcceptDoodadHandler] Отписываемся от события.");
-            Logger.Info($"[OnAcceptDoodadHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-            Logger.Info($"[OnAcceptDoodadHandler] Quest: {TemplateId}, Event: 'OnAcceptDoodad', Handler: 'OnAcceptDoodadHandler'");
-            Owner.Events.OnAcceptDoodad -= Owner.Quests.OnAcceptDoodadHandler; // отписываемся
-            ComponentId = component.Id;
-            UseSkillAndBuff(component);
-
-            Status = QuestStatus.Ready;
-            Condition = QuestConditionObj.Ready;
-            //Step++;
-            Logger.Info($"[OnAcceptDoodadHandler] Quest: {TemplateId}, Character {Owner.Name}, ComponentId {ComponentId}, Step {Step}, Status {Status}, Condition {Condition}");
-
-            Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
-            ContextProcessing();
-            return;
-        }
-
-        Status = QuestStatus.Progress;
-        Condition = QuestConditionObj.Progress;
-
-        Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
-    }
-
     #endregion Events
 }

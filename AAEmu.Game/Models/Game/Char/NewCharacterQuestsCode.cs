@@ -164,26 +164,5 @@ public partial class CharacterQuests
         }
     }
 
-    // скорее всего не понадобятся
-    public void OnQuestCompleteHandler(object sender, EventArgs eventArgs)
-    {
-        lock (_lock)
-            foreach (var quest in ActiveQuests.Values)
-                quest.OnQuestCompleteHandler(this, eventArgs);
-    }
-
-    /// <summary>
-    /// Взаимодействие с doodad, например ломаем шахту по квесту (Interaction with doodad, for example, breaking a mine on a quest)
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="eventArgs"></param>
-    public void OnAcceptDoodadHandler(object sender, EventArgs eventArgs)
-    {
-        lock (_lock)
-            foreach (var quest in ActiveQuests.Values)
-                quest.OnAcceptDoodadHandler(this, eventArgs);
-        //Task.Run(() => quest.OnAcceptDoodadHandler(this, eventArgs));
-    }
-
     #endregion Events
 }

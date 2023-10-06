@@ -188,14 +188,16 @@ public partial class CharacterQuests
         }
     }
 
-    public void Drop(uint questId, bool update)
+    public void Drop(uint questId, bool update, bool forcibly = false)
     {
-        if (!ActiveQuests.ContainsKey(questId))
-            return;
+        if (!ActiveQuests.ContainsKey(questId)) { return; }
+
         var quest = ActiveQuests[questId];
         quest.Drop(update);
         ActiveQuests.Remove(questId);
         _removed.Add(questId);
+
+        if (forcibly) { ResetCompletedQuest(questId); }
 
         quest.Owner.SendMessage("[Quest] for player: {0}, quest: {1} removed.", Owner.Name, questId);
         Logger.Warn("[Quest] for player: {0}, quest: {1} removed.", Owner.Name, questId);
@@ -360,10 +362,20 @@ public partial class CharacterQuests
     {
         CompletedQuests.Add(quest.Id, quest);
     }
+    public void ResetCompletedQuest(uint questId)
+    {
+        var completeId = (ushort)(questId / 64);
+        var quest = GetCompletedQuest(completeId);
+
+        if (quest == null) { return; }
+
+        quest.Body.Set((int)questId - completeId * 64, false);
+        CompletedQuests[completeId] = quest;
+    }
 
     public CompletedQuest GetCompletedQuest(ushort id)
     {
-        return CompletedQuests.ContainsKey(id) ? CompletedQuests[id] : null;
+        return CompletedQuests.TryGetValue(id, out var quest) ? quest : null;
     }
 
     public bool IsQuestComplete(uint questId)

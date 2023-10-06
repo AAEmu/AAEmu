@@ -124,7 +124,7 @@ public class QuestCommandUtil
                     {
                         if (character.Quests.HasQuest(questId))
                         {
-                            character.Quests.Drop(questId, true);
+                            character.Quests.Drop(questId, true, true); // удаляем и из CompletedQuests
                         }
                         else
                         {
