@@ -14,6 +14,6 @@ public class CSChangeExpeditionSponsorPacket : GamePacket
         var unkId = stream.ReadUInt32();
         var unk2Id = stream.ReadUInt32();
 
-        _log.Debug("ChangeExpeditionSponsor, Id: {0}, Id2: {1}", unkId, unk2Id);
+        Logger.Debug("ChangeExpeditionSponsor, Id: {0}, Id2: {1}", unkId, unk2Id);
     }
 }

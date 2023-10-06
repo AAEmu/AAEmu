@@ -14,7 +14,7 @@ public class CSCancelTradePacket : GamePacket
     {
         var reason = stream.ReadInt32();
 
-        _log.Warn("CancelTrade, Reason: {0}", reason);
+        Logger.Warn("CancelTrade, Reason: {0}", reason);
         TradeManager.Instance.CancelTrade(Connection.ActiveChar.ObjId, reason);
     }
 }

@@ -12,6 +12,6 @@ public class CSEquipmentsUnsecurePacket : GamePacket
     public override void Read(PacketStream stream)
     {
         // Empty struct
-        _log.Warn("EquipmentsUnsecure");
+        Logger.Warn("EquipmentsUnsecure");
     }
 }

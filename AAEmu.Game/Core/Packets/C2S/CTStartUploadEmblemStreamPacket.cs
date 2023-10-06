@@ -18,7 +18,7 @@ public class CTStartUploadEmblemStreamPacket : StreamPacket
         var dataSize = stream.ReadInt32();
         // -----------------------
 
-        _log.Warn("Create UCC Crest, printer bc:{0}, UccId:{1}, dataSize:{2}", bc, UccId, dataSize);
+        Logger.Warn("Create UCC Crest, printer bc:{0}, UccId:{1}, dataSize:{2}", bc, UccId, dataSize);
 
         // TODO: check if bc points to a Crest Printer (and you are nearby)
 

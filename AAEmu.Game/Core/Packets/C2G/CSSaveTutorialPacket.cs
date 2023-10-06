@@ -15,7 +15,7 @@ public class CSSaveTutorialPacket : GamePacket
     {
         var id = stream.ReadUInt32();
 
-        _log.Debug("SaveTutorial, Id: {0}", id);
+        Logger.Debug("SaveTutorial, Id: {0}", id);
 
         var completeId = (ushort)(id / 64);
         var quest = Connection.ActiveChar.Quests.GetCompletedQuest(completeId);

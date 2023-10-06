@@ -18,7 +18,7 @@ public class CSConstructHouseTaxPacket : GamePacket
         var y = Helpers.ConvertLongY(stream.ReadInt64());
         var z = stream.ReadSingle();
 
-        _log.Debug("ConstructHouseTax");
+        Logger.Debug("ConstructHouseTax");
         HousingManager.Instance.ConstructHouseTax(Connection, designId, x, y, z);
     }
 }

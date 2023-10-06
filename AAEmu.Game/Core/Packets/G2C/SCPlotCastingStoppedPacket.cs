@@ -18,7 +18,7 @@ public class SCPlotCastingStoppedPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        _log.Warn("SCPlotCastingStoppedPacket: tl = {0} duration: {1} lastEvent: {2}", _tl, _duration, _lastEvent);
+        Logger.Warn("SCPlotCastingStoppedPacket: tl = {0} duration: {1} lastEvent: {2}", _tl, _duration, _lastEvent);
         stream.Write(_tl);
         stream.Write(_duration);
         stream.Write(_lastEvent);

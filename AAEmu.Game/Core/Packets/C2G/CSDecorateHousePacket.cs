@@ -33,13 +33,13 @@ public class CSDecorateHousePacket : GamePacket
         var posVec = new Vector3(x, y, z);
         var quat = new Quaternion(quatX, quatY, quatZ, quatW);
 
-        _log.Debug("DecorateHouse, houseId: {0}, designId: {1}, x: {2}, y: {3}, z: {4}, rot {5}, objId: {6}, itemId: {7}",
+        Logger.Debug("DecorateHouse, houseId: {0}, designId: {1}, x: {2}, y: {3}, z: {4}, rot {5}, objId: {6}, itemId: {7}",
             houseTlId, designId, x, y, z, quat, parentObjId, itemId);
 
         if (!HousingManager.Instance.DecorateHouse(Connection.ActiveChar, houseTlId, designId, posVec, quat, parentObjId, itemId))
         {
             Connection.ActiveChar.SendErrorMessage(ErrorMessageType.HouseCannotDecorate);
-            _log.Warn("DecorateHouse, FAILED with houseId: {0}, designId: {1}, x: {2}, y: {3}, z: {4}, rot {5}, objId: {6}, itemId: {7}", houseTlId, designId, x, y, z, quat, parentObjId, itemId);
+            Logger.Warn("DecorateHouse, FAILED with houseId: {0}, designId: {1}, x: {2}, y: {3}, z: {4}, rot {5}, objId: {6}, itemId: {7}", houseTlId, designId, x, y, z, quat, parentObjId, itemId);
         }
     }
 }

@@ -14,7 +14,7 @@ public class CSTakeAllAttachmentItemPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         var mailId = stream.ReadInt64();
-        _log.Debug($"CSTakeAllAttachmentItemPacket {mailId} -> {Connection.ActiveChar.Name}");
+        Logger.Debug($"CSTakeAllAttachmentItemPacket {mailId} -> {Connection.ActiveChar.Name}");
         if (Connection.ActiveChar.Mails.GetAttached(mailId, true, true, true))
         {
             Connection.ActiveChar.SendPacket(new SCMailStatusUpdatedPacket(false, mailId, MailStatus.Read));
@@ -22,6 +22,6 @@ public class CSTakeAllAttachmentItemPacket : GamePacket
             Connection.ActiveChar.Mails.SendUnreadMailCount();
         }
         else
-            _log.Debug($"CSTakeAllAttachmentItemPacket - Failed for: {mailId} -> {Connection.ActiveChar.Name}");
+            Logger.Debug($"CSTakeAllAttachmentItemPacket - Failed for: {mailId} -> {Connection.ActiveChar.Name}");
     }
 }

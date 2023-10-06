@@ -12,7 +12,7 @@ public class CSDismissExpeditionPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        _log.Debug("DismissExpedition");
+        Logger.Debug("DismissExpedition");
         // Empty struct
         ExpeditionManager.Disband(Connection.ActiveChar);
     }

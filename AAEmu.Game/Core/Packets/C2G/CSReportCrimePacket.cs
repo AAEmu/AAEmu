@@ -18,6 +18,6 @@ public class CSReportCrimePacket : GamePacket
         var unk3Id = stream.ReadUInt32();
         var msg = stream.ReadString();
 
-        _log.Warn("ReportCrime, ObjId: {0}, Msg: {1}, Id: {2}, {3}, {4}", objId, msg, unkId, unk2Id, unk3Id);
+        Logger.Warn("ReportCrime, ObjId: {0}, Msg: {1}, Id: {2}, {3}, {4}", objId, msg, unkId, unk2Id, unk3Id);
     }
 }

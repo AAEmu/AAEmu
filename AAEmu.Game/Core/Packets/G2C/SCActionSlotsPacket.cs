@@ -39,7 +39,7 @@ public class SCActionSlotsPacket : GamePacket
                     }
                 default:
                     {
-                        _log.Error("SCActionSlotsPacket, Unknown ActionSlotType!");
+                        Logger.Error("SCActionSlotsPacket, Unknown ActionSlotType!");
                         break;
                     }
             }

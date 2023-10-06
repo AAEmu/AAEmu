@@ -13,6 +13,6 @@ public class CSSkipFinalStatementPacket : GamePacket
     {
         var trial = stream.ReadUInt32();
 
-        _log.Warn("SkipFinalStatement, Trial: {0}", trial);
+        Logger.Warn("SkipFinalStatement, Trial: {0}", trial);
     }
 }

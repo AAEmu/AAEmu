@@ -16,7 +16,7 @@ public class CSExpressEmotionPacket : GamePacket
         var obj2Id = stream.ReadBc(); // target
         var emotionId = stream.ReadUInt32();
 
-        _log.Warn("ExpressEmotion, ObjId: {0}, Obj2Id: {1}, EmotionId: {2}", objId, obj2Id, emotionId);
+        Logger.Warn("ExpressEmotion, ObjId: {0}, Obj2Id: {1}, EmotionId: {2}", objId, obj2Id, emotionId);
         Connection?.ActiveChar?.BroadcastPacket(new SCEmotionExpressedPacket(objId, obj2Id, emotionId), true);
         Connection?.ActiveChar?.Quests?.OnExpressFire(emotionId, objId, obj2Id);
     }

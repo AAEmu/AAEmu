@@ -13,6 +13,6 @@ public class CSCharDetailPacket : GamePacket
     {
         var name = stream.ReadString();
 
-        _log.Debug("CharDetail, Name: {0}", name);
+        Logger.Debug("CharDetail, Name: {0}", name);
     }
 }

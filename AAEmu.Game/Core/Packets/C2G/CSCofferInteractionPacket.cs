@@ -16,12 +16,12 @@ public class CSCofferInteractionPacket : GamePacket
         var cofferObjId = stream.ReadBc();
         var opening = stream.ReadBoolean();
 
-        _log.Warn("CofferInteraction, cofferObjId: {0}, opening: {1}", cofferObjId, opening);
+        Logger.Warn("CofferInteraction, cofferObjId: {0}, opening: {1}", cofferObjId, opening);
         if (opening)
         {
             if (!DoodadManager.OpenCofferDoodad(Connection.ActiveChar, cofferObjId))
             {
-                _log.Warn($"{Connection.ActiveChar.Name} failed to Open coffer objId {cofferObjId}");
+                Logger.Warn($"{Connection.ActiveChar.Name} failed to Open coffer objId {cofferObjId}");
                 // If it failed, the coffer is likely in use by somebody else
                 Connection.ActiveChar.SendErrorMessage(ErrorMessageType.CofferInUse);
             }
@@ -29,7 +29,7 @@ public class CSCofferInteractionPacket : GamePacket
         else
         {
             if (!DoodadManager.CloseCofferDoodad(Connection.ActiveChar, cofferObjId))
-                _log.Warn($"{Connection.ActiveChar.Name} failed to Close coffer objId {cofferObjId}");
+                Logger.Warn($"{Connection.ActiveChar.Name} failed to Close coffer objId {cofferObjId}");
         }
     }
 }

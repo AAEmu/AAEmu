@@ -14,7 +14,7 @@ public class CSDowngradeExpertLimitPacket : GamePacket
         var id = stream.ReadUInt32();
         var autoUseAAPoint = stream.ReadBoolean();
 
-        _log.Debug("DowngradeExpertLimit, id -> {0}, autoUseAAPoint -> {1}", id, autoUseAAPoint);
+        Logger.Debug("DowngradeExpertLimit, id -> {0}, autoUseAAPoint -> {1}", id, autoUseAAPoint);
 
         Connection.ActiveChar.Actability.Regrade(id, false);
     }

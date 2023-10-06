@@ -13,6 +13,6 @@ public class CSRequestCharBriefPacket : GamePacket
     {
         var id = stream.ReadUInt32();
 
-        _log.Debug("RequestCharBrief, Id: {0}", id);
+        Logger.Debug("RequestCharBrief, Id: {0}", id);
     }
 }

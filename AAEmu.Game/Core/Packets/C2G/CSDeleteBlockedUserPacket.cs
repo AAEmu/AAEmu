@@ -13,7 +13,7 @@ public class CSDeleteBlockedUserPacket : GamePacket
     {
         var name = stream.ReadString();
 
-        _log.Warn("CSDeleteBlockedUserPacket, {0}", name);
+        Logger.Warn("CSDeleteBlockedUserPacket, {0}", name);
         Connection.ActiveChar.Blocked.RemoveBlockedUser(name);
     }
 }

@@ -15,7 +15,7 @@ namespace AAEmu.Game.Utils.Scripts;
 
 public static class ScriptCompiler
 {
-    private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
     private static Assembly _assembly;
     private static Dictionary<string, ScriptObject> _scriptsObjects = new();
 
@@ -60,12 +60,12 @@ public static class ScriptCompiler
             catch (Exception e)
             {
                 hasErrors = true;
-                _log.Error($"Error in {type}");
-                _log.Error(e);
+                _logger.Error($"Error in {type}");
+                _logger.Error(e);
             }
         }
         if (hasErrors)
-            _log.Warn($"There were some errors when compiling the user scripts !");
+            _logger.Warn($"There were some errors when compiling the user scripts !");
         // throw new Exception("There were errors in the user scripts !");
     }
 
@@ -95,13 +95,13 @@ public static class ScriptCompiler
 
     public static bool CompileScripts(IEnumerable<MetadataReference> references, out Assembly assembly, out ImmutableArray<Diagnostic> diagnostics)
     {
-        _log.Info("Compiling scripts...");
+        _logger.Info("Compiling scripts...");
         var files = GetScripts("*.cs");
         var isOk = true;
 
         if (files.Length == 0)
         {
-            _log.Info("Compile done (no files found)");
+            _logger.Info("Compile done (no files found)");
             assembly = null;
             diagnostics = ImmutableArray<Diagnostic>.Empty;
             return true;
@@ -140,7 +140,7 @@ public static class ScriptCompiler
         bool res = true;
         if (diagnostics.Length == 0)
         {
-            _log.Info("Compile done (0 errors, 0 warnings)");
+            _logger.Info("Compile done (0 errors, 0 warnings)");
         }
         else
         {
@@ -150,10 +150,10 @@ public static class ScriptCompiler
             if (errorCount > 0)
             {
                 res = false;
-                _log.Error("Compile failed ({0} errors, {1} warnings)", errorCount, warningCount);
+                _logger.Error("Compile failed ({0} errors, {1} warnings)", errorCount, warningCount);
             }
             else
-                _log.Info("Compile done ({0} errors, {1} warnings)", errorCount, warningCount);
+                _logger.Info("Compile done ({0} errors, {1} warnings)", errorCount, warningCount);
 
             var result = diagnostics.Where(diagnostic =>
                 diagnostic.Severity == DiagnosticSeverity.Error ||
@@ -161,9 +161,9 @@ public static class ScriptCompiler
             foreach (var diagnostic in result)
             {
                 if (diagnostic.Severity == DiagnosticSeverity.Error)
-                    _log.Error(diagnostic);
+                    _logger.Error(diagnostic);
                 else
-                    _log.Warn(diagnostic);
+                    _logger.Warn(diagnostic);
             }
         }
 

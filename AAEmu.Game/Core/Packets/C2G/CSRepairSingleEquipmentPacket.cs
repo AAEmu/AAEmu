@@ -19,7 +19,7 @@ public class CSRepairSingleEquipmentPacket : GamePacket
         var slot = stream.ReadByte();
         var autoUseAAPoint = stream.ReadBoolean();
 
-        _log.Debug("RepairSingleEquipment, SlotType: {0}, Slot: {1}, AutoUseAAPoint: {2}", slotType, slot, autoUseAAPoint);
+        Logger.Debug("RepairSingleEquipment, SlotType: {0}, Slot: {1}, AutoUseAAPoint: {2}", slotType, slot, autoUseAAPoint);
 
         var item = Connection.ActiveChar.Inventory.GetItem(slotType, slot);
 

@@ -14,6 +14,6 @@ public class CSJuryEndTestimonyPacket : GamePacket
         var trial = stream.ReadUInt32();
         var jury = stream.ReadInt32();
 
-        _log.Warn("JuryEndTestimony, Trial: {0}, Jury: {1}", trial, jury);
+        Logger.Warn("JuryEndTestimony, Trial: {0}, Jury: {1}", trial, jury);
     }
 }

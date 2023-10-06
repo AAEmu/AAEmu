@@ -13,6 +13,6 @@ public class CSPremiumServiceBuyPacket : GamePacket
     {
         var cid = stream.ReadInt32();
 
-        _log.Warn("PremiumServiceBuy, CId: {0}", cid);
+        Logger.Warn("PremiumServiceBuy, CId: {0}", cid);
     }
 }

@@ -14,6 +14,6 @@ public class CSFamilyLeavePacket : GamePacket
     {
         if (Connection.ActiveChar.Family > 0)
             FamilyManager.Instance.LeaveFamily(Connection.ActiveChar);
-        _log.Debug("FamilyLeave");
+        Logger.Debug("FamilyLeave");
     }
 }

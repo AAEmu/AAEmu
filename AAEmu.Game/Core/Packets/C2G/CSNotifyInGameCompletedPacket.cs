@@ -14,6 +14,6 @@ public class CSNotifyInGameCompletedPacket : GamePacket
     {
 
         WorldManager.Instance.OnPlayerJoin(Connection.ActiveChar);
-        _log.Info("NotifyInGameCompleted SubZoneId {0}", Connection.ActiveChar.SubZoneId);
+        Logger.Info("NotifyInGameCompleted SubZoneId {0}", Connection.ActiveChar.SubZoneId);
     }
 }

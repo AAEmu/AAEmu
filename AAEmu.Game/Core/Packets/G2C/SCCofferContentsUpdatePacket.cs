@@ -27,7 +27,7 @@ public class SCCofferContentsUpdatePacket : GamePacket
     public override PacketStream Write(PacketStream stream)
     {
         if (_cofferDoodad?.ItemContainer == null)
-            _log.Warn($"No ItemContainer assigned to Coffer, objId: {_cofferDoodad?.ObjId} dbId: {_cofferDoodad?.DbId}");
+            Logger.Warn($"No ItemContainer assigned to Coffer, objId: {_cofferDoodad?.ObjId} dbId: {_cofferDoodad?.DbId}");
 
         stream.WriteBc(_cofferDoodad?.ObjId ?? 0);
         stream.Write(_cofferDoodad?.GetItemContainerId() ?? 0);

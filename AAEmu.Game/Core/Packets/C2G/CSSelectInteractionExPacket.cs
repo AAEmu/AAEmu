@@ -15,6 +15,6 @@ public class CSSelectInteractionExPacket : GamePacket
         var interactionEx = stream.ReadInt32();
         var var1 = stream.ReadInt32();
 
-        _log.Warn("SelectInteractionEx, TargetId: {0}, InteractionEx: {1}, Var1: {2}", targetId, interactionEx, var1);
+        Logger.Warn("SelectInteractionEx, TargetId: {0}, InteractionEx: {1}, Var1: {2}", targetId, interactionEx, var1);
     }
 }

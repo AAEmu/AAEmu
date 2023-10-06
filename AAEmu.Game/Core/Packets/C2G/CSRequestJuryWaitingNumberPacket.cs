@@ -12,6 +12,6 @@ public class CSRequestJuryWaitingNumberPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         // Empty struct
-        _log.Warn("RequestJuryWaitingNumber");
+        Logger.Warn("RequestJuryWaitingNumber");
     }
 }

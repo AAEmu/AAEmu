@@ -15,6 +15,6 @@ public class CSTurretStatePacket : GamePacket
         var pitch = stream.ReadSingle();
         var yaw = stream.ReadSingle();
 
-        _log.Debug("TurretState, UnitId: {0}, Pitch: {1}, Yaw: {2}", unitId, pitch, yaw);
+        Logger.Debug("TurretState, UnitId: {0}, Pitch: {1}, Yaw: {2}", unitId, pitch, yaw);
     }
 }

@@ -25,6 +25,6 @@ public class CSChangeItemLookPacket : GamePacket
         var itemId = stream.ReadUInt64();
         var lookId = stream.ReadUInt64();
 
-        _log.Warn("ChangeItemLook, ItemId: {0}, LookId: {1}", itemId, lookId);
+        Logger.Warn("ChangeItemLook, ItemId: {0}, LookId: {1}", itemId, lookId);
     }
 }

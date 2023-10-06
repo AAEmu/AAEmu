@@ -15,7 +15,7 @@ public class CSExpandSlotsPacket : GamePacket
         var slotType = stream.ReadInt32();
         var autoUseAAPoint = stream.ReadBoolean();
 
-        _log.Debug("ExpandSlots, slotType -> {0}, autoUseAAPoint -> {1}", slotType, autoUseAAPoint);
+        Logger.Debug("ExpandSlots, slotType -> {0}, autoUseAAPoint -> {1}", slotType, autoUseAAPoint);
 
         Connection.ActiveChar.Inventory.ExpandSlot((SlotType)slotType);
     }

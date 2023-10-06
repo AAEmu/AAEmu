@@ -15,7 +15,7 @@ public class CSPremiumServiceListPacket : GamePacket
     {
         // Empty struct
 
-        _log.Warn("PremiumServiceList");
+        Logger.Warn("PremiumServiceList");
 
         var detail = new PremiumDetail();
         detail.CId = 8000001;

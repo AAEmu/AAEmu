@@ -14,7 +14,7 @@ public class CSTakeAttachmentSequentially : GamePacket
     public override void Read(PacketStream stream)
     {
         var mailId = stream.ReadInt64();
-        _log.Debug("TakeAttachmentSequentially, mailId: {0}", mailId);
+        Logger.Debug("TakeAttachmentSequentially, mailId: {0}", mailId);
         var mail = MailManager.Instance.GetMailById(mailId);
         if (mail.Header.ReceiverId != Connection.ActiveChar.Id) // just a check for hackers trying to steal mails
         {

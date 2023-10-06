@@ -13,6 +13,6 @@ public class CSConsoleCmdUsedPacket : GamePacket
     {
         var cmd = stream.ReadString();
 
-        _log.Debug("ConsoleCmdUsed, Cmd: {0}", cmd);
+        Logger.Debug("ConsoleCmdUsed, Cmd: {0}", cmd);
     }
 }

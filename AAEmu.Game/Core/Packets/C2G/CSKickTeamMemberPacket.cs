@@ -14,6 +14,6 @@ public class CSKickTeamMemberPacket : GamePacket
         var teamId = stream.ReadUInt32();
         var memberId = stream.ReadUInt32();
 
-        _log.Warn("KickTeamMember, TeamId: {0}, MemberId: {1}", teamId, memberId);
+        Logger.Warn("KickTeamMember, TeamId: {0}, MemberId: {1}", teamId, memberId);
     }
 }

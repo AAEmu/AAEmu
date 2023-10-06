@@ -14,6 +14,6 @@ public class CSApplyToInstantGamePacket : GamePacket
         var instanceId = stream.ReadUInt32();
         var corps = stream.ReadByte();
 
-        _log.Warn("ApplyToInstantGame, InstanceId: {0}, Corps: {1}", instanceId, corps);
+        Logger.Warn("ApplyToInstantGame, InstanceId: {0}, Corps: {1}", instanceId, corps);
     }
 }

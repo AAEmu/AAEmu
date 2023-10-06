@@ -35,7 +35,7 @@ public class CSStartSkillPacket : GamePacket
         catch (AggregateException ae)
         {
             foreach (var e in ae.InnerExceptions)
-                _log.Trace("{0}: {1}", e.GetType().Name, e.Message);
+                Logger.Trace("{0}: {1}", e.GetType().Name, e.Message);
         }
 
         var skillId = stream.ReadUInt32();
@@ -55,14 +55,14 @@ public class CSStartSkillPacket : GamePacket
         var skillObject = SkillObject.GetByType((SkillObjectType)flagType);
         if (flagType > 0) skillObject.Read(stream);
 
-        _log.Trace("StartSkill: Id {0}, flag {1}", skillId, flag);
+        Logger.Trace("StartSkill: Id {0}, flag {1}", skillId, flag);
 
         if (skillCaster is SkillCasterUnit scu)
         {
             var unit = WorldManager.Instance.GetUnit(scu.ObjId);
             if (unit is Character character)
             {
-                _log.Debug("{0} is using skill {1}", character.Name, skillId);
+                Logger.Debug("{0} is using skill {1}", character.Name, skillId);
             }
         }
 
@@ -114,7 +114,7 @@ public class CSStartSkillPacket : GamePacket
         }
         else
         {
-            _log.Warn("StartSkill: Id {0}, undefined use type", skillId);
+            Logger.Warn("StartSkill: Id {0}, undefined use type", skillId);
             //If its a valid skill cast it. This fixes interactions with quest items/doodads.
             var unskill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
             unskill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);

@@ -19,7 +19,7 @@ public abstract class InternalPacket : PacketBase<InternalConnection>
         }
         catch (Exception ex)
         {
-            _log.Fatal(ex);
+            Logger.Fatal(ex);
             throw;
         }
 
@@ -34,7 +34,7 @@ public abstract class InternalPacket : PacketBase<InternalConnection>
         }
         catch (Exception ex)
         {
-            _log.Fatal(ex);
+            Logger.Fatal(ex);
             throw;
         }
 

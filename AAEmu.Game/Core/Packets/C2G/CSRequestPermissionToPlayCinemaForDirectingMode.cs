@@ -15,6 +15,6 @@ public class CSRequestPermissionToPlayCinemaForDirectingMode : GamePacket
         var npcObjId = stream.ReadBc();
         var doodadObjId = stream.ReadBc();
 
-        _log.Warn("CSRequestPermissionToPlayCinemaForDirectingMode");
+        Logger.Warn("CSRequestPermissionToPlayCinemaForDirectingMode");
     }
 }

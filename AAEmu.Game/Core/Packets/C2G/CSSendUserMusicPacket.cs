@@ -16,7 +16,7 @@ public class CSSendUserMusicPacket : GamePacket
         var blockSize = stream.ReadUInt16();
         var data = stream.ReadBytes(blockSize);
 
-        _log.Debug("Caching MIDI data size: {0}/{1}", blockSize, songSize);
+        Logger.Debug("Caching MIDI data size: {0}/{1}", blockSize, songSize);
         MusicManager.Instance.CacheMidi(Connection.ActiveChar.Id, data);
     }
 }

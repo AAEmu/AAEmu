@@ -74,7 +74,7 @@ public class CSMoveUnitPacket : GamePacket
         {
             // TODO по какой то причине объект удалили из региона, наверное нужно его как то вернуть назад 
             // TODO for some reason the object has been removed from the region, you probably need to get it back somehow
-            _log.Warn("Invalid target {0} from {1}", _objId, character.Name);
+            Logger.Warn("Invalid target {0} from {1}", _objId, character.Name);
             return;
         }
 
@@ -280,7 +280,7 @@ public class CSMoveUnitPacket : GamePacket
                     break;
                 }
             default:
-                _log.Warn("Unknown MoveType: {0} by {1} for {2} ", _moveType, character.Name, targetUnit.Name);
+                Logger.Warn("Unknown MoveType: {0} by {1} for {2} ", _moveType, character.Name, targetUnit.Name);
                 break;
         }
     }

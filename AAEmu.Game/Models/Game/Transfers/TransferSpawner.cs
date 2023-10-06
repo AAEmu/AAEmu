@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Transfers;
 
 public class TransferSpawner : Spawner<Transfer>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private List<Transfer> _spawned;
     private Transfer _lastSpawn;
@@ -49,7 +49,7 @@ public class TransferSpawner : Spawner<Transfer>
         var transfer = TransferManager.Instance.Create(objId, UnitId, this);
         if (transfer == null)
         {
-            _log.Warn("Transfer {0}, from spawn not exist at db", UnitId);
+            _logger.Warn("Transfer {0}, from spawn not exist at db", UnitId);
             return null;
         }
 
@@ -57,7 +57,7 @@ public class TransferSpawner : Spawner<Transfer>
         transfer.Transform.ApplyWorldSpawnPosition(Position, transfer.Transform.InstanceId, true);
         if (transfer.Transform == null)
         {
-            _log.Error("Can't spawn transfer {1} from spawn {0}", Id, UnitId);
+            _logger.Error("Can't spawn transfer {1} from spawn {0}", Id, UnitId);
             return null;
         }
 
@@ -108,7 +108,7 @@ public class TransferSpawner : Spawner<Transfer>
                 }
                 else
                 {
-                    _log.Warn("PathName: " + transfer.Template.TransferAllPaths[0].PathName + " not found!");
+                    _logger.Warn("PathName: " + transfer.Template.TransferAllPaths[0].PathName + " not found!");
                 }
             }
         }

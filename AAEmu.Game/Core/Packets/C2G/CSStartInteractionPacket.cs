@@ -22,7 +22,7 @@ public class CSStartInteractionPacket : GamePacket
         var mouseButton = stream.ReadByte();
         var modifierKeys = stream.ReadInt32();
 
-        _log.Warn("StartInteraction, NpcObjId: {0}, objId: {1}, extraInfo: {2}, pickId: {3}, mouse: {4}, mods: {5}",
+        Logger.Warn("StartInteraction, NpcObjId: {0}, objId: {1}, extraInfo: {2}, pickId: {3}, mouse: {4}, mods: {5}",
             npcObjId, objId, extraInfo, pickId, mouseButton, modifierKeys);
 
         var npc = WorldManager.Instance.GetNpc(npcObjId);

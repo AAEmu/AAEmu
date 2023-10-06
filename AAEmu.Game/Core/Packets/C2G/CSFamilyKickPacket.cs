@@ -16,6 +16,6 @@ public class CSFamilyKickPacket : GamePacket
 
         FamilyManager.Instance.KickMember(Connection.ActiveChar, memberId);
 
-        _log.Debug("FamilyKick, memberId: {0}", memberId);
+        Logger.Debug("FamilyKick, memberId: {0}", memberId);
     }
 }

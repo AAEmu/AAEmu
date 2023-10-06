@@ -24,6 +24,6 @@ public class WorldSetLootrateSubCommand : SubCommandBase
         }
         character.SetLootRate(lootRate);
         SendMessage(character, "Set GrowthRate {0}", lootRate);
-        _log.Warn($"{Title}: {lootRate}");
+        Logger.Warn($"{Title}: {lootRate}");
     }
 }

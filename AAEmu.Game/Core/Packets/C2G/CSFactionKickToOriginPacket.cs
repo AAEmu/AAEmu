@@ -13,6 +13,6 @@ public class CSFactionKickToOriginPacket : GamePacket
     {
         var name = stream.ReadString();
 
-        _log.Debug("FactionKickToOrigin, Name: {0}", name);
+        Logger.Debug("FactionKickToOrigin, Name: {0}", name);
     }
 }

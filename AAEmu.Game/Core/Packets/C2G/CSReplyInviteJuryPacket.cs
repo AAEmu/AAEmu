@@ -14,6 +14,6 @@ public class CSReplyInviteJuryPacket : GamePacket
         var accept = stream.ReadBoolean();
         var trial = stream.ReadUInt32();
 
-        _log.Warn("ReplyInviteJury, Accept: {0}, Trial: {1}", accept, trial);
+        Logger.Warn("ReplyInviteJury, Accept: {0}, Trial: {1}", accept, trial);
     }
 }

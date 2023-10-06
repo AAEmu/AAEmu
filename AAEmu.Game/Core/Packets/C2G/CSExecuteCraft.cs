@@ -16,7 +16,7 @@ public class CSExecuteCraft : GamePacket
         var objId = stream.ReadBc();
         var count = stream.ReadInt32();
 
-        _log.Debug("CSExecuteCraft, craftId : {0} , objId : {1}, count : {2}", craftId, objId, count);
+        Logger.Debug("CSExecuteCraft, craftId : {0} , objId : {1}, count : {2}", craftId, objId, count);
 
         var craft = CraftManager.Instance.GetCraftById(craftId);
         var character = Connection.ActiveChar;

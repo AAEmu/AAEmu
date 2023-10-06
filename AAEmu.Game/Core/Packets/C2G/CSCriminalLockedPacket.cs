@@ -13,6 +13,6 @@ public class CSCriminalLockedPacket : GamePacket
     {
         var id = stream.ReadUInt32();
 
-        _log.Warn("CriminalLocked, Id: {0}", id);
+        Logger.Warn("CriminalLocked, Id: {0}", id);
     }
 }

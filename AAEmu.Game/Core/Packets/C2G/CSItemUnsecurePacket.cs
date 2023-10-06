@@ -19,6 +19,6 @@ public class CSItemUnsecurePacket : GamePacket
 
         var itemId = stream.ReadUInt64();
 
-        _log.Warn("ItemUnsecure, ItemId: {0}, SlotType: {1}, Slot: {2}", itemId, slotType, slot);
+        Logger.Warn("ItemUnsecure, ItemId: {0}, SlotType: {1}, Slot: {2}", itemId, slotType, slot);
     }
 }

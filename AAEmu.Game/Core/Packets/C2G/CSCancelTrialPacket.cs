@@ -12,6 +12,6 @@ public class CSCancelTrialPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         var trial = stream.ReadUInt32();
-        _log.Warn("CancelTrial, Trial: {0}", trial);
+        Logger.Warn("CancelTrial, Trial: {0}", trial);
     }
 }

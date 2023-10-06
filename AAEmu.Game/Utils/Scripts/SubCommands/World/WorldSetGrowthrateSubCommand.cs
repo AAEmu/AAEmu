@@ -24,6 +24,6 @@ public class WorldSetGrowthrateSubCommand : SubCommandBase
         }
         character.SetGrowthRate(growthRate);
         SendMessage(character, "Set GrowthRate {0}", growthRate);
-        _log.Warn($"{Title}: {growthRate}");
+        Logger.Warn($"{Title}: {growthRate}");
     }
 }

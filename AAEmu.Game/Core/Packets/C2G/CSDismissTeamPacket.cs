@@ -13,6 +13,6 @@ public class CSDismissTeamPacket : GamePacket
     {
         var teamId = stream.ReadUInt32();
 
-        _log.Warn("DismissTeam, TeamId: {0}", teamId);
+        Logger.Warn("DismissTeam, TeamId: {0}", teamId);
     }
 }

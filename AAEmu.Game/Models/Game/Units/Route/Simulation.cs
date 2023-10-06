@@ -7,7 +7,6 @@ using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -34,7 +33,7 @@ public class Simulation : Patrol
         Init(unit);
     }
 
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     public Character Character { get; set; }
     public Npc Npc { get; set; }
@@ -68,8 +67,8 @@ public class Simulation : Patrol
     //Not used
     //private float MovingDistance = 0.25f; //0.3f;
 
-    float RangeToCheckPoint = 0.5f; // дистанция до чекпоинта при которой считается , что мы достигли оного
-    int MoveTrigerDelay = 1000;     // срабатывание таймера на движение  0,8 сек
+    private float RangeToCheckPoint = 0.5f; // дистанция до чекпоинта при которой считается , что мы достигли оного
+    private int MoveTrigerDelay = 1000;     // срабатывание таймера на движение  0,8 сек
 
     private uint SkillId { get; set; }
     private uint Timeout { get; set; }
@@ -245,7 +244,7 @@ public class Simulation : Patrol
         var result = System.IO.Path.Combine(MoveFilesPath, MoveFileName + MoveFileExt);
         return result;
     }
-    
+
     //***************************************************************
     public void ParseMoveClient(Npc npc)
     {
@@ -382,13 +381,13 @@ public class Simulation : Patrol
         }
     }
 
-    private void RepeatMove(Simulation sim, Npc npc, float targetX, float TargetY, float TargetZ, double time = 100)
+    /* unused private void RepeatMove(Simulation sim, Npc npc, float targetX, float TargetY, float TargetZ, double time = 100)
     {
         //if ((sim ?? this).AbandonTo)
         {
             TaskManager.Instance.Schedule(new Move(sim ?? this, npc, targetX, TargetY, TargetZ), TimeSpan.FromMilliseconds(time));
         }
-    }
+    }*/
 
     private void RepeatMove(Simulation sim, Npc npc, Vector3 target, double time = 100)
     {
@@ -592,19 +591,19 @@ public class Simulation : Patrol
             else
             {
                 if (Npc != null)
-                    _log.Debug($"Missing path file {pathFileName} for NPC {Npc.Name}, TemplateId: {Npc.TemplateId}, ObjId:{Npc.ObjId}");
+                    _logger.Debug($"Missing path file {pathFileName} for NPC {Npc.Name}, TemplateId: {Npc.TemplateId}, ObjId:{Npc.ObjId}");
                 if (Character != null)
-                    _log.Debug($"Missing path file {pathFileName} for Character {Character.Name}, ObjId:{Character.ObjId}");
+                    _logger.Debug($"Missing path file {pathFileName} for Character {Character.Name}, ObjId:{Character.ObjId}");
             }
 
             AddPaths();
         }
         catch (Exception e)
         {
-            _log.Warn($"Error in read MovePath: {e.Message}");
+            _logger.Warn($"Error in read MovePath: {e.Message}");
             StopMove(Npc);
         }
-        
+
         // Read RecordPath
         try
         {
@@ -613,7 +612,7 @@ public class Simulation : Patrol
         }
         catch (Exception e)
         {
-            _log.Warn($"Error in read RecordPath: {e.Message}");
+            _logger.Warn($"Error in read RecordPath: {e.Message}");
             //Character.SendMessage($"[MoveTo] Error in read MovePath: {e.Message}");
             StopMove(Npc);
         }

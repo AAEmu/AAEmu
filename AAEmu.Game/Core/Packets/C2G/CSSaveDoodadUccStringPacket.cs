@@ -14,6 +14,6 @@ public class CSSaveDoodadUccStringPacket : GamePacket
         var objId = stream.ReadBc();
         var data = stream.ReadString();
 
-        _log.Warn("SaveDoodadUccString, ObjId: {0}", objId);
+        Logger.Warn("SaveDoodadUccString, ObjId: {0}", objId);
     }
 }

@@ -13,6 +13,6 @@ public class CSJoinTrialAudiencePacket : GamePacket
     {
         var id = stream.ReadUInt32();
 
-        _log.Warn("JoinTrialAudience, Id: {0}", id);
+        Logger.Warn("JoinTrialAudience, Id: {0}", id);
     }
 }

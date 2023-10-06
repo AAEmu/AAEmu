@@ -26,7 +26,7 @@ public class CARequestAuthTrionPacket : LoginPacket
 
         if (xmlDoc.Root == null)
         {
-            _log.Error("RequestAuthTrion: Catch parse ticket");
+            Logger.Error("RequestAuthTrion: Catch parse ticket");
             return;
         }
 
@@ -35,7 +35,7 @@ public class CARequestAuthTrionPacket : LoginPacket
 
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
         {
-            _log.Error("RequestAuthTrion: username or password is empty or whitespace");
+            Logger.Error("RequestAuthTrion: username or password is empty or whitespace");
             return;
         }
 

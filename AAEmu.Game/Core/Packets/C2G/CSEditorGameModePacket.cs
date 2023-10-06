@@ -20,6 +20,6 @@ public class CSEditorGameModePacket : GamePacket
 
         // "ori" is byte[16]. No clue how to read it or what it contains.
 
-        _log.Debug("EditorGameMode, On: {0}", on);
+        Logger.Debug("EditorGameMode, On: {0}", on);
     }
 }

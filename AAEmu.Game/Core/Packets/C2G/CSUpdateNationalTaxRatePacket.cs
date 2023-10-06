@@ -14,6 +14,6 @@ public class CSUpdateNationalTaxRatePacket : GamePacket
         var id = stream.ReadUInt16();
         var taxRate = stream.ReadInt32();
 
-        _log.Debug("UpdateNationalTaxRate, Id: {0}, TaxRate: {1}", id, taxRate);
+        Logger.Debug("UpdateNationalTaxRate, Id: {0}, TaxRate: {1}", id, taxRate);
     }
 }

@@ -18,7 +18,7 @@ public class CSTryQuestCompleteAsLetItDonePacket : GamePacket
         objId = stream.ReadBc();
         selected = stream.ReadInt32();
 
-        _log.Warn("TryQuestCompleteAsLetItDone, Id: {0}, ObjId: {1}, Selected: {2}", id, objId, selected);
+        Logger.Warn("TryQuestCompleteAsLetItDone, Id: {0}, ObjId: {1}, Selected: {2}", id, objId, selected);
 
         if (
             objId > 0

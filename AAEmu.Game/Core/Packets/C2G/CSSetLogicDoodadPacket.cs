@@ -14,6 +14,6 @@ public class CSSetLogicDoodadPacket : GamePacket
         var objId = stream.ReadBc();
         var obj2Id = stream.ReadBc();
 
-        _log.Warn("SetLogicDoodad, ObjId: {0}, {1}", objId, obj2Id);
+        Logger.Warn("SetLogicDoodad, ObjId: {0}, {1}", objId, obj2Id);
     }
 }

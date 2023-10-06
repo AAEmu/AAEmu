@@ -21,6 +21,6 @@ public class CSInstanceLoadedPacket : GamePacket
 
         Connection.ActiveChar.DisabledSetPosition = false;
 
-        _log.Debug("InstanceLoaded.");
+        Logger.Debug("InstanceLoaded.");
     }
 }

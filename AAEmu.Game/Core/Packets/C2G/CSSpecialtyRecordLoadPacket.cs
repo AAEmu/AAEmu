@@ -14,6 +14,6 @@ public class CSSpecialtyRecordLoadPacket : GamePacket
         var zoneId = stream.ReadInt32();
         var id = stream.ReadUInt32();
 
-        _log.Warn("CSSpecialtyRecordLoadPacket, ZoneId: {0}, Id: {1}", zoneId, id);
+        Logger.Warn("CSSpecialtyRecordLoadPacket, ZoneId: {0}, Id: {1}", zoneId, id);
     }
 }

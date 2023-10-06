@@ -16,7 +16,7 @@ public class CSFamilyReplyInvitationPacket : GamePacket
         var join = stream.ReadBoolean();
         var role = stream.ReadString();
 
-        _log.Debug("FamilyReplyInvitation, invitorId: {0}, join: {1}, role: {2}", invitorId, join, role);
+        Logger.Debug("FamilyReplyInvitation, invitorId: {0}, join: {1}, role: {2}", invitorId, join, role);
 
         FamilyManager.Instance.ReplyToInvite(invitorId, Connection.ActiveChar, join, role);
     }

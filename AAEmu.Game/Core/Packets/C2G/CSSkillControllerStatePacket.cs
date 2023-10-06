@@ -20,7 +20,7 @@ public class CSSkillControllerStatePacket : GamePacket
             var cutouted = stream.ReadBoolean();
         }
 
-        _log.Warn("SkillControllerState");
+        Logger.Warn("SkillControllerState");
     }
 
     // TODO 

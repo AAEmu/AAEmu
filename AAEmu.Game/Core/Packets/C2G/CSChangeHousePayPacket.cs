@@ -14,6 +14,6 @@ public class CSChangeHousePayPacket : GamePacket
         var tl = stream.ReadUInt16();
         var moneyAmount = stream.ReadInt32();
 
-        _log.Debug("ChangeHousePay, Tl: {0}, MoneyAmount: {1}", tl, moneyAmount);
+        Logger.Debug("ChangeHousePay, Tl: {0}, MoneyAmount: {1}", tl, moneyAmount);
     }
 }

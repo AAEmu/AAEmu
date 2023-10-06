@@ -7,7 +7,7 @@ namespace AAEmu.Commons.Network;
 
 public class SocketAsyncEventArgsPool
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
     private ConcurrentStack<SocketAsyncEventArgs> _pool;
 
     public int Count => _pool.Count;
@@ -22,7 +22,7 @@ public class SocketAsyncEventArgsPool
     {
         if (item == null)
         {
-            _log.Error("Items added to a SocketAsyncEventArgsPool cannot be null.");
+            _logger.Error("Items added to a SocketAsyncEventArgsPool cannot be null.");
             throw
                 new ArgumentNullException(nameof(item));
         }
@@ -32,7 +32,7 @@ public class SocketAsyncEventArgsPool
     public SocketAsyncEventArgs Pop()
     {
         if (!_pool.TryPop(out var output))
-            _log.Error("TryPop from SocketAsyncEventArgs ConcurrentStack failed.");
+            _logger.Error("TryPop from SocketAsyncEventArgs ConcurrentStack failed.");
         return output;
     }
 }

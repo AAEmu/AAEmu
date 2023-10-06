@@ -14,6 +14,6 @@ public class CSSearchListPacket : GamePacket
         var zoneType = stream.ReadByte();
         var onlineType = stream.ReadByte();
 
-        _log.Debug("SearchList, ZoneType: {0}, OnlineType: {1}", zoneType, onlineType);
+        Logger.Debug("SearchList, ZoneType: {0}, OnlineType: {1}", zoneType, onlineType);
     }
 }

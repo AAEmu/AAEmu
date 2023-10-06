@@ -24,7 +24,7 @@ public class CSDestroyItemPacket : GamePacket
         var item = Connection.ActiveChar.Inventory.GetItem(slotType, slot);
         if (item == null || item.Id != itemId || item.Count < count)
         {
-            _log.Warn("DestroyItem: Invalid item...");
+            Logger.Warn("DestroyItem: Invalid item...");
             // TODO ... ItemNotify?
             return;
         }
@@ -45,7 +45,7 @@ public class CSDestroyItemPacket : GamePacket
             else
             if (!item._holdingContainer.RemoveItem(ItemTaskType.Destroy, item, true))
             {
-                _log.Warn("DestroyItem: Failed to destroy item...");
+                Logger.Warn("DestroyItem: Failed to destroy item...");
             }
             // Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemRemove(item) }, new List<ulong>()));
         }

@@ -15,7 +15,7 @@ public class CSResurrectCharacterPacket : GamePacket
     {
         var inPlace = stream.ReadBoolean();
 
-        _log.Debug("ResurrectCharacter, InPlace: {0}", inPlace);
+        Logger.Debug("ResurrectCharacter, InPlace: {0}", inPlace);
 
         var portal = PortalManager.Instance.GetClosestReturnPortal(Connection.ActiveChar);
 

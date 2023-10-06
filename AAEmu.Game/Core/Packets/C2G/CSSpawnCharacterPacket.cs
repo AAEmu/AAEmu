@@ -27,6 +27,6 @@ public class CSSpawnCharacterPacket : GamePacket
             TimeManager.Instance.Subscribe(Connection, new TimeOfDayObserver(Connection.ActiveChar))
         );
 
-        _log.Info("CSSpawnCharacterPacket");
+        Logger.Info("CSSpawnCharacterPacket");
     }
 }

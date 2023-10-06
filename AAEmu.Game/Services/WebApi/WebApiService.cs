@@ -10,21 +10,21 @@ namespace AAEmu.Game.Services.WebApi;
 public class WebApiService : IHostedService
 {
     private WebApiServer _server;
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
         var config = AppConfiguration.Instance.WebApiNetwork;
         if (config is null)
         {
-            _log.Warn("WebApi server configuration not found. WebApi will not start");
+            _logger.Warn("WebApi server configuration not found. WebApi will not start");
             return Task.CompletedTask;
         }
 
         _server = new WebApiServer(config.Host.Equals("*") ? IPAddress.Any : IPAddress.Parse(config.Host), config.Port);
         _server.Start();
 
-        _log.Info($"WebApi server started on {config.Host}:{config.Port}");
+        _logger.Info($"WebApi server started on {config.Host}:{config.Port}");
         return Task.CompletedTask;
     }
 
@@ -33,7 +33,7 @@ public class WebApiService : IHostedService
         if (_server?.IsStarted ?? false)
             _server.Stop();
 
-        _log.Info("WebApi server stopped");
+        _logger.Info("WebApi server stopped");
         return Task.CompletedTask;
     }
 }

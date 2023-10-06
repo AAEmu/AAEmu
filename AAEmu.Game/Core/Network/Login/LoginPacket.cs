@@ -19,7 +19,7 @@ public abstract class LoginPacket : PacketBase<LoginConnection>
         }
         catch (Exception ex)
         {
-            _log.Fatal(ex);
+            Logger.Fatal(ex);
             throw;
         }
 
@@ -34,7 +34,7 @@ public abstract class LoginPacket : PacketBase<LoginConnection>
         }
         catch (Exception ex)
         {
-            _log.Fatal(ex);
+            Logger.Fatal(ex);
             throw;
         }
 

@@ -13,6 +13,6 @@ public class CSLeaveTeamPacket : GamePacket
     {
         var teamId = stream.ReadUInt32();
 
-        _log.Warn("LeaveTeam, TeamId: {0}", teamId);
+        Logger.Warn("LeaveTeam, TeamId: {0}", teamId);
     }
 }

@@ -12,6 +12,6 @@ public class CSStartedCinemaPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         // Empty struct
-        _log.Warn("StartedCinema");
+        Logger.Warn("StartedCinema");
     }
 }

@@ -18,6 +18,6 @@ public class CSBuySpecialtyItemPacket : GamePacket
 
         var objId = stream.ReadBc();
 
-        _log.Warn("BuySpecialtyItem, Id: {0}, Currency: {1}", id, currency);
+        Logger.Warn("BuySpecialtyItem, Id: {0}, Currency: {1}", id, currency);
     }
 }

@@ -12,7 +12,7 @@ public class CSAddBlockedUserPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         var name = stream.ReadString();
-        _log.Warn("AddBlockedUser, {0}", name);
+        Logger.Warn("AddBlockedUser, {0}", name);
         Connection.ActiveChar.Blocked.AddBlockedUser(name);
     }
 }

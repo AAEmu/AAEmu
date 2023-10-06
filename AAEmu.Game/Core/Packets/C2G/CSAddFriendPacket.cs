@@ -13,7 +13,7 @@ public class CSAddFriendPacket : GamePacket
     {
         var name = stream.ReadString();
 
-        _log.Debug("AddFriend, name: {0}", name);
+        Logger.Debug("AddFriend, name: {0}", name);
         Connection.ActiveChar.Friends.AddFriend(name);
     }
 }

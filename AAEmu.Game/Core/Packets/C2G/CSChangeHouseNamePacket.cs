@@ -15,7 +15,7 @@ public class CSChangeHouseNamePacket : GamePacket
         var tl = stream.ReadUInt16(); // houseId
         var name = stream.ReadString();
 
-        _log.Debug("ChangeHouseName, Tl: {0}, Name: {1}", tl, name);
+        Logger.Debug("ChangeHouseName, Tl: {0}, Name: {1}", tl, name);
         HousingManager.Instance.ChangeHouseName(Connection, tl, name);
     }
 }

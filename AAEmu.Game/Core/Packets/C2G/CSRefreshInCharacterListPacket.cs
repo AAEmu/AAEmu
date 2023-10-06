@@ -12,7 +12,7 @@ public class CSRefreshInCharacterListPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        _log.Debug("RefreshInCharacterList");
+        Logger.Debug("RefreshInCharacterList");
         Connection.SendPacket(new SCRefreshInCharacterListPacket());
     }
 }

@@ -24,6 +24,6 @@ public class WorldSetHonorrateSubCommand : SubCommandBase
         }
         character.SetHonorRate(honorRate);
         SendMessage(character, "Set HonorRate {0}", honorRate);
-        _log.Warn($"{Title}: {honorRate}");
+        Logger.Warn($"{Title}: {honorRate}");
     }
 }

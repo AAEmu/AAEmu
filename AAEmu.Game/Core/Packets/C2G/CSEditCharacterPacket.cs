@@ -12,6 +12,6 @@ public class CSEditCharacterPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         // TODO ... create
-        _log.Error("CSEditCharacterPacket is not implemented!");
+        Logger.Error("CSEditCharacterPacket is not implemented!");
     }
 }

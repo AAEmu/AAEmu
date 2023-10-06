@@ -12,6 +12,6 @@ public class CSSetupSecondPassword : GamePacket
     public override void Read(PacketStream stream)
     {
         // Empty struct
-        _log.Debug("SetupSecondPassword");
+        Logger.Debug("SetupSecondPassword");
     }
 }

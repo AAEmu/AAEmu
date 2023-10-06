@@ -14,6 +14,6 @@ public class CSLootDicePacket : GamePacket
         var iid = stream.ReadUInt64();
         var roll = stream.ReadBoolean();
 
-        _log.Warn("LootDice, IId: {0}, Roll: {1}", iid, roll);
+        Logger.Warn("LootDice, IId: {0}, Roll: {1}", iid, roll);
     }
 }

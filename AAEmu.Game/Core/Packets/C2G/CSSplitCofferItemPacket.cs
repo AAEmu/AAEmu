@@ -25,7 +25,7 @@ public class CSSplitCofferItemPacket : GamePacket
 
         var dbId = stream.ReadUInt64();
 
-        _log.Debug($"SplitCofferItem, Item: {count} x {fromItemId} -> {toItemId}, SlotType: {fromSlotType} -> {toSlotType}, Slot: {fromSlot} -> {toSlot}, ItemContainerDbId: {dbId}");
+        Logger.Debug($"SplitCofferItem, Item: {count} x {fromItemId} -> {toItemId}, SlotType: {fromSlotType} -> {toSlotType}, Slot: {fromSlot} -> {toSlot}, ItemContainerDbId: {dbId}");
 
         if (!Connection.ActiveChar.Inventory.SplitCofferItems(count, fromItemId, toItemId, fromSlotType, fromSlot, toSlotType, toSlot, dbId))
         {

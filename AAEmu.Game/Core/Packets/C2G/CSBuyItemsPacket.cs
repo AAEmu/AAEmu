@@ -33,7 +33,7 @@ public class CSBuyItemsPacket : GamePacket
         var nBuy = stream.ReadByte();
         var nBuyBack = stream.ReadByte();
 
-        _log.Debug("NPCObjId:{0} DoodadObjId:{1} unkId:{2} nBuy:{3} nBuyBack{4}", npcObjId, doodadObjId, unkId, nBuy, nBuyBack);
+        Logger.Debug("NPCObjId:{0} DoodadObjId:{1} unkId:{2} nBuy:{3} nBuyBack{4}", npcObjId, doodadObjId, unkId, nBuy, nBuyBack);
 
         // If a NPC was provided, check if it's valid
         if ((npcObjId != 0) && (npc == null || !npc.Template.Merchant || npc.Template.MerchantPackId == 0))
@@ -97,7 +97,7 @@ public class CSBuyItemsPacket : GamePacket
                 vocationBadges += template.LivingPointPrice * count;
             else
             {
-                _log.Error("Unknown currency type");
+                Logger.Error("Unknown currency type");
             }
         }
 

@@ -14,6 +14,6 @@ public class CSJoinInstantGamePacket : GamePacket
         var join = stream.ReadBoolean();
         var qualifiedId = stream.ReadUInt64();
 
-        _log.Warn("JoinInstantGame, Join: {0}, QualifiedId: {1}", join, qualifiedId);
+        Logger.Warn("JoinInstantGame, Join: {0}, QualifiedId: {1}", join, qualifiedId);
     }
 }

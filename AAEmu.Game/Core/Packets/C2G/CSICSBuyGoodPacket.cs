@@ -87,7 +87,7 @@ public class CSICSBuyGoodPacket : GamePacket
                     if (!CashShopManager.Instance.AddCredits(Connection.AccountId, (int)ci.Price))
                     {
                         //Need to make sure this never happens somehow..
-                        _log.Error($"Failed to restore credits for failed delivery to AccountId: {Connection.AccountId} for Credits: {ci.Price}");
+                        Logger.Error($"Failed to restore credits for failed delivery to AccountId: {Connection.AccountId} for Credits: {ci.Price}");
                     }
                     targetChar.SendErrorMessage(ErrorMessageType.IngameShopFindCharacterNameFail); // This is the wrong error, but likely the most fitting for now
                 }
@@ -96,7 +96,7 @@ public class CSICSBuyGoodPacket : GamePacket
         }
         Connection.SendPacket(new SCICSCashPointPacket(CashShopManager.Instance.GetAccountCredits(Connection.AccountId)));
 
-        _log.Info($"ICSBuyGood {Connection.ActiveChar.Name} -> {targetChar.Name}");
+        Logger.Info($"ICSBuyGood {Connection.ActiveChar.Name} -> {targetChar.Name}");
 
         Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(true, buyMode, receiverName, totalCost));
     }

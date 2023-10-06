@@ -24,6 +24,6 @@ public class WorldSetLogoutmessageSubCommand : SubCommandBase
         }
         character.SetLogoutMessage(logoutMessage);
         SendMessage(character, $"Set LogoutMessage {logoutMessage}");
-        _log.Warn($"{Title}: {logoutMessage}");
+        Logger.Warn($"{Title}: {logoutMessage}");
     }
 }

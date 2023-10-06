@@ -14,6 +14,6 @@ public class CSChangeSlaveNamePacket : GamePacket
         var tl = stream.ReadUInt16();
         var name = stream.ReadString();
 
-        _log.Debug("ChangeSlaveName, Tl: {0}, Name: {1}", tl, name);
+        Logger.Debug("ChangeSlaveName, Tl: {0}, Name: {1}", tl, name);
     }
 }

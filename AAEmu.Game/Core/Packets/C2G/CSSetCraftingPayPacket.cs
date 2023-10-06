@@ -14,6 +14,6 @@ public class CSSetCraftingPayPacket : GamePacket
         var objId = stream.ReadBc();
         var moneyAmount = stream.ReadInt32();
 
-        _log.Warn("SetCraftingPay, ObjId: {0}, MoneyAmount: {1}", objId, moneyAmount);
+        Logger.Warn("SetCraftingPay, ObjId: {0}, MoneyAmount: {1}", objId, moneyAmount);
     }
 }

@@ -18,7 +18,7 @@ public class CTRequestCellPacket : StreamPacket
         var x = stream.ReadInt32();
         var y = stream.ReadInt32();
 
-        _log.Warn("CTRequestCellPacket #.{0} ({1},{2})", instanceId, x, y);
+        Logger.Warn("CTRequestCellPacket #.{0} ({1},{2})", instanceId, x, y);
         StreamManager.RequestCell(Connection, instanceId, x, y);
     }
 }

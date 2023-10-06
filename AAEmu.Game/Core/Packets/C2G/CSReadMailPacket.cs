@@ -14,7 +14,7 @@ public class CSReadMailPacket : GamePacket
         var isSent = stream.ReadBoolean();
         var mailId = stream.ReadInt64();
 
-        _log.Debug("ReadMail, Id: {0}, isSent: {1}", mailId, isSent);
+        Logger.Debug("ReadMail, Id: {0}, isSent: {1}", mailId, isSent);
         Connection.ActiveChar.Mails.ReadMail(isSent, mailId);
     }
 }

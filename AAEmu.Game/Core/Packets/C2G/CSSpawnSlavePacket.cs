@@ -28,6 +28,6 @@ public class CSSpawnSlavePacket : GamePacket
 
         var hideSpawnEffect = stream.ReadBoolean();
 
-        _log.Debug("SpawnSlave, SlaveId: {0}", slaveId);
+        Logger.Debug("SpawnSlave, SlaveId: {0}", slaveId);
     }
 }

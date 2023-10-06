@@ -7,7 +7,7 @@ namespace AAEmu.Game.Services.WebApi;
 
 public class WebApiServer : HttpServer
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
     public WebApiServer(IPAddress address, int port) : base(address, port)
     {
         RegisterRoutes();
@@ -22,6 +22,6 @@ public class WebApiServer : HttpServer
 
     protected override void OnError(SocketError error)
     {
-        _log.Warn($"WebApi server caught an error with code {error}");
+        _logger.Warn($"WebApi server caught an error with code {error}");
     }
 }

@@ -13,6 +13,6 @@ public class CSListSpecialtyGoodsPacket : GamePacket
     {
         var objId = stream.ReadBc();
 
-        _log.Warn("ListSpecialtyGoods, ObjId: {0}", objId);
+        Logger.Warn("ListSpecialtyGoods, ObjId: {0}", objId);
     }
 }

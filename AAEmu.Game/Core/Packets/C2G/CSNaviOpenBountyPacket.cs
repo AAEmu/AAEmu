@@ -13,6 +13,6 @@ public class CSNaviOpenBountyPacket : GamePacket
     {
         var objId = stream.ReadBc();
 
-        _log.Warn("NaviOpenBounty, ObjId: {0}", objId);
+        Logger.Warn("NaviOpenBounty, ObjId: {0}", objId);
     }
 }

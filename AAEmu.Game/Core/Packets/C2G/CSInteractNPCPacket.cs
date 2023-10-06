@@ -16,7 +16,7 @@ public class CSInteractNPCPacket : GamePacket
         var objId = stream.ReadBc();
         var isTargetChanged = stream.ReadBoolean();
 
-        _log.Debug("InteractNPC, BcId: {0}, TargetChanged: {1}", objId, isTargetChanged);
+        Logger.Debug("InteractNPC, BcId: {0}, TargetChanged: {1}", objId, isTargetChanged);
 
         var unit = objId > 0 ? WorldManager.Instance.GetUnit(objId) : null;
 

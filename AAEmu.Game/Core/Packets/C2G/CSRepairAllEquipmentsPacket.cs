@@ -15,7 +15,7 @@ public class CSRepairAllEquipmentsPacket : GamePacket
     {
         var autoUseAAPoint = stream.ReadBoolean();
 
-        _log.Debug("RepairAllEquipments, AutoUseAAPoint: {0}", autoUseAAPoint);
+        Logger.Debug("RepairAllEquipments, AutoUseAAPoint: {0}", autoUseAAPoint);
 
         var items = new List<Item>();
         foreach (var item in Connection.ActiveChar.Inventory.Equipment.Items)

@@ -18,13 +18,13 @@ public class CSChangeDoodadDataPacket : GamePacket
         var objId = stream.ReadBc();
         var data = stream.ReadInt32();
 
-        _log.Warn($"ChangeDoodadData, ObjId: {objId}, Data: {data}");
+        Logger.Warn($"ChangeDoodadData, ObjId: {objId}, Data: {data}");
         var doodad = WorldManager.Instance.GetDoodad(objId);
         if (doodad != null)
         {
             var doodadName = LocalizationManager.Instance.Get("doodad_almighties", "name", doodad.TemplateId);
             var doodadType = doodad.Template.GetType().ToString();
-            _log.Warn($"Doodad: {doodad.Name} ({doodad.TemplateId} - {doodadName} - {doodadType})");
+            Logger.Warn($"Doodad: {doodad.Name} ({doodad.TemplateId} - {doodadName} - {doodadType})");
             if (!DoodadManager.ChangeDoodadData(Connection.ActiveChar, doodad, data))
                 Connection.ActiveChar.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
         }

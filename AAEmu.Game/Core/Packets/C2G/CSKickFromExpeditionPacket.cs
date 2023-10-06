@@ -14,7 +14,7 @@ public class CSKickFromExpeditionPacket : GamePacket
     {
         var id = stream.ReadUInt32(); // type(id)
 
-        _log.Debug("KickFromExpedition, Id: {0}", id);
+        Logger.Debug("KickFromExpedition, Id: {0}", id);
         ExpeditionManager.Kick(Connection, id);
     }
 }

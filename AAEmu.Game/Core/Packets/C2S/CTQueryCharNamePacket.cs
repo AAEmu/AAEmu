@@ -19,6 +19,6 @@ public class CTQueryCharNamePacket : StreamPacket
         if (name != null)
             Connection.SendPacket(new TCCharNameQueriedPacket(id, name));
 
-        _log.Debug("QueryCharName, Id: {0}, Name: {1}", id, name);
+        Logger.Debug("QueryCharName, Id: {0}, Name: {1}", id, name);
     }
 }

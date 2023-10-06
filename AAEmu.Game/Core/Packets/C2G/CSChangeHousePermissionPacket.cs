@@ -16,7 +16,7 @@ public class CSChangeHousePermissionPacket : GamePacket
         var tl = stream.ReadUInt16();
         var permission = stream.ReadByte();
 
-        _log.Debug("ChangeHousePermission, Tl: {0}, Permission: {1}", tl, permission);
+        Logger.Debug("ChangeHousePermission, Tl: {0}, Permission: {1}", tl, permission);
         HousingManager.Instance.ChangeHousePermission(Connection, tl, (HousingPermission)permission);
     }
 }

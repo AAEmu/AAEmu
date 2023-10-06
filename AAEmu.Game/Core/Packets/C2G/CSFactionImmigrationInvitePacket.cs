@@ -13,6 +13,6 @@ public class CSFactionImmigrationInvitePacket : GamePacket
     {
         var invitee = stream.ReadString();
 
-        _log.Debug("FactionImmigrationInvite, {0}", invitee);
+        Logger.Debug("FactionImmigrationInvite, {0}", invitee);
     }
 }

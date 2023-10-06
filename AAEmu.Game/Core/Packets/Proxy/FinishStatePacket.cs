@@ -73,7 +73,7 @@ public class FinishStatePacket : GamePacket
                 Connection.SendPacket(new SCUpdatePremiumPointPacket(1, 1, 1));
                 break;
             default:
-                _log.Info("Unknown state: {0}", state);
+                Logger.Info("Unknown state: {0}", state);
                 break;
         }
     }
