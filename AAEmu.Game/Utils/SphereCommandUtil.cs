@@ -17,7 +17,7 @@ namespace AAEmu.Game.Utils;
 
 public class SphereCommandUtil
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     public static void GetCommandChoice(Character character, string choice, string[] args)
     {
@@ -138,7 +138,7 @@ public class SphereCommandUtil
                 FileManager.GetFileContents(
                     $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
             if (string.IsNullOrWhiteSpace(contents))
-                _logger.Warn(
+                Logger.Warn(
                     $"File {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json doesn't exists or is empty.");
             else
             {
@@ -202,7 +202,7 @@ public class SphereCommandUtil
                 FileManager.GetFileContents(
                     $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
             if (string.IsNullOrWhiteSpace(contents))
-                _logger.Warn(
+                Logger.Warn(
                     $"File {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json doesn't exists or is empty.");
             else
             {
@@ -255,7 +255,7 @@ public class SphereCommandUtil
                 FileManager.GetFileContents(
                     $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
             if (string.IsNullOrWhiteSpace(contents))
-                _logger.Warn(
+                Logger.Warn(
                     $"File {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json doesn't exists or is empty.");
             else
             {
@@ -311,7 +311,7 @@ public class SphereCommandUtil
                 FileManager.GetFileContents(
                     $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
             if (string.IsNullOrWhiteSpace(contents))
-                _logger.Warn(
+                Logger.Warn(
                     $"File {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json doesn't exists or is empty.");
             else
             {

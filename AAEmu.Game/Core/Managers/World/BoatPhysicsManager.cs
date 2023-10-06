@@ -31,7 +31,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
     /// </summary>
     private float TargetPhysicsTps { get; set; } = 15f;
     private Thread _thread;
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     private CollisionSystem _collisionSystem;
     private Jitter.World _physWorld;
@@ -74,7 +74,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
         }
         catch (Exception e)
         {
-            _logger.Error("{0}\n{1}", e.Message, e.StackTrace);
+            Logger.Error("{0}\n{1}", e.Message, e.StackTrace);
         }
     }
 
@@ -90,7 +90,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
     {
         try
         {
-            _logger.Debug($"PhysicsThread Start: {Thread.CurrentThread.Name} ({Environment.CurrentManagedThreadId})");
+            Logger.Debug($"PhysicsThread Start: {Thread.CurrentThread.Name} ({Environment.CurrentManagedThreadId})");
             var simulatedSlaveTypeList = new[]
             {
                 SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.SmallSailingShip,
@@ -113,7 +113,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
                     {
                         if (slave.Transform.WorldId != SimulationWorld.Id)
                         {
-                            _logger.Debug($"Skip {slave.Name}");
+                            Logger.Debug($"Skip {slave.Name}");
                             continue;
                         }
 
@@ -138,15 +138,15 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
                         if (_tickCount % 6 != 0) { continue; }
                         _physWorld.CollisionSystem.Detect(true);
                         BoatPhysicsTick(slave, slaveRigidBody);
-                        //_logger.Debug($"{_thread.Name}, slave: {slave.Name} collision check tick");
+                        //Logger.Debug($"{_thread.Name}, slave: {slave.Name} collision check tick");
                     }
                 }
             }
-            _logger.Debug($"PhysicsThread End: {Thread.CurrentThread.Name} ({Environment.CurrentManagedThreadId})");
+            Logger.Debug($"PhysicsThread End: {Thread.CurrentThread.Name} ({Environment.CurrentManagedThreadId})");
         }
         catch (Exception e)
         {
-            _logger.Error($"StartPhysics: {e}");
+            Logger.Error($"StartPhysics: {e}");
         }
     }
 
@@ -168,7 +168,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
         _buoyancy.Add(rigidBody, 3);
         _physWorld.AddBody(rigidBody);
         slave.RigidBody = rigidBody;
-        _logger.Debug($"AddShip {slave.Name} -> {SimulationWorld.Name}");
+        Logger.Debug($"AddShip {slave.Name} -> {SimulationWorld.Name}");
     }
 
     public void RemoveShip(Slave slave)
@@ -176,7 +176,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
         if (slave.RigidBody == null) return;
         _buoyancy.Remove(slave.RigidBody);
         _physWorld.RemoveBody(slave.RigidBody);
-        _logger.Debug($"RemoveShip {slave.Name} <- {SimulationWorld.Name}");
+        Logger.Debug($"RemoveShip {slave.Name} <- {SimulationWorld.Name}");
     }
 
     private void BoatPhysicsTick(Slave slave, RigidBody rigidBody)
@@ -231,7 +231,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
             if (Math.Abs(slave.Speed) < 0.01)
                 slave.Speed = 0;
         }
-        // _logger.Debug("Slave: {0}, speed: {1}, rotSpeed: {2}", slave.ObjId, slave.Speed, slave.RotSpeed);
+        // Logger.Debug("Slave: {0}, speed: {1}, rotSpeed: {2}", slave.ObjId, slave.Speed, slave.RotSpeed);
 
         // Calculate some stuff for later
         var boxSize = rigidBody.Shape.BoundingBox.Max - rigidBody.Shape.BoundingBox.Min;
@@ -239,7 +239,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
         var solidVolume = MathF.Abs(rigidBody.Mass - tubeVolume);
 
         var floor = WorldManager.Instance.GetHeight(slave.Transform); // получим уровень земли // get ground level
-        _logger.Debug($"[Height] Z-Pos: {slave.Transform.World.Position.Z} - Floor: {floor}");
+        Logger.Debug($"[Height] Z-Pos: {slave.Transform.World.Position.Z} - Floor: {floor}");
         if (floor >= slave.Transform.World.Position.Z - boxSize.Z)
         {
             var damage = _random.Next(500, 750); // damage randomly 500-750
@@ -248,7 +248,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
                 slave.DoDamage((int)damage, false, KillReason.Collide);
             }
 
-            _logger.Debug($"Slave: {slave.ObjId}, speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}, floor: {floor}, Z: {slave.Transform.World.Position.Z}, damage: {damage}");
+            Logger.Debug($"Slave: {slave.ObjId}, speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}, floor: {floor}, Z: {slave.Transform.World.Position.Z}, damage: {damage}");
 
             if (slave.Hp <= 0)
             {
@@ -274,7 +274,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
 
         /*
         if ((slave.Steering != 0) || (slave.Throttle != 0))
-            _logger.Debug($"Request: {slave.SteeringRequest}, Steering: {slave.Steering}, steer: {steer}, vol: {solidVolume} mass: {rigidBody.Mass}, force: {steerForce}, torque: {rigidBody.Torque}");
+            Logger.Debug($"Request: {slave.SteeringRequest}, Steering: {slave.Steering}, steer: {steer}, vol: {solidVolume} mass: {rigidBody.Mass}, force: {steerForce}, torque: {rigidBody.Torque}");
         */
 
         // Insert new Rotation data into MoveType
@@ -316,7 +316,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
 
         // Send the packet
         slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
-        // _logger.Debug("Island: {0}", slave.RigidBody.CollisionIsland.Bodies.Count);
+        // Logger.Debug("Island: {0}", slave.RigidBody.CollisionIsland.Bodies.Count);
 
         // Update all to main Slave and it's children 
         slave.Transform.FinalizeTransform();

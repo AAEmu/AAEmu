@@ -24,19 +24,19 @@ namespace AAEmu.Game;
 
 public sealed class GameService : IHostedService, IDisposable
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.Info("Starting daemon: AAEmu.Game");
+        Logger.Info("Starting daemon: AAEmu.Game");
 
         // Check for updates
         using (var connection = MySQL.CreateConnection())
         {
             if (!MySqlDatabaseUpdater.Run(connection, "aaemu_game", AppConfiguration.Instance.Connections.MySQLProvider.Database))
             {
-                _logger.Fatal("Failed to update database!");
-                _logger.Fatal("Press Ctrl+C to quit");
+                Logger.Fatal("Failed to update database!");
+                Logger.Fatal("Press Ctrl+C to quit");
                 return;
             }
         }
@@ -44,8 +44,8 @@ public sealed class GameService : IHostedService, IDisposable
         ClientFileManager.Initialize();
         if (ClientFileManager.ListSources().Count == 0)
         {
-            _logger.Fatal($"Failed up load client files! ({string.Join(", ", AppConfiguration.Instance.ClientData.Sources)})");
-            _logger.Fatal("Press Ctrl+C to quit");
+            Logger.Fatal($"Failed up load client files! ({string.Join(", ", AppConfiguration.Instance.ClientData.Sources)})");
+            Logger.Fatal("Press Ctrl+C to quit");
             return;
         }
 
@@ -168,24 +168,24 @@ public sealed class GameService : IHostedService, IDisposable
 
         if ((waterBodyTask != null) && (!waterBodyTask.IsCompleted))
         {
-            _logger.Info("Waiting on water to be loaded before proceeding, please wait ...");
+            Logger.Info("Waiting on water to be loaded before proceeding, please wait ...");
             await waterBodyTask;
         }
 
         if ((heightmapTask != null) && (!heightmapTask.IsCompleted))
         {
-            _logger.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
+            Logger.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
             await heightmapTask;
         }
 
         var spawnSw = new Stopwatch();
-        _logger.Info("Spawning units...");
+        Logger.Info("Spawning units...");
         spawnSw.Start();
         HousingManager.Instance.SpawnAll(); // Houses need to be spawned before doodads
         SpawnManager.Instance.SpawnAll();
         TransferManager.Instance.SpawnAll();
         spawnSw.Stop();
-        _logger.Info("Units spawned in {0}", spawnSw.Elapsed);
+        Logger.Info("Units spawned in {0}", spawnSw.Elapsed);
 
         // Start running Physics when everything is loaded
         WorldManager.Instance.StartPhysics();
@@ -197,12 +197,12 @@ public sealed class GameService : IHostedService, IDisposable
         LoginNetwork.Instance.Start();
 
         stopWatch.Stop();
-        _logger.Info("Server started! Took {0}", stopWatch.Elapsed);
+        Logger.Info("Server started! Took {0}", stopWatch.Elapsed);
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.Info("Stopping daemon...");
+        Logger.Info("Stopping daemon...");
 
         SaveManager.Instance.Stop();
 
@@ -228,7 +228,7 @@ public sealed class GameService : IHostedService, IDisposable
 
     public void Dispose()
     {
-        _logger.Info("Disposing...");
+        Logger.Info("Disposing...");
 
         LogManager.Flush();
     }

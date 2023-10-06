@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs;
 
 public class BuffTriggersHandler
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
     private Buff _owner;
     private List<BuffTrigger> _triggers;
 
@@ -110,11 +110,11 @@ public class BuffTriggersHandler
             }
             if (trigger == null)
             {
-                _logger.Trace("Unimplemented BuffTrigger[\"{0}\"]", triggerTemplate.Kind);
+                Logger.Trace("Unimplemented BuffTrigger[\"{0}\"]", triggerTemplate.Kind);
             }
             else
             {
-                _logger.Trace("Subscribed BuffTrigger[\"{0}\"]", triggerTemplate.Kind);
+                Logger.Trace("Subscribed BuffTrigger[\"{0}\"]", triggerTemplate.Kind);
             }
         }
     }

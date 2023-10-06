@@ -15,7 +15,7 @@ public class CSInviteAreaToTeamPacket : GamePacket
         var teamId = stream.ReadUInt32();
         var isParty = stream.ReadBoolean();
 
-        // _logger.Warn("InviteAreaToTeam, TeamId: {0}, IsParty: {1}", teamId, isParty);
+        // Logger.Warn("InviteAreaToTeam, TeamId: {0}, IsParty: {1}", teamId, isParty);
         TeamManager.Instance.InviteAreaToTeam(Connection.ActiveChar, teamId, isParty);
     }
 }

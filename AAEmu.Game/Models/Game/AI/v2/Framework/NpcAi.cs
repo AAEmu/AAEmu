@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Framework;
 /// </summary>
 public abstract class NpcAi
 {
-    private Logger _logger = LogManager.GetCurrentClassLogger();
+    private Logger Logger = LogManager.GetCurrentClassLogger();
 
     // Test
     public bool ShouldTick { get; set; }
@@ -52,7 +52,7 @@ public abstract class NpcAi
     {
         foreach (var transition in _transitions.Values.SelectMany(transitions => transitions.Where(transition => !_behaviors.ContainsKey(transition.Kind))))
         {
-            _logger.Error("Transition is invalid. Type {0} missing, while used in transition on {1}",
+            Logger.Error("Transition is invalid. Type {0} missing, while used in transition on {1}",
                 transition.Kind.GetType().Name, transition.On);
         }
     }
@@ -76,7 +76,7 @@ public abstract class NpcAi
 
     private void SetCurrentBehavior(Behavior behavior)
     {
-        //_logger.Trace($"Npc {Owner.Name}:{Owner.ObjId} leaving behavior {_currentBehavior?.GetType().Name ?? "none"}, Entering behavior {behavior?.GetType().Name ?? "none"}");
+        //Logger.Trace($"Npc {Owner.Name}:{Owner.ObjId} leaving behavior {_currentBehavior?.GetType().Name ?? "none"}, Entering behavior {behavior?.GetType().Name ?? "none"}");
         _currentBehavior?.Exit();
         _currentBehavior = behavior;
         _currentBehavior?.Enter();
@@ -86,11 +86,11 @@ public abstract class NpcAi
     {
         if (!_behaviors.ContainsKey(kind))
         {
-            _logger.Trace($"Trying to set Npc {Owner.Name}:{Owner.ObjId} current behavior, but it is not valid. Missing behavior: {kind}");
+            Logger.Trace($"Trying to set Npc {Owner.Name}:{Owner.ObjId} current behavior, but it is not valid. Missing behavior: {kind}");
             return;
         }
 
-        //_logger.Trace($"Set Npc {Owner.Name}:{Owner.ObjId} current behavior: {kind}");
+        //Logger.Trace($"Set Npc {Owner.Name}:{Owner.ObjId} current behavior: {kind}");
         SetCurrentBehavior(_behaviors[kind]);
     }
 

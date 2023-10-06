@@ -15,7 +15,7 @@ namespace AAEmu.Login.Core.Controllers;
 public class LoginController : Singleton<LoginController>
 {
     private Dictionary<byte, Dictionary<uint, uint>> _tokens; // gsId, [token, accountId]
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
     private static bool _autoAccount = AppConfiguration.Instance.AutoAccount;
 
     protected LoginController()
@@ -103,7 +103,7 @@ public class LoginController : Singleton<LoginController>
                     connection.LastLogin = DateTime.UtcNow;
                     connection.LastIp = connection.Ip;
 
-                    _logger.Info("{0} connected.", connection.AccountName);
+                    Logger.Info("{0} connected.", connection.AccountName);
                     connection.SendPacket(new ACJoinResponsePacket(0, 6));
                     connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 6));
                 }
@@ -129,7 +129,7 @@ public class LoginController : Singleton<LoginController>
                 return;
             }
 
-            _logger.Debug("Created account from invalid username login with value:" + username);
+            Logger.Debug("Created account from invalid username login with value:" + username);
             Login(connection, username, password);
         }
     }

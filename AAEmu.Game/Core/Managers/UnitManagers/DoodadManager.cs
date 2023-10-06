@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers;
 public class DoodadManager : Singleton<DoodadManager>
 {
     // ReSharper disable once FieldCanBeMadeReadOnly.Local
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
     private bool _loaded;
 
     private Dictionary<uint, DoodadTemplate> _templates;
@@ -72,7 +72,7 @@ public class DoodadManager : Singleton<DoodadManager>
         using (var connection = SQLite.CreateConnection())
         {
             #region doodad_funcs
-            _logger.Info("Loading doodad functions ...");
+            Logger.Info("Loading doodad functions ...");
 
             // doodad_func_groups
             using (var command = connection.CreateCommand())
@@ -2546,13 +2546,13 @@ public class DoodadManager : Singleton<DoodadManager>
                 }
             }
 
-            _logger.Info("Finished loading doodad functions ...");
+            Logger.Info("Finished loading doodad functions ...");
 
             #endregion
 
             #region doodads_and_func_groups
 
-            _logger.Info("Loading doodad templates...");
+            Logger.Info("Loading doodad templates...");
 
             // First load all doodad_func_groups
             using (var command = connection.CreateCommand())
@@ -2573,7 +2573,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         };
 
                         if (!_allFuncGroups.TryAdd(funcGroups.Id, funcGroups))
-                            _logger.Fatal($"Failed to add FuncGroups: {funcGroups.Id}");
+                            Logger.Fatal($"Failed to add FuncGroups: {funcGroups.Id}");
                     }
                 }
             }
@@ -2636,7 +2636,7 @@ public class DoodadManager : Singleton<DoodadManager>
                 template?.FuncGroups.Add(funcGroups);
             }
 
-            _logger.Info($"Loaded {_templates.Count} doodad templates");
+            Logger.Info($"Loaded {_templates.Count} doodad templates");
             #endregion
         }
 
@@ -2751,7 +2751,7 @@ public class DoodadManager : Singleton<DoodadManager>
         if (!skipPhaseInitialization)
             Task.Run(() => doodad.InitDoodad());
 
-        //_logger.Debug($"Create: TemplateId {doodad.TemplateId}, ObjId {doodad.ObjId}, FuncGroupId {doodad.FuncGroupId}");
+        //Logger.Debug($"Create: TemplateId {doodad.TemplateId}, ObjId {doodad.ObjId}, FuncGroupId {doodad.FuncGroupId}");
 
         return doodad;
     }
@@ -2871,7 +2871,7 @@ public class DoodadManager : Singleton<DoodadManager>
     /// </summary>
     public static Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId)
     {
-        _logger.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
+        Logger.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
 
         var targetHouse = HousingManager.Instance.GetHouseAtLocation(x, y);
 
@@ -2906,7 +2906,7 @@ public class DoodadManager : Singleton<DoodadManager>
 
         if (preferredItem == null)
         {
-            _logger.Error($"Unable to create doodad because source item (Id: {itemId}) does not exist in {character.Name}'s bag inventory.");
+            Logger.Error($"Unable to create doodad because source item (Id: {itemId}) does not exist in {character.Name}'s bag inventory.");
             doodad.Delete();
             return null;
         }

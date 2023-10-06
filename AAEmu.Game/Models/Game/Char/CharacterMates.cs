@@ -126,7 +126,7 @@ public class CharacterMates
         mount.Mp = Math.Min(mount.Mp, mount.MaxMp);
 
         mount.Transform.Local.AddDistanceToFront(3f);
-        //_logger.Warn($"Spawn the pet:{mount.ObjId} X={mount.Transform.World.Position.X} Y={mount.Transform.World.Position.Y}");
+        //Logger.Warn($"Spawn the pet:{mount.ObjId} X={mount.Transform.World.Position.X} Y={mount.Transform.World.Position.Y}");
         MateManager.Instance.AddActiveMateAndSpawn(Owner, mount, item);
     }
 

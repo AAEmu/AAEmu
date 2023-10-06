@@ -635,13 +635,13 @@ public sealed class Mate : Unit
         }
         MateXpUpdateTask = new MateXpUpdateTask(Owner, this);
         TaskManager.Instance.Schedule(MateXpUpdateTask, TimeSpan.FromSeconds(60));
-        //_logger.Trace("[StartUpdateXp] The current timer has been started...");
+        //Logger.Trace("[StartUpdateXp] The current timer has been started...");
     }
 
     public void StopUpdateXp()
     {
         _ = MateXpUpdateTask?.CancelAsync();
         MateXpUpdateTask = null;
-        //_logger.Trace("[StopUpdateXp] The current timer has been canceled...");
+        //Logger.Trace("[StopUpdateXp] The current timer has been canceled...");
     }
 }

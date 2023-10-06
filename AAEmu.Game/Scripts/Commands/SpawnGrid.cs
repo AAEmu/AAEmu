@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class SpawnGrid : ICommand
 {
-    // Unused protected static Logger _logger = LogManager.GetCurrentClassLogger();
+    // Unused protected static Logger Logger = LogManager.GetCurrentClassLogger();
 
     public void OnLoad()
     {

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class AccountManager : Singleton<AccountManager>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     private ConcurrentDictionary<uint, GameConnection> _accounts;
 
@@ -31,7 +31,7 @@ public class AccountManager : Singleton<AccountManager>
         foreach (var gameConnection in _accounts.Values.ToList().Where(gameConnection => gameConnection.LastPing + TimeSpan.FromSeconds(30) < DateTime.UtcNow))
         {
             if (gameConnection.ActiveChar != null)
-                _logger.Trace("Disconnecting {0} due to no network activity", gameConnection.ActiveChar.Name);
+                Logger.Trace("Disconnecting {0} due to no network activity", gameConnection.ActiveChar.Name);
             gameConnection.Shutdown();
         }
     }

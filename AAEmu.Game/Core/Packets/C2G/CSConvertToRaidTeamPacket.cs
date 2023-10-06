@@ -14,7 +14,7 @@ public class CSConvertToRaidTeamPacket : GamePacket
     {
         var teamId = stream.ReadUInt32();
 
-        // _logger.Warn("ConvertToRaidTeam, TeamId: {0}", teamId);
+        // Logger.Warn("ConvertToRaidTeam, TeamId: {0}", teamId);
         TeamManager.Instance.ConvertToRaid(Connection.ActiveChar, teamId);
     }
 }

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class PlotManager : Singleton<PlotManager>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
     private Dictionary<uint, Plot> _plots;
@@ -43,7 +43,7 @@ public class PlotManager : Singleton<PlotManager>
         //_aoeConditions = new Dictionary<uint, PlotAoeCondition>();
         using (var connection = SQLite.CreateConnection())
         {
-            _logger.Info("Loading plots...");
+            Logger.Info("Loading plots...");
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM plots";
@@ -60,9 +60,9 @@ public class PlotManager : Singleton<PlotManager>
                 }
             }
 
-            _logger.Info("Loaded {0} plots", _plots.Count);
+            Logger.Info("Loaded {0} plots", _plots.Count);
 
-            _logger.Info("Loading plot events...");
+            Logger.Info("Loading plot events...");
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM plot_events";
@@ -270,7 +270,7 @@ public class PlotManager : Singleton<PlotManager>
                 }
             }
 
-            _logger.Info("Loaded {0} plot events", _eventTemplates.Count);
+            Logger.Info("Loaded {0} plot events", _eventTemplates.Count);
 
             foreach (var plot in _plots.Values)
             {

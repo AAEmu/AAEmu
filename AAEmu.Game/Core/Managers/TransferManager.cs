@@ -27,7 +27,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class TransferManager : Singleton<TransferManager>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
     private bool _initialized = false;
 
     private Dictionary<uint, TransferTemplate> _templates;
@@ -42,7 +42,7 @@ public class TransferManager : Singleton<TransferManager>
         if (_initialized)
             return;
 
-        _logger.Warn("TransferTickTask: Started");
+        Logger.Warn("TransferTickTask: Started");
 
         //TransferTickTask = new TransferTickStartTask();
         //TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMinutes(DelayInit), TimeSpan.FromMilliseconds(Delay));
@@ -366,7 +366,7 @@ public class TransferManager : Singleton<TransferManager>
         #endregion
 
         #region TransferPath
-        _logger.Info("Loading transfer_path...");
+        Logger.Info("Loading transfer_path...");
 
         var worlds = WorldManager.Instance.GetWorlds();
         Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
@@ -385,7 +385,7 @@ public class TransferManager : Singleton<TransferManager>
                 if (!uint.TryParse(Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(pathFileName))),
                     out var zoneId))
                 {
-                    _logger.Warn("Unable to parse zoneId from {0}", pathFileName);
+                    Logger.Warn("Unable to parse zoneId from {0}", pathFileName);
                     continue;
                 }
 
@@ -393,11 +393,11 @@ public class TransferManager : Singleton<TransferManager>
 
                 if (string.IsNullOrWhiteSpace(contents))
                 {
-                    _logger.Warn($"{pathFileName} doesn't exists or is empty.");
+                    Logger.Warn($"{pathFileName} doesn't exists or is empty.");
                     continue;
                 }
 
-                _logger.Debug($"Loading {pathFileName}");
+                Logger.Debug($"Loading {pathFileName}");
 
                 var transferPath = new List<TransferRoads>();
                 var xDoc = new XmlDocument();

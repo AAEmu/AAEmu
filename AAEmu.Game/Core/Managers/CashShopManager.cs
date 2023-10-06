@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class CashShopManager : Singleton<CashShopManager>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     private List<CashShopItem> _cashShopItem;
     private Dictionary<uint, CashShopItemDetail> _cashShopItemDetail;
@@ -69,7 +69,7 @@ public class CashShopManager : Singleton<CashShopManager>
             }
             catch (Exception e)
             {
-                _logger.Error(e.Message);
+                Logger.Error(e.Message);
                 return 0;
             }
         }
@@ -108,7 +108,7 @@ public class CashShopManager : Singleton<CashShopManager>
             }
             catch (Exception e)
             {
-                _logger.Error("{0}\n{1}", e.Message, e.StackTrace);
+                Logger.Error("{0}\n{1}", e.Message, e.StackTrace);
                 return false;
             }
         }

@@ -35,7 +35,7 @@ namespace AAEmu.Game.Models.Game.Skills;
 
 public class Skill
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     public uint Id { get; set; }
     public SkillTemplate Template { get; set; }
@@ -94,7 +94,7 @@ public class Skill
                     // Will delay for 150 Milliseconds to eliminate the hanging of the skill
                     if (!caster.CheckInterval(delay))
                     {
-                        _logger.Trace($"Skill: CooldownTime [{delay}]!");
+                        Logger.Trace($"Skill: CooldownTime [{delay}]!");
                         return SkillResult.CooldownTime;
                     }
                 }
@@ -105,7 +105,7 @@ public class Skill
                     // Will delay for 50 Milliseconds to eliminate the hanging of the skill
                     if (!caster.CheckInterval(delay))
                     {
-                        _logger.Trace($"Skill: CooldownTime [{delay}]!");
+                        Logger.Trace($"Skill: CooldownTime [{delay}]!");
                         return SkillResult.CooldownTime;
                     }
                 }
@@ -127,7 +127,7 @@ public class Skill
         InitialTarget = target;
         if (target == null)
         {
-            _logger.Trace("Skill: SkillResult.NoTarget!");
+            Logger.Trace("Skill: SkillResult.NoTarget!");
             return SkillResult.NoTarget; // We should try to make sure this doesnt happen, but can happen with NPC skills
         }
 
@@ -548,13 +548,13 @@ public class Skill
                 var useItem = ItemManager.Instance.GetItemByItemId(castItem.ItemId);
                 if (useItem == null)
                 {
-                    _logger.Warn("SkillItem does not exists {0} (templateId: {1})", castItem.ItemId, castItem.ItemTemplateId);
+                    Logger.Warn("SkillItem does not exists {0} (templateId: {1})", castItem.ItemId, castItem.ItemTemplateId);
                     return; // Item does not exists
                 }
 
                 if (useItem._holdingContainer.OwnerId != player.Id)
                 {
-                    _logger.Warn("SkillItem {0} (itemId:{1}) is not owned by player {2} ({3})", useItem.Template.Name, useItem.Id, player.Name, player.Id);
+                    Logger.Warn("SkillItem {0} (itemId:{1}) is not owned by player {2} ({3})", useItem.Template.Name, useItem.Id, player.Name, player.Id);
                     return; // Item is not in the player's possessions
                 }
 
@@ -562,7 +562,7 @@ public class Skill
                 var itemsRequired = 1; // TODO: This probably needs a check if it doesn't require multiple of source item to use, instead of just 1
                 if (itemCount < itemsRequired)
                 {
-                    _logger.Warn("SkillItem, player does not own enough of {0} (count: {1}/{2}, templateId: {3})", useItem.Id, itemCount, itemsRequired, castItem.ItemTemplateId);
+                    Logger.Warn("SkillItem, player does not own enough of {0} (count: {1}/{2}, templateId: {3})", useItem.Id, itemCount, itemsRequired, castItem.ItemTemplateId);
                     return; // not enough of item
                 }
             }
@@ -898,7 +898,7 @@ public class Skill
             }
         }
         else
-            _logger.Error("Could not find Reagents/Products for Template[{0}", Template.Id);
+            Logger.Error("Could not find Reagents/Products for Template[{0}", Template.Id);
 
         foreach (var item in effectsToApply)
         {
@@ -906,7 +906,7 @@ public class Skill
             if (item.effect.Template != null)
                 item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
             else
-                _logger.Error("Template not found for Skill[{0}] Effect[{1}]", Template.Id, item.effect.EffectId);
+                Logger.Error("Template not found for Skill[{0}] Effect[{1}]", Template.Id, item.effect.EffectId);
         }
 
         // TODO Call OnItemUse() moved to the ApplyEffects() method from the effects and add trigger ConditionChance;
@@ -1082,7 +1082,7 @@ AlwaysHit:
                 || hitType == SkillHitType.RangedMiss
                 || hitType == SkillHitType.Immune;
         }
-        _logger.Error($"Unit[{objId}] was not found in the CbtDiceRolls.");
+        Logger.Error($"Unit[{objId}] was not found in the CbtDiceRolls.");
         return true;
     }
 

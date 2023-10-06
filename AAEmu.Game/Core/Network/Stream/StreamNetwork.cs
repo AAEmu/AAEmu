@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Network.Stream;
 
 public class StreamNetwork : Singleton<StreamNetwork>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     private Server _server;
     private StreamProtocolHandler _handler;
@@ -45,14 +45,14 @@ public class StreamNetwork : Singleton<StreamNetwork>
         var config = AppConfiguration.Instance.StreamNetwork;
         _server = new Server(config.Host.Equals("*") ? IPAddress.Any : IPAddress.Parse(config.Host), config.Port, _handler);
         _server.Start();
-        _logger.Info("StreamNetwork started");
+        Logger.Info("StreamNetwork started");
     }
 
     public void Stop()
     {
         if (_server?.IsStarted ?? false)
             _server.Stop();
-        _logger.Info("StreamNetwork stoped");
+        Logger.Info("StreamNetwork stoped");
     }
 
     private void RegisterPacket(uint type, Type classType)

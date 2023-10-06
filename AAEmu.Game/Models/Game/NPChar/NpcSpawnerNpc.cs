@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.NPChar;
 
 public class NpcSpawnerNpc : Spawner<Npc>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     public uint NpcSpawnerTemplateId { get; set; }
     public uint MemberId { get; set; }
@@ -55,11 +55,11 @@ public class NpcSpawnerNpc : Spawner<Npc>
             var npc = NpcManager.Instance.Create(0, MemberId);
             if (npc == null)
             {
-                _logger.Warn($"Npc {MemberId}, from spawner Id {npcSpawner.Id} not exist at db");
+                Logger.Warn($"Npc {MemberId}, from spawner Id {npcSpawner.Id} not exist at db");
                 return null;
             }
 
-            _logger.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawnerId {NpcSpawnerTemplateId}");
+            Logger.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawnerId {NpcSpawnerTemplateId}");
 
             if (!npc.CanFly)
             {
@@ -74,7 +74,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
             npc.Transform.ApplyWorldSpawnPosition(npcSpawner.Position);
             if (npc.Transform == null)
             {
-                _logger.Error($"Can't spawn npc {MemberId} from spawnerId {NpcSpawnerTemplateId}");
+                Logger.Error($"Can't spawn npc {MemberId} from spawnerId {NpcSpawnerTemplateId}");
                 return null;
             }
 
@@ -103,7 +103,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
             if (count >= maxPopulation)
             {
                 npc.Delete();
-                _logger.Trace($"Let's not spawn Npc templateId {MemberId} from spawnerId {NpcSpawnerTemplateId} since exceeded MaxPopulation {maxPopulation}");
+                Logger.Trace($"Let's not spawn Npc templateId {MemberId} from spawnerId {NpcSpawnerTemplateId} since exceeded MaxPopulation {maxPopulation}");
                 return null;
             }
 
@@ -111,7 +111,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
             npcs.Add(npc);
         }
 
-        //_logger.Warn($"Spawned Npcs id={MemberId}, maxPopulation={maxPopulation}...");
+        //Logger.Warn($"Spawned Npcs id={MemberId}, maxPopulation={maxPopulation}...");
 
         return npcs;
     }

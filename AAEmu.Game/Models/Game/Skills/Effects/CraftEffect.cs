@@ -33,7 +33,7 @@ public class CraftEffect : EffectTemplate
 
         if (caster is Character character)
         {
-            // _logger.Warn($"{character.Name} triggered wiGroup {wiGroup}({(int)wiGroup}) with wi {WorldInteraction}({(int)WorldInteraction})");
+            // Logger.Warn($"{character.Name} triggered wiGroup {wiGroup}({(int)wiGroup}) with wi {WorldInteraction}({(int)WorldInteraction})");
             switch (wiGroup)
             {
                 case WorldInteractionGroup.Craft:
@@ -55,8 +55,8 @@ public class CraftEffect : EffectTemplate
                         else
                         {
                             shipyard.AddBuildAction();
-                            //_logger.Trace("[Shipyard] BaseAction {0}, NumAction {1}, CurrentAction {2}", shipyard.BaseAction, shipyard.NumAction, shipyard.CurrentAction);
-                            //_logger.Trace("[Shipyard] AllAction {0}, CurrentStep {1}, ShipyardSteps.Count {2}", shipyard.AllAction, shipyard.CurrentStep, shipyard.Template.ShipyardSteps.Count);
+                            //Logger.Trace("[Shipyard] BaseAction {0}, NumAction {1}, CurrentAction {2}", shipyard.BaseAction, shipyard.NumAction, shipyard.CurrentAction);
+                            //Logger.Trace("[Shipyard] AllAction {0}, CurrentStep {1}, ShipyardSteps.Count {2}", shipyard.AllAction, shipyard.CurrentStep, shipyard.Template.ShipyardSteps.Count);
                             if (shipyard.CurrentStep == -1)
                             {
                                 shipyard.ShipyardData.Actions = shipyard.AllAction;

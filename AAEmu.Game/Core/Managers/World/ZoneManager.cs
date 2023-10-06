@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class ZoneManager : Singleton<ZoneManager>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, uint> _zoneIdToKey;
     private Dictionary<uint, Zone> _zones;
@@ -62,7 +62,7 @@ public class ZoneManager : Singleton<ZoneManager>
         _conflicts = new Dictionary<ushort, ZoneConflict>();
         _groupBannedTags = new Dictionary<uint, ZoneGroupBannedTag>();
         _climateElem = new Dictionary<uint, ZoneClimateElem>();
-        _logger.Info("Loading ZoneManager...");
+        Logger.Info("Loading ZoneManager...");
         using (var connection = SQLite.CreateConnection())
         {
             using (var command = connection.CreateCommand())
@@ -87,7 +87,7 @@ public class ZoneManager : Singleton<ZoneManager>
                 }
             }
 
-            _logger.Info("Loaded {0} zones", _zones.Count);
+            Logger.Info("Loaded {0} zones", _zones.Count);
 
             using (var command = connection.CreateCommand())
             {
@@ -116,7 +116,7 @@ public class ZoneManager : Singleton<ZoneManager>
                 }
             }
 
-            _logger.Info("Loaded {0} groups", _groups.Count);
+            Logger.Info("Loaded {0} groups", _groups.Count);
 
             using (var command = connection.CreateCommand())
             {
@@ -158,7 +158,7 @@ public class ZoneManager : Singleton<ZoneManager>
                                     .Conflict); // Set to Conflict for testing, normally it should start at Tension
                         }
                         else
-                            _logger.Warn("ZoneGroupId: {1} doesn't exist for conflict", zoneGroupId);
+                            Logger.Warn("ZoneGroupId: {1} doesn't exist for conflict", zoneGroupId);
                     }
                 }
             }
@@ -181,7 +181,7 @@ public class ZoneManager : Singleton<ZoneManager>
                 }
             }
 
-            _logger.Info("Loaded {0} group banned tags", _groupBannedTags.Count);
+            Logger.Info("Loaded {0} group banned tags", _groupBannedTags.Count);
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM zone_climate_elems";
@@ -199,7 +199,7 @@ public class ZoneManager : Singleton<ZoneManager>
                 }
             }
 
-            _logger.Info("Loaded {0} climate elems", _climateElem.Count);
+            Logger.Info("Loaded {0} climate elems", _climateElem.Count);
         }
     }
 

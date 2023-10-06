@@ -24,7 +24,6 @@ using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Extensions.Configuration;
 using Moq;

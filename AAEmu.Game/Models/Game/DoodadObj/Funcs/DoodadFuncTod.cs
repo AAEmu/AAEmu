@@ -42,7 +42,7 @@ public class DoodadFuncTod : DoodadPhaseFuncTemplate
         //{
         //    _ = owner.FuncTask.Cancel();
         //    _ = owner.FuncTask = null;
-        //    _logger.Trace("DoodadFuncTimerTask: The current timer has been canceled by the TOD {0}", curTime);
+        //    Logger.Trace("DoodadFuncTimerTask: The current timer has been canceled by the TOD {0}", curTime);
         //}
 
         if (Tod > 2400 || Tod < 100)

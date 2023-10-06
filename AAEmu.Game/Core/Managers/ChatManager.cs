@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class ChatManager : Singleton<ChatManager>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     /// <summary>
     /// nullChannel is used as a fallback channel, do not use directly
@@ -40,7 +40,7 @@ public class ChatManager : Singleton<ChatManager>
 
     public void Initialize()
     {
-        _logger.Info("Initializing Chat Manager...");
+        Logger.Info("Initializing Chat Manager...");
 
         // Create Faction Channels
         AddFactionChannel(148, "Nuia");
@@ -188,7 +188,7 @@ public class ChatManager : Singleton<ChatManager>
         {
             var zoneGroupName = ZoneManager.Instance.GetZoneGroupById(zoneGroupId)?.Name ?? "ZoneGroup(" + zoneGroupId.ToString() + ")";
             if (!AddZoneChannel(zoneGroupId, zoneGroupName))
-                _logger.Error("Failed to create zone chat channel !");
+                Logger.Error("Failed to create zone chat channel !");
         }
 
         if (_zoneChannels.TryGetValue(zoneGroupId, out var channel))
@@ -197,7 +197,7 @@ public class ChatManager : Singleton<ChatManager>
         }
         else
         {
-            _logger.Error("Should not be able to get a null channel from GetZoneChat !");
+            Logger.Error("Should not be able to get a null channel from GetZoneChat !");
             return nullChannel;
         }
     }
@@ -215,7 +215,7 @@ public class ChatManager : Singleton<ChatManager>
         if (!_guildChannels.ContainsKey(guild.Id))
         {
             if (!AddGuildChannel(guild))
-                _logger.Error("Failed to create guild chat channel !");
+                Logger.Error("Failed to create guild chat channel !");
         }
 
         if (_guildChannels.TryGetValue(guild.Id, out var channel))
@@ -224,7 +224,7 @@ public class ChatManager : Singleton<ChatManager>
         }
         else
         {
-            _logger.Error("Should not be able to get a null channel from GetGuildChat !");
+            Logger.Error("Should not be able to get a null channel from GetGuildChat !");
             return nullChannel;
         }
     }
@@ -262,7 +262,7 @@ public class ChatManager : Singleton<ChatManager>
         if (!_partyChannels.ContainsKey(partyId))
         {
             if (!AddPartyChannel(partyId))
-                _logger.Error("Failed to create party chat channel !");
+                Logger.Error("Failed to create party chat channel !");
         }
 
         if (_partyChannels.TryGetValue(partyId, out var channel))
@@ -272,7 +272,7 @@ public class ChatManager : Singleton<ChatManager>
         }
         else
         {
-            _logger.Error("Should not be able to get a null channel from GetPartyChat !");
+            Logger.Error("Should not be able to get a null channel from GetPartyChat !");
             return nullChannel;
         }
     }
@@ -294,7 +294,7 @@ public class ChatManager : Singleton<ChatManager>
         if (!_raidChannels.ContainsKey(party.Id))
         {
             if (!AddRaidChannel(party.Id))
-                _logger.Error("Failed to create party chat channel !");
+                Logger.Error("Failed to create party chat channel !");
         }
 
         if (_raidChannels.TryGetValue(party.Id, out var channel))
@@ -304,7 +304,7 @@ public class ChatManager : Singleton<ChatManager>
         }
         else
         {
-            _logger.Error("Should not be able to get a null channel from GetRaidChat !");
+            Logger.Error("Should not be able to get a null channel from GetRaidChat !");
             return nullChannel;
         }
     }

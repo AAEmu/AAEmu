@@ -6,7 +6,7 @@ namespace AAEmu.Commons.Network;
 
 public class BufferManager
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     private int _numBytes;
     private byte[] _buffer;
@@ -34,7 +34,7 @@ public class BufferManager
             if (!_freeIndexPool.IsEmpty)
             {
                 if (!_freeIndexPool.TryPop(out var offset))
-                    _logger.Warn("TryPop from _freeIndexPool ConcurrentStack failed.");
+                    Logger.Warn("TryPop from _freeIndexPool ConcurrentStack failed.");
                 args.SetBuffer(_buffer, offset, _bufferSize);
             }
             else

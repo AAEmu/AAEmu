@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Transfers;
 
 public class TransferSpawner : Spawner<Transfer>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     private List<Transfer> _spawned;
     private Transfer _lastSpawn;
@@ -49,7 +49,7 @@ public class TransferSpawner : Spawner<Transfer>
         var transfer = TransferManager.Instance.Create(objId, UnitId, this);
         if (transfer == null)
         {
-            _logger.Warn("Transfer {0}, from spawn not exist at db", UnitId);
+            Logger.Warn("Transfer {0}, from spawn not exist at db", UnitId);
             return null;
         }
 
@@ -57,7 +57,7 @@ public class TransferSpawner : Spawner<Transfer>
         transfer.Transform.ApplyWorldSpawnPosition(Position, transfer.Transform.InstanceId, true);
         if (transfer.Transform == null)
         {
-            _logger.Error("Can't spawn transfer {1} from spawn {0}", Id, UnitId);
+            Logger.Error("Can't spawn transfer {1} from spawn {0}", Id, UnitId);
             return null;
         }
 
@@ -77,8 +77,8 @@ public class TransferSpawner : Spawner<Transfer>
 
                 if ((transfer.TransferPath != null) && (transfer.TransferPath.Count >= 2))
                 {
-                    //_logger.Warn("TransfersPath #" + transfer.TemplateId);
-                    //_logger.Warn("First spawn myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.Rot.Z + " rotationZ=" + transfer.Position.RotationZ);
+                    //Logger.Warn("TransfersPath #" + transfer.TemplateId);
+                    //Logger.Warn("First spawn myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.Rot.Z + " rotationZ=" + transfer.Position.RotationZ);
                     transfer.IsInPatrol = true; // so as not to run the route a second time
 
                     transfer.Steering = 0;
@@ -98,9 +98,9 @@ public class TransferSpawner : Spawner<Transfer>
                     transfer.Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
                     transfer.Transform.ApplyWorldSpawnPosition(point, transfer.Transform.InstanceId, true);
 
-                    //_logger.Warn("TransfersPath #" + transfer.TemplateId);
-                    //_logger.Warn("New spawn Pos={0}", transfer.Transform.ToString());
-                    //_logger.Warn("zoneId={0}", transfer.Transform.ZoneId);
+                    //Logger.Warn("TransfersPath #" + transfer.TemplateId);
+                    //Logger.Warn("New spawn Pos={0}", transfer.Transform.ToString());
+                    //Logger.Warn("zoneId={0}", transfer.Transform.ZoneId);
 
 
                     transfer.GoToPath(transfer);
@@ -108,7 +108,7 @@ public class TransferSpawner : Spawner<Transfer>
                 }
                 else
                 {
-                    _logger.Warn("PathName: " + transfer.Template.TransferAllPaths[0].PathName + " not found!");
+                    Logger.Warn("PathName: " + transfer.Template.TransferAllPaths[0].PathName + " not found!");
                 }
             }
         }

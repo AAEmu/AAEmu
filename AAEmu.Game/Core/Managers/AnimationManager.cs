@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class AnimationManager : Singleton<AnimationManager>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, Anim> _animations = new();
     private Dictionary<string, Anim> _animationsByName = new();
@@ -56,7 +56,7 @@ public class AnimationManager : Singleton<AnimationManager>
                 lastAnimDuration = new AnimDuration();
                 if (!lastCombatSyncEvent.Animations.TryAdd(trimmedLine, lastAnimDuration))
                 {
-                    _logger.Warn($"Syntax error in {gFileName} at line {n + 1} : {line}");
+                    Logger.Warn($"Syntax error in {gFileName} at line {n + 1} : {line}");
                     return null;
                 }
             }
@@ -66,7 +66,7 @@ public class AnimationManager : Singleton<AnimationManager>
                 var props = trimmedLine.Split(' ');
                 if (props.Length != 2)
                 {
-                    _logger.Warn($"Syntax error in {gFileName} at line {n + 1} : {line}");
+                    Logger.Warn($"Syntax error in {gFileName} at line {n + 1} : {line}");
                     return null;
                 }
                 else if (props[0] == "total_time")
@@ -75,7 +75,7 @@ public class AnimationManager : Singleton<AnimationManager>
                         lastAnimDuration.total_time = totTime;
                     else
                     {
-                        _logger.Warn($"int parse error in {gFileName} at line {n + 1} : {line}");
+                        Logger.Warn($"int parse error in {gFileName} at line {n + 1} : {line}");
                         return null;
                     }
                 }
@@ -85,18 +85,18 @@ public class AnimationManager : Singleton<AnimationManager>
                         lastAnimDuration.combat_sync_time = syncTime;
                     else
                     {
-                        _logger.Warn($"int parse error in {gFileName} at line {n + 1} : {line}");
+                        Logger.Warn($"int parse error in {gFileName} at line {n + 1} : {line}");
                         return null;
                     }
                 }
                 else
                 {
-                    _logger.Warn($"Unknown property in {gFileName} at line {n + 1} : {line}");
+                    Logger.Warn($"Unknown property in {gFileName} at line {n + 1} : {line}");
                 }
             }
             else
             {
-                _logger.Warn($"Unknown Syntax in {gFileName} at line {n + 1} : {line}");
+                Logger.Warn($"Unknown Syntax in {gFileName} at line {n + 1} : {line}");
                 return null;
             }
         }
@@ -108,7 +108,7 @@ public class AnimationManager : Singleton<AnimationManager>
         _animations = new Dictionary<uint, Anim>();
         _animationsByName = new Dictionary<string, Anim>();
 
-        _logger.Info("Loading animations...");
+        Logger.Info("Loading animations...");
 
         using (var connection = SQLite.CreateConnection())
         {
@@ -148,7 +148,7 @@ public class AnimationManager : Singleton<AnimationManager>
 
         if (combatSyncEvents == null)
         {
-            _logger.Fatal($"Error reading {gFileName}");
+            Logger.Fatal($"Error reading {gFileName}");
             return;
         }
 

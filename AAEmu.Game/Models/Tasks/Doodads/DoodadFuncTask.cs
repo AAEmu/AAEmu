@@ -14,6 +14,6 @@ public abstract class DoodadFuncTask : Task
         //_caster = caster;
         //_owner = owner;
         //_skillId = skillId;
-        //_logger.Warn("[Doodad] DoodadFuncTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
+        //Logger.Warn("[Doodad] DoodadFuncTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
     }
 }

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class NameManager : Singleton<NameManager>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     private Regex _characterNameRegex;
     private Dictionary<uint, string> _characterNames;
@@ -65,7 +65,7 @@ public class NameManager : Singleton<NameManager>
             }
         }
 
-        _logger.Info("Loaded {0} character names", _characterNames.Count);
+        Logger.Info("Loaded {0} character names", _characterNames.Count);
     }
 
     public byte ValidationCharacterName(string name)

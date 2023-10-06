@@ -8,16 +8,16 @@ namespace AAEmu.Game.Core.Managers;
 public class AccessLevelManager : Singleton<AccessLevelManager>
 {
     private List<Command> CMD = new();
-    private Logger _logger = LogManager.GetCurrentClassLogger();
+    private Logger Logger = LogManager.GetCurrentClassLogger();
 
     public void Load()
     {
-        _logger.Info("Loading CommandAccessLevels...");
+        Logger.Info("Loading CommandAccessLevels...");
 
         foreach (var (cmdName, cmdLevel) in AppConfiguration.Instance.AccessLevel)
             CMD.Add(new Command { CommandName = cmdName, CommandLevel = cmdLevel });
 
-        _logger.Info($"Loaded {CMD.Count} CommandAccessLevels");
+        Logger.Info($"Loaded {CMD.Count} CommandAccessLevels");
     }
 
     public int GetLevel(string commandStr)

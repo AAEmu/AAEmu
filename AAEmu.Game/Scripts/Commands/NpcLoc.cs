@@ -8,7 +8,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Npcloc : ICommand
 {
-    protected static Logger _logger = LogManager.GetCurrentClassLogger();
+    protected static Logger Logger = LogManager.GetCurrentClassLogger();
     public void OnLoad()
     {
         CommandManager.Instance.Register("npcloc", this);

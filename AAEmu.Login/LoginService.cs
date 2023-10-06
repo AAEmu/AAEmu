@@ -14,18 +14,18 @@ namespace AAEmu.Login;
 
 public sealed class LoginService : IHostedService, IDisposable
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.Info("Starting daemon: AAEmu.Login");
+        Logger.Info("Starting daemon: AAEmu.Login");
         // Check for updates
         using (var connection = MySQL.CreateConnection())
         {
             if (!MySqlDatabaseUpdater.Run(connection, "aaemu_login", AppConfiguration.Instance.Connections.MySQLProvider.Database))
             {
-                _logger.Fatal("Failed up update database !");
-                _logger.Fatal("Press Ctrl+C to quit");
+                Logger.Fatal("Failed up update database !");
+                Logger.Fatal("Press Ctrl+C to quit");
                 return Task.CompletedTask;
             }
         }
@@ -38,7 +38,7 @@ public sealed class LoginService : IHostedService, IDisposable
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.Info("Stopping daemon.");
+        Logger.Info("Stopping daemon.");
         LoginNetwork.Instance?.Stop();
         InternalNetwork.Instance?.Stop();
         return Task.CompletedTask;
@@ -46,7 +46,7 @@ public sealed class LoginService : IHostedService, IDisposable
 
     public void Dispose()
     {
-        _logger.Info("Disposing....");
+        Logger.Info("Disposing....");
         LogManager.Flush();
     }
 }

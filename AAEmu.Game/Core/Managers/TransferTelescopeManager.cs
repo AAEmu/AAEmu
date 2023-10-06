@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class TransferTelescopeManager : Singleton<TransferTelescopeManager>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
     private Task transferTelescopeTickStartTask { get; set; }
     private const double Delay = 250;
     private Character owner { get; set; }
@@ -24,7 +24,7 @@ public class TransferTelescopeManager : Singleton<TransferTelescopeManager>
     public void TransferTelescopeStart(Character character)
     {
         owner = character;
-        _logger.Warn("TransferTelescopeTickStart: Started");
+        Logger.Warn("TransferTelescopeTickStart: Started");
 
         transferTelescopeTickStartTask = new TransferTelescopeTickStartTask();
         //TaskManager.Instance.Schedule(transferTelescopeTickStartTask, TimeSpan.FromMilliseconds(Delay), TimeSpan.FromMilliseconds(Delay));

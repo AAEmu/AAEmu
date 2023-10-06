@@ -9,7 +9,7 @@ namespace AAEmu.Game.Services.WebApi;
 
 public class WebApiSession : HttpSession
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
     public WebApiSession(HttpServer server) : base(server)
     {
     }
@@ -29,7 +29,7 @@ public class WebApiSession : HttpSession
         }
         catch (Exception e)
         {
-            _logger.Error(e);
+            Logger.Error(e);
             response = new HttpResponse((int)HttpStatusCode.InternalServerError);
             response.SetContentType("text/html");
             var htmlError =
@@ -45,11 +45,11 @@ public class WebApiSession : HttpSession
     }
     protected override void OnReceivedRequestError(HttpRequest request, string error)
     {
-        _logger.Warn($"Request error: {error}");
+        Logger.Warn($"Request error: {error}");
     }
 
     protected override void OnError(SocketError error)
     {
-        _logger.Warn($"HTTP session caught an error: {error}");
+        Logger.Warn($"HTTP session caught an error: {error}");
     }
 }

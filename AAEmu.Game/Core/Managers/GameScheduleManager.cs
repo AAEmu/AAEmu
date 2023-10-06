@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class GameScheduleManager : Singleton<GameScheduleManager>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
     private Dictionary<int, GameSchedules> _gameSchedules; // GameScheduleId, GameSchedules
     private Dictionary<int, GameScheduleSpawners> _gameScheduleSpawners;
@@ -29,13 +29,13 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
         if (_loaded)
             return;
 
-        _logger.Info("Loading schedules...");
+        Logger.Info("Loading schedules...");
 
         SchedulesGameData.Instance.PostLoad();
 
         LoadGameScheduleSpawnersData(); // добавил разделение spawnerId для Npc & Doodads
 
-        _logger.Info("Loaded schedules");
+        Logger.Info("Loaded schedules");
 
         _loaded = true;
     }

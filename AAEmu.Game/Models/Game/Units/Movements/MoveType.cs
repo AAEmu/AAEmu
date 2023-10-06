@@ -42,7 +42,7 @@ public abstract class MoveType : PacketMarshaler
         {
             ScType = stream.ReadUInt32();
             Phase = stream.ReadByte();
-            //_logger.Warn("ScType: {0} Phase: {1}", ScType, Phase);
+            //Logger.Warn("ScType: {0} Phase: {1}", ScType, Phase);
         }
     }
 

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class ExperienceManager : Singleton<ExperienceManager>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     private Dictionary<byte, ExperienceLevelTemplate> _levels;
 
@@ -52,7 +52,7 @@ public class ExperienceManager : Singleton<ExperienceManager>
         _levels = new Dictionary<byte, ExperienceLevelTemplate>();
         using (var connection = SQLite.CreateConnection())
         {
-            _logger.Info("Loading experience data...");
+            Logger.Info("Loading experience data...");
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM levels";
@@ -72,7 +72,7 @@ public class ExperienceManager : Singleton<ExperienceManager>
                 }
             }
 
-            _logger.Info("Experience data loaded");
+            Logger.Info("Experience data loaded");
         }
     }
 }

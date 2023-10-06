@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.World;
 
 public class AreaTrigger
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
     public AreaShape Shape { get; set; }
     public Doodad Owner { get; set; }
     public Unit Caster { get; set; }
@@ -47,7 +47,7 @@ public class AreaTrigger
         var units = WorldManager.GetAroundByShape<Unit>(Owner, Shape);
         if (units is { Count: 0 })
         {
-            _logger.Warn("AreaShape with no size values was remove");
+            Logger.Warn("AreaShape with no size values was remove");
             AreaTriggerManager.Instance.RemoveAreaTrigger(this);
             return;
         }

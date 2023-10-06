@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Managers;
 public class CommandManager : Singleton<CommandManager>
 {
     public const string CommandPrefix = "/";
-    private Logger _logger = LogManager.GetCurrentClassLogger();
+    private Logger Logger = LogManager.GetCurrentClassLogger();
     private Dictionary<string, ICommand> _commands;
     private Dictionary<string, string> _commandAliases;
 
@@ -155,8 +155,8 @@ public class CommandManager : Singleton<CommandManager>
         catch (Exception e)
         {
             character.SendMessage(Color.Red, e.Message);
-            _logger.Error(e.Message);
-            _logger.Error(e.StackTrace);
+            Logger.Error(e.Message);
+            Logger.Error(e.StackTrace);
         }
 
         return true;

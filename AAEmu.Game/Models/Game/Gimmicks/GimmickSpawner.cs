@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Gimmicks;
 
 public class GimmickSpawner : Spawner<Gimmick>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
     public long EntityGuid { get; set; }
     public float WaitTime { get; set; }
     public float TopZ { get; set; }
@@ -37,7 +37,7 @@ public class GimmickSpawner : Spawner<Gimmick>
         var gimmick = GimmickManager.Instance.Create(objId, UnitId, this);
         if (gimmick == null)
         {
-            _logger.Warn("Gimmick {0}, from spawn not exist at db", UnitId);
+            Logger.Warn("Gimmick {0}, from spawn not exist at db", UnitId);
             return null;
         }
 
@@ -51,7 +51,7 @@ public class GimmickSpawner : Spawner<Gimmick>
 
         if (gimmick.Transform.World.IsOrigin())
         {
-            _logger.Error("Can't spawn gimmick {1} from spawn {0}", Id, UnitId);
+            Logger.Error("Can't spawn gimmick {1} from spawn {0}", Id, UnitId);
             return null;
         }
 

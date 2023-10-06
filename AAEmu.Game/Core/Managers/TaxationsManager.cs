@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class TaxationsManager : Singleton<TaxationsManager>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     public Dictionary<uint, Taxation> taxations;
 
@@ -20,7 +20,7 @@ public class TaxationsManager : Singleton<TaxationsManager>
 
         using (var connection = SQLite.CreateConnection())
         {
-            _logger.Info("Loading taxations ...");
+            Logger.Info("Loading taxations ...");
 
             using (var command = connection.CreateCommand())
             {

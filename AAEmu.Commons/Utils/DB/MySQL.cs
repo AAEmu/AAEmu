@@ -7,7 +7,7 @@ namespace AAEmu.Commons.Utils.DB;
 
 public static class MySQL
 {
-    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private static string s_connectionString;
 
     static MySQL()
@@ -26,7 +26,7 @@ public static class MySQL
         }
         catch (Exception e)
         {
-            _logger.Fatal($"Error on DB connect: {e.Message}");
+            Logger.Fatal($"Error on DB connect: {e.Message}");
             return null;
         }
 

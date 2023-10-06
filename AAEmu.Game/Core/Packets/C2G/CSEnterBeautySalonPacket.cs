@@ -13,7 +13,7 @@ public class CSEnterBeautySalonPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        //_logger.Debug("EnterBeautySalon");
+        //Logger.Debug("EnterBeautySalon");
         Connection.ActiveChar.SendPacket(new SCToggleBeautyshopResponsePacket(1));
         Connection.ActiveChar.Buffs.AddBuff((uint)BuffConstants.InBeautySalon, Connection.ActiveChar);
     }

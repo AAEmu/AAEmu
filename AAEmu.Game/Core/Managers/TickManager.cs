@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class TickManager : Singleton<TickManager>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
     public delegate void OnTickEvent(TimeSpan delta);
     public TickEventHandler OnTick = new();
     private bool DoTickLoop = true;
@@ -27,7 +27,7 @@ public class TickManager : Singleton<TickManager>
             OnTick.Invoke();
             var time = sw.Elapsed - before;
             if (time > TimeSpan.FromMilliseconds(100))
-                _logger.Warn("Tick took {0}ms to finish", time.TotalMilliseconds);
+                Logger.Warn("Tick took {0}ms to finish", time.TotalMilliseconds);
             Thread.Sleep(20);
         }
         sw.Stop();
@@ -61,7 +61,7 @@ public class TickManager : Singleton<TickManager>
     }
     public class TickEventHandler
     {
-        private static Logger _logger = LogManager.GetCurrentClassLogger();
+        private static Logger Logger = LogManager.GetCurrentClassLogger();
 
         public delegate void OnTickEvent(TimeSpan delta);
         private List<TickEventEntity> _eventList;
@@ -115,7 +115,7 @@ public class TickManager : Singleton<TickManager>
                                 }
                                 catch (Exception e)
                                 {
-                                    _logger.Error("{0}\n{1}", e.Message, e.StackTrace);
+                                    Logger.Error("{0}\n{1}", e.Message, e.StackTrace);
                                 }
                             });
                         }
@@ -129,7 +129,7 @@ public class TickManager : Singleton<TickManager>
                         }
                         catch (Exception e)
                         {
-                            _logger.Error("{0}\n{1}", e.Message, e.StackTrace);
+                            Logger.Error("{0}\n{1}", e.Message, e.StackTrace);
                         }
                     }
                 }

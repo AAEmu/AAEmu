@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Formulas;
 
 public class Formula
 {
-    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     private Func<Dictionary<string, double>, double> Expression { get; set; }
 
@@ -38,9 +38,9 @@ public class Formula
                 var sb = new StringBuilder();
                 foreach (var (key, value) in parameters)
                     sb.AppendLine(key + ": " + value);
-                _logger.Error("Error in formula {0}:\n{1}", Id, TextFormula);
-                _logger.Error("Parameters:\n{0}", sb.ToString());
-                _logger.Error(e);
+                Logger.Error("Error in formula {0}:\n{1}", Id, TextFormula);
+                Logger.Error("Parameters:\n{0}", sb.ToString());
+                Logger.Error(e);
                 return 0;
             }
         }
@@ -54,8 +54,8 @@ public class Formula
         }
         catch (Exception e)
         {
-            _logger.Error("Formula {0} : {1} has syntax errors: ", Id, TextFormula);
-            _logger.Error(e);
+            Logger.Error("Formula {0} : {1} has syntax errors: ", Id, TextFormula);
+            Logger.Error(e);
             return false;
         }
 

@@ -10,7 +10,7 @@ namespace AAEmu.Commons.Network.Core;
 
 public class Server : TcpServer
 {
-    private Logger _logger = LogManager.GetCurrentClassLogger();
+    private Logger Logger = LogManager.GetCurrentClassLogger();
     private BaseProtocolHandler _protocolHandler;
     private readonly HashSet<Session> _sessions = new();
 
@@ -26,30 +26,30 @@ public class Server : TcpServer
 
     protected override void OnStarted()
     {
-        _logger.Info($"TCP server listening start on {Endpoint}");
+        Logger.Info($"TCP server listening start on {Endpoint}");
     }
 
     protected override void OnStopped()
     {
-        _logger.Info("TCP server listener stopped!");
+        Logger.Info("TCP server listener stopped!");
     }
 
     protected override void OnConnected(TcpSession session)
     {
-        _logger.Info(
+        Logger.Info(
             $"Connect from {session.Socket.RemoteEndPoint} established, session id: {session.Id}");
         _sessions.Add((Session)session);
     }
 
     protected override void OnDisconnected(TcpSession session)
     {
-        _logger.Info($"Connect from session id: {session.Id} disconnected");
+        Logger.Info($"Connect from session id: {session.Id} disconnected");
         _sessions.Remove((Session)session);
     }
 
     protected override void OnError(SocketError error)
     {
-        _logger.Error($"TCP server SocketError: {error}");
+        Logger.Error($"TCP server SocketError: {error}");
     }
 
     public Session GetSession(Func<Session, bool> func)

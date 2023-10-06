@@ -17,7 +17,7 @@ namespace AAEmu.Game.GameData;
 [GameData]
 public class AiGameData : Singleton<AiGameData>, IGameDataLoader
 {
-    private Logger _logger = LogManager.GetCurrentClassLogger();
+    private Logger Logger = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, AiParams> _aiParams;
     private Dictionary<uint, List<AiCommands>> _aiCommands;
@@ -88,7 +88,7 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
                     }
                     catch (Exception e)
                     {
-                        _logger.Warn("Impossible to parse npc_ai_params {0}\n{1}", id, e.Message);
+                        Logger.Warn("Impossible to parse npc_ai_params {0}\n{1}", id, e.Message);
                     }
                 }
             }

@@ -11,7 +11,7 @@ namespace AAEmu.Commons.Utils.Updater;
 
 public static class MySqlDatabaseUpdater
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
     /*
         CREATE TABLE `updates` (
           `script_name` varchar(255) NOT NULL,
@@ -68,12 +68,12 @@ public static class MySqlDatabaseUpdater
             }
             catch (MySqlException ex)
             {
-                _logger.Fatal(ex, "Failed to create updates table!");
+                Logger.Fatal(ex, "Failed to create updates table!");
                 // Failed to create the new table
                 return false;
             }
 
-            _logger.Info("Created updates table");
+            Logger.Info("Created updates table");
         }
         return true;
     }
@@ -171,12 +171,12 @@ public static class MySqlDatabaseUpdater
 
             if (!success)
             {
-                _logger.Error($"Failed to run update script: {fName}");
-                _logger.Error(errorText);
+                Logger.Error($"Failed to run update script: {fName}");
+                Logger.Error(errorText);
                 return false;
             }
 
-            _logger.Info(doSkip ? $"Skipped: {fName}" : $"Installed: {fName}");
+            Logger.Info(doSkip ? $"Skipped: {fName}" : $"Installed: {fName}");
             //filesAlreadyUpdated.Add(fName);
         }
 
@@ -192,7 +192,7 @@ public static class MySqlDatabaseUpdater
     /// <returns></returns>
     public static bool Run(MySqlConnection connection, string moduleNamePrefix, string databaseSchemaName)
     {
-        _logger.Debug($"Updating database for {moduleNamePrefix}");
+        Logger.Debug($"Updating database for {moduleNamePrefix}");
 
         // Check if the updates table already exists
         var updateDbExists = UpdatesTableExists(connection, databaseSchemaName);
@@ -202,7 +202,7 @@ public static class MySqlDatabaseUpdater
         {
             if (!CreateUpdatesTable(connection))
             {
-                _logger.Fatal($"Was unable to create updates table in {databaseSchemaName} !");
+                Logger.Fatal($"Was unable to create updates table in {databaseSchemaName} !");
                 return false;
             }
         }
@@ -215,7 +215,7 @@ public static class MySqlDatabaseUpdater
 
         if (string.IsNullOrWhiteSpace(updatesFolder) || (allUpdatesFiles.Count <= 0))
         {
-            _logger.Info("No sql update folder or files found.");
+            Logger.Info("No sql update folder or files found.");
             return true;
         }
 
@@ -281,7 +281,7 @@ public static class MySqlDatabaseUpdater
         }
         else
         {
-            _logger.Debug("No DB update required");
+            Logger.Debug("No DB update required");
         }
 
         return true;
@@ -311,7 +311,7 @@ public static class MySqlDatabaseUpdater
             }
             catch (Exception ex)
             {
-                _logger.Error(ex);
+                Logger.Error(ex);
                 currentDir = string.Empty;
             }
         }

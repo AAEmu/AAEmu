@@ -9,11 +9,11 @@ public class FeaturesManager : Singleton<FeaturesManager>
 {
     public static FeatureSet Fsets { get; private set; }
 
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     public static void Initialize()
     {
-        _logger.Info("Initializing Features ...");
+        Logger.Info("Initializing Features ...");
         Fsets = new FeatureSet();
 
         Fsets.PlayerLevelLimit = 55;
@@ -73,6 +73,6 @@ public class FeaturesManager : Singleton<FeaturesManager>
             if (FeaturesManager.Fsets.Check(f))
                 featsOn += f.ToString() + "  ";
         }
-        _logger.Info("Enabled Features: {0}", featsOn);
+        Logger.Info("Enabled Features: {0}", featsOn);
     }
 }

@@ -17,7 +17,7 @@ public class CSAskRiskyTeamActionPacket : GamePacket
         var targetId = stream.ReadUInt32();
         var riskyAction = (RiskyAction)stream.ReadByte(); // ra
 
-        // _logger.Warn("AskRiskyTeamAction, TeamId: {0}, Id: {1}, RiskyAction: {2}", teamId, targetId, riskyAction);
+        // Logger.Warn("AskRiskyTeamAction, TeamId: {0}, Id: {1}, RiskyAction: {2}", teamId, targetId, riskyAction);
         TeamManager.Instance.AskRiskyTeam(Connection.ActiveChar, teamId, targetId, riskyAction);
     }
 }

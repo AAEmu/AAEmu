@@ -20,7 +20,7 @@ namespace AAEmu.Game.Core.Managers;
 // GeoData AiNavigation
 public class AiGeoDataManager : Singleton<AiGeoDataManager>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     private Dictionary<byte, Dictionary<uint, List<AiNavigation>>> _aiNavigation;
     private Dictionary<byte, Dictionary<uint, string>> _areasMission;
@@ -224,7 +224,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             }
         }
 
-        _logger.Warn($"# Found near position index: {index}...");
+        Logger.Warn($"# Found near position index: {index}...");
         return (index, point);
     }
 
@@ -258,7 +258,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             }
         }
 
-        // _logger.Warn($"# Found near position index: {index}...");
+        // Logger.Warn($"# Found near position index: {index}...");
         return (index, point);
     }
 
@@ -318,7 +318,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
                 }
             }
 
-            //_logger.Warn($"# Found near position aiNavigation, Z: {pointN.Z}...");
+            //Logger.Warn($"# Found near position aiNavigation, Z: {pointN.Z}...");
             rrr = minDistFa < minDistN ? pointFa.Z : pointN.Z;
         }
         catch
@@ -326,7 +326,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             rrr = 0f;
         }
         //stopWatch.Stop();
-        //_logger.Info($"GetHeight took {stopWatch.Elapsed}");
+        //Logger.Info($"GetHeight took {stopWatch.Elapsed}");
 
         return rrr;
     }
@@ -390,7 +390,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             }
 
             point = res.OrderBy(p => DistanceBetweenPoints(pos, p)).First();
-            //_logger.Warn($"# Found near position aiNavigation, Z: {pointN.Z}...");
+            //Logger.Warn($"# Found near position aiNavigation, Z: {pointN.Z}...");
             rrr = point.Z;
         }
         catch
@@ -399,7 +399,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
         }
 
         stopWatch.Stop();
-        _logger.Info($"GetHeight2 took {stopWatch.Elapsed}");
+        Logger.Info($"GetHeight2 took {stopWatch.Elapsed}");
         return rrr;
     }
 
@@ -409,7 +409,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
 
     public void Load()
     {
-        _logger.Info("Loading AI GeoData...");
+        Logger.Info("Loading AI GeoData...");
 
         _aiNavigation = new Dictionary<byte, Dictionary<uint, List<AiNavigation>>>();
         _areasMission = new Dictionary<byte, Dictionary<uint, string>>();
@@ -440,14 +440,14 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             var worldPathToFile = Path.Combine(worldPath, "server_ai_geo_data.sqlite3");
             if (!File.Exists(worldPathToFile))
             {
-                _logger.Info($"World {world.Name} is missing {Path.GetFileName(worldPathToFile)}");
+                Logger.Info($"World {world.Name} is missing {Path.GetFileName(worldPathToFile)}");
             }
             else
             {
 #pragma warning disable CA2000 // Dispose objects before losing scope
                 using (var connection = SQLite.CreateConnection(worldPath, "server_ai_geo_data.sqlite3"))
                 {
-                    _logger.Info("Loading ai_navigation...");
+                    Logger.Info("Loading ai_navigation...");
                     using (var command = connection.CreateCommand())
                     {
                         command.CommandText = "SELECT * FROM ai_navigation";
@@ -486,7 +486,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
                         }
                     }
 
-                    _logger.Info("Loading areas_mission...");
+                    Logger.Info("Loading areas_mission...");
                     using (var command = connection.CreateCommand())
                     {
                         command.CommandText = "SELECT * FROM areas_mission";
@@ -508,7 +508,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
                         }
                     }
 
-                    _logger.Info("Loading areas_mission_points...");
+                    Logger.Info("Loading areas_mission_points...");
                     using (var command = connection.CreateCommand())
                     {
                         command.CommandText = "SELECT * FROM areas_mission_points";

@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers;
 
 public class NpcManager : Singleton<NpcManager>
 {
-    private static Logger _logger = LogManager.GetCurrentClassLogger();
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
     private Dictionary<uint, NpcTemplate> _templates;
@@ -121,7 +121,7 @@ public class NpcManager : Singleton<NpcManager>
             var buff = SkillManager.Instance.GetBuffTemplate(buffId);
             if (buff == null)
             {
-                _logger.Warn("BuffId {0} for npc {1} not found", buffId, npc.TemplateId);
+                Logger.Warn("BuffId {0} for npc {1} not found", buffId, npc.TemplateId);
                 continue;
             }
 
@@ -170,7 +170,7 @@ public class NpcManager : Singleton<NpcManager>
             return template;
         }
 
-        //_logger.Info("Loading random npc {0} custom templates...", template.ModelId);
+        //Logger.Info("Loading random npc {0} custom templates...", template.ModelId);
         var modelParamsId = 0u;
         switch ((Race)template.CharRaceId)
         {
@@ -227,7 +227,7 @@ public class NpcManager : Singleton<NpcManager>
                 }
                 else
                 {
-                    _logger.Trace($"No compatible TotalCharacterCustoms hair found for NPC: {template.Id}");
+                    Logger.Trace($"No compatible TotalCharacterCustoms hair found for NPC: {template.Id}");
                 }
             }
         }
@@ -314,7 +314,7 @@ public class NpcManager : Singleton<NpcManager>
             }
         }
 
-        //_logger.Info("Loaded npc {0} random hair {1} and hairColor {2}", template.ModelId, _template.HairId, _template.ModelParams.HairColorId);
+        //Logger.Info("Loaded npc {0} random hair {1} and hairColor {2}", template.ModelId, _template.HairId, _template.ModelParams.HairColorId);
 
         return _template;
     }
@@ -330,7 +330,7 @@ public class NpcManager : Singleton<NpcManager>
         _totalCharacterCustoms = new Dictionary<uint, TotalCharacterCustom>();
         _itemBodyParts = new Dictionary<uint, Dictionary<uint, List<BodyPartTemplate>>>();
 
-        _logger.Info("Loading npc templates...");
+        Logger.Info("Loading npc templates...");
         using (var connection = SQLite.CreateConnection())
         {
             using (var command = connection.CreateCommand())
@@ -758,8 +758,8 @@ public class NpcManager : Singleton<NpcManager>
                 }
             }
 
-            _logger.Info("Loaded {0} npc templates", _templates.Count);
-            _logger.Info("Loading merchant packs...");
+            Logger.Info("Loaded {0} npc templates", _templates.Count);
+            Logger.Info("Loading merchant packs...");
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM merchant_goods";
@@ -780,7 +780,7 @@ public class NpcManager : Singleton<NpcManager>
                 }
             }
 
-            _logger.Info("Loaded {0} merchant packs", _goods.Count);
+            Logger.Info("Loaded {0} merchant packs", _goods.Count);
         }
 
         NpcGameData.Instance.LoadMemberAndSpawnerTemplateIds();

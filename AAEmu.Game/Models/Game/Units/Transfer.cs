@@ -459,28 +459,28 @@ public class Transfer : Unit
         transfer.Speed = 0;
         if (!MoveToPathEnabled || !transfer.IsInPatrol)
         {
-            //_logger.Warn("the route is stopped.");
+            //Logger.Warn("the route is stopped.");
             StopMove(transfer);
             return;
         }
 
         // presumably the path is already registered in MovePath
-        //_logger.Warn("trying to get on the road...");
+        //Logger.Warn("trying to get on the road...");
         // first go to the closest checkpoint
         var i = GetMinCheckPoint(transfer, transfer.TransferPath);
         if (i < 0)
         {
-            //_logger.Warn("no checkpoint found.");
+            //Logger.Warn("no checkpoint found.");
             StopMove(transfer);
             return;
         }
 
-        //_logger.Warn("found nearest checkpoint # " + i + " walk there ...");
-        //_logger.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+        //Logger.Warn("found nearest checkpoint # " + i + " walk there ...");
+        //Logger.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
         transfer.MoveToPathEnabled = true;
         transfer.MoveStepIndex = i;
-        //_logger.Warn("checkpoint #" + i);
-        //_logger.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+        //Logger.Warn("checkpoint #" + i);
+        //Logger.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
         var s = transfer.TransferPath[transfer.MoveStepIndex];
         transfer.vTarget = new Vector3(s.X, s.Y, s.Z);
         // 1.начало пути
@@ -488,11 +488,11 @@ public class Transfer : Unit
         {
             var time = transfer.Template.WaitTime;
             transfer.WaitTime = DateTime.UtcNow.AddSeconds(time);
-            //_logger.Info("TransfersPath #" + transfer.Template.Id);
-            //_logger.Warn("path #" + Steering);
-            //_logger.Warn("walk to #" + MoveStepIndex);
-            //_logger.Info("pause to #" + time);
-            //_logger.Warn("x:=" + transfer.Position.X + " y:=" + transfer.Position.Y + " z:=" + transfer.Position.Z);
+            //Logger.Info("TransfersPath #" + transfer.Template.Id);
+            //Logger.Warn("path #" + Steering);
+            //Logger.Warn("walk to #" + MoveStepIndex);
+            //Logger.Info("pause to #" + time);
+            //Logger.Warn("x:=" + transfer.Position.X + " y:=" + transfer.Position.Y + " z:=" + transfer.Position.Z);
         }
     }
 
@@ -502,7 +502,7 @@ public class Transfer : Unit
         // check for a route
         if (pointsList.Count == 0)
         {
-            //_logger.Warn("no route data.");
+            //Logger.Warn("no route data.");
             return -1;
         }
         float delta;
@@ -512,7 +512,7 @@ public class Transfer : Unit
         {
             transfer.vPosition = new Vector3(pointsList[i].X, pointsList[i].Y, pointsList[i].Z);
 
-            //_logger.Warn("#" + i + " x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+            //Logger.Warn("#" + i + " x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
 
             delta = MathUtil.GetDistance(transfer.vTarget, transfer.vPosition);
             if (delta > 200) { continue; } // ищем точку не очень далеко от повозки // looking for a point not very far from the carriage 
@@ -534,7 +534,7 @@ public class Transfer : Unit
 
     private static void StopMove(Transfer transfer)
     {
-        //_logger.Warn("stop moving ...");
+        //Logger.Warn("stop moving ...");
         transfer.Throttle = 0;
         transfer.Speed = 0;
         transfer.RotSpeed = 0;
@@ -623,10 +623,10 @@ public class Transfer : Unit
         //{
         //    // для проверки
 
-        //    _logger.Warn("Reverse=" + Reverse + " Cyclic=" + Template.Cyclic);
-        //    _logger.Warn("MoveStepIndex=" + MoveStepIndex + " Steering=" + Steering);
-        //    _logger.Warn("x=" + Position.X + " y=" + Position.Y + " z=" + Position.Z + " Angle=" + Angle + " Rot=" + Rot);
-        //    //_logger.Warn("velx=" + Velocity.X + " vely=" + Velocity.Y + " velz=" + Velocity.Z);
+        //    Logger.Warn("Reverse=" + Reverse + " Cyclic=" + Template.Cyclic);
+        //    Logger.Warn("MoveStepIndex=" + MoveStepIndex + " Steering=" + Steering);
+        //    Logger.Warn("x=" + Position.X + " y=" + Position.Y + " z=" + Position.Z + " Angle=" + Angle + " Rot=" + Rot);
+        //    //Logger.Warn("velx=" + Velocity.X + " vely=" + Velocity.Y + " velz=" + Velocity.Z);
         //}
 
         if (nextPoint)
@@ -648,11 +648,11 @@ public class Transfer : Unit
             transfer.Transform.FinalizeTransform(true);
             //if (transfer.TemplateId == 49)
             //{
-            //    _logger.Info($"transfer:{transfer.TemplateId}-{transfer.ObjId} is moving X={transfer.Transform.World.Position.X} Y={transfer.Transform.World.Position.Y}");
+            //    Logger.Info($"transfer:{transfer.TemplateId}-{transfer.ObjId} is moving X={transfer.Transform.World.Position.X} Y={transfer.Transform.World.Position.Y}");
             //    var region = WorldManager.Instance.GetRegion(transfer); // Get region of Object or it's Root object if it has one
             //    var currentRegion = transfer.Region; // Current Region this object is in
-            //    _logger.Info($"transfer is moving from region={currentRegion.Id} to region={region.Id}");
-            //    _logger.Warn("----------");
+            //    Logger.Info($"transfer is moving from region={currentRegion.Id} to region={region.Id}");
+            //    Logger.Warn("----------");
             //}
             // Only send movement of the main vehicle motor, client will drag carriage on it's own
             if ((transfer.Bounded != null) || (transfer.ParentObj == null))
@@ -663,7 +663,7 @@ public class Transfer : Unit
                 if (transfer.Transform._debugTrackers.Count > 0)
                 {
                     var neighbouringPlayers = WorldManager.Instance.GetAround<Character>(transfer);
-                    _logger.Debug("TransferMovement {0} visible to {1} player(s)", DebugName(), neighbouringPlayers.Count);
+                    Logger.Debug("TransferMovement {0} visible to {1} player(s)", DebugName(), neighbouringPlayers.Count);
                 }
                 */
             }
@@ -703,11 +703,11 @@ public class Transfer : Unit
             time = transfer.Template.TransferAllPaths[transfer.Steering].WaitTimeStart;
             WaitTime = DateTime.UtcNow.AddSeconds(time);
         }
-        //_logger.Info("TransfersPath #" + transfer.Template.Id);
-        //_logger.Warn("path #" + Steering);
-        //_logger.Warn("walk to #" + MoveStepIndex);
-        //_logger.Info("pause to #" + time);
-        //_logger.Warn("x:=" + transfer.Position.X + " y:=" + transfer.Position.Y + " z:=" + transfer.Position.Z);
+        //Logger.Info("TransfersPath #" + transfer.Template.Id);
+        //Logger.Warn("path #" + Steering);
+        //Logger.Warn("walk to #" + MoveStepIndex);
+        //Logger.Info("pause to #" + time);
+        //Logger.Warn("x:=" + transfer.Position.X + " y:=" + transfer.Position.Y + " z:=" + transfer.Position.Z);
     }
 
     private static bool DoSpeedReduction(Transfer transfer)
@@ -753,7 +753,7 @@ public class Transfer : Unit
 
         if (!transfer.MoveToPathEnabled)
         {
-            //_logger.Warn("OnMove disabled");
+            //Logger.Warn("OnMove disabled");
             StopMove(transfer);
             return;
         }
@@ -765,10 +765,10 @@ public class Transfer : Unit
 
             //var s = transfer.TransferPath[transfer.MoveStepIndex];
             //vTarget = new Vector3(s.X, s.Y, s.Z);
-            //_logger.Info("TransfersPath #" + transfer.Template.Id);
-            //_logger.Warn("path #" + Steering);
-            //_logger.Warn("walk to #" + MoveStepIndex);
-            //_logger.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+            //Logger.Info("TransfersPath #" + transfer.Template.Id);
+            //Logger.Warn("path #" + Steering);
+            //Logger.Warn("walk to #" + MoveStepIndex);
+            //Logger.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
             // Проходим по очереди все участки пути из списка, с начала каждого пути
             if (transfer.MoveStepIndex >= transfer.TransferPath.Count - 1)
             {
@@ -777,7 +777,7 @@ public class Transfer : Unit
                 if (transfer.Steering >= transfer.Routes.Count - 1)
                 {
                     // закончились все участки пути дороги, нужно начать сначала
-                    //_logger.Warn("we are at the end point.");
+                    //Logger.Warn("we are at the end point.");
                     transfer.Steering = 0; // укажем на начальный путь
                     transfer.TransferPath = transfer.Routes[transfer.Steering];
                     var s = transfer.TransferPath[transfer.MoveStepIndex];
@@ -786,7 +786,7 @@ public class Transfer : Unit
                 else
                 {
                     // Проверяем остановки на маршруте
-                    //_logger.Warn("we reached checkpoint go further...");
+                    //Logger.Warn("we reached checkpoint go further...");
                     // продолжим путь
                     transfer.Steering++; // укажем на следующий участок пути
                     transfer.TransferPath = transfer.Routes[transfer.Steering];
@@ -830,7 +830,7 @@ public class Transfer : Unit
             // закончились все участки пути дороги, нужно возвращаться назад
             if (transfer.MoveStepIndex >= transfer.TransferPath.Count - 1)
             {
-                //_logger.Warn("we are at the end point.");
+                //Logger.Warn("we are at the end point.");
                 transfer.Reverse = true;
                 // здесь будет пауза в начале участка пути
                 time = transfer.Template.TransferAllPaths[transfer.Steering].WaitTimeStart > 0
@@ -842,7 +842,7 @@ public class Transfer : Unit
             // начальная точка, двигаемся вперед
             if (transfer.MoveStepIndex == 0)
             {
-                //_logger.Warn("we are at the begin point.");
+                //Logger.Warn("we are at the begin point.");
                 transfer.Reverse = false;
                 // здесь будет пауза в конце участка пути
                 time = transfer.Template.TransferAllPaths[transfer.Steering].WaitTimeEnd > 0
