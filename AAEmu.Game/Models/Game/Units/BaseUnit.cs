@@ -73,7 +73,7 @@ public class BaseUnit : GameObject, IBaseUnit
             zoneFaction = FactionManager.Instance.GetFaction(FactionsEnum.Neutral);
         }
         var targetMotherFaction = target.Faction?.MotherId ?? 0;
-        if (targetMotherFaction != 0 && ((targetMotherFaction == zoneFaction.MotherId) || (targetMotherFaction == zoneFaction.Id)))
+        if (this is Character && targetMotherFaction != 0 && ((targetMotherFaction == zoneFaction.MotherId) || (targetMotherFaction == zoneFaction.Id)))
         {
             // Target is protected by mother zone, can't attack it
             return false;
