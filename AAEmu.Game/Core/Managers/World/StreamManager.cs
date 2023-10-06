@@ -9,7 +9,6 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class StreamManager : Singleton<StreamManager>
 {
-    // Unused: private static Logger _log = LogManager.GetCurrentClassLogger();
     private readonly Dictionary<uint, uint> _accounts;
 
     protected StreamManager()

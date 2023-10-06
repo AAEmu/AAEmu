@@ -258,7 +258,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             }
         }
 
-        // _log.Warn($"# Found near position index: {index}...");
+        // _logger.Warn($"# Found near position index: {index}...");
         return (index, point);
     }
 
@@ -318,7 +318,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
                 }
             }
 
-            //_log.Warn($"# Found near position aiNavigation, Z: {pointN.Z}...");
+            //_logger.Warn($"# Found near position aiNavigation, Z: {pointN.Z}...");
             rrr = minDistFa < minDistN ? pointFa.Z : pointN.Z;
         }
         catch
@@ -326,7 +326,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             rrr = 0f;
         }
         //stopWatch.Stop();
-        //_log.Info($"GetHeight took {stopWatch.Elapsed}");
+        //_logger.Info($"GetHeight took {stopWatch.Elapsed}");
 
         return rrr;
     }
@@ -390,7 +390,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             }
 
             point = res.OrderBy(p => DistanceBetweenPoints(pos, p)).First();
-            //_log.Warn($"# Found near position aiNavigation, Z: {pointN.Z}...");
+            //_logger.Warn($"# Found near position aiNavigation, Z: {pointN.Z}...");
             rrr = point.Z;
         }
         catch

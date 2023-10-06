@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads;
 
 public class DoodadFuncFinalTask : DoodadFuncTask
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
     private BaseUnit _caster;
     private Doodad _owner;
     private uint _skillId;
@@ -35,9 +35,9 @@ public class DoodadFuncFinalTask : DoodadFuncTask
     public override void Execute()
     {
         if (_caster is Character)
-            _log.Debug("[Doodad] DoodadFuncFinalTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
+            _logger.Debug("[Doodad] DoodadFuncFinalTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
         else
-            _log.Trace("[Doodad] DoodadFuncFinalTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
+            _logger.Trace("[Doodad] DoodadFuncFinalTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
 
         if (_respawn && _owner.Spawner != null)
         {

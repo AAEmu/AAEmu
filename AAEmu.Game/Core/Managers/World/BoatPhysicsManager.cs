@@ -138,7 +138,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
                         if (_tickCount % 6 != 0) { continue; }
                         _physWorld.CollisionSystem.Detect(true);
                         BoatPhysicsTick(slave, slaveRigidBody);
-                        //_log.Debug($"{_thread.Name}, slave: {slave.Name} collision check tick");
+                        //_logger.Debug($"{_thread.Name}, slave: {slave.Name} collision check tick");
                     }
                 }
             }
@@ -231,7 +231,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
             if (Math.Abs(slave.Speed) < 0.01)
                 slave.Speed = 0;
         }
-        // _log.Debug("Slave: {0}, speed: {1}, rotSpeed: {2}", slave.ObjId, slave.Speed, slave.RotSpeed);
+        // _logger.Debug("Slave: {0}, speed: {1}, rotSpeed: {2}", slave.ObjId, slave.Speed, slave.RotSpeed);
 
         // Calculate some stuff for later
         var boxSize = rigidBody.Shape.BoundingBox.Max - rigidBody.Shape.BoundingBox.Min;
@@ -274,7 +274,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
 
         /*
         if ((slave.Steering != 0) || (slave.Throttle != 0))
-            _log.Debug($"Request: {slave.SteeringRequest}, Steering: {slave.Steering}, steer: {steer}, vol: {solidVolume} mass: {rigidBody.Mass}, force: {steerForce}, torque: {rigidBody.Torque}");
+            _logger.Debug($"Request: {slave.SteeringRequest}, Steering: {slave.Steering}, steer: {steer}, vol: {solidVolume} mass: {rigidBody.Mass}, force: {steerForce}, torque: {rigidBody.Torque}");
         */
 
         // Insert new Rotation data into MoveType
@@ -316,7 +316,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
 
         // Send the packet
         slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
-        // _log.Debug("Island: {0}", slave.RigidBody.CollisionIsland.Bodies.Count);
+        // _logger.Debug("Island: {0}", slave.RigidBody.CollisionIsland.Bodies.Count);
 
         // Update all to main Slave and it's children 
         slave.Transform.FinalizeTransform();

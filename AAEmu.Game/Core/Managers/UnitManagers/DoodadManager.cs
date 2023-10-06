@@ -2752,7 +2752,7 @@ public class DoodadManager : Singleton<DoodadManager>
         if (!skipPhaseInitialization)
             Task.Run(() => doodad.InitDoodad());
 
-        //_log.Debug($"Create: TemplateId {doodad.TemplateId}, ObjId {doodad.ObjId}, FuncGroupId {doodad.FuncGroupId}");
+        //_logger.Debug($"Create: TemplateId {doodad.TemplateId}, ObjId {doodad.ObjId}, FuncGroupId {doodad.FuncGroupId}");
 
         return doodad;
     }

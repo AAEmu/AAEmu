@@ -13,7 +13,7 @@ public class CSBeautyshopDataPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        //_log.Debug("BeautyshopData");
+        //_logger.Debug("BeautyshopData");
         var hair = stream.ReadUInt32(); // unknown value ? maybe bitmask of what was changed ?
         var model = new UnitCustomModelParams();
         model.Read(stream);

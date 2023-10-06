@@ -14,7 +14,7 @@ public class CSDespawnSlavePacket : GamePacket
     {
         var slaveObjId = stream.ReadBc();
 
-        //_log.Debug("DespawnSlave, SlaveObjId: {0}", slaveObjId);
+        //_logger.Debug("DespawnSlave, SlaveObjId: {0}", slaveObjId);
         SlaveManager.Instance.Delete(Connection.ActiveChar, slaveObjId);
     }
 }

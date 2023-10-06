@@ -49,7 +49,7 @@ public class PlotNode
 
     public void Execute(PlotState state, PlotTargetInfo targetInfo, CompressedGamePackets packets = null)
     {
-        //_log.Debug("Executing plot node with id {0}", Event.Id);
+        //_logger.Debug("Executing plot node with id {0}", Event.Id);
 
         var stopwatch = new Stopwatch();
         stopwatch.Start();

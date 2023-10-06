@@ -443,7 +443,7 @@ public class NpcSpawner : Spawner<Npc>
         // Check if we did not go over Suspend Spawn Count
         if (Template.SuspendSpawnCount > 0 && _spawnCount > Template.SuspendSpawnCount)
         {
-            //_log.Debug("DoSpawn: Npc TemplateId {0}, spawnerId {1} reschedule next time...", UnitId, Id);
+            //_logger.Debug("DoSpawn: Npc TemplateId {0}, spawnerId {1} reschedule next time...", UnitId, Id);
             //TaskManager.Instance.Schedule(new NpcSpawnerDoSpawnTask(this), TimeSpan.FromSeconds(60));
             return;
         }

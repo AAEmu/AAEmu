@@ -21,7 +21,6 @@ namespace AAEmu.Game.Core.Managers;
 
 public class ExpeditionManager : Singleton<ExpeditionManager>
 {
-    // Unused: private static Logger _log = LogManager.GetCurrentClassLogger();
     //private ExpeditionConfig _config;
     private Regex _nameRegex;
 

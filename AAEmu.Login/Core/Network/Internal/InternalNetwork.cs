@@ -10,7 +10,7 @@ namespace AAEmu.Login.Core.Network.Internal;
 
 public class InternalNetwork : Singleton<InternalNetwork>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private Server _server;
     private InternalProtocolHandler _handler;
@@ -34,7 +34,7 @@ public class InternalNetwork : Singleton<InternalNetwork>
         _server = new Server(host.Address, host.Port, _handler);
         _server.Start();
 
-        _log.Info("InternalNetwork started");
+        _logger.Info("InternalNetwork started");
     }
 
     public void Stop()
@@ -42,7 +42,7 @@ public class InternalNetwork : Singleton<InternalNetwork>
         if (_server.IsStarted)
             _server.Stop();
 
-        _log.Info("InternalNetwork stoped");
+        _logger.Info("InternalNetwork stoped");
     }
 
     public void RegisterPacket(uint type, Type classType)

@@ -122,7 +122,7 @@ public class UccManager : Singleton<UccManager>
                             if (File.Exists(uccFileName))
                                 ucc.Data.AddRange(File.ReadAllBytes(uccFileName));
                             else
-                                _log.Error("Missing UCC file: {0}", uccFileName);
+                                _logger.Error("Missing UCC file: {0}", uccFileName);
                             
 #else
 
@@ -222,7 +222,7 @@ public class UccManager : Singleton<UccManager>
             if (_downloadQueue.ContainsKey(connection.Id))
                 if (_downloadQueue[connection.Id] == id)
                 {
-                    //_log.Warn("User {0} is already requesting UCC {1}, skipping request !", connection.GameConnection.ActiveChar.Name, id);
+                    //_logger.Warn("User {0} is already requesting UCC {1}, skipping request !", connection.GameConnection.ActiveChar.Name, id);
                     _logger.Warn("User {0} is already requesting UCC {1}, sending first block !", connection.GameConnection.ActiveChar.Name, id);
                     connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, 0));
                     return;
@@ -336,7 +336,7 @@ public class UccManager : Singleton<UccManager>
             var uccFileName = Path.Combine(FileManager.AppPath, "UserData", "UCC", id.ToString("000000") + ".dds");
             File.WriteAllBytes(uccFileName,customUcc.Data.ToArray());
             if (!File.Exists(uccFileName))
-                _log.Error("Failed to save UCC data to file {0}", uccFileName);
+                _logger.Error("Failed to save UCC data to file {0}", uccFileName);
         }
 #endif
 

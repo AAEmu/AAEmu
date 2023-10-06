@@ -126,7 +126,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             }
         }
         //sw.Stop();
-        //_log.Warn("ActiveRegionTick took {0}ms", sw.ElapsedMilliseconds);
+        //_logger.Warn("ActiveRegionTick took {0}ms", sw.ElapsedMilliseconds);
         */
     }
 
@@ -293,7 +293,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             // add dummy main world as ID 0
             if (!_indunZones.TryAdd(0, new IndunZone() { ZoneGroupId = 0, Name = "Main World", LocalizedName = "Erenor" }))
             {
-                _log.Fatal("Failed to add main world");
+                _logger.Fatal("Failed to add main world");
                 return;
             }
             */
@@ -417,7 +417,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                     {
                         if (stream == null)
                         {
-                            //_log.Trace($"Cell {cellFileName} not found or not used in {world.Name}");
+                            //_logger.Trace($"Cell {cellFileName} not found or not used in {world.Name}");
                             continue;
                         }
 
@@ -890,7 +890,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 if (child != null)
                     AddVisibleObject(child.GameObject);
 
-        //_log.Warn($" objects={_objects.Count}, doodads={_doodads.Count}, npcs={_npcs.Count}, characters={_characters.Count}");
+        //_logger.Warn($" objects={_objects.Count}, doodads={_doodads.Count}, npcs={_npcs.Count}, characters={_characters.Count}");
     }
 
     public static void RemoveVisibleObject(GameObject obj)

@@ -170,7 +170,7 @@ public class NpcManager : Singleton<NpcManager>
             return template;
         }
 
-        //_log.Info("Loading random npc {0} custom templates...", template.ModelId);
+        //_logger.Info("Loading random npc {0} custom templates...", template.ModelId);
         var modelParamsId = 0u;
         switch ((Race)template.CharRaceId)
         {
@@ -314,7 +314,7 @@ public class NpcManager : Singleton<NpcManager>
             }
         }
 
-        //_log.Info("Loaded npc {0} random hair {1} and hairColor {2}", template.ModelId, _template.HairId, _template.ModelParams.HairColorId);
+        //_logger.Info("Loaded npc {0} random hair {1} and hairColor {2}", template.ModelId, _template.HairId, _template.ModelParams.HairColorId);
 
         return _template;
     }

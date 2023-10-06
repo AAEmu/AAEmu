@@ -487,7 +487,7 @@ public class Inventory
 
         if ((doUnEquipOffhand) && (offHandWeapon != null))
         {
-            //_log.Trace("SplitOrMoveItem - UnEquip OffHand required!");
+            //_logger.Trace("SplitOrMoveItem - UnEquip OffHand required!");
             // Check if we have enough space to unequip the offhand
             if (Bag.FreeSlotCount < 1)
                 return false;
@@ -498,7 +498,7 @@ public class Inventory
 
         if (doUnEquipMainHand)
         {
-            //_log.Trace("SplitOrMoveItem - UnEquip MainHand required!");
+            //_logger.Trace("SplitOrMoveItem - UnEquip MainHand required!");
             // Check if we have enough space to unequip the mainhand
             if (Bag.FreeSlotCount < 1)
                 return false;

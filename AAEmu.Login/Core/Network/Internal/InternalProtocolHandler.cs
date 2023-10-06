@@ -13,7 +13,7 @@ namespace AAEmu.Login.Core.Network.Internal;
 
 public class InternalProtocolHandler : BaseProtocolHandler
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private ConcurrentDictionary<uint, Type> _packets;
 
@@ -24,7 +24,7 @@ public class InternalProtocolHandler : BaseProtocolHandler
 
     public override void OnConnect(Session session)
     {
-        _log.Info("GameServer from {0} connected, session id: {1}", session.Ip.ToString(),
+        _logger.Info("GameServer from {0} connected, session id: {1}", session.Ip.ToString(),
             session.SessionId.ToString(CultureInfo.InvariantCulture));
         var con = new InternalConnection(session);
         InternalConnection.OnConnect();
@@ -33,7 +33,7 @@ public class InternalProtocolHandler : BaseProtocolHandler
 
     public override void OnDisconnect(Session session)
     {
-        _log.Info("GameServer from {0} disconnected", session.Ip.ToString());
+        _logger.Info("GameServer from {0} disconnected", session.Ip.ToString());
         var gsId = session.GetAttribute("gsId");
         if (gsId != null)
             GameController.Instance.Remove((byte)gsId);
@@ -60,7 +60,7 @@ public class InternalProtocolHandler : BaseProtocolHandler
             }
             catch (MarshalException)
             {
-                //_log.Warn("Error on reading type {0}", type);
+                //_logger.Warn("Error on reading type {0}", type);
                 stream.Rollback();
                 connection.LastPacket = stream;
                 stream = null;
@@ -99,8 +99,8 @@ public class InternalProtocolHandler : BaseProtocolHandler
                     }
                     catch (Exception e)
                     {
-                        _log.Error("Error on decode packet {0}", type);
-                        _log.Error(e);
+                        _logger.Error("Error on decode packet {0}", type);
+                        _logger.Error(e);
                     }
                 }
             }
@@ -126,6 +126,6 @@ public class InternalProtocolHandler : BaseProtocolHandler
         var dump = new StringBuilder();
         for (var i = stream.Pos; i < stream.Count; i++)
             dump.AppendFormat("{0:x2} ", stream.Buffer[i]);
-        _log.Error("Unknown packet 0x{0:x2} from {1}:\n{2}", type, session.Ip, dump);
+        _logger.Error("Unknown packet 0x{0:x2} from {1}:\n{2}", type, session.Ip, dump);
     }
 }

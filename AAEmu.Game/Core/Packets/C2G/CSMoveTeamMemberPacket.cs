@@ -18,7 +18,7 @@ public class CSMoveTeamMemberPacket : GamePacket
         var fromIndex = stream.ReadByte();
         var toIndex = stream.ReadByte();
 
-        // _log.Warn("MoveTeamMember, TeamId: {0}, Id: {1}, {2}, Index: {3}, {4}", teamId, id, id2, memberIndex, otherIndex);
+        // _logger.Warn("MoveTeamMember, TeamId: {0}, Id: {1}, {2}, Index: {3}, {4}", teamId, id, id2, memberIndex, otherIndex);
         TeamManager.Instance.MoveTeamMember(Connection.ActiveChar, teamId, targetId, target2Id, fromIndex, toIndex);
     }
 }

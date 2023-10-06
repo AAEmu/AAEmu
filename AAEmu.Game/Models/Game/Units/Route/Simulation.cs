@@ -162,7 +162,7 @@ public class Simulation : Patrol
         // check for a route
         if (pointsList == null || pointsList.Count == 0)
         {
-            //_log.Warn("no route data...");
+            //_logger.Warn("no route data...");
             //Character.SendMessage("[MoveTo] no route data...");
             return -1;
         }
@@ -171,7 +171,7 @@ public class Simulation : Patrol
         {
             TargetPosition.World.SetPosition(pointsList[i]);
 
-            //_log.Warn($"Проверяем точку #{i} с координатами  x={TargetPosition.World.Position.X} y={TargetPosition.World.Position.Y}");
+            //_logger.Warn($"Проверяем точку #{i} с координатами  x={TargetPosition.World.Position.X} y={TargetPosition.World.Position.Y}");
 
             var m = MathUtil.CalculateDistance(TargetPosition.World.Position, npc.Transform.World.Position, true);
             if (m <= 0) { continue; }
@@ -195,13 +195,13 @@ public class Simulation : Patrol
         if (SavePathEnabled) { return; }
         if (MoveToPathEnabled)
         {
-            //_log.Warn("while following the route, recording is not possible.");
+            //_logger.Warn("while following the route, recording is not possible.");
             //Character.SendMessage("[MoveTo] while following the route, recording is not possible.");
             return;
         }
         RecordPath.Clear();
         PointsCount = 0;
-        //_log.Warn("route recording started ...");
+        //_logger.Warn("route recording started ...");
         //Character.SendMessage("[MoveTo] route recording started ...");
         SavePathEnabled = true;
         RepeatTo(ch, MoveTrigerDelay, sim);
@@ -212,7 +212,7 @@ public class Simulation : Patrol
         s = s.Replace(",", ".");
         RecordPath.Add(s);
         PointsCount++;
-        //_log.Warn($"added checkpoint #{PointsCount}");
+        //_logger.Warn($"added checkpoint #{PointsCount}");
         //Character.SendMessage("[MoveTo] добавлен чекпоинт #" + PointsCount);
         RepeatTo(ch, MoveTrigerDelay, sim);
     }
@@ -227,7 +227,7 @@ public class Simulation : Patrol
                 sw.WriteLine(b.ToString());
             }
         }
-        //_log.Warn("Route recording completed.");
+        //_logger.Warn("Route recording completed.");
         //Character.SendMessage("[MoveTo] запись маршрута завершена.");
         SavePathEnabled = false;
     }
@@ -253,7 +253,7 @@ public class Simulation : Patrol
         var s = "|" + TargetPosition.World.Position.X + "|" + TargetPosition.World.Position.Y + "|" + TargetPosition.World.Position.Z + "|";
         RecordPath.Add(s);
         PointsCount++;
-        //_log.Warn("добавлен чекпоинт # {0}", PointsCount);
+        //_logger.Warn("добавлен чекпоинт # {0}", PointsCount);
         //Character.SendMessage("[MoveTo] добавлен чекпоинт #" + PointsCount);
     }
     //***************************************************************
@@ -263,7 +263,7 @@ public class Simulation : Patrol
         MoveToForward = toForward;
         if (!MoveToPathEnabled)
         {
-            //_log.Warn("the route is stopped...");
+            //_logger.Warn("the route is stopped...");
             //Character.SendMessage("[MoveTo] the route is stopped...");
             StopMove(npc);
             return;
@@ -275,7 +275,7 @@ public class Simulation : Patrol
         Timeout = timeout;
 
         // presumably the path is already registered in MovePath
-        //_log.Warn("trying to get on the path...");
+        //_logger.Warn("trying to get on the path...");
         //Character.SendMessage("[MoveTo] trying to get on the path...");
         // first go to the closest checkpoint
         npc.BroadcastPacket(new SCUnitModelPostureChangedPacket(npc, BaseUnitType.Npc, ModelPostureType.ActorModelState, 2), true);
@@ -283,16 +283,16 @@ public class Simulation : Patrol
         var i = GetMinCheckPoint(npc, Path);
         if (i < 0)
         {
-            //_log.Warn("checkpoint not found...");
+            //_logger.Warn("checkpoint not found...");
             //Character.SendMessage("[MoveTo] checkpoint not found...");
             StopMove(npc);
             return;
         }
-        //_log.Warn($"found nearest checkpoint #{i} run there ...");
+        //_logger.Warn($"found nearest checkpoint #{i} run there ...");
         //Character.SendMessage($"[MoveTo] found nearest checkpoint #{i} run there ...");
         MoveToPathEnabled = true;
         MoveStepIndex = i;
-        //_log.Warn($"checkpoint #{i}");
+        //_logger.Warn($"checkpoint #{i}");
         //Character.SendMessage($"[MoveTo] checkpoint #{i}");
         var s = MovePath[MoveStepIndex];
         TargetPosition.World.SetPosition(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
@@ -405,7 +405,7 @@ public class Simulation : Patrol
     //***************************************************************
     public void StopMove(Npc npc)
     {
-        //_log.Warn("stop moving...");
+        //_logger.Warn("stop moving...");
         //Character.SendMessage("[MoveTo] stop moving ...");
         npc.StopMovement();
         MoveToPathEnabled = false;
@@ -429,7 +429,7 @@ public class Simulation : Patrol
 
     public static void PauseMove(Npc npc)
     {
-        //_log.Warn("let's stand a little...");
+        //_logger.Warn("let's stand a little...");
         //Character.SendMessage("[MoveTo] let's stand a little...");
         npc.StopMovement();
     }
@@ -438,13 +438,13 @@ public class Simulation : Patrol
     {
         if (!MoveToPathEnabled)
         {
-            //_log.Warn("OnMove disabled");
+            //_logger.Warn("OnMove disabled");
             StopMove(npc);
             return;
         }
         if (MovePath == null || MovePath.Count == 0)
         {
-            //_log.Warn("Error: Path data is missing");
+            //_logger.Warn("Error: Path data is missing");
             //Character.SendMessage("[MoveTo]Error: Path data is missing);
             StopMove(npc);
             return;
@@ -460,11 +460,11 @@ public class Simulation : Patrol
         {
             if (MoveStepIndex == MovePath.Count - 1)
             {
-                //_log.Warn("we are at the end point...");
+                //_logger.Warn("we are at the end point...");
                 //Character.SendMessage("[MoveTo] we are at the end point...");
                 MoveToForward = false; // turn back
                 MoveStepIndex--;
-                //_log.Warn($"walk to #{MoveStepIndex}");
+                //_logger.Warn($"walk to #{MoveStepIndex}");
                 //Character.SendMessage("[MoveTo] бежим к #" + MoveStepIndex);
                 TargetPosition.World.SetPosition(Path[MoveStepIndex]);
                 if (Cycle)
@@ -498,7 +498,7 @@ public class Simulation : Patrol
                 return;
             }
             MoveStepIndex++;
-            //_log.Warn("we have reached checkpoint go on...");
+            //_logger.Warn("we have reached checkpoint go on...");
             //Character.SendMessage("[MoveTo] we have reached checkpoint go on...");
         }
         else
@@ -506,16 +506,16 @@ public class Simulation : Patrol
             if (MoveStepIndex > 0)
             {
                 MoveStepIndex--;
-                //_log.Warn("we reached checkpoint go further...");
+                //_logger.Warn("we reached checkpoint go further...");
                 //Character.SendMessage("[MoveTo] we reached checkpoint go further...");
             }
             else
             {
-                //_log.Warn("we are at the starting point...");
+                //_logger.Warn("we are at the starting point...");
                 //Character.SendMessage("[MoveTo] we are at the starting point...");
                 MoveToForward = true; // turn back
                 MoveStepIndex++;
-                //_log.Warn($"walk to #{MoveStepIndex}");
+                //_logger.Warn($"walk to #{MoveStepIndex}");
                 //Character.SendMessage("[MoveTo] walk to #{MoveStepIndex});
                 TargetPosition.World.SetPosition(Path[MoveStepIndex]);
                 if (Cycle)
@@ -549,7 +549,7 @@ public class Simulation : Patrol
                 return;
             }
         }
-        //_log.Warn($"walk to #{MoveStepIndex}");
+        //_logger.Warn($"walk to #{MoveStepIndex}");
         //Character.SendMessage("[MoveTo] walk to #{MoveStepIndex});
         TargetPosition.World.SetPosition(Path[MoveStepIndex]);
         RepeatMove(this, npc, TargetPosition.World.Position);

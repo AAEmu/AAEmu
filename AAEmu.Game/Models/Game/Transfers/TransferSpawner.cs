@@ -77,8 +77,8 @@ public class TransferSpawner : Spawner<Transfer>
 
                 if ((transfer.TransferPath != null) && (transfer.TransferPath.Count >= 2))
                 {
-                    //_log.Warn("TransfersPath #" + transfer.TemplateId);
-                    //_log.Warn("First spawn myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.Rot.Z + " rotationZ=" + transfer.Position.RotationZ);
+                    //_logger.Warn("TransfersPath #" + transfer.TemplateId);
+                    //_logger.Warn("First spawn myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.Rot.Z + " rotationZ=" + transfer.Position.RotationZ);
                     transfer.IsInPatrol = true; // so as not to run the route a second time
 
                     transfer.Steering = 0;
@@ -98,9 +98,9 @@ public class TransferSpawner : Spawner<Transfer>
                     transfer.Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
                     transfer.Transform.ApplyWorldSpawnPosition(point, transfer.Transform.InstanceId, true);
 
-                    //_log.Warn("TransfersPath #" + transfer.TemplateId);
-                    //_log.Warn("New spawn Pos={0}", transfer.Transform.ToString());
-                    //_log.Warn("zoneId={0}", transfer.Transform.ZoneId);
+                    //_logger.Warn("TransfersPath #" + transfer.TemplateId);
+                    //_logger.Warn("New spawn Pos={0}", transfer.Transform.ToString());
+                    //_logger.Warn("zoneId={0}", transfer.Transform.ZoneId);
 
 
                     transfer.GoToPath(transfer);

@@ -182,7 +182,7 @@ public class PortalManager : Singleton<PortalManager>
         //else
         //    throw new Exception($"PortalManager: Parse {filePath} file");
 
-        //_log.Info("Loaded {0} District Portals", _allDistrictPortals.Count);
+        //_logger.Info("Loaded {0} District Portals", _allDistrictPortals.Count);
 
         var filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "recalls.json");
         if (!File.Exists(filePath))

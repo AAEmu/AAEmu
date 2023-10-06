@@ -17,7 +17,7 @@ public class CSMountMatePacket : GamePacket
         var ap = (AttachPointKind)stream.ReadByte();
         var reason = (AttachUnitReason)stream.ReadByte();
 
-        // _log.Warn("MountMate, TlId: {0}, Ap: {1}, Reason: {2}", tlId, ap, reason);
+        // _logger.Warn("MountMate, TlId: {0}, Ap: {1}, Reason: {2}", tlId, ap, reason);
         MateManager.Instance.MountMate(Connection, tlId, ap, reason);
     }
 }

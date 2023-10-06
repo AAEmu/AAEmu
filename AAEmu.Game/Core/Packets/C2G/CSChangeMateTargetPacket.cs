@@ -15,7 +15,7 @@ public class CSChangeMateTargetPacket : GamePacket
         var tlId = stream.ReadUInt16();
         var objId = stream.ReadBc();
 
-        //_log.Warn("ChangeMateTarget, TlId: {0}, ObjId: {1}", tlId, objId);
+        //_logger.Warn("ChangeMateTarget, TlId: {0}, ObjId: {1}", tlId, objId);
         MateManager.Instance.ChangeTargetMate(Connection, tlId, objId);
     }
 }

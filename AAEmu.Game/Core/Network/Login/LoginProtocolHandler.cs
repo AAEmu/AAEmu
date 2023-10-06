@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Network.Login;
 
 public class LoginProtocolHandler : BaseProtocolHandler
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private ConcurrentDictionary<uint, Type> _packets;
     private PacketStream _lastPacket;
@@ -24,7 +24,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
 
     public override void OnConnect(Session session)
     {
-        _log.Info("Connect to {0} established, session id: {1}", session.Ip.ToString(), session.SessionId.ToString(CultureInfo.InvariantCulture));
+        _logger.Info("Connect to {0} established, session id: {1}", session.Ip.ToString(), session.SessionId.ToString(CultureInfo.InvariantCulture));
         var con = new LoginConnection(session);
         con.OnConnect();
         LoginNetwork.Instance.SetConnection(con);
@@ -32,7 +32,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
 
     public override void OnDisconnect(Session session)
     {
-        _log.Info("Connect to LoginServer has been lost");
+        _logger.Info("Connect to LoginServer has been lost");
         LoginNetwork.Instance.SetConnection(null);
         session.Close();
 
@@ -60,7 +60,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
             }
             catch (MarshalException)
             {
-                //_log.Warn("Error on reading type {0}", type);
+                //_logger.Warn("Error on reading type {0}", type);
                 stream.Rollback();
                 connection.LastPacket = stream;
                 stream = null;
@@ -116,6 +116,6 @@ public class LoginProtocolHandler : BaseProtocolHandler
         var dump = new StringBuilder();
         for (var i = stream.Pos; i < stream.Count; i++)
             dump.AppendFormat("{0:x2} ", stream.Buffer[i]);
-        _log.Error("Unknown packet 0x{0:x2} from {1}:\n{2}", type, connection.Ip, dump);
+        _logger.Error("Unknown packet 0x{0:x2} from {1}:\n{2}", type, connection.Ip, dump);
     }
 }

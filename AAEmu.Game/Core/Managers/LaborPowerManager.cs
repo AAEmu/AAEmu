@@ -62,7 +62,7 @@ public class LaborPowerManager : Singleton<LaborPowerManager>
             {
                 if (character.Value.LaborPower >= UpLimit)
                 {
-                    // _log.Warn("No need to increase Labor Point, since they reached the limit {0} for Char: {1}", UpLimit, character.Value.Name);
+                    // _logger.Warn("No need to increase Labor Point, since they reached the limit {0} for Char: {1}", UpLimit, character.Value.Name);
                     continue;
                 }
 

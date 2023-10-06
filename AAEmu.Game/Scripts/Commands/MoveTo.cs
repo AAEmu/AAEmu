@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class MoveTo : ICommand
 {
-    protected static Logger _log = LogManager.GetCurrentClassLogger();
+    protected static Logger _logger = LogManager.GetCurrentClassLogger();
     public void OnLoad()
     {
         CommandManager.Instance.Register("moveto", this);

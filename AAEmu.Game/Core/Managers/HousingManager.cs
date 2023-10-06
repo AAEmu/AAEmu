@@ -505,7 +505,7 @@ public class HousingManager : Singleton<HousingManager>
         }
 
         /*
-        _log.Debug(
+        _logger.Debug(
             "SCHouseTaxInfoPacket; tlId:{0}, domTaxRate:{1}, deposit: {2}, taxdue:{3}, protectEnd:{4}, isPaid:{5}, weeksWithoutPay:{6}, isHeavy:{7}",
             house.TlId, 0, depositTax, totalTaxAmountDue, house.ProtectionEndDate, requiresPayment, weeksWithoutPay, house.Template.HeavyTax);
         */
@@ -1508,7 +1508,7 @@ public class HousingManager : Singleton<HousingManager>
         isCheckingTaxTiming = true;
         try
         {
-            // _log.Trace("CheckHousingTaxes");
+            // _logger.Trace("CheckHousingTaxes");
             var expiredHouseList = new List<House>();
             foreach (var house in _houses)
             {
@@ -1638,7 +1638,7 @@ public class HousingManager : Singleton<HousingManager>
             res = player.Inventory.SystemContainer.AddOrMoveExistingItem(ItemTaskType.DoodadCreate, item);
         }
 
-        // _log.Debug("DecorateHouse => DoodadTemplate: {0} , DoodadId {1}, Pos: {2}", doodad.TemplateId, doodad.ObjId, doodad.Transform.ToString());
+        // _logger.Debug("DecorateHouse => DoodadTemplate: {0} , DoodadId {1}, Pos: {2}", doodad.TemplateId, doodad.ObjId, doodad.Transform.ToString());
 
         return res;
     }

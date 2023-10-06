@@ -1,16 +1,14 @@
-using System.Net;
+﻿using System.Net;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Packets.G2L;
 using AAEmu.Game.Models;
-using NLog;
 
 namespace AAEmu.Game.Core.Network.Connections;
 
 public class LoginConnection
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
     private Session _session;
     private Client _client;
 

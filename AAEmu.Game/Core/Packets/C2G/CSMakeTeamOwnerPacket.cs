@@ -15,7 +15,7 @@ public class CSMakeTeamOwnerPacket : GamePacket
         var teamId = stream.ReadUInt32();
         var memberId = stream.ReadUInt32();
 
-        // _log.Warn("MakeTeamOwner, TeamId: {0}, MemberId: {1}", teamId, memberId);
+        // _logger.Warn("MakeTeamOwner, TeamId: {0}, MemberId: {1}", teamId, memberId);
         TeamManager.Instance.MakeTeamOwner(Connection.ActiveChar, teamId, memberId);
     }
 }

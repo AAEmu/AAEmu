@@ -10,7 +10,7 @@ namespace AAEmu.Login.Core.Network.Login;
 
 public class LoginNetwork : Singleton<LoginNetwork>
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private Server _server;
     private LoginProtocolHandler _handler;
@@ -41,7 +41,7 @@ public class LoginNetwork : Singleton<LoginNetwork>
             config.Host.Equals("*") ? IPAddress.Any : IPAddress.Parse(config.Host), config.Port, _handler);
         _server.Start();
 
-        _log.Info("Network started with Number of Connections: " + config.NumConnections);
+        _logger.Info("Network started with Number of Connections: " + config.NumConnections);
     }
 
     public void Stop()
@@ -49,7 +49,7 @@ public class LoginNetwork : Singleton<LoginNetwork>
         if ((_server != null) && (_server.IsStarted))
             _server.Stop();
 
-        _log.Info("Network stopped");
+        _logger.Info("Network stopped");
     }
 
     private void RegisterPacket(uint type, Type classType)

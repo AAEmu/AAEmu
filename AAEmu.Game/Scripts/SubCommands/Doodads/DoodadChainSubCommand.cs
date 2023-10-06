@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
-using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
@@ -29,40 +28,40 @@ public class DoodadChainSubCommand : SubCommandBase
         }
 
         SendMessage(character, "Phase chain, see the log");
-        _log.Warn($"{Title} Chain: TemplateId {templateId}");
+        Logger.Warn($"{Title} Chain: TemplateId {templateId}");
 
         var doodadFuncGroups = DoodadManager.Instance.GetDoodadFuncGroups(templateId);
         foreach (var doodadFuncGroup in doodadFuncGroups)
         {
             // Display all functions that are available
             doodad.FuncGroupId = doodadFuncGroup.Id;
-            _log.Info($"{Title} FuncGroupId: {doodad.FuncGroupId}");
+            Logger.Info($"{Title} FuncGroupId: {doodad.FuncGroupId}");
             // Get all doodad_phase_funcs
             var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(doodad.FuncGroupId);
             if (phaseFuncs.Count == 0)
             {
-                _log.Info($"{Title} PhaseFunc: GroupId {0}, FuncId 0", doodad.FuncGroupId);
+                Logger.Info($"{Title} PhaseFunc: GroupId {0}, FuncId 0", doodad.FuncGroupId);
             }
             else
             {
                 foreach (var phaseFunc in phaseFuncs)
                 {
                     // phaseFunc.Use
-                    _log.Info($"{Title} PhaseFunc: GroupId {0}, FuncId {1}, FuncType {2}", phaseFunc.GroupId, phaseFunc.FuncId, phaseFunc.FuncType);
+                    Logger.Info($"{Title} PhaseFunc: GroupId {0}, FuncId {1}, FuncType {2}", phaseFunc.GroupId, phaseFunc.FuncId, phaseFunc.FuncType);
                 }
             }
             // Get all doodad_funcs
             var doodadFuncs = DoodadManager.Instance.GetDoodadFuncs(doodad.FuncGroupId);
             if (doodadFuncs.Count == 0)
             {
-                _log.Info($"{Title} Func: GroupId {0}, FuncId 0", doodad.FuncGroupId);
+                Logger.Info($"{Title} Func: GroupId {0}, FuncId 0", doodad.FuncGroupId);
             }
             else
             {
                 foreach (var func in doodadFuncs)
                 {
                     // func.Use
-                    _log.Info($"{Title} Func: GroupId {0}, FuncId {1}, FuncType {2}, NextPhase {3}, Skill {4}", func.GroupId, func.FuncId, func.FuncType, func.NextPhase, func.SkillId);
+                    Logger.Info($"{Title} Func: GroupId {0}, FuncId {1}, FuncType {2}, NextPhase {3}, Skill {4}", func.GroupId, func.FuncId, func.FuncType, func.NextPhase, func.SkillId);
                 }
             }
         }

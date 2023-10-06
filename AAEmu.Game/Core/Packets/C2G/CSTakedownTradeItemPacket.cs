@@ -16,7 +16,7 @@ public class CSTakedownTradeItemPacket : GamePacket
         var slotType = (SlotType)stream.ReadByte();
         var slot = stream.ReadByte();
 
-        //_log.Warn("TakedownTradeItem, SlotType: {0}, Slot: {1}", slotType, slot);
+        //_logger.Warn("TakedownTradeItem, SlotType: {0}, Slot: {1}", slotType, slot);
         TradeManager.Instance.RemoveItem(Connection.ActiveChar, slotType, slot);
     }
 }

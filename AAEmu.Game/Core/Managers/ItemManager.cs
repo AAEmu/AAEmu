@@ -1510,7 +1510,7 @@ public class ItemManager : Singleton<ItemManager>
         var deleteCount = 0;
         var updateCount = 0;
         var containerUpdateCount = 0;
-        // _log.Info("Saving items data ...");
+        // _logger.Info("Saving items data ...");
 
         // Remove deleted items from DB
         using (var command = connection.CreateCommand())
@@ -2025,7 +2025,7 @@ public class ItemManager : Singleton<ItemManager>
             LastTimerCheck = now;
         }
 
-        // _log.Trace($"UpdateItemTimers - Tick, Delta: {delta.TotalMilliseconds}ms");
+        // _logger.Trace($"UpdateItemTimers - Tick, Delta: {delta.TotalMilliseconds}ms");
 
         // Timers are actually only checked when it's owner is actually online, so we loop the online characters for this.
         // You can clearly see this on retail after event items expired when you were offline, they will expire immediately

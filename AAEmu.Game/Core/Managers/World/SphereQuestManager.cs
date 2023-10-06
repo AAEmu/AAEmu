@@ -101,7 +101,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
 
         var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/quest_sign_spheres.json");
         if (string.IsNullOrWhiteSpace(contents))
-            _log.Warn($"File {FileManager.AppPath}Data/quest_sign_spheres.json doesn't exists or is empty.");
+            _logger.Warn($"File {FileManager.AppPath}Data/quest_sign_spheres.json doesn't exists or is empty.");
         else
         {
             try

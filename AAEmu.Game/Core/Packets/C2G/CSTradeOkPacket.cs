@@ -12,7 +12,7 @@ public class CSTradeOkPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        //_log.Warn("TradeOk");
+        //_logger.Warn("TradeOk");
         TradeManager.Instance.OkTrade(Connection.ActiveChar);
     }
 }

@@ -336,7 +336,7 @@ EndLoop:
                                 return;
                             }
                     }
-                    // _log.Warn($"[Quest] Start: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {acts[i].DetailType}");
+                    // _logger.Warn($"[Quest] Start: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {acts[i].DetailType}");
                 }
             }
         }
@@ -924,7 +924,7 @@ EndLoop:
                             break;
                     }
                     SupplyItem = 0;
-                    // _log.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
+                    // _logger.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
                 }
 
                 if (!res)
@@ -975,7 +975,7 @@ EndLoop:
                     Logger.Warn("[Quest] GetCustomSupplies: character {0}, wants to do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
                     break;
             }
-            //_log.Warn("[Quest] GetCustomSupplies: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
+            //_logger.Warn("[Quest] GetCustomSupplies: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
         }
         return value;
     }

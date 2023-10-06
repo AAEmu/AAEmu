@@ -494,7 +494,7 @@ public class SpawnManager : Singleton<SpawnManager>
                             }
                             catch (Exception e)
                             {
-                                _log.Warn($"Was unable to set Doodad phase on load DB Id {dbId}, template {templateId}: {e.InnerException}");
+                                _logger.Warn($"Was unable to set Doodad phase on load DB Id {dbId}, template {templateId}: {e.InnerException}");
                             }
                         }
                         */

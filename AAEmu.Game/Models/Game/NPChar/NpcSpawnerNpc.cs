@@ -111,7 +111,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
             npcs.Add(npc);
         }
 
-        //_log.Warn($"Spawned Npcs id={MemberId}, maxPopulation={maxPopulation}...");
+        //_logger.Warn($"Spawned Npcs id={MemberId}, maxPopulation={maxPopulation}...");
 
         return npcs;
     }

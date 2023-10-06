@@ -15,7 +15,7 @@ public class CSChangeMateUserStatePacket : GamePacket
         var tlId = stream.ReadUInt16();
         var userState = stream.ReadByte();
 
-        //_log.Warn("ChangeMateUserState, TlId: {0}, UserState: {1}", tlId, userState);
+        //_logger.Warn("ChangeMateUserState, TlId: {0}, UserState: {1}", tlId, userState);
         MateManager.Instance.ChangeStateMate(Connection, tlId, userState);
     }
 }

@@ -21,6 +21,6 @@ public class NpcSpawnerDespawnEffect : EffectTemplate
         //var spawner = SpawnManager.Instance.GetNpcSpawner(SpawnerId, (byte)caster.Transform.WorldId);
         //spawner.DoDespawn();
 
-        //_log.Debug("NpcSpawnerDespawnEffect id:{0}, Npc unitId:{1} spawnerId:{2}", Id, spawner.UnitId, SpawnerId);
+        //_logger.Debug("NpcSpawnerDespawnEffect id:{0}, Npc unitId:{1} spawnerId:{2}", Id, spawner.UnitId, SpawnerId);
     }
 }

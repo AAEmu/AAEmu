@@ -197,7 +197,7 @@ public class MailManager : Singleton<MailManager>
     {
         var deletedCount = 0;
         var updatedCount = 0;
-        // _log.Info("Saving mail data ...");
+        // _logger.Info("Saving mail data ...");
 
         lock (_deletedMailIds)
         {

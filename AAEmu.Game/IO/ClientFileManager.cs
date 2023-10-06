@@ -122,7 +122,7 @@ public static class ClientFileManager
             _logger.Trace($"GetFileStream({fileName}) not found");
             return null;
         }
-        //_log.Debug($"[{source.PathName}].GetFileStream({fileName})");
+        //_logger.Debug($"[{source.PathName}].GetFileStream({fileName})");
         return source.GetFileStream(fileName);
     }
 

@@ -13,7 +13,7 @@ public class CSRemoveMatePacket : GamePacket
     {
         var tlId = stream.ReadUInt16();
 
-        // _log.Warn("RemoveMate, TlId: {0}", tlId);
+        // _logger.Warn("RemoveMate, TlId: {0}", tlId);
         Connection.ActiveChar.Mates.DespawnMate(tlId);
     }
 }

@@ -17,7 +17,7 @@ public class CSSetTeamMemberRolePacket : GamePacket
         var memberId = stream.ReadUInt32();
         var role = (MemberRole)stream.ReadByte();
 
-        // _log.Warn("SetTeamMemberRole, TeamId: {0}, MemberId: {1}, Role: {2}", teamId, memberId, role);
+        // _logger.Warn("SetTeamMemberRole, TeamId: {0}, MemberId: {1}, Role: {2}", teamId, memberId, role);
         TeamManager.Instance.SetTeamMemberRole(Connection.ActiveChar, teamId, memberId, role);
     }
 }

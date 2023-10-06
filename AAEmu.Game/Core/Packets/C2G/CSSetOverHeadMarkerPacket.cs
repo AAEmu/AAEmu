@@ -25,7 +25,7 @@ public class CSSetOverHeadMarkerPacket : GamePacket
         if (type == 2)
             id = stream.ReadBc();
 
-        // _log.Warn("SetOverHeadMarker, teamId: {0}, index: {1}, type: {2}, id: {3}", teamId, index, type, id);
+        // _logger.Warn("SetOverHeadMarker, teamId: {0}, index: {1}, type: {2}, id: {3}", teamId, index, type, id);
         var owner = Connection.ActiveChar;
         if (teamId > 0)
         {

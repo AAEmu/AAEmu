@@ -17,7 +17,7 @@ public class CSUnMountMatePacket : GamePacket
         var ap = (AttachPointKind)stream.ReadByte();
         var reason = (AttachUnitReason)stream.ReadByte();
 
-        //_log.Warn("UnMountMate, TlId: {0}, Ap: {1}, Reason: {2}", tlId, ap, reason);
+        //_logger.Warn("UnMountMate, TlId: {0}, Ap: {1}, Reason: {2}", tlId, ap, reason);
         MateManager.Instance.UnMountMate(Connection.ActiveChar, tlId, ap, reason);
     }
 }

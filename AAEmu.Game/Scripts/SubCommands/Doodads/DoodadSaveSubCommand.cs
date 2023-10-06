@@ -43,21 +43,21 @@ public class DoodadSaveSubCommand : SubCommandBase
         }
 
         // Load Doodad spawns
-        _log.Info("Loading spawns...");
+        Logger.Info("Loading spawns...");
         var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name);
         var jsonFileName = Path.Combine(worldPath, "doodad_spawns_new.json");
 
         if (!File.Exists(jsonFileName))
         {
             SendColorMessage(character, Color.Red, $"World file {jsonFileName} is missing for world {world.Name}");
-            _log.Info($"World file {jsonFileName} is missing for world {world.Name}");
+            Logger.Info($"World file {jsonFileName} is missing for world {world.Name}");
             return;
         }
 
         var contents = FileManager.GetFileContents(jsonFileName);
         if (string.IsNullOrWhiteSpace(contents))
         {
-            _log.Warn($"World file {jsonFileName} is empty, using empty spawners list");
+            Logger.Warn($"World file {jsonFileName} is empty, using empty spawners list");
             contents = "[]";
         }
 

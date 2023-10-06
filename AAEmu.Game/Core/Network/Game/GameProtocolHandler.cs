@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Network.Game;
 
 public class GameProtocolHandler : BaseProtocolHandler
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static Logger _logger = LogManager.GetCurrentClassLogger();
 
     private ConcurrentDictionary<byte, ConcurrentDictionary<uint, Type>> _packets;
 
@@ -25,7 +25,7 @@ public class GameProtocolHandler : BaseProtocolHandler
 
     public override void OnConnect(Session session)
     {
-        _log.Info("Connect from {0} established, session id: {1}", session.Ip.ToString(), session.SessionId.ToString());
+        _logger.Info("Connect from {0} established, session id: {1}", session.Ip.ToString(), session.SessionId.ToString());
         try
         {
             var con = new GameConnection(session);
@@ -35,7 +35,7 @@ public class GameProtocolHandler : BaseProtocolHandler
         catch (Exception e)
         {
             session.Close();
-            _log.Error(e);
+            _logger.Error(e);
         }
     }
 
@@ -60,10 +60,10 @@ public class GameProtocolHandler : BaseProtocolHandler
         catch (Exception e)
         {
             session.Close();
-            _log.Error(e);
+            _logger.Error(e);
         }
 
-        _log.Info("Client from {0} disconnected", session.Ip.ToString());
+        _logger.Info("Client from {0} disconnected", session.Ip.ToString());
     }
 
     public override void OnReceive(Session session, byte[] buf, int bytes)
@@ -78,7 +78,7 @@ public class GameProtocolHandler : BaseProtocolHandler
         catch (Exception e)
         {
             session.Close();
-            _log.Error(e);
+            _logger.Error(e);
         }
     }
 
@@ -102,7 +102,7 @@ public class GameProtocolHandler : BaseProtocolHandler
                 }
                 catch (MarshalException)
                 {
-                    //_log.Warn("Error on reading type {0}", type);
+                    //_logger.Warn("Error on reading type {0}", type);
                     stream.Rollback();
                     connection.LastPacket = stream;
                     stream = null;
@@ -159,7 +159,7 @@ public class GameProtocolHandler : BaseProtocolHandler
         catch (Exception e)
         {
             connection?.Shutdown();
-            _log.Error(e);
+            _logger.Error(e);
         }
     }
 
@@ -175,6 +175,6 @@ public class GameProtocolHandler : BaseProtocolHandler
         var dump = new StringBuilder();
         for (var i = stream.Pos; i < stream.Count; i++)
             dump.AppendFormat("{0:x2} ", stream.Buffer[i]);
-        _log.Error("Unknown packet 0x{0:x2}({3}) from {1}:\n{2}", (object)type, (object)connection.Ip, (object)dump, level);
+        _logger.Error("Unknown packet 0x{0:x2}({3}) from {1}:\n{2}", (object)type, (object)connection.Ip, (object)dump, level);
     }
 }
