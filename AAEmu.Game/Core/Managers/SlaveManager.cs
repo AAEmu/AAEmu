@@ -248,8 +248,8 @@ public class SlaveManager : Singleton<SlaveManager>
 
         // TODO: Attach Slave's DbId to the Item Details
         // We currently fake the DbId using TlId instead
-        /*
         var dbId = tlId;
+        /*
         if (item != null)
         {
             item.Detail[0] = 0x02;
@@ -414,19 +414,19 @@ public class SlaveManager : Singleton<SlaveManager>
                         _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Roll,
                         _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Pitch,
                         _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Yaw);
-                    _log.Debug("Model id: {0} attachment {1} => pos {2} = {3}", summonedSlave.ModelId,
+                    Logger.Debug("Model id: {0} attachment {1} => pos {2} = {3}", summonedSlave.ModelId,
                         doodadBinding.AttachPointId, _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId],
                         doodad.Transform);
                 }
                 else
                 {
-                    _log.Warn("Model id: {0} incomplete attach point information", summonedSlave.ModelId);
+                    Logger.Warn("Model id: {0} incomplete attach point information", summonedSlave.ModelId);
                 }
             }
             else
             {
                 doodad.Transform = new Transform(doodad);
-                _log.Warn("Model id: {0} has no attach point information", summonedSlave.ModelId);
+                Logger.Warn("Model id: {0} has no attach point information", summonedSlave.ModelId);
             }
 
             summonedSlave.AttachedDoodads.Add(doodad);

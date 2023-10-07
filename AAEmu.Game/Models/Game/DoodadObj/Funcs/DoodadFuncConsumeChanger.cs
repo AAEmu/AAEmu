@@ -40,7 +40,7 @@ public class DoodadFuncConsumeChanger : DoodadFuncTemplate
         // TODO: If this item count would be different from 1, this would cause issues
         // Just toss a warning in the logs for now, all entries should be 1 anyway
         if (Count > 1)
-            _log.Warn($"DoodadFuncConsumeChanger, expected source count is higher than one ({Count}) for slot {SlotId} on doodad type {owner.TemplateId} ({owner.OwnerId}) from player {player.Name}");
+            Logger.Warn($"DoodadFuncConsumeChanger, expected source count is higher than one ({Count}) for slot {SlotId} on doodad type {owner.TemplateId} ({owner.OwnerId}) from player {player.Name}");
 
         // Move the actual item to the owner's SystemContainer
         player.Inventory.SystemContainer.AddOrMoveExistingItem(ItemTaskType.DoodadItemChanger, sourceItem);
