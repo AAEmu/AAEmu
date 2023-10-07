@@ -8,13 +8,22 @@ namespace AAEmu.Game.Services.WebApi;
 public class WebApiServer : HttpServer
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
+    internal RouteMapper RouteMapper { get; private set; }
+
     public WebApiServer(IPAddress address, int port) : base(address, port)
     {
         RegisterRoutes();
     }
 
-    private static void RegisterRoutes()
+    public WebApiServer(IPAddress address, int port, RouteMapper routeMapper) : base(address, port)
     {
+        RouteMapper = routeMapper;
+    }
+
+    private void RegisterRoutes()
+    {
+        RouteMapper = new RouteMapper();
         RouteMapper.DiscoverRoutes<IController>();
     }
 

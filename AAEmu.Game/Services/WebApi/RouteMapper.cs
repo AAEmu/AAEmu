@@ -2,35 +2,47 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using NetCoreServer;
+using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace AAEmu.Game.Services.WebApi;
-internal class RouteMapper
+public class RouteMapper
 {
-    private static Dictionary<string, Func<HttpRequest, HttpResponse>> _routes = new(StringComparer.CurrentCultureIgnoreCase);
-    public static void RegisterRoute(string path, HttpMethod method, Func<HttpRequest, HttpResponse> func)
+    private Dictionary<string, RouteDefinition> _routes = new(StringComparer.CurrentCultureIgnoreCase);
+    public void RegisterRoute(string path, HttpMethod httpMethod, MethodInfo targetMethod)
     {
-        _routes.Add(GetRouteKey(path, method), func);
+        var route = new RouteDefinition(path, httpMethod, targetMethod);
+        _routes.Add(route.Key, route);
     }
 
-    public static Func<HttpRequest, HttpResponse> GetRoute(string path, HttpMethod method)
+    public (RouteDefinition, MatchCollection matches) GetRoute(string httpUrlPath, HttpMethod httpMethod)
     {
-        if (_routes.TryGetValue(GetRouteKey(path, method), out var routeHandler))
+        var matchedRoutes = new Dictionary<RouteDefinition, MatchCollection>();
+
+        foreach (var route in _routes.Values)
         {
-            return routeHandler;
+            if (route.Method == httpMethod && Regex.IsMatch(httpUrlPath, route.Path, RegexOptions.IgnoreCase))
+            {
+                matchedRoutes.Add(route, Regex.Matches(httpUrlPath, route.Path, RegexOptions.IgnoreCase));
+            }
+        }
+        if (matchedRoutes.Count == 1)
+        {
+            var matchedRoute = matchedRoutes.First();
+            return (matchedRoute.Key, matchedRoute.Value);
         }
 
-        return null;
-    }
+        if (matchedRoutes.Count > 1)
+        {
+            throw new NotSupportedException($"Multiple routes found for {httpMethod} {httpUrlPath}");
+        }
 
-    private static string GetRouteKey(string path, HttpMethod method)
-    {
-        return string.Concat(method ?? HttpMethod.Get, ':', path);
+        return (null, null);
     }
 
     // Find all classes that implement T and find the methods that have either WebApiGet or WebApiPost attributes
     // and register them as routes
-    internal static void DiscoverRoutes<T>()
+    internal void DiscoverRoutes<T>()
     {
         var types = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(s => s.GetTypes())
@@ -38,22 +50,27 @@ internal class RouteMapper
 
         foreach (var type in types)
         {
-            var methods = type.GetMethods();
-            foreach (var method in methods)
-            {
-                var getAttribute = method.GetCustomAttributes(typeof(WebApiGetAttribute), true);
-                if (getAttribute.Length > 0)
-                {
-                    var get = getAttribute[0] as WebApiGetAttribute;
-                    RegisterRoute(get.Path, HttpMethod.Get, (HttpRequest request) => (HttpResponse)method.Invoke(Activator.CreateInstance(type), new[] { request }));
-                }
+            DiscoverRoutesFromType(type);
+        }
+    }
 
-                var postAttribute = method.GetCustomAttributes(typeof(WebApiPostAttribute), true);
-                if (postAttribute.Length > 0)
-                {
-                    var post = postAttribute[0] as WebApiPostAttribute;
-                    RegisterRoute(post.Path, HttpMethod.Post, (HttpRequest request) => (HttpResponse)method.Invoke(Activator.CreateInstance(type), new[] { request }));
-                }
+    internal void DiscoverRoutesFromType(Type controllerType)
+    {
+        var methods = controllerType.GetMethods();
+        foreach (var method in methods)
+        {
+            var getAttribute = method.GetCustomAttributes(typeof(WebApiGetAttribute), true);
+            if (getAttribute.Length > 0)
+            {
+                var get = getAttribute[0] as WebApiGetAttribute;
+                RegisterRoute(get.Path, HttpMethod.Get, method);
+            }
+
+            var postAttribute = method.GetCustomAttributes(typeof(WebApiPostAttribute), true);
+            if (postAttribute.Length > 0)
+            {
+                var post = postAttribute[0] as WebApiPostAttribute;
+                RegisterRoute(post.Path, HttpMethod.Post, method);
             }
         }
     }

@@ -19,3 +19,13 @@ internal class WorldController : BaseController
         return OkJson(loggedCharacters);
     }
 }
+
+internal class CommandController : BaseController
+{
+    [WebApiGet("/command/online")]
+    public HttpResponse GetOnline(HttpRequest request)
+    {
+        var online = WorldManager.Instance.GetAllCharacters().Count;
+        return OkJson(online);
+    }
+}
