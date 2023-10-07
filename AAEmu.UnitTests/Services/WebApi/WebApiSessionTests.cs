@@ -104,7 +104,7 @@ public class WebApiSessionTests
         {
             if (response.Header(i).Item1 == "Content-Type")
             {
-                Assert.Equal("text/html", response.Header(i).Item2);
+                Assert.Equal(expectedContentType, response.Header(i).Item2);
                 break;
             }
         }
