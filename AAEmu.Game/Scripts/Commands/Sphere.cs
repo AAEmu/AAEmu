@@ -26,7 +26,7 @@ public class Sphere : ICommand
         return "/sphere ";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length < 1)
         {

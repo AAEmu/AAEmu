@@ -30,7 +30,7 @@ public class CofferActions : ICommand
             "If doodadObjId is ommited, the first found coffer in a 4m radius will be used.\n";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         float checkRadius = 4f;
         var action = args.Length >= 1 ? args[0].ToLower() : "help";

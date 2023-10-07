@@ -28,7 +28,7 @@ public class UseSkill : ICommand
         return "Forces unit(target optional) to use a skill";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         int argsIdx = 0;
         Unit source = character;

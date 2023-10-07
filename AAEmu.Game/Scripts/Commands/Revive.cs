@@ -24,7 +24,7 @@ public class Revive : ICommand
         return "Revives target";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         Character targetPlayer = WorldManager.GetTargetOrSelf(character, args.Length > 0 ? args[0] : null, out var _);
         if (targetPlayer != null)

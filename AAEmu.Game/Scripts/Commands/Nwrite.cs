@@ -12,7 +12,6 @@ using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using Newtonsoft.Json;
 using System.IO;
-using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -35,7 +34,7 @@ public class Nwrite : ICommand
         return "write's npc's or doodad's current position / rotation to json";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var worlds = WorldManager.Instance.GetWorlds();
         var npcs = WorldManager.Instance.GetAllNpcs();

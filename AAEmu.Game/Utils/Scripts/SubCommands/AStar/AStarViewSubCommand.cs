@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.AStar;
 
@@ -19,13 +20,13 @@ public class AStarViewSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<uint>("templateId", "template id", false));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         var currentTarget = ((Character)character).CurrentTarget;
         var npc = currentTarget as Npc;
         if (currentTarget is null || npc == null)
         {
-            SendColorMessage(character, Color.Coral, $"AStar: You need to target a Npc first");
+            SendColorMessage(messageOutput, Color.Coral, $"AStar: You need to target a Npc first");
             return;
         }
 
@@ -36,7 +37,7 @@ public class AStarViewSubCommand : SubCommandBase
         }
         if (!DoodadManager.Instance.Exist(unitTemplateId))
         {
-            SendColorMessage(character, Color.Coral, $"AStar: Doodad templateId:{unitTemplateId} don't exist|r");
+            SendColorMessage(messageOutput, Color.Coral, $"AStar: Doodad templateId:{unitTemplateId} don't exist|r");
             return;
         }
 

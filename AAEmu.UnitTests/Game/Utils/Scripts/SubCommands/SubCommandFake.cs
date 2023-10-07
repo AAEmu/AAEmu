@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Scripts.Commands;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.UnitTests.Game.Utils.Scripts.SubCommands;
@@ -20,14 +21,14 @@ public class SubCommandFake : SubCommandBase
         }
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         Executed = true;
         Parameters = parameters;
     }
 
-    public void BaseSendHelpMessage(ICharacter character)
+    public void BaseSendHelpMessage(IMessageOutput messageOutput)
     {
-        base.SendHelpMessage(character);
+        base.SendHelpMessage(messageOutput);
     }
 }

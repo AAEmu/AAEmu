@@ -8,7 +8,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class MoveAll : ICommand
 {
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         foreach (var otherChar in WorldManager.Instance.GetAllCharacters())
         {

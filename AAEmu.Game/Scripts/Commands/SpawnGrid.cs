@@ -60,7 +60,7 @@ public class SpawnGrid : ICommand
         npcSpawner.SpawnAll();
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length < 5)
         {

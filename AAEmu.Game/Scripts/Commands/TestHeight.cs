@@ -31,7 +31,7 @@ public class TestHeight : ICommand
             "line creates a cross of pillar doodads used for measuring the floor at 1m intervals (for in-between points)";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         Character targetPlayer = character;
         var firstarg = 0;

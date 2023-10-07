@@ -141,7 +141,7 @@ public class WaterEdit : ICommand
         }
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var world = WorldManager.Instance.GetWorld(character.Transform.WorldId);
 

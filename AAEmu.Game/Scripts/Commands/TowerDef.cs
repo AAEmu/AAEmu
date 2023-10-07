@@ -23,7 +23,7 @@ public class TowerDef : ICommand
         return "Actions are: list, start, end, next";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

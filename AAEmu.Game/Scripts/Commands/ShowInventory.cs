@@ -26,7 +26,7 @@ public class ShowInventory : ICommand
         return "Show content of target's item container.\rEquipment = 1, Inventory = 2 (default), Bank = 3, Trade = 4, Mail = 5";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if ((!(character.CurrentTarget is Character)) && (character.CurrentTarget is Unit unit))
         {

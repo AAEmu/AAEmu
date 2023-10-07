@@ -2,6 +2,7 @@
 using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.World;
 
@@ -14,17 +15,17 @@ public class WorldSetGeodatamodeSubCommand : SubCommandBase
         CallPrefix = $"{CommandManager.CommandPrefix}geodatamode";
         AddParameter(new StringSubCommandParameter("GeoDataMode", "GeoDataMode", true));
     }
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         string geoDataMode = parameters["GeoDataMode"];
         if (geoDataMode is "")
         {
-            SendColorMessage(character, Color.Coral, $"GeoDataMode must be an 'true' or 'false' |r");
+            SendColorMessage(messageOutput, Color.Coral, $"GeoDataMode must be an 'true' or 'false' |r");
             return;
         }
 
         character.SetGeoDataMode(geoDataMode == "true");
-        SendMessage(character, $"Set GeoDataMode: {geoDataMode}");
+        SendMessage(messageOutput, $"Set GeoDataMode: {geoDataMode}");
         Logger.Warn($"{Title}: {geoDataMode}");
     }
 }

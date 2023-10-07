@@ -24,7 +24,7 @@ public class Kick : ICommand
         return "Kicks target";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length < 3)
         {

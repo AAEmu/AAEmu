@@ -2,6 +2,7 @@
 using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.Feature;
 
@@ -16,17 +17,17 @@ public class FeatureSetSubCommand : SubCommandBase
         AddParameter(new StringSubCommandParameter("enable", "enable", true));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, string[] args) =>
-        Execute(character, triggerArgument, new Dictionary<string, ParameterValue>());
+    public override void Execute(ICharacter character, string triggerArgument, string[] args, IMessageOutput messageOutput) =>
+        Execute(character, triggerArgument, new Dictionary<string, ParameterValue>(), messageOutput);
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         var feature = -1;
         feature = parameters["feature"];
 
         if (feature == -1)
         {
-            SendColorMessage(character, Color.Red, $"Error Feature set!");
+            SendColorMessage(messageOutput, Color.Red, $"Error Feature set!");
             return;
         }
         string enableString = parameters["enable"];
@@ -35,11 +36,11 @@ public class FeatureSetSubCommand : SubCommandBase
         if (FeaturesManager.Fsets.Set((Models.Game.Features.Feature)feature, enable))
         {
             //TODO: There is much more potential information to show on this command.
-            SendMessage(character, $"Feature set {feature}, {enable}. Need reload character");
+            SendMessage(messageOutput, $"Feature set {feature}, {enable}. Need reload character");
         }
         else
         {
-            SendColorMessage(character, Color.Red, $"Error Feature set!");
+            SendColorMessage(messageOutput, Color.Red, $"Error Feature set!");
         }
     }
 }

@@ -27,7 +27,7 @@ public class Dummy : ICommand
         return "Spawns a training dummy with no AI";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         float angle;
         if (!NpcManager.Instance.Exist(DUMMY_NPC_TEMPLATE_ID))

@@ -2,6 +2,7 @@
 using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.World;
 
@@ -14,16 +15,16 @@ public class WorldSetLogoutmessageSubCommand : SubCommandBase
         CallPrefix = $"{CommandManager.CommandPrefix}logoutmessage";
         AddParameter(new StringSubCommandParameter("LogoutMessage", "LogoutMessage", true));
     }
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         string logoutMessage = parameters["LogoutMessage"];
         if (logoutMessage is "")
         {
-            SendColorMessage(character, Color.Coral, $"Logout message must not be an empty string |r");
+            SendColorMessage(messageOutput, Color.Coral, $"Logout message must not be an empty string |r");
             return;
         }
         character.SetLogoutMessage(logoutMessage);
-        SendMessage(character, $"Set LogoutMessage {logoutMessage}");
+        SendMessage(messageOutput, $"Set LogoutMessage {logoutMessage}");
         Logger.Warn($"{Title}: {logoutMessage}");
     }
 }

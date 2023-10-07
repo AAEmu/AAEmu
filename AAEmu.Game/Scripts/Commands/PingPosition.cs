@@ -23,7 +23,7 @@ public class PingPosition : ICommand
         return "Displays information about your pinged position. (map marker)";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
 
         if ((character.LocalPingPosition.X == 0f) && (character.LocalPingPosition.Y == 0f))

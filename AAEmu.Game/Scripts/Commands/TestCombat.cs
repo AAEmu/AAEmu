@@ -23,7 +23,7 @@ public class TestCombat : ICommand
         return "Command to test combat related packets. You can try to use cleared if you are stuck in combat for example.";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

@@ -3,7 +3,7 @@ using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Utils;
+using AAEmu.Game.Scripts.Commands;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.SubCommands.Slaves;
@@ -19,7 +19,7 @@ public class SlaveInformationSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<uint>("ObjId", "object id", false));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         Models.Game.Units.Slave slave;
         if (parameters.TryGetValue("ObjId", out var objId))
@@ -27,7 +27,7 @@ public class SlaveInformationSubCommand : SubCommandBase
             slave = (Models.Game.Units.Slave)WorldManager.Instance.GetGameObject(objId);
             if (slave is null)
             {
-                SendColorMessage(character, Color.Red, "Slave with objId {0} does not exist |r", objId);
+                SendColorMessage(messageOutput, Color.Red, "Slave with objId {0} does not exist |r", objId);
                 return;
             }
         }
@@ -36,7 +36,7 @@ public class SlaveInformationSubCommand : SubCommandBase
             var currentTarget = ((Character)character).CurrentTarget;
             if (currentTarget is null || !(currentTarget is Models.Game.Units.Slave))
             {
-                SendColorMessage(character, Color.Red, "You need to target a Slave first");
+                SendColorMessage(messageOutput, Color.Red, "You need to target a Slave first");
                 return;
             }
             slave = (Models.Game.Units.Slave)currentTarget;
@@ -50,6 +50,6 @@ public class SlaveInformationSubCommand : SubCommandBase
         var roll = slave.Transform.Local.Rotation.X.RadToDeg();
 
         //TODO: There is much more potential information to show on this command.
-        SendMessage(character, $"Name:@NPC_NAME({slave.TemplateId}) ObjId:{slave.ObjId} TemplateId:{slave.TemplateId}, x:{x}, y:{y}, z:{z}, roll:{roll:0.#}°, pitch:{pitch:0.#}°, yaw:{yaw:0.#}°");
+        SendMessage(messageOutput, $"Name:@NPC_NAME({slave.TemplateId}) ObjId:{slave.ObjId} TemplateId:{slave.TemplateId}, x:{x}, y:{y}, z:{z}, roll:{roll:0.#}°, pitch:{pitch:0.#}°, yaw:{yaw:0.#}°");
     }
 }

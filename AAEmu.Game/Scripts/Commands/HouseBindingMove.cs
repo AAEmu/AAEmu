@@ -25,7 +25,7 @@ public class HouseBindingMove : ICommand
         return "Command used for testing and moving house binding points";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (character.CurrentTarget != null && character.CurrentTarget is House house)
         {

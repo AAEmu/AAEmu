@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Scripts.Commands;
 using Point = AAEmu.Game.Models.Game.AI.AStar.Point;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.AStar;
@@ -20,7 +21,7 @@ public class AStarEndPositionSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<float>("z", "z=<new z>", false, "z"));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         Npc npc;
         if (parameters.TryGetValue("ObjId", out ParameterValue npcObjId))
@@ -28,7 +29,7 @@ public class AStarEndPositionSubCommand : SubCommandBase
             npc = WorldManager.Instance.GetNpc(npcObjId);
             if (npc is null)
             {
-                SendColorMessage(character, Color.Coral, $"AStar: Npc with objId {npcObjId} does not exist |r");
+                SendColorMessage(messageOutput, Color.Coral, $"AStar: Npc with objId {npcObjId} does not exist |r");
                 return;
             }
         }
@@ -38,7 +39,7 @@ public class AStarEndPositionSubCommand : SubCommandBase
             var target = currentTarget as Npc;
             if (currentTarget is null || target == null)
             {
-                SendColorMessage(character, Color.Coral, $"AStar: You need to target a Npc first");
+                SendColorMessage(messageOutput, Color.Coral, $"AStar: You need to target a Npc first");
                 return;
             }
             npc = target;
@@ -50,6 +51,6 @@ public class AStarEndPositionSubCommand : SubCommandBase
 
         npc.Ai.PathNode.pos2 = new Point(x, y, z);
 
-        character.SendMessage($"AStar: the endpoint is set X:{npc.Ai.PathNode.pos2.X}, Y:{npc.Ai.PathNode.pos2.Y}, Z:{npc.Ai.PathNode.pos2.Z}");
+        messageOutput.SendMessage($"AStar: the endpoint is set X:{npc.Ai.PathNode.pos2.X}, Y:{npc.Ai.PathNode.pos2.Y}, Z:{npc.Ai.PathNode.pos2.Z}");
     }
 }

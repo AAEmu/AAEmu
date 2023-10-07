@@ -27,7 +27,7 @@ public class Rotate : ICommand
         return "Rotate target unit towards you, or set it's local rotation to a given angle";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         //if (args.Length < 2)
         //{

@@ -39,7 +39,7 @@ public class Fly : ICommand
         return "Enables or disables fly-mode (also makes you move at hi-speed)";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var targetPlayer = character;
 

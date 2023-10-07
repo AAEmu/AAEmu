@@ -22,7 +22,7 @@ public class TestTransfer : ICommand
         return "Spawns a transportation vehicle";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         character.SendMessage("[testtransfer] function disabled");
         //if (args.Length < 1)

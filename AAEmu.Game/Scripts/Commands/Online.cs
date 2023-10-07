@@ -25,7 +25,7 @@ public class Online : ICommand
         return "Lists all online players";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var characters = WorldManager.Instance.GetAllCharacters();
         var finalMessage = characters.Count + " players online. |cFFFFFFFF";

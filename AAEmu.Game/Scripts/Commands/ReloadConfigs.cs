@@ -24,7 +24,7 @@ class ReloadConfigs : ICommand
     {
         return "Reloads the ConfigurationManager";
     }
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         try
         {

@@ -25,7 +25,7 @@ public class Snow : ICommand
         return "Enables or disables snow effect across the server";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         // If no argument is provided send usage information
         if (args.Length == 0)

@@ -13,7 +13,7 @@ using AAEmu.Game.Utils.Converters;
 using Newtonsoft.Json;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using AAEmu.Commons.Exceptions;
-using AAEmu.Game.Utils;
+using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Scripts.SubCommands.Npcs;
 
@@ -28,19 +28,19 @@ public class NpcSaveSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<uint>("ObjId", "object Id", false));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         if (parameters.TryGetValue("ObjId", out var npcObjId))
         {
-            SaveById(character, npcObjId);
+            SaveById(character, npcObjId, messageOutput);
         }
         else
         {
-            SaveAll(character);
+            SaveAll(character, messageOutput);
         }
     }
 
-    private void SaveAll(ICharacter character)
+    private void SaveAll(ICharacter character, IMessageOutput messageOutput)
     {
         var currentWorld = WorldManager.Instance.GetWorld(((Character)character).Transform.WorldId);
         var allNpcs = WorldManager.Instance.GetAllNpcs();
@@ -106,23 +106,23 @@ public class NpcSaveSubCommand : SubCommandBase
         var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", currentWorld.Name, "npc_spawns_new.json");
         var json = JsonConvert.SerializeObject(npcSpawnersToFile.ToArray(), Formatting.Indented, new JsonModelsConverter());
         File.WriteAllText(jsonPathOut, json);
-        SendMessage(character, "All npcs have been saved!");
+        SendMessage(messageOutput, "All npcs have been saved!");
     }
 
-    private void SaveById(ICharacter character, uint npcObjId)
+    private void SaveById(ICharacter character, uint npcObjId, IMessageOutput messageOutput)
     {
         var spawners = new List<JsonNpcSpawns>();
         var npc = WorldManager.Instance.GetNpc(npcObjId);
         if (npc is null)
         {
-            SendColorMessage(character, Color.Red, "Npc with objId {0} Does not exist |r", npcObjId);
+            SendColorMessage(messageOutput, Color.Red, "Npc with objId {0} Does not exist |r", npcObjId);
             return;
         }
 
         var world = WorldManager.Instance.GetWorld(npc.Transform.WorldId);
         if (world is null)
         {
-            SendColorMessage(character, Color.Red, "Could not find the worldId {0} |r", npc.Transform.WorldId);
+            SendColorMessage(messageOutput, Color.Red, "Could not find the worldId {0} |r", npc.Transform.WorldId);
             return;
         }
 
@@ -158,7 +158,7 @@ public class NpcSaveSubCommand : SubCommandBase
         var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
         var json = JsonConvert.SerializeObject(spawnersFromFile.Values.ToArray(), Formatting.Indented, new JsonModelsConverter());
         File.WriteAllText(jsonPathOut, json);
-        SendMessage(character, "All npcs have been saved with added npc ObjId:{0}, TemplateId:{1}", npc.ObjId, npc.TemplateId);
+        SendMessage(messageOutput, "All npcs have been saved with added npc ObjId:{0}, TemplateId:{1}", npc.ObjId, npc.TemplateId);
     }
 
     private List<JsonNpcSpawns> LoadNpcsFromFileByWorld(World world)

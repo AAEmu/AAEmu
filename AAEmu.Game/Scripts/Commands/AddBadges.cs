@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.Char;
@@ -24,7 +24,7 @@ public class AddBadges : ICommand
         return "Adds VocationPoints (to target player)";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

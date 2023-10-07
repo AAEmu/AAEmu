@@ -24,7 +24,7 @@ public class TestChatChannel : ICommand
             "You can also use list to show a list of all current chat channels, or clean to remove any non-system channel that has zero users in it.";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if ((args.Length == 1) && (args[0].ToLower() == "list"))
         {

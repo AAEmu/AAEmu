@@ -26,7 +26,7 @@ public class Kill : ICommand
         return "Kills target";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         Character targetPlayer = WorldManager.GetTargetOrSelf(character, null, out var _);
         var playerTarget = character.CurrentTarget;

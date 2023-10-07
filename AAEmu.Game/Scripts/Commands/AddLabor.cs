@@ -28,7 +28,7 @@ public class AddLabor : ICommand
             "(31)Commerce, (33)Artistry, (34)Exploration";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

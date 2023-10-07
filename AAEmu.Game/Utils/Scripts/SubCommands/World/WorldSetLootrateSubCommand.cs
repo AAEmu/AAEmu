@@ -2,6 +2,7 @@
 using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.World;
 
@@ -14,16 +15,16 @@ public class WorldSetLootrateSubCommand : SubCommandBase
         CallPrefix = $"{CommandManager.CommandPrefix}lootrate";
         AddParameter(new NumericSubCommandParameter<float>("LootRate", "LootRate", true));
     }
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         float lootRate = parameters["LootRate"];
         if (lootRate < 1.0f || lootRate > 1000.0f)
         {
-            SendColorMessage(character, Color.Coral, $"Loot rate = {lootRate} must be at least 1.0 and no more than 1000.0 |r");
+            SendColorMessage(messageOutput, Color.Coral, $"Loot rate = {lootRate} must be at least 1.0 and no more than 1000.0 |r");
             return;
         }
         character.SetLootRate(lootRate);
-        SendMessage(character, "Set GrowthRate {0}", lootRate);
+        SendMessage(messageOutput, "Set GrowthRate {0}", lootRate);
         Logger.Warn($"{Title}: {lootRate}");
     }
 }

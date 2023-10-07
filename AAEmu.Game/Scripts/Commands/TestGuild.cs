@@ -22,7 +22,7 @@ public class TestGuild : ICommand
         return "Manually creates a guild from your current party. Normal rules still apply.";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

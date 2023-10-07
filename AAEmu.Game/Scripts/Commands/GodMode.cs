@@ -21,7 +21,7 @@ public class GodMode : ICommand
         return "Makes himself immortal to other players";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

@@ -24,7 +24,7 @@ public class BuildHouse : ICommand
         return "Advances the targetted house one step further";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (character.CurrentTarget is not House targetHouse)
         {

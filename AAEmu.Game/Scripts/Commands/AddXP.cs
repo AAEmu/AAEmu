@@ -23,7 +23,7 @@ public class AddXP : ICommand
         return "Adds experience points (to target player)";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

@@ -23,7 +23,7 @@ public class Dist : ICommand
         return "Gets distance using various calculations with target";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var target = character.CurrentTarget;
 

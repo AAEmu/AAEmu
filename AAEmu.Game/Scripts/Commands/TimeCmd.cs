@@ -33,7 +33,7 @@ public class TimeCmd : SubCommandBase, ICommand, ICommandV2
         return CallPrefix;
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
     }

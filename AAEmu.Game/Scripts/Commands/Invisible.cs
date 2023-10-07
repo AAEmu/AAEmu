@@ -21,7 +21,7 @@ public class Invisible : ICommand
         return "Sets yourself as invisible to other players";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

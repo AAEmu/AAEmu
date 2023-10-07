@@ -22,7 +22,7 @@ public class Pirate : ICommand
         return "Sets your faction";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

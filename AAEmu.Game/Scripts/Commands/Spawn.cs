@@ -29,7 +29,7 @@ public class Spawn : ICommand
         return "Spawns a npc or doodad using <unitId> as a template. Or remove a doodad";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length < 2)
         {

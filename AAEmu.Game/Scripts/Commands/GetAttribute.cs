@@ -26,7 +26,7 @@ public class GetAttribute : ICommand
         return "getattribute <attrId || attrName> [target]";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         Unit target = character;
         int argsIdx = 0;

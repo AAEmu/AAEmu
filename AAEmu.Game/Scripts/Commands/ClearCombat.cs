@@ -23,7 +23,7 @@ public class ClearCombat : ICommand
         return "Command to clear combat.";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         character.SendPacket(new SCCombatClearedPacket(character.ObjId));
     }

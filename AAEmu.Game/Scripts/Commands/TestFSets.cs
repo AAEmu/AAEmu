@@ -25,7 +25,7 @@ public class TestFSets : ICommand
         return "Shows currently active fsets of the server";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         foreach (var fObj in Enum.GetValues(typeof(Feature)))
         {

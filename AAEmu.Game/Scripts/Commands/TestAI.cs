@@ -24,7 +24,7 @@ public class TestAI : ICommand
         return "Forces the HoldPosition AI to the target";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (character.CurrentTarget == null)
         {

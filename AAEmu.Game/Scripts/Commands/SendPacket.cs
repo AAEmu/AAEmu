@@ -25,7 +25,7 @@ public class SendPacket : ICommand
         return "Send packet (hex) to player's character from either a file path or received message";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length != 1)
         {

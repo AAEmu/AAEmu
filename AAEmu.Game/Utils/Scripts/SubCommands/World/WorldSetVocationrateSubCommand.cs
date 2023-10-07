@@ -2,6 +2,7 @@
 using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.World;
 
@@ -14,16 +15,16 @@ public class WorldSetVocationrateSubCommand : SubCommandBase
         CallPrefix = $"{CommandManager.CommandPrefix}vocationrate";
         AddParameter(new NumericSubCommandParameter<float>("VocationRate", "VocationRate", true));
     }
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         float vocationRate = parameters["VocationRate"];
         if (vocationRate < 1.0f || vocationRate > 1000.0f)
         {
-            SendColorMessage(character, Color.Coral, $"Vocation rate = {vocationRate} must be at least 1.0 and no more than 1000.0 |r");
+            SendColorMessage(messageOutput, Color.Coral, $"Vocation rate = {vocationRate} must be at least 1.0 and no more than 1000.0 |r");
             return;
         }
         character.SetVocationRate(vocationRate);
-        SendMessage(character, "Set VocationRate {0}", vocationRate);
+        SendMessage(messageOutput, "Set VocationRate {0}", vocationRate);
         Logger.Warn($"{Title}: {vocationRate}");
     }
 }

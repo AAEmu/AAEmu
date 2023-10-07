@@ -26,7 +26,7 @@ public class Heal : ICommand
         return "Heals target or self if no target supplied";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var playerTarget = character.CurrentTarget;
 

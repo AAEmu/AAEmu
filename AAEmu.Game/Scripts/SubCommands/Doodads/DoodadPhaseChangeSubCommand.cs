@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Scripts.Commands;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.SubCommands.Doodads;
@@ -20,24 +21,24 @@ public class DoodadPhaseChangeSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<uint>("ObjId", "Object Id", true));
         AddParameter(new NumericSubCommandParameter<int>("PhaseId", "Phase Id", true));
     }
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint doodadObjId = parameters["ObjId"];
         int phaseId = parameters["PhaseId"];
         var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
         if (doodad is null)
         {
-            SendColorMessage(character, Color.Red, "Doodad with objId {0} Does not exist |r", doodadObjId);
+            SendColorMessage(messageOutput, Color.Red, "Doodad with objId {0} Does not exist |r", doodadObjId);
         }
         if (!(doodad is Doodad))
         {
-            SendColorMessage(character, Color.Red, "Doodad with objId {0} is invalid (not a Doodad) |r", doodadObjId);
+            SendColorMessage(messageOutput, Color.Red, "Doodad with objId {0} is invalid (not a Doodad) |r", doodadObjId);
         }
 
         var availablePhases = string.Join(", ", DoodadManager.Instance.GetDoodadFuncGroupsId(doodad.TemplateId));
 
-        SendMessage(character, "SetPhase {0}", phaseId);
-        SendMessage(character, "TemplateId {0}: ObjId:{1}, ChangedPhase:{2}, Available phase ids (func groups): {3}", doodad.TemplateId, doodad.ObjId, phaseId, availablePhases);
+        SendMessage(messageOutput, "SetPhase {0}", phaseId);
+        SendMessage(messageOutput, "TemplateId {0}: ObjId:{1}, ChangedPhase:{2}, Available phase ids (func groups): {3}", doodad.TemplateId, doodad.ObjId, phaseId, availablePhases);
         Logger.Warn($"{Title} Chain: TemplateId {doodad.TemplateId}, doodadObjId {doodad.ObjId}, SetPhase {phaseId}, Available phase ids (func groups): {availablePhases}");
         doodad.DoChangePhase((Unit)character, phaseId);
     }

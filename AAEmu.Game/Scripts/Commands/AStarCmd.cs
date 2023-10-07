@@ -42,7 +42,7 @@ public class AStarCmd : SubCommandBase, ICommand
         return CallPrefix;
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
     }

@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Scripts.SubCommands.Items;
 
@@ -18,7 +19,7 @@ public class ItemExpireSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<float>("minutes", "minutes=0.5", false, -1f, 1000000f) { DefaultValue = 0.5f });
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         //Character addTarget;
         var selfCharacter = (Character)character;

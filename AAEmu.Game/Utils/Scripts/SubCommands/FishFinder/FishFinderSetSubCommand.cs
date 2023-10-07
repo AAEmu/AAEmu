@@ -2,6 +2,7 @@
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.FishFinder;
 
@@ -15,18 +16,18 @@ public class FishFinderSetSubCommand : SubCommandBase
         AddParameter(new StringSubCommandParameter("start", "start", true));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         string start = parameters["start"];
         if (start == "true")
         {
             FishSchoolManager.FishFinderStart((Character)character);
-            SendMessage(character, $"FishFinder set start: true");
+            SendMessage(messageOutput, $"FishFinder set start: true");
         }
         else
         {
             FishSchoolManager.StopFishFinderTickAsync((Character)character).GetAwaiter().GetResult();
-            SendMessage(character, $"FishFinder set start: false");
+            SendMessage(messageOutput, $"FishFinder set start: false");
         }
 
         //TODO: There is much more potential information to show on this command.

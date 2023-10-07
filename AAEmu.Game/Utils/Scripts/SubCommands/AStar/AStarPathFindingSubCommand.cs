@@ -4,6 +4,7 @@ using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.AStar;
 
@@ -17,14 +18,14 @@ public class AStarPathFindingSubCommand : SubCommandBase
         AddParameter(new StringSubCommandParameter("templateId", "templateId", false));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         string templateId = parameters["templateId"]; // что бы был, без праметра не работает скрипт
         var currentTarget = ((Character)character).CurrentTarget;
         var npc = currentTarget as Npc;
         if (currentTarget is null || npc == null)
         {
-            SendColorMessage(character, Color.Coral, $"AStar: You need to target a Npc first");
+            SendColorMessage(messageOutput, Color.Coral, $"AStar: You need to target a Npc first");
             return;
         }
 
@@ -45,7 +46,7 @@ public class AStarPathFindingSubCommand : SubCommandBase
         }
         else
         {
-            SendColorMessage(character, Color.Coral, $"AStar: to find the path, you need to set the start and end points of the route!");
+            SendColorMessage(messageOutput, Color.Coral, $"AStar: to find the path, you need to set the start and end points of the route!");
         }
     }
 }

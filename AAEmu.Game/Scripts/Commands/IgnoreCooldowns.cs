@@ -22,7 +22,7 @@ public class IgnoreCooldowns : ICommand
         return "Enables or disables skill cooldowns.";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

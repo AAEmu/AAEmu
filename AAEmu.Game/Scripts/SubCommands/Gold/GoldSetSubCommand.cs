@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Scripts.Commands;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.SubCommands.Gold;
@@ -22,7 +23,7 @@ public class GoldSetSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<int>("copper", "copper amount", false));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         Character targetCharacter;
         var selfCharacter = (Character)character;
@@ -32,7 +33,7 @@ public class GoldSetSubCommand : SubCommandBase
         {
             if (selfCharacter.CurrentTarget is null || !(selfCharacter.CurrentTarget is Character))
             {
-                SendColorMessage(character, Color.Red, "Please select a valid character player");
+                SendColorMessage(messageOutput, Color.Red, "Please select a valid character player");
                 return;
             }
             targetCharacter = selfCharacter.CurrentTarget as Character;
@@ -46,7 +47,7 @@ public class GoldSetSubCommand : SubCommandBase
             var player = WorldManager.Instance.GetCharacter(firstParameter);
             if (player is null)
             {
-                SendColorMessage(character, Color.Red, $"Character player: {firstParameter} was not found.");
+                SendColorMessage(messageOutput, Color.Red, $"Character player: {firstParameter} was not found.");
                 return;
             }
             targetCharacter = player;
@@ -73,13 +74,13 @@ public class GoldSetSubCommand : SubCommandBase
             targetCharacter.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, new List<ItemTask> { new MoneyChange(totalAmount) }, new List<ulong>()));
             if (selfCharacter.Id != targetCharacter.Id)
             {
-                SendMessage(character, "Changed {0}'s money by {1}g {2}s {3}c", targetCharacter.Name, goldAmount, silverAmount, copperAmount);
-                SendMessage(targetCharacter, "[GM] {0} has changed your gold", selfCharacter.Name);
+                SendMessage(messageOutput, "Changed {0}'s money by {1}g {2}s {3}c", targetCharacter.Name, goldAmount, silverAmount, copperAmount);
+                SendMessage(targetCharacter, messageOutput, "[GM] {0} has changed your gold", selfCharacter.Name);
             }
         }
         else
         {
-            SendColorMessage(character, Color.Red, "No valid amount sum provided");
+            SendColorMessage(messageOutput, Color.Red, "No valid amount sum provided");
         }
     }
 }

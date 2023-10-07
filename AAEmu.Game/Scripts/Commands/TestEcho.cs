@@ -21,7 +21,7 @@ public class TestEcho : ICommand
         return "Repeats the provided arguments in chat as raw text";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         string s = string.Empty;
         foreach (string a in args)

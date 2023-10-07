@@ -2,6 +2,7 @@
 using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.World;
 
@@ -14,16 +15,16 @@ public class WorldSetMotdmessageSubCommand : SubCommandBase
         CallPrefix = $"{CommandManager.CommandPrefix}motd";
         AddParameter(new StringSubCommandParameter("MOTD", "MOTD", true));
     }
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         string motd = parameters["MOTD"];
         if (motd is "")
         {
-            SendColorMessage(character, Color.Coral, $"MOTD message must not be an empty string |r");
+            SendColorMessage(messageOutput, Color.Coral, $"MOTD message must not be an empty string |r");
             return;
         }
         character.SetMotdMessage(motd);
-        SendMessage(character, $"Set MOTD {motd}");
+        SendMessage(messageOutput, $"Set MOTD {motd}");
         Logger.Warn($"{Title}: {motd}");
     }
 }

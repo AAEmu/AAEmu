@@ -23,7 +23,7 @@ public class Appellation : ICommand
         return "Sets your current title using <titleId>";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

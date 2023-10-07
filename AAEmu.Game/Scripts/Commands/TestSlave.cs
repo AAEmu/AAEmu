@@ -25,7 +25,7 @@ public class TestSlave : ICommand
         return "Spawns a test slave";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var slave = new Slave();
         slave.Summoner = character;

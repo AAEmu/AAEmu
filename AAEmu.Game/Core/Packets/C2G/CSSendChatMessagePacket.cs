@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -29,7 +30,7 @@ public class CSSendChatMessagePacket : GamePacket
 
         if (message.StartsWith(CommandManager.CommandPrefix))
         {
-            if (CommandManager.Instance.Handle(Connection.ActiveChar, message.Substring(CommandManager.CommandPrefix.Length).Trim()))
+            if (CommandManager.Instance.Handle(Connection.ActiveChar, message.Substring(CommandManager.CommandPrefix.Length).Trim(), out _))
                 return;
         }
 

@@ -24,7 +24,7 @@ public class GetPosition : ICommand
         return "Displays information about the position of you, or your target if a target is selected or provided as a argument.";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (character.CurrentTarget != null && character.CurrentTarget != character)
         {

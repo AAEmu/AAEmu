@@ -22,7 +22,7 @@ public class Height : ICommand
         return "Gets your or target's current height and that of the supposed floor (using heightmap data)";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         Character targetPlayer = character;
         if (args.Length > 0)

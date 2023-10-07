@@ -24,7 +24,7 @@ public class TickDoodad : ICommand
         return "Moves a doodad onto it's next Phase using <objId> inside a <radius> range.";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length < 1)
         {

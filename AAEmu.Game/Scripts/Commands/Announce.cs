@@ -92,7 +92,7 @@ public class Announce : ICommand
         }
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         //if no arguments send help information
         if (args.Length == 0)

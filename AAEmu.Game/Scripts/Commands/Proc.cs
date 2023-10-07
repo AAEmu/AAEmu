@@ -13,7 +13,7 @@ public class Proc : ICommand
         CommandManager.Instance.Register(name, this);
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

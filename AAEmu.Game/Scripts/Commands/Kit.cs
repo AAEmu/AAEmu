@@ -79,7 +79,7 @@ public class AddKit : ICommand
         return "Adds a set of items based on a kit name to target player.";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

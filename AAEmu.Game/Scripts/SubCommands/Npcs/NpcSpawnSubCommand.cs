@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Scripts.Commands;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
@@ -22,13 +23,13 @@ public class NpcSpawnSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<facing degrees>", false, "yaw", 0, 360));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint npcTemplateId = parameters["NpcTemplateId"];
 
         if (!NpcManager.Instance.Exist(npcTemplateId))
         {
-            SendColorMessage(character, Color.Red, $"NPC template {npcTemplateId} doesn't exist|r");
+            SendColorMessage(messageOutput, Color.Red, $"NPC template {npcTemplateId} doesn't exist|r");
             return;
         }
         var selfCharacter = (Character)character;
@@ -45,11 +46,11 @@ public class NpcSpawnSubCommand : SubCommandBase
 
         if (!parameters.ContainsKey("yaw"))
         {
-            SendMessage(character, $"NPC {npcTemplateId} facing you using angle {angle.RadToDeg():0.#}°");
+            SendMessage(messageOutput, $"NPC {npcTemplateId} facing you using angle {angle.RadToDeg():0.#}°");
         }
         else
         {
-            SendMessage(character, $"NPC {npcTemplateId} using angle {angle.RadToDeg():0.#}°");
+            SendMessage(messageOutput, $"NPC {npcTemplateId} using angle {angle.RadToDeg():0.#}°");
         }
 
         npcSpawner.Position.Yaw = angle;

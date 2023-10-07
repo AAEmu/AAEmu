@@ -22,7 +22,7 @@ public class SoloParty : ICommand
         return "Creates a party with just yourself in it. This can be usefull to use with \"" + CommandManager.CommandPrefix + "teleport .\" command.";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var currentTeam = TeamManager.Instance.GetActiveTeamByUnit(character.Id);
         if (currentTeam != null)

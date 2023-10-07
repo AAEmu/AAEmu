@@ -25,7 +25,7 @@ public class TestTracker : ICommand
         return "Toggle movement debug information for target";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var playerTarget = character.CurrentTarget;
 

@@ -24,7 +24,7 @@ public class Dloc : ICommand
         return "change doodad position";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length < 4)
         {

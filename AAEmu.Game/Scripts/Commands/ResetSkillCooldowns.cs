@@ -22,7 +22,7 @@ public class ResetSkillCooldowns : ICommand
         return "Resets skill cooldowns.";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         character.ResetAllSkillCooldowns(false);
     }

@@ -21,7 +21,7 @@ class ReloadAuction : ICommand
     {
         return "Reloads the AuctionManager";
     }
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         AuctionManager.Instance.Load();
     }

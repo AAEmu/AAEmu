@@ -29,7 +29,7 @@ public class AddBuff : ICommand
             "You can also use 'v' instead of 'view' and 'at' or 't' instead of 'AsTarget'";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var firstArg = 0;
         if (args.Length <= 0)

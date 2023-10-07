@@ -37,7 +37,7 @@ public class MoveTo : ICommand
             "|15626.0|14983.88|141.3446|\n" +
             "===================================================;\n";
     }
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         string nameFile = "movefile";
         string cmd = "";

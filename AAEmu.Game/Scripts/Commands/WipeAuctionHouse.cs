@@ -21,7 +21,7 @@ class WipeAuctionHouse : ICommand
     {
         return "Deletes ALL Items from the AH. No going back from this.";
     }
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         AuctionManager.Instance.Load();
 

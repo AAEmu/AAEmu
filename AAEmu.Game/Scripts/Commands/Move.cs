@@ -30,7 +30,7 @@ public class Move : ICommand
             CommandManager.CommandPrefix + "move TargetPlayer";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         Character targetPlayer = character;
         var firstarg = 0;

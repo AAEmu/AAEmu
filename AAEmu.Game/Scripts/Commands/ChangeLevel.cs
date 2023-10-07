@@ -26,7 +26,7 @@ public class ChangeLevel : ICommand
             "Do note that going above the intended max level might break skills.";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

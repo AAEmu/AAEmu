@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Utils;
+using AAEmu.Game.Scripts.Commands;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.SubCommands.Doodads;
@@ -25,13 +25,13 @@ public class DoodadPositionSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<new yaw degrees>", false, "yaw", 0, 360));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint doodadObjId = parameters["ObjId"];
         var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
         if (doodad is null || !(doodad is Doodad))
         {
-            SendColorMessage(character, Color.Red, $"Doodad with objId {doodadObjId} Does not exist |r");
+            SendColorMessage(messageOutput, Color.Red, $"Doodad with objId {doodadObjId} Does not exist |r");
             return;
         }
 
@@ -42,7 +42,7 @@ public class DoodadPositionSubCommand : SubCommandBase
         var pitch = GetOptionalParameterValue(parameters, "pitch", doodad.Transform.Local.Rotation.Y.RadToDeg()).DegToRad();
         var yaw = GetOptionalParameterValue(parameters, "yaw", doodad.Transform.Local.Rotation.Z.RadToDeg()).DegToRad();
 
-        SendMessage(character, "Doodad ObjId: {0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, roll:{5:0.#}°, pitch:{6:0.#}°, yaw:{7:0.#}°",
+        SendMessage(messageOutput, "Doodad ObjId: {0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, roll:{5:0.#}°, pitch:{6:0.#}°, yaw:{7:0.#}°",
             doodad.ObjId, doodad.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());
 
         doodad.Transform.Local.SetPosition(x, y, z, roll, pitch, yaw);

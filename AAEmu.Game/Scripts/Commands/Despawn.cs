@@ -27,7 +27,7 @@ public class Despawn : ICommand
         return "Despawns a npc or doodad using by <objId> or <templateId> inside a <radius> range.";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length < 2)
         {
