@@ -1,4 +1,6 @@
-﻿using System;
+﻿#pragma warning disable CS0618 // Type or member is obsolete
+
+using System;
 using System.Reflection;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using Xunit;
@@ -31,8 +33,8 @@ public class NumericSubCommandParameterTests
         // Assert
         Assert.True(parameterValue.IsValid);
         Assert.IsAssignableFrom(expectedParamClass, parameterValue);
-        Assert.IsType(type, parameterValue.Value);
-        Assert.Equal(expectedReturn, parameterValue.Value);
+        Assert.IsType(type, parameterValue.Value.GetValue());
+        Assert.Equal(expectedReturn, parameterValue.Value.GetValue());
     }
 
     [Theory]
@@ -107,8 +109,8 @@ public class NumericSubCommandParameterTests
         // Assert
         Assert.True(parameterValue.IsValid);
         Assert.IsAssignableFrom(expectedParamClass, parameterValue);
-        Assert.IsType(type, parameterValue.Value);
-        Assert.Equal(expectedReturn, parameterValue.Value);
+        Assert.IsType(type, parameterValue.Value.GetValue());
+        Assert.Equal(expectedReturn, parameterValue.Value.GetValue());
     }
 
     [Theory]
@@ -182,7 +184,7 @@ public class NumericSubCommandParameterTests
         // Assert
         Assert.True(parameterResult.IsValid);
         Assert.IsAssignableFrom(expectedParamClass, parameterResult);
-        Assert.IsType(type, parameterResult.Value);
-        Assert.Equal(expectedReturn, parameterResult.Value);
+        Assert.IsType(type, parameterResult.Value.GetValue());
+        Assert.Equal(expectedReturn, parameterResult.Value.GetValue());
     }
 }

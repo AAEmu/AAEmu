@@ -1,4 +1,5 @@
-﻿
+﻿#pragma warning disable CS0618 // Type or member is obsolete
+
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
@@ -289,7 +290,7 @@ public class SubCommandBaseTests
         {
             Assert.True(subCommand.Parameters.ContainsKey(parameterPattern));
         }
-        Assert.Equal(expectedParameterValue, subCommand.Parameters[expectedParameterName]);
+        Assert.Equal(expectedParameterValue, subCommand.Parameters[expectedParameterName].GetValue());
     }
 
     [Theory]
@@ -360,7 +361,7 @@ public class SubCommandBaseTests
 
         // Assert
         Assert.True(subCommand.Executed);
-        Assert.Equal(expectedParameterDefaultValue, subCommand.Parameters[expectedParameterName]);
+        Assert.Equal(expectedParameterDefaultValue, subCommand.Parameters[expectedParameterName].GetValue());
     }
 
     private static SubCommandParameterBase GetParameter(string parameterPattern)
