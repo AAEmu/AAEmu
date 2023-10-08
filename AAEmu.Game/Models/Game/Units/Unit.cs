@@ -223,7 +223,7 @@ public class Unit : BaseUnit, IUnit
         GCDLock = new object();
         Bonuses = new Dictionary<uint, List<Bonus>>();
         IsInBattle = false;
-        Equipment = new EquipmentContainer(0, SlotType.Equipment, true, false);
+        Equipment = new EquipmentContainer(0, SlotType.Equipment, false);
         ChargeLock = new object();
         Cooldowns = new UnitCooldowns();
     }

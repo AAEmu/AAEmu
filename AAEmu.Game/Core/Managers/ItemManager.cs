@@ -1669,7 +1669,7 @@ public class ItemManager : Singleton<ItemManager>
         var newContainerType = "ItemContainer";
         if (slotType == SlotType.Equipment)
             newContainerType = "EquipmentContainer";
-        var newContainer = ItemContainer.CreateByTypeName(newContainerType, characterId, slotType, true, slotType != SlotType.None);
+        var newContainer = ItemContainer.CreateByTypeName(newContainerType, characterId, slotType, slotType != SlotType.None);
         if (slotType != SlotType.None)
             _allPersistantContainers.Add(newContainer.ContainerId, newContainer);
 
@@ -1678,7 +1678,7 @@ public class ItemManager : Singleton<ItemManager>
 
     public CofferContainer NewCofferContainer(uint characterId)
     {
-        var coffer = new CofferContainer(characterId, false, true);
+        var coffer = new CofferContainer(characterId, true);
         _allPersistantContainers.Add(coffer.ContainerId, coffer);
         return coffer;
     }
@@ -1757,7 +1757,7 @@ public class ItemManager : Singleton<ItemManager>
                     var slotType = (SlotType)Enum.Parse(typeof(SlotType), reader.GetString("slot_type"), true);
                     var containerSize = reader.GetInt32("container_size");
                     var containerOwnerId = reader.GetUInt32("owner_id");
-                    var container = ItemContainer.CreateByTypeName(containerType, containerOwnerId, slotType, containerOwnerId != 0, false);
+                    var container = ItemContainer.CreateByTypeName(containerType, containerOwnerId, slotType, false);
                     container.ContainerId = containerId;
                     container.ContainerSize = containerSize;
 
@@ -1848,8 +1848,7 @@ public class ItemManager : Singleton<ItemManager>
                     }
                     else
                     {
-                        Logger.Trace(
-                            $"Can't find a container for Item {item.Id} ({item.Template.Name}), ContainerId: {containerId}");
+                        Logger.Trace($"Can't find a container for Item {item.Id} ({item.Template.Name}), ContainerId: {containerId}");
                         // This Item does not have a valid container it can fit in
 
                         if (item.OwnerId > 0)

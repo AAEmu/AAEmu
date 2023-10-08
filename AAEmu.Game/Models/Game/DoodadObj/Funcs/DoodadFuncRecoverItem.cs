@@ -1,10 +1,12 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
 
@@ -34,8 +36,23 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
                 // If it's on house property, check if the player has access to it
                 if (owner.OwnerDbId > 0)
                 {
-                    var house = HousingManager.Instance.GetHouseById(owner.OwnerDbId);
-                    if (house != null && !house.AllowedToInteract(character))
+                    GameObject ownerGameObject;
+                    switch (owner.OwnerType)
+                    {
+                        case DoodadOwnerType.Slave:
+                            ownerGameObject = SlaveManager.Instance.GetActiveSlaveByObjId(owner.OwnerDbId);
+                            break;
+                        case DoodadOwnerType.Housing:
+                            ownerGameObject = HousingManager.Instance.GetHouseById(owner.OwnerDbId);
+                            break;
+                        case DoodadOwnerType.Character:
+                        case DoodadOwnerType.System:
+                        default:
+                            ownerGameObject = null;
+                            break;
+                    }
+
+                    if (ownerGameObject != null && !ownerGameObject.AllowedToInteract(character))
                     {
                         character.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
                         return;
@@ -71,6 +88,13 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
 
         if (addedItem && item != null && item._holdingContainer.ContainerType == SlotType.Equipment)
             character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId, (byte)item.Slot, item), false);
+
+        if (addedItem)
+        {
+            // remove the old reference
+            owner.ItemId = 0;
+            owner.ItemTemplateId = 0;
+        }
 
         if (owner != null)
             owner.ToNextPhase = addedItem;

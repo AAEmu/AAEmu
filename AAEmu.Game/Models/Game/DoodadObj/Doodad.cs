@@ -575,7 +575,7 @@ public class Doodad : BaseUnit
         if (ItemId > 0)
         {
             var item = ItemManager.Instance.GetItemByItemId(ItemId);
-            if (item != null && (item._holdingContainer.ContainerType == SlotType.None || item._holdingContainer.ContainerType == SlotType.System))
+            if (item != null && item._holdingContainer != null && (item._holdingContainer.ContainerType == SlotType.None || item._holdingContainer.ContainerType == SlotType.System))
                 item._holdingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
         }
         if (IsPersistent)

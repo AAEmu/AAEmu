@@ -44,7 +44,6 @@ public class Inventory
             {
                 Equipment = Owner.Equipment;
                 Equipment.Owner = Owner;
-                Equipment.PartOfPlayerInventory = true;
                 _itemContainers.Add(st, Equipment);
                 continue;
             }
@@ -70,11 +69,9 @@ public class Inventory
                     Warehouse = newContainer;
                     break;
                 case SlotType.Mail:
-                    newContainer.PartOfPlayerInventory = false;
                     MailAttachments = newContainer;
                     break;
                 case SlotType.System:
-                    newContainer.PartOfPlayerInventory = false;
                     SystemContainer = newContainer;
                     break;
             }

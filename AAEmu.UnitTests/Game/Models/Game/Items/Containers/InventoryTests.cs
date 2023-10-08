@@ -15,7 +15,7 @@ public class InventoryTests
     {
         // ItemIdManager.Instance.Initialize();
 
-        var container = new ItemContainer(new CharacterMock().Id, SlotType.Inventory, false, false);
+        var container = new ItemContainer(new CharacterMock().Id, SlotType.Inventory, false);
         var item = InventoryTestUtils.MockItem(1, 1);
 
         Assert.True(container.AddOrMoveExistingItem(ItemTaskType.Gm, item, 1));
