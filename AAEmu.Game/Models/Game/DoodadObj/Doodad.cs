@@ -610,11 +610,12 @@ public class Doodad : BaseUnit
                     parentDoodadId = pDoodad.DbId;
 
                 command.CommandText =
-                    "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`) " +
-                    "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @item_id, @house_id, @parent_doodad, @item_template_id, @item_container_id, @data)";
+                    "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `attach_point`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`) " +
+                    "VALUES(@id, @owner_id, @owner_type, @attach_point, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @item_id, @house_id, @parent_doodad, @item_template_id, @item_container_id, @data)";
                 command.Parameters.AddWithValue("@id", DbId);
                 command.Parameters.AddWithValue("@owner_id", OwnerId);
                 command.Parameters.AddWithValue("@owner_type", OwnerType);
+                command.Parameters.AddWithValue("@attach_point", AttachPoint);
                 command.Parameters.AddWithValue("@template_id", TemplateId);
                 command.Parameters.AddWithValue("@current_phase_id", FuncGroupId);
                 command.Parameters.AddWithValue("@plant_time", PlantTime);

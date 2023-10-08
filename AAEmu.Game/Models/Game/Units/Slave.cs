@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -12,6 +13,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units.Static;
 using Jitter.Dynamics;
+using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -25,6 +27,7 @@ public class Slave : Unit
     public SlaveTemplate Template { get; set; }
     // public Character Driver { get; set; }
     public Character Summoner { get; set; }
+    public Item SummoningItem { get; set; }
     public List<Doodad> AttachedDoodads { get; set; }
     public List<Slave> AttachedSlaves { get; set; }
     public Dictionary<AttachPointKind, Character> AttachedCharacters { get; set; }
@@ -644,5 +647,50 @@ public class Slave : Unit
         Events.OnDeath(this, new OnDeathArgs { Killer = (Unit)killer, Victim = this });
         Buffs.RemoveEffectsOnDeath();
         killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, (Unit)killer), true);
+    }
+
+    public bool Save()
+    {
+        if (Id <= 0)
+            return false;
+
+        using var connection = MySQL.CreateConnection();
+        return Save(connection, null);
+    }
+
+    public bool Save(MySqlConnection connection, MySqlTransaction transaction)
+    {
+        if (Id <= 0)
+            return false;
+
+        var result = false;
+        try
+        {
+            using (var command = connection.CreateCommand())
+            {
+                command.Connection = connection;
+                if (transaction != null)
+                    command.Transaction = transaction;
+
+                command.CommandText =
+                    "REPLACE INTO slaves(`id`,`item_id`,`name`,`owner`,`updated_at`,`hp`,`mp`) " +
+                    "VALUES (@id, @item_id, @name, @owner, @updated_at, @hp, @mp)";
+                command.Parameters.AddWithValue("@id", Id);
+                command.Parameters.AddWithValue("@item_id", SummoningItem?.Id ?? 0);
+                command.Parameters.AddWithValue("@name", Name);
+                command.Parameters.AddWithValue("@hp", Hp);
+                command.Parameters.AddWithValue("@mp", Mp);
+                command.Parameters.AddWithValue("@updated_at", DateTime.UtcNow);
+                command.ExecuteNonQuery();
+                result = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex);
+            result = false;
+        }
+
+        return result;
     }
 }

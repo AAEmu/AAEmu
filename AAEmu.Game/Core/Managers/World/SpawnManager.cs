@@ -394,7 +394,7 @@ public class SpawnManager : Singleton<SpawnManager>
     /// <param name="useParentObject">If not null, force-set the Parent object of the loaded data</param>
     /// <param name="doSpawn">If true, also sends a Spawn() command after loading the doodad</param>
     /// <returns></returns>
-    private int SpawnPersistentDoodads(DoodadOwnerType ownerTypeToSpawn, int ownerToSpawnId = -1, GameObject useParentObject = null, bool doSpawn = false)
+    public int SpawnPersistentDoodads(DoodadOwnerType ownerTypeToSpawn, int ownerToSpawnId = -1, GameObject useParentObject = null, bool doSpawn = false)
     {
         var spawnCount = 0;
         var newCoffers = new List<Doodad>();
@@ -429,6 +429,7 @@ public class SpawnManager : Singleton<SpawnManager>
                     var phaseTime = reader.GetDateTime("phase_time");
                     var ownerId = reader.GetUInt32("owner_id");
                     var ownerType = (DoodadOwnerType)reader.GetByte("owner_type");
+                    var attachPoint = (AttachPointKind)reader.GetUInt32("attach_point");
                     var itemId = reader.GetUInt64("item_id");
                     var houseId = reader.GetUInt32("house_id");
                     var parentDoodad = reader.GetUInt32("parent_doodad");
@@ -443,10 +444,9 @@ public class SpawnManager : Singleton<SpawnManager>
                     doodad.IsPersistent = true;
                     doodad.DbId = dbId;
                     doodad.FuncGroupId = phaseId;
-                    //doodad._funcGroupId = phaseId;
                     doodad.OwnerId = ownerId;
                     doodad.OwnerType = ownerType;
-                    doodad.AttachPoint = AttachPointKind.None;
+                    doodad.AttachPoint = attachPoint;
                     doodad.PlantTime = plantTime;
                     doodad.GrowthTime = growthTime;
                     doodad.OverridePhaseTime = phaseTime;
@@ -515,6 +515,11 @@ public class SpawnManager : Singleton<SpawnManager>
                             coffer.InitializeCoffer(ownerId);
                             newCoffers.Add(coffer); // Mark for saving again later when we're done with this loop
                         }
+                    }
+
+                    if ((ownerTypeToSpawn == DoodadOwnerType.Slave) && (useParentObject is Slave parentSlave))
+                    {
+                        parentSlave.AttachedDoodads.Add(doodad);
                     }
 
                     doodad.InitDoodad();

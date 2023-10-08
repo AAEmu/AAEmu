@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -178,6 +179,7 @@ public class SlaveManager : Singleton<SlaveManager>
     {
         var activeSlaveInfo = GetActiveSlaveByObjId(objId);
         if (activeSlaveInfo == null) return;
+        activeSlaveInfo.Save();
 
         foreach (var character in activeSlaveInfo.AttachedCharacters.Values.ToList())
             UnbindSlave(character, activeSlaveInfo.TlId, AttachUnitReason.SlaveBinding);
@@ -213,11 +215,19 @@ public class SlaveManager : Singleton<SlaveManager>
         SpawnManager.Instance.AddDespawn(activeSlaveInfo);
     }
 
+    /// <summary>
+    /// Slave created from spawn effect
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="skillData"></param>
+    /// <param name="hideSpawnEffect"></param>
+    /// <param name="positionOverride"></param>
     public void Create(Character owner, SkillItem skillData, bool hideSpawnEffect = false, Transform positionOverride = null)
     {
         var activeSlaveInfo = GetActiveSlaveByOwnerObjId(owner.ObjId);
         if (activeSlaveInfo != null)
         {
+            activeSlaveInfo.Save();
             // TODO: If too far away, don't delete
             Delete(owner, activeSlaveInfo.ObjId);
             return;
@@ -233,7 +243,16 @@ public class SlaveManager : Singleton<SlaveManager>
     }
 
     // added "/slave spawn <templateId>" to be called from the script command
-    public void Create(Character owner, uint templateId, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
+    /// <summary>
+    /// Slave created by player or spawn effect
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="templateId"></param>
+    /// <param name="item"></param>
+    /// <param name="hideSpawnEffect"></param>
+    /// <param name="positionOverride"></param>
+    public void Create(Character owner, uint templateId, Item item = null, bool hideSpawnEffect = false,
+        Transform positionOverride = null)
     {
 #pragma warning disable CA2000 // Dispose objects before losing scope
 
@@ -246,9 +265,44 @@ public class SlaveManager : Singleton<SlaveManager>
         Transform spawnPos;
         var spawnOffsetPos = new Vector3();
 
+
+        var dbId = 0u;
+        var slaveName = string.Empty;
+        var slaveHp = 1;
+        var slaveMp = 1;
+        var isLoadedPlayerSlave = false;
+        if ((owner.Id > 0) && (item?.Id > 0))
+        {
+            using var connection = MySQL.CreateConnection();
+            using (var command = connection.CreateCommand())
+            {
+                // Sorting required to make make sure parenting doesn't produce invalid parents (normally)
+
+                command.CommandText = "SELECT * FROM slaves  WHERE (owner_id = @playerId) AND (item_id = @itemId) LIMIT 1";
+                command.Parameters.AddWithValue("playerId", owner.Id);
+                command.Parameters.AddWithValue("itemId", item.Id);
+                command.Prepare();
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        dbId = reader.GetUInt32("id");
+                        // var slaveItemId = reader.GetUInt32("item_id");
+                        // var slaveOwnerId = reader.GetUInt32("owner_id");
+                        slaveName = reader.GetString("name");
+                        // var slaveCreatedAt = reader.GetDateTime("created_at");
+                        // var slaveUpdatedAt = reader.GetDateTime("updated_at");
+                        slaveHp = reader.GetInt32("hp");
+                        slaveMp = reader.GetInt32("mp");
+                        isLoadedPlayerSlave = true;
+                        break;
+                    }
+                }
+            }
+        }
+
         // TODO: Attach Slave's DbId to the Item Details
         // We currently fake the DbId using TlId instead
-        var dbId = tlId;
         /*
         if (item != null)
         {
@@ -294,7 +348,8 @@ public class SlaveManager : Singleton<SlaveManager>
                 var minDepth = tempShipModel.MassBoxSizeZ - tempShipModel.MassCenterZ + 1f;
 
                 // Somehow take into account where the ship will end up related to it's mass center (also check boat physics)
-                spawnOffsetPos.Z += (tempShipModel.MassCenterZ < 0f ? (tempShipModel.MassCenterZ / 2f) : 0f) - tempShipModel.KeelHeight;
+                spawnOffsetPos.Z += (tempShipModel.MassCenterZ < 0f ? (tempShipModel.MassCenterZ / 2f) : 0f) -
+                                    tempShipModel.KeelHeight;
 
                 for (var inFront = 0f; inFront < (50f + tempShipModel.MassBoxSizeX); inFront += 1f)
                 {
@@ -315,6 +370,7 @@ public class SlaveManager : Singleton<SlaveManager>
                         }
                     }
                 }
+
                 spawnPos.Local.Position += spawnOffsetPos;
             }
             else
@@ -332,21 +388,30 @@ public class SlaveManager : Singleton<SlaveManager>
 #pragma warning restore CA2000 // Dispose objects before losing scope
 
         owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, hideSpawnEffect, 0, owner.Name), true);
+
+        // Get new Id to save if it has a player as owner
+        if (owner?.Id > 0)
+            dbId = dbId > 0 ? dbId : SlaveIdManager.Instance.GetNextId();
+
+        if (slaveHp <= 0)
+            slaveHp = 1;
+
         var summonedSlave = new Slave
         {
             TlId = tlId,
             ObjId = objId,
             TemplateId = slaveTemplate.Id,
-            Name = slaveTemplate.Name,
+            Name = string.IsNullOrWhiteSpace(slaveName) ? slaveTemplate.Name : slaveName,
             Level = (byte)slaveTemplate.Level,
             ModelId = slaveTemplate.ModelId,
             Template = slaveTemplate,
-            Hp = 1,
-            Mp = 1,
+            Hp = slaveHp,
+            Mp = slaveMp,
             ModelParams = new UnitCustomModelParams(),
             Faction = owner.Faction,
             Id = dbId,
             Summoner = owner,
+            SummoningItem = item,
             SpawnTime = DateTime.UtcNow
         };
 
@@ -370,68 +435,84 @@ public class SlaveManager : Singleton<SlaveManager>
         summonedSlave.Spawn();
 
         // TODO - DOODAD SERVER SIDE
-        foreach (var doodadBinding in summonedSlave.Template.DoodadBindings)
+        if (isLoadedPlayerSlave == false)
         {
-            var doodad = new Doodad
+            // This is a new slave, create all doodads
+            foreach (var doodadBinding in summonedSlave.Template.DoodadBindings)
             {
-                ObjId = ObjectIdManager.Instance.GetNextId(),
-                TemplateId = doodadBinding.DoodadId,
-                OwnerObjId = owner.ObjId,
-                ParentObjId = summonedSlave.ObjId,
-                AttachPoint = doodadBinding.AttachPointId,
-                OwnerId = owner.Id,
-                PlantTime = summonedSlave.SpawnTime,
-                OwnerType = DoodadOwnerType.Slave,
-                OwnerDbId = summonedSlave.Id,
-                Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
-                Data = (byte)doodadBinding.AttachPointId, // copy of AttachPointId
-                ParentObj = summonedSlave,
-                Faction = summonedSlave.Faction,
-                Type2 = 1u, // Flag: No idea why it's 1 for slave's doodads, seems to be 0 for everything else
-                Spawner = null,
-            };
-
-            doodad.SetScale(doodadBinding.Scale);
-
-            doodad.FuncGroupId = doodad.GetFuncGroupId();
-            doodad.Transform = summonedSlave.Transform.CloneAttached(doodad);
-            doodad.Transform.Parent = summonedSlave.Transform;
-
-            // NOTE: In 1.2 we can't replace slave parts like sail, so just apply it to all of the doodads on spawn)
-            // Should probably have a check somewhere if a doodad can have the UCC applied or not
-            if (item != null && item.HasFlag(ItemFlag.HasUCC) && (item.UccId > 0))
-                doodad.UccId = item.UccId;
-
-            if (_attachPoints.ContainsKey(summonedSlave.ModelId))
-            {
-                if (_attachPoints[summonedSlave.ModelId].ContainsKey(doodadBinding.AttachPointId))
+                var doodad = new Doodad
                 {
-                    doodad.Transform = summonedSlave.Transform.CloneAttached(doodad);
-                    doodad.Transform.Parent = summonedSlave.Transform;
-                    doodad.Transform.Local.Translate(_attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId]
-                        .AsPositionVector());
-                    doodad.Transform.Local.SetRotation(
-                        _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Roll,
-                        _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Pitch,
-                        _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Yaw);
-                    Logger.Debug("Model id: {0} attachment {1} => pos {2} = {3}", summonedSlave.ModelId,
-                        doodadBinding.AttachPointId, _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId],
-                        doodad.Transform);
+                    ObjId = ObjectIdManager.Instance.GetNextId(),
+                    TemplateId = doodadBinding.DoodadId,
+                    OwnerObjId = owner.ObjId,
+                    ParentObjId = summonedSlave.ObjId,
+                    AttachPoint = doodadBinding.AttachPointId,
+                    OwnerId = owner.Id,
+                    PlantTime = summonedSlave.SpawnTime,
+                    OwnerType = DoodadOwnerType.Slave,
+                    OwnerDbId = summonedSlave.Id,
+                    Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
+                    Data = (byte)doodadBinding.AttachPointId, // copy of AttachPointId
+                    ParentObj = summonedSlave,
+                    Faction = summonedSlave.Faction,
+                    Type2 = 1u, // Flag: No idea why it's 1 for slave's doodads, seems to be 0 for everything else
+                    Spawner = null,
+                };
+
+                doodad.SetScale(doodadBinding.Scale);
+
+                doodad.FuncGroupId = doodad.GetFuncGroupId();
+                doodad.Transform = summonedSlave.Transform.CloneAttached(doodad);
+                doodad.Transform.Parent = summonedSlave.Transform;
+
+                // NOTE: In 1.2 we can't replace slave parts like sail, so just apply it to all of the doodads on spawn)
+                // Should probably have a check somewhere if a doodad can have the UCC applied or not
+                if (item != null && item.HasFlag(ItemFlag.HasUCC) && (item.UccId > 0))
+                    doodad.UccId = item.UccId;
+
+                if (_attachPoints.ContainsKey(summonedSlave.ModelId))
+                {
+                    if (_attachPoints[summonedSlave.ModelId].ContainsKey(doodadBinding.AttachPointId))
+                    {
+                        doodad.Transform = summonedSlave.Transform.CloneAttached(doodad);
+                        doodad.Transform.Parent = summonedSlave.Transform;
+                        doodad.Transform.Local.Translate(
+                            _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId]
+                                .AsPositionVector());
+                        doodad.Transform.Local.SetRotation(
+                            _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Roll,
+                            _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Pitch,
+                            _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Yaw);
+                        Logger.Debug("Model id: {0} attachment {1} => pos {2} = {3}", summonedSlave.ModelId,
+                            doodadBinding.AttachPointId,
+                            _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId],
+                            doodad.Transform);
+                    }
+                    else
+                    {
+                        Logger.Warn("Model id: {0} incomplete attach point information", summonedSlave.ModelId);
+                    }
                 }
                 else
                 {
-                    Logger.Warn("Model id: {0} incomplete attach point information", summonedSlave.ModelId);
+                    doodad.Transform = new Transform(doodad);
+                    Logger.Warn("Model id: {0} has no attach point information", summonedSlave.ModelId);
+                }
+
+                summonedSlave.AttachedDoodads.Add(doodad);
+                doodad.Spawn();
+                if ((owner?.Id > 0) && (item?.Id > 0))
+                {
+                    doodad.IsPersistent = true;
+                    doodad.Save();
                 }
             }
-            else
-            {
-                doodad.Transform = new Transform(doodad);
-                Logger.Warn("Model id: {0} has no attach point information", summonedSlave.ModelId);
-            }
-
-            summonedSlave.AttachedDoodads.Add(doodad);
-
-            doodad.Spawn();
+        }
+        else
+        {
+            // This was a previously saved slave, load doodads from DB instead
+            var doodadSpawnCount = SpawnManager.Instance.SpawnPersistentDoodads(DoodadOwnerType.Slave, (int)summonedSlave.Id, summonedSlave, true);
+            Logger.Debug($"Loaded {doodadSpawnCount} doodads from DB for Slave {summonedSlave.ObjId} (Db: {summonedSlave.Id}");
         }
 
         foreach (var slaveBinding in summonedSlave.Template.SlaveBindings)
@@ -499,12 +580,16 @@ public class SlaveManager : Singleton<SlaveManager>
             world.Physics.AddShip(summonedSlave);
         }
 
-        owner.SendPacket(new SCMySlavePacket(summonedSlave.ObjId, summonedSlave.TlId, summonedSlave.Name, summonedSlave.TemplateId,
+        owner.SendPacket(new SCMySlavePacket(summonedSlave.ObjId, summonedSlave.TlId, summonedSlave.Name,
+            summonedSlave.TemplateId,
             summonedSlave.Hp, summonedSlave.MaxHp,
             summonedSlave.Transform.World.Position.X,
             summonedSlave.Transform.World.Position.Y,
             summonedSlave.Transform.World.Position.Z
-            ));
+        ));
+
+        // Save to DB
+        summonedSlave.Save();
     }
 
     public Slave Create(SlaveSpawner spawner, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
