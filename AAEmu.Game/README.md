@@ -56,14 +56,30 @@ This is the preferred option as it won't expose your database credentials in the
 1. Set the required secrets by running:
 
     ```
+    dotnet user-secrets set "Id" "1"
+    dotnet user-secrets set "SecretKey" "test"
+
     dotnet user-secrets set "LoginNetwork:Host" "your login server ip"
     dotnet user-secrets set "LoginNetwork:Port" "your login server port"
     dotnet user-secrets set "Connections:MySQLProvider:User" "your username"
     dotnet user-secrets set "Connections:MySQLProvider:Port" "port number"
     dotnet user-secrets set "Connections:MySQLProvider:Password" "your password"
     dotnet user-secrets set "Connections:MySQLProvider:Host" "localhost or specific ip"
+    dotnet user-secrets set "Connections:MySQLProvider:Database" "aaemu_game"
 
     + any other configuration details you want change
+    dotnet user-secrets set "Network:Host" "*"
+    dotnet user-secrets set "Network:Port" "1239"
+    dotnet user-secrets set "Network:NumConnections" "10"
+
+    dotnet user-secrets set "StreamNetwork:Host" "*"
+    dotnet user-secrets set "StreamNetwork:Port" "1250"
+
+    dotnet user-secrets set "WebApiNetwork:Port" "1280"
+    dotnet user-secrets set "WebApiNetwork:Host" "*"
+    dotnet user-secrets set "CharacterNameRegex" "^[a-zA-Z0-9а-яА-Я]{1,18}$"
+    dotnet user-secrets set "MaxConcurencyThreadPool" "8"
+    dotnet user-secrets set "HeightMapsEnable" "false"
     ```
 
 1. Check the secrets have been set by running `dotnet user-secrets list`

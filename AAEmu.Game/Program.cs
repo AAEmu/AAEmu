@@ -132,12 +132,31 @@ public static class Program
         var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
         if (!File.Exists(mainConfig))
         {
-            Logger.Fatal($"{mainConfig} doesn't exist!");
-            return false;
+            // If user secrets are defined the configuration file is not required
+            var isUserSecretsDefined = IsUserSecretsDefined();
+            if (!isUserSecretsDefined)
+            {
+                Logger.Fatal($"{mainConfig} doesn't exist!");
+                return false;
+            }
+
+            //return false;
+            mainConfig = null;
         }
 
         Configuration(_launchArgs, mainConfig);
         return true;
+    }
+
+    private static bool IsUserSecretsDefined()
+    {
+        // Check if user secrets are defined
+        var config = new ConfigurationBuilder()
+            .AddUserSecrets<GameService>()
+            .Build();
+
+        bool userSecretsDefined = config.AsEnumerable().Any();
+        return userSecretsDefined;
     }
 
     private static void Configuration(string[] args, string mainConfigJson)
@@ -151,16 +170,21 @@ public static class Program
         var configFiles = Directory.GetFiles(Path.Combine(FileManager.AppPath, "Configurations"), "*.json", SearchOption.AllDirectories).ToList();
         configFiles.Sort();
         // Add the old main Config.json file
-        configFiles.Insert(0, mainConfigJson);
+        if (mainConfigJson != null)
+        {
+            configFiles.Insert(0, mainConfigJson);
+        }
 
         var configurationBuilder = new ConfigurationBuilder();
+
         // Add config json files
         foreach (var file in configFiles)
         {
             Logger.Info($"Config: {file}");
             configurationBuilder.AddJsonFile(file);
-            configurationBuilder.AddUserSecrets<GameService>();
         }
+
+        configurationBuilder.AddUserSecrets<GameService>();
 
         // Add command-line arguments
         configurationBuilder.AddCommandLine(args);
