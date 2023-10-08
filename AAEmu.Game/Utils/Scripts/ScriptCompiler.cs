@@ -5,10 +5,13 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 using NLog;
 
 namespace AAEmu.Game.Utils.Scripts;
@@ -108,6 +111,10 @@ public static class ScriptCompiler
         }
 
         var syntaxTrees = ParseScripts(files);
+
+        //DebugCompilation(syntaxTrees, references);
+
+        Assembly assemblyResult = null;
         var assemblyName = Path.GetRandomFileName();
 
         var compilation = CSharpCompilation.Create(
@@ -116,7 +123,6 @@ public static class ScriptCompiler
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
-        Assembly assemblyResult = null;
 
         using (var ms = new MemoryStream())
         {
@@ -128,14 +134,43 @@ public static class ScriptCompiler
                 assemblyResult = AssemblyLoadContext.Default.LoadFromStream(ms);
             }
 
-            isOk = Display(result.Diagnostics);
+            isOk = Display(result.Diagnostics, syntaxTrees);
         }
 
         assembly = assemblyResult;
+
         return (assemblyResult != null) && (isOk);
     }
 
-    private static bool Display(ImmutableArray<Diagnostic> diagnostics)
+    // Only for debugging purposes
+    private static void DebugCompilation(List<SyntaxTree> syntaxTrees, IEnumerable<MetadataReference> references)
+    {
+        foreach (var syntaxTree in syntaxTrees)
+        {
+            var assemblyName = Path.GetRandomFileName();
+
+            var compilation = CSharpCompilation.Create(
+                assemblyName,
+                new[] { syntaxTree },
+                references,
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+
+            using (var ms = new MemoryStream())
+            {
+                var result = compilation.Emit(ms);
+                var diagnostics = result.Diagnostics;
+                if (result.Success)
+                {
+                    ms.Seek(0, SeekOrigin.Begin);
+                }
+
+                Display(result.Diagnostics, new() { syntaxTree });
+            }
+        }
+    }
+
+    private static bool Display(ImmutableArray<Diagnostic> diagnostics, List<SyntaxTree> syntaxTrees)
     {
         bool res = true;
         if (diagnostics.Length == 0)
@@ -160,14 +195,33 @@ public static class ScriptCompiler
                 diagnostic.Severity == DiagnosticSeverity.Warning);
             foreach (var diagnostic in result)
             {
+                //SyntaxTree responsibleSyntaxTree = GetResponsibleSyntaxTree(diagnostic.Location.SourceSpan, syntaxTrees);
                 if (diagnostic.Severity == DiagnosticSeverity.Error)
+                {
                     Logger.Error(diagnostic);
+                    //Logger.Error("Syntax Tree for Error:\n" + responsibleSyntaxTree.GetRoot().ToFullString());
+                }
                 else
+                {
                     Logger.Warn(diagnostic);
+                    //Logger.Warn("Syntax Tree for Warning:\n" + responsibleSyntaxTree.GetRoot().ToFullString());
+                }
             }
         }
 
         return res;
+    }
+
+    private static SyntaxTree GetResponsibleSyntaxTree(TextSpan location, List<SyntaxTree> syntaxTrees)
+    {
+        foreach (var syntaxTree in syntaxTrees)
+        {
+            if (syntaxTree.GetRoot().FullSpan.Contains(location))
+            {
+                return syntaxTree;
+            }
+        }
+        return null; // Location does not belong to any syntax tree
     }
 
     private static void EnsureDirectory(string dir)
@@ -196,12 +250,70 @@ public static class ScriptCompiler
     private static List<SyntaxTree> ParseScripts(IEnumerable<string> list)
     {
         var syntaxTrees = new List<SyntaxTree>();
+        StringBuilder sb = new();
         foreach (var path in list)
         {
-            var script = FileManager.GetFileContents(path);
+            var script = RenameClasses(path);
+            sb.AppendLine(script);
             syntaxTrees.Add(CSharpSyntaxTree.ParseText(script));
         }
 
+        var finalString = sb.ToString();
         return syntaxTrees;
+    }
+
+    private static string RenameClasses(string filePath)
+    {
+        var script = FileManager.GetFileContents(filePath);
+        var syntaxTree = CSharpSyntaxTree.ParseText(script);
+        var root = syntaxTree.GetRoot();
+        var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+        var dictionaryOldNew = new Dictionary<string, string>();
+        foreach (var @class in classes)
+        {
+            dictionaryOldNew.Add(@class.Identifier.ValueText, "Generated_" + @class.Identifier.ValueText);
+            //var newName = "Generated_" + @class.Identifier.ValueText;
+            //var newClass = @class.WithIdentifier(SyntaxFactory.Identifier(newName));
+
+            // Rename all the constructors and keep the same name as the class and keep the same parameters
+            /*var constructors = newClass.DescendantNodes().OfType<ConstructorDeclarationSyntax>().ToArray();
+            foreach (var constructor in constructors)
+            {
+                var newConstructor = constructor.WithIdentifier(SyntaxFactory.Identifier(newName));
+                newClass = newClass.ReplaceNode(constructor, newConstructor);
+            }
+
+            root = root.ReplaceNode(@class, newClass);*/
+        }
+
+        // Rename enums
+        var enums = root.DescendantNodes().OfType<EnumDeclarationSyntax>();
+        foreach (var @enum in enums)
+        {
+            dictionaryOldNew.Add(@enum.Identifier.ValueText, "Generated_" + @enum.Identifier.ValueText);
+            var newName = "Generated_" + @enum.Identifier.ValueText;
+            var newEnum = @enum.WithIdentifier(SyntaxFactory.Identifier(newName));
+            root = root.ReplaceNode(@enum, newEnum);
+        }
+
+        var finalString = root.ToFullString();
+
+        // Classes with multiple constructors aren't replaced with SyntaxNode
+        foreach (var (oldName, newName) in dictionaryOldNew)
+        {
+            finalString = finalString.Replace($"new {oldName}(", $"new {newName}(");
+            finalString = finalString.Replace($"new {oldName}\r\n", $"new {newName}\r\n");
+            finalString = finalString.Replace($"new {oldName}\n", $"new {newName}\n");
+            finalString = finalString.Replace($"public {oldName}", $"public {newName}");
+            finalString = finalString.Replace($" {oldName}(", $" {newName}(");
+            finalString = finalString.Replace($"class {oldName}", $"class {newName}");
+            finalString = finalString.Replace($"<{oldName}>", $"<{newName}>");
+            finalString = finalString.Replace($"typeof({oldName})", $"typeof({newName})");
+            finalString = finalString.Replace($"({oldName} ", $"({newName} ");
+            finalString = finalString.Replace($" {oldName}.", $" {newName}.");
+            finalString = finalString.Replace($" {oldName} ", $" {newName} ");
+        }
+
+        return finalString;
     }
 }
