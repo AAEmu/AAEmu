@@ -1,5 +1,4 @@
-﻿#pragma warning disable CS0618 // Type or member is obsolete
-using System;
+﻿using System;
 using System.Reflection;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using Xunit;

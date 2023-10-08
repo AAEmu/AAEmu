@@ -5,7 +5,6 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Chat;
-using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 

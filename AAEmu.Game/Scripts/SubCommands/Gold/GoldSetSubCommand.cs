@@ -5,7 +5,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Scripts.Commands;
+using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.SubCommands.Gold;
@@ -72,9 +72,9 @@ public class GoldSetSubCommand : SubCommandBase
         {
             targetCharacter.Money += totalAmount;
             targetCharacter.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, new List<ItemTask> { new MoneyChange(totalAmount) }, new List<ulong>()));
+            SendMessage(messageOutput, "Changed {0}'s money by {1}g {2}s {3}c", targetCharacter.Name, goldAmount, silverAmount, copperAmount);
             if (selfCharacter.Id != targetCharacter.Id)
             {
-                SendMessage(messageOutput, "Changed {0}'s money by {1}g {2}s {3}c", targetCharacter.Name, goldAmount, silverAmount, copperAmount);
                 SendMessage(targetCharacter, messageOutput, "[GM] {0} has changed your gold", selfCharacter.Name);
             }
         }

@@ -13,7 +13,8 @@ using AAEmu.Game.Utils.Converters;
 using Newtonsoft.Json;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using AAEmu.Commons.Exceptions;
-using AAEmu.Game.Scripts.Commands;
+using AAEmu.Game.Utils.Scripts;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Scripts.SubCommands.Npcs;
 

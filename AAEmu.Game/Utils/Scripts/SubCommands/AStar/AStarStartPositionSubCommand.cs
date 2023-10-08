@@ -5,7 +5,6 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Scripts.Commands;
 using Point = AAEmu.Game.Models.Game.AI.AStar.Point;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.AStar;

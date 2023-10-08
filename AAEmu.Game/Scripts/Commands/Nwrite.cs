@@ -12,6 +12,8 @@ using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using Newtonsoft.Json;
 using System.IO;
+using AAEmu.Game.Utils.Scripts;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Scripts.Commands;
 

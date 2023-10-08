@@ -1,5 +1,5 @@
 ﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Scripts.Commands;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Models.Game;
 

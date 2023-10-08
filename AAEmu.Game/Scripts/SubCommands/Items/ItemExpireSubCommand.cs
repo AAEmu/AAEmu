@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Scripts.Commands;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.SubCommands.Items;
 

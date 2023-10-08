@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Scripts.Commands;
+using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.UnitTests.Game.Utils.Scripts.SubCommands;

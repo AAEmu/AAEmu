@@ -2,7 +2,7 @@
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils;
-
+using AAEmu.Game.Utils.Scripts;
 using NLog;
 
 namespace AAEmu.Game.Scripts.Commands;

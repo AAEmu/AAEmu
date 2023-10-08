@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 

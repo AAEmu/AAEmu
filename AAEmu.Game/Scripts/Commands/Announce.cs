@@ -24,6 +24,7 @@ using AAEmu.Game.Models.Game.Char;
 using System;
 using AAEmu.Game.Core.Managers.World;
 using System.Drawing;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 

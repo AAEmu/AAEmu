@@ -11,7 +11,7 @@ namespace AAEmu.Game.Services.WebApi.Controllers;
 
 internal class CommandController : BaseController
 {
-    [WebApiGet("/command/([^/]+)")]
+    [WebApiPost("/command/([^/]+)")]
     public HttpResponse ExecuteCommand(HttpRequest request, MatchCollection matches)
     {
         var commandName = matches[0].Groups[1].Value;
@@ -19,27 +19,26 @@ internal class CommandController : BaseController
             return BadRequestJson(new ErrorModel("Command name is required"));
 
         var jsonBody = JsonSerializer.Deserialize<JsonElement>(request.Body);
-        var characterName = jsonBody.GetProperty("characterName").GetString();
-        if (string.IsNullOrWhiteSpace(characterName))
+        var commandCharacter = jsonBody.GetProperty("character").GetString();
+        if (string.IsNullOrWhiteSpace(commandCharacter))
             return BadRequestJson(new ErrorModel("Character name is required"));
 
-        var commandLine = jsonBody.GetProperty("commandLine").GetString();
-        if (string.IsNullOrWhiteSpace(commandLine))
+        var commandArguments = jsonBody.GetProperty("arguments").GetString();
+        if (string.IsNullOrWhiteSpace(commandArguments))
             return BadRequestJson(new ErrorModel("Command line is required"));
 
-        commandLine = $"/{commandName} {jsonBody.GetProperty("commandLine").GetString()}";
+        var commandLine = $"{commandName} {commandArguments}";
 
-        var character = WorldManager.Instance.GetCharacter(characterName);
+        var character = WorldManager.Instance.GetCharacter(commandCharacter);
         if (character == null)
-            return BadRequestJson(new ErrorModel($"Character \"{characterName}\" not found"));
+            return BadRequestJson(new ErrorModel($"Character \"{commandCharacter}\" not found"));
 
         CommandManager.Instance.Handle(character, commandLine, out var messageOutput);
 
         var commandResult = new
         {
-            commandName,
             commandLine,
-            characterName,
+            commandCharacter,
             messageOutput.Messages,
             messageOutput.ErrorMessages
         };

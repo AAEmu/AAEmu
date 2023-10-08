@@ -4,7 +4,6 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Scripts.Commands;
 using NLog;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands;

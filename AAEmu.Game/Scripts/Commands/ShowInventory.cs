@@ -5,6 +5,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 

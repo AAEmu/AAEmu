@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using AAEmu.Game.Utils.Scripts.SubCommands.AStar;
 

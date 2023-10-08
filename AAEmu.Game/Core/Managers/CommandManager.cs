@@ -6,7 +6,6 @@ using System.Text.RegularExpressions;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Scripts.Commands;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using NLog;
