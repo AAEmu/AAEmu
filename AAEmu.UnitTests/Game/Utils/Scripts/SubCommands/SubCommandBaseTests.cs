@@ -289,7 +289,7 @@ public class SubCommandBaseTests
         {
             Assert.True(subCommand.Parameters.ContainsKey(parameterPattern));
         }
-        Assert.Equal(expectedParameterValue, subCommand.Parameters[expectedParameterName].GetValue());
+        Assert.Equal(expectedParameterValue, subCommand.Parameters[expectedParameterName]);
     }
 
     [Theory]
@@ -360,7 +360,7 @@ public class SubCommandBaseTests
 
         // Assert
         Assert.True(subCommand.Executed);
-        Assert.Equal(expectedParameterDefaultValue, subCommand.Parameters[expectedParameterName].GetValue());
+        Assert.Equal(expectedParameterDefaultValue, subCommand.Parameters[expectedParameterName]);
     }
 
     private static SubCommandParameterBase GetParameter(string parameterPattern)

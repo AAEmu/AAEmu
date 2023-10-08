@@ -143,6 +143,7 @@ public static class ScriptCompiler
     }
 
     // Only for debugging purposes
+#pragma warning disable IDE0051 // Remove unused private members
     private static void DebugCompilation(List<SyntaxTree> syntaxTrees, IEnumerable<MetadataReference> references)
     {
         foreach (var syntaxTree in syntaxTrees)
@@ -169,6 +170,7 @@ public static class ScriptCompiler
             }
         }
     }
+#pragma warning restore IDE0051 // Remove unused private members
 
     private static bool Display(ImmutableArray<Diagnostic> diagnostics, List<SyntaxTree> syntaxTrees)
     {
@@ -212,6 +214,7 @@ public static class ScriptCompiler
         return res;
     }
 
+#pragma warning disable IDE0051 // Remove unused private members
     private static SyntaxTree GetResponsibleSyntaxTree(TextSpan location, List<SyntaxTree> syntaxTrees)
     {
         foreach (var syntaxTree in syntaxTrees)
@@ -223,6 +226,7 @@ public static class ScriptCompiler
         }
         return null; // Location does not belong to any syntax tree
     }
+#pragma warning restore IDE0051 // Remove unused private members
 
     private static void EnsureDirectory(string dir)
     {

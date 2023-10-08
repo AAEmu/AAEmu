@@ -31,8 +31,8 @@ public class NumericSubCommandParameterTests
         // Assert
         Assert.True(parameterValue.IsValid);
         Assert.IsAssignableFrom(expectedParamClass, parameterValue);
-        Assert.IsType(type, parameterValue.Value.GetValue());
-        Assert.Equal(expectedReturn, parameterValue.Value.GetValue());
+        Assert.IsType(type, parameterValue.Value);
+        Assert.Equal(expectedReturn, parameterValue.Value);
     }
 
     [Theory]
@@ -107,8 +107,8 @@ public class NumericSubCommandParameterTests
         // Assert
         Assert.True(parameterValue.IsValid);
         Assert.IsAssignableFrom(expectedParamClass, parameterValue);
-        Assert.IsType(type, parameterValue.Value.GetValue());
-        Assert.Equal(expectedReturn, parameterValue.Value.GetValue());
+        Assert.IsType(type, parameterValue.Value);
+        Assert.Equal(expectedReturn, parameterValue.Value);
     }
 
     [Theory]
@@ -182,7 +182,7 @@ public class NumericSubCommandParameterTests
         // Assert
         Assert.True(parameterResult.IsValid);
         Assert.IsAssignableFrom(expectedParamClass, parameterResult);
-        Assert.IsType(type, parameterResult.Value.GetValue());
-        Assert.Equal(expectedReturn, parameterResult.Value.GetValue());
+        Assert.IsType(type, parameterResult.Value);
+        Assert.Equal(expectedReturn, parameterResult.Value);
     }
 }

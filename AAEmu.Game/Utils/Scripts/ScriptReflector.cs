@@ -30,7 +30,7 @@ public static class ScriptReflector
         _scriptsObjects.Clear();
 
         // Load all the scripts that implements ICommand interface
-        var types = Assembly.GetExecutingAssembly().GetTypes().Where(t 
+        var types = Assembly.GetExecutingAssembly().GetTypes().Where(t
             => t.IsAssignableTo(typeof(ICommand)) && !t.IsInterface && !t.IsAbstract && !t.IsNested && !t.IsAbstract);
 
         foreach (var type in types)
