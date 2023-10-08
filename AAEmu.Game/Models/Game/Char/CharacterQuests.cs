@@ -65,7 +65,7 @@ public partial class CharacterQuests
         var quest = new Quest(template);
         quest.Id = QuestIdManager.Instance.GetNextId();
         quest.Status = QuestStatus.Invalid;
-        quest.Condition = QuestConditionObj.Fail;
+        quest.Condition = QuestConditionObj.Progress;
         quest.Owner = Owner;
 
         if (npcObjId > 0)

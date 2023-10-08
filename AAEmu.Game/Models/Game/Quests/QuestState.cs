@@ -214,7 +214,7 @@ public class QuestNoneState : QuestState
             {
                 // если есть шаг Progress, то не надо завершать квест
                 Quest.Status = QuestStatus.Progress;
-                Quest.Condition = QuestConditionObj.Progress;
+                //Quest.Condition = QuestConditionObj.Progress;
             }
             else
             {
@@ -224,12 +224,12 @@ public class QuestNoneState : QuestState
             {
                 case QuestStatus.Progress:
                 case QuestStatus.Ready:
-                    Quest.Condition = QuestConditionObj.Progress;
+                    //Quest.Condition = QuestConditionObj.Progress;
                     Quest.Step++; // Supply
                     break;
                 default:
                     Quest.Step = QuestComponentKind.Fail;
-                    Quest.Condition = QuestConditionObj.Fail;
+                    //Quest.Condition = QuestConditionObj.Fail;
                     break;
             }
 
@@ -319,7 +319,7 @@ public class QuestStartState : QuestState
                 {
                     // если есть шаг Progress, то не надо завершать квест
                     Quest.Status = QuestStatus.Progress;
-                    Quest.Condition = QuestConditionObj.Progress;
+                    //Quest.Condition = QuestConditionObj.Progress;
 
                     // проверим, что есть на этом шаге акт QuestActObjSphere
                     var progressContexts = Quest.QuestProgressState.State.CurrentQuestComponent.GetComponents();
@@ -391,11 +391,11 @@ public class QuestStartState : QuestState
                 {
                     case QuestStatus.Progress:
                     case QuestStatus.Ready:
-                        Quest.Condition = QuestConditionObj.Progress;
+                        //Quest.Condition = QuestConditionObj.Progress;
                         break;
                     default:
                         Quest.Step = QuestComponentKind.Fail;
-                        Quest.Condition = QuestConditionObj.Fail;
+                        //Quest.Condition = QuestConditionObj.Fail;
                         break;
                 }
 
@@ -416,7 +416,7 @@ public class QuestStartState : QuestState
     public override bool Update()
     {
         //Quest.Status = QuestStatus.Ready;
-        Quest.Condition = QuestConditionObj.Ready;
+        //Quest.Condition = QuestConditionObj.Ready;
         Quest.Step = QuestComponentKind.Start;
         Logger.Info($"[QuestStartState][Update] Quest: {Quest.TemplateId}. Ничего не делаем.");
         Logger.Info($"[QuestStartState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
@@ -426,7 +426,7 @@ public class QuestStartState : QuestState
     public override bool Complete(int selected = 0)
     {
         //Quest.Status = QuestStatus.Progress;
-        Quest.Condition = QuestConditionObj.Progress;
+        //Quest.Condition = QuestConditionObj.Progress;
         Logger.Info($"[QuestStartState][Complete] Quest: {Quest.TemplateId}. Ничего не делаем.");
         Logger.Info($"[QuestStartState][Complete] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
@@ -465,15 +465,15 @@ public class QuestSupplyState : QuestState
         Logger.Info($"[QuestSupplyState][Update] Quest: {Quest.TemplateId}. Получим нужные предметы для прохождения квеста.");
         CurrentQuestComponent.Execute(Quest.Owner, Quest, 0); // получим квестовые предметы
 
-        Logger.Info($"[QuestSupplyState][Update] Quest: {Quest.TemplateId}. Подписываемся на события.");
-        // подписка одна на всех
-        Quest.Owner.Events.OnItemGather -= Quest.Owner.Quests.OnItemGatherHandler;
-        Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
+        //Logger.Info($"[QuestSupplyState][Update] Quest: {Quest.TemplateId}. Подписываемся на события.");
+        //// подписка одна на всех
+        //Quest.Owner.Events.OnItemGather -= Quest.Owner.Quests.OnItemGatherHandler;
+        //Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
 
-        Logger.Info($"[QuestSupplyState][Update] Quest: {Quest.TemplateId}, Event: 'OnItemGather', Handler: 'OnItemGatherHandler'");
+        //Logger.Info($"[QuestSupplyState][Update] Quest: {Quest.TemplateId}, Event: 'OnItemGather', Handler: 'OnItemGatherHandler'");
 
         //Quest.Status = QuestStatus.Ready;
-        Quest.Condition = QuestConditionObj.Ready;
+        //Quest.Condition = QuestConditionObj.Ready;
         Logger.Info($"[QuestSupplyState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
         return true;
@@ -482,7 +482,7 @@ public class QuestSupplyState : QuestState
     {
         Logger.Info($"[QuestSupplyState][Complete] Quest: {Quest.TemplateId}. Ничего не делаем!");
         //Quest.Status = QuestStatus.Progress;
-        Quest.Condition = QuestConditionObj.Progress;
+        //Quest.Condition = QuestConditionObj.Progress;
         Quest.Step = QuestComponentKind.Supply;
         Logger.Info($"[QuestSupplyState][Complete] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
@@ -609,7 +609,6 @@ public class QuestProgressState : QuestState
                             //result2 = act.Template.IsCompleted();
                             if (res)
                             {
-                                Logger.Info($"[QuestProgressState][Update][QuestActObjItemGroupGather] Quest: {Quest.TemplateId}. Подписываться на событие не надо, так как в инвентаре уже лежать нужные вещи.");
                                 results2.Add(true); // уже выполнили задание, выход
                                 break;
                             }
@@ -951,8 +950,9 @@ public class QuestProgressState : QuestState
 
         if (results2.All(b => b == true))
         {
+            Logger.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}. Подписываться на событие не надо, так как в инвентаре уже лежать нужные вещи.");
             Quest.ComponentId = CurrentComponent.Id;
-            //Quest.Status = QuestStatus.Ready;
+            Quest.Status = QuestStatus.Ready;
             Quest.Condition = QuestConditionObj.Ready;
             Logger.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
@@ -963,7 +963,7 @@ public class QuestProgressState : QuestState
         }
 
         Quest.ComponentId = 0;
-        Quest.Condition = QuestConditionObj.Progress;
+        //Quest.Condition = QuestConditionObj.Progress;
         Logger.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
         // не нужен здесь
@@ -1021,7 +1021,7 @@ public class QuestProgressState : QuestState
         Logger.Info($"[QuestProgressState][Complete] Quest: {Quest.TemplateId}. Шаг успешно завершен!");
         //Quest.Step++; // переход к следующему шагу
         //Quest.Status = QuestStatus.Progress;
-        Quest.Condition = QuestConditionObj.Progress;
+        //Quest.Condition = QuestConditionObj.Progress;
         Quest.Step = QuestComponentKind.Progress;
         Logger.Info($"[QuestProgressState][Complete] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
@@ -1121,11 +1121,11 @@ public class QuestReadyState : QuestState
         if (results2.All(b => b == true))
         {
             Quest.ComponentId = CurrentComponent.Id;
-            //Quest.Status = QuestStatus.Ready;
+            Quest.Status = QuestStatus.Ready;
             Quest.Condition = QuestConditionObj.Ready;
             Logger.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
-            // не нужен здесь?
+            // нужен здесь
             Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
 
             return true;
@@ -1133,7 +1133,8 @@ public class QuestReadyState : QuestState
 
         Quest.ComponentId = 0;
         //Quest.Status = QuestStatus.Progress;
-        Quest.Condition = QuestConditionObj.Progress;
+        //Quest.Condition = QuestConditionObj.Progress;
+        Quest.Step = QuestComponentKind.Ready;
         Logger.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
         // не нужен здесь
@@ -1145,7 +1146,7 @@ public class QuestReadyState : QuestState
     {
         //Quest.Step++; // переход к следующему шагу
         //Quest.Status = QuestStatus.Progress;
-        Quest.Condition = QuestConditionObj.Progress;
+        //Quest.Condition = QuestConditionObj.Progress;
         Quest.Step = QuestComponentKind.Ready;
         Logger.Info($"[QuestReadyState][Complete] Quest: {Quest.TemplateId}. Шаг успешно завершен!");
         Logger.Info($"[QuestReadyState][Complete] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
@@ -1198,7 +1199,7 @@ public class QuestRewardState : QuestState
         //var result = CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
 
         //Quest.Status = QuestStatus.Ready;
-        Quest.Condition = QuestConditionObj.Ready;
+        //Quest.Condition = QuestConditionObj.Ready;
         Logger.Info($"[QuestRewardState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
         // не нужен здесь
@@ -1212,7 +1213,7 @@ public class QuestRewardState : QuestState
         Logger.Info($"[QuestRewardState][Complete] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
         Quest.Owner.Quests.Complete(Quest.TemplateId, selected); // Завершаем квест
-        Quest.Condition = QuestConditionObj.Complete;
+        //Quest.Condition = QuestConditionObj.Complete;
         Quest.Step = QuestComponentKind.Reward;
 
         return true;

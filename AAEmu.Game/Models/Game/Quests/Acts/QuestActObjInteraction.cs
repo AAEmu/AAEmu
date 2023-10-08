@@ -29,7 +29,7 @@ public class QuestActObjInteraction : QuestActTemplate
 
             if (quest.Template.LetItDone)
             {
-                if (quest.OverCompletionPercent >= quest.Template.Score * 3 / 5)
+                if (quest.OverCompletionPercent >= quest.Template.Score * 1 / 2)
                     quest.EarlyCompletion = true;
 
                 if (quest.OverCompletionPercent > quest.Template.Score)
@@ -46,7 +46,7 @@ public class QuestActObjInteraction : QuestActTemplate
         {
             quest.OverCompletionPercent = objective * 100 / Count;
 
-            if (quest.OverCompletionPercent >= 60)
+            if (quest.OverCompletionPercent >= 50)
                 quest.EarlyCompletion = true;
 
             if (quest.OverCompletionPercent > 100)
