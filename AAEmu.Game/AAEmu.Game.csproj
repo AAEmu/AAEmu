@@ -66,16 +66,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Remove="Scripts\Commands\CharacterMessageOutput.cs" />
-      <Compile Remove="Scripts\Commands\IMessageOutput.cs" />
-      <Compile Remove="Scripts\NumericExtensions.cs" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Remove="Scripts\NumericExtensions.cs" />
-    </ItemGroup>
-  
-    <ItemGroup>
       <Folder Include="Models\ClientData" />
     </ItemGroup>
   

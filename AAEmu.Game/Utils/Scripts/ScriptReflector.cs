@@ -30,14 +30,11 @@ public static class ScriptReflector
         _scriptsObjects.Clear();
 
         // Load all the scripts that implements ICommand interface
-        var types = Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsSubclassOf(typeof(ICommand)));
+        var types = Assembly.GetExecutingAssembly().GetTypes().Where(t 
+            => t.IsAssignableTo(typeof(ICommand)) && !t.IsInterface && !t.IsAbstract && !t.IsNested && !t.IsAbstract);
 
         foreach (var type in types)
         {
-            if (type.IsNested)
-                continue;
-            if (type.IsAbstract)
-                continue;
             try
             {
                 var obj = Activator.CreateInstance(type);

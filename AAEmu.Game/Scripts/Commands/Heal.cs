@@ -33,7 +33,7 @@ public class Heal : ICommand
 
         var chatTarget = args.Length > 0 ? args[0] : "";
         Character targetPlayer = WorldManager.Instance.GetCharacter(chatTarget);
-        if ((chatTarget != String.Empty) && (targetPlayer != null))
+        if ((chatTarget != string.Empty) && (targetPlayer != null))
             playerTarget = targetPlayer;
 
         if ((targetPlayer is Character) && (playerTarget != null))
