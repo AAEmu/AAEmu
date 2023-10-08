@@ -11,7 +11,7 @@ namespace AAEmu.Game.Services.WebApi.Controllers;
 
 internal class CommandController : BaseController
 {
-    [WebApiPost("/command/([^/]+)")]
+    [WebApiPost("/commands/([^/]+)")]
     public HttpResponse ExecuteCommand(HttpRequest request, MatchCollection matches)
     {
         var commandName = matches[0].Groups[1].Value;
