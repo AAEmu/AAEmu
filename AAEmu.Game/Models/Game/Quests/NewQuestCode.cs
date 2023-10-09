@@ -1095,7 +1095,7 @@ public partial class Quest : PacketMarshaler
 
                     Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, позволяет сделать выбор Selective {Template.Selective}.");
                 }
-                else if (context.State.ContextResults.All(b => b == true))
+                else if (context.State.ContextResults.All(b => b == true) && !Template.LetItDone)
                 {
                     // состоит из одного компонента и он выполнен
                     results = complete;
