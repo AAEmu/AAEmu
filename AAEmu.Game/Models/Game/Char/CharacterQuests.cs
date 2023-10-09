@@ -179,7 +179,7 @@ public partial class CharacterQuests
             if (!CompletedQuests.ContainsKey(completeId))
                 CompletedQuests.Add(completeId, new CompletedQuest(completeId));
             var complete = CompletedQuests[completeId];
-            complete.Body.Set((int)(quest.TemplateId - completeId * 64), true);
+            complete.Body.Set((int)(quest.TemplateId % 64), true);
             var body = new byte[8];
             complete.Body.CopyTo(body, 0);
             Drop(questId, false);

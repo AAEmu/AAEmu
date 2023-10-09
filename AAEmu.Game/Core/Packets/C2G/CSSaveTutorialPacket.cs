@@ -25,7 +25,7 @@ public class CSSaveTutorialPacket : GamePacket
             Connection.ActiveChar.Quests.AddCompletedQuest(quest);
         }
 
-        quest.Body.Set((int)id - completeId * 64, true);
+        quest.Body.Set((int)id % 64, true);
         var body = new byte[8];
         quest.Body.CopyTo(body, 0);
         Connection.SendPacket(new SCTutorialSavedPacket(id, body));
