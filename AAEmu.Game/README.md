@@ -80,6 +80,7 @@ This is the preferred option as it won't expose your database credentials in the
     dotnet user-secrets set "CharacterNameRegex" "^[a-zA-Z0-9а-яА-Я]{1,18}$"
     dotnet user-secrets set "MaxConcurencyThreadPool" "8"
     dotnet user-secrets set "HeightMapsEnable" "false"
+    dotnet user-secrets set "Scripts:LoadStrategy" "Reflection"
     ```
 
 1. Check the secrets have been set by running `dotnet user-secrets list`

@@ -2,6 +2,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Procs;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -13,7 +14,7 @@ public class Proc : ICommand
         CommandManager.Instance.Register(name, this);
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

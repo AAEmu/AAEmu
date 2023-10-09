@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -26,7 +27,7 @@ public class ChangeLevel : ICommand
             "Do note that going above the intended max level might break skills.";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

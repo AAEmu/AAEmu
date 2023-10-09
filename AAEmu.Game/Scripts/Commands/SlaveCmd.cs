@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Scripts.SubCommands.Slaves;
+using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.Commands;
@@ -36,7 +37,7 @@ public class SlaveCmd : SubCommandBase, ICommand, ICommandV2
         return CallPrefix;
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
     }

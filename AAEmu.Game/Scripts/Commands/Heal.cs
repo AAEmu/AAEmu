@@ -5,6 +5,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -26,13 +27,13 @@ public class Heal : ICommand
         return "Heals target or self if no target supplied";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var playerTarget = character.CurrentTarget;
 
         var chatTarget = args.Length > 0 ? args[0] : "";
         Character targetPlayer = WorldManager.Instance.GetCharacter(chatTarget);
-        if ((chatTarget != String.Empty) && (targetPlayer != null))
+        if ((chatTarget != string.Empty) && (targetPlayer != null))
             playerTarget = targetPlayer;
 
         if ((targetPlayer is Character) && (playerTarget != null))

@@ -2,6 +2,7 @@
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -22,7 +23,7 @@ public class QuestCmd : ICommand
         return "[Quest] /quest <add/remove/list/prog/reward/resetdaily>\nBefore that, target the Npc you need for the quest";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length < 1)
         {

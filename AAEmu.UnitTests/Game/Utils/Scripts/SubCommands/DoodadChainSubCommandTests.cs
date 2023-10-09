@@ -2,6 +2,7 @@
 using System.Drawing;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using Moq;
 using Xunit;
@@ -24,9 +25,9 @@ public class DoodadChainSubCommandTests
             }
         });
 
-        command.PreExecute(mockCharacter.Object, "test", new[] { "sdf", "123" });
+        command.PreExecute(mockCharacter.Object, "test", new[] { "sdf", "123" }, new CharacterMessageOutput(mockCharacter.Object));
 
-        mockSubCommand.Verify(s => s.PreExecute(It.IsIn(mockCharacter.Object), It.IsIn("sdf"), It.Is<string[]>(a => a.Length == 1 && a[0] == "123")));
+        mockSubCommand.Verify(s => s.PreExecute(It.IsIn(mockCharacter.Object), It.IsIn("sdf"), It.Is<string[]>(a => a.Length == 1 && a[0] == "123"), It.IsAny<IMessageOutput>()));
     }
 
     [Fact]
@@ -50,9 +51,9 @@ public class DoodadChainSubCommandTests
             }
         });
 
-        command.PreExecute(mockCharacter.Object, "test", new[] { "first", "second", "parameter1second", "parameter2second" });
+        command.PreExecute(mockCharacter.Object, "test", new[] { "first", "second", "parameter1second", "parameter2second" }, new CharacterMessageOutput(mockCharacter.Object));
 
-        mockSubSubCommand.Verify(s => s.PreExecute(It.IsIn(mockCharacter.Object), It.IsIn("second"), It.Is<string[]>(a => a.Length == 2 && a[0] == "parameter1second" && a[1] == "parameter2second")));
+        mockSubSubCommand.Verify(s => s.PreExecute(It.IsIn(mockCharacter.Object), It.IsIn("second"), It.Is<string[]>(a => a.Length == 2 && a[0] == "parameter1second" && a[1] == "parameter2second"), It.IsAny<IMessageOutput>()));
     }
 
     [Fact]
@@ -60,9 +61,10 @@ public class DoodadChainSubCommandTests
     {
         var mockUnitCustomModelParams = new Mock<UnitCustomModelParams>(UnitCustomModelType.None);
         var mockCharacter = new Mock<Character>(mockUnitCustomModelParams.Object);
+        var mockMessageOutput = new Mock<IMessageOutput>();
 
         var testCommand = new TestCommand(new Dictionary<ICommandV2, string[]>());
-        testCommand.PreExecute(mockCharacter.Object, "doodad", System.Array.Empty<string>());
+        testCommand.PreExecute(mockCharacter.Object, "doodad", System.Array.Empty<string>(), mockMessageOutput.Object);
     }
 
     [Theory]
@@ -85,7 +87,7 @@ public class DoodadChainSubCommandTests
 
         var testCommand = new TestCommand(supportedCommands);
         var testCommandPrefix = "Prefix";
-        testCommand.PreExecute(mockCharacter.Object, "test", new string[] { "help" });
+        testCommand.PreExecute(mockCharacter.Object, "test", new string[] { "help" }, new CharacterMessageOutput(mockCharacter.Object));
 
         mockCharacter.Verify(c => c.SendMessage(It.IsIn(Color.LawnGreen), It.IsIn($"{testCommandPrefix} {testCommand.Description}")), Times.Once);
         mockCharacter.Verify(c => c.SendMessage(It.IsIn(Color.LawnGreen), It.Is<string>(s => s.Contains($"{string.Join("||", expectedCommands)}"))), Times.Once);

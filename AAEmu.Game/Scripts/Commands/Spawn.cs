@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Utils;
 using System.Globalization;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -29,7 +30,7 @@ public class Spawn : ICommand
         return "Spawns a npc or doodad using <unitId> as a template. Or remove a doodad";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length < 2)
         {

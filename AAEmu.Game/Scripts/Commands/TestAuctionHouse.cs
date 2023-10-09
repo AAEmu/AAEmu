@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Auction;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -24,7 +25,7 @@ class TestAuctionHouse : ICommand
         return "Adds every item into the auction house.";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var allItems = ItemManager.Instance.GetAllItems();
         character.SendMessage($"Trying to add {allItems.Count} items to the Auction House!");

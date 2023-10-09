@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Core.Managers.World;
 using Newtonsoft.Json;
 using NLog;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -79,7 +80,7 @@ public class AddKit : ICommand
         return "Adds a set of items based on a kit name to target player.";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

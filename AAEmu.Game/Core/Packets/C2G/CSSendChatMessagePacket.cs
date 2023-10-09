@@ -29,7 +29,7 @@ public class CSSendChatMessagePacket : GamePacket
 
         if (message.StartsWith(CommandManager.CommandPrefix))
         {
-            if (CommandManager.Instance.Handle(Connection.ActiveChar, message.Substring(CommandManager.CommandPrefix.Length).Trim()))
+            if (CommandManager.Instance.Handle(Connection.ActiveChar, message.Substring(CommandManager.CommandPrefix.Length).Trim(), out _))
                 return;
         }
 

@@ -3,6 +3,7 @@ using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.SubCommands.Doodads;
@@ -17,17 +18,17 @@ public class DoodadChainSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<uint>("templateId", "Template Id", true));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint templateId = parameters["templateId"];
         var doodad = DoodadManager.Instance.Create(0, templateId);
         if (doodad == null)
         {
-            SendColorMessage(character, Color.Red, "Doodad with templateId {0} was not found |r", templateId);
+            SendColorMessage(messageOutput, Color.Red, "Doodad with templateId {0} was not found |r", templateId);
             return;
         }
 
-        SendMessage(character, "Phase chain, see the log");
+        SendMessage(messageOutput, "Phase chain, see the log");
         Logger.Warn($"{Title} Chain: TemplateId {templateId}");
 
         var doodadFuncGroups = DoodadManager.Instance.GetDoodadFuncGroups(templateId);

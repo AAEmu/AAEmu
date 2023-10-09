@@ -27,7 +27,7 @@ public partial class AppConfiguration : Singleton<AppConfiguration>
     public AccountConfig Account { get; set; }
     public ClientDataConfig ClientData { get; set; } = new ClientDataConfig();
     public SpecialtyConfig Specialty { get; set; } = new SpecialtyConfig();
-
+    public ScriptsConfig Scripts { get; set; } = new ScriptsConfig();
     public class NetworkConfig
     {
         public string Host { get; set; }

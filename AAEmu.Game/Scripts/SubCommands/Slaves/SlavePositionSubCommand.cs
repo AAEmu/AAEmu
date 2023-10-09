@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils;
+using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.SubCommands.Slaves;
@@ -25,7 +26,7 @@ public class SlavePositionSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<new yaw degrees>", false, "yaw", 0, 360));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         Models.Game.Units.Slave slave;
         if (parameters.TryGetValue("ObjId", out var objId))
@@ -33,7 +34,7 @@ public class SlavePositionSubCommand : SubCommandBase
             slave = (Models.Game.Units.Slave)WorldManager.Instance.GetGameObject(objId);
             if (slave is null)
             {
-                SendColorMessage(character, Color.Red, "Slave with objId {0} does not exist |r", objId);
+                SendColorMessage(messageOutput, Color.Red, "Slave with objId {0} does not exist |r", objId);
                 return;
             }
         }
@@ -42,7 +43,7 @@ public class SlavePositionSubCommand : SubCommandBase
             var currentTarget = ((Character)character).CurrentTarget;
             if (currentTarget is null || !(currentTarget is Models.Game.Units.Slave))
             {
-                SendColorMessage(character, Color.Red, "You need to target a Slave first");
+                SendColorMessage(messageOutput, Color.Red, "You need to target a Slave first");
                 return;
             }
             slave = (Models.Game.Units.Slave)currentTarget;
@@ -55,7 +56,7 @@ public class SlavePositionSubCommand : SubCommandBase
         var pitch = GetOptionalParameterValue(parameters, "pitch", slave.Transform.Local.Rotation.Y.RadToDeg()).DegToRad();
         var roll = GetOptionalParameterValue(parameters, "roll", slave.Transform.Local.Rotation.X.RadToDeg()).DegToRad();
 
-        SendMessage(character, "Slave ObjId:{0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, roll:{5:0.#}°, pitch:{6:0.#}°, yaw:{7:0.#}°",
+        SendMessage(messageOutput, "Slave ObjId:{0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, roll:{5:0.#}°, pitch:{6:0.#}°, yaw:{7:0.#}°",
             slave.ObjId, slave.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());
 
         slave.Transform.Local.SetPosition(x, y, z, roll, pitch, yaw);

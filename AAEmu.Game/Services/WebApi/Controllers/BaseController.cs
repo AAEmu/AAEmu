@@ -13,7 +13,7 @@ internal class BaseController : IController
     protected static HttpResponse HtmlResponse(HttpStatusCode status, string html)
     {
         var response = new HttpResponse((int)status);
-        response.SetContentType("text/html");
+        response.SetHeader("Content-Type", "text/html");
         response.SetBody(html);
         return response;
     }
@@ -30,7 +30,7 @@ internal class BaseController : IController
     protected static HttpResponse JsonResponse(HttpStatusCode status, object responseModel = null)
     {
         var response = new HttpResponse((int)status);
-        response.SetContentType("application/json");
+        response.SetHeader("Content-Type", "application/json");
 
         var jsonResult = JsonSerializer.Serialize(responseModel);
         response.SetBody(jsonResult);

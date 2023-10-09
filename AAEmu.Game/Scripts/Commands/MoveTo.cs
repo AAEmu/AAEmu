@@ -5,6 +5,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -37,7 +38,7 @@ public class MoveTo : ICommand
             "|15626.0|14983.88|141.3446|\n" +
             "===================================================;\n";
     }
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         string nameFile = "movefile";
         string cmd = "";

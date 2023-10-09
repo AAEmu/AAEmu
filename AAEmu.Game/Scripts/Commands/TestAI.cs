@@ -3,6 +3,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.AI.v2.AiCharacters;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -24,7 +25,7 @@ public class TestAI : ICommand
         return "Forces the HoldPosition AI to the target";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (character.CurrentTarget == null)
         {
