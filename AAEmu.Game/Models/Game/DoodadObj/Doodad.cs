@@ -578,6 +578,7 @@ public class Doodad : BaseUnit
             if (item != null && item._holdingContainer != null && (item._holdingContainer.ContainerType == SlotType.None || item._holdingContainer.ContainerType == SlotType.System))
                 item._holdingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
         }
+
         if (IsPersistent)
         {
             using (var connection = MySQL.CreateConnection())
@@ -610,8 +611,8 @@ public class Doodad : BaseUnit
                     parentDoodadId = pDoodad.DbId;
 
                 command.CommandText =
-                    "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `attach_point`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`) " +
-                    "VALUES(@id, @owner_id, @owner_type, @attach_point, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @item_id, @house_id, @parent_doodad, @item_template_id, @item_container_id, @data)";
+                    "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `attach_point`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `scale`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`) " +
+                    "VALUES(@id, @owner_id, @owner_type, @attach_point, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @scale, @item_id, @house_id, @parent_doodad, @item_template_id, @item_container_id, @data)";
                 command.Parameters.AddWithValue("@id", DbId);
                 command.Parameters.AddWithValue("@owner_id", OwnerId);
                 command.Parameters.AddWithValue("@owner_type", OwnerType);
@@ -628,6 +629,7 @@ public class Doodad : BaseUnit
                 command.Parameters.AddWithValue("@roll", Transform?.Local.Rotation.X ?? 0f);
                 command.Parameters.AddWithValue("@pitch", Transform?.Local.Rotation.Y ?? 0f);
                 command.Parameters.AddWithValue("@yaw", Transform?.Local.Rotation.Z ?? 0f);
+                command.Parameters.AddWithValue("@scale", Scale);
                 command.Parameters.AddWithValue("@item_id", ItemId);
                 command.Parameters.AddWithValue("@house_id", OwnerDbId);
                 command.Parameters.AddWithValue("@parent_doodad", parentDoodadId);

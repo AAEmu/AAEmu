@@ -673,14 +673,18 @@ public class Slave : Unit
                     command.Transaction = transaction;
 
                 command.CommandText =
-                    "REPLACE INTO slaves(`id`,`item_id`,`name`,`owner`,`updated_at`,`hp`,`mp`) " +
-                    "VALUES (@id, @item_id, @name, @owner, @updated_at, @hp, @mp)";
+                    "REPLACE INTO slaves(`id`,`item_id`,`name`,`owner`,`updated_at`,`hp`,`mp`,`x`,`y`,`z`) " +
+                    "VALUES (@id, @item_id, @name, @owner, @updated_at, @hp, @mp, @x, @y, @z)";
                 command.Parameters.AddWithValue("@id", Id);
                 command.Parameters.AddWithValue("@item_id", SummoningItem?.Id ?? 0);
+                command.Parameters.AddWithValue("@owner", Summoner?.Id ?? OwnerId);
                 command.Parameters.AddWithValue("@name", Name);
                 command.Parameters.AddWithValue("@hp", Hp);
                 command.Parameters.AddWithValue("@mp", Mp);
                 command.Parameters.AddWithValue("@updated_at", DateTime.UtcNow);
+                command.Parameters.AddWithValue("@x", Transform.World.Position.X);
+                command.Parameters.AddWithValue("@y", Transform.World.Position.Y);
+                command.Parameters.AddWithValue("@z", Transform.World.Position.Z);
                 command.ExecuteNonQuery();
                 result = true;
             }

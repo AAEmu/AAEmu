@@ -12,6 +12,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -175,14 +176,30 @@ public class SlaveManager : Singleton<SlaveManager>
     }
 
     // TODO - GameConnection connection
+    /// <summary>
+    /// Removes a slave from the world
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="objId"></param>
     public void Delete(Character owner, uint objId)
     {
         var activeSlaveInfo = GetActiveSlaveByObjId(objId);
         if (activeSlaveInfo == null) return;
         activeSlaveInfo.Save();
 
+        // Remove passengers
         foreach (var character in activeSlaveInfo.AttachedCharacters.Values.ToList())
             UnbindSlave(character, activeSlaveInfo.TlId, AttachUnitReason.SlaveBinding);
+
+        // Check if one of the slave doodads is holding a item
+        foreach (var doodad in activeSlaveInfo.AttachedDoodads)
+        {
+            if ((doodad.ItemId != 0) || (doodad.ItemTemplateId != 0))
+            {
+                owner?.SendErrorMessage(ErrorMessageType.SlaveEquipmentLoadedItem); // TODO: Do we need this error? Client already mentions it.
+                return; // don't allow un-summon if some it's holding a item (should be a trade-pack)
+            }
+        }
 
         var despawnDelayedTime = DateTime.UtcNow.AddSeconds(activeSlaveInfo.Template.PortalTime - 0.5f);
 
@@ -190,6 +207,10 @@ public class SlaveManager : Singleton<SlaveManager>
 
         foreach (var doodad in activeSlaveInfo.AttachedDoodads)
         {
+            // Note, we un-check the persistent flag here, or else the doodad will delete itself from DB as well
+            // This is not desired for player owned slaves
+            if (owner != null)
+                doodad.IsPersistent = false;
             doodad.Despawn = despawnDelayedTime;
             SpawnManager.Instance.AddDespawn(doodad);
             // doodad.Delete();
@@ -251,8 +272,7 @@ public class SlaveManager : Singleton<SlaveManager>
     /// <param name="item"></param>
     /// <param name="hideSpawnEffect"></param>
     /// <param name="positionOverride"></param>
-    public void Create(Character owner, uint templateId, Item item = null, bool hideSpawnEffect = false,
-        Transform positionOverride = null)
+    public void Create(Character owner, uint templateId, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
     {
 #pragma warning disable CA2000 // Dispose objects before losing scope
 
@@ -278,7 +298,7 @@ public class SlaveManager : Singleton<SlaveManager>
             {
                 // Sorting required to make make sure parenting doesn't produce invalid parents (normally)
 
-                command.CommandText = "SELECT * FROM slaves  WHERE (owner_id = @playerId) AND (item_id = @itemId) LIMIT 1";
+                command.CommandText = "SELECT * FROM slaves  WHERE (owner = @playerId) AND (item_id = @itemId) LIMIT 1";
                 command.Parameters.AddWithValue("playerId", owner.Id);
                 command.Parameters.AddWithValue("itemId", item.Id);
                 command.Prepare();
@@ -288,12 +308,17 @@ public class SlaveManager : Singleton<SlaveManager>
                     {
                         dbId = reader.GetUInt32("id");
                         // var slaveItemId = reader.GetUInt32("item_id");
-                        // var slaveOwnerId = reader.GetUInt32("owner_id");
+                        // var slaveOwnerId = reader.GetUInt32("owner");
                         slaveName = reader.GetString("name");
                         // var slaveCreatedAt = reader.GetDateTime("created_at");
                         // var slaveUpdatedAt = reader.GetDateTime("updated_at");
                         slaveHp = reader.GetInt32("hp");
                         slaveMp = reader.GetInt32("mp");
+                        // Coords are saved, but not really used when summoning and are only required to show vehicle
+                        // location after a server restart (if it was still summoned)
+                        // var slaveX = reader.GetFloat("x");
+                        // var slaveY = reader.GetFloat("y");
+                        // var slaveZ = reader.GetFloat("z");
                         isLoadedPlayerSlave = true;
                         break;
                     }
@@ -390,8 +415,8 @@ public class SlaveManager : Singleton<SlaveManager>
         owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, hideSpawnEffect, 0, owner.Name), true);
 
         // Get new Id to save if it has a player as owner
-        if (owner?.Id > 0)
-            dbId = dbId > 0 ? dbId : SlaveIdManager.Instance.GetNextId();
+        if ((owner?.Id > 0) && (dbId <= 0))
+            dbId = CharacterIdManager.Instance.GetNextId(); // dbId = SlaveIdManager.Instance.GetNextId();
 
         if (slaveHp <= 0)
             slaveHp = 1;
@@ -456,7 +481,7 @@ public class SlaveManager : Singleton<SlaveManager>
                     ParentObj = summonedSlave,
                     Faction = summonedSlave.Faction,
                     Type2 = 1u, // Flag: No idea why it's 1 for slave's doodads, seems to be 0 for everything else
-                    Spawner = null,
+                    Spawner = null
                 };
 
                 doodad.SetScale(doodadBinding.Scale);

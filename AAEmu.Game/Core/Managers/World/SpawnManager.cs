@@ -405,7 +405,7 @@ public class SpawnManager : Singleton<SpawnManager>
 
             command.CommandText = "SELECT * FROM doodads  WHERE owner_type = @OwnerType";
             if (ownerToSpawnId >= 0)
-                command.CommandText += " AND owner_id = @OwnerId";
+                command.CommandText += " AND house_id = @OwnerId";
             command.CommandText += " ORDER BY `plant_time`";
             command.Parameters.AddWithValue("OwnerType", (byte)ownerTypeToSpawn);
             if (ownerToSpawnId >= 0)
@@ -424,6 +424,7 @@ public class SpawnManager : Singleton<SpawnManager>
                     var roll = reader.GetFloat("roll");
                     var pitch = reader.GetFloat("pitch");
                     var yaw = reader.GetFloat("yaw");
+                    var scale = reader.GetFloat("scale");
                     var plantTime = reader.GetDateTime("plant_time");
                     var growthTime = reader.GetDateTime("growth_time");
                     var phaseTime = reader.GetDateTime("phase_time");
@@ -431,7 +432,7 @@ public class SpawnManager : Singleton<SpawnManager>
                     var ownerType = (DoodadOwnerType)reader.GetByte("owner_type");
                     var attachPoint = (AttachPointKind)reader.GetUInt32("attach_point");
                     var itemId = reader.GetUInt64("item_id");
-                    var houseId = reader.GetUInt32("house_id");
+                    var houseId = reader.GetUInt32("house_id"); // actually DbId of the parent/owner (house, slave, etc)
                     var parentDoodad = reader.GetUInt32("parent_doodad");
                     var itemTemplateId = reader.GetUInt32("item_template_id");
                     var itemContainerId = reader.GetUInt64("item_container_id");
@@ -453,6 +454,7 @@ public class SpawnManager : Singleton<SpawnManager>
                     doodad.PhaseTime = phaseTime;
                     doodad.ItemId = itemId;
                     doodad.OwnerDbId = houseId;
+                    doodad.SetScale(scale != 0f ? scale : 1f);
                     // Try to grab info from the actual item if it still exists
                     var sourceItem = ItemManager.Instance.GetItemByItemId(itemId);
                     doodad.ItemTemplateId = sourceItem?.TemplateId ?? itemTemplateId;
@@ -493,7 +495,11 @@ public class SpawnManager : Singleton<SpawnManager>
                     }
 
                     if (useParentObject != null)
+                    {
+                        doodad.ParentObj = useParentObject;
+                        doodad.ParentObjId = useParentObject.ObjId;
                         doodad.Transform.Parent = useParentObject.Transform;
+                    }
 
                     doodad.Transform.Local.SetPosition(x, y, z);
                     doodad.Transform.Local.SetRotation(roll, pitch, yaw);

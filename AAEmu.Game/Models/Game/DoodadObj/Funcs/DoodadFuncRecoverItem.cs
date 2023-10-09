@@ -84,12 +84,13 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
         {
             // No itemId was provided with the doodad, need to check what needs to be done with this
             Logger.Warn($"DoodadFuncRecoverItem: Doodad {owner?.ObjId} has no item information attached to it");
+            addedItem = true; // fake it to get rid of the error state
         }
 
         if (addedItem && item != null && item._holdingContainer.ContainerType == SlotType.Equipment)
             character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId, (byte)item.Slot, item), false);
 
-        if (addedItem)
+        if ((addedItem) && (owner != null))
         {
             // remove the old reference
             owner.ItemId = 0;
@@ -98,8 +99,5 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
 
         if (owner != null)
             owner.ToNextPhase = addedItem;
-
-        //if (addedItem)
-        //    owner.Delete();
     }
 }
