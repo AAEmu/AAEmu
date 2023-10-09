@@ -1,13 +1,9 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Teleport;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -31,7 +27,7 @@ namespace AAEmu.Game.Scripts.Commands
                 CommandManager.CommandPrefix + "nudge 10";
         }
 
-        public void Execute(Character character, string[] args)
+        public void Execute(Character character, string[] args, IMessageOutput messageOutput)
         {
 			float dist = 5f;
             if ((args.Length > 1) && (!float.TryParse(args[0], out dist)))

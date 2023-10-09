@@ -138,7 +138,7 @@ public class WebApiSessionTests
             ResultResponse = response;
         }
     }
-    internal class MyRegexController : BaseController
+    internal sealed class MyRegexController : BaseController
     {
         [WebApiGet("/world/(.+)")]
         public HttpResponse GetCharacter(HttpRequest request)

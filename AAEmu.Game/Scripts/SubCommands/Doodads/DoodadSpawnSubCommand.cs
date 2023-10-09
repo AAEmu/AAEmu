@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Utils;
+using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.SubCommands.Doodads;
@@ -20,12 +21,12 @@ public class DoodadSpawnSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<yaw facing degrees>", false, "yaw"));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint unitTemplateId = parameters["templateId"];
         if (!DoodadManager.Instance.Exist(unitTemplateId))
         {
-            SendColorMessage(character, Color.Red, "Doodad templateId:{0} don't exist|r", unitTemplateId);
+            SendColorMessage(messageOutput, Color.Red, "Doodad templateId:{0} don't exist|r", unitTemplateId);
             return;
         }
 

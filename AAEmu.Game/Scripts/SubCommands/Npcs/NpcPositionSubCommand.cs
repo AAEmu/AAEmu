@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Utils;
+using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.SubCommands.Npcs;
@@ -28,7 +29,7 @@ public class NpcPositionSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<new yaw degrees>", false, "yaw", 0, 360));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         Npc npc;
         if (parameters.TryGetValue("ObjId", out var npcObjId))
@@ -36,7 +37,7 @@ public class NpcPositionSubCommand : SubCommandBase
             npc = WorldManager.Instance.GetNpc(npcObjId);
             if (npc is null)
             {
-                SendColorMessage(character, Color.Red, "Npc with objId {0} does not exist |r", npcObjId);
+                SendColorMessage(messageOutput, Color.Red, "Npc with objId {0} does not exist |r", npcObjId);
                 return;
             }
         }
@@ -45,7 +46,7 @@ public class NpcPositionSubCommand : SubCommandBase
             var currentTarget = ((Character)character).CurrentTarget;
             if (currentTarget is null || !(currentTarget is Npc))
             {
-                SendColorMessage(character, Color.Red, "You need to target a Npc first");
+                SendColorMessage(messageOutput, Color.Red, "You need to target a Npc first");
                 return;
             }
             npc = (Npc)currentTarget;
@@ -58,7 +59,7 @@ public class NpcPositionSubCommand : SubCommandBase
         var pitch = GetOptionalParameterValue(parameters, "pitch", npc.Transform.Local.Rotation.Y.RadToDeg()).DegToRad();
         var roll = GetOptionalParameterValue(parameters, "roll", npc.Transform.Local.Rotation.X.RadToDeg()).DegToRad();
 
-        SendMessage(character, "Npc ObjId:{0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, roll:{5:0.#}°, pitch:{6:0.#}°, yaw:{7:0.#}°",
+        SendMessage(messageOutput, "Npc ObjId:{0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, roll:{5:0.#}°, pitch:{6:0.#}°, yaw:{7:0.#}°",
             npc.ObjId, npc.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());
 
         npc.Transform.Local.SetPosition(x, y, z, roll, pitch, yaw);

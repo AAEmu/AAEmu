@@ -46,3 +46,14 @@ public class SpecialtyConfig
     public double RatioDecreaseTickMinutes { get; set; } = 1f;
     public double RatioRegenTickMinutes { get; set; } = 60f;
 }
+
+public class ScriptsConfig
+{
+    public LoadStrategyType LoadStrategy { get; set; } = LoadStrategyType.Reflection;
+
+    public enum LoadStrategyType
+    {
+        Compilation,
+        Reflection
+    }
+}

@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Utils.Scripts;
 using System;
 using System.IO;
 
@@ -25,7 +26,7 @@ public class SendPacket : ICommand
         return "Send packet (hex) to player's character from either a file path or received message";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length != 1)
         {

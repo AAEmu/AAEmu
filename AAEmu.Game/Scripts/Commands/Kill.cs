@@ -5,6 +5,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -26,7 +27,7 @@ public class Kill : ICommand
         return "Kills target";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         Character targetPlayer = WorldManager.GetTargetOrSelf(character, null, out var _);
         var playerTarget = character.CurrentTarget;

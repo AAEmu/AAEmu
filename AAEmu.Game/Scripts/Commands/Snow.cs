@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -25,7 +26,7 @@ public class Snow : ICommand
         return "Enables or disables snow effect across the server";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         // If no argument is provided send usage information
         if (args.Length == 0)

@@ -84,8 +84,10 @@ public class CommandManager : Singleton<CommandManager>
             return cmd;
     }
 
-    public bool Handle(Character character, string text)
+    public bool Handle(Character character, string text, out IMessageOutput messageOutput)
     {
+        messageOutput = new CharacterMessageOutput(character);
+
         // Un-escape the string, as the client sends it escaped
         // It is required if you want to test things like @NPC_NAME() and |cFF00FFFF text colors |r
         // We only do this for GM commands as it would cause problems with regular chat
@@ -108,11 +110,11 @@ public class CommandManager : Singleton<CommandManager>
         {
             // Only display extended error to admins
             if (character.AccessLevel >= 100)
-                character.SendMessage(
+                messageOutput.SendMessage(
                     "|cFFFF0000[Error] No commands have been loaded, this is usually because of compile errors. Try using \"" +
                     CommandManager.CommandPrefix + "scripts reload\" after the issues have been fixed.|r");
             else
-                character.SendMessage(
+                messageOutput.SendMessage(
                     "[Error] No commands available.");
             return false;
         }
@@ -133,7 +135,7 @@ public class CommandManager : Singleton<CommandManager>
 
         if (AccessLevelManager.Instance.GetLevel(thisCommand) > character.AccessLevel)
         {
-            character.SendMessage("|cFFFF0000Insufficient privileges.|r");
+            messageOutput.SendMessage("|cFFFF0000Insufficient privileges.|r");
             return true;
         }
 
@@ -145,11 +147,11 @@ public class CommandManager : Singleton<CommandManager>
         {
             if (command is ICommandV2 subcommand)
             {
-                subcommand.PreExecute(character, thisCommand, args);
+                subcommand.PreExecute(character, thisCommand, args, messageOutput);
             }
             else
             {
-                command.Execute(character, args);
+                command.Execute(character, args, messageOutput);
             }
         }
         catch (Exception e)

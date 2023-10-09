@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using Moq;
 using Xunit;
@@ -31,7 +32,7 @@ public class SubCommandBaseTests
         var mockCharacter = new Mock<ICharacter>();
 
         // Act
-        subCommand.PreExecute(mockCharacter.Object, "", arguments);
+        subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
         Assert.False(subCommand.Executed);
@@ -66,7 +67,7 @@ public class SubCommandBaseTests
         var mockCharacter = new Mock<ICharacter>();
 
         // Act
-        subCommand.PreExecute(mockCharacter.Object, "", arguments);
+        subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
         Assert.False(subCommand.Executed);
@@ -89,7 +90,7 @@ public class SubCommandBaseTests
         var mockCharacter = new Mock<ICharacter>();
 
         // Act
-        subCommand.PreExecute(mockCharacter.Object, "", arguments);
+        subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
         Assert.True(subCommand.Executed);
@@ -138,7 +139,7 @@ public class SubCommandBaseTests
         var expectedNumberOfParameters = requiredParametersArray.Length + optionalArgumentsProvided - parametersToIgnore;
 
         // Act
-        subCommand.PreExecute(mockCharacter.Object, "", arguments);
+        subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
         Assert.True(subCommand.Executed);
@@ -165,7 +166,7 @@ public class SubCommandBaseTests
         var mockCharacter = new Mock<ICharacter>();
 
         // Act
-        subCommand.PreExecute(mockCharacter.Object, "", new[] { argumentValue });
+        subCommand.PreExecute(mockCharacter.Object, "", new[] { argumentValue }, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
         Assert.False(subCommand.Executed);
@@ -182,7 +183,7 @@ public class SubCommandBaseTests
         var mockCharacter = new Mock<ICharacter>();
 
         // Act
-        subCommand.PreExecute(mockCharacter.Object, "", new[] { argumentValue });
+        subCommand.PreExecute(mockCharacter.Object, "", new[] { argumentValue }, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
         Assert.True(subCommand.Executed);
@@ -224,7 +225,7 @@ public class SubCommandBaseTests
         var mockCharacter = new Mock<ICharacter>();
 
         // Act
-        subCommand.PreExecute(mockCharacter.Object, "", arguments);
+        subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
         Assert.True(subCommand.Executed);
@@ -281,7 +282,7 @@ public class SubCommandBaseTests
         var mockCharacter = new Mock<ICharacter>();
 
         // Act
-        subCommand.PreExecute(mockCharacter.Object, "", arguments);
+        subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
         Assert.True(subCommand.Executed);
@@ -309,7 +310,7 @@ public class SubCommandBaseTests
         var mockCharacter = new Mock<ICharacter>();
 
         // Act
-        subCommand.BaseSendHelpMessage(mockCharacter.Object);
+        subCommand.BaseSendHelpMessage(new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
         mockCharacter.Verify(c => c.SendMessage(It.IsIn(Color.LawnGreen), It.IsIn(expectedCallExample)), Times.Once);
@@ -329,7 +330,7 @@ public class SubCommandBaseTests
         var mockCharacter = new Mock<ICharacter>();
 
         // Act
-        subCommand.BaseSendHelpMessage(mockCharacter.Object);
+        subCommand.BaseSendHelpMessage(new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
         mockCharacter.Verify(c => c.SendMessage(It.IsIn(Color.LawnGreen), It.IsIn(expectedCallExample)), Times.Once);
@@ -356,7 +357,7 @@ public class SubCommandBaseTests
         var mockCharacter = new Mock<ICharacter>();
 
         // Act
-        subCommand.PreExecute(mockCharacter.Object, "", arguments);
+        subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
         Assert.True(subCommand.Executed);

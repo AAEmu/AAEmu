@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
 using System.Collections.Generic;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -39,7 +40,7 @@ public class Fly : ICommand
         return "Enables or disables fly-mode (also makes you move at hi-speed)";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var targetPlayer = character;
 

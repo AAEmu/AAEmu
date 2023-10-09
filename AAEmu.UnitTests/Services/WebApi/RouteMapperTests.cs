@@ -91,7 +91,7 @@ public class RouteMapperTests
 
         return Task.CompletedTask;
     }
-    internal class MyController : BaseController
+    internal sealed class MyController : BaseController
     {
         [WebApiGet("/world/logged-characters")]
         public HttpResponse GetCharacter(HttpRequest request)
@@ -100,7 +100,7 @@ public class RouteMapperTests
         }
     }
 
-    internal class MyRegexController : BaseController
+    internal sealed class MyRegexController : BaseController
     {
         [WebApiGet("/world/(.+)")]
         public HttpResponse GetCharacter(HttpRequest request)
