@@ -22,7 +22,7 @@ public class Scripts : ICommand
         return "Does script related actions. Allowed <action> are: reload, reboot, save";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {

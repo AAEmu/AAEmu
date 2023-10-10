@@ -16,6 +16,7 @@ using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
@@ -96,6 +97,7 @@ public sealed class GameService : IHostedService, IDisposable
         MusicIdManager.Instance.Initialize();
         ShipyardIdManager.Instance.Initialize();
         ShipyardManager.Instance.Initialize();
+        SkillTlIdManager.Instance.Initialize();
 
         GameDataManager.Instance.LoadGameData();
         QuestManager.Instance.Load();
@@ -150,7 +152,16 @@ public sealed class GameService : IHostedService, IDisposable
         MusicManager.Instance.Load();
         AiGeoDataManager.Instance.Load();
 
-        ScriptCompiler.Compile();
+        if (AppConfiguration.Instance.Scripts.LoadStrategy == ScriptsConfig.LoadStrategyType.Compilation)
+        {
+            ScriptCompiler.Compile();
+        }
+        else
+        {
+            // (Preferred for debugging)
+            // Use reflection to load scripts 
+            ScriptReflector.Reflect();
+        }
 
         TimeManager.Instance.Start();
         TaskManager.Instance.Start();

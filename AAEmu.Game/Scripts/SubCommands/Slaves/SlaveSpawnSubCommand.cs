@@ -2,6 +2,7 @@
 using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.SubCommands.Slaves;
@@ -17,13 +18,13 @@ public class SlaveSpawnSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<facing degrees>", false, "yaw", 0, 360));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint templateId = parameters["TemplateId"];
 
         if (!SlaveManager.Instance.Exist(templateId))
         {
-            SendColorMessage(character, Color.Red, $"Slave template {templateId} doesn't exist|r");
+            SendColorMessage(messageOutput, Color.Red, $"Slave template {templateId} doesn't exist|r");
             return;
         }
 

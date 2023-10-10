@@ -68,7 +68,7 @@ public abstract class SubCommandBase : ICommandV2
         }
     }
 
-    public void PreExecute(ICharacter character, string triggerArgument, string[] args)
+    public void PreExecute(ICharacter character, string triggerArgument, string[] args, IMessageOutput messageOutput)
     {
         try
         {
@@ -78,37 +78,37 @@ public abstract class SubCommandBase : ICommandV2
             {
                 if (firstArgument.ToLower() == "help")
                 {
-                    SendHelpMessage(character);
+                    SendHelpMessage(messageOutput);
                 }
                 else if (_subCommands.ContainsKey(firstArgument))
                 {
-                    _subCommands[firstArgument].PreExecute(character, firstArgument, args.Skip(1).ToArray());
+                    _subCommands[firstArgument].PreExecute(character, firstArgument, args.Skip(1).ToArray(), messageOutput);
                 }
                 else
                 {
                     if (_parameters.Count > 0)
                     {
                         var parameterResults = LoadParametersValues(args);
-                        if (PreValidate(character, parameterResults.Values))
+                        if (PreValidate(messageOutput, parameterResults.Values))
                         {
-                            Execute(character, triggerArgument, parameterResults.ToDictionary(x => x.Key, x => x.Value.Value));
+                            Execute(character, triggerArgument, parameterResults.ToDictionary(x => x.Key, x => x.Value.Value), messageOutput);
                         }
                     }
                     else
                     {
                         // Backwards compatibility with non parameter subcommands
-                        Execute(character, triggerArgument, args);
+                        Execute(character, triggerArgument, args, messageOutput);
                     }
                 }
             }
             else
             {
-                Execute(character, triggerArgument, args);
+                Execute(character, triggerArgument, args, messageOutput);
             }
         }
         catch (Exception ex)
         {
-            SendColorMessage(character, Color.Red, $"Unexpected error: {ex.Message}");
+            SendColorMessage(messageOutput, Color.Red, $"Unexpected error: {ex.Message}");
             Logger.Error(ex);
         }
     }
@@ -180,27 +180,27 @@ public abstract class SubCommandBase : ICommandV2
         return parametersValue;
     }
 
-    protected bool PreValidate(ICharacter character, ICollection<ParameterResult> parameters)
+    protected bool PreValidate(IMessageOutput messageOutput, ICollection<ParameterResult> parameters)
     {
         var isValid = true;
         foreach (var parameter in parameters.Where(p => !p.IsValid))
         {
             isValid = false;
-            SendColorMessage(character, Color.Red, parameter.InvalidMessage);
+            SendColorMessage(messageOutput, Color.Red, parameter.InvalidMessage);
         }
         return isValid;
     }
-    protected virtual void SendHelpMessage(ICharacter character)
+    protected virtual void SendHelpMessage(IMessageOutput messageOutput)
     {
-        SendColorMessage(character, Color.LawnGreen, Description);
+        SendColorMessage(messageOutput, Color.LawnGreen, Description);
         if (_parameters.Count > 0)
         {
-            SendColorMessage(character, Color.LawnGreen, GetCallExample());
+            SendColorMessage(messageOutput, Color.LawnGreen, GetCallExample());
         }
         if (SupportedCommands.Count > 0)
         {
-            SendColorMessage(character, Color.LawnGreen, $"Supported subcommands: <{string.Join("||", SupportedCommands)}>");
-            SendColorMessage(character, Color.LawnGreen, $"For more details use /<command> <subcommand> help.");
+            SendColorMessage(messageOutput, Color.LawnGreen, $"Supported subcommands: <{string.Join("||", SupportedCommands)}>");
+            SendColorMessage(messageOutput, Color.LawnGreen, $"For more details use /<command> <subcommand> help.");
         }
     }
 
@@ -225,9 +225,9 @@ public abstract class SubCommandBase : ICommandV2
     /// <param name="character">character reference</param>
     /// <param name="triggerArgument">argument that triggered this subcommand</param>
     /// <param name="args">additional arguments</param>
-    public virtual void Execute(ICharacter character, string triggerArgument, string[] args)
+    public virtual void Execute(ICharacter character, string triggerArgument, string[] args, IMessageOutput messageOutput)
     {
-        SendHelpMessage(character);
+        SendHelpMessage(messageOutput);
     }
 
     /// <summary>
@@ -236,9 +236,9 @@ public abstract class SubCommandBase : ICommandV2
     /// <param name="character">character reference</param>
     /// <param name="triggerArgument">argument that triggered this subcommand</param>
     /// <param name="args">additional arguments</param>
-    public virtual void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public virtual void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
-        SendHelpMessage(character);
+        SendHelpMessage(messageOutput);
     }
 
     /// <summary>
@@ -247,9 +247,20 @@ public abstract class SubCommandBase : ICommandV2
     /// <param name="character">character reference</param>
     /// <param name="message">Message to send to the character</param>
     /// <param name="parameters">Message parameters</param>
-    protected void SendMessage(ICharacter character, string message, params object[] parameters)
+    protected void SendMessage(IMessageOutput messageOutput, string message, params object[] parameters)
     {
-        character.SendMessage($"{Title} {message}", parameters);
+        messageOutput.SendMessage($"{Title} {message}", parameters);
+    }
+
+    /// <summary>
+    /// Adds the subcommand prefix to the message
+    /// </summary>
+    /// <param name="character">character reference</param>
+    /// <param name="message">Message to send to the character</param>
+    /// <param name="parameters">Message parameters</param>
+    protected void SendMessage(ICharacter target, IMessageOutput messageOutput, string message, params object[] parameters)
+    {
+        messageOutput.SendMessage(target, $"{Title} {message}", parameters);
     }
 
     /// <summary>
@@ -259,9 +270,9 @@ public abstract class SubCommandBase : ICommandV2
     /// <param name="color">Color to display the message</param>
     /// <param name="message">Message to send to the character</param>
     /// <param name="parameters">Message parameters</param>
-    protected void SendColorMessage(ICharacter character, Color color, string message, params object[] parameters)
+    protected void SendColorMessage(IMessageOutput messageOutput, Color color, string message, params object[] parameters)
     {
-        character.SendMessage(color, $"{Title} {message}", parameters);
+        messageOutput.SendMessage(color, $"{Title} {message}", parameters);
     }
 
     protected static string GetOptionalArgumentValue(string[] args, string argumentName, string defaultArgumentValue)

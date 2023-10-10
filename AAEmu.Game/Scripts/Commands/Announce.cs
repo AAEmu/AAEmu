@@ -24,6 +24,7 @@ using AAEmu.Game.Models.Game.Char;
 using System;
 using AAEmu.Game.Core.Managers.World;
 using System.Drawing;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -54,7 +55,7 @@ public class Announce : ICommand
             CommandManager.CommandPrefix + "announce Automaticly generated lime text";
     }
 
-    public Color NameOrHexColor(String hex)
+    public Color NameOrHexColor(string hex)
     {
         try
         {
@@ -92,7 +93,7 @@ public class Announce : ICommand
         }
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         //if no arguments send help information
         if (args.Length == 0)
@@ -109,7 +110,7 @@ public class Announce : ICommand
             // initialze variables
             byte _type = 0;
             Color _color = Color.Lime;
-            Int32 _visibletime = 0;
+            int _visibletime = 0;
             int firstArg = 3;
             string _message = "";
 
@@ -125,7 +126,7 @@ public class Announce : ICommand
             else
             {
                 _color = NameOrHexColor(args[1]);
-                if (Int32.TryParse(args[2], out Int32 vistimeval))
+                if (int.TryParse(args[2], out int vistimeval))
                     _visibletime = vistimeval;
             }
 

@@ -6,7 +6,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using System;
-
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -31,7 +31,7 @@ public class TestHeight : ICommand
             "line creates a cross of pillar doodads used for measuring the floor at 1m intervals (for in-between points)";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         Character targetPlayer = character;
         var firstarg = 0;

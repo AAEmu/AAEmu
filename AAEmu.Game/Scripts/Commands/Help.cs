@@ -1,6 +1,7 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -22,7 +23,7 @@ public class Help : ICommand
         return "Displays help about a command <topic>. If no <topic> is provided, a list of all GM commands will be displayed";
     }
 
-    public void Execute(Character character, string[] args)
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var list = CommandManager.Instance.GetCommandKeys();
         list.Sort();

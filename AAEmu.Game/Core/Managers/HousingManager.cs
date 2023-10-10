@@ -761,9 +761,7 @@ public class HousingManager : Singleton<HousingManager>
         else
         {
             // Non-owner should not be able to press demolish
-#pragma warning disable CA1508 // Avoid dead conditional code
-            connection?.ActiveChar?.SendErrorMessage(ErrorMessageType.InvalidHouseInfo);
-#pragma warning restore CA1508 // Avoid dead conditional code
+            connection.ActiveChar?.SendErrorMessage(ErrorMessageType.InvalidHouseInfo);
             return;
         }
     }

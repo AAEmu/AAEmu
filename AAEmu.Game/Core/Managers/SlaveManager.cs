@@ -274,8 +274,6 @@ public class SlaveManager : Singleton<SlaveManager>
     /// <param name="positionOverride"></param>
     public void Create(Character owner, uint templateId, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
     {
-#pragma warning disable CA2000 // Dispose objects before losing scope
-
         var slaveTemplate = GetSlaveTemplate(templateId);
         if (slaveTemplate == null) return;
 
@@ -410,7 +408,6 @@ public class SlaveManager : Singleton<SlaveManager>
             // Always spawn horizontal(level) and 90° CCW of the player
             spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.Rotation.Z + (MathF.PI / 2));
         }
-#pragma warning restore CA2000 // Dispose objects before losing scope
 
         owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, hideSpawnEffect, 0, owner.Name), true);
 

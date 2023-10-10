@@ -15,12 +15,12 @@ public class TimeSetSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<int>("hour", "hour", true));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         int hour = parameters["hour"];
         TimeManager.Instance.Set(hour);
 
         //TODO: There is much more potential information to show on this command.
-        SendMessage(character, $"Current game time set: {hour}");
+        SendMessage(messageOutput, $"Current game time set: {hour}");
     }
 }

@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.SubCommands.Items;
 
@@ -21,7 +22,7 @@ public class ItemUnwrapSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<float>("minutes", "minutes=-1", false, -1f, 1000000f) { DefaultValue = -1f });
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         //Character addTarget;
         var selfCharacter = (Character)character;
