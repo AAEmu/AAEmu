@@ -134,7 +134,7 @@ public partial class CharacterQuests
     {
         if (!ActiveQuests.ContainsKey(questId))
         {
-            Logger.Warn("Complete not exist quest {0}", questId);
+            Logger.Warn($"Complete, quest does not exist {questId}");
             return;
         }
 
