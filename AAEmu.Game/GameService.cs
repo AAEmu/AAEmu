@@ -97,6 +97,7 @@ public sealed class GameService : IHostedService, IDisposable
         MusicIdManager.Instance.Initialize();
         ShipyardIdManager.Instance.Initialize();
         ShipyardManager.Instance.Initialize();
+        SkillTlIdManager.Instance.Initialize();
 
         GameDataManager.Instance.LoadGameData();
         QuestManager.Instance.Load();

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -193,7 +194,7 @@ public class PlotTree
         if (state.CancellationRequested())
             state.Caster.Events.OnChannelingCancel(state.ActiveSkill, new OnChannelingCancelArgs { });
 
-        SkillManager.Instance.ReleaseId(state.ActiveSkill.TlId);
+        SkillTlIdManager.Instance.ReleaseId(state.ActiveSkill.TlId);
 
         state.Caster?.OnSkillEnd(state.ActiveSkill);
         state.ActiveSkill.Callback?.Invoke();

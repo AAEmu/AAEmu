@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
@@ -131,7 +132,7 @@ public class Skill
             return SkillResult.NoTarget; // We should try to make sure this doesnt happen, but can happen with NPC skills
         }
 
-        TlId = SkillManager.Instance.NextId();
+        TlId = (ushort)SkillTlIdManager.Instance.GetNextId();
 
         if (caster is Character character && character.IsRiding && Template.Unmount)
         {
@@ -586,7 +587,7 @@ public class Skill
         caster.BroadcastPacket(new SCSkillStoppedPacket(unit.ObjId, Id), true);
         unit.AutoAttackTask = null;
         unit.IsAutoAttack = false; // turned off auto attack
-        SkillManager.Instance.ReleaseId(TlId);
+        SkillTlIdManager.Instance.ReleaseId(TlId);
     }
 
     public void StartChanneling(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
@@ -962,7 +963,7 @@ public class Skill
         Callback?.Invoke();
         unit.OnSkillEnd(this);
         caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
-        SkillManager.Instance.ReleaseId(TlId);
+        SkillTlIdManager.Instance.ReleaseId(TlId);
 
         if (caster is Character character1 && character1.IgnoreSkillCooldowns)
             character1.ResetSkillCooldown(Template.Id, false);
@@ -986,7 +987,7 @@ public class Skill
         unit.OnSkillEnd(this);
         unit.SkillTask = null;
         Cancelled = true;
-        SkillManager.Instance.ReleaseId(TlId);
+        SkillTlIdManager.Instance.ReleaseId(TlId);
 
         if (caster is Character character && character.IgnoreSkillCooldowns)
             character.ResetSkillCooldown(Template.Id, false);
@@ -1006,7 +1007,7 @@ public class Skill
         {
             var bullsEyeMod = Attacker.BullsEye / 1000f * 3f / 100f;
 
-            //TODO Check immmunity a better way!!!
+            //TODO Check immunity a better way!!!
             //if (target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(361)))
             //return SkillHitType.Immune;
 
