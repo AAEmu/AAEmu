@@ -38,12 +38,14 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
     private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs;
     private Dictionary<uint, SkillReagent> _skillReagents;
     private Dictionary<uint, SkillProduct> _skillProducts;
-    private HashSet<ushort> _skillIds = new();
-    private ushort _skillIdIndex = 1;
+    // private HashSet<ushort> _skillIds = new();
+    // private ushort _skillIdIndex = 1;
 
     //Events
     public event EventHandler OnSkillsLoaded;
 
+    /*
+    // Replaced with SkillTlIdManager 
     public ushort NextId()
     {
         lock (_skillIds)
@@ -71,6 +73,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
             _skillIds.Remove(id);
         }
     }
+    */
 
     public SkillTemplate GetSkillTemplate(uint id)
     {

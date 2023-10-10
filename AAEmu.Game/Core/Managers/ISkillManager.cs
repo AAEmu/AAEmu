@@ -29,6 +29,6 @@ public interface ISkillManager
     bool IsCommonSkill(uint id);
     bool IsDefaultSkill(uint id);
     void Load();
-    ushort NextId();
-    void ReleaseId(ushort id);
+    // ushort NextId();
+    // void ReleaseId(ushort id);
 }
