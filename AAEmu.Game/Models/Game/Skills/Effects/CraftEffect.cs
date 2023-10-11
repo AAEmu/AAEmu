@@ -22,7 +22,7 @@ public class CraftEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        Logger.Trace("CraftEffect, {0}", WorldInteraction);
+        Logger.Debug("CraftEffect, {0}", WorldInteraction);
 
         var wiGroup = WorldManager.Instance.GetWorldInteractionGroup((uint)WorldInteraction);
 
@@ -30,6 +30,15 @@ public class CraftEffect : EffectTemplate
         uint usedSkill = 0;
         if (castObj is CastSkill castSkill)
             usedSkill = castSkill.SkillId;
+
+        // Check for empty world interaction type
+        /*
+        if (wiGroup == null)
+        {
+            Logger.Warn($"CraftEffect, wi {WorldInteraction} does not not have wi group using skill {usedSkill}, defaulting to Collect");
+            wiGroup = WorldInteractionGroup.Collect;
+        }
+        */
 
         if (caster is Character character)
         {
@@ -125,7 +134,7 @@ public class CraftEffect : EffectTemplate
                     }
                     break;
                 default:
-                    Logger.Warn("CraftEffect, {0} not have wi group", WorldInteraction);
+                    Logger.Warn($"CraftEffect, {WorldInteraction} does not have a wi group ({wiGroup})");
                     if (target is Shipyard.Shipyard sy)
                     {
                         if (sy.ShipyardData.OwnerName == caster.Name)
@@ -134,6 +143,10 @@ public class CraftEffect : EffectTemplate
                         }
                         else
                             character.SendErrorMessage(ErrorMessageType.NoPermissionToLoot);
+                    }
+                    else
+                    {
+                        character.Craft.EndCraft();
                     }
                     break;
             }
