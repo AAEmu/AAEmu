@@ -6,6 +6,8 @@ namespace AAEmu.Game.Models.Game.Items;
 public class MusicSheetItem : Item
 {
     public override ItemDetailType DetailType => ItemDetailType.MusicSheet;
+    public override uint DetailBytesLength => 8;
+
     public uint SongId { get; set; }
 
     public MusicSheetItem()
@@ -19,6 +21,8 @@ public class MusicSheetItem : Item
 
     public override void ReadDetails(PacketStream stream)
     {
+        if (stream.LeftBytes < DetailBytesLength)
+            return;
         var id64 = stream.ReadUInt64();
         SongId = (uint)id64;
     }

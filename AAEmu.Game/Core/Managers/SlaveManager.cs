@@ -326,15 +326,14 @@ public class SlaveManager : Singleton<SlaveManager>
 
         // TODO: Attach Slave's DbId to the Item Details
         // We currently fake the DbId using TlId instead
-        /*
-        if (item != null)
+
+        if (item is SummonSlave slaveSummonItem)
         {
-            item.Detail[0] = 0x02;
-            item.Detail[1] = (byte)(dbId & 0x00FF);
-            item.Detail[2] = (byte)((dbId & 0xFF00) >> 8);
+            slaveSummonItem.SlaveType = 0x02;
+            slaveSummonItem.SlaveDbId = dbId;
+            slaveSummonItem.IsDirty = true;
             owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new ItemUpdate(item), new List<ulong>()));
         }
-        */
 
         // Replacing the position with the new coordinates from the method call parameters
         if (positionOverride != null)

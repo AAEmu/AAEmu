@@ -410,6 +410,41 @@ public class ItemContainer
         return ((itemTasks.Count + sourceItemTasks.Count) > 0);
     }
 
+    private bool CanDestroy(Item item)
+    {
+        // TODO: Check if item is expired, then always allow destruction
+        if (item is SummonSlave summonSlaveItem)
+        {
+            var owner = WorldManager.Instance.GetCharacterById(summonSlaveItem._holdingContainer.OwnerId);
+            if (owner != null)
+            {
+                var checkSlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(owner.ObjId);
+                if (checkSlave.Id == summonSlaveItem.SlaveDbId)
+                {
+                    owner.SendErrorMessage(ErrorMessageType.SlaveSpawnItemLocked);
+                    return false;
+                }
+            }
+        }
+        /*
+        else if (item is SummonMate summonMateItem)
+        {
+            var owner = WorldManager.Instance.GetCharacterById(summonMateItem._holdingContainer.OwnerId);
+            if (owner != null)
+            {
+                var checkSlave = MateManager.Instance.GetActiveMate(owner.ObjId);
+                if (checkSlave.Id == summonMateItem.MateDbId)
+                {
+                    owner.SendErrorMessage(ErrorMessageType.SlaveSpawnItemLocked);
+                    return false;
+                }
+            }
+        }
+        */
+
+        return true;
+    }
+
     /// <summary>
     /// Removes (and Destroys if needed) a item from the container
     /// </summary>
@@ -419,6 +454,9 @@ public class ItemContainer
     /// <returns></returns>
     public bool RemoveItem(ItemTaskType task, Item item, bool releaseIdAsWell)
     {
+        if (!CanDestroy(item))
+            return false;
+
         Owner?.Inventory.OnConsumedItem(item, item.Count);
         OnLeaveContainer(item, null);
 

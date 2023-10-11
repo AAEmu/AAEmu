@@ -1772,11 +1772,13 @@ public class ItemManager : Singleton<ItemManager>
             {
                 while (reader.Read())
                 {
-                    var type = reader.GetString("type");
+                    var itemType = reader.GetString("type");
+                    var itemId = reader.GetUInt64("id");
+                    var itemTemplateId = reader.GetUInt32("template_id");
                     Type nClass = null;
                     try
                     {
-                        nClass = Type.GetType(type);
+                        nClass = Type.GetType(itemType);
                     }
                     catch (Exception ex)
                     {
@@ -1785,8 +1787,15 @@ public class ItemManager : Singleton<ItemManager>
 
                     if (nClass == null)
                     {
-                        Logger.Error("Item type {0} not found!", type);
-                        continue;
+                        Logger.Warn($"Item type {itemType} not found for id {itemId}!");
+                        var itemTemplate = GetTemplate(itemTemplateId);
+                        if (itemTemplate == null)
+                        {
+                            Logger.Error($"Unable to restore template {itemTemplateId} for item {itemId}, item will not be loaded!");
+                            continue;
+                        }
+                        Logger.Info($"Item {itemId} defined as {itemType} in the database is being restored using template {itemTemplate.Id} with class {itemTemplate.ClassType}");
+                        nClass = itemTemplate.ClassType;
                     }
 
                     Item item;
@@ -1801,10 +1810,10 @@ public class ItemManager : Singleton<ItemManager>
                         item = new Item();
                     }
 
-                    item.Id = reader.GetUInt64("id");
+                    item.Id = itemId;
                     item.OwnerId = reader.GetUInt64("owner");
-                    item.TemplateId = reader.GetUInt32("template_id");
-                    item.Template = ItemManager.Instance.GetTemplate(item.TemplateId);
+                    item.TemplateId = itemTemplateId;
+                    item.Template = GetTemplate(item.TemplateId);
                     var containerId = reader.GetUInt64("container_id");
                     item.SlotType = (SlotType)Enum.Parse(typeof(SlotType), reader.GetString("slot_type"), true);
                     var thisItemSlot = reader.GetInt32("slot");
