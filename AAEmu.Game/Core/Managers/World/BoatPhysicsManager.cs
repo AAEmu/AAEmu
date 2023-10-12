@@ -4,6 +4,7 @@ using System.Threading;
 
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
@@ -240,21 +241,22 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
 
         var floor = WorldManager.Instance.GetHeight(slave.Transform); // получим уровень земли // get ground level
         Logger.Debug($"[Height] Z-Pos: {slave.Transform.World.Position.Z} - Floor: {floor}");
-        if (floor >= slave.Transform.World.Position.Z - boxSize.Z)
+
+        if (slave.Transform.World.Position.Z - boxSize.Z / 2 - floor < 1.0 && AppConfiguration.Instance.HeightMapsEnable)
         {
-            var damage = _random.Next(500, 750); // damage randomly 500-750
-            if (damage > 0)
-            {
-                slave.DoDamage((int)damage, false, KillReason.Collide);
-            }
-
-            Logger.Debug($"Slave: {slave.ObjId}, speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}, floor: {floor}, Z: {slave.Transform.World.Position.Z}, damage: {damage}");
-
             if (slave.Hp <= 0)
             {
                 slave.Speed = 0;
                 return;
             }
+
+            var damage = _random.Next(500, 750); // damage randomly 500-750
+            if (damage > 0)
+            {
+                slave.DoDamage(damage, false, KillReason.Collide);
+            }
+
+            Logger.Debug($"Slave: {slave.ObjId}, speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}, floor: {floor}, Z: {slave.Transform.World.Position.Z}, damage: {damage}");
         }
 
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
