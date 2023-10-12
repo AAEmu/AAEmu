@@ -874,7 +874,7 @@ EndLoop:
                 var acts = _questManager.GetActs(currentComponent.Id);
                 CheckReportNpcs(acts, componentIndex, currentComponent, ref res, ref reportNpc);
 
-                if (Step == QuestComponentKind.Ready)
+                if (Step is QuestComponentKind.Ready or QuestComponentKind.Reward)
                     ComponentId = currentComponent.Id;
 
                 var selective = 0;
@@ -1002,27 +1002,25 @@ EndLoop:
                         case "QuestActSupplyItem" when step == QuestComponentKind.Supply:
                             {
                                 var template = act.GetTemplate<QuestActSupplyItem>();
-                                if (template.DestroyWhenDrop && Owner.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlotType.Backpack)?.TemplateId == template.ItemId)
+                                if (template.DestroyWhenDrop || template.DropWhenDestroy || template.Cleanup)
                                 {
-                                    Owner.Inventory.TakeoffBackpack(ItemTaskType.QuestRemoveSupplies);
+                                    if (template.DestroyWhenDrop && Owner.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlotType.Backpack)?.TemplateId == template.ItemId)
+                                        Owner.Inventory.TakeoffBackpack(ItemTaskType.QuestRemoveSupplies);
+                                    // удалим только то количество, которое требуется по квесту
+                                    Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
+                                    Logger.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId {6}, Count {7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
                                 }
-                                //Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
-                                Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
-                                Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[componentIndex], null);
-                                //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
-                                Logger.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId {6}, Count {7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
                                 break;
                             }
                         case "QuestActObjItemGather":
                             {
                                 var template = act.GetTemplate<QuestActObjItemGather>();
-                                if (template.DestroyWhenDrop)
+                                if (template.DestroyWhenDrop || template.DropWhenDestroy || template.Cleanup)
                                 {
-                                    //Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
-                                    Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
-                                    Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[componentIndex], null);
-                                    //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
-                                    Logger.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId {6}, Count {7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
+                                    // удалим только то количество, которое требуется по квесту
+                                    var itemCount = Template.LetItDone ? Owner.Inventory.GetItemsCount(template.ItemId) : template.Count;
+                                    Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, itemCount, null);
+                                    Logger.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId {6}, Count {7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, itemCount);
                                 }
                                 break;
                             }
@@ -1031,10 +1029,8 @@ EndLoop:
                                 var template = act.GetTemplate<QuestActObjItemUse>();
                                 if (template.DropWhenDestroy)
                                 {
-                                    //Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
-                                    Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
-                                    Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[componentIndex], null);
-                                    //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
+                                    // удалим только то количество, которое требуется по квесту
+                                    Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
                                     Logger.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId {6}, Count {7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
                                 }
                                 break;
@@ -1043,7 +1039,7 @@ EndLoop:
                             {
                                 // TODO: added for quest Id=5700
                                 var template = act.GetTemplate<QuestActConAcceptItem>();
-                                if (template.DropWhenDestroy || template.Cleanup)
+                                if (template.DestroyWhenDrop || template.DropWhenDestroy || template.Cleanup)
                                 {
                                     var count = Owner.Inventory.GetItemsCount(template.ItemId);
                                     Objectives[componentIndex] = count;

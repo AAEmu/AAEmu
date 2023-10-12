@@ -25,14 +25,13 @@ public abstract class QuestState
     public QuestComponent CurrentComponent { get; set; }
     public QuestComponentKind Step { get; set; }
     public List<bool> ContextResults { get; set; }
+    public bool Completed { get; set; }
 
     public abstract bool Start(bool forcibly = false);
     public abstract bool Update();
     public abstract bool Complete(int selected = 0);
     public abstract void Fail();
     public abstract void Drop();
-    //public abstract List<bool> Execute();
-    //public abstract void Handle(QuestContext context);
 
     public void UpdateContext(Quest quest, QuestState questState, QuestContext questContext, QuestComponentKind questComponentKind)
     {
@@ -267,15 +266,6 @@ public class QuestNoneState : QuestState
         Logger.Info($"[QuestNoneState][Drop] Квест {Quest.TemplateId} сброшен");
         Logger.Info($"[QuestNoneState][Drop] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
     }
-    //public override List<bool> Execute()
-    //{
-    //    return CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
-    //}
-    //public override void Handle(QuestContext context)
-    //{
-    //    context.State = new QuestStartState(); // переключим на следующий контекст
-    //    context.State.UpdateContext(Quest, context.State, context, QuestComponentKind.Start);
-    //}
 }
 public class QuestStartState : QuestState
 {
@@ -295,22 +285,6 @@ public class QuestStartState : QuestState
 
         foreach (var component in CurrentComponents)
         {
-            //var acts = QuestManager.Instance.GetActs(component.Id);
-            //foreach (var act in acts)
-            //{
-            //    switch (act?.DetailType)
-            //    {
-            //        case "QuestActCheckTimer":
-            //            {
-            //                // TODO Timer - setting and starting time limit for the quest
-            //                var template = act.GetTemplate<QuestActCheckTimer>();
-            //                var res = act.Use(Quest.Owner, Quest, template.LimitTime);
-            //                Logger.Info($"[QuestStartState][Start] Quest: {Quest.TemplateId} настройка и старт таймера ограничения времени на квест!");
-            //                break;
-            //            }
-            //    }
-            //}
-
             if (results.Any(b => b == true))
             {
                 Quest.ComponentId = component.Id;
@@ -319,7 +293,6 @@ public class QuestStartState : QuestState
                 {
                     // если есть шаг Progress, то не надо завершать квест
                     Quest.Status = QuestStatus.Progress;
-                    //Quest.Condition = QuestConditionObj.Progress;
 
                     // проверим, что есть на этом шаге акт QuestActObjSphere
                     var progressContexts = Quest.QuestProgressState.State.CurrentQuestComponent.GetComponents();
@@ -415,9 +388,6 @@ public class QuestStartState : QuestState
     }
     public override bool Update()
     {
-        //Quest.Status = QuestStatus.Ready;
-        //Quest.Condition = QuestConditionObj.Ready;
-        Quest.Step = QuestComponentKind.Start;
         Logger.Info($"[QuestStartState][Update] Quest: {Quest.TemplateId}. Ничего не делаем.");
         Logger.Info($"[QuestStartState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
@@ -425,8 +395,8 @@ public class QuestStartState : QuestState
     }
     public override bool Complete(int selected = 0)
     {
-        //Quest.Status = QuestStatus.Progress;
-        //Quest.Condition = QuestConditionObj.Progress;
+        Completed = true;
+        Quest.Step = QuestComponentKind.Start;
         Logger.Info($"[QuestStartState][Complete] Quest: {Quest.TemplateId}. Ничего не делаем.");
         Logger.Info($"[QuestStartState][Complete] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
@@ -442,15 +412,6 @@ public class QuestStartState : QuestState
         Logger.Info($"[QuestStartState][Drop] Quest: {Quest.TemplateId} сброшен");
         Logger.Info($"[QuestStartState][Drop] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
     }
-    //public override List<bool> Execute()
-    //{
-    //    return CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
-    //}
-    //public override void Handle(QuestContext context)
-    //{
-    //    context.State = new QuestSupplyState(); // переключим на следующий контекст
-    //    context.State.UpdateContext(Quest, context.State, context, QuestComponentKind.Supply);
-    //}
 }
 public class QuestSupplyState : QuestState
 {
@@ -474,6 +435,7 @@ public class QuestSupplyState : QuestState
 
         //Quest.Status = QuestStatus.Ready;
         //Quest.Condition = QuestConditionObj.Ready;
+        Quest.Step = QuestComponentKind.Supply;
         Logger.Info($"[QuestSupplyState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
         return true;
@@ -481,8 +443,7 @@ public class QuestSupplyState : QuestState
     public override bool Complete(int selected = 0)
     {
         Logger.Info($"[QuestSupplyState][Complete] Quest: {Quest.TemplateId}. Ничего не делаем!");
-        //Quest.Status = QuestStatus.Progress;
-        //Quest.Condition = QuestConditionObj.Progress;
+        Completed = true;
         Quest.Step = QuestComponentKind.Supply;
         Logger.Info($"[QuestSupplyState][Complete] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
@@ -498,15 +459,6 @@ public class QuestSupplyState : QuestState
         Logger.Info($"[QuestSupplyState][Drop] Quest: {Quest.TemplateId} сброшен");
         Logger.Info($"[QuestSupplyState][Drop] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
     }
-    //public override List<bool> Execute()
-    //{
-    //    return CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
-    //}
-    //public override void Handle(QuestContext context)
-    //{
-    //    context.State = new QuestProgressState(); // переключим на следующий контекст
-    //    context.State.UpdateContext(Quest, context.State, context, QuestComponentKind.Progress);
-    //}
 }
 public class QuestProgressState : QuestState
 {
@@ -953,6 +905,7 @@ public class QuestProgressState : QuestState
             Logger.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}. Подписываться на событие не надо, так как в инвентаре уже лежать нужные вещи.");
             Quest.ComponentId = CurrentComponent.Id;
             Quest.Status = QuestStatus.Ready;
+            Quest.Step = QuestComponentKind.Progress;
             Quest.Condition = QuestConditionObj.Ready;
             Logger.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
@@ -963,7 +916,6 @@ public class QuestProgressState : QuestState
         }
 
         Quest.ComponentId = 0;
-        //Quest.Condition = QuestConditionObj.Progress;
         Logger.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
         // не нужен здесь
@@ -1019,9 +971,7 @@ public class QuestProgressState : QuestState
     public override bool Complete(int selected = 0)
     {
         Logger.Info($"[QuestProgressState][Complete] Quest: {Quest.TemplateId}. Шаг успешно завершен!");
-        //Quest.Step++; // переход к следующему шагу
-        //Quest.Status = QuestStatus.Progress;
-        //Quest.Condition = QuestConditionObj.Progress;
+        Completed = true;
         Quest.Step = QuestComponentKind.Progress;
         Logger.Info($"[QuestProgressState][Complete] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
@@ -1037,15 +987,6 @@ public class QuestProgressState : QuestState
         Logger.Info($"[QuestProgressState][Drop] Quest: {Quest.TemplateId} сброшен");
         Logger.Info($"[QuestProgressState][Drop] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
     }
-    //public override List<bool> Execute()
-    //{
-    //    return CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
-    //}
-    //public override void Handle(QuestContext context)
-    //{
-    //    context.State = new QuestReadyState(); // переключим на следующий контекст
-    //    context.State.UpdateContext(Quest, context.State, context, QuestComponentKind.Ready);
-    //}
 }
 public class QuestReadyState : QuestState
 {
@@ -1057,25 +998,10 @@ public class QuestReadyState : QuestState
     }
     public override bool Update()
     {
-        //var results = CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
-
         CurrentComponent = CurrentQuestComponent.GetFirstComponent();
 
-        //if (results.All(b => b == true))
-        //{
-        //    Logger.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}. Не надо подписываться на события.");
-        //    Quest.ComponentId = CurrentComponent.Id;
-        //    Quest.Status = QuestStatus.Ready;
-        //    Quest.Condition = QuestConditionObj.Ready;
-        //    Logger.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
-
-        //    Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
-
-        //    return true;
-        //}
-
         Logger.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}. Подписываемся на события, которые требуются для активных актов");
-        bool res;
+
         var results2 = new List<bool>();
 
         foreach (var component in CurrentComponents)
@@ -1122,6 +1048,7 @@ public class QuestReadyState : QuestState
         {
             Quest.ComponentId = CurrentComponent.Id;
             Quest.Status = QuestStatus.Ready;
+            Quest.Step = QuestComponentKind.Ready;
             Quest.Condition = QuestConditionObj.Ready;
             Logger.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
@@ -1132,8 +1059,6 @@ public class QuestReadyState : QuestState
         }
 
         Quest.ComponentId = 0;
-        //Quest.Status = QuestStatus.Progress;
-        //Quest.Condition = QuestConditionObj.Progress;
         Quest.Step = QuestComponentKind.Ready;
         Logger.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
@@ -1144,9 +1069,7 @@ public class QuestReadyState : QuestState
     }
     public override bool Complete(int selected = 0)
     {
-        //Quest.Step++; // переход к следующему шагу
-        //Quest.Status = QuestStatus.Progress;
-        //Quest.Condition = QuestConditionObj.Progress;
+        Completed = true;
         Quest.Step = QuestComponentKind.Ready;
         Logger.Info($"[QuestReadyState][Complete] Quest: {Quest.TemplateId}. Шаг успешно завершен!");
         Logger.Info($"[QuestReadyState][Complete] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
@@ -1172,15 +1095,6 @@ public class QuestReadyState : QuestState
         Logger.Info($"[QuestReadyState][Drop] Квест {Quest.TemplateId} сброшен");
         Logger.Info($"[QuestReadyState][Drop] Квест {Quest.TemplateId} уже завершен. Нельзя провалить.");
     }
-    //public override List<bool> Execute()
-    //{
-    //    return CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
-    //}
-    //public override void Handle(QuestContext context)
-    //{
-    //    context.State = new QuestRewardState(); // переключим на следующий контекст
-    //    context.State.UpdateContext(Quest, context.State, context, QuestComponentKind.Reward);
-    //}
 }
 public class QuestRewardState : QuestState
 {
@@ -1195,15 +1109,8 @@ public class QuestRewardState : QuestState
         Logger.Info($"[QuestRewardState][Update] Quest: {Quest.TemplateId}. Получаем бонусы.");
 
         // получение бонусов организовано в Quests.Complete
-        // на этом шаге может быть Act Supply
-        //var result = CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
-
-        //Quest.Status = QuestStatus.Ready;
-        //Quest.Condition = QuestConditionObj.Ready;
+        Quest.Step = QuestComponentKind.Reward;
         Logger.Info($"[QuestRewardState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
-
-        // не нужен здесь
-        //Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
 
         return true;
     }
@@ -1213,7 +1120,7 @@ public class QuestRewardState : QuestState
         Logger.Info($"[QuestRewardState][Complete] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
 
         Quest.Owner.Quests.Complete(Quest.TemplateId, selected); // Завершаем квест
-        //Quest.Condition = QuestConditionObj.Complete;
+        Completed = true;
         Quest.Step = QuestComponentKind.Reward;
 
         return true;
@@ -1228,14 +1135,4 @@ public class QuestRewardState : QuestState
         Logger.Info($"[QuestRewardState][Drop] Quest: {Quest.TemplateId} уже завершен. Нельзя сбросить.");
         Logger.Info($"[QuestRewardState][Drop] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Step}, Status {Quest.Status}, Condition {Quest.Condition}");
     }
-    //public override List<bool> Execute()
-    //{
-    //    return CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
-    //}
-    //public override void Handle(QuestContext context)
-    //{
-    //    // TODO какой должен быть шаг?
-    //    context.State = new QuestRewardState(); // переключим на следующий контекст
-    //    context.State.UpdateContext(Quest, context.State, context, QuestComponentKind.Reward);
-    //}
 }

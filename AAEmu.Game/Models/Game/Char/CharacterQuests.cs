@@ -152,16 +152,18 @@ public partial class CharacterQuests
                 {
                     if (quest.Template.LetItDone)
                     {
-                        // Добавим|убавим за перевыполнение|недовыполнение плана, если позволено квестом (Add [reduce] for overfulfilling [underperformance] of the plan, if allowed by the quest)
+                        // Добавим|убавим за перевыполнение|недовыполнение плана, если позволено квестом
+                        // Add [reduce] for overfulfilling [underperformance] of the plan, if allowed by the quest
                         // TODO: Verify if the bonus only applies to the level-based XP/Gold, or if it also applies to the rewards parts in quest_act_supply_xxx
-                        quest.QuestRewardExpPool += (levelBasedRewards.Exp * quest.OverCompletionPercent / 100);
-                        quest.QuestRewardCoinsPool += (levelBasedRewards.Copper * quest.OverCompletionPercent / 100);
+                        quest.QuestRewardExpPool += levelBasedRewards.Exp * quest.OverCompletionPercent / 100;
+                        quest.QuestRewardCoinsPool += levelBasedRewards.Copper * quest.OverCompletionPercent / 100;
 
                         if (!quest.ExtraCompletion)
                         {
-                            // посылаем пакет, так как он был пропущен в методе Update() (send a packet because it was skipped in the Update() method)
+                            // посылаем пакет, так как он был пропущен в методе Update()
+                            // send a packet because it was skipped in the Update() method
                             quest.Status = QuestStatus.Progress;
-                            // проверить нужен ли теперт пакет
+                            // пакет не нужен
                             //Owner.SendPacket(new SCQuestContextUpdatedPacket(quest, quest.ComponentId));
                             quest.Status = QuestStatus.Completed;
                         }
@@ -362,6 +364,7 @@ public partial class CharacterQuests
     {
         CompletedQuests.Add(quest.Id, quest);
     }
+
     public void ResetCompletedQuest(uint questId)
     {
         var completeId = (ushort)(questId / 64);
@@ -578,5 +581,13 @@ public partial class CharacterQuests
                 QuestDetail.DailyLivelihood
             }, true
         );
+    }
+    
+    public void RecallEvents()
+    {
+        foreach (var quest in Owner.Quests.ActiveQuests.Values)
+        {
+            quest.RecallEvents();
+        }
     }
 }

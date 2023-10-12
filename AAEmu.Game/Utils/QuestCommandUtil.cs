@@ -130,6 +130,10 @@ public class QuestCommandUtil
                         {
                             character.SendMessage("[Quest] You do not have the quest {0}", questId);
                         }
+                        // посылаем пакеты для того, что-бы клиент был в курсе обновления квестов
+                        character.Quests.Send();
+                        character.Quests.SendCompleted();
+                        character.Quests.RecallEvents();
                     }
                 }
                 else
