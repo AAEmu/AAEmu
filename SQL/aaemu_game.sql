@@ -507,7 +507,7 @@ CREATE TABLE `item_containers` (
 CREATE TABLE `slaves` (
 	`id` INT(10) UNSIGNED NOT NULL,
 	`item_id` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Item that is used to summon this vehicle',
-	`name` TEXT NULL DEFAULT NULL COLLATE 'utf8mb4_0900_ai_ci',
+	`name` TEXT NULL DEFAULT NULL COLLATE 'utf8mb4_general_ci',
 	`owner` INT(10) UNSIGNED NULL DEFAULT NULL,
 	`created_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
 	`updated_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
@@ -517,4 +517,4 @@ CREATE TABLE `slaves` (
 	`y` FLOAT NULL DEFAULT NULL,
 	`z` FLOAT NULL DEFAULT NULL,
 	PRIMARY KEY (`id`) USING BTREE
-) COMMENT='Player vehicles summons' COLLATE='utf8mb4_0900_ai_ci' ENGINE=InnoDB;
+) COMMENT='Player vehicles summons' COLLATE 'utf8mb4_general_ci' ENGINE=InnoDB;
