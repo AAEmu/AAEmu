@@ -280,6 +280,9 @@ public class Simulation : Patrol
         // first go to the closest checkpoint
         npc.BroadcastPacket(new SCUnitModelPostureChangedPacket(npc, BaseUnitType.Npc, ModelPostureType.ActorModelState, 2), true);
         Path = GetPaths(MoveFileName);
+
+        if (Path.Count == 0) { return; }
+
         var i = GetMinCheckPoint(npc, Path);
         if (i < 0)
         {
