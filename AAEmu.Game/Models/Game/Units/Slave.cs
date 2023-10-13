@@ -184,8 +184,8 @@ public class Slave : Unit
             // Should be 9216 Hp, but we only have 4796 (at 108 base stamina for Lv50)
             // For example a clipper would be correct is we added another 368.33 (= +341%) stamina boost
             // TODO: for now just put a static 250k HP so spawned slaves don't show damaged
-            return 250000;
-            /*
+            //return 250000;
+
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.MaxHealth);
             var parameters = new Dictionary<string, double>();
             parameters["level"] = Level;
@@ -204,7 +204,6 @@ public class Slave : Unit
                     res += bonus.Value;
             }
             return res;
-            */
         }
     }
 

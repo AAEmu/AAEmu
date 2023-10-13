@@ -27,7 +27,7 @@ using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Tasks.Slave;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
-
+using Microsoft.VisualBasic.CompilerServices;
 using NLog;
 using NLog.LayoutRenderers;
 
@@ -446,6 +446,14 @@ public class SlaveManager : Singleton<SlaveManager>
             }
         }
 
+        // Add Passive buffs
+        foreach (var buff in summonedSlave.Template.PassiveBuffs)
+        {
+            var passive = SkillManager.Instance.GetPassiveBuffTemplate(buff.PassiveBuffId);
+            summonedSlave.Buffs.AddBuff(passive.BuffId, summonedSlave);
+        }
+
+        // Add Normal initial buffs
         foreach (var buff in summonedSlave.Template.InitialBuffs)
             summonedSlave.Buffs.AddBuff(buff.BuffId, summonedSlave);
 
