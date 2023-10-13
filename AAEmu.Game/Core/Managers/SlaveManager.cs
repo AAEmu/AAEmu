@@ -1083,6 +1083,39 @@ public class SlaveManager : Singleton<SlaveManager>
                     }
                 }
             }
+            
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM slave_drop_doodads";
+                command.Prepare();
+
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new SlaveDropDoodad()
+                        {
+                            Id = reader.GetUInt32("id"),
+                            OwnerId = reader.GetUInt32("owner_id"),
+                            OwnerType = reader.GetString("owner_type"),
+                            DoodadId = reader.GetUInt32("doodad_id"),
+                            Count = reader.GetUInt32("count"),
+                            Radius = reader.GetFloat("radius"),
+                            OnWater = reader.GetBoolean("on_water", true),
+                        };
+
+                        if (template.OwnerType != "Slave")
+                        {
+                            Logger.Warn($"Non slave-owned drops defined in slave_drop_doodads table");
+                            continue;
+                        }
+                        if (_slaveTemplates.ContainsKey(template.OwnerId))
+                        {
+                            _slaveTemplates[template.OwnerId].SlaveDropDoodads.Add(template);
+                        }
+                    }
+                }
+            }
         }
         #endregion
 

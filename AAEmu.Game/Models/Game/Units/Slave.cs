@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -184,7 +187,26 @@ public class Slave : Unit
             // Should be 9216 Hp, but we only have 4796 (at 108 base stamina for Lv50)
             // For example a clipper would be correct is we added another 368.33 (= +341%) stamina boost
             // TODO: for now just put a static 250k HP so spawned slaves don't show damaged
-            //return 250000;
+
+            // Expected values;
+            // NOTE: Cannons have 34666 Hp
+            //
+            //    ??? Hp -> Misc. Slaves (older formats, mostly unused) - slave_kind_id = 1
+            // 104796 Hp -> Luxury Liner (item 19435) - slave_kind_id = 1
+            //
+            //  42216 Hp -> Schooner - slave_kind_id = 2
+            //  52216 Hp -> Small Warship (Cutter/Junk) - slave_kind_id = 2, NOTE: +10000 HP
+            //  57216 Hp -> Small Warship (Yawl) - slave_kind_id = 2, NOTE: +15000 HP
+            //
+            //   9216 Hp -> Harpoon Clipper - slave_kind_id = 3, NOTE: The Harpoon has 9666 Hp
+            //   6216 Hp -> Rowboats - slave_kind_id = 4
+            //  17216 Hp -> Tanks/Cars - slave_kind_id = 5
+            //   7296 Hp -> Farm Wagon Types - slave_kind_id = 6
+            //  42216 Hp -> Siege Catapult/Tower (item 150/155) - slave_kind_id = 7
+            //   4796 Hp -> War Drum (item 26295) - slave_kind_id = 8 (type 8 seems various canons, war tools and instruments)
+            //  32216 Hp -> Fishing Boats - slave_kind_id = 9
+
+            // return 250000;
 
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.MaxHealth);
             var parameters = new Dictionary<string, double>();
@@ -646,6 +668,53 @@ public class Slave : Unit
         Events.OnDeath(this, new OnDeathArgs { Killer = (Unit)killer, Victim = this });
         Buffs.RemoveEffectsOnDeath();
         killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, (Unit)killer), true);
+
+        DestroyAttachedItems();
+        DistributeSlaveDropDoodads();
+    }
+
+    private void DestroyAttachedItems()
+    {
+        foreach (var doodad in AttachedDoodads)
+        {
+            ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+            doodad.IsPersistent = false;
+            doodad.Delete();
+        }
+        foreach (var slave in AttachedSlaves)
+        {
+            ObjectIdManager.Instance.ReleaseId(slave.ObjId);
+            // slave.IsPersistent = false;
+            slave.Delete();
+        }
+    }
+
+    private void DistributeSlaveDropDoodads()
+    {
+        foreach (var dropDoodad in Template.SlaveDropDoodads)
+        {
+            for (var counter = 0; counter < dropDoodad.Count; counter++)
+            {
+                var doodad = DoodadManager.Instance.Create(0, dropDoodad.DoodadId, null, true);
+                var pos = Transform.World.Position;
+                var rng = new Vector3((Random.Shared.NextSingle() * 2f) - 1f, (Random.Shared.NextSingle() * 2f) - 1f, 0);
+                rng = Vector3.Normalize(rng);
+                rng *= Random.Shared.NextSingle() * dropDoodad.Radius;
+                pos += rng;
+                doodad.Transform.Local.SetPosition(pos);
+                if (dropDoodad.OnWater == false)
+                {
+                    doodad.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(doodad.Transform.ZoneId, pos.X, pos.Y));
+                }
+                else
+                {
+                    doodad.Transform.Local.SetHeight(WorldManager.Instance.GetWorld(doodad.Transform.WorldId).Water.GetWaterSurface(pos));
+                }
+                doodad.Transform.Local.Rotate(0,0,(float)(Random.Shared.NextDouble() * Math.PI * 2f));
+                doodad.InitDoodad();
+                doodad.Spawn();
+            }
+        }
     }
 
     public bool Save()

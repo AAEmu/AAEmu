@@ -419,7 +419,7 @@ public class ItemContainer
             if (owner != null)
             {
                 var checkSlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(owner.ObjId);
-                if (checkSlave.Id == summonSlaveItem.SlaveDbId)
+                if (checkSlave?.Id == summonSlaveItem.SlaveDbId)
                 {
                     owner.SendErrorMessage(ErrorMessageType.SlaveSpawnItemLocked);
                     return false;
