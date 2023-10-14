@@ -19,12 +19,12 @@ public class GetAttribute : ICommand
 
     public string GetCommandLineHelp()
     {
-        return "<attrId || attrName> [target]";
+        return "[target] <attrId || attrName || all || used>";
     }
 
     public string GetCommandHelpText()
     {
-        return "getattribute <attrId || attrName> [target]";
+        return "getattribute " + GetCommandLineHelp();
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
@@ -34,7 +34,7 @@ public class GetAttribute : ICommand
 
         if (args.Length == 0)
         {
-            character.SendMessage("[GetAttribute] " + CommandManager.CommandPrefix + "getattribute <attrId || attrName> [target]");
+            character.SendMessage("[GetAttribute] " + CommandManager.CommandPrefix + GetCommandHelpText());
             return;
         }
 
@@ -49,12 +49,28 @@ public class GetAttribute : ICommand
             argsIdx++;
         }
 
+        character.SendPacket(new SCChatMessagePacket(ChatType.System, $"[GetAttribute] Stats for target {target.Name} ({target.ObjId})"));
+
         if (args[argsIdx].ToLower() == "all")
         {
             foreach (var attr in Enum.GetValues(typeof(UnitAttribute)))
             {
-                string value = target.GetAttribute((UnitAttribute)attr);
+                var value = target.GetAttribute((UnitAttribute)attr);
                 character.SendPacket(new SCChatMessagePacket(ChatType.System, $"{(UnitAttribute)attr}: {value}"));
+            }
+        }
+        else if (args[argsIdx].ToLower() == "used")
+        {
+            foreach (var attr in Enum.GetValues(typeof(UnitAttribute)))
+            {
+                var value = target.GetAttribute((UnitAttribute)attr);
+                var hide = value == "NotFound";
+                if (value == "0")
+                    hide = true;
+                if ((value == "1") && ((UnitAttribute)attr).ToString().Contains("Mul"))
+                    hide = true;
+                if (!hide)
+                    character.SendPacket(new SCChatMessagePacket(ChatType.System, $"{(UnitAttribute)attr}: {value}"));
             }
         }
         else if (byte.TryParse(args[argsIdx], out byte attrId))

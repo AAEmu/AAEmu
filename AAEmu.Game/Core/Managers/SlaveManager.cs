@@ -436,6 +436,12 @@ public class SlaveManager : Singleton<SlaveManager>
             SpawnTime = DateTime.UtcNow
         };
 
+        if (!isLoadedPlayerSlave)
+        {
+            summonedSlave.Hp = summonedSlave.MaxHp;
+            summonedSlave.Mp = summonedSlave.MaxMp;
+        }
+
         if (_slaveInitialItems.TryGetValue(summonedSlave.Template.SlaveInitialItemPackId, out var itemPack))
         {
             foreach (var initialItem in itemPack)
@@ -457,91 +463,91 @@ public class SlaveManager : Singleton<SlaveManager>
         foreach (var buff in summonedSlave.Template.InitialBuffs)
             summonedSlave.Buffs.AddBuff(buff.BuffId, summonedSlave);
 
-        summonedSlave.Hp = summonedSlave.MaxHp;
-        summonedSlave.Mp = summonedSlave.MaxMp;
+        summonedSlave.Hp = Math.Min(summonedSlave.Hp, summonedSlave.MaxHp);
+        summonedSlave.Mp = Math.Min(summonedSlave.Mp, summonedSlave.MaxMp);
 
         summonedSlave.Transform = spawnPos.CloneDetached(summonedSlave);
         summonedSlave.Spawn();
 
-        // TODO - DOODAD SERVER SIDE
-        if (isLoadedPlayerSlave == false)
+        // If this was a previously saved slave, load doodads from DB and spawn them
+        var doodadSpawnCount = SpawnManager.Instance.SpawnPersistentDoodads(DoodadOwnerType.Slave, (int)summonedSlave.Id, summonedSlave, true);
+        Logger.Debug($"Loaded {doodadSpawnCount} doodads from DB for Slave {summonedSlave.ObjId} (Db: {summonedSlave.Id}");
+
+        // Create all remaining doodads that where not previously loaded
+        foreach (var doodadBinding in summonedSlave.Template.DoodadBindings)
         {
-            // This is a new slave, create all doodads
-            foreach (var doodadBinding in summonedSlave.Template.DoodadBindings)
+            // If this AttachPoint has already been spawned, skip it's creation
+            if (summonedSlave.AttachedDoodads.Any(d => d.AttachPoint == doodadBinding.AttachPointId))
+                continue;
+
+            var doodad = new Doodad
             {
-                var doodad = new Doodad
+                ObjId = ObjectIdManager.Instance.GetNextId(),
+                TemplateId = doodadBinding.DoodadId,
+                OwnerObjId = owner.ObjId,
+                ParentObjId = summonedSlave.ObjId,
+                AttachPoint = doodadBinding.AttachPointId,
+                OwnerId = owner.Id,
+                PlantTime = summonedSlave.SpawnTime,
+                OwnerType = DoodadOwnerType.Slave,
+                OwnerDbId = summonedSlave.Id,
+                Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
+                Data = (byte)doodadBinding.AttachPointId, // copy of AttachPointId
+                ParentObj = summonedSlave,
+                Faction = summonedSlave.Faction,
+                Type2 = 1u, // Flag: No idea why it's 1 for slave's doodads, seems to be 0 for everything else
+                Spawner = null,
+            };
+
+            doodad.SetScale(doodadBinding.Scale);
+
+            doodad.FuncGroupId = doodad.GetFuncGroupId();
+            doodad.Transform = summonedSlave.Transform.CloneAttached(doodad);
+            doodad.Transform.Parent = summonedSlave.Transform;
+
+            // NOTE: In 1.2 we can't replace slave parts like sail, so just apply it to all of the doodads on spawn)
+            // Should probably have a check somewhere if a doodad can have the UCC applied or not
+            if (item != null && item.HasFlag(ItemFlag.HasUCC) && (item.UccId > 0))
+                doodad.UccId = item.UccId;
+
+            if (_attachPoints.ContainsKey(summonedSlave.ModelId))
+            {
+                if (_attachPoints[summonedSlave.ModelId].ContainsKey(doodadBinding.AttachPointId))
                 {
-                    ObjId = ObjectIdManager.Instance.GetNextId(),
-                    TemplateId = doodadBinding.DoodadId,
-                    OwnerObjId = owner.ObjId,
-                    ParentObjId = summonedSlave.ObjId,
-                    AttachPoint = doodadBinding.AttachPointId,
-                    OwnerId = owner.Id,
-                    PlantTime = summonedSlave.SpawnTime,
-                    OwnerType = DoodadOwnerType.Slave,
-                    OwnerDbId = summonedSlave.Id,
-                    Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
-                    Data = (byte)doodadBinding.AttachPointId, // copy of AttachPointId
-                    ParentObj = summonedSlave,
-                    Faction = summonedSlave.Faction,
-                    Type2 = 1u, // Flag: No idea why it's 1 for slave's doodads, seems to be 0 for everything else
-                    Spawner = null
-                };
-
-                doodad.SetScale(doodadBinding.Scale);
-
-                doodad.FuncGroupId = doodad.GetFuncGroupId();
-                doodad.Transform = summonedSlave.Transform.CloneAttached(doodad);
-                doodad.Transform.Parent = summonedSlave.Transform;
-
-                // NOTE: In 1.2 we can't replace slave parts like sail, so just apply it to all of the doodads on spawn)
-                // Should probably have a check somewhere if a doodad can have the UCC applied or not
-                if (item != null && item.HasFlag(ItemFlag.HasUCC) && (item.UccId > 0))
-                    doodad.UccId = item.UccId;
-
-                if (_attachPoints.ContainsKey(summonedSlave.ModelId))
-                {
-                    if (_attachPoints[summonedSlave.ModelId].ContainsKey(doodadBinding.AttachPointId))
-                    {
-                        doodad.Transform = summonedSlave.Transform.CloneAttached(doodad);
-                        doodad.Transform.Parent = summonedSlave.Transform;
-                        doodad.Transform.Local.Translate(
-                            _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId]
-                                .AsPositionVector());
-                        doodad.Transform.Local.SetRotation(
-                            _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Roll,
-                            _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Pitch,
-                            _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Yaw);
-                        Logger.Debug("Model id: {0} attachment {1} => pos {2} = {3}", summonedSlave.ModelId,
-                            doodadBinding.AttachPointId,
-                            _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId],
-                            doodad.Transform);
-                    }
-                    else
-                    {
-                        Logger.Warn("Model id: {0} incomplete attach point information", summonedSlave.ModelId);
-                    }
+                    doodad.Transform = summonedSlave.Transform.CloneAttached(doodad);
+                    doodad.Transform.Parent = summonedSlave.Transform;
+                    doodad.Transform.Local.Translate(
+                        _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId]
+                            .AsPositionVector());
+                    doodad.Transform.Local.SetRotation(
+                        _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Roll,
+                        _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Pitch,
+                        _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Yaw);
+                    Logger.Debug("Model id: {0} attachment {1} => pos {2} = {3}", summonedSlave.ModelId,
+                        doodadBinding.AttachPointId,
+                        _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId],
+                        doodad.Transform);
                 }
                 else
                 {
-                    doodad.Transform = new Transform(doodad);
-                    Logger.Warn("Model id: {0} has no attach point information", summonedSlave.ModelId);
-                }
-
-                summonedSlave.AttachedDoodads.Add(doodad);
-                doodad.Spawn();
-                if ((owner?.Id > 0) && (item?.Id > 0))
-                {
-                    doodad.IsPersistent = true;
-                    doodad.Save();
+                    Logger.Warn("Model id: {0} incomplete attach point information", summonedSlave.ModelId);
                 }
             }
-        }
-        else
-        {
-            // This was a previously saved slave, load doodads from DB instead
-            var doodadSpawnCount = SpawnManager.Instance.SpawnPersistentDoodads(DoodadOwnerType.Slave, (int)summonedSlave.Id, summonedSlave, true);
-            Logger.Debug($"Loaded {doodadSpawnCount} doodads from DB for Slave {summonedSlave.ObjId} (Db: {summonedSlave.Id}");
+            else
+            {
+                doodad.Transform = new Transform(doodad);
+                Logger.Warn("Model id: {0} has no attach point information", summonedSlave.ModelId);
+            }
+
+            summonedSlave.AttachedDoodads.Add(doodad);
+            doodad.Spawn();
+
+            // Only set IsPersistent if the binding is defined as such
+            if ((owner?.Id > 0) && (item?.Id > 0) && (doodadBinding.Persist))
+            {
+                doodad.IsPersistent = true;
+                doodad.Save();
+            }
         }
 
         foreach (var slaveBinding in summonedSlave.Template.SlaveBindings)
@@ -1047,7 +1053,7 @@ public class SlaveManager : Singleton<SlaveManager>
                             OwnerType = reader.GetString("owner_type"),
                             AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id"),
                             DoodadId = reader.GetUInt32("doodad_id"),
-                            Persist = reader.GetBoolean("persist"),
+                            Persist = reader.GetBoolean("persist", true),
                             Scale = reader.GetFloat("scale")
                         };
                         if (_slaveTemplates.ContainsKey(template.OwnerId))
@@ -1083,7 +1089,7 @@ public class SlaveManager : Singleton<SlaveManager>
                     }
                 }
             }
-            
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM slave_drop_doodads";
