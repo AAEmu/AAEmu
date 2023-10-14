@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using System.Security.AccessControl;
+
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -16,6 +18,7 @@ public class QuestActObjItemGroupGather : QuestActTemplate
     public bool DestroyWhenDrop { get; set; }
 
     public static int GroupGatherStatus { get; private set; } = 0;
+    private int Objective { get; set; }
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
@@ -34,22 +37,44 @@ public class QuestActObjItemGroupGather : QuestActTemplate
                     quest.ExtraCompletion = true;
             }
 
+            Update();
+
             return quest.OverCompletionPercent >= quest.Template.Score;
         }
-        else
+
+        if (quest.Template.LetItDone)
         {
-            if (quest.Template.LetItDone)
-            {
-                quest.OverCompletionPercent = objective * 100 / Count;
+            quest.OverCompletionPercent = objective * 100 / Count;
 
-                if (quest.OverCompletionPercent >= 50)
-                    quest.EarlyCompletion = true;
+            if (quest.OverCompletionPercent >= 50)
+                quest.EarlyCompletion = true;
 
-                if (quest.OverCompletionPercent > 100)
-                    quest.ExtraCompletion = true;
-            }
-
-            return objective >= Count;
+            if (quest.OverCompletionPercent > 100)
+                quest.ExtraCompletion = true;
         }
+
+        Update();
+
+        return objective >= Count;
+    }
+    public override void Update()
+    {
+        Objective++;
+    }
+    public override bool IsCompleted()
+    {
+        return Objective >= Count;
+    }
+    public override int GetCount()
+    {
+        Logger.Info("Получим, информацию на сколько выполнено задание.");
+
+        return Objective;
+    }
+    public override void ClearStatus()
+    {
+        GroupGatherStatus = 0;
+        Objective = 0;
+        Logger.Info("Сбросили статус в ноль.");
     }
 }

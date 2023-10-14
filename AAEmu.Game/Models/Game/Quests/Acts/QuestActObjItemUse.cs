@@ -1,6 +1,4 @@
-﻿using System.Security.AccessControl;
-
-using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -67,8 +65,14 @@ public class QuestActObjItemUse : QuestActTemplate
     }
     public override int GetCount()
     {
-        Logger.Info("Получим, сколько уже имеем предметов по заданию.");
+        Logger.Info("Получим, информацию на сколько выполнено задание.");
 
         return Objective;
+    }
+    public override void ClearStatus()
+    {
+        ItemUseStatus = 0;
+        Objective = 0;
+        Logger.Info("Сбросили статус в ноль.");
     }
 }

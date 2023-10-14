@@ -68,8 +68,14 @@ public class QuestActObjItemGather : QuestActTemplate // Сбор предмет
     }
     public override int GetCount()
     {
-        Logger.Info("Получим, сколько уже имеем предметов по заданию.");
+        Logger.Info("Получим, информацию на сколько выполнено задание.");
 
         return Objective;
+    }
+    public override void ClearStatus()
+    {
+        GatherStatus = 0;
+        Objective = 0;
+        Logger.Info("Сбросили статус в ноль.");
     }
 }

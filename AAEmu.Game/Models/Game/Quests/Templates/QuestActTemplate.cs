@@ -1,6 +1,4 @@
-﻿using System.Security.AccessControl;
-
-using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Char;
 
 using NLog;
 
@@ -13,11 +11,11 @@ public abstract class QuestActTemplate
 
     public void Start()
     {
-        Logger.Debug("Акт начат.");
+        Logger.Info("Акт начат.");
     }
     public void Complete()
     {
-        Logger.Debug("Акт завершен.");
+        Logger.Info("Акт завершен.");
     }
     public virtual bool IsCompleted()
     {
@@ -25,12 +23,16 @@ public abstract class QuestActTemplate
     }
     public virtual int GetCount()
     {
-        Logger.Debug("Получим, сколько уже имеем предметов по заданию.");
+        Logger.Info("Получим, информацию на сколько выполнено задание.");
         return 0;
     }
     public virtual void Update()
     {
-        Logger.Debug("Акт обновлен.");
+        Logger.Info("Акт обновлен.");
+    }
+    public virtual void ClearStatus()
+    {
+        Logger.Info("Сбросили статус в ноль.");
     }
 
     public abstract bool Use(ICharacter character, Quest quest, int objective);

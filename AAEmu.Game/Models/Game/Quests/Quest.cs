@@ -921,6 +921,7 @@ EndLoop:
                             Logger.Warn($"[Quest] Complete: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {act.DetailType}");
                             break;
                         default:
+
                             res = act.Use(Owner, this, Objectives[componentIndex]);
                             if (ComponentId == 0)
                                 ComponentId = currentComponent.Id;
@@ -1061,6 +1062,72 @@ EndLoop:
             }
         }
     }
+    private void ClearQuestStatus()
+    {
+        var components = Template.GetComponents(QuestComponentKind.Progress);
+        if (components.Length == 0)
+            return;
+
+        for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
+        {
+            var acts = _questManager.GetActs(components[componentIndex].Id);
+            foreach (var act in acts)
+            {
+                switch (act.DetailType)
+                {
+                    case "QuestActObjMonsterHunt":
+                        {
+                            var template = act.GetTemplate<QuestActObjMonsterHunt>();
+                            template.ClearStatus();
+                            Logger.Info($"[Quest][ClearQuestStatus]: character={Owner.Name}, quest={TemplateId}, ComponentId={ComponentId}, Step={Step}, Status={Status}, act.DetailType={act.DetailType}");
+                            break;
+                        }
+                    case "QuestActObjMonsterGroupHunt":
+                        {
+                            var template = act.GetTemplate<QuestActObjMonsterGroupHunt>();
+                            template.ClearStatus();
+                            Logger.Info($"[Quest][ClearQuestStatus]: character={Owner.Name}, quest={TemplateId}, ComponentId={ComponentId}, Step={Step}, Status={Status}, act.DetailType={act.DetailType}");
+                            break;
+                        }
+                    case "QuestActObjInteraction":
+                        {
+                            var template = act.GetTemplate<QuestActObjInteraction>();
+                            template.ClearStatus();
+                            Logger.Info($"[Quest][ClearQuestStatus]: character={Owner.Name}, quest={TemplateId}, ComponentId={ComponentId}, Step={Step}, Status={Status}, act.DetailType={act.DetailType}");
+                            break;
+                        }
+                    case "QuestActObjItemGather":
+                        {
+                            var template = act.GetTemplate<QuestActObjItemGather>();
+                            template.ClearStatus();
+                            Logger.Info($"[Quest][ClearQuestStatus]: character={Owner.Name}, quest={TemplateId}, ComponentId={ComponentId}, Step={Step}, Status={Status}, act.DetailType={act.DetailType}");
+                            break;
+                        }
+                    case "QuestActObjItemGroupGather":
+                        {
+                            var template = act.GetTemplate<QuestActObjItemGroupGather>();
+                            template.ClearStatus();
+                            Logger.Info($"[Quest][ClearQuestStatus]: character={Owner.Name}, quest={TemplateId}, ComponentId={ComponentId}, Step={Step}, Status={Status}, act.DetailType={act.DetailType}");
+                            break;
+                        }
+                    case "QuestActObjItemGroupUse":
+                        {
+                            var template = act.GetTemplate<QuestActObjItemGroupUse>();
+                            template.ClearStatus();
+                            Logger.Info($"[Quest][ClearQuestStatus]: character={Owner.Name}, quest={TemplateId}, ComponentId={ComponentId}, Step={Step}, Status={Status}, act.DetailType={act.DetailType}");
+                            break;
+                        }
+                    case "QuestActObjItemUse":
+                        {
+                            var template = act.GetTemplate<QuestActObjItemUse>();
+                            template.ClearStatus();
+                            Logger.Info($"[Quest][ClearQuestStatus]: character={Owner.Name}, quest={TemplateId}, ComponentId={ComponentId}, Step={Step}, Status={Status}, act.DetailType={act.DetailType}");
+                            break;
+                        }
+                }
+            }
+        }
+    }
 
     public void Drop(bool update)
     {
@@ -1077,8 +1144,8 @@ EndLoop:
             Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
 
         RemoveQuestItems();
-        for (var i = 0; i < ObjectiveCount; i++)
-            Objectives[i] = 0;
+        ClearQuestStatus();
+        ClearObjectives();
     }
 
     #region Events
@@ -1710,6 +1777,8 @@ EndLoop:
     public void ClearObjectives()
     {
         Objectives = new int[ObjectiveCount];
+        for (var i = 0; i < ObjectiveCount; i++)
+            Objectives[i] = 0;
     }
 
     public int[] GetObjectives(QuestComponentKind step)

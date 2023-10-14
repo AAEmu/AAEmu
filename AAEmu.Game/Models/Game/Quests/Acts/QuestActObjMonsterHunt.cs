@@ -34,8 +34,10 @@ public class QuestActObjMonsterHunt : QuestActTemplate
                     quest.ExtraCompletion = true;
             }
 
-            Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, HuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}",
-                NpcId, Count, HuntStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
+            Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, HuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}", NpcId, Count, HuntStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
+
+            Update();
+
             return quest.OverCompletionPercent >= quest.Template.Score;
         }
 
@@ -49,8 +51,30 @@ public class QuestActObjMonsterHunt : QuestActTemplate
             if (quest.OverCompletionPercent > 100)
                 quest.ExtraCompletion = true;
         }
-        Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, quest {2}, objective {3}",
-            NpcId, Count, quest.TemplateId, objective);
+        Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, quest {2}, objective {3}", NpcId, Count, quest.TemplateId, objective);
+
+        Update();
+
         return objective >= Count;
+    }
+    public override void Update()
+    {
+        Objective++;
+    }
+    public override bool IsCompleted()
+    {
+        return Objective >= Count;
+    }
+    public override int GetCount()
+    {
+        Logger.Info("Получим, информацию на сколько выполнено задание.");
+
+        return Objective;
+    }
+    public override void ClearStatus()
+    {
+        HuntStatus = 0;
+        Objective = 0;
+        Logger.Info("Сбросили статус в ноль.");
     }
 }
