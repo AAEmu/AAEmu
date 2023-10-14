@@ -251,7 +251,7 @@ public class SlaveManager : Singleton<SlaveManager>
             activeSlaveInfo.Save();
             // TODO: If too far away, don't delete
             Delete(owner, activeSlaveInfo.ObjId);
-            return;
+            // return;
         }
 
         var item = owner.Inventory.GetItemById(skillData.ItemId);
@@ -1262,5 +1262,23 @@ public class SlaveManager : Singleton<SlaveManager>
         }
 
         return null;
+    }
+
+    public void RemoveActiveSlave(Character character, ushort slaveTlId)
+    {
+        if (_tlSlaves.TryGetValue(slaveTlId, out var slave))
+        {
+            if (slave.Summoner?.ObjId != character.ObjId)
+            {
+                Logger.Warn($"Non-owner is trying to desummon a slave {character.Name} => {slave.Name} (ObjId: {slave.ObjId})");
+                return;
+            }
+        }
+        else
+        {
+            return;
+        }
+
+        slave.Delete();
     }
 }

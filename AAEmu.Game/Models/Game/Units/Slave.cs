@@ -13,8 +13,11 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.StaticValues;
 using Jitter.Dynamics;
 using MySql.Data.MySqlClient;
 
@@ -671,16 +674,91 @@ public class Slave : Unit
 
         DestroyAttachedItems();
         DistributeSlaveDropDoodads();
+
+        Summoner?.SendPacket(new SCMySlavePacket(ObjId, TlId, Name, TemplateId, Hp, MaxHp, Transform.World.Position.X,Transform.World.Position.Y,Transform.World.Position.Z));
+        Summoner?.SendPacket(new SCSlaveRemovedPacket(ObjId, TlId));
     }
 
     private void DestroyAttachedItems()
     {
+        // Destroy Doodads
         foreach (var doodad in AttachedDoodads)
         {
+            // Check if the doodad held a item
+            if (doodad.ItemId > 0)
+            {
+                var droppedItem = ItemManager.Instance.GetItemByItemId(doodad.ItemId);
+                // If the held item is a backpack, drop it to the floor
+                if (droppedItem is Backpack backpackItem)
+                {
+                    // Drop Backpack to the floor (spawn doodad)
+                    var putDownSkill = SkillManager.Instance.GetSkillTemplate(backpackItem.Template.UseSkillId);
+                    foreach (var skillEffect in putDownSkill.Effects)
+                    {
+                        if (skillEffect.Template is not PutDownBackpackEffect putDownBackpackEffectTemplate)
+                            continue;
+
+                        var newDoodadId = putDownBackpackEffectTemplate.BackpackDoodadId;
+
+                        // Create the Doodad at location on the floor if it's close to it
+                        var newDoodad = DoodadManager.Instance.Create(0, newDoodadId, null, true);
+                        if (newDoodad == null)
+                        {
+                            Logger.Warn($"Dropped Doodad {newDoodadId}, from BackpackDoodadId could not be created");
+                            return;
+                        }
+                        newDoodad.IsPersistent = true;
+                        newDoodad.Transform = doodad.Transform.CloneDetached();
+                        // Add a bit of randomness to the dropped doodad
+                        newDoodad.Transform.Local.Translate((Random.Shared.NextSingle() * 2f) - 1f,
+                            (Random.Shared.NextSingle() * 2f) - 1f, 0);
+                        newDoodad.AttachPoint = AttachPointKind.None;
+                        newDoodad.ItemId = droppedItem.Id;
+                        newDoodad.ItemTemplateId = droppedItem.TemplateId;
+                        newDoodad.UccId = droppedItem.UccId; // Not sure if it's needed, but let's copy the Ucc for completeness' sake
+                        newDoodad.SetScale(1f);
+                        newDoodad.PlantTime = DateTime.UtcNow;
+                        newDoodad.Faction = FactionManager.Instance.GetFaction(FactionsEnum.Friendly);
+
+                        var floor = WorldManager.Instance.GetHeight(newDoodad.Transform);
+                        var surface = WorldManager.Instance.GetWorld(doodad.Transform.WorldId)?.Water?.GetWaterSurface(newDoodad.Transform.World.Position) ?? 0f;
+                        var depth = surface - floor;
+
+                        // It seems that when the water is deep, drops to the water surface, otherwise, it sinks to the floor
+                        // Requires more testing, possibly a server setting?
+                        newDoodad.Transform.Local.SetHeight(depth < 30f ? floor : Math.Max(floor, surface));
+
+                        // Save new doodad
+                        newDoodad.InitDoodad();
+                        newDoodad.Spawn();
+                        newDoodad.Save();
+
+                        // Remove data from trade pack slot
+                        doodad.ItemTemplateId = 0;
+                        doodad.ItemId = 0;
+
+                        // Hacky way to force move to next phase to reset doodad to default before saving
+                        var funcs = DoodadManager.Instance.GetDoodadFuncs(doodad.FuncGroupId);
+                        foreach (var phaseFunc in funcs)
+                        {
+                            if (phaseFunc.FuncType == "DoodadFuncRecoverItem")
+                            {
+                                doodad.DoChangePhase(null, phaseFunc.NextPhase);
+                                break;
+                            }
+                        }
+
+                        // Save new empty data
+                        doodad.Save();
+                    }
+                }
+            }
             ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
             doodad.IsPersistent = false;
             doodad.Delete();
         }
+
+        // Destroy Slaves
         foreach (var slave in AttachedSlaves)
         {
             ObjectIdManager.Instance.ReleaseId(slave.ObjId);
@@ -734,28 +812,26 @@ public class Slave : Unit
         var result = false;
         try
         {
-            using (var command = connection.CreateCommand())
-            {
-                command.Connection = connection;
-                if (transaction != null)
-                    command.Transaction = transaction;
+            using var command = connection.CreateCommand();
+            command.Connection = connection;
+            if (transaction != null)
+                command.Transaction = transaction;
 
-                command.CommandText =
-                    "REPLACE INTO slaves(`id`,`item_id`,`name`,`owner`,`updated_at`,`hp`,`mp`,`x`,`y`,`z`) " +
-                    "VALUES (@id, @item_id, @name, @owner, @updated_at, @hp, @mp, @x, @y, @z)";
-                command.Parameters.AddWithValue("@id", Id);
-                command.Parameters.AddWithValue("@item_id", SummoningItem?.Id ?? 0);
-                command.Parameters.AddWithValue("@owner", Summoner?.Id ?? OwnerId);
-                command.Parameters.AddWithValue("@name", Name);
-                command.Parameters.AddWithValue("@hp", Hp);
-                command.Parameters.AddWithValue("@mp", Mp);
-                command.Parameters.AddWithValue("@updated_at", DateTime.UtcNow);
-                command.Parameters.AddWithValue("@x", Transform.World.Position.X);
-                command.Parameters.AddWithValue("@y", Transform.World.Position.Y);
-                command.Parameters.AddWithValue("@z", Transform.World.Position.Z);
-                command.ExecuteNonQuery();
-                result = true;
-            }
+            command.CommandText =
+                "REPLACE INTO slaves(`id`,`item_id`,`name`,`owner`,`updated_at`,`hp`,`mp`,`x`,`y`,`z`) " +
+                "VALUES (@id, @item_id, @name, @owner, @updated_at, @hp, @mp, @x, @y, @z)";
+            command.Parameters.AddWithValue("@id", Id);
+            command.Parameters.AddWithValue("@item_id", SummoningItem?.Id ?? 0);
+            command.Parameters.AddWithValue("@owner", Summoner?.Id ?? OwnerId);
+            command.Parameters.AddWithValue("@name", Name);
+            command.Parameters.AddWithValue("@hp", Hp);
+            command.Parameters.AddWithValue("@mp", Mp);
+            command.Parameters.AddWithValue("@updated_at", DateTime.UtcNow);
+            command.Parameters.AddWithValue("@x", Transform.World.Position.X);
+            command.Parameters.AddWithValue("@y", Transform.World.Position.Y);
+            command.Parameters.AddWithValue("@z", Transform.World.Position.Z);
+            command.ExecuteNonQuery();
+            result = true;
         }
         catch (Exception ex)
         {
