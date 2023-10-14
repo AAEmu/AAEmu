@@ -14,6 +14,7 @@ using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items;
@@ -21,6 +22,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
+using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
@@ -436,6 +438,76 @@ public class SlaveManager : Singleton<SlaveManager>
             SpawnTime = DateTime.UtcNow
         };
 
+        // TODO: HACK Get Proper Values from somewhere?
+        var bonusHp = 0;
+        switch (summonedSlave.Template.SlaveKind)
+        {
+            case SlaveKind.BigSailingShip:
+            case SlaveKind.SmallSailingShip:
+                break;
+            case SlaveKind.Speedboat:
+                bonusHp += 4420;
+                break;
+            case SlaveKind.Boat:
+                bonusHp += 1420;
+                break;
+            case SlaveKind.Tank: // Tanks/Cars
+                bonusHp += 12420;
+                break;
+            case SlaveKind.Machine: // Farm Wagons
+                bonusHp += 2500;
+                break;
+            case SlaveKind.SiegeWeapon:
+                bonusHp += 37420;
+                break;
+            case SlaveKind.SlaveEquipment:
+                break;
+            case SlaveKind.Fishboat:
+                bonusHp += 27420;
+                break;
+            case SlaveKind.MerchantShip:
+                break;
+            case SlaveKind.Leviathan:
+                break;
+        }
+        switch (slaveTemplate.ModelId)
+        {
+            case 1205: // Merchant Schooner
+                bonusHp += 37420;
+                break;
+            case 393:  // Eznan Cutter
+            case 1249: // Lutesong Junk
+                bonusHp += 47420;
+                break;
+            case 523:  // Growling Yawl
+                bonusHp += 52420;
+                break;
+            case 1279: // War Drum (has no actual bonus)
+                bonusHp += 0;
+                break;
+            case 1046: // Luxury Liner
+                bonusHp += 100000;
+                break;
+            default:
+                if (bonusHp <= 0)
+                    owner.SendMessage(ChatType.System, $"No HP Bonus defined for ModelId {slaveTemplate.ModelId}, SlaveId {slaveTemplate.Id}, please inform the devs!");
+                break;
+        }
+
+        if (bonusHp > 0)
+        {
+            summonedSlave.AddBonus(1,
+                new Bonus()
+                {
+                    Template = new BonusTemplate()
+                    {
+                        Attribute = UnitAttribute.MaxHealth,
+                        ModifierType = UnitModifierType.Value
+                    },
+                    Value = bonusHp,
+                });
+        }
+
         if (!isLoadedPlayerSlave)
         {
             summonedSlave.Hp = summonedSlave.MaxHp;
@@ -629,6 +701,7 @@ public class SlaveManager : Singleton<SlaveManager>
 
     public Slave Create(SlaveSpawner spawner, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
     {
+        // TODO: replace this in favor of the Create() function above so that bonuses get applied
         var slaveTemplate = GetSlaveTemplate(spawner.UnitId);
         if (slaveTemplate == null) return null;
 
