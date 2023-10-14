@@ -29,9 +29,7 @@ using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Tasks.Slave;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
-using Microsoft.VisualBasic.CompilerServices;
 using NLog;
-using NLog.LayoutRenderers;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -291,7 +289,7 @@ public class SlaveManager : Singleton<SlaveManager>
         var slaveHp = 1;
         var slaveMp = 1;
         var isLoadedPlayerSlave = false;
-        if ((owner.Id > 0) && (item?.Id > 0))
+        if ((owner?.Id > 0) && (item?.Id > 0))
         {
             using var connection = MySQL.CreateConnection();
             using (var command = connection.CreateCommand())
@@ -334,7 +332,7 @@ public class SlaveManager : Singleton<SlaveManager>
             slaveSummonItem.SlaveType = 0x02;
             slaveSummonItem.SlaveDbId = dbId;
             slaveSummonItem.IsDirty = true;
-            owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new ItemUpdate(item), new List<ulong>()));
+            owner?.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new ItemUpdate(item), new List<ulong>()));
         }
 
         // Replacing the position with the new coordinates from the method call parameters
@@ -410,7 +408,7 @@ public class SlaveManager : Singleton<SlaveManager>
             spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.Rotation.Z + (MathF.PI / 2));
         }
 
-        owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, hideSpawnEffect, 0, owner.Name), true);
+        owner?.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, hideSpawnEffect, 0, owner.Name), true);
 
         // Get new Id to save if it has a player as owner
         if ((owner?.Id > 0) && (dbId <= 0))
@@ -431,82 +429,14 @@ public class SlaveManager : Singleton<SlaveManager>
             Hp = slaveHp,
             Mp = slaveMp,
             ModelParams = new UnitCustomModelParams(),
-            Faction = owner.Faction,
+            Faction = owner?.Faction ?? FactionManager.Instance.GetFaction(slaveTemplate.FactionId),
             Id = dbId,
             Summoner = owner,
             SummoningItem = item,
             SpawnTime = DateTime.UtcNow
         };
 
-        // TODO: HACK Get Proper Values from somewhere?
-        var bonusHp = 0;
-        switch (summonedSlave.Template.SlaveKind)
-        {
-            case SlaveKind.BigSailingShip:
-            case SlaveKind.SmallSailingShip:
-                break;
-            case SlaveKind.Speedboat:
-                bonusHp += 4420;
-                break;
-            case SlaveKind.Boat:
-                bonusHp += 1420;
-                break;
-            case SlaveKind.Tank: // Tanks/Cars
-                bonusHp += 12420;
-                break;
-            case SlaveKind.Machine: // Farm Wagons
-                bonusHp += 2500;
-                break;
-            case SlaveKind.SiegeWeapon:
-                bonusHp += 37420;
-                break;
-            case SlaveKind.SlaveEquipment:
-                break;
-            case SlaveKind.Fishboat:
-                bonusHp += 27420;
-                break;
-            case SlaveKind.MerchantShip:
-                break;
-            case SlaveKind.Leviathan:
-                break;
-        }
-        switch (slaveTemplate.ModelId)
-        {
-            case 1205: // Merchant Schooner
-                bonusHp += 37420;
-                break;
-            case 393:  // Eznan Cutter
-            case 1249: // Lutesong Junk
-                bonusHp += 47420;
-                break;
-            case 523:  // Growling Yawl
-                bonusHp += 52420;
-                break;
-            case 1279: // War Drum (has no actual bonus)
-                bonusHp += 0;
-                break;
-            case 1046: // Luxury Liner
-                bonusHp += 100000;
-                break;
-            default:
-                if (bonusHp <= 0)
-                    owner.SendMessage(ChatType.System, $"No HP Bonus defined for ModelId {slaveTemplate.ModelId}, SlaveId {slaveTemplate.Id}, please inform the devs!");
-                break;
-        }
-
-        if (bonusHp > 0)
-        {
-            summonedSlave.AddBonus(1,
-                new Bonus()
-                {
-                    Template = new BonusTemplate()
-                    {
-                        Attribute = UnitAttribute.MaxHealth,
-                        ModifierType = UnitModifierType.Value
-                    },
-                    Value = bonusHp,
-                });
-        }
+        ApplySlaveBonuses(summonedSlave);
 
         if (!isLoadedPlayerSlave)
         {
@@ -556,10 +486,10 @@ public class SlaveManager : Singleton<SlaveManager>
             {
                 ObjId = ObjectIdManager.Instance.GetNextId(),
                 TemplateId = doodadBinding.DoodadId,
-                OwnerObjId = owner.ObjId,
+                OwnerObjId = owner?.ObjId ?? 0,
                 ParentObjId = summonedSlave.ObjId,
                 AttachPoint = doodadBinding.AttachPointId,
-                OwnerId = owner.Id,
+                OwnerId = owner?.Id ?? 0,
                 PlantTime = summonedSlave.SpawnTime,
                 OwnerType = DoodadOwnerType.Slave,
                 OwnerDbId = summonedSlave.Id,
@@ -640,13 +570,16 @@ public class SlaveManager : Singleton<SlaveManager>
                 Hp = 1,
                 Mp = 1,
                 ModelParams = new UnitCustomModelParams(),
-                Faction = owner.Faction,
+                Faction = owner?.Faction ?? summonedSlave.Faction,
                 Id = 11, // TODO
                 Summoner = owner,
                 SpawnTime = DateTime.UtcNow,
                 AttachPointId = (sbyte)slaveBinding.AttachPointId,
                 OwnerObjId = summonedSlave.ObjId
             };
+
+            ApplySlaveBonuses(childSlave);
+
             childSlave.Hp = childSlave.MaxHp;
             childSlave.Mp = childSlave.MaxMp;
             childSlave.Transform = spawnPos.CloneDetached(childSlave);
@@ -699,6 +632,88 @@ public class SlaveManager : Singleton<SlaveManager>
         summonedSlave.Save();
     }
 
+    /// <summary>
+    /// Hack to add proper MaxHP values to summoned slaves
+    /// </summary>
+    /// <param name="summonedSlave"></param>
+    private void ApplySlaveBonuses(Slave summonedSlave)
+    {
+                // HACK Get Proper Values from somewhere?
+        // TODO: Remove magic numbers and actually find where we can grab these values from
+        var bonusHp = 0;
+        switch (summonedSlave.Template.SlaveKind)
+        {
+            case SlaveKind.BigSailingShip:
+                break;
+            case SlaveKind.SmallSailingShip:
+                break;
+            case SlaveKind.Speedboat:
+                bonusHp += 4420;
+                break;
+            case SlaveKind.Boat:
+                bonusHp += 1420;
+                break;
+            case SlaveKind.Tank: // Tanks/Cars
+                bonusHp += 12420;
+                break;
+            case SlaveKind.Machine: // Farm Wagons
+                bonusHp += 2500;
+                break;
+            case SlaveKind.SiegeWeapon:
+                bonusHp += 37420;
+                break;
+            case SlaveKind.SlaveEquipment:
+                break;
+            case SlaveKind.Fishboat:
+                bonusHp += 27420;
+                break;
+            case SlaveKind.MerchantShip:
+                break;
+            case SlaveKind.Leviathan:
+                break;
+            default:
+                // Do Nothing
+                break;
+        }
+        switch (summonedSlave.Template.ModelId)
+        {
+            case 1205: // Merchant Schooner
+                bonusHp += 37420;
+                break;
+            case 393:  // Eznan Cutter
+            case 1249: // Lutesong Junk
+                bonusHp += 47420;
+                break;
+            case 523:  // Growling Yawl
+                bonusHp += 52420;
+                break;
+            case 1279: // War Drum (has no actual bonus)
+                bonusHp += 0;
+                break;
+            case 1046: // Luxury Liner
+                bonusHp += 100000;
+                break;
+            default:
+                if (bonusHp <= 0)
+                    summonedSlave.Summoner?.SendMessage(ChatType.System, $"No HP Bonus defined for ModelId {summonedSlave.Template.ModelId}, SlaveId {summonedSlave.Template.Id}, please inform the devs!");
+                break;
+        }
+
+        if (bonusHp > 0)
+        {
+            summonedSlave.AddBonus(1,
+                new Bonus()
+                {
+                    Template = new BonusTemplate()
+                    {
+                        Attribute = UnitAttribute.MaxHealth,
+                        ModifierType = UnitModifierType.Value
+                    },
+                    Value = bonusHp,
+                });
+        }
+    }
+
     public Slave Create(SlaveSpawner spawner, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
     {
         // TODO: replace this in favor of the Create() function above so that bonuses get applied
@@ -723,6 +738,9 @@ public class SlaveManager : Singleton<SlaveManager>
         slave.Id = 0; // TODO (previously set to 10 which prevented the use of the slave doodads 
         slave.Summoner = new Character(new UnitCustomModelParams()); // ?
         slave.SpawnTime = DateTime.UtcNow;
+
+        ApplySlaveBonuses(slave);
+
 
         slave.Transform.ApplyWorldSpawnPosition(spawner.Position);
         if (slave.Transform == null)
@@ -899,6 +917,9 @@ public class SlaveManager : Singleton<SlaveManager>
             childSlave.SpawnTime = DateTime.UtcNow;
             childSlave.AttachPointId = (sbyte)slaveBinding.AttachPointId;
             childSlave.OwnerObjId = slave.ObjId;
+
+            ApplySlaveBonuses(childSlave);
+
             childSlave.Hp = childSlave.MaxHp;
             childSlave.Mp = childSlave.MaxMp;
             childSlave.Transform = spawnPos.CloneDetached(childSlave);
