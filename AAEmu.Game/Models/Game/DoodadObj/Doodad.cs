@@ -12,6 +12,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items;
@@ -92,11 +93,13 @@ public class Doodad : BaseUnit
                 PhaseTime = DateTime.UtcNow; // Save PhaseTime at start of new phase (group)
                 if (IsPersistent)
                     Save();
+                CurrentFuncs = DoodadManager.Instance.GetFuncsForGroup(_funcGroupId);
+                CurrentPhaseFuncs = DoodadManager.Instance.GetPhaseFunc(_funcGroupId);
             }
         }
     }
 
-    public string FuncType { get; set; }
+    // public string FuncType { get; set; }
     public ulong ItemId { get; set; }
     public ulong UccId { get; set; }
     public uint ItemTemplateId { get; set; }
@@ -130,10 +133,34 @@ public class Doodad : BaseUnit
     public DoodadSpawner Spawner { get; set; }
     public DoodadFuncTask FuncTask { get; set; }
 
-    public uint TimeLeft =>
-        GrowthTime > DateTime.UtcNow
-            ? (uint)(GrowthTime - DateTime.UtcNow).TotalMilliseconds
-            : 0; // TODO: formula time of phase
+    public List<DoodadFunc> CurrentFuncs { get; set; }
+    public List<DoodadPhaseFunc> CurrentPhaseFuncs { get; set; }
+
+    public uint TimeLeft
+    {
+        get
+        {
+            // This probably needs a better way to calculate, like a separate field to store the end-time
+            foreach (var func in CurrentPhaseFuncs)
+            {
+                var template = DoodadManager.Instance.GetPhaseFuncTemplate(func.FuncId, func.FuncType);
+                if (template is DoodadFuncFinal doodadFuncRecoverItemTemplate)
+                {
+                    if (doodadFuncRecoverItemTemplate.After > 0)
+                    {
+                        var left = (PhaseTime + TimeSpan.FromMilliseconds(doodadFuncRecoverItemTemplate.After) - DateTime.UtcNow).TotalMilliseconds;
+                        if (left > 0)
+                            return (uint)Math.Round(left);
+                    }
+                }
+            }
+
+            if (GrowthTime > DateTime.UtcNow)
+                return (uint)(GrowthTime - DateTime.UtcNow).TotalMilliseconds;
+
+            return 0;
+        }
+    }
 
     public bool ToNextPhase { get; set; }
     public int PhaseRatio { get; set; }
@@ -158,6 +185,8 @@ public class Doodad : BaseUnit
         AttachPoint = AttachPointKind.System;
         Seat = new VehicleSeat(this);
         ListGroupId = new List<uint>();
+        CurrentFuncs = new List<DoodadFunc>();
+        CurrentPhaseFuncs = new List<DoodadPhaseFunc>();
     }
 
     public void SetScale(float scale)
