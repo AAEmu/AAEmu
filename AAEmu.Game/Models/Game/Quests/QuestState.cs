@@ -381,7 +381,7 @@ public class QuestStartState : QuestState
                 return false; // останавливаемся на этом шаге, сигнал на удаление квеста
             }
 
-            Quest.UseSkillAndBuff(CurrentComponent);
+            Quest.UseSkillAndBuff(component);
         }
 
         return true;

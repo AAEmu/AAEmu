@@ -22,16 +22,6 @@ public partial class Quest : PacketMarshaler
     public QuestContext QuestProgressState { get; set; }
     public QuestContext QuestReadyState { get; set; }
     public QuestContext QuestRewardState { get; set; }
-    public bool isInProgress { get; set; }
-
-    public void SetInProgress(bool value)
-    {
-        isInProgress = value;
-    }
-    public bool CheckInProgress()
-    {
-        return isInProgress;
-    }
 
     /// <summary>
     /// инициализируем все шаги нужные квесту
@@ -478,6 +468,8 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+            Step = QuestComponentKind.Progress;
+
             Logger.Info($"[OnInteractionHandler] Quest {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -1265,6 +1257,7 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+            Step = QuestComponentKind.Progress;
 
             Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
@@ -1425,6 +1418,8 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+            Step = QuestComponentKind.Progress;
+
             Logger.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -1935,7 +1930,7 @@ public partial class Quest : PacketMarshaler
     }
     public void OnEnterSphereHandler(object sender, EventArgs eventArgs)
     {
-        // Quest: 2762, 6024
+        // Quest: 2762 AcceptNpc & ObjSphere
         var args = eventArgs as OnEnterSphereArgs;
         if (args == null)
             throw new NotImplementedException();
@@ -2026,6 +2021,200 @@ public partial class Quest : PacketMarshaler
         Status = QuestStatus.Progress;
         Condition = QuestConditionObj.Progress;
         Logger.Info($"[OnEnterSphereHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
+
+        Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
+    }
+    public void OnZoneKillHandler(object sender, EventArgs eventArgs)
+    {
+        // Quest: 2819 AcceptSphere & ZoneKill
+        // Quest: 2820, 2821, 2822 AcceptNpc & ZoneKill
+        var args = eventArgs as OnZoneKillArgs;
+        if (args == null)
+            throw new NotImplementedException();
+
+        //var step = Step; // сохраним, чтобы потом восстановить
+        //Step = QuestComponentKind.Progress;
+        if (GetQuestContext("QuestActObjZoneKill", out var context, out var listQuestActs))
+            return;
+        //Step = step;
+
+        var complete = false;
+        var ThisIsNotWhatYouNeed = new List<bool>();
+        for (var i = 0; i < context.State.CurrentComponents.Count; i++)
+        {
+            ThisIsNotWhatYouNeed.Add(false);
+        }
+
+
+        var componentIndex = 0;
+        foreach (var component in context.State.CurrentComponents)
+        {
+            ComponentId = component.Id;
+            var acts = _questManager.GetActs(component.Id);
+            foreach (var act in acts)
+            {
+                // проверка, что есть такой эвент для этого квеста
+                if (act.DetailType != "QuestActObjZoneKill")
+                {
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
+                    continue;
+                }
+
+                Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, Kill event triggered");
+
+                var template = act.GetTemplate<QuestActObjZoneKill>(); // для доступа к переменным требуется привидение к нужному типу
+                // сначала проверим, может быть не то, что надо по квесту
+                if (template.ZoneId != args.ZoneId)
+                {
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
+                    continue;
+                }
+
+                // увеличиваем objective
+                Objectives[componentIndex]++;
+                //template.Update(); // objective++
+
+                // возвращается результат проверки, все ли предметы собрали или нет
+                complete = act.Use(Owner, this, Objectives[componentIndex]);
+                //complete = template.IsCompleted(Owner, this, 0);
+
+                context.State.ContextResults[componentIndex] = complete;
+            }
+
+            // если objective для текущего компонента готово, то запустим скилл и/или баф
+            if (complete)
+            {
+                UseSkillAndBuff(component);
+            }
+            componentIndex++;
+        }
+
+        if (ThisIsNotWhatYouNeed.All(b => b == true))
+        {
+            return;
+        }
+
+        // для завершения у всех objective компонентов должно быть выполнено
+        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true))
+        {
+            Logger.Info($"[OnZoneKillHandler] Отписываемся от события.");
+            Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
+            Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, Event: 'OnZoneKill', Handler: 'OnZoneKillHandler'");
+            Owner.Events.OnZoneKill -= Owner.Quests.OnZoneKillHandler; // отписываемся
+            Owner.Events.OnZoneKill += Owner.Quests.OnZoneKillHandler; // снова подписываемся
+
+            Status = QuestStatus.Ready;
+            Condition = QuestConditionObj.Ready;
+            Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
+
+            Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
+            ContextProcessing();
+
+            return;
+        }
+
+        // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
+        ComponentId = 0;
+        Status = QuestStatus.Progress;
+        Condition = QuestConditionObj.Progress;
+        Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
+
+        Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
+    }
+    public void OnZoneMonsterHuntHandler(object sender, EventArgs eventArgs)
+    {
+        // Quest: 2819 AcceptSphere & ZoneKill
+        // Quest: 2820, 2821, 2822 AcceptNpc & ZoneKill
+        var args = eventArgs as OnZoneMonsterHuntArgs;
+        if (args == null)
+            throw new NotImplementedException();
+
+        //var step = Step; // сохраним, чтобы потом восстановить
+        //Step = QuestComponentKind.Progress;
+        if (GetQuestContext("QuestActObjZoneMonsterHunt", out var context, out var listQuestActs))
+            return;
+        //Step = step;
+
+        var complete = false;
+        var ThisIsNotWhatYouNeed = new List<bool>();
+        for (var i = 0; i < context.State.CurrentComponents.Count; i++)
+        {
+            ThisIsNotWhatYouNeed.Add(false);
+        }
+
+
+        var componentIndex = 0;
+        foreach (var component in context.State.CurrentComponents)
+        {
+            ComponentId = component.Id;
+            var acts = _questManager.GetActs(component.Id);
+            foreach (var act in acts)
+            {
+                // проверка, что есть такой эвент для этого квеста
+                if (act.DetailType != "QuestActObjZoneMonsterHunt")
+                {
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
+                    continue;
+                }
+
+                Logger.Info($"[OnZoneMonsterHuntHandler] Quest: {TemplateId}, Kill event triggered");
+
+                var template = act.GetTemplate<QuestActObjZoneMonsterHunt>(); // для доступа к переменным требуется привидение к нужному типу
+                // сначала проверим, может быть не то, что надо по квесту
+                if (template.ZoneId != args.ZoneId)
+                {
+                    ThisIsNotWhatYouNeed[componentIndex] = true;
+                    continue;
+                }
+
+                // увеличиваем objective
+                Objectives[componentIndex]++;
+                //template.Update(); // objective++
+
+                // возвращается результат проверки, все ли предметы собрали или нет
+                complete = act.Use(Owner, this, Objectives[componentIndex]);
+                //complete = template.IsCompleted(Owner, this, 0);
+
+                context.State.ContextResults[componentIndex] = complete;
+            }
+
+            // если objective для текущего компонента готово, то запустим скилл и/или баф
+            if (complete)
+            {
+                UseSkillAndBuff(component);
+            }
+            componentIndex++;
+        }
+
+        if (ThisIsNotWhatYouNeed.All(b => b == true))
+        {
+            return;
+        }
+
+        // для завершения у всех objective компонентов должно быть выполнено
+        if (context.State.ContextResults.All(b => context.State.ContextResults.Count != 0 && b == true))
+        {
+            Logger.Info($"[OnZoneMonsterHuntHandler] Отписываемся от события.");
+            Logger.Info($"[OnZoneMonsterHuntHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
+            Logger.Info($"[OnZoneMonsterHuntHandler] Quest: {TemplateId}, Event: 'OnZoneMonsterHunt', Handler: 'OnZoneMonsterHuntHandler'");
+            Owner.Events.OnZoneMonsterHunt -= Owner.Quests.OnZoneMonsterHuntHandler; // отписываемся
+            Owner.Events.OnZoneMonsterHunt += Owner.Quests.OnZoneMonsterHuntHandler; // снова подписываемся
+
+            Status = QuestStatus.Ready;
+            Condition = QuestConditionObj.Ready;
+            Logger.Info($"[OnZoneMonsterHuntHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
+
+            Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
+            ContextProcessing();
+
+            return;
+        }
+
+        // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
+        ComponentId = 0;
+        Status = QuestStatus.Progress;
+        Condition = QuestConditionObj.Progress;
+        Logger.Info($"[OnZoneMonsterHuntHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
     }

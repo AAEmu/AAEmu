@@ -53,6 +53,8 @@ public class UnitEvents
     public EventHandler<OnAbilityLevelUpArgs> OnAbilityLevelUp = delegate { };
     public EventHandler<OnEnterSphereArgs> OnEnterSphere = delegate { };
     public EventHandler<OnCraftArgs> OnCraft = delegate { };
+    public EventHandler<OnZoneKillArgs> OnZoneKill = delegate { };
+    public EventHandler<OnZoneMonsterHuntArgs> OnZoneMonsterHunt = delegate { };
     // на шаге Ready
     public EventHandler<OnReportNpcArgs> OnReportNpc = delegate { };
     public EventHandler<OnReportDoodadArgs> OnReportDoodad = delegate { };
@@ -136,6 +138,14 @@ public class OnEnterSphereArgs : EventArgs
 {
     public SphereQuest SphereQuest { get; set; }
 
+}
+public class OnZoneKillArgs : EventArgs
+{
+    public uint ZoneId { get; set; }
+}
+public class OnZoneMonsterHuntArgs : EventArgs
+{
+    public uint ZoneId { get; set; }
 }
 public class OnReportNpcArgs : EventArgs
 {

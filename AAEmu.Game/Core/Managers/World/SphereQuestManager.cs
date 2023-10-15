@@ -132,7 +132,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
 
     public List<SphereQuest> GetQuestSpheres(uint componentId)
     {
-        return _sphereQuests.ContainsKey(componentId) ? _sphereQuests[componentId] : null;
+        return _sphereQuests.TryGetValue(componentId, out var sphereQuests) ? sphereQuests : null;
     }
 
     public List<SphereQuestTrigger> GetSphereQuestTriggers()

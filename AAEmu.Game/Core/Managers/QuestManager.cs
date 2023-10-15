@@ -1589,6 +1589,14 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             Count = 1,
             Position = npc.Transform
         });
+        owner.Events?.OnZoneKill(this, new OnZoneKillArgs
+        {
+            ZoneId = npc.Transform.ZoneId
+        });
+        owner.Events?.OnZoneMonsterHunt(this, new OnZoneMonsterHuntArgs
+        {
+            ZoneId = npc.Transform.ZoneId
+        });
     }
     //public void DoOnMonsterGroupHuntEvents(Character owner, Npc npc)
     //{

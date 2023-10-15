@@ -12,10 +12,10 @@ namespace AAEmu.Game.Models.Game.World;
 
 public enum AreaSphereTriggerCondition
 {
-    INVALID = 0,
-    TRIGGER_ONCE_AT_ALL = 1,
-    TRIGGER_ONCE_IN_RUNTIME = 2,
-    TRIGGER_EVERY_N_TIME_AFTER = 3
+    Invalid = 0,
+    TriggerOnceAtAll = 1,
+    TriggerOnceInRuntime = 2,
+    TriggerEveryNTimeAfter = 3
 }
 
 public class SphereQuest
@@ -63,7 +63,6 @@ public class SphereQuestTrigger
                     //trigger.Owner.Quests.OnEnterSphere(trigger.Sphere);
                     // инициируем событие
                     Task.Run(() => QuestManager.Instance.DoOnEnterSphereEvents((Character)trigger.Owner, trigger.Sphere));
-
 
                     SphereQuestManager.Instance.RemoveSphereQuestTrigger(trigger);
                 }
