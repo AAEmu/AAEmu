@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.Game.Models.Game.Slaves;
 
@@ -25,6 +26,7 @@ public class SlaveTemplate
     public List<SlaveDoodadBindings> DoodadBindings { get; }
     public List<SlaveBindings> SlaveBindings { get; }
     public List<SlaveDropDoodad> SlaveDropDoodads { get; }
+    public List<BonusTemplate> Bonuses { get; set; }
 
     public SlaveTemplate()
     {
@@ -33,6 +35,7 @@ public class SlaveTemplate
         DoodadBindings = new List<SlaveDoodadBindings>();
         SlaveBindings = new List<SlaveBindings>();
         SlaveDropDoodads = new List<SlaveDropDoodad>();
+        Bonuses = new List<BonusTemplate>();
     }
 
     public bool IsABoat()

@@ -64,11 +64,11 @@ public class GetAttribute : ICommand
             foreach (var attr in Enum.GetValues(typeof(UnitAttribute)))
             {
                 var value = target.GetAttribute((UnitAttribute)attr);
-                var hide = value == "NotFound";
-                if (value == "0")
-                    hide = true;
-                if ((value == "1") && ((UnitAttribute)attr).ToString().Contains("Mul"))
-                    hide = true;
+                var hide = (value == "NotFound") || (value == "0");
+                // Exception for multipliers
+                if ((value != "NotFound") && ((UnitAttribute)attr).ToString().Contains("Mul"))
+                    hide = (value == "1");
+
                 if (!hide)
                     character.SendPacket(new SCChatMessagePacket(ChatType.System, $"{(UnitAttribute)attr}: {value}"));
             }

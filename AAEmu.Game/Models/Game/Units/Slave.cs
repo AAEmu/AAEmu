@@ -185,32 +185,6 @@ public class Slave : Unit
     {
         get
         {
-            // These don't seem to match what the client expects, must be missing something
-            // Example: (level * 70 + sta * 12)
-            // Should be 9216 Hp, but we only have 4796 (at 108 base stamina for Lv50)
-            // For example a clipper would be correct is we added another 368.33 (= +341%) stamina boost
-            // TODO: for now just put a static 250k HP so spawned slaves don't show damaged
-
-            // Expected values;
-            // NOTE: Cannons have 34666 Hp
-            //
-            //    ??? Hp -> Misc. Slaves (older formats, mostly unused) - slave_kind_id = 1
-            // 104796 Hp -> Luxury Liner (item 19435) - slave_kind_id = 1
-            //
-            //  42216 Hp -> Schooner - slave_kind_id = 2
-            //  52216 Hp -> Small Warship (Cutter/Junk) - slave_kind_id = 2, NOTE: +10000 HP
-            //  57216 Hp -> Small Warship (Yawl) - slave_kind_id = 2, NOTE: +15000 HP
-            //
-            //   9216 Hp -> Harpoon Clipper - slave_kind_id = 3, NOTE: The Harpoon has 9666 Hp
-            //   6216 Hp -> Rowboats - slave_kind_id = 4
-            //  17216 Hp -> Tanks/Cars - slave_kind_id = 5
-            //   7296 Hp -> Farm Wagon Types - slave_kind_id = 6
-            //  42216 Hp -> Siege Catapult/Tower (item 150/155) - slave_kind_id = 7
-            //   4796 Hp -> War Drum (item 26295) - slave_kind_id = 8 (type 8 seems various canons, war tools and instruments)
-            //  32216 Hp -> Fishing Boats - slave_kind_id = 9
-
-            // return 250000;
-
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.MaxHealth);
             var parameters = new Dictionary<string, double>();
             parameters["level"] = Level;

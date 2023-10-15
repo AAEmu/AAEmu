@@ -260,29 +260,31 @@ public class SlaveManager : Singleton<SlaveManager>
         var itemTemplate = (SummonSlaveTemplate)ItemManager.Instance.GetTemplate(item.TemplateId);
         if (itemTemplate == null) return;
 
-        Create(owner, itemTemplate.SlaveId, item, hideSpawnEffect, positionOverride); // TODO replace the underlying code with this call
+        Create(owner, null, itemTemplate.SlaveId, item, hideSpawnEffect, positionOverride); // TODO replace the underlying code with this call
     }
 
     // added "/slave spawn <templateId>" to be called from the script command
     /// <summary>
-    /// Slave created by player or spawn effect
+    /// Slave created by player or spawn effect, use either useSpawner or templateId
     /// </summary>
     /// <param name="owner"></param>
+    /// <param name="useSpawner"></param>
     /// <param name="templateId"></param>
     /// <param name="item"></param>
     /// <param name="hideSpawnEffect"></param>
     /// <param name="positionOverride"></param>
-    public void Create(Character owner, uint templateId, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
+    /// <returns>Newly created Slave</returns>
+    public Slave Create(Character owner, SlaveSpawner useSpawner, uint templateId, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
     {
-        var slaveTemplate = GetSlaveTemplate(templateId);
-        if (slaveTemplate == null) return;
+        var slaveTemplate = GetSlaveTemplate(useSpawner?.UnitId ?? templateId);
+        if (slaveTemplate == null)
+            return null;
 
         var tlId = (ushort)TlIdManager.Instance.GetNextId();
         var objId = ObjectIdManager.Instance.GetNextId();
 
-        Transform spawnPos;
+        using var spawnPos = positionOverride ?? new Transform(null);
         var spawnOffsetPos = new Vector3();
-
 
         var dbId = 0u;
         var slaveName = string.Empty;
@@ -335,15 +337,22 @@ public class SlaveManager : Singleton<SlaveManager>
             owner?.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new ItemUpdate(item), new List<ulong>()));
         }
 
-        // Replacing the position with the new coordinates from the method call parameters
-        if (positionOverride != null)
+        if (spawnPos.Local.IsOrigin())
         {
-            // If manually defined a spawn location (i.e. created from ShipYard), use that location instead
-            spawnPos = positionOverride.CloneDetached();
-        }
-        else
-        {
-            spawnPos = owner.Transform.CloneDetached();
+            if (owner == null && useSpawner == null)
+            {
+                Logger.Warn($"Tried creating a slave without a defined position, either use a Owner, Spawner or PositionOverride");
+                return null;
+            }
+
+            if (useSpawner != null)
+            {
+                spawnPos.ApplyWorldSpawnPosition(useSpawner.Position, WorldManager.DefaultInstanceId);
+            }
+            else
+            {
+                spawnPos.ApplyWorldTransformToLocalPosition(owner.Transform, owner.InstanceId);
+            }
 
             // If no spawn position override has been provided, then handle normal spawning algorithm
 
@@ -359,7 +368,7 @@ public class SlaveManager : Singleton<SlaveManager>
                 if (world == null)
                 {
                     Logger.Fatal($"Unable to find world to spawn in {spawnPos.WorldId}");
-                    return;
+                    return null;
                 }
 
                 var worldWaterLevel = world.Water.GetWaterSurface(spawnPos.World.Position);
@@ -387,7 +396,7 @@ public class SlaveManager : Singleton<SlaveManager>
                             //owner.SendMessage("Extra inFront = {0}, required Depth = {1}", inFront, minDepth);
                             spawnPos.Dispose();
 
-                            spawnPos = depthCheckPos.CloneDetached();
+                            spawnPos.ApplyWorldTransformToLocalPosition(depthCheckPos);
                             break;
                         }
                     }
@@ -405,7 +414,7 @@ public class SlaveManager : Singleton<SlaveManager>
             }
 
             // Always spawn horizontal(level) and 90° CCW of the player
-            spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.Rotation.Z + (MathF.PI / 2));
+            spawnPos.Local.SetRotation(0f, 0f, owner?.Transform.World.Rotation.Z + (MathF.PI / 2) ?? 0f);
         }
 
         owner?.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, hideSpawnEffect, 0, owner.Name), true);
@@ -413,9 +422,6 @@ public class SlaveManager : Singleton<SlaveManager>
         // Get new Id to save if it has a player as owner
         if ((owner?.Id > 0) && (dbId <= 0))
             dbId = CharacterIdManager.Instance.GetNextId(); // dbId = SlaveIdManager.Instance.GetNextId();
-
-        if (slaveHp <= 0)
-            slaveHp = 1;
 
         var summonedSlave = new Slave
         {
@@ -433,7 +439,8 @@ public class SlaveManager : Singleton<SlaveManager>
             Id = dbId,
             Summoner = owner,
             SummoningItem = item,
-            SpawnTime = DateTime.UtcNow
+            SpawnTime = DateTime.UtcNow,
+            Spawner = useSpawner,
         };
 
         ApplySlaveBonuses(summonedSlave);
@@ -454,22 +461,17 @@ public class SlaveManager : Singleton<SlaveManager>
             }
         }
 
-        // Add Passive buffs
-        foreach (var buff in summonedSlave.Template.PassiveBuffs)
-        {
-            var passive = SkillManager.Instance.GetPassiveBuffTemplate(buff.PassiveBuffId);
-            summonedSlave.Buffs.AddBuff(passive.BuffId, summonedSlave);
-        }
-
-        // Add Normal initial buffs
-        foreach (var buff in summonedSlave.Template.InitialBuffs)
-            summonedSlave.Buffs.AddBuff(buff.BuffId, summonedSlave);
-
         summonedSlave.Hp = Math.Min(summonedSlave.Hp, summonedSlave.MaxHp);
         summonedSlave.Mp = Math.Min(summonedSlave.Mp, summonedSlave.MaxMp);
 
+        // Reset HP on "dead" vehicles
+        if (summonedSlave.Hp <= 0)
+            summonedSlave.Hp = summonedSlave.MaxHp;
+
         summonedSlave.Transform = spawnPos.CloneDetached(summonedSlave);
         summonedSlave.Spawn();
+
+        spawnPos.Dispose();
 
         // If this was a previously saved slave, load doodads from DB and spawn them
         var doodadSpawnCount = SpawnManager.Instance.SpawnPersistentDoodads(DoodadOwnerType.Slave, (int)summonedSlave.Id, summonedSlave, true);
@@ -525,20 +527,18 @@ public class SlaveManager : Singleton<SlaveManager>
                         _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Roll,
                         _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Pitch,
                         _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Yaw);
-                    Logger.Debug("Model id: {0} attachment {1} => pos {2} = {3}", summonedSlave.ModelId,
-                        doodadBinding.AttachPointId,
-                        _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId],
-                        doodad.Transform);
+                    Logger.Debug($"Model id: {summonedSlave.ModelId} attachment {doodadBinding.AttachPointId} => " +
+                                 $"pos {_attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId]} = {doodad.Transform}");
                 }
                 else
                 {
-                    Logger.Warn("Model id: {0} incomplete attach point information", summonedSlave.ModelId);
+                    Logger.Warn($"Model id: {summonedSlave.ModelId} incomplete attach point information");
                 }
             }
             else
             {
                 doodad.Transform = new Transform(doodad);
-                Logger.Warn("Model id: {0} has no attach point information", summonedSlave.ModelId);
+                Logger.Warn($"Model id: {summonedSlave.ModelId} has no attach point information");
             }
 
             summonedSlave.AttachedDoodads.Add(doodad);
@@ -555,12 +555,12 @@ public class SlaveManager : Singleton<SlaveManager>
         foreach (var slaveBinding in summonedSlave.Template.SlaveBindings)
         {
             var childSlaveTemplate = GetSlaveTemplate(slaveBinding.SlaveId);
-            var ctlId = (ushort)TlIdManager.Instance.GetNextId();
-            var cobjId = ObjectIdManager.Instance.GetNextId();
+            var childTlId = (ushort)TlIdManager.Instance.GetNextId();
+            var childObjId = ObjectIdManager.Instance.GetNextId();
             var childSlave = new Slave()
             {
-                TlId = ctlId,
-                ObjId = cobjId,
+                TlId = childTlId,
+                ObjId = childObjId,
                 ParentObj = summonedSlave,
                 TemplateId = childSlaveTemplate.Id,
                 Name = childSlaveTemplate.Name,
@@ -582,7 +582,7 @@ public class SlaveManager : Singleton<SlaveManager>
 
             childSlave.Hp = childSlave.MaxHp;
             childSlave.Mp = childSlave.MaxMp;
-            childSlave.Transform = spawnPos.CloneDetached(childSlave);
+            childSlave.Transform = summonedSlave.Transform.CloneDetached();
             childSlave.Transform.Parent = summonedSlave.Transform;
 
             if (_attachPoints.ContainsKey(summonedSlave.ModelId))
@@ -598,7 +598,7 @@ public class SlaveManager : Singleton<SlaveManager>
                 }
                 else
                 {
-                    Logger.Warn("Model id: {0} incomplete attach point information");
+                    Logger.Warn($"Model id: {summonedSlave.ModelId} incomplete attach point information");
                 }
             }
 
@@ -611,7 +611,8 @@ public class SlaveManager : Singleton<SlaveManager>
         lock (_slaveListLock)
         {
             _tlSlaves.Add(summonedSlave.TlId, summonedSlave);
-            _activeSlaves.Add(owner.ObjId, summonedSlave);
+            if (owner != null)
+                _activeSlaves.Add(owner.ObjId, summonedSlave);
         }
 
         if (summonedSlave.Template.IsABoat())
@@ -620,7 +621,7 @@ public class SlaveManager : Singleton<SlaveManager>
             world.Physics.AddShip(summonedSlave);
         }
 
-        owner.SendPacket(new SCMySlavePacket(summonedSlave.ObjId, summonedSlave.TlId, summonedSlave.Name,
+        owner?.SendPacket(new SCMySlavePacket(summonedSlave.ObjId, summonedSlave.TlId, summonedSlave.Name,
             summonedSlave.TemplateId,
             summonedSlave.Hp, summonedSlave.MaxHp,
             summonedSlave.Transform.World.Position.X,
@@ -630,343 +631,35 @@ public class SlaveManager : Singleton<SlaveManager>
 
         // Save to DB
         summonedSlave.Save();
+
+        return summonedSlave;
     }
 
     /// <summary>
-    /// Hack to add proper MaxHP values to summoned slaves
+    /// Applies buff ans bonuses to Slave
     /// </summary>
     /// <param name="summonedSlave"></param>
-    private void ApplySlaveBonuses(Slave summonedSlave)
+    private static void ApplySlaveBonuses(Slave summonedSlave)
     {
-                // HACK Get Proper Values from somewhere?
-        // TODO: Remove magic numbers and actually find where we can grab these values from
-        var bonusHp = 0;
-        switch (summonedSlave.Template.SlaveKind)
+        // Add Passive buffs
+        foreach (var buff in summonedSlave.Template.PassiveBuffs)
         {
-            case SlaveKind.BigSailingShip:
-                break;
-            case SlaveKind.SmallSailingShip:
-                break;
-            case SlaveKind.Speedboat:
-                bonusHp += 4420;
-                break;
-            case SlaveKind.Boat:
-                bonusHp += 1420;
-                break;
-            case SlaveKind.Tank: // Tanks/Cars
-                bonusHp += 12420;
-                break;
-            case SlaveKind.Machine: // Farm Wagons
-                bonusHp += 2500;
-                break;
-            case SlaveKind.SiegeWeapon:
-                bonusHp += 37420;
-                break;
-            case SlaveKind.SlaveEquipment:
-                break;
-            case SlaveKind.Fishboat:
-                bonusHp += 27420;
-                break;
-            case SlaveKind.MerchantShip:
-                break;
-            case SlaveKind.Leviathan:
-                break;
-            default:
-                // Do Nothing
-                break;
-        }
-        switch (summonedSlave.Template.ModelId)
-        {
-            case 1205: // Merchant Schooner
-                bonusHp += 37420;
-                break;
-            case 393:  // Eznan Cutter
-            case 1249: // Lutesong Junk
-                bonusHp += 47420;
-                break;
-            case 523:  // Growling Yawl
-                bonusHp += 52420;
-                break;
-            case 1279: // War Drum (has no actual bonus)
-                bonusHp += 0;
-                break;
-            case 1046: // Luxury Liner
-                bonusHp += 100000;
-                break;
-            default:
-                if (bonusHp <= 0)
-                    summonedSlave.Summoner?.SendMessage(ChatType.System, $"No HP Bonus defined for ModelId {summonedSlave.Template.ModelId}, SlaveId {summonedSlave.Template.Id}, please inform the devs!");
-                break;
+            var passive = SkillManager.Instance.GetPassiveBuffTemplate(buff.PassiveBuffId);
+            summonedSlave.Buffs.AddBuff(passive.BuffId, summonedSlave);
         }
 
-        if (bonusHp > 0)
+        // Add Normal initial buffs
+        foreach (var buff in summonedSlave.Template.InitialBuffs)
+            summonedSlave.Buffs.AddBuff(buff.BuffId, summonedSlave);
+
+        // Apply bonuses
+        foreach (var bonusTemplate in summonedSlave.Template.Bonuses)
         {
-            summonedSlave.AddBonus(1,
-                new Bonus()
-                {
-                    Template = new BonusTemplate()
-                    {
-                        Attribute = UnitAttribute.MaxHealth,
-                        ModifierType = UnitModifierType.Value
-                    },
-                    Value = bonusHp,
-                });
+            var bonus = new Bonus();
+            bonus.Template = bonusTemplate;
+            bonus.Value = bonusTemplate.Value; // TODO using LinearLevelBonus
+            summonedSlave.AddBonus(0, bonus);
         }
-    }
-
-    public Slave Create(SlaveSpawner spawner, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
-    {
-        // TODO: replace this in favor of the Create() function above so that bonuses get applied
-        var slaveTemplate = GetSlaveTemplate(spawner.UnitId);
-        if (slaveTemplate == null) return null;
-
-        var tlId = (ushort)TlIdManager.Instance.GetNextId();
-        var objId = ObjectIdManager.Instance.GetNextId();
-
-        var slave = new Slave();
-        slave.TlId = tlId;
-        slave.ObjId = objId;
-        slave.TemplateId = slaveTemplate.Id;
-        slave.Name = slaveTemplate.Name;
-        slave.Level = (byte)slaveTemplate.Level;
-        slave.ModelId = slaveTemplate.ModelId;
-        slave.Template = slaveTemplate;
-        slave.Hp = 1;
-        slave.Mp = 1;
-        slave.ModelParams = new UnitCustomModelParams();
-        slave.Faction = FactionManager.Instance.GetFaction(slaveTemplate.FactionId);
-        slave.Id = 0; // TODO (previously set to 10 which prevented the use of the slave doodads 
-        slave.Summoner = new Character(new UnitCustomModelParams()); // ?
-        slave.SpawnTime = DateTime.UtcNow;
-
-        ApplySlaveBonuses(slave);
-
-
-        slave.Transform.ApplyWorldSpawnPosition(spawner.Position);
-        if (slave.Transform == null)
-        {
-            Logger.Error($"Can't spawn slave {spawner.UnitId}");
-            return null;
-        }
-
-#pragma warning disable CA2000 // Dispose objects before losing scope
-
-        Transform spawnPos;
-
-        // Replacing the position with the new coordinates from the method call parameters
-
-        if (positionOverride != null)
-        {
-            // If manually defined a spawn location (i.e. created from ShipYard), use that location instead
-            spawnPos = positionOverride.CloneDetached();
-        }
-        else
-        {
-            spawnPos = slave.Transform;
-            // If no spawn position override has been provided, then handle normal spawning algorithm
-
-            // owner.SendMessage("SlaveSpawnOffset: x:{0} y:{1}", slaveTemplate.SpawnXOffset, slaveTemplate.SpawnYOffset);
-            //spawnPos.Local.AddDistanceToFront(Math.Clamp(slaveTemplate.SpawnYOffset, 5f, 50f));
-            // INFO: Seems like X offset is defined as the size of the vehicle summoned, but visually it's nicer if we just ignore this 
-            // spawnPos.Local.AddDistanceToRight(slaveTemplate.SpawnXOffset);
-            if (slaveTemplate.IsABoat())
-            {
-                // If we're spawning a boat, put it at the water level regardless of our own height
-                // TODO: if not at ocean level, get actual target location water body height (for example rivers)
-                var worldWaterLevel = WorldManager.Instance.GetWorld(spawnPos.WorldId)?.OceanLevel ?? 100f;
-                spawnPos.Local.SetHeight(worldWaterLevel);
-
-                // temporary grab ship information so that we can use it to find a suitable spot in front to summon it
-                var tempShipModel = ModelManager.Instance.GetShipModel(slaveTemplate.ModelId);
-                var minDepth = tempShipModel.MassBoxSizeZ - tempShipModel.MassCenterZ + 1f;
-                for (var inFront = 0f; inFront < (50f + tempShipModel.MassBoxSizeX); inFront += 1f)
-                {
-                    using var depthCheckPos = spawnPos.CloneDetached();
-                    depthCheckPos.Local.AddDistanceToFront(inFront);
-                    var h = WorldManager.Instance.GetHeight(depthCheckPos);
-                    if (h > 0f)
-                    {
-                        var d = worldWaterLevel - h;
-                        if (d > minDepth)
-                        {
-                            //owner.SendMessage("Extra inFront = {0}, required Depth = {1}", inFront, minDepth);
-                            spawnPos = depthCheckPos.CloneDetached();
-                            break;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // If a land vehicle, put it a the ground level of it's target spawn location
-                // TODO: check for maximum height difference for summoning
-                var h = WorldManager.Instance.GetHeight(spawnPos);
-                if (h > 0f)
-                    spawnPos.Local.SetHeight(h);
-            }
-
-            // Always spawn horizontal(level) and 90° CCW of the player
-            //spawnPos.Local.SetRotation(0f, 0f, slave.Transform.World.Rotation.Z + (MathF.PI / 2)); 
-        }
-#pragma warning restore CA2000 // Dispose objects before losing scope
-
-        // TODO
-        slave.BroadcastPacket(new SCSlaveCreatedPacket(slave.ObjId, tlId, objId, hideSpawnEffect, 0, slave.Name), true);
-
-        if (_slaveInitialItems.TryGetValue(slave.Template.SlaveInitialItemPackId, out var itemPack))
-        {
-            foreach (var initialItem in itemPack)
-            {
-                // var newItem = new Item(WorldManager.DefaultWorldId,ItemManager.Instance.GetTemplate(initialItem.itemId),1);
-                var newItem = ItemManager.Instance.Create(initialItem.itemId, 1, 0, false);
-                slave.Equipment.AddOrMoveExistingItem(ItemTaskType.Invalid, newItem, initialItem.equipSlotId);
-            }
-        }
-
-        foreach (var buff in slave.Template.InitialBuffs)
-        {
-            slave.Buffs.AddBuff(buff.BuffId, slave);
-        }
-
-        slave.Hp = slave.MaxHp;
-        slave.Mp = slave.MaxMp;
-
-        slave.Transform = spawnPos.CloneDetached(slave);
-        slave.Spawn();
-
-        // TODO - DOODAD SERVER SIDE
-        foreach (var doodadBinding in slave.Template.DoodadBindings)
-        {
-            var doodad = new Doodad();
-            doodad.ObjId = ObjectIdManager.Instance.GetNextId();
-            doodad.TemplateId = doodadBinding.DoodadId;
-            doodad.OwnerObjId = slave.ObjId;
-            doodad.ParentObjId = slave.ObjId;
-            doodad.AttachPoint = doodadBinding.AttachPointId;
-            doodad.OwnerId = slave.Id;
-            doodad.PlantTime = DateTime.UtcNow;
-            doodad.OwnerType = DoodadOwnerType.Slave;
-            doodad.OwnerDbId = slave.Id;
-            doodad.Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId);
-            doodad.Data = (byte)doodadBinding.AttachPointId;
-            doodad.ParentObj = slave;
-
-            doodad.SetScale(doodadBinding.Scale);
-
-            doodad.FuncGroupId = doodad.GetFuncGroupId();
-            doodad.Transform = slave.Transform.CloneAttached(doodad);
-            doodad.Transform.Parent = slave.Transform;
-
-            // NOTE: In 1.2 we can't replace slave parts like sail, so just apply it to all of the doodads on spawn)
-            // Should probably have a check somewhere if a doodad can have the UCC applied or not
-            if (item != null && item.HasFlag(ItemFlag.HasUCC) && (item.UccId > 0))
-                doodad.UccId = item.UccId;
-
-            if (_attachPoints.ContainsKey(slave.ModelId))
-            {
-                if (_attachPoints[slave.ModelId].ContainsKey(doodadBinding.AttachPointId))
-                {
-                    doodad.Transform = slave.Transform.CloneAttached(doodad);
-                    doodad.Transform.Parent = slave.Transform;
-                    doodad.Transform.Local.Translate(_attachPoints[slave.ModelId][doodadBinding.AttachPointId]
-                        .AsPositionVector());
-                    doodad.Transform.Local.SetRotation(
-                        _attachPoints[slave.ModelId][doodadBinding.AttachPointId].Roll,
-                        _attachPoints[slave.ModelId][doodadBinding.AttachPointId].Pitch,
-                        _attachPoints[slave.ModelId][doodadBinding.AttachPointId].Yaw);
-                    Logger.Debug("Model id: {0} attachment {1} => pos {2} = {3}", slave.ModelId,
-                        doodadBinding.AttachPointId, _attachPoints[slave.ModelId][doodadBinding.AttachPointId],
-                        doodad.Transform);
-                }
-                else
-                {
-                    Logger.Warn("Model id: {0} incomplete attach point information", slave.ModelId);
-                }
-            }
-            else
-            {
-                doodad.Transform = new Transform(doodad);
-                Logger.Warn("Model id: {0} has no attach point information", slave.ModelId);
-            }
-
-            slave.AttachedDoodads.Add(doodad);
-
-            doodad.Spawn();
-        }
-
-        foreach (var slaveBinding in slave.Template.SlaveBindings)
-        {
-            var childSlaveTemplate = GetSlaveTemplate(slaveBinding.SlaveId);
-            var ctlId = (ushort)TlIdManager.Instance.GetNextId();
-            var cobjId = ObjectIdManager.Instance.GetNextId();
-            var childSlave = new Slave();
-            childSlave.TlId = ctlId;
-            childSlave.ObjId = cobjId;
-            childSlave.ParentObj = slave;
-            childSlave.TemplateId = childSlaveTemplate.Id;
-            childSlave.Name = childSlaveTemplate.Name;
-            childSlave.Level = (byte)childSlaveTemplate.Level;
-            childSlave.ModelId = childSlaveTemplate.ModelId;
-            childSlave.Template = childSlaveTemplate;
-            childSlave.Hp = 1;
-            childSlave.Mp = 1;
-            childSlave.ModelParams = new UnitCustomModelParams();
-            childSlave.Faction = slave.Faction;
-            childSlave.Id = 11; // TODO
-            childSlave.Summoner = slave.Summoner;
-            childSlave.SpawnTime = DateTime.UtcNow;
-            childSlave.AttachPointId = (sbyte)slaveBinding.AttachPointId;
-            childSlave.OwnerObjId = slave.ObjId;
-
-            ApplySlaveBonuses(childSlave);
-
-            childSlave.Hp = childSlave.MaxHp;
-            childSlave.Mp = childSlave.MaxMp;
-            childSlave.Transform = spawnPos.CloneDetached(childSlave);
-            childSlave.Transform.Parent = slave.Transform;
-
-            if (_attachPoints.ContainsKey(slave.ModelId))
-            {
-                if (_attachPoints[slave.ModelId].ContainsKey(slaveBinding.AttachPointId))
-                {
-                    var attachPoint = _attachPoints[slave.ModelId][slaveBinding.AttachPointId];
-                    // childSlave.AttachPosition = _attachPoints[template.ModelId][(int) slaveBinding.AttachPointId];
-                    childSlave.Transform = slave.Transform.CloneAttached(childSlave);
-                    childSlave.Transform.Parent = slave.Transform;
-                    childSlave.Transform.Local.Translate(attachPoint.AsPositionVector());
-                    childSlave.Transform.Local.Rotate(attachPoint.Roll, attachPoint.Pitch, attachPoint.Yaw);
-                }
-                else
-                {
-                    Logger.Warn("Model id: {0} incomplete attach point information");
-                }
-            }
-
-            slave.AttachedSlaves.Add(childSlave);
-            lock (_slaveListLock)
-                _tlSlaves.Add(childSlave.TlId, childSlave);
-            childSlave.Spawn();
-        }
-
-        lock (_slaveListLock)
-        {
-            _tlSlaves.Add(slave.TlId, slave);
-            _activeSlaves.Add(slave.ObjId, slave);
-        }
-
-        if (slave.Template.IsABoat())
-        {
-            var world = WorldManager.Instance.GetWorld(slave.Summoner.Transform.WorldId);
-            world.Physics.AddShip(slave);
-        }
-
-        slave.SendPacket(new SCMySlavePacket(slave.ObjId, slave.TlId, slave.Name, slave.TemplateId,
-            slave.Hp, slave.MaxHp,
-            slave.Transform.World.Position.X,
-            slave.Transform.World.Position.Y,
-            slave.Transform.World.Position.Z));
-
-        return slave;
     }
 
     public void LoadSlaveAttachmentPointLocations()
@@ -1046,6 +739,28 @@ public class SlaveManager : Singleton<SlaveManager>
                             PortalTime = reader.GetFloat("portal_time")
                         };
                         _slaveTemplates.Add(template.Id, template);
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='Slave'";
+                command.Prepare();
+                using (var sqliteDataReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteDataReader))
+                {
+                    while (reader.Read())
+                    {
+                        var slaveId = reader.GetUInt32("owner_id");
+                        if (!_slaveTemplates.TryGetValue(slaveId, out var slaveTemplate))
+                            continue;
+                        var template = new BonusTemplate();
+                        template.Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id");
+                        template.ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id");
+                        template.Value = reader.GetInt32("value");
+                        template.LinearLevelBonus = reader.GetInt32("linear_level_bonus");
+                        slaveTemplate.Bonuses.Add(template);
                     }
                 }
             }

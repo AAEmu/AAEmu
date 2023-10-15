@@ -229,9 +229,25 @@ public class MateManager : Singleton<MateManager>
     public void RemoveAndDespawnAllActiveOwnedMates(Character character)
     {
         if (character == null) return;
-        foreach (var mate in _activeMates)
-            if (mate.Value.OwnerObjId == character.ObjId)
-                RemoveActiveMateAndDespawn(character, mate.Value.TlId);
+        var markForDeleteObj = new List<uint>();
+        foreach (var (key, mate) in _activeMates)
+        {
+            if ((mate.OwnerId == character.Id) || (mate.OwnerObjId == character.ObjId))
+            {
+                foreach (var ati in mate.Passengers)
+                    UnMountMate(WorldManager.Instance.GetCharacterByObjId(ati.Value._objId), mate.TlId, ati.Key, AttachUnitReason.SlaveBinding);
+
+                if (mate.OwnerObjId > 0)
+                    markForDeleteObj.Add(mate.OwnerObjId);
+                mate.Delete();
+                ObjectIdManager.Instance.ReleaseId(mate.ObjId);
+                if (mate.TlId > 0)
+                    TlIdManager.Instance.ReleaseId(mate.TlId);
+            }
+        }
+
+        foreach (var u in markForDeleteObj)
+            _activeMates.Remove(u);
     }
 
     public List<uint> GetMateSkills(uint id)
