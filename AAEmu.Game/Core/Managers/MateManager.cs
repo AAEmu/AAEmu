@@ -126,10 +126,9 @@ public class MateManager : Singleton<MateManager>
                 seatInfo._objId = character.ObjId;
                 seatInfo._reason = reason;
 
-                character.Transform.Local.SetPosition(mateInfo.Transform.Local.Position); // correct the position of the character
                 character.Transform.Parent = mateInfo.Transform;
+                character.Transform.Local.SetPosition(0,0,0); // correct the position of the character
                 character.IsRiding = true;
-                //character.Transform.StickyParent = mateInfo.Transform;
 
                 character.IsVisible = true; // When we're on a horse, you can see us
             }
@@ -169,22 +168,25 @@ public class MateManager : Singleton<MateManager>
         if (targetObj != null)
         {
             //targetObj.Transform.StickyParent = null;
-            character.Transform.Parent = null;
-            character.IsRiding = false;
+            targetObj.Transform.Parent = null;
+            targetObj.SetPosition(mateInfo.Transform.World.Position.X, mateInfo.Transform.World.Position.Y, mateInfo.Transform.World.Position.Z,
+                mateInfo.Transform.World.Rotation.X, mateInfo.Transform.World.Rotation.Y, mateInfo.Transform.World.Rotation.Z);
+            // character.Transform = mateInfo.Transform.CloneDetached(character);
+            targetObj.IsRiding = false;
 
-            character.BroadcastPacket(new SCUnitDetachedPacket(targetObj.ObjId, reason), true);
+            targetObj.BroadcastPacket(new SCUnitDetachedPacket(targetObj.ObjId, reason), true);
 
-            character.Events.OnUnmount(character, new OnUnmountArgs { });
+            targetObj.Events.OnUnmount(character, new OnUnmountArgs { });
 
             mateInfo.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
-            character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
+            targetObj.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
             Logger.Debug("UnMountMate. mountTlId: {0}, targetObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId,
                 targetObj.ObjId, attachPoint, reason);
         }
         else
         {
             Logger.Warn("UnMountMate. No valid seat entry, mountTlId: {0}, characterObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId,
-                character?.ObjId ?? 0, attachPoint, reason);
+                targetObj?.ObjId ?? 0, attachPoint, reason);
         }
     }
 

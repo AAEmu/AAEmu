@@ -29,7 +29,7 @@ public class DoodadFuncAttachment : DoodadFuncTemplate
 
                 character.Bonding = new BondDoodad(owner, AttachPointId, BondKindId, Space, spot);
                 character.BroadcastPacket(new SCBondDoodadPacket(caster.ObjId, character.Bonding), true);
-                //character.Transform.StickyParent = owner.Transform;
+                character.Transform.StickyParent = owner.Transform.StickyParent;
                 character.Transform.Parent = owner.Transform;
             }
             // Ships // TODO Check how sit on the ship
