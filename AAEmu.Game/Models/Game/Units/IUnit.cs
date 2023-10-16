@@ -1,14 +1,13 @@
 ﻿using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items.Containers;
 
-namespace AAEmu.Game.Models.Game.Units
+namespace AAEmu.Game.Models.Game.Units;
+
+public interface IUnit : IBaseUnit
 {
-    public interface IUnit : IBaseUnit
-    {
-        byte Level { get; set; }
-        BaseUnit CurrentTarget { get; }
-        ItemContainer Equipment { get; set; }
-        void SendPacket(GamePacket packet);
-        void UseSkill(uint skillId, IUnit target);
-    }
+    byte Level { get; set; }
+    BaseUnit CurrentTarget { get; set; }
+    ItemContainer Equipment { get; set; }
+    void SendPacket(GamePacket packet);
+    void UseSkill(uint skillId, IUnit target);
 }

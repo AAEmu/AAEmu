@@ -5,15 +5,14 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.World.Interactions
+namespace AAEmu.Game.Models.Game.World.Interactions;
+
+public class Demolish : IWorldInteraction
 {
-    public class Demolish : IWorldInteraction
+    public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
+        uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
     {
-        public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
-            uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
-        {
-            if (target is House house && caster is Character character)
-                HousingManager.Instance.Demolish(character.Connection, house, false, false);
-        }
+        if (target is House house && caster is Character character)
+            HousingManager.Instance.Demolish(character.Connection, house, false, false);
     }
 }

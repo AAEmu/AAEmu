@@ -4,39 +4,39 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Utils.Scripts;
 
-namespace AAEmu.Game.Scripts.Commands
+namespace AAEmu.Game.Scripts.Commands;
+
+public class Online : ICommand
 {
-    public class Online : ICommand
+    public void OnLoad()
     {
-        public void OnLoad()
+        string[] name = { "online", "list_online" };
+        CommandManager.Instance.Register(name, this);
+    }
+
+    public string GetCommandLineHelp()
+    {
+        return "";
+    }
+
+    public string GetCommandHelpText()
+    {
+        return "Lists all online players";
+    }
+
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
+    {
+        var characters = WorldManager.Instance.GetAllCharacters();
+        var finalMessage = characters.Count + " players online. |cFFFFFFFF";
+        foreach (var onlineCharacter in characters)
         {
-            string[] name = { "online", "list_online" };
-            CommandManager.Instance.Register(name, this);
+            finalMessage += (onlineCharacter.Name + "|r,|cFFFFFFFF ");
         }
 
-        public string GetCommandLineHelp()
-        {
-            return "";
-        }
+        finalMessage += "|r";
 
-        public string GetCommandHelpText()
-        {
-            return "Lists all online players";
-        }
-
-        public void Execute(Character character, string[] args)
-        {
-            var characters = WorldManager.Instance.GetAllCharacters();
-            var finalMessage = characters.Count + " players online. |cFFFFFFFF";
-            foreach (var onlineCharacter in characters)
-            {
-                finalMessage += (onlineCharacter.Name + "|r,|cFFFFFFFF ");
-            }
-
-            finalMessage += "|r";
-
-            character.SendMessage(finalMessage);
-        }
+        character.SendMessage(finalMessage);
     }
 }

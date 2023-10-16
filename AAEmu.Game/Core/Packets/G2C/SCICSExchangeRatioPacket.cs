@@ -1,21 +1,20 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C
+namespace AAEmu.Game.Core.Packets.G2C;
+
+public class SCICSExchangeRatioPacket : GamePacket
 {
-    public class SCICSExchangeRatioPacket : GamePacket
+    private readonly int _exchangeRatio;
+
+    public SCICSExchangeRatioPacket(int exchangeRatio) : base(SCOffsets.SCICSExchangeRatioPacket, 1)
     {
-        private readonly int _exchangeRatio;
+        _exchangeRatio = exchangeRatio;
+    }
 
-        public SCICSExchangeRatioPacket(int exchangeRatio) : base(SCOffsets.SCICSExchangeRatioPacket, 1)
-        {
-            _exchangeRatio = exchangeRatio;
-        }
-
-        public override PacketStream Write(PacketStream stream)
-        {
-            stream.Write(_exchangeRatio);
-            return stream;
-        }
+    public override PacketStream Write(PacketStream stream)
+    {
+        stream.Write(_exchangeRatio);
+        return stream;
     }
 }

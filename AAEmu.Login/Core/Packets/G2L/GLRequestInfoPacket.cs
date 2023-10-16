@@ -4,23 +4,22 @@ using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Network.Internal;
 
-namespace AAEmu.Login.Core.Packets.G2L
+namespace AAEmu.Login.Core.Packets.G2L;
+
+public class LGRequestInfoPacket : InternalPacket
 {
-    public class LGRequestInfoPacket : InternalPacket
+    public LGRequestInfoPacket() : base(GLOffsets.LGRequestInfoPacket)
     {
-        public LGRequestInfoPacket() : base(GLOffsets.LGRequestInfoPacket)
-        {
-        }
+    }
 
-        public override void Read(PacketStream stream)
-        {
-            var connection = LoginConnectionTable.Instance.GetConnection(stream.ReadUInt32());
-            var requestId = stream.ReadUInt32();
-            var characters = stream.ReadCollection<LoginCharacterInfo>();
+    public override void Read(PacketStream stream)
+    {
+        var connection = LoginConnectionTable.Instance.GetConnection(stream.ReadUInt32());
+        var requestId = stream.ReadUInt32();
+        var characters = stream.ReadCollection<LoginCharacterInfo>();
 
-            if (characters.Count > 0)
-                connection.AddCharacters(Connection.GameServer.Id, characters);
-            RequestController.Instance.ReleaseId(requestId);
-        }
+        if (characters.Count > 0)
+            connection.AddCharacters(Connection.GameServer.Id, characters);
+        RequestController.Instance.ReleaseId(requestId);
     }
 }

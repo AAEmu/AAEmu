@@ -7,11 +7,13 @@
         <VersionPrefix>0.0.2.0</VersionPrefix>
         <VersionSuffix>alpha</VersionSuffix>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    </PropertyGroup>
+      <UserSecretsId>426ad5c3-9a72-44e9-88f5-4b5940b98c28</UserSecretsId>
+  </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\AAEmu.Commons\AAEmu.Commons.csproj" />
-        <InternalsVisibleTo Include="AAEmu.Tests.Integration" />
+      <InternalsVisibleTo Include="AAEmu.IntegrationTests" />
+      <InternalsVisibleTo Include="AAEmu.UnitTests" />
     </ItemGroup>
 
     <ItemGroup>
@@ -25,21 +27,6 @@
         <Content Include="ExampleConfig.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <None Include="Scripts\Commands\CofferActions.cs">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-          <LinkBase>Scripts\</LinkBase>
-        </None>
-        <None Include="Scripts\Commands\Nrot.cs">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-          <LinkBase>Scripts\</LinkBase>
-        </None>
-        <None Include="Scripts\Commands\TestTracker.cs">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-          <LinkBase>Scripts\</LinkBase>
-        </None>
-        <None Update="Config.json">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
         <None Update="Configurations\Expedition.json">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
@@ -52,16 +39,22 @@
         <None Update="Configurations\ClientData.json">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Update="Configurations\Specialty.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Remove="Scripts\**\**" />
       <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
       <None Include="Configs\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Configs\" />
       <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
       <None Include="ClientData\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="ClientData\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Models\ClientData" />
+    </ItemGroup>
+  
     <ItemGroup>
         <PackageReference Include="Discord.Net" Version="3.7.2" />
         <PackageReference Include="Jace" Version="0.9.2" />
@@ -147,10 +140,5 @@
       <None Update="Scripts\Commands\GetAttribute.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Models\ClientData" />
-      <Folder Include="Scripts\SubCommands" />
     </ItemGroup>
 </Project>

@@ -1,14 +1,13 @@
 ﻿using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
+
+public class DoodadFuncDeclareSiege : DoodadPhaseFuncTemplate
 {
-    public class DoodadFuncDeclareSiege : DoodadPhaseFuncTemplate
+    public override bool Use(BaseUnit caster, Doodad owner)
     {
-        public override bool Use(BaseUnit caster, Doodad owner)
-        {
-            _log.Trace("DoodadFuncDeclareSiege");
-            return false;
-        }
+        Logger.Trace("DoodadFuncDeclareSiege");
+        return false;
     }
 }

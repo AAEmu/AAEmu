@@ -1,9 +1,8 @@
-﻿namespace AAEmu.Game.Models.Spheres
+﻿namespace AAEmu.Game.Models.Spheres;
+
+public class SphereAcceptQuestQuests
 {
-    public class SphereAcceptQuestQuests
-    {
-        public uint Id { get; set; }
-        public uint SphereAcceptQuestId { get; set; }
-        public uint QuestId { get; set; }
-    }
+    public uint Id { get; set; }
+    public uint SphereAcceptQuestId { get; set; }
+    public uint QuestId { get; set; }
 }

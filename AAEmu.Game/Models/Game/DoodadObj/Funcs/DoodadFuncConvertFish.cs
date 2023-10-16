@@ -6,35 +6,34 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
+
+public class DoodadFuncConvertFish : DoodadFuncTemplate
 {
-    public class DoodadFuncConvertFish : DoodadFuncTemplate
+    // doodad_funcs
+    public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        // doodad_funcs
-        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        Logger.Trace("DoodadFuncConvertFish");
+        if (caster is Character character)
         {
-            _log.Trace("DoodadFuncConvertFish");
-            if (caster is Character character)
+            var backpack = character.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
+            if (backpack == null)
             {
-                var backpack = character.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
-                if (backpack == null)
-                {
-                    character.SendErrorMessage(ErrorMessageType.StoreBackpackNogoods);
-                    return;
-                }
+                character.SendErrorMessage(ErrorMessageType.StoreBackpackNogoods);
+                return;
+            }
 
-                // TODO receiving trophy and removing the back pack
-                character.Inventory.SystemContainer.RemoveItem(ItemTaskType.Fishing, backpack, true);
+            // TODO receiving trophy and removing the back pack
+            character.Inventory.SystemContainer.RemoveItem(ItemTaskType.Fishing, backpack, true);
 
-                var trophys = ItemManager.Instance.GetLootConvertFish(backpack.TemplateId);
-                if (trophys == null) { return; }
-                foreach (var trophy in trophys)
-                {
-                    var fish = FishDetailsGameData.Instance.Create(trophy);
-                    character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Fishing, fish);
+            var trophys = ItemManager.Instance.GetLootConvertFish(backpack.TemplateId);
+            if (trophys == null) { return; }
+            foreach (var trophy in trophys)
+            {
+                var fish = FishDetailsGameData.Instance.Create(trophy);
+                character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Fishing, fish);
 
-                    break;
-                }
+                break;
             }
         }
     }

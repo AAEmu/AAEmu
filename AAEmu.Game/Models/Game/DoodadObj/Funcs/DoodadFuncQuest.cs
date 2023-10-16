@@ -1,25 +1,32 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using System.Threading.Tasks;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
+
+public class DoodadFuncQuest : DoodadFuncTemplate
 {
-    public class DoodadFuncQuest : DoodadFuncTemplate
+    // doodad_funcs
+    public uint QuestKindId { get; set; }
+    public uint QuestId { get; set; }
+
+    public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        // doodad_funcs
-        public uint QuestKindId { get; set; }
-        public uint QuestId { get; set; }
+        Logger.Trace("DoodadFuncQuest : skillId {0}, QuestKindId {1}, QuestId {2}", skillId, QuestKindId, QuestId);
 
-        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        if (caster is Character character)
         {
-            _log.Trace("DoodadFuncQuest : skillId {0}, QuestKindId {1}, QuestId {2}", skillId, QuestKindId, QuestId);
-
-            if (caster is Character character)
+            if (!character.Quests.HasQuest(QuestId))
             {
-                if (!character.Quests.HasQuest(QuestId))
-                    character.Quests.Add(QuestId);
-                else
-                    character.Quests.OnReportToDoodad(owner.ObjId, QuestId, 0);
+                character.Quests.Add(QuestId);
+            }
+            else
+            {
+                //character.Quests.OnReportToDoodad(owner.ObjId, QuestId, 0);
+                // инициируем событие
+                Task.Run(() => QuestManager.Instance.DoReportEvents(character, QuestId, 0, owner.TemplateId, 0));
             }
         }
     }

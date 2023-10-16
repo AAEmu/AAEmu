@@ -11,6 +11,10 @@
         "Host": "*",
         "Port": 1250
     },
+    "WebApiNetwork": {
+        "Host": "*",
+        "Port": 1280
+    },
     "LoginNetwork": {
         "Host": "%login_host%",
         "Port": "%login_port%"

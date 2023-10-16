@@ -12,90 +12,88 @@ using Microsoft.Extensions.Hosting;
 using NLog;
 using NLog.Config;
 
-namespace AAEmu.Login
+namespace AAEmu.Login;
+
+public static class Program
 {
-    public static class Program
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    private static Thread _thread = Thread.CurrentThread;
+    private static DateTime _startTime;
+    private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
+    private static string Version => Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "???";
+
+    public static int UpTime => (int)(DateTime.UtcNow - _startTime).TotalSeconds;
+
+    public static async Task Main(string[] args)
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-        private static Thread _thread = Thread.CurrentThread;
-        private static DateTime _startTime;
-        private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
-        private static string Version => Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "???";
+        Initialization();
 
-        public static int UpTime => (int) (DateTime.UtcNow - _startTime).TotalSeconds;
-
-        public static async Task Main(string[] args)
+        var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
+        if (File.Exists(mainConfig))
+            Configuration(args, mainConfig);
+        else
         {
-            Initialization();
+            Logger.Fatal($"{mainConfig} doesn't exist!");
+            LogManager.Flush();
+            return;
+        }
 
-            var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
-            if (File.Exists(mainConfig))
-                Configuration(args, mainConfig);
-            else
-            {
-                _log.Fatal($"{mainConfig} doesn't exist!");
-                return;
-            }
+        Logger.Info($"{Name} version {Version}");
 
-            _log.Info($"{Name} version {Version}");
+        // Apply MySQL Configuration
+        MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
 
-            // Apply MySQL Configuration
-            try
-            {
-                MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
-            }
-            catch
-            {
-                _log.Fatal("MySQL configuration could not be loaded !");
-                return;
-            }
-            
+        try
+        {
             // Test the DB connection
             var connection = MySQL.CreateConnection();
-            if (connection == null)
-            {
-                LogManager.Flush();
-                return;
-            }
             connection.Close();
-
-            var builder = new HostBuilder()
-                .ConfigureAppConfiguration((hostingContext, config) =>
-                {
-                    config.AddEnvironmentVariables();
-
-                    if (args != null)
-                    {
-                        config.AddCommandLine(args);
-                    }
-                })
-                .ConfigureServices((hostContext, services) =>
-                {
-                    services.AddOptions();
-                    services.AddSingleton<IHostedService, LoginService>();
-                });
-
-            await builder.RunConsoleAsync();
+            connection.Dispose();
         }
-
-        private static void Initialization()
+        catch (Exception ex)
         {
-            _thread.Name = "AA.LoginServer Base Thread";
-            _startTime = DateTime.UtcNow;
+            Logger.Fatal(ex, "MySQL connection failed, check your configuration!");
+            LogManager.Flush();
+            return;
         }
 
-        private static void Configuration(string[] args, string mainConfigJson)
-        {
-            var configJsonFile = Path.Combine(FileManager.AppPath, "Config.json");
-            var configurationBuilder = new ConfigurationBuilder()
-                .AddJsonFile(mainConfigJson)
-                .AddCommandLine(args)
-                .Build();
+        var builder = new HostBuilder()
+            .ConfigureAppConfiguration((hostingContext, config) =>
+            {
+                config.AddEnvironmentVariables();
 
-            configurationBuilder.Bind(AppConfiguration.Instance);
+                if (args != null)
+                {
+                    config.AddCommandLine(args);
+                }
+            })
+            .ConfigureServices((hostContext, services) =>
+            {
+                services.AddOptions();
+                services.AddSingleton<IHostedService, LoginService>();
+            });
 
-            LogManager.ThrowConfigExceptions = false;
-            LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"));
-        }
+        await builder.RunConsoleAsync();
+    }
+
+    private static void Initialization()
+    {
+        _thread.Name = "AA.LoginServer Base Thread";
+        _startTime = DateTime.UtcNow;
+    }
+
+    private static void Configuration(string[] args, string mainConfigJson)
+    {
+        var configJsonFile = Path.Combine(FileManager.AppPath, "Config.json");
+        var configurationBuilder = new ConfigurationBuilder()
+            .AddJsonFile(mainConfigJson)
+            .AddUserSecrets<LoginService>()
+            .AddCommandLine(args)
+            .Build();
+
+        configurationBuilder.Bind(AppConfiguration.Instance);
+
+        LogManager.ThrowConfigExceptions = false;
+        LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"));
     }
 }

@@ -1,16 +1,15 @@
+﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
-using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts
+namespace AAEmu.Game.Models.Game.Quests.Acts;
+
+public class QuestActSupplySkill : QuestActTemplate
 {
-    public class QuestActSupplySkill : QuestActTemplate
-    {
-        public uint SkillId { get; set; }
+    public uint SkillId { get; set; }
 
-        public override bool Use(ICharacter character, Quest quest, int objective)
-        {
-            _log.Warn("QuestActSupplySkill");
-            return false;
-        }
+    public override bool Use(ICharacter character, Quest quest, int objective)
+    {
+        Logger.Warn("QuestActSupplySkill");
+        return true;
     }
 }

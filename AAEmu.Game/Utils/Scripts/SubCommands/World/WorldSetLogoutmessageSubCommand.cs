@@ -3,28 +3,27 @@ using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Utils.Scripts.SubCommands.World
+namespace AAEmu.Game.Utils.Scripts.SubCommands.World;
+
+public class WorldSetLogoutmessageSubCommand : SubCommandBase
 {
-    public class WorldSetLogoutmessageSubCommand : SubCommandBase
+    public WorldSetLogoutmessageSubCommand()
     {
-        public WorldSetLogoutmessageSubCommand()
+        Title = "[World Set LogoutMessage]";
+        Description = "Setting the logout message";
+        CallPrefix = $"{CommandManager.CommandPrefix}logoutmessage";
+        AddParameter(new StringSubCommandParameter("LogoutMessage", "LogoutMessage", true));
+    }
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    {
+        string logoutMessage = parameters["LogoutMessage"];
+        if (logoutMessage is "")
         {
-            Title = "[World Set LogoutMessage]";
-            Description = "Setting the logout message";
-            CallPrefix = $"{CommandManager.CommandPrefix}logoutmessage";
-            AddParameter(new StringSubCommandParameter("LogoutMessage", "LogoutMessage", true));
+            SendColorMessage(messageOutput, Color.Coral, $"Logout message must not be an empty string |r");
+            return;
         }
-        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters)
-        {
-            string logoutMessage = parameters["LogoutMessage"];
-            if (logoutMessage is "")
-            {
-                SendColorMessage(character, Color.Coral, $"Logout message must not be an empty string |r");
-                return;
-            }
-            character.SetLogoutMessage(logoutMessage);
-            SendMessage(character, $"Set LogoutMessage {logoutMessage}");
-            _log.Warn($"{Title}: {logoutMessage}");
-        }
+        character.SetLogoutMessage(logoutMessage);
+        SendMessage(messageOutput, $"Set LogoutMessage {logoutMessage}");
+        Logger.Warn($"{Title}: {logoutMessage}");
     }
 }

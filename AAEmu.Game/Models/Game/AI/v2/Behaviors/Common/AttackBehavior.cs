@@ -2,34 +2,33 @@
 
 using AAEmu.Game.Models.Game.Skills.Static;
 
-namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
+namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
+
+public class AttackBehavior : BaseCombatBehavior
 {
-    public class AttackBehavior : BaseCombatBehavior
+    public override void Enter()
     {
-        public override void Enter()
+    }
+
+    public override void Tick(TimeSpan delta)
+    {
+        if (!UpdateTarget() || ShouldReturn)
         {
+            Ai.Owner.IsInBattle = false;
+            Ai.GoToReturn();
+            return;
         }
 
-        public override void Tick(TimeSpan delta)
-        {
-            if (!UpdateTarget() || ShouldReturn)
-            {
-                Ai.Owner.IsInBattle = false;
-                Ai.GoToReturn();
-                return;
-            }
+        if (Ai.Owner.CurrentTarget == null) { return; }
+        MoveInRange(Ai.Owner.CurrentTarget, delta);
+        if (!CanUseSkill)
+            return;
 
-            if (Ai.Owner.CurrentTarget == null) { return; }
-            MoveInRange(Ai.Owner.CurrentTarget, delta);
-            if (!CanUseSkill)
-                return;
+        Ai.Owner.IsInBattle = true;
+        PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget);
+    }
 
-            Ai.Owner.IsInBattle = true;
-            PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget);
-        }
-
-        public override void Exit()
-        {
-        }
+    public override void Exit()
+    {
     }
 }

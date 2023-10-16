@@ -1,27 +1,26 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C
+namespace AAEmu.Game.Core.Packets.G2C;
+
+public class SCAppellationsPacket : GamePacket
 {
-    public class SCAppellationsPacket : GamePacket
+    private readonly (uint id, bool active)[] _appellations;
+
+    public SCAppellationsPacket((uint id, bool active)[] appellations) : base(SCOffsets.SCAppellationsPacket, 1)
     {
-        private readonly (uint id, bool active)[] _appellations;
+        _appellations = appellations;
+    }
 
-        public SCAppellationsPacket((uint id, bool active)[] appellations) : base(SCOffsets.SCAppellationsPacket, 1)
+    public override PacketStream Write(PacketStream stream)
+    {
+        stream.Write(_appellations.Length); // TODO max 512
+        foreach (var (id, selected) in _appellations)
         {
-            _appellations = appellations;
+            stream.Write(id);
+            stream.Write(selected);
         }
 
-        public override PacketStream Write(PacketStream stream)
-        {
-            stream.Write(_appellations.Length); // TODO max 512
-            foreach (var (id, selected) in _appellations)
-            {
-                stream.Write(id);
-                stream.Write(selected);
-            }
-
-            return stream;
-        }
+        return stream;
     }
 }

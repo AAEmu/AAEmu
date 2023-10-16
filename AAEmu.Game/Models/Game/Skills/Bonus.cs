@@ -1,10 +1,9 @@
 using AAEmu.Game.Models.Game.Skills.Templates;
 
-namespace AAEmu.Game.Models.Game.Skills
+namespace AAEmu.Game.Models.Game.Skills;
+
+public class Bonus
 {
-    public class Bonus
-    {
-        public BonusTemplate Template { get; set; }
-        public int Value { get; set; }
-    }
+    public BonusTemplate Template { get; set; }
+    public int Value { get; set; }
 }
