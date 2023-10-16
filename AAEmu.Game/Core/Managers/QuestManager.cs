@@ -1473,4 +1473,41 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             }
         }
     }
+
+    /// <summary>
+    /// Function needed for a hack to make older quest starter items work
+    /// </summary>
+    /// <param name="itemItemTemplateId"></param>
+    /// <returns></returns>
+    public uint GetQuestIdFromStarterItem(uint itemItemTemplateId)
+    {
+        // This is a very ugly reverse search function
+        foreach (var actTemplate in _actTemplates["QuestActConAcceptItem"].Values)
+        {
+            if (actTemplate is not QuestActConAcceptItem qacai)
+                continue;
+            if (qacai.ItemId != itemItemTemplateId)
+                continue;
+
+            // find quest_acts data
+            foreach (var (_, actList) in _acts)
+            {
+                foreach (var questAct in actList)
+                {
+                    if (questAct.DetailType == "QuestActConAcceptItem" && questAct.DetailId == qacai.Id)
+                    {
+                        // Use component Id to check if it's a starter, and return contextId (QuestId)
+                        foreach (var (questId, questContext) in _templates)
+                        {
+                            if ((questContext.Components.TryGetValue(questAct.ComponentId, out var questComponent)) &&
+                                (questComponent.KindId == QuestComponentKind.Start))
+                                return questId;
+                        }
+                    }
+                }
+            }
+        }
+
+        return 0;
+    }
 }
