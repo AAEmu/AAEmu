@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -22,6 +23,7 @@ public class QuestActObjItemGather : QuestActTemplate // Сбор предмет
         Logger.Debug("QuestActObjItemGather: QuestActObjItemGatherId {0}, Count {1}, UseAlias {2}, QuestActObjAliasId {3}, HighlightDoodadId {4}, HighlightDoodadPhase {5}, quest {6}, objective {7}, Score {8}",
             ItemId, Count, UseAlias, QuestActObjAliasId, HighlightDoodadId, HighlightDoodadPhase, quest.TemplateId, objective, quest.Template.Score);
 
+        var res = false;
         if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
         {
             GatherStatus = objective * Count; // Count в данном случае % за единицу
@@ -36,7 +38,7 @@ public class QuestActObjItemGather : QuestActTemplate // Сбор предмет
                     quest.ExtraCompletion = true;
             }
 
-            return quest.OverCompletionPercent >= quest.Template.Score;
+            res = quest.OverCompletionPercent >= quest.Template.Score;
         }
         else
         {
@@ -50,7 +52,12 @@ public class QuestActObjItemGather : QuestActTemplate // Сбор предмет
                 if (quest.OverCompletionPercent > 100)
                     quest.ExtraCompletion = true;
             }
-            return objective >= Count;
+            res = objective >= Count;
         }
+
+        if (res && Cleanup)
+            quest.QuestCleanupItemsPool.Add(new ItemCreationDefinition(ItemId, objective));
+
+        return res;
     }
 }
