@@ -1,9 +1,10 @@
 ﻿using System;
-
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
@@ -19,7 +20,37 @@ public class AcceptQuestEffect : EffectTemplate
     {
         Logger.Trace("AcceptQuestEffect");
 
-        if (target is Character character)
-            character.Quests.Add(QuestId);
+        var character = target as Character;
+        if (character == null)
+        {
+            Logger.Debug($"No target character given");
+            return;
+        }
+
+        // Workaround for older quest types that worked differently, but now all use Skill 11141 on their items
+        // Check if caster is a Item
+        if (casterObj is SkillItem skillItem)
+        {
+            var item = ItemManager.Instance.GetItemByItemId(skillItem.ItemId);
+            // Is this item a QuestStarted?
+            if (item.Template.ImplId == ItemImplEnum.AcceptQuest)
+            {
+                // Try to find it's actual QuestId
+                var itemQuestId = QuestManager.Instance.GetQuestIdFromStarterItem(skillItem.ItemTemplateId);
+                if (itemQuestId > 0)
+                {
+                    // Add alternative quest Id
+                    if (!character.Quests.Add(itemQuestId))
+                        return;
+                    // Immediately add the source using a OnItemGather event
+                    character.Quests.OnItemGather(item, item.Count);
+                    Logger.Debug($"Replaced quest from starter item {item.Id} (template:{item.Template.Id}) to use QuestId {itemQuestId} instead of {QuestId} for player {character.Name}");
+                    return;
+                }
+            }
+        }
+
+        // The above workaround didn't yield any results, use the normal QuestId defined for this effect
+        character.Quests.Add(QuestId);
     }
 }
