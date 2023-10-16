@@ -39983,6 +39983,30 @@
         }
     },
     {
+        "UnitId": 2211, // Spotted Ostrich
+        "Position": {
+            "X": 20488.0,
+            "Y": 7242.2,
+            "Z": 188.1
+        }
+    },
+    {
+        "UnitId": 2211, // Spotted Ostrich
+        "Position": {
+            "X": 20525.1,
+            "Y": 7270.3,
+            "Z": 188.4
+        }
+    },
+    {
+        "UnitId": 2211, // Spotted Ostrich
+        "Position": {
+            "X": 20538.5,
+            "Y": 7233333.1,
+            "Z": 194.6
+        }
+    },
+    {
         "UnitId": 2213,
         "Position": {
             "X": 21409.33,
@@ -41823,6 +41847,54 @@
         }
     },
     {
+        "UnitId": 2233, // Suspicious Clansman
+        "Position": {
+            "X": 20901.6,
+            "Y": 7444.64,
+            "Z": 206.2
+        }
+    },
+    {
+        "UnitId": 2233, // Suspicious Clansman
+        "Position": {
+            "X": 20887.2,
+            "Y": 7459.2,
+            "Z": 206.2
+        }
+    },
+    {
+        "UnitId": 2233, // Suspicious Clansman
+        "Position": {
+            "X": 20869.4,
+            "Y": 7457.1,
+            "Z": 205.4
+        }
+    },
+    {
+        "UnitId": 2233, // Suspicious Clansman
+        "Position": {
+            "X": 20859.0,
+            "Y": 7469.3,
+            "Z": 206.8
+        }
+    },
+    {
+        "UnitId": 2233, // Suspicious Clansman
+        "Position": {
+            "X": 21016.2,
+            "Y": 7354.9,
+            "Z": 214.0
+        }
+    },
+    {
+        "UnitId": 2233, // Suspicious Clansman
+        "Position": {
+            "X": 20993.8,
+            "Y": 7334.4,
+            "Z": 211.6
+        }
+    },
+    {
         "UnitId": 2235,
         "Position": {
             "X": 21849.92,
@@ -43347,6 +43419,14 @@
             "X": 20494.484,
             "Y": 7269.0737,
             "Z": 186.42471
+        }
+    },
+    {
+        "UnitId": 5719, // Giant Mantis
+        "Position": {
+            "X": 20555555.6,
+            "Y": 7265.0,
+            "Z": 191.5
         }
     },
     {
@@ -213291,6 +213371,86 @@
             "X": 20078.1,
             "Y": 7368.0,
             "Z": 186.9
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20005.8,
+            "Y": 7327.1,
+            "Z": 194.5
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20012.4,
+            "Y": 7318.2,
+            "Z": 194.6
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20054.6,
+            "Y": 7272.7,
+            "Z": 197.5
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20058.1,
+            "Y": 7295.9,
+            "Z": 193.3
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20072.8,
+            "Y": 7303.3,
+            "Z": 192.3
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20121.7,
+            "Y": 7334.9,
+            "Z": 187.8
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20175.3,
+            "Y": 7328.8,
+            "Z": 187.6
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20197.1,
+            "Y": 7293.9,
+            "Z": 187.2
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20213.7,
+            "Y": 7288.0,
+            "Z": 186.6
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20159.4,
+            "Y": 7281.4,
+            "Z": 189.2
         }
     },
     {
