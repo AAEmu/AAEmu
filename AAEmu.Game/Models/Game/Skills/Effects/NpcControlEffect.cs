@@ -1,10 +1,12 @@
 ﻿using System;
 
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
@@ -19,6 +21,7 @@ public class NpcControlEffect : EffectTemplate
 
     // ---
     private string fileName { get; set; }
+    private string fileName2 { get; set; }
     private uint skillId { get; set; }
     private uint timeout { get; set; }
     // ---
@@ -30,6 +33,9 @@ public class NpcControlEffect : EffectTemplate
         CompressedGamePackets packetBuilder = null)
     {
         Logger.Debug($"NpcControllEffect: CategoryId={CategoryId}, ParamString={ParamString}, ParamInt={ParamInt}");
+
+        fileName = string.Empty;
+        fileName2 = string.Empty;
 
         if (caster is Npc npc)
         {
@@ -134,7 +140,14 @@ public class NpcControlEffect : EffectTemplate
                                     case AiCommandCategory.FollowUnit:
                                         break;
                                     case AiCommandCategory.FollowPath:
-                                        fileName = aiCommands.Param2;
+                                        if (string.IsNullOrEmpty(fileName))
+                                        {
+                                            fileName = aiCommands.Param2;
+                                        }
+                                        else
+                                        {
+                                            fileName2 = aiCommands.Param2;
+                                        }
                                         break;
                                     case AiCommandCategory.UseSkill:
                                         skillId = aiCommands.Param1;
@@ -154,6 +167,7 @@ public class NpcControlEffect : EffectTemplate
                                 npc2.Simulation.Cycle = false;
                                 npc2.Simulation.MoveToPathEnabled = false;
                                 npc2.Simulation.MoveFileName = fileName;
+                                npc2.Simulation.MoveFileName2 = fileName2;
                                 npc2.Simulation.GoToPath(npc2, true, skillId, timeout);
                             }
                         }

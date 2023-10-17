@@ -923,6 +923,8 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+            Step = QuestComponentKind.Progress;
+
             Logger.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -1083,6 +1085,8 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+            Step = QuestComponentKind.Progress;
+
             Logger.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -1139,6 +1143,8 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+            Step = QuestComponentKind.Progress;
+
             Logger.Info($"[OnItemUseHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -1298,6 +1304,8 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+            Step = QuestComponentKind.Progress;
+
             Logger.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -1752,6 +1760,8 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+            Step = QuestComponentKind.Progress;
+
             Logger.Info($"[OnAggroHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -1858,6 +1868,8 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+            Step = QuestComponentKind.Progress;
+
             Logger.Info($"[OnExpressFireHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -1964,6 +1976,8 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+            Step = QuestComponentKind.Progress;
+
             Logger.Info($"[OnAbilityLevelUpHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -2070,6 +2084,8 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+            Step = QuestComponentKind.Progress;
+
             Logger.Info($"[OnLevelUpHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -2176,6 +2192,8 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+            Step = QuestComponentKind.Progress;
+
             Logger.Info($"[OnCraftHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -2282,6 +2300,8 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+            Step = QuestComponentKind.Progress;
+
             Logger.Info($"[OnEnterSphereHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -2388,6 +2408,8 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+            Step = QuestComponentKind.Progress;
+
             Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -2494,6 +2516,8 @@ public partial class Quest : PacketMarshaler
 
             Status = QuestStatus.Ready;
             Condition = QuestConditionObj.Ready;
+            Step = QuestComponentKind.Progress;
+
             Logger.Info($"[OnZoneMonsterHuntHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));

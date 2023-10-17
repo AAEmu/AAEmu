@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -63,6 +64,7 @@ public class Simulation : Patrol
     private const string MoveFilesPath = @"./Data/Path/"; // путь где хранятся наши файлы
     private const string MoveFileExt = @".path"; // расширение по умолчанию
     public string MoveFileName { get; set; } = string.Empty; // имя файла для маршрута
+    public string MoveFileName2 { get; set; } = string.Empty; // имя файла для маршрута
 
     //Not used
     //private float MovingDistance = 0.25f; //0.3f;
@@ -281,7 +283,11 @@ public class Simulation : Patrol
         npc.BroadcastPacket(new SCUnitModelPostureChangedPacket(npc, BaseUnitType.Npc, ModelPostureType.ActorModelState, 2), true);
         Path = GetPaths(MoveFileName);
 
-        if (Path.Count == 0) { return; }
+        if (Path.Count == 0)
+        {
+            Logger.Warn($"Stop moving... Информация о пути MoveFileName={MoveFileName} отсутствует!");
+            return;
+        }
 
         var i = GetMinCheckPoint(npc, Path);
         if (i < 0)
@@ -304,6 +310,50 @@ public class Simulation : Patrol
             OldPos = new Vector3(TargetPosition.World.Position.X, TargetPosition.World.Position.Y, TargetPosition.World.Position.Z);
         }
         RepeatMove(this, npc, TargetPosition.World.Position);
+    }
+    public void GoToPath2(Npc npc, bool toForward, uint skillId = 0, uint timeout = 0)
+    {
+        MoveToForward = toForward;
+
+        ReadPath();
+
+        SkillId = skillId;
+        Timeout = timeout;
+
+        // presumably the path is already registered in MovePath
+        //Logger.Warn("trying to get on the path...");
+        //Character.SendMessage("[MoveTo] trying to get on the path...");
+        // first go to the closest checkpoint
+        npc.BroadcastPacket(new SCUnitModelPostureChangedPacket(npc, BaseUnitType.Npc, ModelPostureType.ActorModelState, 2), true);
+        Path = GetPaths(MoveFileName);
+
+        if (Path.Count == 0)
+        {
+            Logger.Warn($"Stop moving... Информация о пути MoveFileName={MoveFileName} отсутствует!");
+            return;
+        }
+
+        var i = GetMinCheckPoint(npc, Path);
+        if (i < 0)
+        {
+            //Logger.Warn("checkpoint not found...");
+            //Character.SendMessage("[MoveTo] checkpoint not found...");
+            StopMove(npc);
+            return;
+        }
+        //Logger.Warn($"found nearest checkpoint #{i} run there ...");
+        //Character.SendMessage($"[MoveTo] found nearest checkpoint #{i} run there ...");
+        MoveToPathEnabled = true;
+        MoveStepIndex = i;
+        //Logger.Warn($"checkpoint #{i}");
+        //Character.SendMessage($"[MoveTo] checkpoint #{i}");
+        var s = MovePath[MoveStepIndex];
+        TargetPosition.World.SetPosition(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
+        if (Math.Abs(OldPos.X - TargetPosition.World.Position.X) > tolerance && Math.Abs(OldPos.Y - TargetPosition.World.Position.Y) > tolerance && Math.Abs(OldPos.Z - TargetPosition.World.Position.Z) > tolerance)
+        {
+            OldPos = new Vector3(TargetPosition.World.Position.X, TargetPosition.World.Position.Y, TargetPosition.World.Position.Z);
+        }
+        RepeatMove(this, npc, TargetPosition.World.Position, timeout);
     }
 
     public void MoveTo(Simulation sim, Npc npc, Vector3 target)
@@ -494,8 +544,18 @@ public class Simulation : Patrol
 
                     RepeatMove(this, npc, TargetPosition.World.Position, time);
                 }
+                else if (!string.IsNullOrEmpty(MoveFileName2))
+                {
+                    // let's pause, use skill
+                    PauseMove(npc);
+                    var time = Timeout * 1000;
+
+                    MoveFileName = MoveFileName2; // заменим на путь назад
+                    GoToPath2(npc, true, 0, time);
+                }
                 else
                 {
+
                     StopMove(npc);
                 }
                 return;
