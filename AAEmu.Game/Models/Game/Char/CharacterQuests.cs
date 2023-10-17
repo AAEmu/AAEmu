@@ -49,26 +49,26 @@ public partial class CharacterQuests
         var questBlockIndex = (int)(questId % 64);
         return CompletedQuests.TryGetValue(questBlockId, out var questBlock) && questBlock.Body.Get(questBlockIndex);
     }
-    
-    public void Add(uint questContextId, bool forcibly = false, uint npcObjId = 0, uint doodadObjId = 0, uint sphereId = 0)
+
+    public bool Add(uint questId, bool forcibly = false, uint npcObjId = 0, uint doodadObjId = 0, uint sphereId = 0)
     {
-        if (ActiveQuests.ContainsKey(questContextId))
+        if (ActiveQuests.ContainsKey(questId))
         {
             if (forcibly)
             {
-                Logger.Info("[GM] quest {0}, added!", questContextId);
-                Drop(questContextId, true);
+                Logger.Info("[GM] quest {0}, added!", questId);
+                Drop(questId, true);
             }
             else
             {
-                Logger.Info("Duplicate quest {0}, not added!", questContextId);
-                return;
+                Logger.Info("Duplicate quest {0}, not added!", questId);
+                return false;
             }
         }
 
-        var template = QuestManager.Instance.GetTemplate(questContextId);
-        if (template == null) { return; }
-      
+        var template = QuestManager.Instance.GetTemplate(questId);
+        if (template == null) { return false; }
+
         if (HasQuestCompleted(questId))
         {
             if (template.Repeatable == false)
@@ -100,9 +100,9 @@ public partial class CharacterQuests
 
         if (QuestManager.Instance.QuestTimeoutTask.Count != 0)
         {
-            if (QuestManager.Instance.QuestTimeoutTask.ContainsKey(quest.Owner.Id) && QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].ContainsKey(questContextId))
+            if (QuestManager.Instance.QuestTimeoutTask.ContainsKey(quest.Owner.Id) && QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].ContainsKey(questId))
             {
-                QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].Remove(questContextId);
+                QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].Remove(questId);
             }
         }
 
@@ -112,40 +112,16 @@ public partial class CharacterQuests
         //var res = quest.Start();
         if (!res)
         {
-            Drop(questContextId, true);
+            Drop(questId, true);
+            return false;
         }
-        else
-        {
-            ActiveQuests.Add(quest.TemplateId, quest);
-            quest.Owner.SendMessage("[Quest] {0}, quest {1} added.", Owner.Name, questId);
-            quest.ContextProcessing();
-        }
+
+        ActiveQuests.Add(quest.TemplateId, quest);
+        quest.Owner.SendMessage("[Quest] {0}, quest {1} added.", Owner.Name, questId);
+        quest.ContextProcessing();
+
+        return true;
     }
-
-    ///// <summary>
-    ///// Метод предназначен для вызова из скрита QuestCmd, команда /quest add (The method is intended to be called from the QuestCmd script, command /quest add) questId
-    ///// </summary>
-    ///// <param name="questId"></param>
-    //public void AddStart(uint questId)
-    //{
-    //    if (ActiveQuests.ContainsKey(questId))
-    //    {
-    //        Logger.Warn("Duplicate quest {0}, added!", questId);
-    //        Drop(questId, true);
-    //    }
-
-    //    var template = QuestManager.Instance.GetTemplate(questId);
-    //    if (template == null)
-    //        return;
-    //    var quest = new Quest(template);
-    //    quest.Id = QuestIdManager.Instance.GetNextId();
-    //    quest.Status = QuestStatus.Progress;
-    //    quest.Owner = Owner;
-    //    quest.CreateContextInstance(); // установим начальный контекст в Progress State
-    //    ActiveQuests.Add(quest.TemplateId, quest);
-    //    quest.StartFirstOnly();
-    //    quest.Owner.SendMessage("[Quest] {0}, quest {1} added.", Owner.Name, questId);
-    //}
 
     /// <summary>
     /// Complete - завершаем квест, получаем награду

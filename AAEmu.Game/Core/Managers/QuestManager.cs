@@ -1658,7 +1658,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             SphereQuest = sphereQuest
         });
     }
-    
+
     /// <summary>
     /// Function needed for a hack to make older quest starter items work
     /// </summary>
