@@ -20,10 +20,10 @@ public enum AreaSphereTriggerCondition
 
 public class SphereQuest
 {
-    public uint ZoneID { get; set; }
-    public string WorldID { get; set; }
-    public uint QuestID { get; set; }
-    public uint ComponentID { get; set; }
+    public uint ZoneId { get; set; }
+    public string WorldId { get; set; }
+    public uint QuestId { get; set; }
+    public uint ComponentId { get; set; }
     public float Radius { get; set; }
     public float X { get; set; }
     public float Y { get; set; }
@@ -54,7 +54,7 @@ public class SphereQuestTrigger
     {
         foreach (var trigger in Triggers)
         {
-            if (trigger.Quest.CurrentComponentId == trigger.Sphere.ComponentID)
+            if (trigger.Quest.CurrentComponentId == trigger.Sphere.ComponentId)
             {
                 var xyzSphereQuest = new Vector3(trigger.Sphere.X, trigger.Sphere.Y, trigger.Sphere.Z);
                 // TODO срабатывает триггер в радиусе от центра сферы

@@ -145,7 +145,7 @@ public class QuestCommandUtil
                 character.Quests.ResetDailyQuests(true);
                 break;
             default:
-                character.SendMessage("[Quest] /quest <add/remove/list/prog/reward>\nBefore that, target the Npc you need for the quest");
+                character.SendMessage("[Quest] /quest <add/remove/list/prog/reward/resetdaily>\nBefore that, target the Npc you need for the quest");
                 break;
         }
     }
