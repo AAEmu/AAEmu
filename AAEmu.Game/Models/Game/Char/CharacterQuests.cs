@@ -43,6 +43,13 @@ public partial class CharacterQuests
         return ActiveQuests.ContainsKey(questId);
     }
 
+    public bool HasQuestCompleted(uint questId)
+    {
+        var questBlockId = (ushort)(questId / 64);
+        var questBlockIndex = (int)(questId % 64);
+        return CompletedQuests.TryGetValue(questBlockId, out var questBlock) && questBlock.Body.Get(questBlockIndex);
+    }
+    
     public void Add(uint questContextId, bool forcibly = false, uint npcObjId = 0, uint doodadObjId = 0, uint sphereId = 0)
     {
         if (ActiveQuests.ContainsKey(questContextId))
@@ -61,6 +68,16 @@ public partial class CharacterQuests
 
         var template = QuestManager.Instance.GetTemplate(questContextId);
         if (template == null) { return; }
+      
+        if (HasQuestCompleted(questId))
+        {
+            if (template.Repeatable == false)
+            {
+                Logger.Warn($"Quest {questId} already completed for {Owner.Name}, not added!");
+                Owner.SendErrorMessage(ErrorMessageType.QuestDailyLimit);
+                return false;
+            }
+        }
 
         var quest = new Quest(template);
         quest.Id = QuestIdManager.Instance.GetNextId();
@@ -100,7 +117,7 @@ public partial class CharacterQuests
         else
         {
             ActiveQuests.Add(quest.TemplateId, quest);
-            quest.Owner.SendMessage("[Quest] {0}, quest {1} added.", quest.Owner.Name, questContextId);
+            quest.Owner.SendMessage("[Quest] {0}, quest {1} added.", Owner.Name, questId);
             quest.ContextProcessing();
         }
     }
@@ -435,11 +452,11 @@ public partial class CharacterQuests
 
     private void ResetQuests(QuestDetail[] questDetail, bool sendIfChanged = true)
     {
-        foreach (var (completeId, completeBlock) in CompletedQuests)
+        foreach (var (completeBlockId, completeBlock) in CompletedQuests)
         {
-            for (var id = 0; id < 64; id++)
+            for (var blockIndex = 0; blockIndex < 64; blockIndex++)
             {
-                var questId = (uint)(completeId * 64) + (uint)id;
+                var questId = (uint)(completeBlockId * 64) + (uint)blockIndex;
                 var q = QuestManager.Instance.GetTemplate(questId);
                 // Skip unused Ids
                 if (q == null)
@@ -450,15 +467,15 @@ public partial class CharacterQuests
 
                 foreach (var qd in questDetail)
                 {
-                    if ((q.DetailId == qd) && (completeBlock.Body[id]))
+                    if ((q.DetailId == qd) && (completeBlock.Body[blockIndex]))
                     {
-                        completeBlock.Body[id] = false;
+                        completeBlock.Body.Set(blockIndex, false);
                         Logger.Info($"QuestReset by {Owner.Name}, reset {questId}");
                         if (sendIfChanged)
                         {
                             var body = new byte[8];
                             completeBlock.Body.CopyTo(body, 0);
-                            Owner.SendPacket(new SCQuestContextResetPacket(questId, body, completeId));
+                            Owner.SendPacket(new SCQuestContextResetPacket(questId, body, completeBlockId));
                         }
                     }
                 }

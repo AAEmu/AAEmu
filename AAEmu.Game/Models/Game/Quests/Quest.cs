@@ -56,6 +56,7 @@ public partial class Quest : PacketMarshaler
     public uint AcceptorType { get; set; } // нужно для пакета SCQuestContext...
     private QuestCompleteTask QuestTask { get; set; }
     public List<ItemCreationDefinition> QuestRewardItemsPool { get; set; }
+    public List<ItemCreationDefinition> QuestCleanupItemsPool { get; set; }
     public int QuestRewardCoinsPool { get; set; }
     public int QuestRewardExpPool { get; set; }
 
@@ -82,6 +83,7 @@ public partial class Quest : PacketMarshaler
         ExtraCompletion = false;
         ObjId = 0;
         QuestRewardItemsPool = new List<ItemCreationDefinition>();
+        QuestCleanupItemsPool = new List<ItemCreationDefinition>();
     }
 
     public Quest() : this(
@@ -809,7 +811,7 @@ EndLoop:
         // Distribute Items if needed
         if (QuestRewardItemsPool.Count > 0)
         {
-            // TODO: Add a way to distribute honor or vocation badges in mail as well 
+            // TODO: Add a way to distribute honor or vocation badges in mail as well
 
             if (Owner.Inventory.Bag.FreeSlotCount < QuestRewardItemsPool.Count)
             {
@@ -851,6 +853,14 @@ EndLoop:
         {
             Owner.ChangeMoney(SlotType.None, SlotType.Inventory, QuestRewardCoinsPool);
             QuestRewardCoinsPool = 0;
+        }
+
+        // Cleanup used Items from quest
+        if (QuestCleanupItemsPool.Count > 0)
+        {
+            foreach (var cleanupItem in QuestCleanupItemsPool)
+                Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestComplete, cleanupItem.TemplateId, cleanupItem.Count, null);
+            QuestCleanupItemsPool.Clear();
         }
     }
 
