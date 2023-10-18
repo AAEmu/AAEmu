@@ -25,10 +25,12 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     protected Dictionary<uint, QuestTemplate> _templates;
     protected Dictionary<byte, QuestSupplies> _supplies;
     protected Dictionary<uint, List<QuestAct>> _acts;
+    private Dictionary<string, List<QuestAct>> _actsByType;
     private Dictionary<uint, QuestAct> _actsDic;
     protected Dictionary<string, Dictionary<uint, QuestActTemplate>> _actTemplates;
     private Dictionary<uint, List<uint>> _groupItems;
     private Dictionary<uint, List<uint>> _groupNpcs;
+    private Dictionary<uint, QuestComponent> _templateComponents;
     public Dictionary<uint, Dictionary<uint, QuestTimeoutTask>> QuestTimeoutTask;
 
     public QuestTemplate GetTemplate(uint id)
@@ -96,7 +98,10 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             foreach (var questComponent in questTemplate.Components)
             {
                 if (_acts.TryGetValue(questComponent.Key, out var questActs))
+                {
                     questComponent.Value.ActTemplates.AddRange(questActs.Select(a => a.Template));
+                    questComponent.Value.Acts.AddRange(questActs);
+                }
             }
         }
     }
@@ -139,6 +144,63 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         var dailyCron = "0 0 0 ? * * *";
         // TODO: Make sure it obeys server time settings
         TaskManager.Instance.CronSchedule(new QuestDailyResetTask(), dailyCron);
+    }
+
+    /// <summary>
+    /// Function needed for a hack to make older quest starter items work
+    /// </summary>
+    /// <param name="itemItemTemplateId"></param>
+    /// <returns></returns>
+    public uint GetQuestIdFromStarterItem(uint itemItemTemplateId)
+    {
+        // This is a very ugly reverse search function
+        foreach (var actTemplate in _actTemplates["QuestActConAcceptItem"].Values)
+        {
+            if (actTemplate is not QuestActConAcceptItem actAcceptItem)
+                continue;
+            if (actAcceptItem.ItemId != itemItemTemplateId)
+                continue;
+
+            // find quest_acts data
+            foreach (var actList in _acts.Values)
+            {
+                foreach (var questAct in actList)
+                {
+                    if (questAct.DetailType == "QuestActConAcceptItem" && questAct.DetailId == actAcceptItem.Id)
+                    {
+                        // Use component Id to check if it's a starter, and return contextId (QuestId)
+                        foreach (var (questId, questContext) in _templates)
+                        {
+                            if ((questContext.Components.TryGetValue(questAct.ComponentId, out var questComponent)) &&
+                                (questComponent.KindId == QuestComponentKind.Start))
+                                return questId;
+                        }
+                    }
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Simplified version of GetQuestIdFromStarterItem
+    /// </summary>
+    /// <param name="itemItemTemplateId"></param>
+    /// <returns></returns>
+    public IEnumerable<uint> GetQuestIdFromStarterItem2(uint itemItemTemplateId)
+    {
+        foreach (var foundActs in _actTemplates["QuestActConAcceptItem"].Values.Where(qAcceptItem => qAcceptItem is QuestActConAcceptItem qai && qai.ItemId == itemItemTemplateId))
+        {
+            var matchingAct = _actsByType["QuestActConAcceptItem"]
+                .FirstOrDefault(act =>
+                    act.DetailId == foundActs.Id && act.QuestComponent.KindId == QuestComponentKind.Start);
+
+            if (matchingAct != null)
+            {
+                yield return matchingAct.QuestComponent.QuestTemplate.Id;
+            }
+        }
     }
 
     private void LoadQuestMonsterNpcs(SqliteConnection connection)
@@ -204,12 +266,23 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             {
                 while (reader.Read())
                 {
-                    var template = new QuestAct();
+                    var componentId = reader.GetUInt32("quest_component_id");
+                    var template = new QuestAct(_templateComponents[componentId]);
+
                     template.Id = reader.GetUInt32("id");
-                    template.ComponentId = reader.GetUInt32("quest_component_id");
+                    template.ComponentId = componentId;
                     template.DetailId = reader.GetUInt32("act_detail_id");
                     template.DetailType = reader.GetString("act_detail_type");
                     List<QuestAct> list;
+                    if (!_actsByType.ContainsKey(template.DetailType))
+                    {
+                        list = new List<QuestAct>() { template };
+                        _actsByType.Add(template.DetailType, list);
+                    }
+                    else
+                        _actsByType[template.DetailType].Add(template);
+
+                    _actsByType[template.DetailType].Add(template);
                     if (_acts.ContainsKey(template.ComponentId))
                         list = _acts[template.ComponentId];
                     else
@@ -261,7 +334,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
                     if (!_templates.ContainsKey(questId))
                         continue;
 
-                    var template = new QuestComponent();
+                    var template = new QuestComponent(_templates[questId]);
                     template.Id = reader.GetUInt32("id");
                     template.KindId = (QuestComponentKind)reader.GetByte("component_kind_id");
                     template.NextComponent = reader.GetUInt32("next_component", 0);
@@ -278,6 +351,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
                     template.CinemaId = reader.GetUInt32("cinema_id", 0);
                     template.BuffId = reader.GetUInt32("buff_id", 0);
                     _templates[questId].Components.Add(template.Id, template);
+                    _templateComponents.TryAdd(template.Id, template);
                 }
             }
         }
@@ -1472,42 +1546,5 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
                 }
             }
         }
-    }
-
-    /// <summary>
-    /// Function needed for a hack to make older quest starter items work
-    /// </summary>
-    /// <param name="itemItemTemplateId"></param>
-    /// <returns></returns>
-    public uint GetQuestIdFromStarterItem(uint itemItemTemplateId)
-    {
-        // This is a very ugly reverse search function
-        foreach (var actTemplate in _actTemplates["QuestActConAcceptItem"].Values)
-        {
-            if (actTemplate is not QuestActConAcceptItem qacai)
-                continue;
-            if (qacai.ItemId != itemItemTemplateId)
-                continue;
-
-            // find quest_acts data
-            foreach (var (_, actList) in _acts)
-            {
-                foreach (var questAct in actList)
-                {
-                    if (questAct.DetailType == "QuestActConAcceptItem" && questAct.DetailId == qacai.Id)
-                    {
-                        // Use component Id to check if it's a starter, and return contextId (QuestId)
-                        foreach (var (questId, questContext) in _templates)
-                        {
-                            if ((questContext.Components.TryGetValue(questAct.ComponentId, out var questComponent)) &&
-                                (questComponent.KindId == QuestComponentKind.Start))
-                                return questId;
-                        }
-                    }
-                }
-            }
-        }
-
-        return 0;
     }
 }
