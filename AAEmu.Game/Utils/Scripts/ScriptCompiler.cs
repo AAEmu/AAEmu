@@ -276,18 +276,6 @@ public static class ScriptCompiler
         foreach (var @class in classes)
         {
             dictionaryOldNew.Add(@class.Identifier.ValueText, "Generated_" + @class.Identifier.ValueText);
-            //var newName = "Generated_" + @class.Identifier.ValueText;
-            //var newClass = @class.WithIdentifier(SyntaxFactory.Identifier(newName));
-
-            // Rename all the constructors and keep the same name as the class and keep the same parameters
-            /*var constructors = newClass.DescendantNodes().OfType<ConstructorDeclarationSyntax>().ToArray();
-            foreach (var constructor in constructors)
-            {
-                var newConstructor = constructor.WithIdentifier(SyntaxFactory.Identifier(newName));
-                newClass = newClass.ReplaceNode(constructor, newConstructor);
-            }
-
-            root = root.ReplaceNode(@class, newClass);*/
         }
 
         // Rename enums
