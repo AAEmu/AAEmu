@@ -37,7 +37,7 @@ public class QuestTests
         var expectedIds = new List<uint>();
 
         mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>())).Returns<QuestComponentKind>(kind => new[] {
-            new QuestComponent() { Id = (uint)kind }
+            new QuestComponent(null) { Id = (uint)kind }
         }).Callback<QuestComponentKind>(d => expectedIds.Add((uint)d));
 
         // Act
@@ -60,7 +60,7 @@ public class QuestTests
         var expectedIds = new List<uint>();
 
         mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>())).Returns<QuestComponentKind>(kind => new[] {
-            new QuestComponent() { Id = (uint)kind }
+            new QuestComponent(null) { Id = (uint)kind }
         }).Callback<QuestComponentKind>(d => expectedIds.Add((uint)d));
 
         var mockQuestAct = new Mock<IQuestAct>();
@@ -91,11 +91,11 @@ public class QuestTests
         var expectedIds = new List<uint>();
         mockQuestTemplate.SetupGet(qt => qt.Components).Returns(new Dictionary<uint, QuestComponent>()
         {
-            { 1, new QuestComponent() { Id = 1, KindId = QuestComponentKind.Drop } },
-            { 2, new QuestComponent() { Id = 2, KindId = QuestComponentKind.Drop } }
+            { 1, new QuestComponent(null) { Id = 1, KindId = QuestComponentKind.Drop } },
+            { 2, new QuestComponent(null) { Id = 2, KindId = QuestComponentKind.Drop } }
         });
         mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>())).Returns<QuestComponentKind>(kind => new[] {
-            new QuestComponent() { Id = (uint)kind }
+            new QuestComponent(null) { Id = (uint)kind }
         });
 
         var mockQuestAct = new Mock<IQuestAct>();

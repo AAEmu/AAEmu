@@ -9,7 +9,9 @@ public class QuestComponent
 {
     public uint Id { get; set; }
     public QuestComponentKind KindId { get; set; }
-    public List<QuestActTemplate> ActTemplates { get; set; } = new List<QuestActTemplate>();
+    public QuestTemplate QuestTemplate { get; }
+    public List<QuestActTemplate> ActTemplates { get; set; } = new();
+    public List<QuestAct> Acts { get; set; } = new();
     public uint NextComponent { get; set; }
     public QuestNpcAiName NpcAiId { get; set; }
     public uint NpcId { get; set; }
@@ -23,4 +25,9 @@ public class QuestComponent
     public bool OrUnitReqs { get; set; }
     public uint CinemaId { get; set; }
     public uint BuffId { get; set; }
+
+    public QuestComponent(QuestTemplate parent)
+    {
+        QuestTemplate = parent;
+    }
 }
