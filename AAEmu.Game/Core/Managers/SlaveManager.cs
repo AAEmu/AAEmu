@@ -26,6 +26,8 @@ using AAEmu.Game.Models.Tasks.Slave;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 
+#pragma warning disable CA2000 // Dispose objects before losing scope
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;

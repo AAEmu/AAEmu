@@ -22,16 +22,16 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
-    protected Dictionary<uint, QuestTemplate> _templates;
-    protected Dictionary<byte, QuestSupplies> _supplies;
-    protected Dictionary<uint, List<QuestAct>> _acts;
-    private Dictionary<string, List<QuestAct>> _actsByType;
-    private Dictionary<uint, QuestAct> _actsDic;
-    protected Dictionary<string, Dictionary<uint, QuestActTemplate>> _actTemplates;
-    private Dictionary<uint, List<uint>> _groupItems;
-    private Dictionary<uint, List<uint>> _groupNpcs;
-    private Dictionary<uint, QuestComponent> _templateComponents;
-    public Dictionary<uint, Dictionary<uint, QuestTimeoutTask>> QuestTimeoutTask;
+    protected Dictionary<uint, QuestTemplate> _templates = new();
+    protected Dictionary<byte, QuestSupplies> _supplies = new();
+    protected Dictionary<uint, List<QuestAct>> _acts = new();
+    private Dictionary<string, List<QuestAct>> _actsByType = new();
+    private Dictionary<uint, QuestAct> _actsDic = new();
+    protected Dictionary<string, Dictionary<uint, QuestActTemplate>> _actTemplates = new();
+    private Dictionary<uint, List<uint>> _groupItems = new();
+    private Dictionary<uint, List<uint>> _groupNpcs = new();
+    private Dictionary<uint, QuestComponent> _templateComponents = new();
+    public Dictionary<uint, Dictionary<uint, QuestTimeoutTask>> QuestTimeoutTask = new();
 
     public QuestTemplate GetTemplate(uint id)
     {
@@ -109,16 +109,6 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     {
         if (_loaded)
             return;
-        //                              charId          questId  Task
-        QuestTimeoutTask = new Dictionary<uint, Dictionary<uint, QuestTimeoutTask>>();
-
-        _templates = new Dictionary<uint, QuestTemplate>();
-        _supplies = new Dictionary<byte, QuestSupplies>();
-        _acts = new Dictionary<uint, List<QuestAct>>();
-        _actsDic = new Dictionary<uint, QuestAct>();
-        _actTemplates = new Dictionary<string, Dictionary<uint, QuestActTemplate>>();
-        _groupItems = new Dictionary<uint, List<uint>>();
-        _groupNpcs = new Dictionary<uint, List<uint>>();
 
         foreach (var type in Helpers.GetTypesInNamespace(Assembly.GetAssembly(typeof(QuestManager)), "AAEmu.Game.Models.Game.Quests.Acts"))
             if (type.BaseType == typeof(QuestActTemplate))
@@ -186,21 +176,22 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     /// <summary>
     /// Simplified version of GetQuestIdFromStarterItem
     /// </summary>
-    /// <param name="itemItemTemplateId"></param>
-    /// <returns></returns>
-    public IEnumerable<uint> GetQuestIdFromStarterItem2(uint itemItemTemplateId)
+    /// <param name="itemItemTemplateId">Item id</param>
+    /// <returns>Gets the target quest which accepts the item</returns>
+    public uint GetQuestIdFromStarterItemNew(uint itemItemTemplateId)
     {
         foreach (var foundActs in _actTemplates["QuestActConAcceptItem"].Values.Where(qAcceptItem => qAcceptItem is QuestActConAcceptItem qai && qai.ItemId == itemItemTemplateId))
         {
             var matchingAct = _actsByType["QuestActConAcceptItem"]
                 .FirstOrDefault(act =>
-                    act.DetailId == foundActs.Id && act.QuestComponent.KindId == QuestComponentKind.Start);
+                    act.QuestComponent?.KindId == QuestComponentKind.Start && act.DetailId == foundActs.Id);
 
             if (matchingAct != null)
             {
-                yield return matchingAct.QuestComponent.QuestTemplate.Id;
+                return matchingAct.QuestComponent.QuestTemplate.Id;
             }
         }
+        return 0;
     }
 
     private void LoadQuestMonsterNpcs(SqliteConnection connection)
@@ -267,7 +258,8 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
                 while (reader.Read())
                 {
                     var componentId = reader.GetUInt32("quest_component_id");
-                    var template = new QuestAct(_templateComponents[componentId]);
+                    _templateComponents.TryGetValue(componentId, out var questComponent);
+                    var template = new QuestAct(questComponent);
 
                     template.Id = reader.GetUInt32("id");
                     template.ComponentId = componentId;
