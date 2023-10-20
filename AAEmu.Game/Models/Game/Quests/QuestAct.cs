@@ -11,7 +11,13 @@ public class QuestAct : IComparable<QuestAct>, IQuestAct
     public uint ComponentId { get; set; }
     public uint DetailId { get; set; }
     public string DetailType { get; set; }
+    public QuestComponent QuestComponent { get; }
     public QuestActTemplate Template { get; set; }
+
+    public QuestAct(QuestComponent parent)
+    {
+        QuestComponent = parent;
+    }
 
     public QuestActTemplate GetTemplate()
     {
