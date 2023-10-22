@@ -25,10 +25,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Additional Files", "Additio
 		.gitignore = .gitignore
 		.gitlab-ci.yml = .gitlab-ci.yml
 		AAEmu.sln.DotSettings = AAEmu.sln.DotSettings
+		.github\workflows\codeql-analysis.yml = .github\workflows\codeql-analysis.yml
 		CONTRIBUTING.md = CONTRIBUTING.md
 		docker-compose.yaml = docker-compose.yaml
+		.github\workflows\dotnetcore.yml = .github\workflows\dotnetcore.yml
 		global.json = global.json
 		README.md = README.md
+		.github\workflows\sonar.yml = .github\workflows\sonar.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SQL", "SQL", "{DC5065BC-D9B9-4B81-97D9-45527C90A0B6}"
