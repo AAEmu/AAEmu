@@ -378,6 +378,7 @@ public class SpawnManager : Singleton<SpawnManager>
         doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.Housing);
         // Load plants/packs and everything else that was placed into the world by players
         doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.System);
+        doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.Character);
         Logger.Info($"{doodadsSpawned} doodads loaded.");
 
         var respawnThread = new Thread(CheckRespawns) { Name = "RespawnThread" };
