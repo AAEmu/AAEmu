@@ -89,6 +89,10 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
                     if (connection.ActiveChar?.IsInBattle ?? false)
                         logoutTime *= 30;
 
+                    // Add 10 minutes if you have a Slave Active
+                    if (SlaveManager.Instance.GetActiveSlaveByOwnerObjId(connection.ActiveChar?.ObjId ?? 0) != null)
+                        logoutTime += 1000 * 60 * 10;
+
                     connection.SendPacket(new SCPrepareLeaveWorldPacket(logoutTime, type, false));
 
                     connection.CancelTokenSource = new CancellationTokenSource();

@@ -1,7 +1,10 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Tasks.Skills;
+using NLog;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -13,26 +16,34 @@ public class CSStopCastingPacket : GamePacket
 
     public override async void Read(PacketStream stream)
     {
-        var tl = stream.ReadUInt16(); // sid
-        var pid = stream.ReadUInt16(); // tl; pid
+        var tlId = stream.ReadUInt16(); // sid
+        var plotTlId = stream.ReadUInt16(); // tl; pid
         var objId = stream.ReadBc();
 
         if (Connection.ActiveChar.ObjId != objId)
-            return;
-        if (pid != 0 && Connection.ActiveChar.ActivePlotState != null)
         {
-            if (Connection.ActiveChar.ActivePlotState.ActiveSkill.TlId == pid)
+            Logger.Warn($"Player {Connection.ActiveChar.Name} (ObjId {Connection.ActiveChar.ObjId}) is trying to stop casting a skill on object {objId} using TlId {tlId} and plotTlId {plotTlId}");
+            return;
+        }
+
+        if (plotTlId != 0 && Connection.ActiveChar.ActivePlotState != null)
+        {
+            if (Connection.ActiveChar.ActivePlotState.ActiveSkill.TlId == plotTlId)
             {
                 Connection.ActiveChar.ActivePlotState.RequestCancellation();
             }
             else
             {
-                Connection.SendPacket(new SCPlotCastingStoppedPacket(pid, 0, 1));
-                Connection.SendPacket(new SCPlotChannelingStoppedPacket(pid, 0, 1));
+                Connection.SendPacket(new SCPlotCastingStoppedPacket(plotTlId, 0, 1));
+                Connection.SendPacket(new SCPlotChannelingStoppedPacket(plotTlId, 0, 1));
             }
         }
-        if (Connection.ActiveChar.SkillTask == null || Connection.ActiveChar.SkillTask.Skill.TlId != tl)
+
+        if (Connection.ActiveChar.SkillTask == null || Connection.ActiveChar.SkillTask.Skill.TlId != tlId)
+        {
+            Logger.Warn($"Stop requested, but no skill active? Tl: {tlId}, Pid: {plotTlId}, objId: {objId}, Character: {Connection.ActiveChar.Name}");
             return;
+        }
 
         await Connection.ActiveChar.SkillTask.CancelAsync();
 

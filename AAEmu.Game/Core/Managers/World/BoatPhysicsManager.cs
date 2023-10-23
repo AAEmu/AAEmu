@@ -240,9 +240,9 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
         var solidVolume = MathF.Abs(rigidBody.Mass - tubeVolume);
 
         var floor = WorldManager.Instance.GetHeight(slave.Transform); // получим уровень земли // get ground level
-        Logger.Debug($"[Height] Z-Pos: {slave.Transform.World.Position.Z} - Floor: {floor}");
+        Logger.Trace($"[Height] Z-Pos: {slave.Transform.World.Position.Z} - Floor: {floor}");
 
-        if (slave.Transform.World.Position.Z - boxSize.Z / 2 - floor < 1.0 && AppConfiguration.Instance.HeightMapsEnable)
+        if (slave.Transform.World.Position.Z - boxSize.Y / 2 - floor < 1.0 && AppConfiguration.Instance.HeightMapsEnable)
         {
             if (slave.Hp <= 0)
             {

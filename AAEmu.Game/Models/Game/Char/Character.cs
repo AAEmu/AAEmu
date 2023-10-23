@@ -2105,7 +2105,7 @@ public partial class Character : Unit, ICharacter
     {
         var template = CharacterManager.Instance.GetTemplate((byte)Race, (byte)Gender);
         ModelId = template.ModelId;
-        BuyBackItems = new ItemContainer(Id, SlotType.None, false, false);
+        BuyBackItems = new ItemContainer(Id, SlotType.None, false);
         Slots = new ActionSlot[MaxActionSlots];
         for (var i = 0; i < Slots.Length; i++)
             Slots[i] = new ActionSlot();

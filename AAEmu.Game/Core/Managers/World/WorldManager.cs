@@ -712,7 +712,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     public List<Doodad> GetDoodadByHouseDbId(uint houseDbId)
     {
-        var ret = _doodads.Where(x => x.Value.DbHouseId == houseDbId).Select(y => y.Value).ToList();
+        var ret = _doodads.Where(x => x.Value.OwnerDbId == houseDbId).Select(y => y.Value).ToList();
         return ret;
     }
 

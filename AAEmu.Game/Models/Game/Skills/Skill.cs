@@ -70,10 +70,14 @@ public class Skill
 
     public SkillResult Use(BaseUnit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null, bool bypassGcd = false)
     {
+        // Check if the source is a actual Unit
         if (caster is not Unit unit)
         {
             return SkillResult.InvalidSource;
         }
+
+        // Cast character for future reference
+        var character = caster as Character;
 
         unit.ConditionChance = true;
 
@@ -83,11 +87,11 @@ public class Skill
             lock (unit.GCDLock)
             {
                 // Commented out the line to eliminate the hanging of the skill
-                // TODO added for quest Id = 886 - скилл срабатывает часто, что не дает работать квесту - крысы не появляются
+                // TODO: added for quest Id = 886 - скилл срабатывает часто, что не дает работать квесту - крысы не появляются
                 var delay = 150;
                 if (Id == 2 || Id == 3 || Id == 4)
                 {
-                    delay = caster is Character ? 500 : 1500;
+                    delay = character != null ? 500 : 1500;
                 }
 
                 if (unit.SkillLastUsed.AddMilliseconds(delay) > DateTime.UtcNow)
@@ -115,6 +119,7 @@ public class Skill
             }
         }
 
+        // Cancel buffs if Template asks for it
         if (Template.CancelOngoingBuffs)
         {
             if (caster is Units.Mate)
@@ -122,24 +127,35 @@ public class Skill
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.StartSkill, Template.CancelOngoingBuffExceptionTagId);
         }
 
+        // Create a new skillObject if needed
         skillObject ??= new SkillObject();
 
+        // Grab current target
         var target = GetInitialTarget(caster, casterCaster, targetCaster);
         InitialTarget = target;
         if (target == null)
         {
-            Logger.Trace("Skill: SkillResult.NoTarget!");
+            Logger.Debug($"Skill: SkillResult.NoTarget! - Skill {Template.Id}, Caster {caster.Name} ({caster.ObjId})");
             return SkillResult.NoTarget; // We should try to make sure this doesnt happen, but can happen with NPC skills
         }
 
-        TlId = (ushort)SkillTlIdManager.Instance.GetNextId();
-
-        if (caster is Character character && character.IsRiding && Template.Unmount)
+        // Unmount character if skill asks for it
+        if (character is { IsRiding: true } && Template.Unmount)
         {
             var mate = MateManager.Instance.GetActiveMate(character.ObjId);
             MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
         }
 
+        // Check initial mana cost
+        if (ManaCost(unit) > unit.Mp)
+            return SkillResult.LackMana;
+
+        // Get a TlId for this skill
+        TlId = SkillTlIdManager.GetNextId(caster);
+        // if (caster is Character)
+        Logger.Trace($"Created SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.ObjId}) with target {target.Name} ({target.ObjId})");
+
+        // If skill uses Plots, then start the plot
         if (Template.Plot != null)
         {
             Task.Run(() => Template.Plot.Run(caster, casterCaster, target, targetCaster, skillObject, this));
@@ -147,16 +163,17 @@ public class Skill
                 return SkillResult.Success;
         }
 
+        // Check if target is within range
         var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
         var targetDist = unit.GetDistanceTo(target, true);
-        if (!(target is Doodad)) // HACKFIX : Used mostly for boats, since the actual position of the doodad is the boat's origin, and not where it is displayed
-        {
-            if (targetDist < Template.MinRange)
-                return SkillResult.TooCloseRange;
-            if (targetDist > skillRange)
-                return SkillResult.TooFarRange;
-        }
 
+        var minRangeCheck = Template.MinRange * 1.0;
+        var maxRangeCheck = skillRange;
+
+        // HACKFIX : Used mostly for boats, since the actual position of the doodad is the boat's origin, and not where it is displayed
+        // TODO: Do a check based on model size or bounding box instead
+
+        // If weapon is used to calculate range, use that
         if (Template.WeaponSlotForRangeId > 0)
         {
             var minWeaponRange = 0.0f; // Fist default
@@ -167,24 +184,48 @@ public class Skill
                 maxWeaponRange = weaponTemplate.HoldableTemplate.MaxRange;
             }
 
-            if (targetDist < minWeaponRange)
-                return SkillResult.TooCloseRange;
-            if (targetDist > maxWeaponRange)
-                return SkillResult.TooFarRange;
+            minRangeCheck = minWeaponRange;
+            maxRangeCheck = maxWeaponRange;
         }
 
-        if (Template.CastingTime > 0)
+        if (targetDist < minRangeCheck)
         {
-            // var origTime = Template.CastingTime * unit.Cas
-            var castTime = (int)(unit.CastTimeMul * unit.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.CastTime, Template.CastingTime));
+            SkillTlIdManager.ReleaseId(TlId);
+            TlId = 0;
+            return SkillResult.TooCloseRange;
+        }
 
-            if (caster is Character chara)
+        if (targetDist > maxRangeCheck)
+        {
+            SkillTlIdManager.ReleaseId(TlId);
+            TlId = 0;
+            return SkillResult.TooFarRange;
+        }
+
+        // Calculate casting time if needed
+        var castTime = 0;
+        if (Template.CastingTime > 0)
+            castTime = (int)(unit.CastTimeMul * unit.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.CastTime, Template.CastingTime));
+
+        /*
+        // TODO: Replace Old code
+        else if (character != null && (Id == 2 || Id == 3 || Id == 4) && !caster.IsAutoAttack)
+        {
+            character.IsAutoAttack = true; // enable auto attack
+            character.SkillId = Id;
+            character.TlId = TlId;
+            character.BroadcastPacket(new SCSkillStartedPacket(Id, 0, casterCaster, targetCaster, this, skillObject)
             {
-            }
+                CastTime = Template.CastingTime
+            }, true);
+            character.AutoAttackTask = new MeleeCastTask(this, character, casterCaster, target, targetCaster, skillObject);
+            TaskManager.Instance.Schedule(character.AutoAttackTask, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1300));
+        }
+        */
 
-            if (castTime < 0)
-                castTime = 0;
-
+        if (castTime > 0)
+        {
+            // Has casting time, schedule a task for it
             caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
             {
                 CastTime = castTime
@@ -193,21 +234,9 @@ public class Skill
             unit.SkillTask = new CastTask(this, caster, casterCaster, target, targetCaster, skillObject);
             TaskManager.Instance.Schedule(unit.SkillTask, TimeSpan.FromMilliseconds(castTime));
         }
-        // else if (caster is Character && (Id == 2 || Id == 3 || Id == 4) && !caster.IsAutoAttack)
-        // {
-        //     caster.IsAutoAttack = true; // enable auto attack
-        //     caster.SkillId = Id;
-        //     caster.TlId = TlId;
-        //     caster.BroadcastPacket(new SCSkillStartedPacket(Id, 0, casterCaster, targetCaster, this, skillObject)
-        //     {
-        //         CastTime = Template.CastingTime
-        //     }, true);
-        //
-        //     caster.AutoAttackTask = new MeleeCastTask(this, caster, casterCaster, target, targetCaster, skillObject);
-        //     TaskManager.Instance.Schedule(caster.AutoAttackTask, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1300));
-        // }
         else
         {
+            // Immediate skill
             Cast(caster, casterCaster, target, targetCaster, skillObject);
         }
 
@@ -445,6 +474,7 @@ public class Skill
     public void Cast(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
     {
         if (caster is not Unit unit) { return; }
+
         if (!_bypassGcd)
         {
             var gcd = Template.CustomGcd;
@@ -453,6 +483,7 @@ public class Skill
 
             unit.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * (unit.GlobalCooldownMul / 100));
         }
+
         if (caster is Npc && Template.SkillControllerId != 0)
         {
             var scTemplate = SkillManager.Instance.GetEffectTemplate(Template.SkillControllerId, "SkillController") as SkillControllerTemplate;
@@ -579,6 +610,10 @@ public class Skill
         }
     }
 
+    /// <summary>
+    /// Only used to stop/cancel base melee/ranged skills
+    /// </summary>
+    /// <param name="caster"></param>
     public async void StopSkill(BaseUnit caster)
     {
         if (caster is not Unit unit) { return; }
@@ -587,7 +622,8 @@ public class Skill
         caster.BroadcastPacket(new SCSkillStoppedPacket(unit.ObjId, Id), true);
         unit.AutoAttackTask = null;
         unit.IsAutoAttack = false; // turned off auto attack
-        SkillTlIdManager.Instance.ReleaseId(TlId);
+        SkillTlIdManager.ReleaseId(TlId);
+        TlId = 0;
     }
 
     public void StartChanneling(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
@@ -939,36 +975,46 @@ public class Skill
         }
     }
 
+    /// <summary>
+    /// End skill in a normal way
+    /// </summary>
+    /// <param name="caster"></param>
     public void EndSkill(BaseUnit caster)
     {
-        if (caster is not Unit unit) { return; }
-        if (Template.ConsumeLaborPower > 0 && caster is Character chart && !Cancelled)
+        if (caster is not Unit unit)
+            return;
+
+        if (caster is Character character)
         {
-            // Consume labor
-            chart.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);
+            if (Template.ConsumeLaborPower > 0 && !Cancelled)
+            {
+                // Consume labor
+                character.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);
+            }
 
             // Add vocation where needed
-            if (InitialTarget is Doodad doodad && caster is Character character)
+            if ((Template.GainLifePoint > 0) && !Cancelled)
             {
-                if (doodad.Template.GrantsVocationWhenUsed())
-                {
-                    // From what I remember this has always been half the labor rounded upwards
-                    // This is however not correct, as some actions only give a fraction of what you would normally expect
-                    // We multiply the BASE value for server settings, not the total (although I don't think this would affect anything since we don't really have a +1 badge/action buff)
-                    character.ChangeGamePoints(GamePointKind.Vocation, (int)Math.Ceiling(AppConfiguration.Instance.World.VocationRate * Template.ConsumeLaborPower / 2));
-                }
+                // We multiply the BASE value for server settings, not the total (although I don't think this would affect anything since we don't really have a +1 badge/action buff)
+                character.ChangeGamePoints(GamePointKind.Vocation, (int)Math.Ceiling(AppConfiguration.Instance.World.VocationRate * Template.GainLifePoint));
             }
         }
 
         Callback?.Invoke();
         unit.OnSkillEnd(this);
         caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
-        SkillTlIdManager.Instance.ReleaseId(TlId);
+        SkillTlIdManager.ReleaseId(TlId);
+        TlId = 0;
 
         if (caster is Character character1 && character1.IgnoreSkillCooldowns)
             character1.ResetSkillCooldown(Template.Id, false);
     }
 
+    /// <summary>
+    /// Used for interrupting skills
+    /// </summary>
+    /// <param name="caster"></param>
+    /// <param name="channelDoodad"></param>
     public void Stop(BaseUnit caster, Doodad channelDoodad = null)
     {
         if (caster is not Unit unit) { return; }
@@ -987,11 +1033,11 @@ public class Skill
         unit.OnSkillEnd(this);
         unit.SkillTask = null;
         Cancelled = true;
-        SkillTlIdManager.Instance.ReleaseId(TlId);
+        SkillTlIdManager.ReleaseId(TlId);
+        TlId = 0;
 
         if (caster is Character character && character.IgnoreSkillCooldowns)
             character.ResetSkillCooldown(Template.Id, false);
-        //TlId = 0;
     }
 
     public SkillHitType RollCombatDice(BaseUnit attacker, BaseUnit target)
@@ -1087,20 +1133,31 @@ AlwaysHit:
         return true;
     }
 
+    /// <summary>
+    /// Gets the amount of a Mana a skill would use with the caster's modifiers applied
+    /// </summary>
+    /// <param name="caster"></param>
+    /// <returns></returns>
+    public int ManaCost(Unit caster)
+    {
+        var baseCost = ((caster.GetAbLevel((AbilityType)Template.AbilityId) - 1) * 1.6 + 8) * 3 / 3.65;
+        var cost2 = baseCost * Template.ManaLevelMd + Template.ManaCost;
+        var manaCost = (int)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.ManaCost, cost2);
+        return manaCost;
+    }
+
     public void ConsumeMana(BaseUnit caster)
     {
-        if (caster is Unit unit)
-        {
-            var baseCost = ((unit.GetAbLevel((AbilityType)Template.AbilityId) - 1) * 1.6 + 8) * 3 / 3.65;
-            var cost2 = baseCost * Template.ManaLevelMd + Template.ManaCost;
-            var manaCost = (int)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.ManaCost, cost2);
-            unit.ReduceCurrentMp(null, manaCost);
-        }
+        if (caster is not Unit unit)
+            return;
 
-        if (caster is Character character)
-        {
-            character.LastCast = DateTime.UtcNow;
-            character.IsInPostCast = true;
-        }
+        var manaCost = ManaCost(unit);
+        unit.ReduceCurrentMp(null, manaCost);
+
+        if (caster is not Character character)
+            return;
+
+        character.LastCast = DateTime.UtcNow;
+        character.IsInPostCast = true;
     }
 }

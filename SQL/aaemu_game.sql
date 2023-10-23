@@ -197,6 +197,7 @@ CREATE TABLE `doodads` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `owner_id` int DEFAULT NULL COMMENT 'Character DB Id',
   `owner_type` tinyint unsigned DEFAULT '255',
+  `attach_point` int unsigned NULL DEFAULT '0' COMMENT 'Slot this doodad fits in on the owner',
   `template_id` int NOT NULL,
   `current_phase_id` int NOT NULL,
   `plant_time` datetime NOT NULL,
@@ -208,6 +209,7 @@ CREATE TABLE `doodads` (
   `roll` float NOT NULL,
   `pitch` float NOT NULL,
   `yaw` float NOT NULL,
+  `scale` FLOAT NOT NULL DEFAULT '1' ,
   `item_id` bigint unsigned NOT NULL DEFAULT '0' COMMENT 'Item DB Id of the associated item',
   `house_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'House DB Id if it is on actual house land',
   `parent_doodad` int unsigned NOT NULL DEFAULT '0' COMMENT 'doodads DB Id this object is standing on',
@@ -490,6 +492,7 @@ CREATE TABLE `music` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='User Created Content (music)';
 
+
 DROP TABLE IF EXISTS `item_containers`;
 CREATE TABLE `item_containers` (
   `container_id` int unsigned NOT NULL,
@@ -499,3 +502,19 @@ CREATE TABLE `item_containers` (
   `owner_id` int unsigned NOT NULL COMMENT 'Owning Character Id',
   PRIMARY KEY (`container_id`) 
 ) COLLATE 'utf8mb4_general_ci';
+
+
+CREATE TABLE `slaves` (
+	`id` INT(10) UNSIGNED NOT NULL,
+	`item_id` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Item that is used to summon this vehicle',
+	`name` TEXT NULL DEFAULT NULL COLLATE 'utf8mb4_general_ci',
+	`owner` INT(10) UNSIGNED NULL DEFAULT NULL,
+	`created_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+	`hp` INT(11) NULL DEFAULT NULL,
+	`mp` INT(11) NULL DEFAULT NULL,
+	`x` FLOAT NULL DEFAULT NULL,
+	`y` FLOAT NULL DEFAULT NULL,
+	`z` FLOAT NULL DEFAULT NULL,
+	PRIMARY KEY (`id`) USING BTREE
+) COMMENT='Player vehicles summons' COLLATE 'utf8mb4_general_ci' ENGINE=InnoDB;

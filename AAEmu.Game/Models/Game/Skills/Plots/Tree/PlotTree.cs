@@ -184,17 +184,18 @@ public class PlotTree
         state.Caster?.BroadcastPacket(new SCPlotEndedPacket(state.ActiveSkill.TlId), true);
         EndPlotChannel(state);
 
-        state.Caster.Cooldowns.AddCooldown(state.ActiveSkill.Template.Id, (uint)state.ActiveSkill.Template.CooldownTime);
+        state.Caster?.Cooldowns.AddCooldown(state.ActiveSkill.Template.Id, (uint)state.ActiveSkill.Template.CooldownTime);
 
         if (state.Caster is Character character && character.IgnoreSkillCooldowns)
             character.ResetSkillCooldown(state.ActiveSkill.Template.Id, false);
 
-        //Maybe always do thsi on end of plot?
-        //Should we check if it was a channeled skill?
+        // Maybe always do this on end of plot?
+        // Should we check if it was a channeled skill?
         if (state.CancellationRequested())
-            state.Caster.Events.OnChannelingCancel(state.ActiveSkill, new OnChannelingCancelArgs { });
+            state.Caster?.Events.OnChannelingCancel(state.ActiveSkill, new OnChannelingCancelArgs { });
 
-        SkillTlIdManager.Instance.ReleaseId(state.ActiveSkill.TlId);
+        SkillTlIdManager.ReleaseId(state.ActiveSkill.TlId);
+        state.ActiveSkill.TlId = 0;
 
         state.Caster?.OnSkillEnd(state.ActiveSkill);
         state.ActiveSkill.Callback?.Invoke();

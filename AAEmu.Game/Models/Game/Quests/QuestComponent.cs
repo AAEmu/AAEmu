@@ -16,7 +16,9 @@ public class QuestComponent : IQuestComponent
 {
     public uint Id { get; set; }
     public QuestComponentKind KindId { get; set; }
+    public QuestTemplate QuestTemplate { get; }
     public List<QuestActTemplate> ActTemplates { get; set; } = new();
+    public List<QuestAct> Acts { get; set; } = new();
     public uint NextComponent { get; set; }
     public QuestNpcAiName NpcAiId { get; set; }
     public uint NpcId { get; set; }
@@ -50,6 +52,10 @@ public class QuestComponent : IQuestComponent
             reults.Add(res);
         }
         return reults;
+    }
+    public QuestComponent(QuestTemplate parent)
+    {
+        QuestTemplate = parent;
     }
 }
 

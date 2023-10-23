@@ -26,10 +26,10 @@ public class DoodadFuncUse : DoodadFuncTemplate
             return;
         }
 
-        if (owner.DbHouseId > 0 && caster is Character player)
+        if (owner.OwnerDbId > 0 && caster is Character player)
         {
             // If it's on a house, need to check permissions
-            var house = HousingManager.Instance.GetHouseById(owner.DbHouseId);
+            var house = HousingManager.Instance.GetHouseById(owner.OwnerDbId);
             if (owner is DoodadCoffer coffer)
             {
                 // Coffers need their own permissions as they can override the house's settings
@@ -44,7 +44,7 @@ public class DoodadFuncUse : DoodadFuncTemplate
                 // caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
                 // Added fail-safe in case a doodad wasn't properly deleted from a house
                 // The first try to recover the doodad will still give a error, but after that, it's free to recover by anyone.
-                owner.DbHouseId = 0;
+                owner.OwnerDbId = 0;
                 owner.OwnerId = 0;
                 Logger.Trace("Interaction failed because attached house does not exist for doodad {0}, resetting DbHouseId to public", owner.ObjId);
                 //return;

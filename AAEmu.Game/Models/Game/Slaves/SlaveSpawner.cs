@@ -18,6 +18,7 @@ public class SlaveSpawner : Spawner<Slave>
     private int _scheduledCount;
     private int _spawnCount;
     public uint Count { get; set; } = 1;
+    public uint WorldId { get; set; }
 
     public SlaveSpawner()
     {
@@ -66,7 +67,7 @@ public class SlaveSpawner : Spawner<Slave>
 
     private void DoSpawn()
     {
-        var slave = SlaveManager.Instance.Create(this);
+        var slave = SlaveManager.Instance.Create(null, this, 0);
         if (slave == null)
         {
             Logger.Warn("Slave {0}, from spawn not exist at db", UnitId);
@@ -74,7 +75,7 @@ public class SlaveSpawner : Spawner<Slave>
         }
 
         slave.Spawner = this;
-        //slave.Transform.ApplyWorldSpawnPosition(Position);
+        // slave.Transform.ApplyWorldSpawnPosition(Position);
 
         if (slave.Transform.World.IsOrigin())
         {
