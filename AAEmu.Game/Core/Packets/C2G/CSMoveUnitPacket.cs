@@ -127,7 +127,7 @@ public class CSMoveUnitPacket : GamePacket
                 }
             case UnitMoveType dmt:
                 {
-                    Logger.Debug($"{targetUnit.Name} => ActorFlags: 0x{dmt.ActorFlags:X} - ClimbData: {dmt.ClimbData:X} - GcId: {dmt.GcId}");
+                    // Logger.Debug($"{targetUnit.Name} => ActorFlags: 0x{dmt.ActorFlags:X} - ClimbData: {dmt.ClimbData:X} - GcId: {dmt.GcId}");
 
                     // It moving Pets, handle Pet XP for moving
                     if (targetUnit is Mate mate)

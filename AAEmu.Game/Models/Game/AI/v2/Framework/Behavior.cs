@@ -39,8 +39,9 @@ public abstract class Behavior
         return Ai.AddTransition(this, transition);
     }
 
-    public void PickSkillAndUseIt(SkillUseConditionKind kind, BaseUnit target)
+    public SkillResult PickSkillAndUseIt(SkillUseConditionKind kind, BaseUnit target)
     {
+        var res = SkillResult.InvalidSkill;
         var targetDist = Ai.Owner.GetDistanceTo(target);
         // Attack behavior probably only uses base skill ?
         var skills = new List<NpcSkill>();
@@ -62,7 +63,10 @@ public abstract class Behavior
         if (targetDist == 0 && kind == SkillUseConditionKind.InIdle)
         {
             // This SkillTargetType.Self & SkillUseConditionKind.InIdle
-            if (skills.Count <= 0) { return; }
+            if (skills.Count <= 0)
+            {
+                return res;
+            }
             var skillSelfId = skills[Rand.Next(skills.Count)].SkillId;
             var skillTemplateSelf = SkillManager.Instance.GetSkillTemplate(skillSelfId);
             var skillSelf = new Skill(skillTemplateSelf);
@@ -77,10 +81,10 @@ public abstract class Behavior
 
             if (this.CheckInterval(delay1))
             {
-                Logger.Warn("PickSkillAndUseIt:UseSelfSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplateSelf.Id);
-                UseSkill(skillSelf, target);
+                Logger.Debug("PickSkillAndUseIt:UseSelfSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplateSelf.Id);
+                res = UseSkill(skillSelf, target);
             }
-            return;
+            return res;
         }
 
         // This SkillUseConditionKind.InCombat
@@ -89,8 +93,12 @@ public abstract class Behavior
         {
             pickedSkillId = skills[Rand.Next(skills.Count)].SkillId;
         }
-        // Hackfix for Melee attack. Needs to look at the held weapon (if any) or default to 3m. 
-        if (pickedSkillId == 2 && targetDist > 4.0f) { return; }
+
+        // Hackfix for Melee attack. Needs to look at the held weapon (if any) or default to 3m
+        if (pickedSkillId == 2 && targetDist > 4.0f)
+        {
+            return SkillResult.TooFarRange;
+        }
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(pickedSkillId);
         var skill = new Skill(skillTemplate);
 
@@ -104,16 +112,31 @@ public abstract class Behavior
 
         if (this.CheckInterval(delay2))
         {
-            Logger.Warn("PickSkillAndUseIt:UseSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2} on Target {3}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplate.Id, target.ObjId);
-            UseSkill(skill, target);
+            Logger.Debug("PickSkillAndUseIt:UseSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2} on Target {3}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplate.Id, target.ObjId);
+            res = UseSkill(skill, target);
         }
+
+        return res;
     }
 
-    // UseSkill (delay)
-    public void UseSkill(Skill skill, BaseUnit target, float delay = 0)
+    /// <summary>
+    /// Use a skill
+    /// </summary>
+    /// <param name="skill">Skill object to use</param>
+    /// <param name="target">Target Unit</param>
+    /// <param name="delay">Delay (in seconds) after this skill is used before the next one is allowed</param>
+    /// <returns>Skill result of the used skill</returns>
+    public SkillResult UseSkill(Skill skill, BaseUnit target, float delay = 0)
     {
-        if (target == null) { return; }
-        if (skill == null) { return; }
+        if (target == null)
+        {
+            return SkillResult.NoTarget;
+        }
+
+        if (skill == null)
+        {
+            return SkillResult.Failure;
+        }
 
         _nextTimeToDelay = delay;
         var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);
@@ -143,9 +166,10 @@ public abstract class Behavior
 
         skill.Callback = OnSkillEnded;
         var result = skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject);
-        if (skill.Template.TargetType == SkillTargetType.Self) { return; } // fix the eastward turn when using SelfSkill
-        if (result == SkillResult.Success)
+        // fix the eastward turn when using SelfSkill
+        if ((skill.Template.TargetType != SkillTargetType.Self) && (result == SkillResult.Success))
             Ai.Owner.LookTowards(target.Transform.World.Position);
+        return result;
     }
 
     public virtual void OnSkillEnded()
@@ -156,7 +180,7 @@ public abstract class Behavior
         }
         catch
         {
-
+            // Do nothing
         }
     }
 
