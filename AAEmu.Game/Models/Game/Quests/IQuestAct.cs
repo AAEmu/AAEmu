@@ -8,6 +8,7 @@ public interface IQuestAct
     QuestActTemplate Template { get; }
     uint ComponentId { get; set; }
     string DetailType { get; set; }
+    public QuestComponent QuestComponent { get; }
     uint Id { get; set; }
     uint DetailId { get; }
 
