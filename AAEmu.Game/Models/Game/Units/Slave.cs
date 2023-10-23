@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -647,6 +648,7 @@ public class Slave : Unit
 
         DestroyAttachedItems();
         DistributeSlaveDropDoodads();
+        MarkSummoningItemAsDestroyed();
 
         Summoner?.SendPacket(new SCMySlavePacket(ObjId, TlId, Name, TemplateId, Hp, MaxHp, Transform.World.Position.X,Transform.World.Position.Y,Transform.World.Position.Z));
         Summoner?.SendPacket(new SCSlaveRemovedPacket(ObjId, TlId));
@@ -766,6 +768,18 @@ public class Slave : Unit
                 doodad.Spawn();
             }
         }
+    }
+
+    private void MarkSummoningItemAsDestroyed()
+    {
+        if (SummoningItem is not SummonSlave item)
+            return;
+        item.DeathTime = DateTime.UtcNow;
+        // TODO: Need some way to mark if destroyed but not repairing yet
+
+        item.SummonLocation = Vector3.Zero;
+        item.IsDirty = true;
+        Summoner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.MateDeath, new ItemUpdate(item), new List<ulong>()));
     }
 
     public bool Save()

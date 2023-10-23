@@ -14,7 +14,6 @@ using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items;
@@ -230,10 +229,10 @@ public class SlaveManager : Singleton<SlaveManager>
 
         var world = WorldManager.Instance.GetWorld(activeSlaveInfo.Transform.WorldId);
         world.Physics.RemoveShip(activeSlaveInfo);
-        owner.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
-        owner.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);
+        owner?.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
+        owner?.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);
         lock (_slaveListLock)
-            _activeSlaves.Remove(owner.ObjId);
+            _activeSlaves.Remove(owner?.ObjId ?? 0);
 
         activeSlaveInfo.Despawn = DateTime.UtcNow.AddSeconds(activeSlaveInfo.Template.PortalTime + 0.5f);
         SpawnManager.Instance.AddDespawn(activeSlaveInfo);
@@ -332,14 +331,6 @@ public class SlaveManager : Singleton<SlaveManager>
         // TODO: Attach Slave's DbId to the Item Details
         // We currently fake the DbId using TlId instead
 
-        if (item is SummonSlave slaveSummonItem)
-        {
-            slaveSummonItem.SlaveType = 0x02;
-            slaveSummonItem.SlaveDbId = dbId;
-            slaveSummonItem.IsDirty = true;
-            owner?.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new ItemUpdate(item), new List<ulong>()));
-        }
-
         if (spawnPos.Local.IsOrigin())
         {
             if (owner == null && useSpawner == null)
@@ -418,6 +409,26 @@ public class SlaveManager : Singleton<SlaveManager>
 
             // Always spawn horizontal(level) and 90° CCW of the player
             spawnPos.Local.SetRotation(0f, 0f, owner?.Transform.World.Rotation.Z + (MathF.PI / 2) ?? 0f);
+        }
+
+        if (item is SummonSlave slaveSummonItem)
+        {
+            slaveSummonItem.SlaveType = 0x02;
+            slaveSummonItem.SlaveDbId = dbId;
+            if (slaveSummonItem.DeathTime > DateTime.MinValue)
+            {
+                var secondsLeft = (slaveSummonItem.DeathTime.AddMinutes(10) - DateTime.UtcNow).TotalSeconds;
+                if (secondsLeft > 0.0)
+                {
+                    // Slave was destroyed and is on cooldown
+                    owner?.SendErrorMessage(ErrorMessageType.SlaveSpawnErrorNeedRepairTime, (uint)Math.Round(secondsLeft));
+                    return null;
+                }
+            }
+            slaveSummonItem.SummonLocation = spawnPos.World.Position;
+            slaveSummonItem.DeathTime = DateTime.MinValue; // reset timer here
+            slaveSummonItem.IsDirty = true;
+            owner?.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new ItemUpdate(item), new List<ulong>()));
         }
 
         owner?.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, hideSpawnEffect, 0, owner.Name), true);
@@ -997,6 +1008,7 @@ public class SlaveManager : Singleton<SlaveManager>
             return;
         }
 
-        slave.Delete();
+        Delete(character, slave.ObjId);
+        // slave.Delete();
     }
 }
