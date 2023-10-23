@@ -76,7 +76,7 @@ public class PutDownBackpackEffect : EffectTemplate
             doodad.PlantTime = DateTime.UtcNow;
             if (targetHouse != null)
             {
-                doodad.DbHouseId = targetHouse.Id;
+                doodad.OwnerDbId = targetHouse.Id;
                 doodad.OwnerType = DoodadOwnerType.Housing;
                 doodad.ParentObj = targetHouse;
                 doodad.ParentObjId = targetHouse.ObjId;

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers;
 
 public class EquipmentContainer : ItemContainer
 {
-    public EquipmentContainer(uint ownerId, SlotType containerType, bool isPartOfPlayerInventory, bool createWithNewId) : base(ownerId, containerType, isPartOfPlayerInventory, createWithNewId)
+    public EquipmentContainer(uint ownerId, SlotType containerType, bool createWithNewId) : base(ownerId, containerType, createWithNewId)
     {
         // Fancy way of getting the last enum value + 1 for equipment slots
         ContainerSize = (int)(Enum.GetValues(typeof(EquipmentItemSlot)).Cast<EquipmentItemSlot>().Max()) + 1;

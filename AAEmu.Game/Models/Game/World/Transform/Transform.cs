@@ -307,7 +307,8 @@ public class Transform : IDisposable
             //child.Local.SubDistance(World.Position);
             child.Local.Position -= World.Position;
             child.Local.Rotation -= World.Rotation;
-            child.GameObject.ParentObj = this.GameObject;
+            if (child.GameObject != null)
+                child.GameObject.ParentObj = this.GameObject;
         }
     }
 
@@ -320,7 +321,8 @@ public class Transform : IDisposable
             child.Local.Rotation += World.Rotation;
             child.Local.Position += World.Position;
             //child.Local.AddDistance(World.Position);
-            child.GameObject.ParentObj = null;
+            if (child.GameObject != null)
+                child.GameObject.ParentObj = null;
         }
     }
 
@@ -348,6 +350,7 @@ public class Transform : IDisposable
     /// </summary>
     /// <param name="wsp">WorldSpawnPosition to copy information from</param>
     /// <param name="newInstanceId">new InstanceId to assign to this transform, unchanged if 0</param>
+    /// <param name="keepStickyParent"></param>
     public void ApplyWorldSpawnPosition(WorldSpawnPosition wsp, uint newInstanceId = 0, bool keepStickyParent = false)
     {
         DetachAll(keepStickyParent);
@@ -632,5 +635,15 @@ public class Transform : IDisposable
             _debugTrackers.Add(player);
             return true;
         }
+    }
+
+    public void ApplyWorldTransformToLocalPosition(Transform sourceTransform, uint newInstanceId = 0, bool keepStickyParent = false)
+    {
+        DetachAll(keepStickyParent);
+        WorldId = sourceTransform.WorldId;
+        ZoneId = sourceTransform.ZoneId;
+        InstanceId = newInstanceId != 0 ? newInstanceId : sourceTransform.InstanceId;
+        Local.Position = new Vector3(sourceTransform.World.Position.X, sourceTransform.World.Position.Y, sourceTransform.World.Position.Z);
+        Local.Rotation = new Vector3(sourceTransform.World.Rotation.X, sourceTransform.World.Rotation.Y, sourceTransform.World.Rotation.Z);
     }
 }

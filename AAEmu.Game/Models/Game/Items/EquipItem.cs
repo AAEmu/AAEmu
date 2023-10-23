@@ -8,6 +8,7 @@ namespace AAEmu.Game.Models.Game.Items;
 public class EquipItem : Item
 {
     public override ItemDetailType DetailType => ItemDetailType.Equipment;
+    public override uint DetailBytesLength => 55;
 
     public byte Durability { get; set; }
     public uint RuneId { get; set; }
@@ -50,6 +51,8 @@ public class EquipItem : Item
 
     public override void ReadDetails(PacketStream stream)
     {
+        if (stream.LeftBytes < DetailBytesLength)
+            return;
         ImageItemTemplateId = stream.ReadUInt32();
         Durability = stream.ReadByte();
         stream.ReadInt16();

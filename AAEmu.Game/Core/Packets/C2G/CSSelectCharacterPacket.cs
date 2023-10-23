@@ -28,10 +28,12 @@ public class CSSelectCharacterPacket : GamePacket
 
         if (Connection.Characters.ContainsKey(characterId))
         {
+            // Despawn any old pets this character might have even before loading it
             var character = (Character)Connection.Characters[characterId];
             character.Load();
             character.Connection = Connection;
             var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id);
+            MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(character);
 
             Connection.ActiveChar = character;
             if (Models.Game.Char.Character.UsedCharacterObjIds.TryGetValue(character.Id, out uint oldObjId))
