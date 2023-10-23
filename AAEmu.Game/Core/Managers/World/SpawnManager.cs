@@ -372,147 +372,178 @@ public class SpawnManager : Singleton<SpawnManager>
         }
 
         Logger.Info("Loading persistent doodads...");
-        var newCoffers = new List<Doodad>();
-        using (var connection = MySQL.CreateConnection())
-        {
-            using (var command = connection.CreateCommand())
-            {
-                // Sorting required to make make sure parenting doesn't produce invalid parents (normally)
-                command.CommandText = "SELECT * FROM doodads ORDER BY `plant_time`";
-                command.Prepare();
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var templateId = reader.GetUInt32("template_id");
-                        var dbId = reader.GetUInt32("id");
-                        var phaseId = reader.GetUInt32("current_phase_id");
-                        var x = reader.GetFloat("x");
-                        var y = reader.GetFloat("y");
-                        var z = reader.GetFloat("z");
-                        var roll = reader.GetFloat("roll");
-                        var pitch = reader.GetFloat("pitch");
-                        var yaw = reader.GetFloat("yaw");
-                        var plantTime = reader.GetDateTime("plant_time");
-                        var growthTime = reader.GetDateTime("growth_time");
-                        var phaseTime = reader.GetDateTime("phase_time");
-                        var ownerId = reader.GetUInt32("owner_id");
-                        var ownerType = (DoodadOwnerType)reader.GetByte("owner_type");
-                        var itemId = reader.GetUInt64("item_id");
-                        var houseId = reader.GetUInt32("house_id");
-                        var parentDoodad = reader.GetUInt32("parent_doodad");
-                        var itemTemplateId = reader.GetUInt32("item_template_id");
-                        var itemContainerId = reader.GetUInt64("item_container_id");
-                        var data = reader.GetInt32("data");
 
-                        var doodad = DoodadManager.Instance.Create(0, templateId, null, true);
-
-                        //doodad.Spawner = new DoodadSpawner();
-                        //doodad.Spawner.UnitId = templateId;
-                        doodad.IsPersistent = true;
-                        doodad.DbId = dbId;
-                        doodad.FuncGroupId = phaseId;
-                        //doodad._funcGroupId = phaseId;
-                        doodad.OwnerId = ownerId;
-                        doodad.OwnerType = ownerType;
-                        doodad.AttachPoint = AttachPointKind.None;
-                        doodad.PlantTime = plantTime;
-                        doodad.GrowthTime = growthTime;
-                        doodad.OverridePhaseTime = phaseTime;
-                        doodad.PhaseTime = phaseTime;
-                        doodad.ItemId = itemId;
-                        doodad.DbHouseId = houseId;
-                        // Try to grab info from the actual item if it still exists
-                        var sourceItem = ItemManager.Instance.GetItemByItemId(itemId);
-                        doodad.ItemTemplateId = sourceItem?.TemplateId ?? itemTemplateId;
-                        // Grab Ucc from it's old source item
-                        doodad.UccId = sourceItem?.UccId ?? 0;
-                        doodad.SetData(data); // Directly assigning to Data property would trigger a .Save()
-
-                        // Apparently this is only a reference value, so might not actually need to parent it
-                        if (parentDoodad > 0)
-                        {
-                            // var pDoodad = WorldManager.Instance.GetDoodadByDbId(parentDoodad);
-                            var pDoodad = _playerDoodads.FirstOrDefault(d => d.DbId == parentDoodad);
-                            if (pDoodad == null)
-                            {
-                                Logger.Warn($"Unable to place doodad {dbId} can't find it's parent doodad {parentDoodad}");
-                            }
-                            else
-                            {
-                                doodad.Transform.Parent = pDoodad.Transform;
-                                doodad.ParentObj = pDoodad;
-                                doodad.ParentObjId = pDoodad.ObjId;
-                            }
-                        }
-
-                        if ((houseId > 0) && (doodad.ParentObjId <= 0))
-                        {
-                            var owningHouse = HousingManager.Instance.GetHouseById(doodad.DbHouseId);
-                            if (owningHouse == null)
-                            {
-                                Logger.Warn($"Unable to place doodad {dbId} can't find it's owning house {houseId}");
-                            }
-                            else
-                            {
-                                doodad.Transform.Parent = owningHouse.Transform;
-                                doodad.ParentObj = owningHouse;
-                                doodad.ParentObjId = owningHouse.ObjId;
-                            }
-                        }
-
-                        doodad.Transform.Local.SetPosition(x, y, z);
-                        doodad.Transform.Local.SetRotation(roll, pitch, yaw);
-
-                        // Attach ItemContainer to coffer if needed
-                        if (doodad is DoodadCoffer coffer)
-                        {
-                            if (itemContainerId > 0)
-                            {
-                                var itemContainer = ItemManager.Instance.GetItemContainerByDbId(itemContainerId);
-                                if (itemContainer is CofferContainer cofferContainer)
-                                    coffer.ItemContainer = cofferContainer;
-                                else
-                                    Logger.Error($"Unable to attach ItemContainer {itemContainerId} to DoodadCoffer, objId: {doodad.ObjId}, DbId: {doodad.DbId}");
-                            }
-                            else
-                            {
-                                Logger.Warn($"DoodadCoffer has no persistent ItemContainer assigned to it, creating new one, objId: {doodad.ObjId}, DbId: {doodad.DbId}");
-                                coffer.InitializeCoffer(ownerId);
-                                newCoffers.Add(coffer); // Mark for saving again later when we're done with this loop
-                            }
-                        }
-
-                        doodad.InitDoodad();
-                        /*
-                        if ((phaseId != doodad.FuncGroupId) || (growthTime > DateTime.MinValue) || (phaseTime > DateTime.MinValue))
-                        {
-                            // Temporary hack to prevent re-saving on load
-                            try
-                            {
-                                doodad.DoChangePhase(null, (int)phaseId);
-                            }
-                            catch (Exception e)
-                            {
-                                Logger.Warn($"Was unable to set Doodad phase on load DB Id {dbId}, template {templateId}: {e.InnerException}");
-                            }
-                        }
-                        */
-
-                        _playerDoodads.Add(doodad);
-                    }
-                }
-            }
-        }
+        var doodadsSpawned = 0 ;
+        // Load furniture
+        doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.Housing);
+        // Load plants/packs and everything else that was placed into the world by players
+        doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.System);
+        doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.Character);
+        Logger.Info($"{doodadsSpawned} doodads loaded.");
 
         var respawnThread = new Thread(CheckRespawns) { Name = "RespawnThread" };
         respawnThread.Start();
 
+        _loaded = true;
+    }
+
+    /// <summary>
+    /// Load Persistent Doodads from the DataBase
+    /// </summary>
+    /// <param name="ownerTypeToSpawn">Only spawn doodads that have this ownerType</param>
+    /// <param name="ownerToSpawnId">Only spawn doodads with a specific ownerId, -1 for all doodads of the given ownerType</param>
+    /// <param name="useParentObject">If not null, force-set the Parent object of the loaded data</param>
+    /// <param name="doSpawn">If true, also sends a Spawn() command after loading the doodad</param>
+    /// <returns></returns>
+    public int SpawnPersistentDoodads(DoodadOwnerType ownerTypeToSpawn, int ownerToSpawnId = -1, GameObject useParentObject = null, bool doSpawn = false)
+    {
+        var spawnCount = 0;
+        var newCoffers = new List<Doodad>();
+        using var connection = MySQL.CreateConnection();
+        using (var command = connection.CreateCommand())
+        {
+            // Sorting required to make make sure parenting doesn't produce invalid parents (normally)
+
+            command.CommandText = "SELECT * FROM doodads  WHERE owner_type = @OwnerType";
+            if (ownerToSpawnId >= 0)
+                command.CommandText += " AND house_id = @OwnerId";
+            command.CommandText += " ORDER BY `plant_time`";
+            command.Parameters.AddWithValue("OwnerType", (byte)ownerTypeToSpawn);
+            if (ownerToSpawnId >= 0)
+                command.Parameters.AddWithValue("OwnerId", ownerToSpawnId);
+            command.Prepare();
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var templateId = reader.GetUInt32("template_id");
+                    var dbId = reader.GetUInt32("id");
+                    var phaseId = reader.GetUInt32("current_phase_id");
+                    var x = reader.GetFloat("x");
+                    var y = reader.GetFloat("y");
+                    var z = reader.GetFloat("z");
+                    var roll = reader.GetFloat("roll");
+                    var pitch = reader.GetFloat("pitch");
+                    var yaw = reader.GetFloat("yaw");
+                    var scale = reader.GetFloat("scale");
+                    var plantTime = reader.GetDateTime("plant_time");
+                    var growthTime = reader.GetDateTime("growth_time");
+                    var phaseTime = reader.GetDateTime("phase_time");
+                    var ownerId = reader.GetUInt32("owner_id");
+                    var ownerType = (DoodadOwnerType)reader.GetByte("owner_type");
+                    var attachPoint = (AttachPointKind)reader.GetUInt32("attach_point");
+                    var itemId = reader.GetUInt64("item_id");
+                    var houseId = reader.GetUInt32("house_id"); // actually DbId of the parent/owner (house, slave, etc)
+                    var parentDoodad = reader.GetUInt32("parent_doodad");
+                    var itemTemplateId = reader.GetUInt32("item_template_id");
+                    var itemContainerId = reader.GetUInt64("item_container_id");
+                    var data = reader.GetInt32("data");
+
+                    var doodad = DoodadManager.Instance.Create(0, templateId, null, true);
+
+                    //doodad.Spawner = new DoodadSpawner();
+                    //doodad.Spawner.UnitId = templateId;
+                    doodad.IsPersistent = true;
+                    doodad.DbId = dbId;
+                    doodad.FuncGroupId = phaseId;
+                    doodad.OwnerId = ownerId;
+                    doodad.OwnerType = ownerType;
+                    doodad.AttachPoint = attachPoint;
+                    doodad.PlantTime = plantTime;
+                    doodad.GrowthTime = growthTime;
+                    doodad.OverridePhaseTime = phaseTime;
+                    doodad.PhaseTime = phaseTime;
+                    doodad.ItemId = itemId;
+                    doodad.OwnerDbId = houseId;
+                    doodad.SetScale(scale != 0f ? scale : 1f);
+                    // Try to grab info from the actual item if it still exists
+                    var sourceItem = ItemManager.Instance.GetItemByItemId(itemId);
+                    doodad.ItemTemplateId = sourceItem?.TemplateId ?? itemTemplateId;
+                    // Grab Ucc from it's old source item
+                    doodad.UccId = sourceItem?.UccId ?? 0;
+                    doodad.SetData(data); // Directly assigning to Data property would trigger a .Save()
+
+                    // Apparently this is only a reference value, so might not actually need to parent it
+                    if (parentDoodad > 0)
+                    {
+                        // var pDoodad = WorldManager.Instance.GetDoodadByDbId(parentDoodad);
+                        var pDoodad = _playerDoodads.FirstOrDefault(d => d.DbId == parentDoodad);
+                        if (pDoodad == null)
+                        {
+                            Logger.Warn($"Unable to place doodad {dbId} can't find it's parent doodad {parentDoodad}");
+                        }
+                        else
+                        {
+                            doodad.Transform.Parent = pDoodad.Transform;
+                            doodad.ParentObj = pDoodad;
+                            doodad.ParentObjId = pDoodad.ObjId;
+                        }
+                    }
+
+                    if ((houseId > 0) && (doodad.ParentObjId <= 0))
+                    {
+                        var owningHouse = HousingManager.Instance.GetHouseById(doodad.OwnerDbId);
+                        if (owningHouse == null)
+                        {
+                            Logger.Warn($"Unable to place doodad {dbId} can't find it's owning house {houseId}");
+                        }
+                        else
+                        {
+                            doodad.Transform.Parent = owningHouse.Transform;
+                            doodad.ParentObj = owningHouse;
+                            doodad.ParentObjId = owningHouse.ObjId;
+                        }
+                    }
+
+                    if (useParentObject != null)
+                    {
+                        doodad.ParentObj = useParentObject;
+                        doodad.ParentObjId = useParentObject.ObjId;
+                        doodad.Transform.Parent = useParentObject.Transform;
+                    }
+
+                    doodad.Transform.Local.SetPosition(x, y, z);
+                    doodad.Transform.Local.SetRotation(roll, pitch, yaw);
+
+                    // Attach ItemContainer to coffer if needed
+                    if (doodad is DoodadCoffer coffer)
+                    {
+                        if (itemContainerId > 0)
+                        {
+                            var itemContainer = ItemManager.Instance.GetItemContainerByDbId(itemContainerId);
+                            if (itemContainer is CofferContainer cofferContainer)
+                                coffer.ItemContainer = cofferContainer;
+                            else
+                                Logger.Error($"Unable to attach ItemContainer {itemContainerId} to DoodadCoffer, objId: {doodad.ObjId}, DbId: {doodad.DbId}");
+                        }
+                        else
+                        {
+                            Logger.Warn($"DoodadCoffer has no persistent ItemContainer assigned to it, creating new one, objId: {doodad.ObjId}, DbId: {doodad.DbId}");
+                            coffer.InitializeCoffer(ownerId);
+                            newCoffers.Add(coffer); // Mark for saving again later when we're done with this loop
+                        }
+                    }
+
+                    if ((ownerTypeToSpawn == DoodadOwnerType.Slave) && (useParentObject is Slave parentSlave))
+                    {
+                        parentSlave.AttachedDoodads.Add(doodad);
+                    }
+
+                    doodad.InitDoodad();
+
+                    _playerDoodads.Add(doodad);
+                    spawnCount++;
+
+                    if (doSpawn)
+                        doodad.Spawn();
+                }
+            }
+        }
         // Save Coffer Doodads that had a new ItemContainer created for them (should only happen on first run if there were already coffers placed)
         foreach (var coffer in newCoffers)
             coffer.Save();
 
-        _loaded = true;
+        return spawnCount;
     }
 
     public void SpawnAll()

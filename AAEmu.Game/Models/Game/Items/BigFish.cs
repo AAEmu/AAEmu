@@ -6,9 +6,10 @@ namespace AAEmu.Game.Models.Game.Items;
 public class BigFish : Item
 {
     public override ItemDetailType DetailType => ItemDetailType.BigFish;
+    public override uint DetailBytesLength => 16;
+
     public float Weight { get; set; }
     public float Length { get; set; }
-    //public DateTime CreateTime { get; set; } // смотреть в Item
 
     public BigFish()
     {
@@ -20,7 +21,8 @@ public class BigFish : Item
 
     public override void ReadDetails(PacketStream stream)
     {
-        // 17 - 1 = 16 байт
+        if (stream.LeftBytes < DetailBytesLength)
+            return;
         /*
          Length = 4
          Weight = 4

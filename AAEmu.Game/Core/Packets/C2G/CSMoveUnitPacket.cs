@@ -4,7 +4,6 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
@@ -61,6 +60,7 @@ public class CSMoveUnitPacket : GamePacket
 
         if (character == null) return;
 
+        // TODO: Somehow move this Task into the Buff's functionality instead
         if (character.FishSchool?.FishFinderTickTask != null)
         {
             // stopping the FishSchoolTickTask if character moved
@@ -127,116 +127,99 @@ public class CSMoveUnitPacket : GamePacket
                 }
             case UnitMoveType dmt:
                 {
-                    /*
-                    Logger.Debug("ActorFlags: 0x{0} - ClimbData: {1} - GcId: {2}", 
-                        mType.ActorFlags.ToString("X"),
-                        mType.ClimbData.ToString("X"), 
-                        mType.GcId.ToString(("X")));
-                    */
+                    Logger.Debug($"{targetUnit.Name} => ActorFlags: 0x{dmt.ActorFlags:X} - ClimbData: {dmt.ClimbData:X} - GcId: {dmt.GcId}");
+
+                    // It moving Pets, handle Pet XP for moving
                     if (targetUnit is Mate mate)
                     {
-                        // if we are sitting on a pet, we will not change the Parent
-                        // We moved
+                        // Pet moved
                         RemoveEffects(targetUnit, _moveType);
-                        foreach (var children in mate.Transform.Children)
-                        {
-                            if (children.GameObject is Character ch)
-                                RemoveEffects(ch, _moveType);
-                        }
 
                         // TODO: Check if we're the owner, or allowed to otherwise control this pet
                         if (dmt.VelX != 0 || dmt.VelY != 0)
                             mate.StartUpdateXp(character);
                         else
                             mate.StopUpdateXp();
+
+                        foreach (var (_, passengerInfo) in mate.Passengers)
+                        {
+                            var passenger = WorldManager.Instance.GetCharacterByObjId(passengerInfo._objId);
+                            if (passenger != null)
+                            {
+                                // passenger.Transform = mate.Transform.CloneDetached(passenger);
+                                RemoveEffects(passenger, _moveType);
+                            }
+                        }
                     }
-                    else if (targetUnit is Character { IsRiding: true } player)
+
+                    // If controlling character, but it's riding something, sync parent with the mount
+                    if (targetUnit is Character player)
                     {
                         // TODO : check target has Telekinesis buff if target is a player
                         // Just forward it to the packet, not safe for exploits/hacking
                         // We moved
                         RemoveEffects(player, _moveType);
-                        // Если мы сидим на питомце и Parent = null, насильно спешиваем персонажа для предотвращения сбоя клиента
-                        // If we are sitting on a pet and Parent = null, we are rushing the character to prevent crash of the client
-                        if (player.Transform.Parent == null)
+
+                        if (player.IsRiding)
                         {
-                            var mate2 = MateManager.Instance.GetActiveMate(character.ObjId);
-                            if (mate2 != null)
+                            // Если мы сидим на питомце и Parent = null, насильно спешиваем персонажа для предотвращения сбоя клиента
+                            // If we are sitting on a pet and Parent = null, we force it on there to prevent client crashing
+                            if (player.Transform.Parent == null)
                             {
-                                player.Transform.Parent = mate2.Transform;
-                                //MateManager.Instance.UnMountMate(player, mate2.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                                var mate2 = MateManager.Instance.GetActiveMate(character.ObjId);
+                                if (mate2 != null)
+                                {
+                                    player.Transform.Parent = mate2.Transform;
+                                }
                             }
+                            // We're riding a pet, we don't care about the rest of this function
+                            // If we're riding the pet, we should only care about the pet's movement
+                            Logger.Debug($"{targetUnit.Name} IsRiding, ignoring movement request");
+                            return;
                         }
                     }
-                    else
+
+                    var isStandingOnObject = ((MoveTypeFlags)dmt.Flags).HasFlag(MoveTypeFlags.StandingOnObject);
+                    // Don't know why, but we need to Ignore GcId 1, it probably has some special meaning like "current parent"
+                    var parentObject = isStandingOnObject && dmt.GcId > 1
+                        ? WorldManager.Instance.GetBaseUnit(dmt.GcId)
+                        : null;
+                    var isSticky = ((MoveTypeActorFlags)dmt.ActorFlags).HasFlag(MoveTypeActorFlags.HangingFromObject);
+
+                    if ((targetUnit.Transform.Parent != null) && (parentObject == null))
                     {
-                        // If the StandingOn flag is set, then fill in the parentObject to use
-                        var parentObject = ((MoveTypeFlags)dmt.Flags).HasFlag(MoveTypeFlags.StandingOnObject)
-                            ? WorldManager.Instance.GetBaseUnit(dmt.GcId)
-                            : null;
-                        var isSticky =
-                            ((MoveTypeActorFlags)dmt.ActorFlags).HasFlag(MoveTypeActorFlags.HangingFromObject);
+                        // No longer standing on object?
+                        var oldParentObj = targetUnit.Transform.Parent.GameObject?.ObjId ?? 0;
+                        targetUnit.Transform.Parent = null;
 
-                        // Don't know why, but we need to Ignore Id 1, it probably has some special meaning like "current parent"
-                        if (dmt.GcId == 1)
-                        {
-                            // Logger.Warn($"Flags: {dmt.Flags}, GcId: {dmt.GcId}, ClimbData: {dmt.ClimbData}, PartId: {dmt.GcPartId} ?");
-                            parentObject = null;
-                        }
-
-                        // We moved
-                        RemoveEffects(targetUnit, _moveType);
-
-                        if ((targetUnit.Transform.Parent != null) && (parentObject == null))
-                        {
-                            //Logger.Warn($"No longer standing on object {targetUnit.Transform.Parent.GameObject}...");
-                            // No longer standing on object ?
-                            if (targetUnit.Transform.Parent.GameObject is Doodad)
-                            {
-                                // do not change Parent if we are sitting on the platform bench
-                                // if we are sitting on a transport seat or on a pet, we will not change the Parent
-                            }
-                            else
-                            {
-                                var oldParentObj = targetUnit.Transform.Parent.GameObject.ObjId;
-                                targetUnit.Transform.Parent = null;
-
-                                character.SendMessage(
-                                    "|cFF884444{0} ({1}) no longer standing on Object {2} @ x{3} y{4} z{5} || World: {6}|r",
-                                    targetUnit.Name, targetUnit.ObjId, oldParentObj,
-                                    dmt.X.ToString("F1"), dmt.Y.ToString("F1"), dmt.Z.ToString("F1"),
-                                    targetUnit.Transform.World.ToString());
-                            }
-                        }
-                        else if ((targetUnit.Transform.Parent == null) && (parentObject != null))
-                        {
-                            // Standing on a object ?
-                            targetUnit.Transform.Parent = parentObject.Transform;
-
-                            character.SendMessage(
-                                "|cFF448844{0} ({1}) standing on Object {2} ({3}) @ x{4} y{5} z{6} || World: {7}|r",
-                                targetUnit.Name, targetUnit.ObjId, parentObject.Name, parentObject.ObjId,
-                                dmt.X.ToString("F1"), dmt.Y.ToString("F1"), dmt.Z.ToString("F1"),
-                                targetUnit.Transform.World.ToString());
-                        }
-                        else if ((targetUnit.Transform.Parent != null) && (parentObject != null) &&
-                                 (targetUnit.Transform.Parent.GameObject.ObjId != parentObject.ObjId))
-                        {
-                            // Changed to standing on different object ? 
-                            targetUnit.Transform.Parent = parentObject.Transform;
-
-                            character.SendMessage(
-                                "|cFF448888{0} ({1}) moved to standing on new Object {2} ({3}) @ x{4} y{5} z{6} || World: {7}|r",
-                                targetUnit.Name, targetUnit.ObjId, parentObject.Name, parentObject.ObjId,
-                                dmt.X.ToString("F1"), dmt.Y.ToString("F1"), dmt.Z.ToString("F1"),
-                                targetUnit.Transform.World.ToString());
-
-                        }
-
-                        // If ActorFlag 0x40 is no longer set, it means we're no longer climbing/holding onto something
-                        if ((targetUnit.Transform.StickyParent != null) && !isSticky)
-                            targetUnit.Transform.StickyParent = null;
+                        character.SendMessage(
+                            $"|cFF884444{targetUnit.Name} ({targetUnit.ObjId}) no longer standing on Object {oldParentObj} " +
+                            $"@ x{dmt.X:F1} y{dmt.Y:F1} z{dmt.Z:F1} || World: {targetUnit.Transform.World}|r");
                     }
+                    else if ((targetUnit.Transform.Parent == null) && (parentObject != null))
+                    {
+                        // Standing on a new object ?
+                        targetUnit.Transform.Parent = parentObject.Transform;
+
+                        character.SendMessage(
+                            $"|cFF448844{targetUnit.Name} ({targetUnit.ObjId}) standing on Object {parentObject.Name} ({parentObject.ObjId}) " +
+                            $"@ x{dmt.X:F1} y{dmt.Y:F1} z{dmt.Z:F1} || World: {targetUnit.Transform.World}|r");
+                    }
+                    else if ((targetUnit.Transform.Parent != null) && (parentObject != null) &&
+                             (targetUnit.Transform.Parent.GameObject.ObjId != parentObject.ObjId))
+                    {
+                        // Changed to standing on different object ?
+                        targetUnit.Transform.Parent = parentObject.Transform;
+
+                        character.SendMessage(
+                            $"|cFF448888{targetUnit.Name} ({targetUnit.ObjId}) moved to standing on new Object {parentObject.Name} ({parentObject.ObjId}) " +
+                            $"@ x{dmt.X:F1} y{dmt.Y:F1} z{dmt.Z:F1} || World: {targetUnit.Transform.World}|r");
+                    }
+
+                    // If ActorFlag 0x40 is no longer set, it means we're no longer climbing/holding onto something
+                    if ((targetUnit.Transform.StickyParent != null) && !isSticky)
+                        targetUnit.Transform.StickyParent = null;
+
                     // Debug Climb Data
                     /*
                     if (dmt.ClimbData != 0)

@@ -46,7 +46,8 @@ public class SCUnitStatePacket : GamePacket
                 }
             case Slave _:
                 _baseUnitType = BaseUnitType.Slave;
-                _modelPostureType = ModelPostureType.None; // was TurretState = 8
+                _modelPostureType = ModelPostureType.TurretState;
+                // _modelPostureType = ModelPostureType.None; // was TurretState = 8
                 break;
             case House _:
                 _baseUnitType = BaseUnitType.Housing;
@@ -73,11 +74,14 @@ public class SCUnitStatePacket : GamePacket
         stream.WriteBc(_unit.ObjId);
         stream.Write(_unit.Name);
         stream.Write((byte)_baseUnitType);
+
+        // Cache character
+        var character = _unit as Character;
+
         switch (_baseUnitType)
         {
             case BaseUnitType.Character:
-                var character = (Character)_unit;
-                stream.Write(character.Id); // type(id)
+                stream.Write(character?.Id ?? 0u); // type(id)
                 stream.Write(0L);           // v?
                 break;
             case BaseUnitType.Npc:
@@ -92,7 +96,7 @@ public class SCUnitStatePacket : GamePacket
                 stream.Write(slave.Id);         // Id ?
                 stream.Write(slave.TlId);       // tl
                 stream.Write(slave.TemplateId); // templateId
-                stream.Write(slave.Summoner.ObjId); // ownerId
+                stream.Write(slave.Summoner?.Id ?? 0); // ownerId
                 break;
             case BaseUnitType.Housing:
                 var house = (House)_unit;
@@ -216,9 +220,8 @@ public class SCUnitStatePacket : GamePacket
         stream.Write(_unit.ActiveWeapon);
 
         // Skills and Passive Buffs
-        if (_unit is Character)
+        if (character is not null)
         {
-            var character = (Character)_unit;
             stream.Write((byte)character.Skills.Skills.Count);
             foreach (var skill in character.Skills.Skills.Values)
             {
@@ -257,9 +260,9 @@ public class SCUnitStatePacket : GamePacket
                 break;
         }
 
-        if (_unit is Character)
+        if (character is not null)
         {
-            stream.WritePisc(0, 0, ((Character)_unit).Appellations.ActiveAppellation, 0); // pisc
+            stream.WritePisc(0, 0, character.Appellations.ActiveAppellation, 0); // pisc
         }
         else
         {
@@ -268,9 +271,8 @@ public class SCUnitStatePacket : GamePacket
 
         stream.WritePisc(_unit.Faction?.Id ?? 0, _unit.Expedition?.Id ?? 0, 0, 0); // pisc
 
-        if (_unit is Character)
+        if (character is not null)
         {
-            var character = (Character)_unit;
             var flags = new BitSet(16);
 
             if (character.Invisible)
@@ -301,10 +303,8 @@ public class SCUnitStatePacket : GamePacket
             stream.Write((ushort)8192); // flags
         }
 
-        if (_unit is Character)
+        if (character is not null)
         {
-            var character = (Character)_unit;
-
             var activeAbilities = character.Abilities.GetActiveAbilities();
             foreach (var ability in character.Abilities.Values)
             {
@@ -338,7 +338,7 @@ public class SCUnitStatePacket : GamePacket
         var hiddenBuffs = new List<Buff>();
 
         // TODO: Fix the patron and auction house license buff issue
-        if (_unit is Character)
+        if (character is not null)
         {
             if (!_unit.Buffs.CheckBuff(8000011)) //TODO Wrong place
             {

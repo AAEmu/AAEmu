@@ -87,6 +87,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Updates", "Updates", "{6573
 		SQL\updates\2022-09-22_aaemu_game_mail_text.sql = SQL\updates\2022-09-22_aaemu_game_mail_text.sql
 		SQL\updates\2022-09-23_aaemu_game_characters_experience.sql = SQL\updates\2022-09-23_aaemu_game_characters_experience.sql
 		SQL\updates\readme.txt = SQL\updates\readme.txt
+		SQL\updates\2023-10-08_aaemu_game_slaves.sql = SQL\updates\2023-10-08_aaemu_game_slaves.sql
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{4D10DE27-69C5-4826-8758-322DD4E7AFE5}"
