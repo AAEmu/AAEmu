@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Tasks.Skills;
+using NLog;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -20,7 +21,10 @@ public class CSStopCastingPacket : GamePacket
         var objId = stream.ReadBc();
 
         if (Connection.ActiveChar.ObjId != objId)
+        {
+            Logger.Warn($"Player {Connection.ActiveChar.Name} (ObjId {Connection.ActiveChar.ObjId}) is trying to stop casting a skill on object {objId} using TlId {tlId} and plotTlId {plotTlId}");
             return;
+        }
 
         if (plotTlId != 0 && Connection.ActiveChar.ActivePlotState != null)
         {

@@ -8,6 +8,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCSkillStartedPacket : GamePacket
 {
+    public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
+
     private readonly uint _id;
     private readonly ushort _tl;
     private readonly SkillCaster _caster;
@@ -53,4 +55,9 @@ public class SCSkillStartedPacket : GamePacket
           if ( v5 & 4 )
             a2->Reader->ReadUInt32("p", v4, 0);
      */
+
+    public override string Verbose()
+    {
+        return $" - Id {_id}, TlId {_tl}, Caster {_caster.ObjId}, Target {_target.ObjId}, Skill {_skill.Template.Id}";
+    }
 }

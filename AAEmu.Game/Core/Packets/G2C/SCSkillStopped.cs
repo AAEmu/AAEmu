@@ -5,6 +5,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCSkillStoppedPacket : GamePacket
 {
+    public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
+
     private readonly uint _unitObjId;
     private readonly uint _skillId;
 

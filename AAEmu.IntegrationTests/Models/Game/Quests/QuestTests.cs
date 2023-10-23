@@ -56,7 +56,7 @@ public class QuestTests
         FormulaManager.Instance.Load();
         ItemManager.Instance.Load();
         PlotManager.Instance.Load();
-        SkillTlIdManager.Instance.Initialize();
+        // SkillTlIdManager.Instance.Initialize();
         SkillManager.Instance.Load();
         SlaveManager.Instance.Load();
         ClientFileManager.Initialize();
