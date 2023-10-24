@@ -20,17 +20,25 @@ public class CharacterActability
         Actabilities = new Dictionary<uint, Actability>();
     }
 
-    public void AddPoint(uint id, int point)
+    /// <summary>
+    /// Adds points to a specific ActAbility (life skill)
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="point"></param>
+    /// <returns>The amount that was actually changed</returns>
+    public int AddPoint(uint id, int point)
     {
         if (!Actabilities.ContainsKey(id))
-            return;
+            return 0;
 
         var actability = Actabilities[id];
+        var previousPoints = actability.Point;
         actability.Point += point;
 
         var template = CharacterManager.Instance.GetExpertLimit(actability.Step);
         if (actability.Point > template.UpLimit)
             actability.Point = template.UpLimit;
+        return actability.Point - previousPoints;
     }
 
     public void Regrade(uint id, bool isUpgrade)
