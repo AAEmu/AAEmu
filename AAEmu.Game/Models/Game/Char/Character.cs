@@ -1369,7 +1369,7 @@ public partial class Character : Unit, ICharacter
         {
             actabilityChange = Math.Abs(change);
             actabilityStep = Actability.Actabilities[(uint)actabilityId].Step;
-            Actability.AddPoint((uint)actabilityId, actabilityChange);
+            actabilityChange = Actability.AddPoint((uint)actabilityId, actabilityChange);
         }
 
         // Only grant xp if consuming labor
