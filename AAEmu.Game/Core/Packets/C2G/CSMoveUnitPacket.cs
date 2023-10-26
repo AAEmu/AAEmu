@@ -60,13 +60,6 @@ public class CSMoveUnitPacket : GamePacket
 
         if (character == null) return;
 
-        // TODO: Somehow move this Task into the Buff's functionality instead
-        if (character.FishSchool?.FishFinderTickTask != null)
-        {
-            // stopping the FishSchoolTickTask if character moved
-            FishSchoolManager.StopFishFinderTickAsync(character).GetAwaiter().GetResult();
-            character.Buffs.RemoveBuff((uint)BuffConstants.SearchSchoolOfFish);
-        }
         var targetUnit = WorldManager.Instance.GetBaseUnit(_objId);
 
         // Invalid Object ?

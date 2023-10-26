@@ -120,6 +120,10 @@ public partial class Character : Unit, ICharacter
     public WorldSpawnPosition LocalPingPosition { get; set; } // added as a GM command helper
     private ConcurrentDictionary<uint, DateTime> _hostilePlayers { get; set; }
     public bool IsRiding { get; set; }
+    /// <summary>
+    /// AttachPoint the player currently has in use  
+    /// </summary>
+    public AttachPointKind AttachedPoint { get; set; }
 
     private bool _inParty;
     private bool _isOnline;

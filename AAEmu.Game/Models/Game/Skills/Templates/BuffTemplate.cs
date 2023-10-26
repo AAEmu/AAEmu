@@ -224,6 +224,10 @@ public class BuffTemplate
 
         if (!buff.Passive)
             owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);
+
+        // Special properties handling
+        if ((FindSchoolOrFishRange > 0) && (owner is Character character))
+            FishSchoolManager.FishFinderStart(character);
     }
 
     public void TimeToTimeApply(BaseUnit caster, BaseUnit owner, Buff buff)
@@ -320,6 +324,10 @@ public class BuffTemplate
 
         if (!buff.Passive && !replaced)
             owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, buff.Index), true);
+
+        // Special properties handling
+        if ((FindSchoolOrFishRange > 0) && (owner is Character character))
+            FishSchoolManager.StopFishFinderTickAsync(character).GetAwaiter();
     }
 
     public void WriteData(PacketStream stream, uint abLevel)
