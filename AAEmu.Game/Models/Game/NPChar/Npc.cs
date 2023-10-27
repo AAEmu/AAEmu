@@ -17,6 +17,7 @@ using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.NPChar;
@@ -742,7 +743,7 @@ public class Npc : Unit
         var player = unit as Character;
 
         //player?.SendMessage(ChatType.System, $"AddUnitAggro {player.Name} + {amount} for {this.ObjId}");
-        /*
+
         // check self buff tags
         if (Buffs.CheckBuffTag((uint)TagsEnum.NoFight) || Buffs.CheckBuffTag((uint)TagsEnum.Returning))
         {
@@ -751,12 +752,11 @@ public class Npc : Unit
         }
 
         // check target buff tags
-        if ((unit?.Buffs?.CheckBuffTag((uint)TagsEnum.NoFight) ?? false) || (unit?.Buffs?.CheckBuffTag((uint)TagsEnum.Returning) ?? false))
+        if ((unit.Buffs?.CheckBuffTag((uint)TagsEnum.NoFight) ?? false) || (unit.Buffs?.CheckBuffTag((uint)TagsEnum.Returning) ?? false))
         {
             ClearAggroOfUnit(unit);
             return;
         }
-        */
 
         amount = (int)(amount * (unit.AggroMul / 100.0f));
         amount = (int)(amount * (IncomingAggroMul / 100.0f));

@@ -48,6 +48,7 @@ public class Unit : BaseUnit, IUnit
 
     public byte Level { get; set; }
     public int Hp { get; set; }
+    public DateTime LastCombatActivity { get; set; }
 
     #region Attributes
 
@@ -834,5 +835,10 @@ public class Unit : BaseUnit, IUnit
                 stream.Write(0f); // yaw
                 break;
         }
+    }
+
+    public virtual void Regenerate()
+    {
+        // Do nothing
     }
 }

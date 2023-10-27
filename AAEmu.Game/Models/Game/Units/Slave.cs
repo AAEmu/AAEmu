@@ -828,4 +828,34 @@ public class Slave : Unit
 
         return result;
     }
+
+    public override void Regenerate()
+    {
+        if (!NeedsRegen)
+        {
+            return;
+        }
+        if (IsDead)
+        {
+            foreach (var (_, character) in AttachedCharacters)
+                SlaveManager.Instance.UnbindSlave(character, TlId, AttachUnitReason.None);
+            return;
+        }
+
+        if (IsInBattle)
+        {
+            Hp += PersistentHpRegen;
+            Mp += PersistentMpRegen;
+        }
+        else
+        {
+            Hp += HpRegen;
+            Mp += MpRegen;
+        }
+
+        Hp = Math.Min(Hp, MaxHp);
+        Mp = Math.Min(Mp, MaxMp);
+        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
+    }
+
 }

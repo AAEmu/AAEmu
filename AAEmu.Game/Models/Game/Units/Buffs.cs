@@ -350,6 +350,9 @@ public class Buffs : IBuffs
                 {
                     npc.ClearAllAggro();
                 }
+
+                if (owner is Unit unit)
+                    unit.IsInBattle = false;
             }
         }
 
