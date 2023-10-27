@@ -580,11 +580,11 @@ public class Slave : Unit
 
     public override void AddVisibleObject(Character character)
     {
-        base.AddVisibleObject(character);
-
         character.SendPacket(new SCUnitStatePacket(this));
         character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
         character.SendPacket(new SCSlaveStatePacket(ObjId, TlId, Summoner.Name, Summoner.ObjId, Id));
+
+        base.AddVisibleObject(character);
 
         foreach (var ati in AttachedCharacters)
         {

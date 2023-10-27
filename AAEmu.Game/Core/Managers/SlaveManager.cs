@@ -622,7 +622,7 @@ public class SlaveManager : Singleton<SlaveManager>
 
             childSlave.Hp = childSlave.MaxHp;
             childSlave.Mp = childSlave.MaxMp;
-            childSlave.Transform = summonedSlave.Transform.CloneDetached();
+            childSlave.Transform = summonedSlave.Transform.CloneDetached(childSlave);
             childSlave.Transform.Parent = summonedSlave.Transform;
 
             if (_attachPoints.ContainsKey(summonedSlave.ModelId))
