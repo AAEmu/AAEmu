@@ -145,12 +145,15 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         */
     }
 
+    /// <summary>
+    /// Handle is still in combat related things
+    /// </summary>
+    /// <param name="unit"></param>
     private static void CombatTick(Unit unit)
     {
         // TODO: Make it so you can also become out of combat if you are not on any aggro lists
         if (unit.IsInBattle && unit.LastCombatActivity.AddSeconds(30) < DateTime.UtcNow)
         {
-            unit.BroadcastPacket(new SCCombatClearedPacket(unit.ObjId), true);
             unit.IsInBattle = false;
         }
 
@@ -160,11 +163,19 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
     }
 
+    /// <summary>
+    /// Call regeneration function of the unit
+    /// </summary>
+    /// <param name="unit"></param>
     private static void RegenTick(Unit unit)
     {
         unit.Regenerate();
     }
 
+    /// <summary>
+    /// Handle player's Breath updates
+    /// </summary>
+    /// <param name="character"></param>
     private static void BreathTick(Character character)
     {
         if (character.IsDead || !character.IsUnderWater)
@@ -177,8 +188,8 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     public WorldInteractionGroup? GetWorldInteractionGroup(uint worldInteractionType)
     {
-        if (_worldInteractionGroups.ContainsKey(worldInteractionType))
-            return _worldInteractionGroups[worldInteractionType];
+        if (_worldInteractionGroups.TryGetValue(worldInteractionType, out var group))
+            return group;
         return null;
     }
 

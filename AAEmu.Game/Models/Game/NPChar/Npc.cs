@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.AStar;
@@ -12,6 +13,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
@@ -39,6 +41,20 @@ public class Npc : Unit
     public ConcurrentDictionary<uint, Aggro> AggroTable { get; }
     public uint CurrentAggroTarget { get; set; }
     public bool CanFly { get; set; } // TODO mark Npc's that can fly so that they don't land on the ground when calculating the Z height
+
+    public override float BaseMoveSpeed
+    {
+        get
+        {
+            var model = ModelManager.Instance.GetActorModel(Template.ModelId);
+            if (model == null)
+                return 1f;
+            // TODO: Implement stance switching mechanic
+            if (!model.Stances.TryGetValue(GameStanceType.Normal, out var stance))
+                return 1f;
+            return stance.MaxSpeed;
+        }
+    }
 
     #region Attributes
     [UnitAttribute(UnitAttribute.Str)]
@@ -795,7 +811,7 @@ public class Npc : Unit
 
         var player = unit as Character;
 
-        player?.SendMessage(ChatType.System, $"ClearAggroOfUnit {player.Name} for {this.ObjId}");
+        // player?.SendMessage(ChatType.System, $"ClearAggroOfUnit {player.Name} for {this.ObjId}");
 
         var lastAggroCount = AggroTable.Count;
         if (AggroTable.TryRemove(unit.ObjId, out var value))
@@ -823,6 +839,8 @@ public class Npc : Unit
                 if (distanceToIdle > 4)
                     Ai.GoToReturn();
             }
+
+            IsInBattle = false;
         }
     }
 
@@ -889,6 +907,10 @@ public class Npc : Unit
 
     public void MoveTowards(Vector3 other, float distance, byte flags = 4)
     {
+        distance *= Ai.Owner.MoveSpeedMul; // Apply speed modifier
+        if (distance < 0.01f)
+            return;
+
         if (Buffs.HasEffectsMatchingCondition(e =>
                 e.Template.Stun ||
                 e.Template.Sleep ||
@@ -896,18 +918,12 @@ public class Npc : Unit
                 e.Template.Knockdown ||
                 e.Template.Fastened))
         {
+            //Logger.Debug($"{ObjId} @NPC_NAME({TemplateId}); is stuck in place");
             return;
         }
 
         if ((ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
             return;
-
-        if (Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(shackle)) ||
-            Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(decreaseMoveSpeed)) ||
-            Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(snare)))
-        {
-            return;
-        }
 
         var oldPosition = Transform.Local.ClonePosition();
 

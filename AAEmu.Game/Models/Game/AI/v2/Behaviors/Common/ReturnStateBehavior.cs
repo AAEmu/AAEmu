@@ -1,6 +1,7 @@
 ﻿using System;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Utils;
 
@@ -46,7 +47,7 @@ public class ReturnStateBehavior : Behavior
 
     public override void Tick(TimeSpan delta)
     {
-        Ai.Owner.MoveTowards(Ai.IdlePosition.Local.Position, 2.4f * (delta.Milliseconds / 1000.0f)); // TODO: Get proper npc speed
+        Ai.Owner.MoveTowards(Ai.IdlePosition.Local.Position, Ai.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f)); // TODO: Get proper npc speed
 
         var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition.Local.Position, Ai.Owner.Transform.World.Position, true);
         if (distanceToIdle < 1.0f)

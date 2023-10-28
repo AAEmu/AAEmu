@@ -46,6 +46,14 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
+    public virtual float BaseMoveSpeed
+    {
+        get
+        {
+            return 1f;
+        }
+    }
+
     public byte Level { get; set; }
     public int Hp { get; set; }
     public DateTime LastCombatActivity { get; set; }
@@ -195,12 +203,26 @@ public class Unit : BaseUnit, IUnit
     public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
     public UnitCooldowns Cooldowns { get; set; }
     public Expedition Expedition { get; set; }
-    public bool IsInBattle { get; set; }
+
+    public bool IsInBattle
+    {
+        get => _isInBattle;
+        set
+        {
+            if (value != _isInBattle)
+                return;
+            _isInBattle = value;
+            if (!_isInBattle)
+                BroadcastPacket(new SCCombatClearedPacket(ObjId), true);
+        }
+    }
+
     public bool IsInDuel { get; set; }
     public bool IsInPatrol { get; set; } // so as not to run the route a second time
     public int SummarizeDamage { get; set; }
     public bool IsAutoAttack = false;
     public uint SkillId;
+    private bool _isInBattle;
     public ushort TlId { get; set; }
     public ItemContainer Equipment { get; set; }
     public GameConnection Connection { get; set; }
@@ -350,13 +372,17 @@ public class Unit : BaseUnit, IUnit
         if (CurrentTarget != null)
         {
             killer.BroadcastPacket(new SCAiAggroPacket(killer.ObjId, 0), true);
-            ((Unit)killer).SummarizeDamage = 0;
 
-            if (((Unit)killer).CurrentTarget != null)
+            if (killer is Unit killerUnit)
             {
-                killer.BroadcastPacket(new SCCombatClearedPacket(((Unit)killer).CurrentTarget.ObjId), true);
+                killerUnit.SummarizeDamage = 0;
+                if (killerUnit.CurrentTarget is Unit unitTarget)
+                {
+                    unitTarget.IsInBattle = false;
+                }
+
+                killerUnit.IsInBattle = false;
             }
-            killer.BroadcastPacket(new SCCombatClearedPacket(killer.ObjId), true);
             //killer.StartRegen();
             killer.BroadcastPacket(new SCTargetChangedPacket(killer.ObjId, 0), true);
 

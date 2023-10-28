@@ -343,6 +343,7 @@ public class Buffs : IBuffs
                 buff.Template.Start(buff.Caster, owner, buff); // TODO поменять на target
             }
 
+            // If Owner has buffs that prevent it from doing combat, then remove the aggro for it
             if (buffIds.Contains((uint)TagsEnum.NoFight) || buffIds.Contains((uint)TagsEnum.Returning))
             {
                 // Unit entered a "safe zone"
