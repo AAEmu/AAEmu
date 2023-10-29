@@ -151,8 +151,9 @@ internal class Track : Patrol
                 }
                 else
                 {
-                    npc.BroadcastPacket(new SCCombatClearedPacket(npc.CurrentTarget.ObjId), true);
-                    npc.BroadcastPacket(new SCCombatClearedPacket(npc.ObjId), true);
+                    npc.IsInBattle = false;
+                    if (npc.CurrentTarget is Unit unit)
+                        unit.IsInBattle = false;
                     npc.CurrentTarget = null;
                     //npc.StartRegen();
                     npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, 0), true);

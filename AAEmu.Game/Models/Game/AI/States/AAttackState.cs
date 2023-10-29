@@ -18,9 +18,10 @@ public class AAttackState : State
     public override void Exit()
     {
         base.Exit();
-        AI.Owner.BroadcastPacket(new SCCombatClearedPacket(AI.Owner.ObjId), true);
+        if (AI.Owner is Unit unit)
+            unit.IsInBattle = false;
 
-        if (!(AI.Owner is Npc npc))
+        if (AI.Owner is not Npc npc)
             return;
         npc.ClearAllAggro();
     }

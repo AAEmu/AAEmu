@@ -46,8 +46,25 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
+    public virtual float BaseMoveSpeed
+    {
+        get
+        {
+            return 1f;
+        }
+    }
+
     public byte Level { get; set; }
     public int Hp { get; set; }
+    public DateTime LastCombatActivity { get; set; }
+
+    protected bool _isUnderWater;
+
+    public virtual bool IsUnderWater
+    {
+        get => _isUnderWater;
+        set => _isUnderWater = value;
+    }
 
     #region Attributes
 
@@ -194,12 +211,26 @@ public class Unit : BaseUnit, IUnit
     public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
     public UnitCooldowns Cooldowns { get; set; }
     public Expedition Expedition { get; set; }
-    public bool IsInBattle { get; set; }
+
+    public bool IsInBattle
+    {
+        get => _isInBattle;
+        set
+        {
+            if (value == _isInBattle)
+                return;
+            _isInBattle = value;
+            if (!_isInBattle)
+                BroadcastPacket(new SCCombatClearedPacket(ObjId), true);
+        }
+    }
+
     public bool IsInDuel { get; set; }
     public bool IsInPatrol { get; set; } // so as not to run the route a second time
     public int SummarizeDamage { get; set; }
     public bool IsAutoAttack = false;
     public uint SkillId;
+    private bool _isInBattle;
     public ushort TlId { get; set; }
     public ItemContainer Equipment { get; set; }
     public GameConnection Connection { get; set; }
@@ -241,6 +272,12 @@ public class Unit : BaseUnit, IUnit
             Events.OnMovement(this, new OnMovementArgs());
         }
         base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
+
+        var worldDrownThreshold = WorldManager.Instance.GetWorld(Transform.WorldId)?.OceanLevel - 2f ?? 98f;
+        if (!IsUnderWater && Transform.World.Position.Z < worldDrownThreshold)
+            IsUnderWater = true;
+        else if (IsUnderWater && Transform.World.Position.Z > worldDrownThreshold)
+            IsUnderWater = false;
     }
 
     public bool CheckMovedPosition(Vector3 oldPosition)
@@ -349,13 +386,17 @@ public class Unit : BaseUnit, IUnit
         if (CurrentTarget != null)
         {
             killer.BroadcastPacket(new SCAiAggroPacket(killer.ObjId, 0), true);
-            ((Unit)killer).SummarizeDamage = 0;
 
-            if (((Unit)killer).CurrentTarget != null)
+            if (killer is Unit killerUnit)
             {
-                killer.BroadcastPacket(new SCCombatClearedPacket(((Unit)killer).CurrentTarget.ObjId), true);
+                killerUnit.SummarizeDamage = 0;
+                if (killerUnit.CurrentTarget is Unit unitTarget)
+                {
+                    unitTarget.IsInBattle = false;
+                }
+
+                killerUnit.IsInBattle = false;
             }
-            killer.BroadcastPacket(new SCCombatClearedPacket(killer.ObjId), true);
             //killer.StartRegen();
             killer.BroadcastPacket(new SCTargetChangedPacket(killer.ObjId, 0), true);
 
@@ -834,5 +875,10 @@ public class Unit : BaseUnit, IUnit
                 stream.Write(0f); // yaw
                 break;
         }
+    }
+
+    public virtual void Regenerate()
+    {
+        // Do nothing
     }
 }

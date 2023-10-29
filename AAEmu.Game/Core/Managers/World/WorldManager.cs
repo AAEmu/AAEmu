@@ -24,7 +24,7 @@ using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
-
+using Microsoft.CodeAnalysis.CSharp;
 using NLog;
 
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
@@ -90,13 +90,28 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     private void ActiveRegionTick(TimeSpan delta)
     {
-        // TODO: Not sure why this was is so complicated for just ticking combat/regen/breath on all players
-        foreach (var character in _characters.Values)
+        // Players
+        foreach (var character in GetAllCharacters())
         {
             CombatTick(character);
             RegenTick(character);
             BreathTick(character);
         }
+
+        // Pets
+        foreach (var mate in GetAllMates())
+        {
+            CombatTick(mate);
+            RegenTick(mate);
+        }
+
+        // Vehicles
+        foreach (var slave in GetAllSlaves())
+        {
+            CombatTick(slave);
+            RegenTick(slave);
+        }
+
         /*
         //var sw = new Stopwatch();
         //sw.Start();
@@ -130,28 +145,37 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         */
     }
 
-    private static void CombatTick(Character character)
+    /// <summary>
+    /// Handle is still in combat related things
+    /// </summary>
+    /// <param name="unit"></param>
+    private static void CombatTick(Unit unit)
     {
         // TODO: Make it so you can also become out of combat if you are not on any aggro lists
-        if (character.IsInBattle && character.LastCombatActivity.AddSeconds(30) < DateTime.UtcNow)
+        if (unit.IsInBattle && unit.LastCombatActivity.AddSeconds(30) < DateTime.UtcNow)
         {
-            character.BroadcastPacket(new SCCombatClearedPacket(character.ObjId), true);
-            character.IsInBattle = false;
+            unit.IsInBattle = false;
         }
 
-        if (character.IsInPostCast && character.LastCast.AddSeconds(5) < DateTime.UtcNow)
+        if ((unit is Character character) && (character.IsInPostCast && character.LastCast.AddSeconds(5) < DateTime.UtcNow))
         {
             character.IsInPostCast = false;
         }
     }
 
-    private static void RegenTick(Character character)
+    /// <summary>
+    /// Call regeneration function of the unit
+    /// </summary>
+    /// <param name="unit"></param>
+    private static void RegenTick(Unit unit)
     {
-        character.Regenerate();
-        var mate = MateManager.Instance.GetActiveMate(character.ObjId);
-        mate?.Regenerate();
+        unit.Regenerate();
     }
 
+    /// <summary>
+    /// Handle player's Breath updates
+    /// </summary>
+    /// <param name="character"></param>
     private static void BreathTick(Character character)
     {
         if (character.IsDead || !character.IsUnderWater)
@@ -164,8 +188,8 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     public WorldInteractionGroup? GetWorldInteractionGroup(uint worldInteractionType)
     {
-        if (_worldInteractionGroups.ContainsKey(worldInteractionType))
-            return _worldInteractionGroups[worldInteractionType];
+        if (_worldInteractionGroups.TryGetValue(worldInteractionType, out var group))
+            return group;
         return null;
     }
 

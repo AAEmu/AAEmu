@@ -60,13 +60,6 @@ public class CSMoveUnitPacket : GamePacket
 
         if (character == null) return;
 
-        // TODO: Somehow move this Task into the Buff's functionality instead
-        if (character.FishSchool?.FishFinderTickTask != null)
-        {
-            // stopping the FishSchoolTickTask if character moved
-            FishSchoolManager.StopFishFinderTickAsync(character).GetAwaiter().GetResult();
-            character.Buffs.RemoveBuff((uint)BuffConstants.SearchSchoolOfFish);
-        }
         var targetUnit = WorldManager.Instance.GetBaseUnit(_objId);
 
         // Invalid Object ?
@@ -205,7 +198,9 @@ public class CSMoveUnitPacket : GamePacket
                             $"|cFF448844{targetUnit.Name} ({targetUnit.ObjId}) standing on Object {parentObject.Name} ({parentObject.ObjId}) " +
                             $"@ x{dmt.X:F1} y{dmt.Y:F1} z{dmt.Z:F1} || World: {targetUnit.Transform.World}|r");
                     }
-                    else if ((targetUnit.Transform.Parent != null) && (parentObject != null) &&
+                    else if ((targetUnit.Transform.Parent != null) &&
+                             (targetUnit.Transform.Parent.GameObject != null) && 
+                             (parentObject != null) &&
                              (targetUnit.Transform.Parent.GameObject.ObjId != parentObject.ObjId))
                     {
                         // Changed to standing on different object ?

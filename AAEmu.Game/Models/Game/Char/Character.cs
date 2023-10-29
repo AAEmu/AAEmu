@@ -51,7 +51,6 @@ public partial class Character : Unit, ICharacter
     public AbilityType Ability1 { get; set; }
     public AbilityType Ability2 { get; set; }
     public AbilityType Ability3 { get; set; }
-    public DateTime LastCombatActivity { get; set; }
     public DateTime LastCast { get; set; }
     //public bool IsInCombat { get; set; } // there's already an isInBattle
     public bool IsInPostCast { get; set; }
@@ -120,12 +119,12 @@ public partial class Character : Unit, ICharacter
     public WorldSpawnPosition LocalPingPosition { get; set; } // added as a GM command helper
     private ConcurrentDictionary<uint, DateTime> _hostilePlayers { get; set; }
     public bool IsRiding { get; set; }
+    /// <summary>
+    /// AttachPoint the player currently has in use  
+    /// </summary>
+    public AttachPointKind AttachedPoint { get; set; }
 
-    private bool _inParty;
-    private bool _isOnline;
-
-    private bool _isUnderWater;
-    public bool IsUnderWater
+    public override bool IsUnderWater
     {
         get { return _isUnderWater; }
         set
@@ -137,6 +136,9 @@ public partial class Character : Unit, ICharacter
             SendPacket(new SCUnderWaterPacket(_isUnderWater));
         }
     }
+
+    private bool _inParty;
+    private bool _isOnline;
 
     public bool InParty
     {
@@ -1731,7 +1733,7 @@ public partial class Character : Unit, ICharacter
         Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Repair, tasks, new List<ulong>()));
     }
 
-    public void Regenerate()
+    public override void Regenerate()
     {
         if (IsDead || !NeedsRegen || IsDrowning)
         {

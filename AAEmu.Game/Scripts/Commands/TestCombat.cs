@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
@@ -45,10 +46,10 @@ public class TestCombat : ICommand
 
                 break;
             case "cleared": // TODO Battle End
-                if (character.CurrentTarget != null)
+                if (character.CurrentTarget is Unit target)
                 {
-                    character.SendPacket(new SCCombatClearedPacket(character.ObjId));
-                    character.SendPacket(new SCCombatClearedPacket(character.CurrentTarget.ObjId));
+                    character.IsInBattle = false;
+                    target.IsInBattle = false;
                 }
                 else
                     character.SendMessage("[TestCombat] not have target");

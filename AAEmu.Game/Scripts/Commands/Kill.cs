@@ -54,6 +54,5 @@ public class Kill : ICommand
             character.SendMessage("Cannot kill this target");
         }
         character.IsInBattle = false; // In case the character gets stuck in battle mode after engaging a mob
-        character.BroadcastPacket(new SCCombatClearedPacket(character.ObjId), true);
     }
 }
