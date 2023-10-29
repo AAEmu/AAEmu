@@ -441,9 +441,9 @@ public class SlaveManager : Singleton<SlaveManager>
         {
             slaveSummonItem.SlaveType = 0x02;
             slaveSummonItem.SlaveDbId = dbId;
-            if (slaveSummonItem.DeathTime > DateTime.MinValue)
+            if ((slaveSummonItem.IsDestroyed > 0) || (slaveSummonItem.RepairStartTime > DateTime.MinValue))
             {
-                var secondsLeft = (slaveSummonItem.DeathTime.AddMinutes(10) - DateTime.UtcNow).TotalSeconds;
+                var secondsLeft = (slaveSummonItem.RepairStartTime.AddMinutes(10) - DateTime.UtcNow).TotalSeconds;
                 if (secondsLeft > 0.0)
                 {
                     // Slave was destroyed and is on cooldown
@@ -452,7 +452,7 @@ public class SlaveManager : Singleton<SlaveManager>
                 }
             }
             slaveSummonItem.SummonLocation = spawnPos.World.Position;
-            slaveSummonItem.DeathTime = DateTime.MinValue; // reset timer here
+            slaveSummonItem.RepairStartTime = DateTime.MinValue; // reset timer here
             slaveSummonItem.IsDirty = true;
             owner?.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new ItemUpdate(item), new List<ulong>()));
         }

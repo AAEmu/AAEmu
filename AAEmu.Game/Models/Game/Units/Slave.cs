@@ -774,9 +774,8 @@ public class Slave : Unit
     {
         if (SummoningItem is not SummonSlave item)
             return;
-        item.DeathTime = DateTime.UtcNow;
-        // TODO: Need some way to mark if destroyed but not repairing yet
-
+        item.IsDestroyed = 1;
+        item.RepairStartTime = DateTime.MinValue;
         item.SummonLocation = Vector3.Zero;
         item.IsDirty = true;
         Summoner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.MateDeath, new ItemUpdate(item), new List<ulong>()));

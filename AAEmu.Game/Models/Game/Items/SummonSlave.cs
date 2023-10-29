@@ -7,13 +7,24 @@ namespace AAEmu.Game.Models.Game.Items;
 
 public class SummonSlave : Item
 {
+    private DateTime _repairStartTime;
     public override ItemDetailType DetailType => ItemDetailType.Slave;
     public override uint DetailBytesLength => 29;
 
     public byte SlaveType { get; set; } // Not sure about this, captures show 2 here
     public uint SlaveDbId { get; set; }
+    public byte IsDestroyed { get; set; }
 
-    public DateTime DeathTime { get; set; }
+    public DateTime RepairStartTime
+    {
+        get => _repairStartTime;
+        set
+        {
+            _repairStartTime = value;
+            if (value > DateTime.MinValue)
+                IsDestroyed = 0;
+        }
+    }
 
     // TODO: Actually use this location for saving the data in ItemDetails
     public Vector3 SummonLocation { get; set; }
@@ -31,34 +42,36 @@ public class SummonSlave : Item
         if (stream.LeftBytes < DetailBytesLength)
             return;
         SlaveType = stream.ReadByte(); // Type? (2 = slave?)
-        SlaveDbId = stream.ReadUInt32(); // DbId
+        SlaveDbId = stream.ReadBc(); // DbId
+        IsDestroyed = stream.ReadByte();
         try
         {
             // Read time of something else than 0
             var timeBytes = stream.ReadBytes(4);
             if (Convert.ToInt32(timeBytes) != 0)
-                DeathTime = Convert.ToDateTime(timeBytes);
+                RepairStartTime = Convert.ToDateTime(timeBytes);
             else
-                DeathTime = DateTime.MinValue;
+                RepairStartTime = DateTime.MinValue;
 
             // Read remaining bytes
             _ = stream.ReadBytes((int)DetailBytesLength-1-4-4); // Filler, Equipment?
         }
         catch
         {
-            DeathTime = DateTime.MinValue;
+            RepairStartTime = DateTime.MinValue;
         }
     }
 
     public override void WriteDetails(PacketStream stream)
     {
         stream.Write(SlaveType);
-        stream.Write(SlaveDbId);
+        stream.WriteBc(SlaveDbId);
+        stream.Write(IsDestroyed);
 
-        if (DeathTime == DateTime.MinValue)
+        if (RepairStartTime == DateTime.MinValue)
             stream.Write(0);
         else
-            stream.Write(DeathTime);
+            stream.Write(RepairStartTime);
 
         stream.Write(0); // If this is anything besides 0, it will count as being in recovering (negative at that)
 
