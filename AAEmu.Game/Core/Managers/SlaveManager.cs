@@ -44,6 +44,7 @@ public class SlaveManager : Singleton<SlaveManager>
     public Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> _attachPoints;
     public Dictionary<uint, List<SlaveInitialItems>> _slaveInitialItems; // PackId and List<Slot/ItemData>
     public Dictionary<uint, SlaveMountSkills> _slaveMountSkills;
+    public Dictionary<uint, uint> _repairableSlaves; // SlaveId, RepairEffectId
 
     private object _slaveListLock;
 
@@ -746,6 +747,7 @@ public class SlaveManager : Singleton<SlaveManager>
         }
         _slaveInitialItems = new Dictionary<uint, List<SlaveInitialItems>>();
         _slaveMountSkills = new Dictionary<uint, SlaveMountSkills>();
+        _repairableSlaves = new Dictionary<uint, uint>();
 
         #region SQLLite
 
@@ -994,6 +996,23 @@ public class SlaveManager : Singleton<SlaveManager>
                     }
                 }
             }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM repairable_slaves";
+                command.Prepare();
+
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        if (!_repairableSlaves.TryAdd(reader.GetUInt32("slave_id"),
+                                reader.GetUInt32("repair_slave_effect_id")))
+                            Logger.Warn($"Duplicate entry for repairable_slaves");
+                    }
+                }
+            }
+
         }
         #endregion
 
