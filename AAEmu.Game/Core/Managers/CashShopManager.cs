@@ -179,7 +179,7 @@ public class CashShopManager : Singleton<CashShopManager>
 
     public void Initialize()
     {
-        TickManager.Instance.OnTick.Subscribe(CreditDisperseTick, TimeSpan.FromMinutes(5));
+        ///TickManager.Instance.OnTick.Subscribe(CreditDisperseTick, TimeSpan.FromMinutes(5));
     }
 
     public List<CashShopItem> GetCashShopItems()
