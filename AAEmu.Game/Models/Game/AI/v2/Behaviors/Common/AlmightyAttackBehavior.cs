@@ -5,6 +5,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 using AAEmu.Game.Models.Game.AI.V2.Params;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
@@ -19,6 +20,7 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
         Ai.Owner.InterruptSkills();
         _aiParams = Ai.Owner.Template.AiParams as AlmightyNpcAiParams;
         _skillQueue = new Queue<AiSkill>();
+        Ai.Owner.CurrentGameStance = GameStanceType.Combat;
     }
 
     public override void Tick(TimeSpan delta)
@@ -61,12 +63,13 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
                 Ai.Owner.StopMovement();
                 UseSkill(new Skill(skillTemplate), Ai.Owner.CurrentTarget, selectedSkill.Delay);
                 _strafeDuringDelay = selectedSkill.Strafe;
+                return;
             }
         }
         // If skill list is empty, get Base skill
         #endregion
 
-        //PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner);
+        // PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner);
 
     }
 

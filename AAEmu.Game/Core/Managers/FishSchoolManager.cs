@@ -63,14 +63,8 @@ public class FishSchoolManager : Singleton<FishSchoolManager>
         if (character.FishSchool.FishFinderTickTask != null)
         {
             StopFishFinderTickAsync(character).GetAwaiter().GetResult();
-            character.Buffs.RemoveBuff((uint)BuffConstants.SearchSchoolOfFish);
             return;
         }
-
-        // TODO этот бафф не появляется при взаимодействии с FindFisher, добавим чтобы был
-        // TODO this buff does not appear when interacting with FindFisher, let's add it to be
-        var buffId = (uint)BuffConstants.SearchSchoolOfFish; // Id=5736, "Search School of Fish"
-        character.Buffs.AddBuff(new Buff(character, character, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow));
 
         character.SendPacket(new SCSchoolOfFishFinderToggledPacket(true, 800));
         character.FishSchool.FishFinderTickTask = new FishSchoolTickTask(character);

@@ -136,6 +136,9 @@ public class Doodad : BaseUnit
     public List<DoodadFunc> CurrentFuncs { get; set; }
     public List<DoodadPhaseFunc> CurrentPhaseFuncs { get; set; }
 
+    /// <summary>
+    /// Time left to show on Doodads in milliseconds
+    /// </summary>
     public uint TimeLeft
     {
         get
@@ -149,8 +152,7 @@ public class Doodad : BaseUnit
                     if (doodadFuncRecoverItemTemplate.After > 0)
                     {
                         var left = (PhaseTime + TimeSpan.FromMilliseconds(doodadFuncRecoverItemTemplate.After) - DateTime.UtcNow).TotalMilliseconds;
-                        if (left > 0)
-                            return (uint)Math.Round(left);
+                        return (uint)Math.Round(Math.Max(1, left));
                     }
                 }
             }

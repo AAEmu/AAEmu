@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
@@ -42,11 +43,11 @@ public class CSStartSkillPacket : GamePacket
         // if (skillId == 2 || skillId == 3 || skillId == 4)
         //     return;
 
-        var skillCasterType = stream.ReadByte(); // кто применяет
+        var skillCasterType = stream.ReadByte();
         var skillCaster = SkillCaster.GetByType((SkillCasterType)skillCasterType);
         skillCaster.Read(stream);
 
-        var skillCastTargetType = stream.ReadByte(); // на кого применяют
+        var skillCastTargetType = stream.ReadByte();
         var skillCastTarget = SkillCastTarget.GetByType((SkillCastTargetType)skillCastTargetType);
         skillCastTarget.Read(stream);
 
@@ -55,45 +56,54 @@ public class CSStartSkillPacket : GamePacket
         var skillObject = SkillObject.GetByType((SkillObjectType)flagType);
         if (flagType > 0) skillObject.Read(stream);
 
-        Logger.Trace("StartSkill: Id {0}, flag {1}", skillId, flag);
+        Logger.Trace($"StartSkill: Id {skillId}, flag {flag}");
 
         if (skillCaster is SkillCasterUnit scu)
         {
             var unit = WorldManager.Instance.GetUnit(scu.ObjId);
             if (unit is Character character)
-            {
-                Logger.Debug("{0} is using skill {1}", character.Name, skillId);
-            }
+                Logger.Debug($"{character.Name} is using skill {skillId}");
         }
 
-        if (skillCaster is SkillCasterMount)
+        if (skillCaster is SkillCasterMount scm)
         {
+            // Mount or Slave skill
+            Logger.Trace($"SkillCasterMount - MountSkillTemplateId {scm.MountSkillTemplateId}");
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-            var mate = MateManager.Instance.GetActiveMate(Connection.ActiveChar.ObjId);
-            var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
-            var mountAttachedSkill = MateManager.Instance.GetMountAttachedSkills(skillId);
 
-            if (mate != null && Connection.ActiveChar.IsRiding)
-                skill.Use(mate, skillCaster, skillCastTarget, skillObject);
-            else
-                skill.Use(slave, skillCaster, skillCastTarget, skillObject);
+            var caster = WorldManager.Instance.GetBaseUnit(skillCaster.ObjId);
+            var mate = caster as Mate;
+            var slave = caster as Slave;
+            var mountAttachedSkill = 0u;
 
-            if (mountAttachedSkill == 0) { return; }
+            if ((mate != null) || (slave != null))
+            {
+                // check if it's a mate or slave skill and return it's rider/operator related skill
+                mountAttachedSkill = MateManager.Instance.GetMountAttachedSkills(skillId, Connection.ActiveChar.AttachedPoint);
+            }
 
-            var trg = Connection.ActiveChar.CurrentTarget;
+            // Use the main skill on the mate/slave
+            skill.Use(caster, skillCaster, skillCastTarget, skillObject);
 
-            if (trg == null)
-                Connection.ActiveChar.UseSkill(mountAttachedSkill, Connection.ActiveChar);
-            else
-                Connection.ActiveChar.UseSkill(mountAttachedSkill, (IUnit)trg);
+            // If no rider/operator skill is linked, we can stop here
+            if (mountAttachedSkill == 0)
+                return;
+
+            // Use player's currently selected for the rider/operator skill
+            var riderTarget = Connection.ActiveChar.CurrentTarget as Unit;
+
+            // Execute the rider/operator skill as the player using either target or self
+            Connection.ActiveChar.UseSkill(mountAttachedSkill, riderTarget ?? Connection.ActiveChar);
         }
         else if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
         {
+            // Is it a common skill?
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
             skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
         }
-        else if (skillCaster is SkillItem)
+        else if (skillCaster is SkillItem si)
         {
+            // A skill triggered by a item
             var item = Connection.ActiveChar.Inventory.GetItemById(((SkillItem)skillCaster).ItemId);
             // добавил проверку на ItemBindType.BindOnPickup для записи портала с помощью камина в доме
             if (item == null || skillId != item.Template.UseSkillId && item.Template.BindType != ItemBindType.BindOnPickup)
@@ -103,17 +113,20 @@ public class CSStartSkillPacket : GamePacket
         }
         else if (Connection.ActiveChar.Skills.Skills.ContainsKey(skillId))
         {
+            // Is it one of our learned character skills?
             var template = SkillManager.Instance.GetSkillTemplate(skillId);
             var skill = new Skill(template, Connection.ActiveChar);
             skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
         }
         else if (skillId > 0 && Connection.ActiveChar.Skills.IsVariantOfSkill(skillId))
         {
+            // Variant of learned skill?
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
             skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
         }
         else
         {
+            // No idea what this is
             Logger.Warn("StartSkill: Id {0}, undefined use type", skillId);
             //If its a valid skill cast it. This fixes interactions with quest items/doodads.
             var unskill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));

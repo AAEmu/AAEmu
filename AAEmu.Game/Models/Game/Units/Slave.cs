@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -579,11 +580,11 @@ public class Slave : Unit
 
     public override void AddVisibleObject(Character character)
     {
-        base.AddVisibleObject(character);
-
         character.SendPacket(new SCUnitStatePacket(this));
         character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
         character.SendPacket(new SCSlaveStatePacket(ObjId, TlId, Summoner.Name, Summoner.ObjId, Id));
+
+        base.AddVisibleObject(character);
 
         foreach (var ati in AttachedCharacters)
         {
@@ -647,6 +648,7 @@ public class Slave : Unit
 
         DestroyAttachedItems();
         DistributeSlaveDropDoodads();
+        MarkSummoningItemAsDestroyed();
 
         Summoner?.SendPacket(new SCMySlavePacket(ObjId, TlId, Name, TemplateId, Hp, MaxHp, Transform.World.Position.X,Transform.World.Position.Y,Transform.World.Position.Z));
         Summoner?.SendPacket(new SCSlaveRemovedPacket(ObjId, TlId));
@@ -768,6 +770,17 @@ public class Slave : Unit
         }
     }
 
+    private void MarkSummoningItemAsDestroyed()
+    {
+        if (SummoningItem is not SummonSlave item)
+            return;
+        item.IsDestroyed = 1;
+        item.RepairStartTime = DateTime.MinValue;
+        item.SummonLocation = Vector3.Zero;
+        item.IsDirty = true;
+        Summoner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.MateDeath, new ItemUpdate(item), new List<ulong>()));
+    }
+
     public bool Save()
     {
         if (Id <= 0)
@@ -814,4 +827,34 @@ public class Slave : Unit
 
         return result;
     }
+
+    public override void Regenerate()
+    {
+        if (!NeedsRegen)
+        {
+            return;
+        }
+        if (IsDead)
+        {
+            foreach (var (_, character) in AttachedCharacters)
+                SlaveManager.Instance.UnbindSlave(character, TlId, AttachUnitReason.None);
+            return;
+        }
+
+        if (IsInBattle)
+        {
+            Hp += PersistentHpRegen;
+            Mp += PersistentMpRegen;
+        }
+        else
+        {
+            Hp += HpRegen;
+            Mp += MpRegen;
+        }
+
+        Hp = Math.Min(Hp, MaxHp);
+        Mp = Math.Min(Mp, MaxMp);
+        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
+    }
+
 }

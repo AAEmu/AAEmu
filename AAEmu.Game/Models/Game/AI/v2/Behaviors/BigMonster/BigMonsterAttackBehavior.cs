@@ -5,6 +5,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.v2.Params.BigMonster;
 using AAEmu.Game.Models.Game.AI.V2.Params.BigMonster;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster;
@@ -14,6 +15,8 @@ public class BigMonsterAttackBehavior : BaseCombatBehavior
     public override void Enter()
     {
         Ai.Owner.InterruptSkills();
+
+        Ai.Owner.CurrentGameStance = GameStanceType.Combat;
     }
 
     public override void Tick(TimeSpan delta)

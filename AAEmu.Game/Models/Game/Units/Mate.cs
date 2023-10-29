@@ -590,7 +590,7 @@ public sealed class Mate : Unit
         return fallDmg;
     }
 
-    public void Regenerate()
+    public override void Regenerate()
     {
         if (!NeedsRegen)
         {

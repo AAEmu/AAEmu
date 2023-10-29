@@ -1,5 +1,5 @@
 ﻿using System;
-
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
@@ -8,6 +8,7 @@ public class AttackBehavior : BaseCombatBehavior
 {
     public override void Enter()
     {
+        Ai.Owner.CurrentGameStance = GameStanceType.Combat;
     }
 
     public override void Tick(TimeSpan delta)
@@ -19,7 +20,9 @@ public class AttackBehavior : BaseCombatBehavior
             return;
         }
 
-        if (Ai.Owner.CurrentTarget == null) { return; }
+        if (Ai.Owner.CurrentTarget == null)
+            return;
+
         MoveInRange(Ai.Owner.CurrentTarget, delta);
         if (!CanUseSkill)
             return;

@@ -26,7 +26,7 @@ public class MateManager : Singleton<MateManager>
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Regex _nameRegex;
 
-    private Dictionary<uint, NpcMountSkills> _slaveMountSkills;
+    private Dictionary<uint, NpcMountSkills> _npcMountSkills;
     private Dictionary<uint, MountSkills> _mountSkills;
     private Dictionary<uint, MountAttachedSkills> _mountAttachedSkills;
     private Dictionary<uint, Mate> _activeMates; // ownerObjId, Mount
@@ -129,6 +129,7 @@ public class MateManager : Singleton<MateManager>
                 character.Transform.Parent = mateInfo.Transform;
                 character.Transform.Local.SetPosition(0,0,0); // correct the position of the character
                 character.IsRiding = true;
+                character.AttachedPoint = attachPoint;
 
                 character.IsVisible = true; // When we're on a horse, you can see us
             }
@@ -173,6 +174,7 @@ public class MateManager : Singleton<MateManager>
                 mateInfo.Transform.World.Rotation.X, mateInfo.Transform.World.Rotation.Y, mateInfo.Transform.World.Rotation.Z);
             // character.Transform = mateInfo.Transform.CloneDetached(character);
             targetObj.IsRiding = false;
+            targetObj.AttachedPoint = AttachPointKind.None;
 
             targetObj.BroadcastPacket(new SCUnitDetachedPacket(targetObj.ObjId, reason), true);
 
@@ -256,27 +258,38 @@ public class MateManager : Singleton<MateManager>
     {
         var template = new List<uint>();
 
-        foreach (var value in _slaveMountSkills.Values)
+        foreach (var value in _npcMountSkills.Values)
             if (value.NpcId == id && !template.Contains(value.MountSkillId))
                 template.Add(value.MountSkillId);
 
         return template;
     }
 
-    public uint GetMountAttachedSkills(uint mountSkill)
+    /// <summary>
+    /// Get the associated rider skill for a given mountSkill
+    /// </summary>
+    /// <param name="mateSkill">The skill the mate used</param>
+    /// <param name="attachPoint">The attach point the player is currently on</param>
+    /// <returns></returns>
+    public uint GetMountAttachedSkills(uint mateSkill, AttachPointKind attachPoint)
     {
         var id = 0u;
         var skill = 0u;
 
+        // Find the mountSkillId for this mate's skill
         foreach (var ms in _mountSkills)
         {
-            if (ms.Value.SkillId != mountSkill) { continue; }
+            if (ms.Value.SkillId != mateSkill)
+                continue;
             id = ms.Key;
             break;
         }
+
+        // Find the player skill based on the mountSkillId
         foreach (var mas in _mountAttachedSkills)
         {
-            if (mas.Value.MountSkillId != id) { continue; }
+            if ((mas.Value.MountSkillId != id) || (mas.Value.AttachPointId != attachPoint))
+                continue;
             skill = mas.Value.SkillId;
             break;
         }
@@ -284,10 +297,26 @@ public class MateManager : Singleton<MateManager>
         return skill;
     }
 
+    /// <summary>
+    /// Gets MountSkillId for use with Slaves
+    /// </summary>
+    /// <param name="slaveSkillId"></param>
+    /// <returns></returns>
+    public uint GetMountSkillIdForSkill(uint slaveSkillId)
+    {
+        foreach (var ms in _mountSkills.Values)
+        {
+            if (ms.SkillId == slaveSkillId)
+                return ms.Id;
+        }
+
+        return 0;
+    }
+
     public void Load()
     {
         _nameRegex = new Regex(AppConfiguration.Instance.CharacterNameRegex, RegexOptions.Compiled);
-        _slaveMountSkills = new Dictionary<uint, NpcMountSkills>();
+        _npcMountSkills = new Dictionary<uint, NpcMountSkills>();
         _mountSkills = new Dictionary<uint, MountSkills>();
         _mountAttachedSkills = new Dictionary<uint, MountAttachedSkills>();
         _activeMates = new Dictionary<uint, Mate>();
@@ -310,7 +339,7 @@ public class MateManager : Singleton<MateManager>
                             NpcId = reader.GetUInt32("npc_id"),
                             MountSkillId = reader.GetUInt32("mount_skill_id")
                         };
-                        _slaveMountSkills.Add(template.Id, template);
+                        _npcMountSkills.Add(template.Id, template);
                     }
                 }
             }

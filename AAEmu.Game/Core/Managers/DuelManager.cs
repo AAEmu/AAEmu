@@ -264,8 +264,8 @@ public class DuelManager : Singleton<DuelManager>
             RestoreFaction(duel.Challenged);
 
             // Player cannot be attacked
-            duel.SendPacketsBoth(new SCCombatClearedPacket(duel.Challenger.ObjId));
-            duel.SendPacketsBoth(new SCCombatClearedPacket(duel.Challenged.ObjId));
+            duel.Challenger.IsInBattle = false;
+            duel.Challenged.IsInBattle = false;
 
             DuelCleanUp(id);
         }

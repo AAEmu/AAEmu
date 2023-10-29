@@ -195,7 +195,8 @@ public class Skill
             return SkillResult.TooCloseRange;
         }
 
-        if (targetDist > maxRangeCheck)
+        // TODO: Remove exception for doodads
+        if ((targetDist > maxRangeCheck) && (target is not Doodad))
         {
             SkillTlIdManager.ReleaseId(TlId);
             TlId = 0;

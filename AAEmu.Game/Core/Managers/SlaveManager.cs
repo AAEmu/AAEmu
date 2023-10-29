@@ -14,7 +14,6 @@ using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items;
@@ -44,6 +43,8 @@ public class SlaveManager : Singleton<SlaveManager>
     private Dictionary<uint, Slave> _tlSlaves;
     public Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> _attachPoints;
     public Dictionary<uint, List<SlaveInitialItems>> _slaveInitialItems; // PackId and List<Slot/ItemData>
+    public Dictionary<uint, SlaveMountSkills> _slaveMountSkills;
+
     private object _slaveListLock;
 
     public bool Exist(uint templateId)
@@ -125,9 +126,31 @@ public class SlaveManager : Singleton<SlaveManager>
         return null;
     }*/
 
+    /// <summary>
+    /// Get mount skill associated with slaveMountSkillId
+    /// </summary>
+    /// <param name="slaveMountSkillId"></param>
+    /// <returns></returns>
+    public uint GetSlaveMountSkillFromId(uint slaveMountSkillId)
+    {
+        return _slaveMountSkills.TryGetValue(slaveMountSkillId, out var res) ? res.MountSkillId : (uint)0;
+    }
+
+    /// <summary>
+    /// Gets a list of all mount skills for a given slave type
+    /// </summary>
+    /// <param name="slaveTemplateId"></param>
+    /// <returns></returns>
+    public List<uint> GetSlaveMountSkillList(uint slaveTemplateId)
+    {
+        var res = new List<uint>();
+        foreach (var q in _slaveMountSkills.Values.Where(q => q.SlaveId == slaveTemplateId))
+            res.Add(q.MountSkillId);
+        return res;
+    }
+
     public void UnbindSlave(Character character, uint tlId, AttachUnitReason reason)
     {
-
         Slave slave;
         lock (_slaveListLock)
             slave = _tlSlaves[tlId];
@@ -140,6 +163,7 @@ public class SlaveManager : Singleton<SlaveManager>
         }
 
         character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
+        character.AttachedPoint = AttachPointKind.None;
 
         character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, reason), true);
     }
@@ -155,6 +179,7 @@ public class SlaveManager : Singleton<SlaveManager>
             return;
 
         character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPoint, bondKind, objId), true);
+        character.AttachedPoint = attachPoint;
         switch (attachPoint)
         {
             case AttachPointKind.Driver:
@@ -230,10 +255,10 @@ public class SlaveManager : Singleton<SlaveManager>
 
         var world = WorldManager.Instance.GetWorld(activeSlaveInfo.Transform.WorldId);
         world.Physics.RemoveShip(activeSlaveInfo);
-        owner.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
-        owner.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);
+        owner?.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
+        owner?.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);
         lock (_slaveListLock)
-            _activeSlaves.Remove(owner.ObjId);
+            _activeSlaves.Remove(owner?.ObjId ?? 0);
 
         activeSlaveInfo.Despawn = DateTime.UtcNow.AddSeconds(activeSlaveInfo.Template.PortalTime + 0.5f);
         SpawnManager.Instance.AddDespawn(activeSlaveInfo);
@@ -332,14 +357,6 @@ public class SlaveManager : Singleton<SlaveManager>
         // TODO: Attach Slave's DbId to the Item Details
         // We currently fake the DbId using TlId instead
 
-        if (item is SummonSlave slaveSummonItem)
-        {
-            slaveSummonItem.SlaveType = 0x02;
-            slaveSummonItem.SlaveDbId = dbId;
-            slaveSummonItem.IsDirty = true;
-            owner?.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new ItemUpdate(item), new List<ulong>()));
-        }
-
         if (spawnPos.Local.IsOrigin())
         {
             if (owner == null && useSpawner == null)
@@ -418,6 +435,26 @@ public class SlaveManager : Singleton<SlaveManager>
 
             // Always spawn horizontal(level) and 90° CCW of the player
             spawnPos.Local.SetRotation(0f, 0f, owner?.Transform.World.Rotation.Z + (MathF.PI / 2) ?? 0f);
+        }
+
+        if (item is SummonSlave slaveSummonItem)
+        {
+            slaveSummonItem.SlaveType = 0x02;
+            slaveSummonItem.SlaveDbId = dbId;
+            if ((slaveSummonItem.IsDestroyed > 0) || (slaveSummonItem.RepairStartTime > DateTime.MinValue))
+            {
+                var secondsLeft = (slaveSummonItem.RepairStartTime.AddMinutes(10) - DateTime.UtcNow).TotalSeconds;
+                if (secondsLeft > 0.0)
+                {
+                    // Slave was destroyed and is on cooldown
+                    owner?.SendErrorMessage(ErrorMessageType.SlaveSpawnErrorNeedRepairTime, (uint)Math.Round(secondsLeft));
+                    return null;
+                }
+            }
+            slaveSummonItem.SummonLocation = spawnPos.World.Position;
+            slaveSummonItem.RepairStartTime = DateTime.MinValue; // reset timer here
+            slaveSummonItem.IsDirty = true;
+            owner?.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new ItemUpdate(item), new List<ulong>()));
         }
 
         owner?.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, hideSpawnEffect, 0, owner.Name), true);
@@ -585,7 +622,7 @@ public class SlaveManager : Singleton<SlaveManager>
 
             childSlave.Hp = childSlave.MaxHp;
             childSlave.Mp = childSlave.MaxMp;
-            childSlave.Transform = summonedSlave.Transform.CloneDetached();
+            childSlave.Transform = summonedSlave.Transform.CloneDetached(childSlave);
             childSlave.Transform.Parent = summonedSlave.Transform;
 
             if (_attachPoints.ContainsKey(summonedSlave.ModelId))
@@ -708,6 +745,7 @@ public class SlaveManager : Singleton<SlaveManager>
             _tlSlaves = new Dictionary<uint, Slave>();
         }
         _slaveInitialItems = new Dictionary<uint, List<SlaveInitialItems>>();
+        _slaveMountSkills = new Dictionary<uint, SlaveMountSkills>();
 
         #region SQLLite
 
@@ -934,6 +972,28 @@ public class SlaveManager : Singleton<SlaveManager>
                     }
                 }
             }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM slave_mount_skills";
+                command.Prepare();
+
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new SlaveMountSkills()
+                        {
+                            Id = reader.GetUInt32("id"),
+                            SlaveId = reader.GetUInt32("slave_id"),
+                            MountSkillId = reader.GetUInt32("mount_skill_id")
+                        };
+
+                        if (!_slaveMountSkills.TryAdd(template.Id, template))
+                            Logger.Warn($"Duplicate entry for slave_mount_skills");
+                    }
+                }
+            }
         }
         #endregion
 
@@ -997,6 +1057,7 @@ public class SlaveManager : Singleton<SlaveManager>
             return;
         }
 
-        slave.Delete();
+        Delete(character, slave.ObjId);
+        // slave.Delete();
     }
 }

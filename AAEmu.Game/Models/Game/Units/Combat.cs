@@ -23,8 +23,7 @@ public class Combat : Patrol
         var trg = (Unit)npc.CurrentTarget;
         if (npc.CurrentTarget == null)
         {
-            //npc.BroadcastPacket(new SCCombatClearedPacket(trg.ObjId), true);
-            npc.BroadcastPacket(new SCCombatClearedPacket(npc.ObjId), true);
+            npc.IsInBattle = false;
             npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, 0), true);
             npc.CurrentTarget = null;
             //npc.StartRegen();
