@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.AStar;
+using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
@@ -50,9 +51,47 @@ public class Npc : Unit
             if (model == null)
                 return 1f;
             // TODO: Implement stance switching mechanic
-            if (!model.Stances.TryGetValue(GameStanceType.Normal, out var stance))
+            if (!model.Stances.TryGetValue(CurrentGameStance, out var stance))
                 return 1f;
-            return stance.MaxSpeed;
+
+            // Returning? Use sprint speed
+            if (Ai?.GetCurrentBehavior() is ReturnStateBehavior rsb)
+                return stance.AiMoveSpeedSprint;
+
+            // In combat, use running speed
+            if (IsInBattle)
+                return Math.Min(stance.AiMoveSpeedRun, stance.MaxSpeed);
+
+            // Not in combat (should be roaming), use walk speed
+            return Math.Min(stance.AiMoveSpeedWalk, stance.MaxSpeed);
+        }
+    }
+
+    private GameStanceType _currentGameStance = GameStanceType.Combat;
+    public GameStanceType CurrentGameStance
+    {
+        get => _currentGameStance;
+        set
+        {
+            if (_currentGameStance == value)
+                return;
+
+            if (CanFly)
+            {
+                _currentGameStance = GameStanceType.Fly;
+                return;
+            }
+
+            if (IsUnderWater)
+            {
+                if (value == GameStanceType.Combat)
+                    _currentGameStance = GameStanceType.CoSwim;
+                else
+                    _currentGameStance = GameStanceType.Swim;
+                return;
+            }
+
+            _currentGameStance = value;
         }
     }
 

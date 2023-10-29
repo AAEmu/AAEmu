@@ -1,6 +1,7 @@
 using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 
@@ -12,6 +13,7 @@ public class SpawningBehavior : Behavior
 
     public override void Enter()
     {
+        Ai.Owner.CurrentGameStance = GameStanceType.Combat;
     }
 
     public override void Tick(TimeSpan delta)

@@ -45,7 +45,10 @@ public class CSChangeTargetPacket : GamePacket
                 ? npc.Spawner.NpcSpawnerIds[0]
                 : 0u;
 
-            Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3} SpawnerId: {4}\nPos: {5}", targetId, npc.TemplateId, npc.Ai?.GetType().Name.Replace("AiCharacter", ""), npc.Ai?.GetCurrentBehavior()?.GetType().Name.Replace("Behavior", ""), spawnerId, npc.Transform.ToString());
+            Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3} SpawnerId: {4} Stance: {6}, Speed: {7}\nPos: {5}",
+                targetId, npc.TemplateId, npc.Ai?.GetType().Name.Replace("AiCharacter", ""),
+                npc.Ai?.GetCurrentBehavior()?.GetType().Name.Replace("Behavior", ""), spawnerId,
+                npc.Transform.ToString(), npc.CurrentGameStance, npc.BaseMoveSpeed.ToString("F1"));
         }
         else if (Connection.ActiveChar.CurrentTarget is House house)
             Connection.ActiveChar.SendMessage("ObjId: {0}, HouseId: {1}, Pos: {2}", targetId, house.Id, house.Transform.ToString());

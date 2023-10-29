@@ -2,11 +2,11 @@
 
 public enum GameStanceType : byte
 {
-    Normal = 1, // actually called combat in the DB
+    Combat = 1,
     Relaxed = 2,
     Swim = 3,
     CoSwim = 4,
-    Combat = 5,
+    Combat2 = 5, // actually also called combat in the DB
     Stealth = 6,
     Crouch = 7,
     Prone = 8,

@@ -1,7 +1,7 @@
 ﻿using System;
-
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
@@ -13,12 +13,13 @@ public class IdleBehavior : Behavior
     {
         Ai.Owner.InterruptSkills();
         Ai.Owner.StopMovement();
+        Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
     }
 
     public override void Tick(TimeSpan delta)
     {
         if (!Ai.Owner.Template.Aggression)
-            return; // Remove this if we need non-aggressive npcs to search for targetsegion.IsEmpty())
+            return; // Remove this if we need non-aggressive npcs to search for targetregion.IsEmpty())
 
         var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, CheckSightRangeScale(10f));
 

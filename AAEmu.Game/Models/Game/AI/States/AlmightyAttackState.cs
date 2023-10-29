@@ -21,7 +21,7 @@ public class AlmightyAttackState : AAttackState
     public override void Enter()
     {
         base.Enter();
-        if (!(AI.Owner is Npc npc))
+        if (AI.Owner is not Npc npc)
         {
             Logger.Error("State applied to invalid unit type");
             return;
@@ -35,6 +35,7 @@ public class AlmightyAttackState : AAttackState
 
     public override void Tick(TimeSpan delta)
     {
+        base.Tick(delta);
         return;
         /*
         if (OwnerTemplate == null)
@@ -111,7 +112,7 @@ public class AlmightyAttackState : AAttackState
         */
     }
 
-    /* Unused
+    /* Unused - GetNextAiSkills
     private AiSkillList GetNextAiSkills()
     {
         if (_sequenceIndex >= AiParams.AiSkillLists.Count)

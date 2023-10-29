@@ -2,6 +2,7 @@
 using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.v2.Params.WildBoar;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.WildBoar;
@@ -29,6 +30,9 @@ public class WildBoatAttackBehavior : BaseCombatBehavior
             Ai.GoToReturn();
             return;
         }
+
+        Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+
         // On Combat Start Skill
         var startCombatSkillId = _aiParams.OnCombatStartSkills.FirstOrDefault();
         if (startCombatSkillId == 0)

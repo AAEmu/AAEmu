@@ -124,11 +124,7 @@ public partial class Character : Unit, ICharacter
     /// </summary>
     public AttachPointKind AttachedPoint { get; set; }
 
-    private bool _inParty;
-    private bool _isOnline;
-
-    private bool _isUnderWater;
-    public bool IsUnderWater
+    public override bool IsUnderWater
     {
         get { return _isUnderWater; }
         set
@@ -140,6 +136,9 @@ public partial class Character : Unit, ICharacter
             SendPacket(new SCUnderWaterPacket(_isUnderWater));
         }
     }
+
+    private bool _inParty;
+    private bool _isOnline;
 
     public bool InParty
     {

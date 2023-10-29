@@ -5,7 +5,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.Utils;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
-using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
@@ -21,6 +21,7 @@ public class RoamingBehavior : Behavior
         Ai.Owner.InterruptSkills();
         Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, BaseUnitType.Npc, ModelPostureType.ActorModelState, 2), false); // fixed animated
         UpdateRoaming();
+        Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
     }
 
     public override void Tick(TimeSpan delta)
