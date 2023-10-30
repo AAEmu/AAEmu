@@ -117,6 +117,7 @@ public partial class Quest : PacketMarshaler
                             Logger.Info($"[ContextProcessing][QuestSupplyState][Update] Quest: {TemplateId}.");
                             QuestSupplyState.State.Update();
                             Condition = QuestConditionObj.Ready;
+                            QuestSupplyState.State.Completed = false;
                             Logger.Info($"[ContextProcessing][QuestSupplyState][Update] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}, Completed={QuestSupplyState?.State.Completed}");
                             break;
                         case QuestConditionObj.Ready:
@@ -144,11 +145,13 @@ public partial class Quest : PacketMarshaler
                             {
                                 next = false;
                                 Condition = QuestConditionObj.Progress;
+                                QuestProgressState.State.Completed = false;
                                 Logger.Info($"[ContextProcessing][QuestProgressState][Update] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}, Completed={QuestSupplyState?.State.Completed}");
                                 break;
                             } // подписка на события и прерываем цикл
 
                             Condition = QuestConditionObj.Ready;
+                            QuestProgressState.State.Completed = false;
                             Logger.Info($"[ContextProcessing][QuestProgressState][Update] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}, Completed={QuestSupplyState?.State.Completed}");
                             break;
                         case QuestConditionObj.Ready:
@@ -176,11 +179,13 @@ public partial class Quest : PacketMarshaler
                             {
                                 next = false;
                                 Condition = QuestConditionObj.Progress;
+                                QuestReadyState.State.Completed = false;
                                 Logger.Info($"[ContextProcessing][QuestReadyState][Update] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}, Completed={QuestSupplyState?.State.Completed}");
                                 break;
                             } // подписка на события и прерываем цикл
 
                             Condition = QuestConditionObj.Ready;
+                            QuestReadyState.State.Completed = false;
                             Logger.Info($"[ContextProcessing][QuestReadyState][Update] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}, Completed={QuestSupplyState?.State.Completed}");
                             break;
                         case QuestConditionObj.Ready:
@@ -375,15 +380,14 @@ public partial class Quest : PacketMarshaler
                 complete = CheckAct(component, act, componentIndex);
 
                 context.State.ContextResults[componentIndex] = complete;
-                Logger.Info($"Quest: {TemplateId}, Step={Step}, прверка акта {act.DetailType} дала результат {complete}.");
-
+                Logger.Info($"Quest: {TemplateId}, Step={Step}, checking the act {act.DetailType} gave the result {complete}.");
                 // check the results for validity
                 if (successive)
                 {
                     // пока не знаю для чего это
                     // don't know what it's for yet
                     results = true;
-                    Logger.Info($"Quest: {TemplateId}, Step={Step}, что-то было успешно Successive={successive}.");
+                    Logger.Info($"Quest: {TemplateId}, Step={Step}, something was successful Successive={successive}.");
                 }
                 else if (selective && context.State.ContextResults.Any(b => b))
                 {
@@ -409,12 +413,12 @@ public partial class Quest : PacketMarshaler
                 {
                     // выполнен один компонент из нескольких
                     results = true;
-                    Logger.Info($"Quest: {TemplateId}, Step={Step}, выполнен компонент {componentIndex} с результатом {results}.");
+                    Logger.Info($"Quest: {TemplateId}, Step={Step}, OverCompletionPercent component {componentIndex} with result {results}.");
                 }
                 else if (complete)
                 {
                     results = true;
-                    Logger.Info($"Quest: {TemplateId}, Step={Step}, выполнен компонент {componentIndex} с результатом {results}.");
+                    Logger.Info($"Quest: {TemplateId}, Step={Step}, completed component {componentIndex} with result {results}.");
                 }
             }
 
@@ -743,7 +747,6 @@ public partial class Quest : PacketMarshaler
         if (results && !(EarlyCompletion || ExtraCompletion))
         {
             Logger.Info($"[OnInteractionHandler] Отписываемся от события.");
-            Logger.Info($"[OnInteractionHandler] Quest {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
             Logger.Info($"[OnInteractionHandler] Quest: {TemplateId}, Event: 'OnInteraction', Handler: 'OnInteractionHandler'");
             Owner.Events.OnInteraction -= Owner.Quests.OnInteractionHandler; // отписываемся
             Owner.Events.OnInteraction += Owner.Quests.OnInteractionHandler; // снова подписываемся
@@ -766,6 +769,7 @@ public partial class Quest : PacketMarshaler
             Logger.Info($"[OnInteractionHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
             Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
+            ReadyToReportNpc = true;
         }
 
         // проверка результатов на валидность, 266 - GroupHunt & ItemGather
@@ -916,7 +920,6 @@ public partial class Quest : PacketMarshaler
         if (results && !(EarlyCompletion || ExtraCompletion))
         {
             Logger.Info($"[OnMonsterHuntHandler] Отписываемся от события.");
-            Logger.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
             Logger.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, Event: 'OnMonsterHunt', Handler: 'OnMonsterHuntHandler'");
             Owner.Events.OnMonsterHunt -= Owner.Quests.OnMonsterHuntHandler; // отписываемся
             Owner.Events.OnMonsterHunt += Owner.Quests.OnMonsterHuntHandler; // снова подписываемся
@@ -939,6 +942,7 @@ public partial class Quest : PacketMarshaler
             Logger.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
             Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
+            ReadyToReportNpc = true;
         }
 
         // проверка результатов на валидность, 266, 1125, 1135 - GroupHunt & ItemGather
@@ -1078,7 +1082,6 @@ public partial class Quest : PacketMarshaler
         if (results && !(EarlyCompletion || ExtraCompletion))
         {
             Logger.Info($"[OnMonsterGroupHuntHandler] Отписываемся от события.");
-            Logger.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
             Logger.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, Event: 'OnMonsterGroupHunt', Handler: 'OnMonsterGroupHuntHandler'");
             Owner.Events.OnMonsterHunt -= Owner.Quests.OnMonsterGroupHuntHandler; // отписываемся
             Owner.Events.OnMonsterHunt += Owner.Quests.OnMonsterGroupHuntHandler; // снова подписываемся
@@ -1101,6 +1104,7 @@ public partial class Quest : PacketMarshaler
             Logger.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
             Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
+            ReadyToReportNpc = true;
         }
 
         // проверка результатов на валидность, 266 - GroupHunt & ItemGather
@@ -1136,7 +1140,6 @@ public partial class Quest : PacketMarshaler
         if (results && !(EarlyCompletion || ExtraCompletion))
         {
             Logger.Info($"[OnItemUseHandler] Unsubscribe from the event.");
-            Logger.Info($"[OnItemUseHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
             Logger.Info($"[OnItemUseHandler] Quest: {TemplateId}, Event: 'OnItemUse', Handler: 'OnItemUseHandler'");
             Owner.Events.OnItemUse -= Owner.Quests.OnItemUseHandler; // отписываемся
             Owner.Events.OnItemUse += Owner.Quests.OnItemUseHandler; // снова подписываемся
@@ -1159,6 +1162,7 @@ public partial class Quest : PacketMarshaler
             Logger.Info($"[OnItemUseHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
             Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
+            ReadyToReportNpc = true;
         }
 
         // проверка результатов на валидность, 266 - GroupHunt & ItemGather
@@ -1297,7 +1301,6 @@ public partial class Quest : PacketMarshaler
         if (results && !(EarlyCompletion || ExtraCompletion))
         {
             Logger.Info($"[OnItemGroupUseHandler] Отписываемся от события.");
-            Logger.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
             Logger.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, Event: 'OnItemGroupUse', Handler: 'OnItemGroupUseHandler'");
             Owner.Events.OnItemGroupUse -= Owner.Quests.OnItemGroupUseHandler; // отписываемся
             Owner.Events.OnItemGroupUse += Owner.Quests.OnItemGroupUseHandler; // снова подписываемся
@@ -1320,6 +1323,7 @@ public partial class Quest : PacketMarshaler
             Logger.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
             Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
+            ReadyToReportNpc = true;
         }
 
         // проверка результатов на валидность, 266 - GroupHunt & ItemGather
@@ -1468,7 +1472,6 @@ public partial class Quest : PacketMarshaler
         {
             Logger.Info($"[OnItemGatherHandler] Отписываемся от события.");
             Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Event: 'OnItemGather', Handler: 'OnItemGatherHandler'");
-            Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
             Owner.Events.OnItemGather -= Owner.Quests.OnItemGatherHandler; // отписываемся
             Owner.Events.OnItemGather += Owner.Quests.OnItemGatherHandler; // снова подписываемся
 
@@ -1490,6 +1493,7 @@ public partial class Quest : PacketMarshaler
             Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
             Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
+            ReadyToReportNpc = true;
         }
 
         // проверка результатов на валидность, 266 - GroupHunt & ItemGather
@@ -1634,7 +1638,6 @@ public partial class Quest : PacketMarshaler
         if (results && !(EarlyCompletion || ExtraCompletion))
         {
             Logger.Info($"[OnItemGroupGatherHandler] Отписываемся от события.");
-            Logger.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
             Logger.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, Event: 'OnItemGroupGather', Handler: 'OnItemGroupGatherHandler'");
             Owner.Events.OnItemGroupGather -= Owner.Quests.OnItemGroupGatherHandler; // отписываемся
             Owner.Events.OnItemGroupGather += Owner.Quests.OnItemGroupGatherHandler; // снова подписываемся
@@ -1657,6 +1660,7 @@ public partial class Quest : PacketMarshaler
             Logger.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
             Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
+            ReadyToReportNpc = true;
         }
 
         // проверка результатов на валидность, 266 - GroupHunt & ItemGather
@@ -2881,9 +2885,14 @@ public partial class Quest : PacketMarshaler
         var args = eventArgs as OnReportNpcArgs;
         if (args == null)
             return;
+        if (!ReadyToReportNpc)
+        {
+            Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, ещё не готовы беседовать");
+            return;
+        }
 
         //var step = Step; // сохраним, чтобы потом восстановить
-        Step = QuestComponentKind.Ready;
+        //Step = QuestComponentKind.Ready;
         if (GetQuestContext("QuestActConReportNpc", out var context, out var listQuestActs))
             return;
         //Step = step;

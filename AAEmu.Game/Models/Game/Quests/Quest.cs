@@ -41,6 +41,7 @@ public partial class Quest : PacketMarshaler
     public QuestStatus Status { get; set; }
     public QuestComponentKind Step { get; set; }
     public QuestConditionObj Condition { get; set; }
+    public bool ReadyToReportNpc { get; set; }
     public DateTime Time { get; set; }
     public ICharacter Owner { get; set; }
     private int LeftTime => Time > DateTime.UtcNow ? (int)(Time - DateTime.UtcNow).TotalMilliseconds : -1;
@@ -84,6 +85,7 @@ public partial class Quest : PacketMarshaler
         ObjId = 0;
         QuestRewardItemsPool = new List<ItemCreationDefinition>();
         QuestCleanupItemsPool = new List<ItemCreationDefinition>();
+        ReadyToReportNpc = false;
     }
 
     public Quest() : this(

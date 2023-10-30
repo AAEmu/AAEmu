@@ -71,7 +71,12 @@ public partial class CharacterQuests
 
         if (HasQuestCompleted(questId))
         {
-            if (template.Repeatable == false)
+            if (forcibly)
+            {
+                Logger.Info("[GM] quest {0}, added!", questId);
+                Drop(questId, true);
+            }
+            else if (template.Repeatable == false)
             {
                 Logger.Warn($"Quest {questId} already completed for {Owner.Name}, not added!");
                 Owner.SendErrorMessage(ErrorMessageType.QuestDailyLimit);
