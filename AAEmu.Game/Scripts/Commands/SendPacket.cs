@@ -1,10 +1,10 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System;
+using System.IO;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
-using System;
-using System.IO;
 
 namespace AAEmu.Game.Scripts.Commands;
 

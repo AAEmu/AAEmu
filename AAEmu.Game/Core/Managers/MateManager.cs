@@ -127,7 +127,7 @@ public class MateManager : Singleton<MateManager>
                 seatInfo._reason = reason;
 
                 character.Transform.Parent = mateInfo.Transform;
-                character.Transform.Local.SetPosition(0,0,0); // correct the position of the character
+                character.Transform.Local.SetPosition(0, 0, 0); // correct the position of the character
                 character.IsRiding = true;
                 character.AttachedPoint = attachPoint;
 

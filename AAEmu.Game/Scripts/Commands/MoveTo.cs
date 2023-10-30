@@ -1,11 +1,10 @@
-﻿using NLog;
-
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Utils.Scripts;
+using NLog;
 
 namespace AAEmu.Game.Scripts.Commands;
 

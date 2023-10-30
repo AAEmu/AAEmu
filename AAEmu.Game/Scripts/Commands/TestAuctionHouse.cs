@@ -1,8 +1,8 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Auction;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;

@@ -24,7 +24,6 @@ using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
-using Microsoft.CodeAnalysis.CSharp;
 using NLog;
 
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;

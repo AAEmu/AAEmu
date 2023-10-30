@@ -2,8 +2,8 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;

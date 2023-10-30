@@ -2,9 +2,9 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Utils.Scripts.SubCommands.Time;
-using AAEmu.Game.Utils.Scripts.SubCommands;
 using AAEmu.Game.Utils.Scripts;
+using AAEmu.Game.Utils.Scripts.SubCommands;
+using AAEmu.Game.Utils.Scripts.SubCommands.Time;
 
 namespace AAEmu.Game.Scripts.Commands;
 

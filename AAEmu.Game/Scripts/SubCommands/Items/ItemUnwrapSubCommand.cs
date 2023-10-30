@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Utils.Scripts.SubCommands;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Utils.Scripts;
+using AAEmu.Game.Utils.Scripts.SubCommands;
 
 namespace AAEmu.Game.Scripts.SubCommands.Items;
 

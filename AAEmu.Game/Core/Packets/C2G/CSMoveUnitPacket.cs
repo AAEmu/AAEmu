@@ -4,7 +4,6 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
@@ -199,7 +198,7 @@ public class CSMoveUnitPacket : GamePacket
                             $"@ x{dmt.X:F1} y{dmt.Y:F1} z{dmt.Z:F1} || World: {targetUnit.Transform.World}|r");
                     }
                     else if ((targetUnit.Transform.Parent != null) &&
-                             (targetUnit.Transform.Parent.GameObject != null) && 
+                             (targetUnit.Transform.Parent.GameObject != null) &&
                              (parentObject != null) &&
                              (targetUnit.Transform.Parent.GameObject.ObjId != parentObject.ObjId))
                     {

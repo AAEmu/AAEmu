@@ -13,10 +13,10 @@ public static class SkillTlIdManager
     private const ushort MaxEntries = LastId - FirstId;
     private static bool[] AssignedTl { get; } = new bool[ushort.MaxValue];
     private static BaseUnit[] AssignedUnit { get; } = new BaseUnit[ushort.MaxValue];
-    private static ushort NextIdToUse { get; set; }= FirstId;
+    private static ushort NextIdToUse { get; set; } = FirstId;
     private static ulong TotalGets { get; set; }
     private static ulong TotalReleases { get; set; }
-    private static readonly object s_lock = new ();
+    private static readonly object s_lock = new();
 
     public static ushort GetNextId(BaseUnit referenceUnit = null)
     {
@@ -89,7 +89,7 @@ public static class SkillTlIdManager
     {
         // Note, don't lock() here as this is only ever called within a lock already
         ushort count = 0;
-        for(var i = FirstId; i <= LastId;i++)
+        for (var i = FirstId; i <= LastId; i++)
             if (!AssignedTl[i])
                 count++;
         return count;

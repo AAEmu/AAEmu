@@ -1,9 +1,9 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
 using NLog;
-using System;
 
 namespace AAEmu.Game.Scripts.Commands;
 

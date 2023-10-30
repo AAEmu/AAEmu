@@ -650,7 +650,7 @@ public class Slave : Unit
         DistributeSlaveDropDoodads();
         MarkSummoningItemAsDestroyed();
 
-        Summoner?.SendPacket(new SCMySlavePacket(ObjId, TlId, Name, TemplateId, Hp, MaxHp, Transform.World.Position.X,Transform.World.Position.Y,Transform.World.Position.Z));
+        Summoner?.SendPacket(new SCMySlavePacket(ObjId, TlId, Name, TemplateId, Hp, MaxHp, Transform.World.Position.X, Transform.World.Position.Y, Transform.World.Position.Z));
         Summoner?.SendPacket(new SCSlaveRemovedPacket(ObjId, TlId));
     }
 
@@ -763,7 +763,7 @@ public class Slave : Unit
                 {
                     doodad.Transform.Local.SetHeight(WorldManager.Instance.GetWorld(doodad.Transform.WorldId).Water.GetWaterSurface(pos));
                 }
-                doodad.Transform.Local.Rotate(0,0,(float)(Random.Shared.NextDouble() * Math.PI * 2f));
+                doodad.Transform.Local.Rotate(0, 0, (float)(Random.Shared.NextDouble() * Math.PI * 2f));
                 doodad.InitDoodad();
                 doodad.Spawn();
             }

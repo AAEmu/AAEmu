@@ -424,7 +424,7 @@ public class CharacterManager : Singleton<CharacterManager>
             character.Level = 1;
             character.Faction = FactionManager.Instance.GetFaction(template.FactionId);
             character.FactionName = "";
-            character.AccessLevel = 100; // TODO для тестирования создаем с полными правами
+            character.AccessLevel = 0; // TODO для тестирования создаем с полными правами
             character.LaborPower = 50;
             character.LaborPowerModified = DateTime.UtcNow;
             character.NumInventorySlots = template.NumInventorySlot;

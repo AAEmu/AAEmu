@@ -1,11 +1,7 @@
 ﻿using System;
-
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units.Route;
-using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Units;
 

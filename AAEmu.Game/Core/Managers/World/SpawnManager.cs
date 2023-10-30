@@ -373,7 +373,7 @@ public class SpawnManager : Singleton<SpawnManager>
 
         Logger.Info("Loading persistent doodads...");
 
-        var doodadsSpawned = 0 ;
+        var doodadsSpawned = 0;
         // Load furniture
         doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.Housing);
         // Load plants/packs and everything else that was placed into the world by players

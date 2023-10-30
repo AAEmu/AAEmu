@@ -54,7 +54,7 @@ public class SummonSlave : Item
                 RepairStartTime = DateTime.MinValue;
 
             // Read remaining bytes
-            _ = stream.ReadBytes((int)DetailBytesLength-1-4-4); // Filler, Equipment?
+            _ = stream.ReadBytes((int)DetailBytesLength - 1 - 4 - 4); // Filler, Equipment?
         }
         catch
         {

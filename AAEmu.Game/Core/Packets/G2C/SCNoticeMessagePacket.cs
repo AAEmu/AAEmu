@@ -1,6 +1,6 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Drawing;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using System.Drawing;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
