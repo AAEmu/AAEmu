@@ -6,8 +6,10 @@ using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
@@ -35,6 +37,17 @@ public class RepairSlaveEffect : EffectTemplate
             if (item is not SummonSlave slaveItem)
             {
                 Logger.Warn($"RepairSlaveEffect target item {scit.Id} is not a salve summon item");
+                return;
+            }
+
+            if (slaveItem.Template is not SummonSlaveTemplate summonTemplate)
+                return;
+
+            if (!SlaveManager.Instance._repairableSlaves.TryGetValue(summonTemplate.SlaveId,
+                    out var expectedEffectId) || (expectedEffectId != Id))
+            {
+                targetPlayer.SendErrorMessage(ErrorMessageType.ItemFailedRepair); // not sure if this would be the correct one
+                Logger.Warn($"{targetPlayer.Name} tried to use the wrong repair item {slaveItem.Id} (template: {slaveItem.TemplateId} for slave type {summonTemplate.SlaveId}");
                 return;
             }
 
