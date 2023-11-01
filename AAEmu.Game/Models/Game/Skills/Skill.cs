@@ -719,7 +719,9 @@ public class Skill
 
     public void ApplyEffects(BaseUnit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
     {
-        if (caster is not Unit unit) { return; }
+        if (caster is not Unit unit)
+            return;
+        var player = caster as Character;
         var targets = new List<BaseUnit>(); // TODO crutches
         if (Template.TargetAreaRadius > 0)
         {
@@ -728,7 +730,7 @@ public class Skill
             units = FilterAoeUnits(caster, units).ToList();
 
             targets.AddRange(units);
-            // TODO : Need to this if this is needed
+            // TODO : Need to check if this is needed
             //if (targetSelf is Unit) targets.Add(targetSelf);
         }
         else
@@ -738,9 +740,9 @@ public class Skill
 
         foreach (var target in targets)
         {
-            if (target is Unit trg && Template.TargetType == SkillTargetType.Hostile)
+            if (target is Unit targetUnit && Template.TargetType == SkillTargetType.Hostile)
             {
-                var diceResult = RollCombatDice(caster, trg);
+                var diceResult = RollCombatDice(caster, targetUnit);
                 if (Template.LevelRuleNoConsideration)
                 {
                     var damageType = (DamageType)Template.DamageTypeId;
@@ -766,9 +768,9 @@ public class Skill
                             break;
                     }
                 }
-                HitTypes.TryAdd(trg.ObjId, diceResult);
+                HitTypes.TryAdd(targetUnit.ObjId, diceResult);
             }
-            if (target is Doodad doodad)
+            else if (target is Doodad doodad)
             {
                 doodad.OnSkillHit(caster, Id);
             }
@@ -859,46 +861,37 @@ public class Skill
                     continue;
                 }
 
-                if (casterCaster is SkillItem castItem && caster is Character player)
+                if (casterCaster is SkillItem castItem && player != null)
                 {
                     var useItem = ItemManager.Instance.GetItemByItemId(castItem.ItemId);
                     if (effect.ConsumeSourceItem)
                         consumedItems.Add((useItem, effect.ConsumeItemCount));
-                    //player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItem.ItemTemplateId, effect.ConsumeItemCount, useItem);
                     else
                     {
                         var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
                         if (castItemTemplate.UseSkillAsReagent)
                             consumedItems.Add((useItem, effect.ConsumeItemCount));
-                        //player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, effect.ConsumeItemCount, useItem);
                     }
                 }
 
-                if (caster is Character character && effect.ConsumeItemId != 0 && effect.ConsumeItemCount > 0)
+                if (player != null && effect.ConsumeItemId != 0 && effect.ConsumeItemCount > 0)
                 {
                     if (effect.ConsumeSourceItem)
                     {
-                        if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.SkillEffectConsumption,
+                        if (!player.Inventory.Bag.AcquireDefaultItem(ItemTaskType.SkillEffectConsumption,
                             effect.ConsumeItemId, effect.ConsumeItemCount))
                             continue;
                     }
                     else
                     {
-                        var inventory = character.Inventory.CheckItems(SlotType.Inventory, effect.ConsumeItemId, effect.ConsumeItemCount);
-                        var equipment = character.Inventory.CheckItems(SlotType.Equipment, effect.ConsumeItemId, effect.ConsumeItemCount);
+                        var inventory = player.Inventory.CheckItems(SlotType.Inventory, effect.ConsumeItemId, effect.ConsumeItemCount);
+                        var equipment = player.Inventory.CheckItems(SlotType.Equipment, effect.ConsumeItemId, effect.ConsumeItemCount);
                         if (!(inventory || equipment))
                         {
                             continue;
                         }
 
                         consumedItemTemplates.Add((effect.ConsumeItemId, effect.ConsumeItemCount));
-                        /*
-                        if (inventory)
-                            character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount, null);
-                        else
-                        if (equipment)
-                            character.Inventory.Equipment.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount, null);
-                        */
                     }
                 }
 
@@ -910,9 +903,9 @@ public class Skill
         //This will handle all items with a reagent/product
         var reagents = SkillManager.Instance.GetSkillReagentsBySkillId(Template.Id);
         var skillProducts = SkillManager.Instance.GetSkillProductsBySkillId(Template.Id);
-        if (reagents != null && skillProducts != null)
+        if (reagents.Count > 0 || skillProducts.Count > 0)
         {
-            if (caster is Character player)
+            if (player != null)
             {
                 if (reagents.Count > 0)
                 {
@@ -935,8 +928,6 @@ public class Skill
                 }
             }
         }
-        else
-            Logger.Error("Could not find Reagents/Products for Template[{0}", Template.Id);
 
         foreach (var item in effectsToApply)
         {
@@ -944,15 +935,28 @@ public class Skill
             if (item.effect.Template != null)
                 item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
             else
-                Logger.Error("Template not found for Skill[{0}] Effect[{1}]", Template.Id, item.effect.EffectId);
+                Logger.Error($"Template not found for Skill[{Template.Id}] Effect[{item.effect.EffectId}]");
         }
 
         // TODO Call OnItemUse() moved to the ApplyEffects() method from the effects and add trigger ConditionChance;
         // If the probability of passing the effect is greater than the chance, then run the check on the use of the item for the quest
         if (casterCaster is SkillItem skillItem && unit.ConditionChance)
         {
-            if (caster is not Character character) { return; }
-            character.ItemUse(skillItem.ItemId);
+            if (player == null)
+                return;
+            player.ItemUse(skillItem.ItemId);
+
+            // This fixes the issue where "dropping" a Portable Harpoon Cannon (item 23836) would not consume the cannon
+            // Related skill Discard Portable Harpoon Cannon (skill 17735) has no reagents attached
+            // The item however is marked with use_skill_as_reagent, so if it requires reagent according to the item
+            // but has none attached, consume 1 of the source item instead
+            // TODO: Check if this is intended behaviour, or if this is a bug in the compact.sqlite3 file
+            var item = ItemManager.Instance.GetItemByItemId(skillItem.ItemId);
+            if ((item?.Template.UseSkillAsReagent == true) && (reagents.Count <= 0) && (skillProducts.Count <= 0) && (consumedItems.Count <= 0))
+            {
+                consumedItems.Add((item, 1));
+                Logger.Debug($"Consumed item template 1 x {item.TemplateId} ({item.Id}) because of missing reagent information with skill {Template.Id}");
+            }
         }
 
         // Quick Hack
@@ -961,18 +965,21 @@ public class Skill
 
         if (!Cancelled)
         {
-            // Actually consume the to be consumed items
-            // Specific Items
-            foreach (var (item, amount) in consumedItems)
-                if (item._holdingContainer != null)
-                {
-                    item._holdingContainer.ConsumeItem(ItemTaskType.SkillReagents, item.TemplateId, amount, item);
-                }
+            if (player != null)
+            {
+                // Actually consume the to be consumed items
+                // Specific Items
+                foreach (var (item, amount) in consumedItems)
+                    if (item._holdingContainer != null)
+                    {
+                        item._holdingContainer.ConsumeItem(ItemTaskType.SkillReagents, item.TemplateId, amount, item);
+                    }
 
-            // Doesn't matter, but by Template
-            if (caster is Character playerToConsumeFrom)
+                // Doesn't matter, but by Template
                 foreach (var (templateId, amount) in consumedItemTemplates)
-                    playerToConsumeFrom.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectConsumption, templateId, amount, null);
+                    player.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectConsumption, templateId,
+                        amount, null);
+            }
         }
     }
 
