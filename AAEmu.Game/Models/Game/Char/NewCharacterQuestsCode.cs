@@ -23,7 +23,7 @@ public partial class CharacterQuests
     /// <param name="eventArgs"></param>
     public void OnInteractionHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
             foreach (var quest in ActiveQuests.Values.ToList())
             {
                 quest.OnInteractionHandler(this, eventArgs);
@@ -36,7 +36,7 @@ public partial class CharacterQuests
     /// <param name="eventArgs"></param>
     public void OnItemUseHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
             foreach (var quest in ActiveQuests.Values.ToList())
             {
                 quest.OnItemUseHandler(this, eventArgs);
@@ -44,7 +44,7 @@ public partial class CharacterQuests
     }
     public void OnItemGroupUseHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
             foreach (var quest in ActiveQuests.Values.ToList())
             {
                 quest.OnItemGroupUseHandler(this, eventArgs);
@@ -52,15 +52,27 @@ public partial class CharacterQuests
     }
     public void OnItemGatherHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
+        {
+            var args = eventArgs as OnItemGatherArgs;
+            if (args == null)
+                throw new NotImplementedException();
+
+            if (ActiveQuests.TryGetValue(args.QuestId, out var questDirect))
+            {
+                questDirect.OnTalkMadeHandler(this, eventArgs);
+                return;
+            }
+
             foreach (var quest in ActiveQuests.Values.ToList())
             {
                 quest.OnItemGatherHandler(this, eventArgs);
             }
+        }
     }
     public void OnItemGroupGatherHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
             foreach (var quest in ActiveQuests.Values)
             {
                 quest.OnItemGroupGatherHandler(this, eventArgs);
@@ -68,7 +80,7 @@ public partial class CharacterQuests
     }
     public void OnMonsterHuntHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
             foreach (var quest in ActiveQuests.Values)
             {
                 quest.OnMonsterHuntHandler(this, eventArgs);
@@ -76,7 +88,7 @@ public partial class CharacterQuests
     }
     public void OnMonsterGroupHuntHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
             foreach (var quest in ActiveQuests.Values)
             {
                 quest.OnMonsterGroupHuntHandler(this, eventArgs);
@@ -84,7 +96,7 @@ public partial class CharacterQuests
     }
     public void OnAggroHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
             foreach (var quest in ActiveQuests.Values)
             {
                 quest.OnAggroHandler(this, eventArgs);
@@ -92,7 +104,7 @@ public partial class CharacterQuests
     }
     public void OnExpressFireHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
             foreach (var quest in ActiveQuests.Values)
             {
                 quest.OnExpressFireHandler(this, eventArgs);
@@ -100,7 +112,7 @@ public partial class CharacterQuests
     }
     public void OnLevelUpHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
             foreach (var quest in ActiveQuests.Values)
             {
                 quest.OnLevelUpHandler(this, eventArgs);
@@ -108,7 +120,7 @@ public partial class CharacterQuests
     }
     public void OnAbilityLevelUpHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
             foreach (var quest in ActiveQuests.Values)
             {
                 quest.OnAbilityLevelUpHandler(this, eventArgs);
@@ -116,7 +128,7 @@ public partial class CharacterQuests
     }
     public void OnCraftHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
             foreach (var quest in ActiveQuests.Values)
             {
                 quest.OnCraftHandler(this, eventArgs);
@@ -124,7 +136,7 @@ public partial class CharacterQuests
     }
     public void OnEnterSphereHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
             foreach (var quest in ActiveQuests.Values)
             {
                 quest.OnEnterSphereHandler(this, eventArgs);
@@ -132,7 +144,7 @@ public partial class CharacterQuests
     }
     public void OnZoneKillHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
             foreach (var quest in ActiveQuests.Values)
             {
                 quest.OnZoneKillHandler(this, eventArgs);
@@ -140,7 +152,7 @@ public partial class CharacterQuests
     }
     public void OnZoneMonsterHuntHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
             foreach (var quest in ActiveQuests.Values)
             {
                 quest.OnZoneMonsterHuntHandler(this, eventArgs);
@@ -151,7 +163,7 @@ public partial class CharacterQuests
     // для этого события будет известен QuestId
     public void OnTalkMadeHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
         {
             var args = eventArgs as OnTalkMadeArgs;
             if (args == null)
@@ -165,7 +177,7 @@ public partial class CharacterQuests
     }
     public void OnTalkNpcGroupMadeHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
         {
             var args = eventArgs as OnTalkNpcGroupMadeArgs;
             if (args == null)
@@ -179,7 +191,7 @@ public partial class CharacterQuests
     }
     public void OnReportDoodadHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
         {
             var args = eventArgs as OnReportNpcArgs;
             if (args == null)
@@ -193,7 +205,7 @@ public partial class CharacterQuests
     }
     public void OnReportNpcHandler(object sender, EventArgs eventArgs)
     {
-        lock (_lock)
+        //lock (_lock)
         {
             var args = eventArgs as OnReportNpcArgs;
             if (args == null)

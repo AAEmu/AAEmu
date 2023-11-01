@@ -38,6 +38,7 @@ public partial class Quest : PacketMarshaler
     public uint TemplateId { get; set; } // QuestId
     public IQuestTemplate Template { get; set; }
     internal int[] Objectives { get; set; }
+    public List<bool> ProgressStepResults { get; set; } = new(); // нужно для проверки шага Progress
     public QuestStatus Status { get; set; }
     public QuestComponentKind Step { get; set; }
     public QuestConditionObj Condition { get; set; }

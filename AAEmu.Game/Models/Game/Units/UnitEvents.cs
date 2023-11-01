@@ -78,6 +78,7 @@ public class OnMonsterGroupHuntArgs : EventArgs
 }
 public class OnItemGatherArgs : EventArgs
 {
+    public uint QuestId { get; set; } // QuestContextId
     public uint ItemId { get; set; }
     public int Count { get; set; }
 }
