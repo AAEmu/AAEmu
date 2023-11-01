@@ -420,7 +420,7 @@ public class Transfer : Unit
         stream.WriteBc(ObjId);
         stream.Write(Template.Id);
         stream.WritePosition(Transform.World.Position);
-        stream.Write(Template.Name);
+        stream.Write(Name);
 
         return stream;
     }

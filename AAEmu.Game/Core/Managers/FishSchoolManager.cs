@@ -119,4 +119,14 @@ public class FishSchoolManager : Singleton<FishSchoolManager>
         character.FishSchool.FishFinderTickTask = null;
         character.SendPacket(new SCSchoolOfFishFinderToggledPacket(false, 0));
     }
+
+    public List<Doodad> GetAllFishSchools()
+    {
+        var res = new List<Doodad>();
+        foreach (var (world, doodads) in FishSchools)
+        {
+            res.AddRange(doodads);
+        }
+        return res;
+    }
 }
