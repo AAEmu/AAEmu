@@ -23,17 +23,18 @@ public class SCTelescopeUnitsPacket : GamePacket
         stream.Write((byte)_slaves.Length);
         foreach (var slave in _slaves)
         {
-            // TODO: fix me
             stream.WriteBc(slave.ObjId);
+            stream.Write(slave.Summoner?.Id ?? 0);
+            stream.Write(2); // UnitType Slave
             stream.Write(slave.Template.Id);
-            stream.Write(0);
-            stream.Write(0);
             stream.WritePosition(slave.Transform.World.Position);
-            stream.Write(0);
-            stream.Write(0);
-            stream.Write(0);
-            stream.Write(0);
-            stream.Write(0);
+            stream.Write(slave.Faction?.Id ?? 0);
+            stream.Write(slave.Expedition?.Id ?? 0);
+            stream.Write(slave.Name);
+            stream.Write(slave.Summoner?.Name ?? "");
+            stream.Write(slave.Hp);
+            stream.Write(slave.MaxHp);
+            stream.Write(0u); // Don't know, but seems to be always zero
         }
 
         return stream;

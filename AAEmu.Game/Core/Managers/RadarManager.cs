@@ -205,8 +205,7 @@ public class RadarManager : Singleton<RadarManager>
                         {
                             var last = inRangeShips.Count - i <= ShipsPerPacket;
                             var temp = inRangeShips.GetRange(i, last ? inRangeShips.Count - i : ShipsPerPacket).ToArray();
-                            // TODO: Implement SCTelescopeUnitsPacket
-                            // entry.Player.SendPacket(new SCTelescopeUnitsPacket(last, temp));
+                            entry.Player.SendPacket(new SCTelescopeUnitsPacket(last, temp));
                         }
                     }
                 }
