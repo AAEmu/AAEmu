@@ -13,7 +13,6 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Tasks.Telescopes;
 
 namespace AAEmu.Game.Models.Game.Skills.Templates;
 

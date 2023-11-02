@@ -214,4 +214,12 @@ public class RadarManager : Singleton<RadarManager>
             } // for each player
         } // lock
     }
+
+    public void UnRegister(Character player)
+    {
+        lock (Lock)
+        {
+            Registrations.Remove(player.Id);
+        }
+    }
 }

@@ -46,15 +46,6 @@ public class DoodadFuncFakeUse : DoodadFuncTemplate
         }
         else if (FakeSkillId != 0)
         {
-            var transferTelescope = 20580;
-            var range = 1000f;
-            if (FakeSkillId == transferTelescope && caster is Character character)
-            {
-                owner.BroadcastPacket(new SCTransferTelescopeToggledPacket(true, range), true);
-                TransferTelescopeManager.Instance.TransferTelescopeStart(character);
-                owner.ToNextPhase = false;
-            }
-
             if (FakeSkillId == skillId && nextPhase > 0)
             {
                 owner.ToNextPhase = true;
