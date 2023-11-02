@@ -1544,7 +1544,8 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             {
                 QuestId = questContextId,
                 NpcId = npc.TemplateId,
-                Selected = selected
+                Selected = selected,
+                Transform = npc.Transform
             });
         }
         else if (doodadObjId > 0)
@@ -1561,7 +1562,8 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             {
                 QuestId = questContextId,
                 DoodadId = doodad.TemplateId,
-                Selected = selected
+                Selected = selected,
+                Transform = doodad.Transform
             });
         }
         else

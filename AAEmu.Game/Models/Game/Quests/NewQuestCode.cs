@@ -551,11 +551,12 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        if (EarlyCompletion || ExtraCompletion)
+        if ((EarlyCompletion || ExtraCompletion) && !ReadyToReportNpc)
         {
             Logger.Info($"[OnInteractionHandler] Подписываемся на событие.");
             Logger.Info($"[OnInteractionHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
-            Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
+            // так как события OnReport содержат в параметре questId - нужна только подписка
+            //Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
             ReadyToReportNpc = true;
         }
@@ -603,11 +604,12 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        if (EarlyCompletion || ExtraCompletion)
+        if ((EarlyCompletion || ExtraCompletion) && !ReadyToReportNpc)
         {
             Logger.Info($"[OnMonsterHuntHandler] Подписываемся на событие.");
             Logger.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
-            Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
+            // так как события OnReport содержат в параметре questId - нужна только подписка
+            //Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
             ReadyToReportNpc = true;
         }
@@ -655,11 +657,12 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        if (EarlyCompletion || ExtraCompletion)
+        if ((EarlyCompletion || ExtraCompletion) && !ReadyToReportNpc)
         {
             Logger.Info($"[OnMonsterGroupHuntHandler] Подписываемся на событие.");
             Logger.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
-            Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
+            // так как события OnReport содержат в параметре questId - нужна только подписка
+            //Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
             ReadyToReportNpc = true;
         }
@@ -707,11 +710,12 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        if (EarlyCompletion || ExtraCompletion)
+        if ((EarlyCompletion || ExtraCompletion) && !ReadyToReportNpc)
         {
             Logger.Info($"[OnItemUseHandler] Subscribe to the event.");
             Logger.Info($"[OnItemUseHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
-            Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
+            // так как события OnReport содержат в параметре questId - нужна только подписка
+            //Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
             ReadyToReportNpc = true;
         }
@@ -759,11 +763,12 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        if (EarlyCompletion || ExtraCompletion)
+        if ((EarlyCompletion || ExtraCompletion) && !ReadyToReportNpc)
         {
             Logger.Info($"[OnItemGroupUseHandler] Подписываемся на событие.");
             Logger.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
-            Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
+            // так как события OnReport содержат в параметре questId - нужна только подписка
+            //Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
             ReadyToReportNpc = true;
         }
@@ -814,11 +819,12 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        if (EarlyCompletion || ExtraCompletion)
+        if ((EarlyCompletion || ExtraCompletion) && !ReadyToReportNpc)
         {
             Logger.Info($"[OnItemGatherHandler] Подписываемся на событие.");
             Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
-            Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
+            // так как события OnReport содержат в параметре questId - нужна только подписка
+            //Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
             ReadyToReportNpc = true;
         }
@@ -866,11 +872,12 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        if (EarlyCompletion || ExtraCompletion)
+        if ((EarlyCompletion || ExtraCompletion) && !ReadyToReportNpc)
         {
             Logger.Info($"[OnItemGroupGatherHandler] Подписываемся на событие.");
             Logger.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
-            Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
+            // так как события OnReport содержат в параметре questId - нужна только подписка
+            //Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
             ReadyToReportNpc = true;
         }
@@ -1331,7 +1338,19 @@ public partial class Quest : PacketMarshaler
         // Quest: 330, 6198, 2531, 2532, 251
         var args = eventArgs as OnReportNpcArgs;
         if (args == null)
+        {
+            Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, нет аргументов у события!");
             return;
+        }
+
+        // проверим расстояние до объекта
+        // check the distance to the object
+        if (MathUtil.CalculateDistance(args.Transform.World.Position, Owner.Transform.World.Position) > 8.0f)
+        {
+            Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, расстояние слишком далеко до объекта={args.NpcId}, чтобы завершить квест");
+            return;
+        }
+
         if (!ReadyToReportNpc)
         {
             Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, ещё не готовы беседовать");
@@ -1341,7 +1360,7 @@ public partial class Quest : PacketMarshaler
         Step = QuestComponentKind.Ready;
         if (GetQuestContext("QuestActConReportNpc", out var context))
         {
-            Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, попытка беседовать на шагу {Step} вместо шага Ready!");
+            Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, попытка беседовать на шаге {Step} вместо шага Ready!");
             return;
         }
 
@@ -1351,7 +1370,11 @@ public partial class Quest : PacketMarshaler
         Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, event triggered");
 
         var res = CheckResults<QuestActConReportNpc>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
-        if (res == -1) { return; }
+        if (res == -1)
+        {
+            Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, что-то пошло не так!");
+            return;
+        }
         var results = res == 1;
 
         // для завершения у всех objective компонентов должно быть выполнено
@@ -1359,6 +1382,7 @@ public partial class Quest : PacketMarshaler
         if (results)
         {
             Logger.Info($"[OnReportNpcHandler] Отписываемся от события.");
+            Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, событие для квеста {args.QuestId}");
             Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
             Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
             Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
@@ -1383,8 +1407,19 @@ public partial class Quest : PacketMarshaler
         if (args == null)
             return;
 
-        if (GetQuestContext("QuestActConReportDoodad", out var context))
+        // проверим расстояние до объекта
+        // check the distance to the object
+        if (MathUtil.CalculateDistance(args.Transform.World.Position, Owner.Transform.World.Position) > 8.0f)
+        {
+            Logger.Info($"[OnReportDoodadHandler] Quest: {TemplateId}, расстояние слишком далеко до объекта={args.DoodadId}, чтобы завершить квест");
             return;
+        }
+
+        if (GetQuestContext("QuestActConReportDoodad", out var context))
+        {
+            Logger.Info($"[OnReportDoodadHandler] Quest: {TemplateId}, попытка беседовать на шаге {Step} вместо шага Ready!");
+            return;
+        }
 
         EarlyCompletion = false;
         ExtraCompletion = false;
