@@ -24,10 +24,10 @@ public partial class CharacterQuests
     public void OnInteractionHandler(object sender, EventArgs eventArgs)
     {
         //lock (_lock)
-            foreach (var quest in ActiveQuests.Values.ToList())
-            {
-                quest.OnInteractionHandler(this, eventArgs);
-            }
+        foreach (var quest in ActiveQuests.Values.ToList())
+        {
+            quest.OnInteractionHandler(this, eventArgs);
+        }
     }
     /// <summary>
     /// Взаимодействие с doodad, например сбор ресурсов (Interacting with doodad, such as resource collection)
@@ -37,18 +37,18 @@ public partial class CharacterQuests
     public void OnItemUseHandler(object sender, EventArgs eventArgs)
     {
         //lock (_lock)
-            foreach (var quest in ActiveQuests.Values.ToList())
-            {
-                quest.OnItemUseHandler(this, eventArgs);
-            }
+        foreach (var quest in ActiveQuests.Values.ToList())
+        {
+            quest.OnItemUseHandler(this, eventArgs);
+        }
     }
     public void OnItemGroupUseHandler(object sender, EventArgs eventArgs)
     {
         //lock (_lock)
-            foreach (var quest in ActiveQuests.Values.ToList())
-            {
-                quest.OnItemGroupUseHandler(this, eventArgs);
-            }
+        foreach (var quest in ActiveQuests.Values.ToList())
+        {
+            quest.OnItemGroupUseHandler(this, eventArgs);
+        }
     }
     public void OnItemGatherHandler(object sender, EventArgs eventArgs)
     {
@@ -60,7 +60,7 @@ public partial class CharacterQuests
 
             if (ActiveQuests.TryGetValue(args.QuestId, out var questDirect))
             {
-                questDirect.OnTalkMadeHandler(this, eventArgs);
+                questDirect.OnItemGatherHandler(this, eventArgs);
                 return;
             }
 
@@ -73,90 +73,90 @@ public partial class CharacterQuests
     public void OnItemGroupGatherHandler(object sender, EventArgs eventArgs)
     {
         //lock (_lock)
-            foreach (var quest in ActiveQuests.Values)
-            {
-                quest.OnItemGroupGatherHandler(this, eventArgs);
-            }
+        foreach (var quest in ActiveQuests.Values)
+        {
+            quest.OnItemGroupGatherHandler(this, eventArgs);
+        }
     }
     public void OnMonsterHuntHandler(object sender, EventArgs eventArgs)
     {
         //lock (_lock)
-            foreach (var quest in ActiveQuests.Values)
-            {
-                quest.OnMonsterHuntHandler(this, eventArgs);
-            }
+        foreach (var quest in ActiveQuests.Values)
+        {
+            quest.OnMonsterHuntHandler(this, eventArgs);
+        }
     }
     public void OnMonsterGroupHuntHandler(object sender, EventArgs eventArgs)
     {
         //lock (_lock)
-            foreach (var quest in ActiveQuests.Values)
-            {
-                quest.OnMonsterGroupHuntHandler(this, eventArgs);
-            }
+        foreach (var quest in ActiveQuests.Values)
+        {
+            quest.OnMonsterGroupHuntHandler(this, eventArgs);
+        }
     }
     public void OnAggroHandler(object sender, EventArgs eventArgs)
     {
         //lock (_lock)
-            foreach (var quest in ActiveQuests.Values)
-            {
-                quest.OnAggroHandler(this, eventArgs);
-            }
+        foreach (var quest in ActiveQuests.Values)
+        {
+            quest.OnAggroHandler(this, eventArgs);
+        }
     }
     public void OnExpressFireHandler(object sender, EventArgs eventArgs)
     {
         //lock (_lock)
-            foreach (var quest in ActiveQuests.Values)
-            {
-                quest.OnExpressFireHandler(this, eventArgs);
-            }
+        foreach (var quest in ActiveQuests.Values)
+        {
+            quest.OnExpressFireHandler(this, eventArgs);
+        }
     }
     public void OnLevelUpHandler(object sender, EventArgs eventArgs)
     {
         //lock (_lock)
-            foreach (var quest in ActiveQuests.Values)
-            {
-                quest.OnLevelUpHandler(this, eventArgs);
-            }
+        foreach (var quest in ActiveQuests.Values)
+        {
+            quest.OnLevelUpHandler(this, eventArgs);
+        }
     }
     public void OnAbilityLevelUpHandler(object sender, EventArgs eventArgs)
     {
         //lock (_lock)
-            foreach (var quest in ActiveQuests.Values)
-            {
-                quest.OnAbilityLevelUpHandler(this, eventArgs);
-            }
+        foreach (var quest in ActiveQuests.Values)
+        {
+            quest.OnAbilityLevelUpHandler(this, eventArgs);
+        }
     }
     public void OnCraftHandler(object sender, EventArgs eventArgs)
     {
         //lock (_lock)
-            foreach (var quest in ActiveQuests.Values)
-            {
-                quest.OnCraftHandler(this, eventArgs);
-            }
+        foreach (var quest in ActiveQuests.Values)
+        {
+            quest.OnCraftHandler(this, eventArgs);
+        }
     }
     public void OnEnterSphereHandler(object sender, EventArgs eventArgs)
     {
         //lock (_lock)
-            foreach (var quest in ActiveQuests.Values)
-            {
-                quest.OnEnterSphereHandler(this, eventArgs);
-            }
+        foreach (var quest in ActiveQuests.Values)
+        {
+            quest.OnEnterSphereHandler(this, eventArgs);
+        }
     }
     public void OnZoneKillHandler(object sender, EventArgs eventArgs)
     {
         //lock (_lock)
-            foreach (var quest in ActiveQuests.Values)
-            {
-                quest.OnZoneKillHandler(this, eventArgs);
-            }
+        foreach (var quest in ActiveQuests.Values)
+        {
+            quest.OnZoneKillHandler(this, eventArgs);
+        }
     }
     public void OnZoneMonsterHuntHandler(object sender, EventArgs eventArgs)
     {
         //lock (_lock)
-            foreach (var quest in ActiveQuests.Values)
-            {
-                quest.OnZoneMonsterHuntHandler(this, eventArgs);
-            }
+        foreach (var quest in ActiveQuests.Values)
+        {
+            quest.OnZoneMonsterHuntHandler(this, eventArgs);
+        }
     }
 
     // Внимание!!!

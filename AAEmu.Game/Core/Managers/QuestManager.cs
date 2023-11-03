@@ -1624,14 +1624,16 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             QuestId = questContextId,
             NpcId = npc.TemplateId,
             QuestComponentId = questComponentId,
-            QuestActId = questActId
+            QuestActId = questActId,
+            Transform = npc.Transform
         });
         owner.Events?.OnTalkNpcGroupMade(this, new OnTalkNpcGroupMadeArgs
         {
             QuestId = questContextId,
             NpcGroupId = npc.TemplateId,
             QuestComponentId = questComponentId,
-            QuestActId = questActId
+            QuestActId = questActId,
+            Transform = npc.Transform
         });
     }
     public void DoOnMonsterHuntEvents(Character owner, Npc npc)

@@ -93,6 +93,7 @@ public class OnTalkMadeArgs : EventArgs
     public uint NpcId { get; set; } // Npc.TemplateId
     public uint QuestComponentId { get; set; }
     public uint QuestActId { get; set; }
+    public Transform Transform { get; set; }
 }
 public class OnTalkNpcGroupMadeArgs : EventArgs
 {
@@ -100,6 +101,7 @@ public class OnTalkNpcGroupMadeArgs : EventArgs
     public uint NpcGroupId { get; set; } // Npc.TemplateId
     public uint QuestComponentId { get; set; }
     public uint QuestActId { get; set; }
+    public Transform Transform { get; set; }
 }
 public class OnAggroArgs : EventArgs
 {
