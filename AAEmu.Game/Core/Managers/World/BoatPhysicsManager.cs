@@ -30,7 +30,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
     /// <summary>
     /// Ticks per second for the physics engine
     /// </summary>
-    private float TargetPhysicsTps { get; set; } = 15f;
+    private float TargetPhysicsTps { get; set; } = 5f;
     private Thread _thread;
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -136,7 +136,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
                         var rot = JQuaternion.CreateFromMatrix(slaveRigidBody.Orientation);
                         slave.Transform.Local.ApplyFromQuaternion(rot.X, rot.Z, rot.Y, rot.W);
 
-                        if (_tickCount % 6 == 0)
+                        // if (_tickCount % 6 == 0)
                             _physWorld.CollisionSystem.Detect(true);
                         BoatPhysicsTick(slave, slaveRigidBody);
                         // Logger.Debug($"{_thread.Name}, slave: {slave.Name} collision check tick");
@@ -221,7 +221,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
         // Slow down turning if no steering active
         if (slave.Steering == 0)
         {
-            slave.RotSpeed -= slave.RotSpeed / TargetPhysicsTps;
+            slave.RotSpeed -= slave.RotSpeed / (TargetPhysicsTps * 5);
             if (Math.Abs(slave.RotSpeed) <= 0.01)
                 slave.RotSpeed = 0;
         }
@@ -271,7 +271,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
         // Apply directional force
         rigidBody.AddForce(new JVector(forceThrottle * rigidBody.Mass * MathF.Cos(slaveRotRad), 0.0f, forceThrottle * rigidBody.Mass * MathF.Sin(slaveRotRad)));
 
-        var steer = slave.RotSpeed * (1000f / TargetPhysicsTps);
+        var steer = slave.RotSpeed * 60f;
         // Make sure the steering is reversed when going backwards.
         if (forceThrottle < 0)
             steer *= -1;
@@ -307,13 +307,13 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
         // This will likely create issues with skill that generate position specified plots likely not having this offset when on the ship
 
         // Don't know how to handle X/Y for this, if we even should ...
-        // moveType.X += shipModel.MassCenterX; 
+        // moveType.X += shipModel.MassCenterX;
         // moveType.Y += shipModel.MassCenterY;
 
         // We can more or less us the model Mass Center Z value to get how much it needs to sink
-        // It doesn't actually do this server-side, as wel only modify the packet sent to the players
+        // It doesn't actually do this server-side, as we only modify the packet sent to the players
         // If center of mass is positive rather than negative, we need to ignore it here to prevent the boat from floating
-        moveType.Z += (shipModel.MassCenterZ < 0f ? shipModel.MassCenterZ / 2f : 0f) - shipModel.KeelHeight;
+        moveType.Z += (shipModel.MassCenterZ < 0f ? shipModel.MassCenterZ / 2f : 0f); // - shipModel.KeelHeight;
 
         // Do not allow the body to flip
         slave.RigidBody.Orientation = JMatrix.CreateFromYawPitchRoll(rpy.Item1, 0, 0); // TODO: Fix me with proper physics

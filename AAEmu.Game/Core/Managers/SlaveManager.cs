@@ -11,6 +11,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -1078,5 +1079,32 @@ public class SlaveManager : Singleton<SlaveManager>
 
         Delete(character, slave.ObjId);
         // slave.Delete();
+    }
+
+    public void RidersEscape(Character player, SkillCastPositionTarget skillCastPositionTarget)
+    {
+        var mySlave = GetActiveSlaveByOwnerObjId(player.ObjId);
+        if (mySlave == null)
+        {
+            Logger.Warn($"{player.Name} using Rider's Escape with no slave active!");
+            return;
+        }
+
+        // Despawn effect
+        mySlave.BroadcastPacket(new SCSlaveDespawnPacket(mySlave.ObjId), true);
+        mySlave.BroadcastPacket(new SCSlaveRemovedPacket(mySlave.ObjId, mySlave.TlId), true);
+        mySlave.SendPacket(new SCUnitsRemovedPacket(new[] { mySlave.ObjId }));
+
+        // Move location
+        mySlave.SetPosition(skillCastPositionTarget.PosX, skillCastPositionTarget.PosY, skillCastPositionTarget.PosZ, 0f,0f,skillCastPositionTarget.PosRot);
+        mySlave.Transform.Local.AddDistanceToFront(mySlave.Template.SpawnXOffset / 2f);
+        mySlave.Transform.Local.AddDistanceToRight(mySlave.Template.SpawnYOffset / 2f);
+
+        // Respawn effect
+        mySlave.Hide();
+        mySlave.Spawn();
+        //mySlave.SendPacket(new SCUnitStatePacket(mySlave));
+        //mySlave.SendPacket(new SCUnitPointsPacket(mySlave.ObjId, mySlave.Hp, mySlave.Mp));
+        //mySlave.SendPacket(new SCSlaveStatePacket(mySlave.ObjId, mySlave.TlId, mySlave.Summoner.Name, mySlave.Summoner.ObjId, mySlave.Id));
     }
 }
