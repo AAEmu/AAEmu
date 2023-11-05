@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using System;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
@@ -25,6 +26,7 @@ public class QuestActObjItemGather : QuestActTemplate // Сбор предмет
             ItemId, Count, UseAlias, QuestActObjAliasId, HighlightDoodadId, HighlightDoodadPhase, quest.TemplateId, objective, quest.Template.Score);
 
         var res = false;
+        var maxCleanup = quest.Template.LetItDone ? Count * 7 / 5 : Count;
         if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
         {
             GatherStatus = objective * Count; // Count в данном случае % за единицу
@@ -60,7 +62,7 @@ public class QuestActObjItemGather : QuestActTemplate // Сбор предмет
         res = objective >= Count;
 
         if (res && Cleanup)
-            quest.QuestCleanupItemsPool.Add(new ItemCreationDefinition(ItemId, objective));
+            quest.QuestCleanupItemsPool.Add(new ItemCreationDefinition(ItemId, Math.Min(maxCleanup, objective)));
 
         return res;
     }
