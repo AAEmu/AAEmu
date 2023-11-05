@@ -22,6 +22,8 @@ public partial class Quest : PacketMarshaler
     public QuestContext QuestReadyState { get; set; }
     public QuestContext QuestRewardState { get; set; }
 
+    #region Framework
+
     /// <summary>
     /// инициализируем все шаги нужные квесту
     /// </summary>
@@ -84,6 +86,104 @@ public partial class Quest : PacketMarshaler
 
         Logger.Info($"Quest Start: шага 'None' или'Start' нет в квесте {Id}");
         return false; // не принимаем квест
+    }
+
+    public void GoToNextStep(int selected = 0)
+    {
+        Step++;
+        while (true)
+        {
+            Logger.Info($"TRY NEXT STEP: Quest {TemplateId} going to step {Step}");
+
+            switch (Step)
+            {
+                case QuestComponentKind.Supply when QuestSupplyState?.State is { CurrentQuestComponent: not null }:
+                    QuestSupplyState.State.Start(false, selected);
+                    return;
+                case QuestComponentKind.Progress when QuestProgressState?.State is { CurrentQuestComponent: not null }:
+                    QuestProgressState.State.Start(false, selected);
+                    return;
+                case QuestComponentKind.Ready when QuestReadyState?.State is { CurrentQuestComponent: not null }:
+                    QuestReadyState.State.Start(false, selected);
+                    return;
+                case QuestComponentKind.Reward when QuestRewardState?.State is { CurrentQuestComponent: not null }:
+                    QuestRewardState.State.Complete(selected);
+                    return;
+                case QuestComponentKind.None:
+                case QuestComponentKind.Start:
+                case QuestComponentKind.Fail:
+                case QuestComponentKind.Drop:
+                default:
+                    Step++;
+                    break;
+                case QuestComponentKind.Reward + 1:
+                    return;
+            }
+        }
+    }
+    public void UpdateActiveStep()
+    {
+        while (true)
+        {
+            Logger.Info($"TRY STEP & UPDATE: Quest {TemplateId} going to step {Step}");
+
+            switch (Step)
+            {
+                case QuestComponentKind.Supply when QuestSupplyState?.State is { CurrentQuestComponent: not null }:
+                    QuestSupplyState.State.Update();
+                    return;
+                case QuestComponentKind.Progress when QuestProgressState?.State is { CurrentQuestComponent: not null }:
+                    QuestProgressState.State.Update();
+                    return;
+                case QuestComponentKind.Ready when QuestReadyState?.State is { CurrentQuestComponent: not null }:
+                    QuestReadyState.State.Update();
+                    return;
+                case QuestComponentKind.Reward when QuestRewardState?.State is { CurrentQuestComponent: not null }:
+                    QuestRewardState.State.Update();
+                    return;
+                case QuestComponentKind.None:
+                case QuestComponentKind.Start:
+                case QuestComponentKind.Fail:
+                case QuestComponentKind.Drop:
+                default:
+                    Step++;
+                    break;
+                case QuestComponentKind.Reward + 1:
+                    return;
+            }
+        }
+    }
+    public void CompleteActiveStep(int selected = 0, EventArgs eventArgs = null)
+    {
+        while (true)
+        {
+            Logger.Info($"TRY STEP & COMPLETE: Quest {TemplateId} going to step {Step}");
+
+            switch (Step)
+            {
+                case QuestComponentKind.Supply when QuestSupplyState?.State is { CurrentQuestComponent: not null }:
+                    QuestSupplyState.State.Complete(selected, eventArgs);
+                    return;
+                case QuestComponentKind.Progress when QuestProgressState?.State is { CurrentQuestComponent: not null }:
+                    QuestProgressState.State.Complete(selected, eventArgs);
+                    return;
+                case QuestComponentKind.Ready when QuestReadyState?.State is { CurrentQuestComponent: not null }:
+                    QuestReadyState.State.Complete(selected, eventArgs);
+                    return;
+                case QuestComponentKind.Reward when QuestRewardState?.State is { CurrentQuestComponent: not null }:
+                    QuestRewardState.State.Complete(selected, eventArgs);
+                    return;
+                case QuestComponentKind.None:
+                case QuestComponentKind.Start:
+                case QuestComponentKind.Fail:
+                case QuestComponentKind.Drop:
+                default:
+                    Step++;
+                    break;
+                case QuestComponentKind.Reward + 1:
+                    return;
+            }
+        }
     }
 
     /// <summary>
@@ -219,11 +319,21 @@ public partial class Quest : PacketMarshaler
 
     public void RecallEvents()
     {
+        if (Step >= QuestComponentKind.Reward)
+        {
+            Step = QuestComponentKind.Ready;
+        }
+
+        if (Step < QuestComponentKind.Progress)
+        {
+            Step = QuestComponentKind.Progress;
+        }
+
         switch (Step)
         {
             case QuestComponentKind.Progress when QuestProgressState?.State?.CurrentQuestComponent != null:
-                QuestProgressState.State.Update();
-                Step = QuestComponentKind.Progress; // обновим
+                QuestProgressState.State.Start();
+                //Step = QuestComponentKind.Progress; // обновим
                 Status = QuestStatus.Progress;
                 Condition = QuestConditionObj.Progress;
                 Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -234,8 +344,8 @@ public partial class Quest : PacketMarshaler
 
                 break;
             case QuestComponentKind.Ready when QuestReadyState?.State?.CurrentQuestComponent != null:
-                QuestReadyState.State.Update();
-                Step = QuestComponentKind.Ready; // обновим
+                QuestReadyState.State.Start();
+                //Step = QuestComponentKind.Ready; // обновим
                 Status = QuestStatus.Ready;
                 Condition = QuestConditionObj.Ready;
                 Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -244,9 +354,12 @@ public partial class Quest : PacketMarshaler
         }
     }
 
-    private bool GetQuestContext(string actDetailType, out QuestContext context)
+    private bool GetQuestContext(out QuestContext context)
     {
+        var step = Step;
         context = new QuestContext(this, new QuestProgressState(), QuestComponentKind.Progress);
+        Step = step;
+
         switch (Step)
         {
             case QuestComponentKind.Progress when QuestProgressState.State.CurrentQuestComponent != null:
@@ -274,6 +387,7 @@ public partial class Quest : PacketMarshaler
         Condition = QuestConditionObj.Progress;
         Logger.Info($"[{str}] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
         Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
+        UpdateActiveStep();
     }
 
     private void AltChoice(string str)
@@ -297,6 +411,7 @@ public partial class Quest : PacketMarshaler
         Logger.Info($"{str} Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
+        UpdateActiveStep();
     }
 
 
@@ -314,6 +429,11 @@ public partial class Quest : PacketMarshaler
     /// <returns> -1 - не тот акт, 0 - проверка отрицательна, 1 - проверка положительна</returns>
     private int CheckResults<T>(QuestContext context, bool successive, bool selective, int count, bool letItDone, int score, EventArgs eventArgs) where T : QuestActTemplate
     {
+        if (eventArgs == null)
+        {
+            return -1;
+        }
+
         var ThisIsNotWhatYouNeed = new List<int>();
         for (var i = 0; i < count; i++)
         {
@@ -543,6 +663,8 @@ public partial class Quest : PacketMarshaler
         }
     }
 
+    #endregion Framework
+
     #region Events
 
     #region Progress step
@@ -559,14 +681,14 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnInteractionHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnInteractionHandler");
+            //BadChoice("OnInteractionHandler");
             return;
         }
 
-        if (GetQuestContext("QuestActObjInteraction", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnInteractionHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnInteractionHandler");
+            //BadChoice("OnInteractionHandler");
             return;
         }
 
@@ -578,8 +700,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjInteraction>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnInteractionHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnInteractionHandler");
+            Logger.Info($"[OnInteractionHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnInteractionHandler");
             return;
         }
         var results = res == 1;
@@ -593,7 +715,8 @@ public partial class Quest : PacketMarshaler
             Owner.Events.OnInteraction += Owner.Quests.OnInteractionHandler; // снова подписываемся
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnInteractionHandler] Quest {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
             return;
         }
 
@@ -606,12 +729,16 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnMonsterHuntHandler");
+            //BadChoice("OnMonsterHuntHandler");
             return;
         }
 
-        if (GetQuestContext("QuestActObjMonsterHunt", out var context))
+        if (GetQuestContext(out var context))
+        {
+            Logger.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
+            //BadChoice("OnMonsterHuntHandler");
             return;
+        }
 
         EarlyCompletion = false;
         ExtraCompletion = false;
@@ -621,8 +748,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjMonsterHunt>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnMonsterHuntHandler");
+            Logger.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnMonsterHuntHandler");
             return;
         }
         var results = res == 1;
@@ -636,7 +763,8 @@ public partial class Quest : PacketMarshaler
             Owner.Events.OnMonsterHunt += Owner.Quests.OnMonsterHuntHandler; // снова подписываемся
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
             return;
         }
 
@@ -649,14 +777,14 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnMonsterGroupHuntHandler");
+            //BadChoice("OnMonsterGroupHuntHandler");
             return;
         }
 
-        if (GetQuestContext("QuestActObjMonsterGroupHunt", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnMonsterGroupHuntHandler");
+            //BadChoice("OnMonsterGroupHuntHandler");
             return;
         }
 
@@ -668,8 +796,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjMonsterGroupHunt>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnMonsterGroupHuntHandler");
+            Logger.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnMonsterGroupHuntHandler");
             return;
         }
         var results = res == 1;
@@ -683,7 +811,8 @@ public partial class Quest : PacketMarshaler
             Owner.Events.OnMonsterHunt += Owner.Quests.OnMonsterGroupHuntHandler; // снова подписываемся
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
             return;
         }
 
@@ -696,14 +825,14 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnItemUseHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnItemUseHandler");
+            //BadChoice("OnItemUseHandler");
             return;
         }
 
-        if (GetQuestContext("QuestActObjItemUse", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnItemUseHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnItemUseHandler");
+            //BadChoice("OnItemUseHandler");
             return;
         }
 
@@ -715,8 +844,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjItemUse>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnItemUseHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnItemUseHandler");
+            Logger.Info($"[OnItemUseHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnItemUseHandler");
             return;
         }
         var results = res == 1;
@@ -730,7 +859,8 @@ public partial class Quest : PacketMarshaler
             Owner.Events.OnItemUse += Owner.Quests.OnItemUseHandler; // снова подписываемся
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnItemUseHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
             return;
         }
 
@@ -743,14 +873,14 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnItemGroupUseHandler");
+            //BadChoice("OnItemGroupUseHandler");
             return;
         }
 
-        if (GetQuestContext("QuestActObjItemGroupUse", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnItemGroupUseHandler");
+            //BadChoice("OnItemGroupUseHandler");
             return;
         }
 
@@ -762,8 +892,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjItemGroupUse>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnItemGroupUseHandler");
+            Logger.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnItemGroupUseHandler");
             return;
         }
         var results = res == 1;
@@ -777,7 +907,8 @@ public partial class Quest : PacketMarshaler
             Owner.Events.OnItemGroupUse += Owner.Quests.OnItemGroupUseHandler; // снова подписываемся
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
             return;
         }
 
@@ -790,14 +921,14 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnItemGatherHandler");
+            //BadChoice("OnItemGatherHandler");
             return;
         }
 
-        if (GetQuestContext("QuestActObjItemGather", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnItemGatherHandler");
+            //BadChoice("OnItemGatherHandler");
             return;
         }
 
@@ -809,8 +940,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjItemGather>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnItemGatherHandler");
+            Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnItemGatherHandler");
             return;
         }
         var results = res == 1;
@@ -827,7 +958,8 @@ public partial class Quest : PacketMarshaler
             }
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
             return;
         }
 
@@ -840,14 +972,14 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnItemGroupGatherHandler");
+            //BadChoice("OnItemGroupGatherHandler");
             return;
         }
 
-        if (GetQuestContext("QuestActObjItemGroupGather", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnItemGroupGatherHandler");
+            //BadChoice("OnItemGroupGatherHandler");
             return;
         }
 
@@ -859,8 +991,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjItemGroupGather>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnItemGroupGatherHandler");
+            Logger.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnItemGroupGatherHandler");
             return;
         }
         var results = res == 1;
@@ -875,7 +1007,8 @@ public partial class Quest : PacketMarshaler
 
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
             return;
         }
 
@@ -888,14 +1021,14 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnAggroHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnAggroHandler");
+            //BadChoice("OnAggroHandler");
             return;
         }
 
-        if (GetQuestContext("QuestActObjAggro", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnAggroHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnAggroHandler");
+            //BadChoice("OnAggroHandler");
             return;
         }
 
@@ -907,8 +1040,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjAggro>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnAggroHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnAggroHandler");
+            Logger.Info($"[OnAggroHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnAggroHandler");
             return;
         }
         var results = res == 1;
@@ -925,7 +1058,8 @@ public partial class Quest : PacketMarshaler
 
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnAggroHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
             return;
         }
 
@@ -938,14 +1072,14 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnExpressFireHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnExpressFireHandler");
+            //BadChoice("OnExpressFireHandler");
             return;
         }
 
-        if (GetQuestContext("QuestActObjExpressFire", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnExpressFireHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnExpressFireHandler");
+            //BadChoice("OnExpressFireHandler");
             return;
         }
 
@@ -957,8 +1091,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjExpressFire>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnExpressFireHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnExpressFireHandler");
+            Logger.Info($"[OnExpressFireHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnExpressFireHandler");
             return;
         }
         var results = res == 1;
@@ -975,7 +1109,9 @@ public partial class Quest : PacketMarshaler
 
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnExpressFireHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
+
             return;
         }
 
@@ -988,14 +1124,14 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnAbilityLevelUpHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnAbilityLevelUpHandler");
+            //BadChoice("OnAbilityLevelUpHandler");
             return;
         }
 
-        if (GetQuestContext("QuestActObjAbilityLevel", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnAbilityLevelUpHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnAbilityLevelUpHandler");
+            //BadChoice("OnAbilityLevelUpHandler");
             return;
         }
 
@@ -1007,8 +1143,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjAbilityLevel>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnAbilityLevelUpHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnAbilityLevelUpHandler");
+            Logger.Info($"[OnAbilityLevelUpHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnAbilityLevelUpHandler");
             return;
         }
         var results = res == 1;
@@ -1025,7 +1161,9 @@ public partial class Quest : PacketMarshaler
 
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnAbilityLevelUpHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
+
             return;
         }
 
@@ -1038,14 +1176,14 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnLevelUpHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnLevelUpHandler");
+            //BadChoice("OnLevelUpHandler");
             return;
         }
 
-        if (GetQuestContext("QuestActObjLevel", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnLevelUpHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnLevelUpHandler");
+            //BadChoice("OnLevelUpHandler");
             return;
         }
 
@@ -1057,8 +1195,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjLevel>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnLevelUpHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnLevelUpHandler");
+            Logger.Info($"[OnLevelUpHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnLevelUpHandler");
             return;
         }
         var results = res == 1;
@@ -1075,7 +1213,9 @@ public partial class Quest : PacketMarshaler
 
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnLevelUpHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
+
             return;
         }
 
@@ -1088,14 +1228,14 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnCraftHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnCraftHandler");
+            //BadChoice("OnCraftHandler");
             return;
         }
 
-        if (GetQuestContext("QuestActObjCraft", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnCraftHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnCraftHandler");
+            //BadChoice("OnCraftHandler");
             return;
         }
 
@@ -1107,8 +1247,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjCraft>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnCraftHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnCraftHandler");
+            Logger.Info($"[OnCraftHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnCraftHandler");
             return;
         }
         var results = res == 1;
@@ -1125,7 +1265,9 @@ public partial class Quest : PacketMarshaler
 
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnCraftHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
+
             return;
         }
 
@@ -1138,14 +1280,14 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnEnterSphereHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnEnterSphereHandler");
+            //BadChoice("OnEnterSphereHandler");
             return;
         }
 
-        if (GetQuestContext("QuestActObjSphere", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnEnterSphereHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnEnterSphereHandler");
+            //BadChoice("OnEnterSphereHandler");
             return;
         }
 
@@ -1157,8 +1299,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjSphere>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnEnterSphereHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnEnterSphereHandler");
+            Logger.Info($"[OnEnterSphereHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnEnterSphereHandler");
             return;
         }
         var results = res == 1;
@@ -1175,7 +1317,9 @@ public partial class Quest : PacketMarshaler
 
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnEnterSphereHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
+
             return;
         }
 
@@ -1189,14 +1333,14 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnZoneKillHandler");
+            //BadChoice("OnZoneKillHandler");
             return;
         }
 
-        if (GetQuestContext("QuestActObjZoneKill", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnZoneKillHandler");
+            //BadChoice("OnZoneKillHandler");
             return;
         }
 
@@ -1208,8 +1352,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjZoneKill>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnZoneKillHandler");
+            Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnZoneKillHandler");
             return;
         }
         var results = res == 1;
@@ -1226,7 +1370,8 @@ public partial class Quest : PacketMarshaler
 
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
             return;
         }
 
@@ -1240,14 +1385,14 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnZoneMonsterHuntHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnZoneMonsterHuntHandler");
+            //BadChoice("OnZoneMonsterHuntHandler");
             return;
         }
 
-        if (GetQuestContext("QuestActObjZoneMonsterHunt", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnZoneMonsterHuntHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnZoneMonsterHuntHandler");
+            //BadChoice("OnZoneMonsterHuntHandler");
             return;
         }
 
@@ -1259,8 +1404,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjZoneMonsterHunt>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnZoneMonsterHuntHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnZoneMonsterHuntHandler");
+            Logger.Info($"[OnZoneMonsterHuntHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnZoneMonsterHuntHandler");
             return;
         }
         var results = res == 1;
@@ -1276,7 +1421,9 @@ public partial class Quest : PacketMarshaler
             Owner.Events.OnZoneMonsterHunt += Owner.Quests.OnZoneMonsterHuntHandler; // снова подписываемся
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnZoneMonsterHuntHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
+
             return;
         }
 
@@ -1296,7 +1443,7 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnTalkMadeHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnTalkMadeHandler");
+            //BadChoice("OnTalkMadeHandler");
             return;
         }
 
@@ -1305,16 +1452,16 @@ public partial class Quest : PacketMarshaler
         if (MathUtil.CalculateDistance(args.Transform.World.Position, Owner.Transform.World.Position) > 4.0f)
         {
             Logger.Info($"[OnTalkMadeHandler] Quest: {TemplateId}, расстояние слишком далеко до объекта={args.NpcId}, чтобы завершить квест");
-            BadChoice("OnTalkMadeHandler");
+            //BadChoice("OnTalkMadeHandler");
             return;
         }
 
         // должен быть установлен шаг Progress для этого события!
         Step = QuestComponentKind.Progress;
-        if (GetQuestContext("QuestActObjTalk", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnTalkMadeHandler] Quest: {TemplateId}, попытка беседовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnTalkMadeHandler");
+            //BadChoice("OnTalkMadeHandler");
             return;
         }
 
@@ -1326,8 +1473,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjTalk>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnTalkMadeHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnTalkMadeHandler");
+            Logger.Info($"[OnTalkMadeHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnTalkMadeHandler");
             return;
         }
         var results = res == 1;
@@ -1342,7 +1489,9 @@ public partial class Quest : PacketMarshaler
             Owner.Events.OnTalkMade -= Owner.Quests.OnTalkMadeHandler; // отписываемся
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnTalkMadeHandler] Quest {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
+
             return;
         }
 
@@ -1360,7 +1509,7 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnTalkNpcGroupMadeHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnTalkNpcGroupMadeHandler");
+            //BadChoice("OnTalkNpcGroupMadeHandler");
             return;
         }
 
@@ -1369,16 +1518,16 @@ public partial class Quest : PacketMarshaler
         if (MathUtil.CalculateDistance(args.Transform.World.Position, Owner.Transform.World.Position) > 4.0f)
         {
             Logger.Info($"[OnTalkNpcGroupMadeHandler] Quest: {TemplateId}, расстояние слишком далеко до объекта={args.NpcGroupId}, чтобы завершить квест");
-            BadChoice("OnTalkNpcGroupMadeHandler");
+            //BadChoice("OnTalkNpcGroupMadeHandler");
             return;
         }
 
         // должен быть установлен шаг Progress для этого события!
         Step = QuestComponentKind.Progress;
-        if (GetQuestContext("QuestActObjTalkNpcGroup", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnTalkNpcGroupMadeHandler] Quest: {TemplateId}, попытка беседовать на шаге {Step} вместо шага Progress!");
-            BadChoice("OnTalkNpcGroupMadeHandler");
+            //BadChoice("OnTalkNpcGroupMadeHandler");
             return;
         }
 
@@ -1390,7 +1539,7 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjTalkNpcGroup>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnTalkNpcGroupMadeHandler] Quest: {TemplateId}, что-то пошло не так!");
+            Logger.Info($"[OnTalkNpcGroupMadeHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
             return;
         }
         var results = res == 1;
@@ -1405,7 +1554,9 @@ public partial class Quest : PacketMarshaler
             Owner.Events.OnTalkNpcGroupMade -= Owner.Quests.OnTalkNpcGroupMadeHandler; // отписываемся
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnTalkNpcGroupMadeHandler] Quest {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(0, eventArgs);
+            CompleteActiveStep(0, eventArgs);
+
             return;
         }
 
@@ -1428,7 +1579,7 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnReportNpcHandler");
+            //BadChoice("OnReportNpcHandler");
             return;
         }
 
@@ -1437,16 +1588,16 @@ public partial class Quest : PacketMarshaler
         if (MathUtil.CalculateDistance(args.Transform.World.Position, Owner.Transform.World.Position) > 4.0f)
         {
             Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, расстояние слишком далеко до объекта={args.NpcId}, чтобы завершить квест");
-            BadChoice("OnReportNpcHandler");
+            //BadChoice("OnReportNpcHandler");
             return;
         }
 
         // должен быть установлен шаг Ready для этого события!
         Step = QuestComponentKind.Ready;
-        if (GetQuestContext("QuestActConReportNpc", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, попытка беседовать на шаге {Step} вместо шага Ready!");
-            BadChoice("OnReportNpcHandler");
+            //BadChoice("OnReportNpcHandler");
             return;
         }
 
@@ -1460,8 +1611,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActConReportNpc>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnReportNpcHandler");
+            Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnReportNpcHandler");
             return;
         }
         var results = res == 1;
@@ -1471,13 +1622,13 @@ public partial class Quest : PacketMarshaler
         if (results)
         {
             Logger.Info($"[OnReportNpcHandler] Отписываемся от события.");
-            Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, событие для квеста {args.QuestId}");
             Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
             Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
             Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(args.Selected, eventArgs);
+            //ContextProcessing(args.Selected, eventArgs);
+            CompleteActiveStep(args.Selected, eventArgs);
             return;
         }
 
@@ -1494,7 +1645,7 @@ public partial class Quest : PacketMarshaler
         if (args == null)
         {
             Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, нет аргументов у события!");
-            BadChoice("OnReportDoodadHandler");
+            //BadChoice("OnReportDoodadHandler");
             return;
         }
 
@@ -1503,16 +1654,16 @@ public partial class Quest : PacketMarshaler
         if (MathUtil.CalculateDistance(args.Transform.World.Position, Owner.Transform.World.Position) > 8.0f)
         {
             Logger.Info($"[OnReportDoodadHandler] Quest: {TemplateId}, расстояние слишком далеко до объекта={args.DoodadId}, чтобы завершить квест");
-            BadChoice("OnReportDoodadHandler");
+            //BadChoice("OnReportDoodadHandler");
             return;
         }
 
         // должен быть установлен шаг Ready для этого события!
         Step = QuestComponentKind.Ready;
-        if (GetQuestContext("QuestActConReportDoodad", out var context))
+        if (GetQuestContext(out var context))
         {
             Logger.Info($"[OnReportDoodadHandler] Quest: {TemplateId}, попытка беседовать на шаге {Step} вместо шага Ready!");
-            BadChoice("OnReportDoodadHandler");
+            //BadChoice("OnReportDoodadHandler");
             return;
         }
 
@@ -1524,8 +1675,8 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActConReportDoodad>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnReportDoodadHandler] Quest: {TemplateId}, что-то пошло не так!");
-            BadChoice("OnReportDoodadHandler");
+            Logger.Info($"[OnReportDoodadHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            //BadChoice("OnReportDoodadHandler");
             return;
         }
         var results = res == 1;
@@ -1540,7 +1691,9 @@ public partial class Quest : PacketMarshaler
             Owner.Events.OnReportDoodad -= Owner.Quests.OnReportDoodadHandler; // отписываемся
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnReportDoodadHandler] Quest {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            ContextProcessing(0, eventArgs);
+            //ContextProcessing(args.Selected, eventArgs);
+            CompleteActiveStep(args.Selected, eventArgs);
+
             return;
         }
 

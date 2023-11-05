@@ -123,7 +123,8 @@ public partial class CharacterQuests
 
         ActiveQuests.Add(quest.TemplateId, quest);
         quest.Owner.SendMessage("[Quest] {0}, quest {1} added.", Owner.Name, questId);
-        quest.ContextProcessing();
+        //quest.ContextProcessing();
+        quest.GoToNextStep();
 
         return true;
     }
