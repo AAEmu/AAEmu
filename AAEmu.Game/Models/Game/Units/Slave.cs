@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
@@ -56,6 +55,11 @@ public class Slave : Unit
         AttachedDoodads = new List<Doodad>();
         AttachedSlaves = new List<Slave>();
         AttachedCharacters = new Dictionary<AttachPointKind, Character>();
+        HpTriggerPointsPercent.Add(0);
+        HpTriggerPointsPercent.Add(25);
+        HpTriggerPointsPercent.Add(50);
+        HpTriggerPointsPercent.Add(75);
+        HpTriggerPointsPercent.Add(100);
     }
 
     #region Attributes
@@ -615,28 +619,22 @@ public class Slave : Unit
         ReduceCurrentHp(this, damage, killReason);
     }
 
-    public override void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
+    protected override void PostReduceCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
     {
-        if (Hp <= 0)
-            return;
+        base.PostReduceCurrentHp(attacker, oldHpValue, newHpValue, killReason);
+    }
 
-        var absorptionEffects = Buffs.GetAbsorptionEffects().ToList();
-        if (absorptionEffects.Count > 0)
+    protected override void DoHpChangeTrigger(int triggerValue, bool tookDamage, int oldHpValue, int newHpValue)
+    {
+        var repairPointCount = triggerValue switch
         {
-            // Handle damage absorb
-            foreach (var absorptionEffect in absorptionEffects)
-            {
-                value = absorptionEffect.ConsumeCharge(value);
-            }
-        }
-
-        Hp = value < 0 ? Math.Max(Hp + value, 0) : Math.Max(Hp - value, 0);
-
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
-
-        if (Hp > 0) { return; }
-        ((Unit)attacker).Events.OnKill(attacker, new OnKillArgs { target = (Unit)attacker });
-        DoDie(attacker, killReason);
+            25 => Template.Hp25DoodadCount,
+            50 => Template.Hp50DoodadCount,
+            75 => Template.Hp75DoodadCount,
+            _ => 0
+        };
+        Logger.Debug($"{Name} from {Summoner?.Name ?? "unknown"}'s HP is now at {triggerValue}%");
+        SlaveManager.Instance.UpdateSlaveRepairPoints(this);
     }
 
     public override void DoDie(BaseUnit killer, KillReason killReason)

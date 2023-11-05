@@ -780,7 +780,10 @@ public class SlaveManager : Singleton<SlaveManager>
                             SlaveInitialItemPackId = reader.GetUInt32("slave_initial_item_pack_id", 0),
                             SlaveCustomizingId = reader.GetUInt32("slave_customizing_id", 0),
                             Customizable = reader.GetBoolean("customizable", false),
-                            PortalTime = reader.GetFloat("portal_time")
+                            PortalTime = reader.GetFloat("portal_time"),
+                            Hp25DoodadCount = reader.GetInt32("hp25_doodad_count"),
+                            Hp50DoodadCount = reader.GetInt32("hp50_doodad_count"),
+                            Hp75DoodadCount = reader.GetInt32("hp75_doodad_count"),
                         };
                         _slaveTemplates.Add(template.Id, template);
                     }
@@ -1090,6 +1093,8 @@ public class SlaveManager : Singleton<SlaveManager>
             return;
         }
 
+        // NOTE: ObjId and TlId gets retained during Rider's Escape
+
         // Despawn effect
         mySlave.BroadcastPacket(new SCSlaveDespawnPacket(mySlave.ObjId), true);
         mySlave.BroadcastPacket(new SCSlaveRemovedPacket(mySlave.ObjId, mySlave.TlId), true);
@@ -1097,14 +1102,128 @@ public class SlaveManager : Singleton<SlaveManager>
 
         // Move location
         mySlave.SetPosition(skillCastPositionTarget.PosX, skillCastPositionTarget.PosY, skillCastPositionTarget.PosZ, 0f,0f,skillCastPositionTarget.PosRot);
+        // Without this offset, it just doesn't feel right
         mySlave.Transform.Local.AddDistanceToFront(mySlave.Template.SpawnXOffset / 2f);
         mySlave.Transform.Local.AddDistanceToRight(mySlave.Template.SpawnYOffset / 2f);
 
         // Respawn effect
-        mySlave.Hide();
+        mySlave.Hide(); // Hide is needed for it's internals
         mySlave.Spawn();
         //mySlave.SendPacket(new SCUnitStatePacket(mySlave));
         //mySlave.SendPacket(new SCUnitPointsPacket(mySlave.ObjId, mySlave.Hp, mySlave.Mp));
         //mySlave.SendPacket(new SCSlaveStatePacket(mySlave.ObjId, mySlave.TlId, mySlave.Summoner.Name, mySlave.Summoner.ObjId, mySlave.Id));
+    }
+
+    public void UpdateSlaveRepairPoints(Slave slave)
+    {
+        var hpPercent = slave.Hp * 100 / slave.MaxHp;
+
+        // Get Max Heal Points
+        var allHealPoints = new List<AttachPointKind>();
+        foreach (var doodadBinding in slave.Template.DoodadBindings)
+        {
+            if ((doodadBinding.AttachPointId < AttachPointKind.HealPoint0) || (doodadBinding.AttachPointId > AttachPointKind.HealPoint9))
+                continue;
+            allHealPoints.Add(doodadBinding.AttachPointId);
+        }
+
+        if (allHealPoints.Count <= 0)
+        {
+            allHealPoints.Add(AttachPointKind.HealPoint0);
+            allHealPoints.Add(AttachPointKind.HealPoint1);
+            allHealPoints.Add(AttachPointKind.HealPoint2);
+            allHealPoints.Add(AttachPointKind.HealPoint3);
+            allHealPoints.Add(AttachPointKind.HealPoint4);
+            allHealPoints.Add(AttachPointKind.HealPoint5);
+        }
+
+        var repairPoints = 0;
+        if (hpPercent is < 100 and >= 75)
+            repairPoints = slave.Template.Hp75DoodadCount;
+        else if (hpPercent is < 75 and >= 50)
+            repairPoints = slave.Template.Hp50DoodadCount;
+        else if (hpPercent is < 50 and >= 25)
+            repairPoints = slave.Template.Hp25DoodadCount;
+        else if (hpPercent < 25)
+            repairPoints = allHealPoints.Count; // Use max points or Hp 25% ?
+
+        // Get Current Count
+        var currentHealPoints = new List<Doodad>();
+        foreach (var doodad in slave.AttachedDoodads)
+        {
+            if ((doodad.AttachPoint < AttachPointKind.HealPoint0) || (doodad.AttachPoint > AttachPointKind.HealPoint9))
+                continue;
+            currentHealPoints.Add(doodad);
+        }
+
+        var pointsToAdd = repairPoints - currentHealPoints.Count;
+        if (pointsToAdd < 0)
+        {
+            // We have too many points, remove some
+            for (var iRemove = pointsToAdd; iRemove < 0; iRemove++)
+            {
+                var i = Random.Shared.Next(currentHealPoints.Count);
+                var doodad = currentHealPoints[i];
+                if (doodad == null)
+                    continue;
+                doodad.Despawn = DateTime.UtcNow;
+                SpawnManager.Instance.AddDespawn(doodad);
+                slave.AttachedDoodads.Remove(doodad);
+                currentHealPoints.Remove(doodad);
+            }
+        }
+
+        if (pointsToAdd > 0)
+        {
+            // We don't have enough points, add some
+            for(var iAdd = 0; iAdd < pointsToAdd; iAdd++)
+            {
+                // pick a random spot
+                // TODO: pick a unused spot only
+                var point = (AttachPointKind)Random.Shared.Next((byte)AttachPointKind.HealPoint0, (byte)AttachPointKind.HealPoint9 + 1);
+
+                var newLeak = new Doodad
+                {
+                    ObjId = ObjectIdManager.Instance.GetNextId(),
+                    TemplateId = 969, // Leak
+                    OwnerObjId = slave.OwnerObjId,
+                    ParentObjId = slave.ObjId,
+                    AttachPoint = point,
+                    OwnerId = slave.Summoner?.Id ?? 0,
+                    PlantTime = DateTime.UtcNow,
+                    OwnerType = DoodadOwnerType.Slave,
+                    OwnerDbId = slave.Id,
+                    Template = DoodadManager.Instance.GetTemplate(969),
+                    Data = (byte)point, // copy of AttachPointId
+                    ParentObj = slave,
+                    Faction = slave.Faction,
+                    Type2 = 1u, // Flag: No idea why it's 1 for slave's doodads, seems to be 0 for everything else
+                    Spawner = null,
+                    IsPersistent = false,
+                };
+
+                newLeak.SetScale(1f);
+
+                newLeak.FuncGroupId = newLeak.GetFuncGroupId();
+                newLeak.Transform = slave.Transform.CloneAttached(newLeak);
+                newLeak.Transform.Parent = slave.Transform;
+                newLeak.Transform.Local.SetPosition(5f, 5f, 4f); // move up 2m to test
+
+                slave.AttachedDoodads.Add(newLeak);
+                currentHealPoints.Add(newLeak);
+                newLeak.Spawn();
+
+                /*
+                var i = Random.Shared.Next(allHealPoints.Count);
+                var point = allHealPoints[i];
+                var newBind = slave.Template.DoodadBindings.FirstOrDefault(b => b.AttachPointId == point);
+                if (newBind == null)
+                {
+                    Logger.Error($"Invalid selection on random heal point selection for slave {slave.Name} (ObjId: {slave.ObjId}), Point: {point}");
+                    continue;
+                }
+                */
+            }
+        }
     }
 }

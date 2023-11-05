@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
+using System.Net.Mime;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -25,6 +26,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
@@ -1646,6 +1648,28 @@ public partial class Character : Unit, ICharacter
     public bool IsDrowning
     {
         get { return (Breath <= 0); }
+    }
+
+    public override void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
+    {
+        if (AppConfiguration.Instance.World.GodMode)
+        {
+            Logger.Debug($"{Name}'s damage disabled because of GodMode flag (normal damage: {value})");
+            return; // GodMode On : take no damage at all
+        }
+
+        base.ReduceCurrentHp(attacker, value, killReason);
+    }
+
+    protected override void PostReduceCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
+    {
+        if (IsInDuel)
+        {
+            Hp = 1; // we don't let you die during a duel
+            return;
+        }
+
+        base.PostReduceCurrentHp(attacker, oldHpValue, newHpValue, killReason);
     }
 
     public void DoChangeBreath()
