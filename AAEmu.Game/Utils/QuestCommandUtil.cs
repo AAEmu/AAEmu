@@ -7,7 +7,7 @@ namespace AAEmu.Game.Utils;
 
 public class QuestCommandUtil
 {
-    public static void GetCommandChoice(Character character, string choice, string[] args)
+    public static void GetCommandChoice(ICharacter character, string choice, string[] args)
     {
         uint questId;
 

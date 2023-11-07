@@ -28,5 +28,6 @@ public enum BuffConstants : uint
     EquipShield = 8226,
     EquipTwoHanded = 8227,
     InBeautySalon = 6117,
-    SearchSchoolOfFish = 5736
+    SearchSchoolOfFish = 5736,
+    Overburdened = 7221 // SustainBuff - Carrying heavy objects reduces movement speed and prevents teleporting or gliding.
 }

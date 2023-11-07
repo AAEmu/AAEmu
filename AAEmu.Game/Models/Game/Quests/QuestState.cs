@@ -8,7 +8,6 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
-using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
@@ -550,6 +549,7 @@ public class QuestStartState : QuestState
         var results = new List<bool>();
         if (forcibly)
         {
+            CurrentQuestComponent.Execute(Quest.Owner, Quest, 0);
             results.Add(true); // применяем квест насильно командой '/quest add <questId>', даже если нет рядом нужного Npc
         }
         else
@@ -559,6 +559,24 @@ public class QuestStartState : QuestState
 
         foreach (var component in CurrentComponents)
         {
+            // TODO вызов не требуется, так как выше мы уже вызвали все акты! 
+            // TODO no call is required as we have already called all the acts above!
+            //var acts = QuestManager.Instance.GetActs(component.Id);
+            //foreach (var act in acts)
+            //{
+            //    switch (act?.DetailType)
+            //    {
+            //        case "QuestActCheckTimer":
+            //            {
+            //                // TODO Timer - setting and starting time limit for the quest
+            //                var template = act.GetTemplate<QuestActCheckTimer>();
+            //                var res = act.Use(Quest.Owner, Quest, template.LimitTime);
+            //                Logger.Info($"[QuestStartState][Start] Quest: {Quest.TemplateId} настройка и старт таймера ограничения времени на квест!");
+            //                break;
+            //            }
+            //    }
+            //}
+
             if (results.Any(b => b == true))
             {
                 Quest.ComponentId = component.Id;
@@ -1013,7 +1031,7 @@ public class QuestProgressState : QuestState
         Quest.Status = QuestStatus.Progress;
         Quest.Condition = QuestConditionObj.Progress;
         Logger.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
-        Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
+        //Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
         return false;
     }
     public override bool Update()
@@ -1042,7 +1060,7 @@ public class QuestProgressState : QuestState
         // wait for all step components to complete...
         Quest.Status = QuestStatus.Progress;
         Quest.Condition = QuestConditionObj.Ready;
-        Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
+        //Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
         Logger.Info($"[QuestProgressState][Complete] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
         return false;
     }
@@ -1123,7 +1141,7 @@ public class QuestReadyState : QuestState
         Quest.ComponentId = 0;
         //Quest.Step = QuestComponentKind.Ready;
         Logger.Info($"[QuestReadyState][Start] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
-        Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
+        //Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
         return false;
     }
     public override bool Update()

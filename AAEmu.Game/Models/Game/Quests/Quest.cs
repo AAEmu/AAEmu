@@ -1161,6 +1161,7 @@ EndLoop:
         if (update)
             Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
 
+        //RemoveQuestBuffs(); // TODO добавить удаление примененных во время квеста бафов при cleanup == true
         RemoveQuestItems();
         ClearQuestStatus();
         ClearObjectives();
@@ -1821,8 +1822,8 @@ EndLoop:
         stream.Write(0u);             // type(id)
         stream.WriteBc((uint)ObjId);  // ObjId
         stream.WriteBc((uint)ObjId);  // ObjId
-        stream.Write(LeftTime);
-        stream.Write(0u);                      // type(id)
+        stream.Write(LeftTime);       // quest time limit
+        stream.Write(LeftTime == -1 ? 0 : ComponentId); // type(id) - indicates which step is limited
         stream.Write(DoodadId);                // doodadId
         stream.Write(DateTime.UtcNow);         // acceptTime
         stream.Write((byte)QuestAcceptorType); // type QuestAcceptorType
