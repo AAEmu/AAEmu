@@ -1661,7 +1661,7 @@ public partial class Character : Unit, ICharacter
         base.ReduceCurrentHp(attacker, value, killReason);
     }
 
-    protected override void PostReduceCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
+    public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
     {
         if (IsInDuel)
         {
@@ -1669,7 +1669,7 @@ public partial class Character : Unit, ICharacter
             return;
         }
 
-        base.PostReduceCurrentHp(attacker, oldHpValue, newHpValue, killReason);
+        base.PostUpdateCurrentHp(attacker, oldHpValue, newHpValue, killReason);
     }
 
     public void DoChangeBreath()
@@ -1764,6 +1764,8 @@ public partial class Character : Unit, ICharacter
             return;
         }
 
+        var oldHp = Hp;
+
         if (IsInBattle)
         {
             Hp += PersistentHpRegen;
@@ -1785,6 +1787,7 @@ public partial class Character : Unit, ICharacter
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
+        PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
 
     /// <summary>
@@ -1899,6 +1902,7 @@ public partial class Character : Unit, ICharacter
                     if (character.Mp > character.MaxMp)
                         character.Mp = character.MaxMp;
                     character.CheckExp();
+                    character.PostUpdateCurrentHp(character, 0, character.Hp, KillReason.Unknown);
                 }
             }
         }
@@ -2007,6 +2011,7 @@ public partial class Character : Unit, ICharacter
                     if (character.Mp > character.MaxMp)
                         character.Mp = character.MaxMp;
                     character.CheckExp();
+                    character.PostUpdateCurrentHp(character, 0, character.Hp, KillReason.Unknown);
                 }
             }
         }

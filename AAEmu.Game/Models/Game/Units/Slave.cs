@@ -619,20 +619,13 @@ public class Slave : Unit
         ReduceCurrentHp(this, damage, killReason);
     }
 
-    protected override void PostReduceCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
+    public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
     {
-        base.PostReduceCurrentHp(attacker, oldHpValue, newHpValue, killReason);
+        base.PostUpdateCurrentHp(attacker, oldHpValue, newHpValue, killReason);
     }
 
     protected override void DoHpChangeTrigger(int triggerValue, bool tookDamage, int oldHpValue, int newHpValue)
     {
-        var repairPointCount = triggerValue switch
-        {
-            25 => Template.Hp25DoodadCount,
-            50 => Template.Hp50DoodadCount,
-            75 => Template.Hp75DoodadCount,
-            _ => 0
-        };
         Logger.Debug($"{Name} from {Summoner?.Name ?? "unknown"}'s HP is now at {triggerValue}%");
         SlaveManager.Instance.UpdateSlaveRepairPoints(this);
     }
@@ -839,6 +832,8 @@ public class Slave : Unit
             return;
         }
 
+        var oldHp = Hp;
+
         if (IsInBattle)
         {
             Hp += PersistentHpRegen;
@@ -853,6 +848,7 @@ public class Slave : Unit
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
+        PostUpdateCurrentHp(this,oldHp, Hp, KillReason.Unknown);
     }
 
 }

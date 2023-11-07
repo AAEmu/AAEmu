@@ -37,7 +37,7 @@ public class DoodadFuncFakeUse : DoodadFuncTemplate
             {
                 //target owner/doodad
                 target = SkillCastTarget.GetByType(SkillCastTargetType.Doodad);
-                target.ObjId = owner.ObjId;
+                target.ObjId = owner.ParentObjId;
             }
 
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(SkillId));

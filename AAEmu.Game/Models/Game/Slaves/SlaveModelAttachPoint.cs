@@ -10,6 +10,7 @@ namespace AAEmu.Game.Models.Game.Slaves;
 /// </summary>
 public class SlaveModelAttachPoint
 {
+    public string Name { get; set; } // Not actually used in the server
     public uint ModelId { get; set; }
     public Dictionary<AttachPointKind, WorldSpawnPosition> AttachPoints { get; set; }
 }

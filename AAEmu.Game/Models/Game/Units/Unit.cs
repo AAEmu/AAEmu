@@ -55,7 +55,9 @@ public class Unit : BaseUnit, IUnit
     }
 
     public byte Level { get; set; }
+
     public int Hp { get; set; }
+
     public DateTime LastCombatActivity { get; set; }
 
     protected bool _isUnderWater;
@@ -327,7 +329,7 @@ public class Unit : BaseUnit, IUnit
 
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
 
-        PostReduceCurrentHp(attacker, oldHp, Hp, killReason);
+        PostUpdateCurrentHp(attacker, oldHp, Hp, killReason);
     }
 
     /// <summary>
@@ -337,7 +339,7 @@ public class Unit : BaseUnit, IUnit
     /// <param name="oldHpValue"></param>
     /// <param name="newHpValue"></param>
     /// <param name="killReason"></param>
-    protected virtual void PostReduceCurrentHp(BaseUnit attackerBase, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
+    public virtual void PostUpdateCurrentHp(BaseUnit attackerBase, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
     {
         // If Hp triggers are set up, do the calculations for them
         if (HpTriggerPointsPercent.Count > 0)

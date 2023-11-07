@@ -1,5 +1,6 @@
 [
     {
+        "Name": "Clipper",
         "ModelId": 128,
         "AttachPoints": {
             "1": {
@@ -79,6 +80,7 @@
         }
     },
     {
+        "Name": "Beautifully Numb Dinghy",
         "ModelId": 1288,
         "AttachPoints": {
             "1": {
@@ -110,6 +112,7 @@
         }
     },
     {
+        "Name": "Lutesong Junk",
         "ModelId": 1249,
         "AttachPoints": {
             "23": {
@@ -323,6 +326,7 @@
         }
     },
     {
+        "Name": "Rowboat",
         "ModelId": 129,
         "AttachPoints": {
             "35": {
@@ -366,6 +370,7 @@
         }
     },
     {
+        "Name": "Eznan Cutter",
         "ModelId": 393,
         "AttachPoints": {
             "28": {
@@ -592,6 +597,7 @@
         }
     },
     {
+        "Name": "Growling Yawl",
         "ModelId": 523,
         "AttachPoints": {
             "28": {
@@ -818,6 +824,7 @@
         }
     },
     {
+        "Name": "Fish-Find Longliner",
         "ModelId": 1360,
         "AttachPoints": {
             "29": {
@@ -961,6 +968,7 @@
         }
     },
     {
+        "Name": "Predator Longliner",
         "ModelId": 1383,
         "AttachPoints": {
             "29": {
@@ -1104,6 +1112,7 @@
         }
     },
     {
+        "Name": "Albatross Longliner",
         "ModelId": 1384,
         "AttachPoints": {
             "29": {
@@ -1247,6 +1256,7 @@
         }
     },
     {
+        "Name": "Merchant Schooner",
         "ModelId": 1205,
         "AttachPoints": {
             "65": {
@@ -1456,6 +1466,7 @@
         }
     },
     {
+        "Name": "Luxury Liner",
         "ModelId": 1046,
         "AttachPoints": {
             "35": {
@@ -1568,7 +1579,8 @@
             }
         }
     },
-	{	
+	{
+        "Name": "Farm Hauler",
         "ModelId": 1464,
         "AttachPoints": {
             "9": {
@@ -1603,7 +1615,8 @@
             }
         }
     },
-	{	
+	{
+        "Name": "Farm Cart",
         "ModelId": 8000009,
         "AttachPoints": {
             "9": {
@@ -1618,7 +1631,8 @@
             }
         }
     },
-	{	
+	{
+        "Name": "Farm Wagon",
         "ModelId": 1008,
         "AttachPoints": {
             "9": {
@@ -1643,7 +1657,8 @@
             }
         }
     },
-	{	
+	{
+        "Name": "Red Farm Hauler",
         "ModelId": 1553,
         "AttachPoints": {
             "9": {

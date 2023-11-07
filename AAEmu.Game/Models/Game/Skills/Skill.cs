@@ -196,7 +196,8 @@ public class Skill
         }
 
         // TODO: Remove exception for doodads
-        if ((targetDist > maxRangeCheck) && (target is not Doodad))
+        // TODO: Remove exceptions for slave initiated by Doodads (needed to fix repair points on ships)
+        if ((targetDist > maxRangeCheck) && (target is not Doodad) && (target is not Slave))
         {
             SkillTlIdManager.ReleaseId(TlId);
             TlId = 0;
