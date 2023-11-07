@@ -587,7 +587,7 @@ public partial class CharacterQuests
             }, true
         );
     }
-    
+
     public void RecallEvents()
     {
         foreach (var quest in Owner.Quests.ActiveQuests.Values)
