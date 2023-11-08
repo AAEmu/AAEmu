@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -12,9 +13,10 @@ public class DoodadFuncZoneReact : DoodadPhaseFuncTemplate
     public override bool Use(BaseUnit caster, Doodad owner)
     {
         Logger.Trace("DoodadFuncZoneReact");
-        if (caster is Character)
+        // Triggers if the owner is inside the specified zone
+        var zoneGroup = ZoneManager.Instance.GetZoneByKey(owner.Transform.ZoneId);
+        if (zoneGroup?.GroupId == ZoneGroupId)
         {
-            //I think this is used to reschedule anything that needs triggered at a specific gametime
             owner.OverridePhase = NextPhase;
             return true;
         }

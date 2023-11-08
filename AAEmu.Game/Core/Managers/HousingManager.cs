@@ -203,13 +203,10 @@ public class HousingManager : Singleton<HousingManager>
                                     bindingDoodad.AttachPointId = (AttachPointKind)reader2.GetInt16("attach_point_id");
                                     bindingDoodad.DoodadId = reader2.GetUInt32("doodad_id");
 
-                                    if (templateBindings != null &&
-                                        templateBindings.AttachPointId.ContainsKey(bindingDoodad.AttachPointId))
-                                        bindingDoodad.Position = templateBindings
-                                            .AttachPointId[bindingDoodad.AttachPointId].Clone();
+                                    if (templateBindings != null && templateBindings.AttachPointId.TryGetValue(bindingDoodad.AttachPointId, out var pos))
+                                        bindingDoodad.Position = pos.Clone();
 
-                                    if (bindingDoodad.Position == null)
-                                        bindingDoodad.Position = new WorldSpawnPosition();
+                                    bindingDoodad.Position ??= new WorldSpawnPosition();
 
                                     doodads.Add(bindingDoodad);
                                 }
