@@ -642,7 +642,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.ScaleDuration = reader.GetFloat("scaleDuration");
                         template.ImmuneExceptCreator = reader.GetBoolean("immune_except_creator", true);
                         template.ImmuneExceptSkillTagId = reader.GetUInt32("immune_except_skill_tag_id", 0);
-                        template.FindSchoolOrFishRange = reader.GetFloat("find_school_of_fish_range");
+                        template.FindSchoolOfFishRange = reader.GetFloat("find_school_of_fish_range");
                         template.AnimActionId = reader.GetUInt32("anim_action_id", 0);
                         template.DeadApplicable = reader.GetBoolean("dead_applicable", true);
                         template.TickAreaUseOriginSource = reader.GetBoolean("tick_area_use_origin_source", true);

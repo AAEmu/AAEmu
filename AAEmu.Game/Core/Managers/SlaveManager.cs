@@ -11,6 +11,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -24,7 +25,10 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Slave;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
@@ -44,6 +48,7 @@ public class SlaveManager : Singleton<SlaveManager>
     public Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> _attachPoints;
     public Dictionary<uint, List<SlaveInitialItems>> _slaveInitialItems; // PackId and List<Slot/ItemData>
     public Dictionary<uint, SlaveMountSkills> _slaveMountSkills;
+    public Dictionary<uint, uint> _repairableSlaves; // SlaveId, RepairEffectId
 
     private object _slaveListLock;
 
@@ -554,32 +559,7 @@ public class SlaveManager : Singleton<SlaveManager>
             if (item != null && item.HasFlag(ItemFlag.HasUCC) && (item.UccId > 0))
                 doodad.UccId = item.UccId;
 
-            if (_attachPoints.ContainsKey(summonedSlave.ModelId))
-            {
-                if (_attachPoints[summonedSlave.ModelId].ContainsKey(doodadBinding.AttachPointId))
-                {
-                    doodad.Transform = summonedSlave.Transform.CloneAttached(doodad);
-                    doodad.Transform.Parent = summonedSlave.Transform;
-                    doodad.Transform.Local.Translate(
-                        _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId]
-                            .AsPositionVector());
-                    doodad.Transform.Local.SetRotation(
-                        _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Roll,
-                        _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Pitch,
-                        _attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId].Yaw);
-                    Logger.Debug($"Model id: {summonedSlave.ModelId} attachment {doodadBinding.AttachPointId} => " +
-                                 $"pos {_attachPoints[summonedSlave.ModelId][doodadBinding.AttachPointId]} = {doodad.Transform}");
-                }
-                else
-                {
-                    Logger.Warn($"Model id: {summonedSlave.ModelId} incomplete attach point information");
-                }
-            }
-            else
-            {
-                doodad.Transform = new Transform(doodad);
-                Logger.Warn($"Model id: {summonedSlave.ModelId} has no attach point information");
-            }
+            ApplyAttachPointLocation(summonedSlave, doodad, doodadBinding.AttachPointId);
 
             summonedSlave.AttachedDoodads.Add(doodad);
             doodad.Spawn();
@@ -625,27 +605,13 @@ public class SlaveManager : Singleton<SlaveManager>
             childSlave.Transform = summonedSlave.Transform.CloneDetached(childSlave);
             childSlave.Transform.Parent = summonedSlave.Transform;
 
-            if (_attachPoints.ContainsKey(summonedSlave.ModelId))
-            {
-                if (_attachPoints[summonedSlave.ModelId].ContainsKey(slaveBinding.AttachPointId))
-                {
-                    var attachPoint = _attachPoints[summonedSlave.ModelId][slaveBinding.AttachPointId];
-                    // childSlave.AttachPosition = _attachPoints[template.ModelId][(int) slaveBinding.AttachPointId];
-                    childSlave.Transform = summonedSlave.Transform.CloneAttached(childSlave);
-                    childSlave.Transform.Parent = summonedSlave.Transform;
-                    childSlave.Transform.Local.Translate(attachPoint.AsPositionVector());
-                    childSlave.Transform.Local.Rotate(attachPoint.Roll, attachPoint.Pitch, attachPoint.Yaw);
-                }
-                else
-                {
-                    Logger.Warn($"Model id: {summonedSlave.ModelId} incomplete attach point information");
-                }
-            }
+            ApplyAttachPointLocation(summonedSlave, childSlave, slaveBinding.AttachPointId);
 
             summonedSlave.AttachedSlaves.Add(childSlave);
             lock (_slaveListLock)
                 _tlSlaves.Add(childSlave.TlId, childSlave);
             childSlave.Spawn();
+            childSlave.PostUpdateCurrentHp(childSlave, 0, childSlave.Hp, KillReason.Unknown);
         }
 
         lock (_slaveListLock)
@@ -672,7 +638,44 @@ public class SlaveManager : Singleton<SlaveManager>
         // Save to DB
         summonedSlave.Save();
 
+        summonedSlave.PostUpdateCurrentHp(summonedSlave, 0, summonedSlave.Hp, KillReason.Unknown);
+        UpdateSlaveRepairPoints(summonedSlave);
+
         return summonedSlave;
+    }
+
+
+    /// <summary>
+    /// Use loaded attachPoint location and apply them depending on the slave and point
+    /// </summary>
+    /// <param name="slave">Owner</param>
+    /// <param name="baseUnit">GameObject to apply to</param>
+    /// <param name="attachPoint">Location to apply</param>
+    private void ApplyAttachPointLocation(Slave slave, GameObject baseUnit, AttachPointKind attachPoint)
+    {
+        if (_attachPoints.ContainsKey(slave.ModelId))
+        {
+            if (_attachPoints[slave.ModelId].ContainsKey(attachPoint))
+            {
+                baseUnit.Transform = slave.Transform.CloneAttached(baseUnit);
+                baseUnit.Transform.Parent = slave.Transform;
+                baseUnit.Transform.Local.Translate(_attachPoints[slave.ModelId][attachPoint].AsPositionVector());
+                baseUnit.Transform.Local.SetRotation(
+                    _attachPoints[slave.ModelId][attachPoint].Roll,
+                    _attachPoints[slave.ModelId][attachPoint].Pitch,
+                    _attachPoints[slave.ModelId][attachPoint].Yaw);
+                Logger.Debug($"Model id: {slave.ModelId} attachment {attachPoint} => pos {_attachPoints[slave.ModelId][attachPoint]} = {baseUnit.Transform}");
+                return;
+            }
+            else
+            {
+                Logger.Warn($"Model id: {slave.ModelId} incomplete attach point information");
+            }
+        }
+        else
+        {
+            Logger.Warn($"Model id: {slave.ModelId} has no attach point information");
+        }
     }
 
     /// <summary>
@@ -746,6 +749,7 @@ public class SlaveManager : Singleton<SlaveManager>
         }
         _slaveInitialItems = new Dictionary<uint, List<SlaveInitialItems>>();
         _slaveMountSkills = new Dictionary<uint, SlaveMountSkills>();
+        _repairableSlaves = new Dictionary<uint, uint>();
 
         #region SQLLite
 
@@ -777,7 +781,10 @@ public class SlaveManager : Singleton<SlaveManager>
                             SlaveInitialItemPackId = reader.GetUInt32("slave_initial_item_pack_id", 0),
                             SlaveCustomizingId = reader.GetUInt32("slave_customizing_id", 0),
                             Customizable = reader.GetBoolean("customizable", false),
-                            PortalTime = reader.GetFloat("portal_time")
+                            PortalTime = reader.GetFloat("portal_time"),
+                            Hp25DoodadCount = reader.GetInt32("hp25_doodad_count"),
+                            Hp50DoodadCount = reader.GetInt32("hp50_doodad_count"),
+                            Hp75DoodadCount = reader.GetInt32("hp75_doodad_count"),
                         };
                         _slaveTemplates.Add(template.Id, template);
                     }
@@ -916,6 +923,33 @@ public class SlaveManager : Singleton<SlaveManager>
 
             using (var command = connection.CreateCommand())
             {
+                command.CommandText = "SELECT * FROM slave_healing_point_doodads";
+                command.Prepare();
+
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new SlaveDoodadBindings
+                        {
+                            Id = reader.GetUInt32("id"),
+                            OwnerId = reader.GetUInt32("owner_id"),
+                            OwnerType = reader.GetString("owner_type"),
+                            AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id"),
+                            DoodadId = reader.GetUInt32("doodad_id"),
+                            Persist = false,
+                            Scale = 1f
+                        };
+                        if (_slaveTemplates.ContainsKey(template.OwnerId))
+                        {
+                            _slaveTemplates[template.OwnerId].HealingPointDoodads.Add(template);
+                        }
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
                 command.CommandText = "SELECT * FROM slave_bindings";
                 command.Prepare();
 
@@ -994,6 +1028,23 @@ public class SlaveManager : Singleton<SlaveManager>
                     }
                 }
             }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM repairable_slaves";
+                command.Prepare();
+
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        if (!_repairableSlaves.TryAdd(reader.GetUInt32("slave_id"),
+                                reader.GetUInt32("repair_slave_effect_id")))
+                            Logger.Warn($"Duplicate entry for repairable_slaves");
+                    }
+                }
+            }
+
         }
         #endregion
 
@@ -1059,5 +1110,131 @@ public class SlaveManager : Singleton<SlaveManager>
 
         Delete(character, slave.ObjId);
         // slave.Delete();
+    }
+
+    public void RidersEscape(Character player, SkillCastPositionTarget skillCastPositionTarget)
+    {
+        var mySlave = GetActiveSlaveByOwnerObjId(player.ObjId);
+        if (mySlave == null)
+        {
+            Logger.Warn($"{player.Name} using Rider's Escape with no slave active!");
+            return;
+        }
+
+        // NOTE: ObjId and TlId gets retained during Rider's Escape
+
+        // Despawn effect
+        mySlave.BroadcastPacket(new SCSlaveDespawnPacket(mySlave.ObjId), true);
+        mySlave.BroadcastPacket(new SCSlaveRemovedPacket(mySlave.ObjId, mySlave.TlId), true);
+        mySlave.SendPacket(new SCUnitsRemovedPacket(new[] { mySlave.ObjId }));
+
+        // Move location
+        mySlave.SetPosition(skillCastPositionTarget.PosX, skillCastPositionTarget.PosY, skillCastPositionTarget.PosZ, 0f,0f,skillCastPositionTarget.PosRot);
+        // Without this offset, it just doesn't feel right
+        mySlave.Transform.Local.AddDistanceToFront(mySlave.Template.SpawnXOffset / 2f);
+        mySlave.Transform.Local.AddDistanceToRight(mySlave.Template.SpawnYOffset / 2f);
+
+        // Respawn effect
+        mySlave.Hide(); // Hide is needed for it's internals
+        mySlave.Spawn();
+        //mySlave.SendPacket(new SCUnitStatePacket(mySlave));
+        //mySlave.SendPacket(new SCUnitPointsPacket(mySlave.ObjId, mySlave.Hp, mySlave.Mp));
+        //mySlave.SendPacket(new SCSlaveStatePacket(mySlave.ObjId, mySlave.TlId, mySlave.Summoner.Name, mySlave.Summoner.ObjId, mySlave.Id));
+    }
+
+    public void UpdateSlaveRepairPoints(Slave slave)
+    {
+        var hpPercent = slave.Hp * 100 / slave.MaxHp;
+
+        var repairPoints = 0;
+        if (hpPercent is < 100 and >= 75)
+            repairPoints = slave.Template.Hp75DoodadCount;
+        else if (hpPercent is < 75 and >= 50)
+            repairPoints = slave.Template.Hp50DoodadCount;
+        else if (hpPercent is < 50 and >= 25)
+            repairPoints = slave.Template.Hp25DoodadCount;
+        else if (hpPercent < 25)
+            repairPoints = slave.Template.HealingPointDoodads.Count; // Use max points or Hp 25% ?
+
+        // Get Current Count
+        var currentHealPoints = new List<Doodad>();
+        var unUsedHealPoints = new List<AttachPointKind>();
+        foreach (var healBinding in slave.Template.HealingPointDoodads)
+            unUsedHealPoints.Add(healBinding.AttachPointId);
+
+        foreach (var doodad in slave.AttachedDoodads)
+        {
+            if ((doodad.AttachPoint < AttachPointKind.HealPoint0) || (doodad.AttachPoint > AttachPointKind.HealPoint9))
+                continue;
+            currentHealPoints.Add(doodad);
+            unUsedHealPoints.Remove(doodad.AttachPoint);
+        }
+
+        var pointsToAdd = repairPoints - currentHealPoints.Count;
+        if (pointsToAdd < 0)
+        {
+            // We have too many points, remove some
+            for (var iRemove = pointsToAdd; iRemove < 0; iRemove++)
+            {
+                var i = Random.Shared.Next(currentHealPoints.Count);
+                var doodad = currentHealPoints[i];
+                if (doodad == null)
+                    continue;
+
+                doodad.Hide();
+                doodad.Despawn = DateTime.UtcNow;
+                SpawnManager.Instance.AddDespawn(doodad);
+                slave.AttachedDoodads.Remove(doodad);
+                currentHealPoints.Remove(doodad);
+                unUsedHealPoints.Add(doodad.AttachPoint);
+                doodad.Delete();
+            }
+        }
+
+        if ((pointsToAdd > 0) && (unUsedHealPoints.Count > 0))
+        {
+            // We don't have enough points, add some
+            for(var iAdd = 0; (iAdd < pointsToAdd) && (unUsedHealPoints.Count > 0); iAdd++)
+            {
+                // pick a random spot
+                var wreckPointLocation = unUsedHealPoints[Random.Shared.Next(unUsedHealPoints.Count)];
+                unUsedHealPoints.Remove(wreckPointLocation);
+                var healBinding = slave.Template.HealingPointDoodads.FirstOrDefault(p => p.AttachPointId == wreckPointLocation);
+                if (healBinding == null)
+                {
+                    Logger.Error($"Somehow failed to grab a healing point {wreckPointLocation} for {slave.TemplateId}");
+                    return;
+                }
+
+                var wreckArea = new Doodad
+                {
+                    ObjId = ObjectIdManager.Instance.GetNextId(),
+                    TemplateId = healBinding.DoodadId,
+                    OwnerObjId = slave.OwnerObjId,
+                    ParentObjId = slave.ObjId,
+                    AttachPoint = wreckPointLocation,
+                    OwnerId = slave.Summoner?.Id ?? 0,
+                    PlantTime = DateTime.UtcNow,
+                    OwnerType = DoodadOwnerType.Slave,
+                    OwnerDbId = slave.Id,
+                    Template = DoodadManager.Instance.GetTemplate(healBinding.DoodadId),
+                    Data = (byte)wreckPointLocation, // copy of AttachPointId
+                    ParentObj = slave,
+                    Faction = slave.Faction, // FactionManager.Instance.GetFaction(FactionsEnum.Friendly),
+                    Type2 = 1u, // Flag: No idea why it's 1 for slave's doodads, seems to be 0 for everything else
+                    Spawner = null,
+                    IsPersistent = false,
+                };
+
+                wreckArea.SetScale(1f);
+                ApplyAttachPointLocation(slave, wreckArea, wreckPointLocation);
+
+                wreckArea.FuncGroupId = wreckArea.GetFuncGroupId();
+
+                slave.AttachedDoodads.Add(wreckArea);
+                currentHealPoints.Add(wreckArea);
+                wreckArea.Spawn();
+            }
+        }
     }
 }

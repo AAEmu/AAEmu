@@ -20,12 +20,12 @@ public class FishFinderSetSubCommand : SubCommandBase
         string start = parameters["start"];
         if (start == "true")
         {
-            FishSchoolManager.FishFinderStart((Character)character);
+            RadarManager.Instance.RegisterForFishSchool((Character)character, 1000f);
             SendMessage(messageOutput, $"FishFinder set start: true");
         }
         else
         {
-            FishSchoolManager.StopFishFinderTickAsync((Character)character).GetAwaiter().GetResult();
+            RadarManager.Instance.RegisterForFishSchool((Character)character, 0f);
             SendMessage(messageOutput, $"FishFinder set start: false");
         }
 

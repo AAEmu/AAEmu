@@ -74,9 +74,10 @@ public sealed class House : Unit
                 {
                     var doodad = DoodadManager.Instance.Create(0, bindingDoodad.DoodadId, this, true);
                     doodad.AttachPoint = bindingDoodad.AttachPointId;
-                    doodad.Transform.Parent = this.Transform;
-                    doodad.Transform.ApplyWorldSpawnPosition(bindingDoodad.Position);
                     doodad.ParentObj = this;
+                    doodad.Transform = this.Transform.CloneDetached(doodad);
+                    doodad.Transform.Parent = this.Transform;
+                    doodad.Transform.Local.ApplyWorldSpawnPositionWithDeg(bindingDoodad.Position);
                     doodad.InitDoodad();
 
                     AttachedDoodads.Add(doodad);

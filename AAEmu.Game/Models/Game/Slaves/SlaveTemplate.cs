@@ -20,10 +20,14 @@ public class SlaveTemplate
     public uint SlaveCustomizingId { get; set; }
     public bool Customizable { get; set; }
     public float PortalTime { get; set; }
+    public int Hp25DoodadCount { get; set; }
+    public int Hp50DoodadCount { get; set; }
+    public int Hp75DoodadCount { get; set; }
 
     public List<SlaveInitialBuffs> InitialBuffs { get; }
     public List<SlavePassiveBuffs> PassiveBuffs { get; }
     public List<SlaveDoodadBindings> DoodadBindings { get; }
+    public List<SlaveDoodadBindings> HealingPointDoodads { get; }
     public List<SlaveBindings> SlaveBindings { get; }
     public List<SlaveDropDoodad> SlaveDropDoodads { get; }
     public List<BonusTemplate> Bonuses { get; set; }
@@ -33,6 +37,7 @@ public class SlaveTemplate
         InitialBuffs = new List<SlaveInitialBuffs>();
         PassiveBuffs = new List<SlavePassiveBuffs>();
         DoodadBindings = new List<SlaveDoodadBindings>();
+        HealingPointDoodads = new List<SlaveDoodadBindings>();
         SlaveBindings = new List<SlaveBindings>();
         SlaveDropDoodads = new List<SlaveDropDoodad>();
         Bonuses = new List<BonusTemplate>();

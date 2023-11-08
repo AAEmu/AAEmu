@@ -82,6 +82,16 @@ public class Doodad : BaseUnit
     public DoodadTemplate Template { get; set; }
     public override float Scale => _scale;
 
+    public DoodadFuncPermission FuncPermission
+    {
+        get
+        {
+            foreach (var currentFunc in CurrentFuncs)
+                return (DoodadFuncPermission)currentFunc.PermId;
+            return DoodadFuncPermission.Any;
+        }
+    }
+
     public uint FuncGroupId
     {
         get => _funcGroupId;
@@ -237,7 +247,8 @@ public class Doodad : BaseUnit
 
         while (true)
         {
-            if (caster is Character)
+            var player = caster as Character;
+            if (player != null)
                 Logger.Debug("Use: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
             else
                 Logger.Trace("Use: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);

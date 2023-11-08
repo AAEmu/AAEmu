@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
@@ -252,6 +253,9 @@ public class TransferManager : Singleton<TransferManager>
             doodad.Spawn();
             transfer.AttachedDoodads.Add(doodad);
         }
+
+        owner.PostUpdateCurrentHp(owner, 0, owner.Hp, KillReason.Unknown);
+        transfer.PostUpdateCurrentHp(transfer, 0, transfer.Hp, KillReason.Unknown);
 
         return owner;
     }

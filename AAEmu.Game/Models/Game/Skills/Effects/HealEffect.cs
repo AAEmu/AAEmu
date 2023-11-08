@@ -1,10 +1,14 @@
 ﻿using System;
 
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
@@ -118,18 +122,34 @@ public class HealEffect : EffectTemplate
 
         value = (int)(value * ((Unit)caster).HealMul);
 
-        byte healHitType = criticalHeal ? (byte)11 : (byte)13;
+        // Check if Healing is based on proficiency
+        if (caster is Character player && ActabilityGroupId > 0)
+        {
+            // Bonus effect based on skill level
+            if (player.Actability.Actabilities.TryGetValue(ActabilityGroupId, out var actability))
+            {
+                var steps = actability.Point / ActabilityStep;
+                if (ActabilityAdd != 0f)
+                    value += (int)(steps * ActabilityAdd);
+                if (ActabilityMul != 0f)
+                    value += (int)(value * (float)steps * ActabilityMul);
+            }
+        }
 
-        var packet = new SCUnitHealedPacket(castObj, casterObj, target.ObjId, 0, healHitType, value);
+        var healHitType = criticalHeal ? HealHitType.CriticalHealHit : HealHitType.HealHit;
+
+        var packet = new SCUnitHealedPacket(castObj, casterObj, target.ObjId, HealType.Health, healHitType, value);
         if (packetBuilder != null)
             packetBuilder.AddPacket(packet);
         else
             trg.BroadcastPacket(packet, true);
 
+        var oldHp = trg.Hp;
         trg.Hp += value;
         trg.Hp = Math.Min(trg.Hp, trg.MaxHp);
         trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);
 
         trg.Events.OnHealed(this, new OnHealedArgs { Healer = (Unit)caster, HealAmount = value });
+        trg.PostUpdateCurrentHp(trg, oldHp, trg.Hp, KillReason.Unknown);
     }
 }
