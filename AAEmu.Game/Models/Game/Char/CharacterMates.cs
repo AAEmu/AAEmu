@@ -8,7 +8,7 @@ using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
-
+using AAEmu.Game.Models.Game.Units.Static;
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char;
@@ -128,6 +128,7 @@ public class CharacterMates
         mount.Transform.Local.AddDistanceToFront(3f);
         //Logger.Warn($"Spawn the pet:{mount.ObjId} X={mount.Transform.World.Position.X} Y={mount.Transform.World.Position.Y}");
         MateManager.Instance.AddActiveMateAndSpawn(Owner, mount, item);
+        mount.PostUpdateCurrentHp(mount, 0, mount.Hp, KillReason.Unknown);
     }
 
     public void DespawnMate(uint tlId)

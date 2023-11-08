@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Mate;
 
@@ -611,6 +612,8 @@ public sealed class Mate : Unit
             return;
         }
 
+        var oldHp = Hp;
+
         if (IsInBattle)
         {
             Hp += PersistentHpRegen;
@@ -625,6 +628,7 @@ public sealed class Mate : Unit
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
+        PostUpdateCurrentHp(this,oldHp, Hp, KillReason.Unknown);
     }
 
     public void StartUpdateXp(Character Owner)

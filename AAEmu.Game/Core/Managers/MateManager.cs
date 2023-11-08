@@ -188,7 +188,7 @@ public class MateManager : Singleton<MateManager>
         else
         {
             Logger.Warn("UnMountMate. No valid seat entry, mountTlId: {0}, characterObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId,
-                targetObj?.ObjId ?? 0, attachPoint, reason);
+                0, attachPoint, reason);
         }
     }
 

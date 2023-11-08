@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
@@ -56,6 +55,11 @@ public class Slave : Unit
         AttachedDoodads = new List<Doodad>();
         AttachedSlaves = new List<Slave>();
         AttachedCharacters = new Dictionary<AttachPointKind, Character>();
+        HpTriggerPointsPercent.Add(0);
+        HpTriggerPointsPercent.Add(25);
+        HpTriggerPointsPercent.Add(50);
+        HpTriggerPointsPercent.Add(75);
+        HpTriggerPointsPercent.Add(100);
     }
 
     #region Attributes
@@ -615,28 +619,15 @@ public class Slave : Unit
         ReduceCurrentHp(this, damage, killReason);
     }
 
-    public override void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
+    public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
     {
-        if (Hp <= 0)
-            return;
+        base.PostUpdateCurrentHp(attacker, oldHpValue, newHpValue, killReason);
+    }
 
-        var absorptionEffects = Buffs.GetAbsorptionEffects().ToList();
-        if (absorptionEffects.Count > 0)
-        {
-            // Handle damage absorb
-            foreach (var absorptionEffect in absorptionEffects)
-            {
-                value = absorptionEffect.ConsumeCharge(value);
-            }
-        }
-
-        Hp = value < 0 ? Math.Max(Hp + value, 0) : Math.Max(Hp - value, 0);
-
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
-
-        if (Hp > 0) { return; }
-        ((Unit)attacker).Events.OnKill(attacker, new OnKillArgs { target = (Unit)attacker });
-        DoDie(attacker, killReason);
+    protected override void DoHpChangeTrigger(int triggerValue, bool tookDamage, int oldHpValue, int newHpValue)
+    {
+        Logger.Debug($"{Name} from {Summoner?.Name ?? "unknown"}'s HP is now at {triggerValue}%");
+        SlaveManager.Instance.UpdateSlaveRepairPoints(this);
     }
 
     public override void DoDie(BaseUnit killer, KillReason killReason)
@@ -841,6 +832,8 @@ public class Slave : Unit
             return;
         }
 
+        var oldHp = Hp;
+
         if (IsInBattle)
         {
             Hp += PersistentHpRegen;
@@ -855,6 +848,7 @@ public class Slave : Unit
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
+        PostUpdateCurrentHp(this,oldHp, Hp, KillReason.Unknown);
     }
 
 }

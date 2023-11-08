@@ -55,7 +55,9 @@ public class Unit : BaseUnit, IUnit
     }
 
     public byte Level { get; set; }
+
     public int Hp { get; set; }
+
     public DateTime LastCombatActivity { get; set; }
 
     protected bool _isUnderWater;
@@ -65,6 +67,11 @@ public class Unit : BaseUnit, IUnit
         get => _isUnderWater;
         set => _isUnderWater = value;
     }
+
+    /// <summary>
+    /// List of values in the range of 0 -> 100
+    /// </summary>
+    protected List<int> HpTriggerPointsPercent { get; set; } = new();
 
     #region Attributes
 
@@ -296,30 +303,17 @@ public class Unit : BaseUnit, IUnit
     }
 
     /// <summary>
-    /// Make unit take value amount of damage, if the unit dies, killReason is used as a reason
+    /// Make unit take value amount of damage, calls PostReduceCurrentHp() at the end
     /// </summary>
     /// <param name="attacker"></param>
     /// <param name="value"></param>
     /// <param name="killReason"></param>
     public virtual void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
     {
-        if (((Unit)attacker).CurrentTarget is Character character)
-        {
-            if (Hp <= 0 && character.IsInDuel)
-            {
-                Hp = 1; // we don't let you die during a duel
-                return;
-            }
-
-            if (AppConfiguration.Instance.World.GodMode)
-            {
-                Logger.Debug("{1}:{0}'s Damage disabled because of GM or Admin flag", character.Name, character.Id);
-                return; // GodMode On : take 0 damage from Npc
-            }
-        }
-
         if (Hp <= 0)
             return;
+
+        var oldHp = Hp;
 
         var absorptionEffects = Buffs.GetAbsorptionEffects().ToList();
         if (absorptionEffects.Count > 0)
@@ -335,15 +329,63 @@ public class Unit : BaseUnit, IUnit
 
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
 
-        if (Hp > 0) { return; }
-        if (((Unit)attacker).CurrentTarget is Character attacked && attacked.IsInDuel)
+        PostUpdateCurrentHp(attacker, oldHp, Hp, killReason);
+    }
+
+    /// <summary>
+    /// Called at the end of ReduceCurrentHp() and can be overriden and handles things like death
+    /// </summary>
+    /// <param name="attackerBase"></param>
+    /// <param name="oldHpValue"></param>
+    /// <param name="newHpValue"></param>
+    /// <param name="killReason"></param>
+    public virtual void PostUpdateCurrentHp(BaseUnit attackerBase, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
+    {
+        // If Hp triggers are set up, do the calculations for them
+        if (HpTriggerPointsPercent.Count > 0)
         {
-            Hp = 1; // we don't let you die during a duel
-            return;
+            var oldHpP = (int)Math.Round(oldHpValue * 100f / MaxHp);
+            var newHpP = (int)Math.Round(newHpValue * 100f / MaxHp);
+
+            if (oldHpP > newHpP)
+            {
+                // Took damage, check downwards
+                foreach (var triggerValue in HpTriggerPointsPercent)
+                {
+                    if ((oldHpP > triggerValue) && (newHpP <= triggerValue))
+                    {
+                        DoHpChangeTrigger(triggerValue, true, oldHpValue, newHpValue);
+                        break;
+                    }
+                }
+            }
+
+            if (oldHpP < newHpP)
+            {
+                // Healed, check upwards
+                foreach (var triggerValue in HpTriggerPointsPercent)
+                {
+                    if ((oldHpP < triggerValue) && (newHpP >= triggerValue))
+                    {
+                        DoHpChangeTrigger(triggerValue, false, oldHpValue, newHpValue);
+                        break;
+                    }
+                }
+            }
         }
 
-        ((Unit)attacker).Events.OnKill(attacker, new OnKillArgs { target = (Unit)attacker });
-        DoDie(attacker, killReason);
+        if (Hp > 0)
+            return;
+
+        if (attackerBase is Unit attackerUnit)
+            attackerUnit.Events.OnKill(attackerUnit, new OnKillArgs { target = attackerUnit });
+
+        DoDie(attackerBase, killReason);
+    }
+
+    protected virtual void DoHpChangeTrigger(int triggerValue, bool tookDamage, int oldHpValue, int newHpValue)
+    {
+        // Do nothing by default
     }
 
     public virtual void ReduceCurrentMp(BaseUnit unit, int value)

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
+using System.Net.Mime;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -25,6 +26,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
@@ -1648,6 +1650,28 @@ public partial class Character : Unit, ICharacter
         get { return (Breath <= 0); }
     }
 
+    public override void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
+    {
+        if (AppConfiguration.Instance.World.GodMode)
+        {
+            Logger.Debug($"{Name}'s damage disabled because of GodMode flag (normal damage: {value})");
+            return; // GodMode On : take no damage at all
+        }
+
+        base.ReduceCurrentHp(attacker, value, killReason);
+    }
+
+    public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
+    {
+        if (IsInDuel)
+        {
+            Hp = 1; // we don't let you die during a duel
+            return;
+        }
+
+        base.PostUpdateCurrentHp(attacker, oldHpValue, newHpValue, killReason);
+    }
+
     public void DoChangeBreath()
     {
         if (IsDrowning)
@@ -1740,6 +1764,8 @@ public partial class Character : Unit, ICharacter
             return;
         }
 
+        var oldHp = Hp;
+
         if (IsInBattle)
         {
             Hp += PersistentHpRegen;
@@ -1761,6 +1787,7 @@ public partial class Character : Unit, ICharacter
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
+        PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
 
     /// <summary>
@@ -1875,6 +1902,7 @@ public partial class Character : Unit, ICharacter
                     if (character.Mp > character.MaxMp)
                         character.Mp = character.MaxMp;
                     character.CheckExp();
+                    character.PostUpdateCurrentHp(character, 0, character.Hp, KillReason.Unknown);
                 }
             }
         }
@@ -1983,6 +2011,7 @@ public partial class Character : Unit, ICharacter
                     if (character.Mp > character.MaxMp)
                         character.Mp = character.MaxMp;
                     character.CheckExp();
+                    character.PostUpdateCurrentHp(character, 0, character.Hp, KillReason.Unknown);
                 }
             }
         }

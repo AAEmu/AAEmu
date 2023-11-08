@@ -6,6 +6,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCSchoolOfFishDoodadsPacket : GamePacket
 {
+    public override PacketLogLevel LogLevel => PacketLogLevel.Off;
+
     private readonly bool _last;
     private readonly Doodad[] _transfers;
 

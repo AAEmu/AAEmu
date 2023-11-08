@@ -356,4 +356,17 @@ public class PositionAndRotation
 
         return (newX, newY, newZ);
     }
+
+    public void ApplyWorldSpawnPosition(WorldSpawnPosition wsp)
+    {
+        Position = new Vector3(wsp.X, wsp.Y, wsp.Z);
+        Rotation = new Vector3(wsp.Roll, wsp.Pitch, wsp.Yaw);
+    }
+
+    public void ApplyWorldSpawnPositionWithDeg(WorldSpawnPosition wsp)
+    {
+        Position = new Vector3(wsp.X, wsp.Y, wsp.Z);
+        Rotation = new Vector3(wsp.Roll.DegToRad(), wsp.Pitch.DegToRad(), wsp.Yaw.DegToRad());
+    }
+
 }
