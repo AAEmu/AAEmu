@@ -1,6 +1,5 @@
 ﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -16,7 +15,9 @@ public class QuestActSupplySelectiveItem : QuestActTemplate
         Logger.Warn("QuestActSupplySelectiveItem");
 
         quest.QuestRewardItemsPool.Add(new ItemCreationDefinition(ItemId, Count, GradeId));
-        character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId, 0);
+        // предмет будет добавлен в методе DistributeRewards()
+        // the item will be added in the DistributeRewards() method
+        //character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId, 0);
 
         return true;
     }
