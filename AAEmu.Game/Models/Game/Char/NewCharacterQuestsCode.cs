@@ -192,7 +192,7 @@ public partial class CharacterQuests
     {
         //lock (_lock)
         {
-            var args = eventArgs as OnReportNpcArgs;
+            var args = eventArgs as OnReportDoodadArgs;
             if (args == null)
                 throw new NotImplementedException();
 
