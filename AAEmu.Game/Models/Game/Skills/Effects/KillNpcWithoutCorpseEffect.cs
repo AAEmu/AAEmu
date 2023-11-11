@@ -26,9 +26,10 @@ public class KillNpcWithoutCorpseEffect : EffectTemplate
         Logger.Trace("KillNpcWithoutCorpseEffect");
 
         if (caster is Character) { return; } // does not apply to the character
-        if (Vanish && Radius == 0)
+        if (Vanish)
         {
             // Fixed: "Trainer Daru" disappears after selling a bear
+            // quest 3449, buff=4112
             RemoveEffectsAndDelete((Unit)caster);
         }
         else

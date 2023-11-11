@@ -282,9 +282,10 @@ public abstract class QuestState
                 case "QuestActObjExpressFire":
                     {
                         if (eventArgs is not OnExpressFireArgs args) { return false; }
+                        var expressKeyId = ExpressTextManager.Instance.GetExpressAnimId(args.EmotionId);
                         var template = act.GetTemplate<QuestActObjExpressFire>(); // для доступа к переменным требуется привидение к нужному типу
                         // сначала проверим, может быть не то, что надо по квесту
-                        if (template.ExpressKeyId != args.EmotionId) { return false; }
+                        if (template.ExpressKeyId != expressKeyId) { return false; }
                         break;
                     }
                 case "QuestActObjAggro":
