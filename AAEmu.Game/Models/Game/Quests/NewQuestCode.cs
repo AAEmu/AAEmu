@@ -1223,7 +1223,7 @@ public partial class Quest : PacketMarshaler
     }
     public void OnCraftHandler(object sender, EventArgs eventArgs)
     {
-        // Quest: 6024
+        // Quest: 6024, 4666, 4667, 4668, 4669
         var args = eventArgs as OnCraftArgs;
         if (args == null)
         {

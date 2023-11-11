@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Threading.Tasks;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
@@ -12,7 +11,6 @@ using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Models;
@@ -774,7 +772,8 @@ public class Npc : Unit
             }
             //character.Quests.OnKill(this);
             // инициируем событие
-            Task.Run(() => QuestManager.Instance.DoOnMonsterHuntEvents(character, this));
+            //Task.Run(() => QuestManager.Instance.DoOnMonsterHuntEvents(character, this));
+            QuestManager.Instance.DoOnMonsterHuntEvents(character, this);
         }
 
         Spawner?.DecreaseCount(this);
@@ -849,7 +848,8 @@ public class Npc : Unit
         }
         //player?.Quests.OnAggro(this);
         // инициируем событие
-        Task.Run(() => QuestManager.Instance.DoOnAggroEvents(player, this));
+        //Task.Run(() => QuestManager.Instance.DoOnAggroEvents(player, this));
+        QuestManager.Instance.DoOnAggroEvents(player, this);
     }
 
     public void ClearAggroOfUnit(Unit unit)

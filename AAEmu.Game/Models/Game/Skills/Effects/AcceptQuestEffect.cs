@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
@@ -47,7 +46,8 @@ public class AcceptQuestEffect : EffectTemplate
                     // Immediately add the source using a OnItemGather event
                     //character.Quests.OnItemGather(item, item.Count);
                     // инициируем событие
-                    Task.Run(() => QuestManager.Instance.DoAcquiredEvents(character, item.TemplateId, item.Count));
+                    //Task.Run(() => QuestManager.Instance.DoAcquiredEvents(character, item.TemplateId, item.Count));
+                    QuestManager.Instance.DoAcquiredEvents(character, item.TemplateId, item.Count);
 
                     Logger.Debug($"Replaced quest from starter item {item.Id} (template:{item.Template.Id}) to use QuestId {itemQuestId} instead of {QuestId} for player {character.Name}");
                     return;

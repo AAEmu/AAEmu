@@ -131,7 +131,7 @@ public abstract class QuestState
                     // Должны быть выполнены все компоненты
                     // All components must be executed
                     results = Quest.ProgressStepResults.All(b => b);
-                    Logger.Info($"Quest: {Quest.TemplateId}, Step={Quest.Step}, stage {componentIndex} all stages completed with result {results}.");
+                    Logger.Info($"Quest: {Quest.TemplateId}, Step={Quest.Step}, stage {componentIndex} with result {complete}, all components must be executed.");
                 }
                 else if (complete && score == 0 && componentIndex == count - 1 && count > 1 && !letItDone)
                 {
@@ -987,13 +987,13 @@ public class QuestProgressState : QuestState
                         {
                             // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет
                             // we need to look in the inventory, because we don't know yet if the item is in the inventory or not
-                            res = CheckCount(act);
-                            //result2 = act.Template.IsCompleted();
-                            if (res)
-                            {
-                                results2.Add(true); // уже выполнили задание, выход
-                                break;
-                            }
+                            //res = CheckCount(act);
+                            ////result2 = act.Template.IsCompleted();
+                            //if (res)
+                            //{
+                            //    results2.Add(true); // уже выполнили задание, выход
+                            //    break;
+                            //}
 
                             // подписка одна на всех
                             Quest.Owner.Events.OnCraft -= Quest.Owner.Quests.OnCraftHandler;
@@ -1060,7 +1060,7 @@ public class QuestProgressState : QuestState
         // wait for all step components to complete...
         Quest.Status = QuestStatus.Progress;
         Quest.Condition = QuestConditionObj.Ready;
-        //Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
+        Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
         Logger.Info($"[QuestProgressState][Complete] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
         return false;
     }

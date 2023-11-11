@@ -1,10 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
-using System.Threading.Tasks;
-using System.Net.Mime;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -31,6 +30,7 @@ using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
+
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char;
@@ -1279,7 +1279,11 @@ public partial class Character : Unit, ICharacter
 
         //Quests.OnLevelUp(); // TODO added for quest Id=5967
         // инициируем событие
-        Task.Run(() => QuestManager.Instance.DoOnLevelUpEvents(Connection.ActiveChar));
+        //Task.Run(() => QuestManager.Instance.DoOnLevelUpEvents(Connection.ActiveChar));
+        if (Connection != null)
+        {
+            QuestManager.Instance.DoOnLevelUpEvents(Connection.ActiveChar);
+        }
     }
 
     public void CheckLevelUp()

@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -26,7 +25,8 @@ public class DoodadFuncQuest : DoodadFuncTemplate
             {
                 //character.Quests.OnReportToDoodad(owner.ObjId, QuestId, 0);
                 // инициируем событие
-                Task.Run(() => QuestManager.Instance.DoReportEvents(character, QuestId, 0, owner.TemplateId, 0));
+                //Task.Run(() => QuestManager.Instance.DoReportEvents(character, QuestId, 0, owner.TemplateId, 0));
+                QuestManager.Instance.DoReportEvents(character, QuestId, 0, owner.TemplateId, 0);
             }
         }
     }

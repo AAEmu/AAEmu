@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Threading.Tasks;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
@@ -62,7 +62,8 @@ public class SphereQuestTrigger
                 {
                     //trigger.Owner.Quests.OnEnterSphere(trigger.Sphere);
                     // инициируем событие
-                    Task.Run(() => QuestManager.Instance.DoOnEnterSphereEvents((Character)trigger.Owner, trigger.Sphere));
+                    //Task.Run(() => QuestManager.Instance.DoOnEnterSphereEvents((Character)trigger.Owner, trigger.Sphere));
+                    QuestManager.Instance.DoOnEnterSphereEvents((Character)trigger.Owner, trigger.Sphere);
 
                     SphereQuestManager.Instance.RemoveSphereQuestTrigger(trigger);
                 }
