@@ -153,7 +153,7 @@ public class Skill
         // Get a TlId for this skill
         TlId = SkillTlIdManager.GetNextId(caster);
         // if (caster is Character)
-        Logger.Trace($"Created SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.ObjId}) with target {target.Name} ({target.ObjId})");
+        Logger.Trace($"Created SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
 
         // If skill uses Plots, then start the plot
         if (Template.Plot != null)

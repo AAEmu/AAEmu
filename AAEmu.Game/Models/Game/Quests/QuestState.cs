@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Units;
@@ -302,6 +303,60 @@ public abstract class QuestState
                         var template = act.GetTemplate<QuestActObjTalk>(); // для доступа к переменным требуется привидение к нужному типу
                         // сначала проверим, может быть не то, что надо по квесту
                         if (template?.NpcId != args.NpcId) { return false; }
+                        switch (component.NpcAiId)
+                        {
+                            case QuestNpcAiName.FollowPath:
+                                {
+                                    var route = component.AiPathName;
+                                    var npcs = WorldManager.Instance.GetAllNpcs();
+                                    foreach (var npc in npcs)
+                                    {
+                                        if (npc.TemplateId != template.NpcId) { continue; }
+                                        if (npc.IsInPatrol) { break; }
+                                        switch (component.AiPathTypeId)
+                                        {
+                                            case PathType.Remove:
+                                                npc.Simulation.Cycle = false;
+                                                npc.Simulation.Remove = true;
+                                                npc.IsInPatrol = true;
+                                                npc.Simulation.RunningMode = true;
+                                                npc.Simulation.MoveToPathEnabled = false;
+                                                npc.Simulation.MoveFileName = route;
+                                                npc.Simulation.GoToPath(npc, true);
+                                                break;
+                                            case PathType.None:
+                                                break;
+                                            case PathType.Idle:
+                                                break;
+                                            case PathType.Loop:
+                                                npc.Simulation.Cycle = true;
+                                                npc.Simulation.Remove = false;
+                                                npc.IsInPatrol = true;
+                                                npc.Simulation.RunningMode = true;
+                                                npc.Simulation.MoveToPathEnabled = false;
+                                                npc.Simulation.MoveFileName = route;
+                                                npc.Simulation.GoToPath(npc, true);
+                                                break;
+                                            default:
+                                                throw new NotSupportedException(nameof(component.AiPathTypeId));
+                                        }
+                                        break;
+                                    }
+                                    break;
+                                }
+                            case QuestNpcAiName.None:
+                                break;
+                            case QuestNpcAiName.FollowUnit:
+                                break;
+                            case QuestNpcAiName.AttackUnit:
+                                break;
+                            case QuestNpcAiName.GoAway:
+                                break;
+                            case QuestNpcAiName.RunCommandSet:
+                                break;
+                            default:
+                                throw new NotSupportedException(nameof(component.NpcAiId));
+                        }
                         break;
                     }
                 case "QuestActObjTalkNpcGroup":
@@ -310,6 +365,60 @@ public abstract class QuestState
                         var template = act.GetTemplate<QuestActObjTalkNpcGroup>(); // для доступа к переменным требуется привидение к нужному типу
                         // сначала проверим, может быть не то, что надо по квесту
                         if (template.NpcGroupId != args.NpcGroupId) { return false; }
+                        switch (component.NpcAiId)
+                        {
+                            case QuestNpcAiName.FollowPath:
+                                {
+                                    var route = component.AiPathName;
+                                    var npcs = WorldManager.Instance.GetAllNpcs();
+                                    foreach (var npc in npcs)
+                                    {
+                                        if (npc.TemplateId != template.NpcGroupId) { continue; }
+                                        if (npc.IsInPatrol) { break; }
+                                        switch (component.AiPathTypeId)
+                                        {
+                                            case PathType.Remove:
+                                                npc.Simulation.Cycle = false;
+                                                npc.Simulation.Remove = true;
+                                                npc.IsInPatrol = true;
+                                                npc.Simulation.RunningMode = true;
+                                                npc.Simulation.MoveToPathEnabled = false;
+                                                npc.Simulation.MoveFileName = route;
+                                                npc.Simulation.GoToPath(npc, true);
+                                                break;
+                                            case PathType.None:
+                                                break;
+                                            case PathType.Idle:
+                                                break;
+                                            case PathType.Loop:
+                                                npc.Simulation.Cycle = true;
+                                                npc.Simulation.Remove = false;
+                                                npc.IsInPatrol = true;
+                                                npc.Simulation.RunningMode = true;
+                                                npc.Simulation.MoveToPathEnabled = false;
+                                                npc.Simulation.MoveFileName = route;
+                                                npc.Simulation.GoToPath(npc, true);
+                                                break;
+                                            default:
+                                                throw new NotSupportedException(nameof(component.AiPathTypeId));
+                                        }
+                                        break;
+                                    }
+                                    break;
+                                }
+                            case QuestNpcAiName.None:
+                                break;
+                            case QuestNpcAiName.FollowUnit:
+                                break;
+                            case QuestNpcAiName.AttackUnit:
+                                break;
+                            case QuestNpcAiName.GoAway:
+                                break;
+                            case QuestNpcAiName.RunCommandSet:
+                                break;
+                            default:
+                                throw new NotSupportedException(nameof(component.NpcAiId));
+                        }
                         break;
                     }
                 case "QuestActConReportNpc":

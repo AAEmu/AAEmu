@@ -167,7 +167,10 @@ public class NpcSpawner : Spawner<Npc>
         foreach (var spawnerId in npcSpawnerIds)
         {
             var template = NpcGameData.Instance.GetNpcSpawnerTemplate(spawnerId);
-
+            if (template == null)
+            {
+                return;
+            }
             // если это первый старт сервера, то спавним только - NpcSpawnerCategory.Autocreated;
             // if this is the first start of the server, then only spawn - NpcSpawnerCategory.Autocreated;
             if (template.NpcSpawnerCategoryId != NpcSpawnerCategory.Autocreated && npcSpawnerIds.Count > 1 && beginning)

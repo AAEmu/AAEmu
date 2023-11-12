@@ -21,7 +21,7 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        Logger.Debug("NpcSpawnerSpawnEffect");
+        Logger.Info($"NpcSpawnerSpawnEffect SpawnerId={SpawnerId}, LifeTime={LifeTime}, UseSummonerAggroTarget={UseSummonerAggroTarget}, ActivationState={ActivationState}");
 
         var spawners = SpawnManager.Instance.GetNpcSpawner(SpawnerId, (byte)caster.Transform.WorldId);
         foreach (var spawner in spawners)
