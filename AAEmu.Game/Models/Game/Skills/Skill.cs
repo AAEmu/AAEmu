@@ -652,6 +652,13 @@ public class Skill
             doodad.Spawn();
         }
 
+        // TODO: добавил, так как для квеста 3469 нет события OnItemUse
+        // TODO: added since there is no OnItemUse event for quest 3469
+        if (casterCaster is SkillItem { ItemTemplateId: > 0 } item && caster is Character player)
+        {
+            player.Inventory.ConsumeItem(null, ItemTaskType.SkillReagents, item.ItemTemplateId, 1, null);
+        }
+
         caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
         unit.SkillTask = new EndChannelingTask(this, caster, casterCaster, target, targetCaster, skillObject, doodad);
         TaskManager.Instance.Schedule(unit.SkillTask, TimeSpan.FromMilliseconds(Template.ChannelingTime));
