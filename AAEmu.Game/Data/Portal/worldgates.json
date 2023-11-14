@@ -195,5 +195,15 @@
         "Z": 557.7,
         "Yaw": 100.0,
         "SubZoneId": 730
+    },
+    {
+        "Id": 389,
+        "Name": "Respawn: Q3478, buff=3640 - Twisted Space",
+        "ZoneId": 160,
+        "X": 21204.3,
+        "Y": 10428.6,
+        "Z": 107.5,
+        "Yaw": -70.5,
+        "SubZoneId": 1030
     }
 ]

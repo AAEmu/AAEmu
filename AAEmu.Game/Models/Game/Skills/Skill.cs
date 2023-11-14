@@ -941,7 +941,16 @@ public class Skill
         {
             //Template can be null for some reason..
             if (item.effect.Template != null)
-                item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                if (item.effect.Template is KillNpcWithoutCorpseEffect nsse)
+                {
+                    // для квеста 3478, требуется чтобы caster был Npc
+                    var npc = WorldManager.Instance.GetNpcByTemplateId(nsse.NpcId);
+                    item.effect.Template.Apply(npc, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                }
+                else
+                {
+                    item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                }
             else
                 Logger.Error($"Template not found for Skill[{Template.Id}] Effect[{item.effect.EffectId}]");
         }

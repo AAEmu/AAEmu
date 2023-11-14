@@ -25,7 +25,7 @@ public class Return : SpecialEffectAction
         int value4)
     {
         // TODO ...
-        if (caster is Character) { Logger.Debug("Special effects: Return value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is Character) { Logger.Info("Special effects: Return value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
         if (caster is not Character character) { return; }
         uint returnPointId;
