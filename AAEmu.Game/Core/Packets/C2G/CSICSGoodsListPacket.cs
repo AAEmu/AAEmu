@@ -20,12 +20,12 @@ public class CSICSGoodsListPacket : GamePacket
         var page = stream.ReadUInt16();
 
         var items = CashShopManager.Instance.GetCashShopItems(mainTabId, subTabId, page);
-        bool featured = (mainTabId == 1) && (subTabId == 1);//Im sure there is another way to check this..
-        int maxPerPage = featured ? 4 : 8;
+        var featured = (mainTabId == 1) && (subTabId == 1); //Im sure there is another way to check this..
+        var maxPerPage = featured ? 4 : 8;
         var numPages = (ushort)Math.Ceiling((float)items.Count / maxPerPage);
         var pageItems = items.Skip(maxPerPage * (page - 1)).Take(maxPerPage).ToList();
 
-        int i = 0;
+        var i = 0;
         foreach (var item in pageItems)
         {
             i++;
