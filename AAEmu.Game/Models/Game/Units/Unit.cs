@@ -823,7 +823,8 @@ public class Unit : BaseUnit, IUnit
     /// <param name="factionId"></param>
     public void SetFaction(uint factionId)
     {
-        // if (this is Character) { return; } // do not change the faction for the character
+        if (this is Character) { return; } // do not change the faction for the character
+        Logger.Info($"SetFaction: npc={TemplateId}:{ObjId}, factionId={factionId}");
         BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
         Faction = FactionManager.Instance.GetFaction(factionId);
 
@@ -833,6 +834,7 @@ public class Unit : BaseUnit, IUnit
         var characters = WorldManager.GetAround<Character>(npc, 5.0f);
         foreach (var character in characters.Where(CanAttack))
         {
+            Logger.Info($"SetFaction: npc={TemplateId}:{ObjId} attack the character={character.Name}:{character.TemplateId}:{character.ObjId}");
             npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, character, 1);
             npc.Ai.OnAggroTargetChanged();
             npc.Ai.GoToCombat();
