@@ -65,7 +65,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
             {
                 // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
                 var newZ = WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position.X, npcSpawner.Position.Y);
-                if (Math.Abs(npcSpawner.Position.Z - newZ) <= 2f)
+                if (Math.Abs(npcSpawner.Position.Z - newZ) < 1f)
                 {
                     npcSpawner.Position.Z = newZ;
                 }
