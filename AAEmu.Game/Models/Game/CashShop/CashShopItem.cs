@@ -1,5 +1,6 @@
 ﻿using System;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.CashShop;
 
@@ -14,13 +15,30 @@ public class CashShopItem : PacketMarshaler
     public uint ItemTemplateId { get; set; }
     public byte IsSell { get; set; }
     public byte IsHidden { get; set; }
-    public byte LimitType { get; set; }
-    public ushort BuyCount { get; set; }
-    public byte BuyType { get; set; }
-    public uint BuyId { get; set; }
+
+    /// <summary>
+    /// Used to limit sales by a amount per type
+    /// </summary>
+    public CashShopLimitType LimitType { get; set; }
+
+    /// <summary>
+    /// Amount to limit to for LimitType
+    /// </summary>
+    public ushort BuyLimitCount { get; set; }
+
+    /// <summary>
+    /// If restricted, the shop will not show the contents of the entry until it's unlocked
+    /// </summary>
+    public CashShopRestrictSaleType BuyRestrictType { get; set; }
+
+    /// <summary>
+    /// Id to use for BuyRestrictType, either character level or quest id
+    /// </summary>
+    public uint BuyRestrictId { get; set; }
+
     public DateTime SDate { get; set; }
     public DateTime EDate { get; set; }
-    public byte Type { get; set; }
+    public CashShopCurrencyType CurrencyType { get; set; }
     public uint Price { get; set; }
     public uint Remain { get; set; }
     public int BonusType { get; set; }
@@ -38,13 +56,13 @@ public class CashShopItem : PacketMarshaler
         stream.Write(ItemTemplateId);
         stream.Write(IsSell);
         stream.Write(IsHidden);
-        stream.Write(LimitType);
-        stream.Write(BuyCount);
-        stream.Write(BuyType);
-        stream.Write(BuyId);
+        stream.Write((byte)LimitType);
+        stream.Write(BuyLimitCount);
+        stream.Write((byte)BuyRestrictType);
+        stream.Write(BuyRestrictId);
         stream.Write(SDate);
         stream.Write(EDate);
-        stream.Write(Type);
+        stream.Write((byte)CurrencyType);
         stream.Write(Price);
         stream.Write(Remain);
         stream.Write(BonusType);

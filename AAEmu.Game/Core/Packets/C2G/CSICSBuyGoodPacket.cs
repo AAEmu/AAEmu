@@ -78,7 +78,7 @@ public class CSICSBuyGoodPacket : GamePacket
             {
                 var items = new List<Item>();
                 // TODO: Add grade option to the cash shop items to be able to overwrite the grades ?
-                items.Add(ItemManager.Instance.Create(ci.ItemTemplateId, (int)(ci.BuyCount + ci.BonusCount), 0, true));
+                items.Add(ItemManager.Instance.Create(ci.ItemTemplateId, (int)(ci.BuyLimitCount + ci.BonusCount), 0, true));
                 var mail = new CommercialMail(targetChar.Id, targetChar.Name, thisChar.Name, items, targetChar != thisChar, false, ci.CashName);
                 mail.FinalizeMail();
                 if (!mail.Send())

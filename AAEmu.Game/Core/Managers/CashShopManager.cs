@@ -5,6 +5,7 @@ using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.CashShop;
+using AAEmu.Game.Models.StaticValues;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -139,14 +140,14 @@ public class CashShopManager : Singleton<CashShopManager>
 
             cashShopItem.IsSell = reader.GetByte("is_sell");
             cashShopItem.IsHidden = reader.GetByte("is_hidden");
-            cashShopItem.LimitType = reader.GetByte("limit_type");
-            cashShopItem.BuyCount = reader.GetUInt16("buy_count");
-            cashShopItem.BuyType = reader.GetByte("buy_type");
-            cashShopItem.BuyId = reader.GetUInt32("buy_id");
+            cashShopItem.LimitType = (CashShopLimitType)reader.GetByte("limit_type");
+            cashShopItem.BuyLimitCount = reader.GetUInt16("buy_count");
+            cashShopItem.BuyRestrictType = (CashShopRestrictSaleType)reader.GetByte("buy_type");
+            cashShopItem.BuyRestrictId = reader.GetUInt32("buy_id");
             cashShopItem.SDate = reader.GetDateTime("start_date");
             cashShopItem.EDate = reader.GetDateTime("end_date");
 
-            cashShopItemDetail.PriceType = cashShopItem.Type = reader.GetByte("type");
+            cashShopItemDetail.CurrencyType = cashShopItem.CurrencyType = (CashShopCurrencyType)reader.GetByte("type");
             cashShopItemDetail.Price = cashShopItem.Price = reader.GetUInt32("price");
 
             cashShopItem.Remain = reader.GetUInt32("remain");
@@ -206,5 +207,60 @@ public class CashShopManager : Singleton<CashShopManager>
         foreach (var character in WorldManager.Instance.GetAllCharacters())
             character?.SendPacket(new SCSomeKindOfICSMaintenanceModePacket());
         */
+    }
+
+    public void DebugShopLoad()
+    {
+        CashShopItem = new List<CashShopItem>();
+        CashShopItemDetail = new Dictionary<uint, CashShopItemDetail>();
+
+        for (var i = 0u; i < 16; i++)
+        {
+            var cashShopItem = new CashShopItem();
+            var cashShopItemDetail = new CashShopItemDetail();
+
+            var testItem = 28297u;
+
+            cashShopItemDetail.CashShopId = cashShopItem.CashShopId = 1000 + i;
+            cashShopItemDetail.CashUniqId = 1000 + i;
+
+            cashShopItem.CashName = LocalizationManager.Instance.Get("items", "name", testItem, "Unnamed");
+            cashShopItem.MainTab = 1;
+            cashShopItem.SubTab = (byte)(1 + i / 6);
+            cashShopItem.LevelMin = 0;
+            cashShopItem.LevelMax = 0;
+
+            cashShopItemDetail.ItemTemplateId = cashShopItem.ItemTemplateId = testItem;
+
+            cashShopItem.IsSell = 0;
+            cashShopItem.IsHidden = 0;
+            cashShopItemDetail.ItemCount = 1 + (i % 10);
+            cashShopItem.LimitType = (CashShopLimitType)(i % 3);
+            cashShopItem.BuyLimitCount = 5;
+            cashShopItem.BuyRestrictType = CashShopRestrictSaleType.None;
+            cashShopItem.BuyRestrictId = 0;
+            cashShopItem.SDate = DateTime.MinValue;
+            cashShopItem.EDate = DateTime.MinValue;
+
+            cashShopItemDetail.CurrencyType = cashShopItem.CurrencyType = CashShopCurrencyType.Credits;
+            cashShopItemDetail.Price = cashShopItem.Price = 1100 + i;
+            cashShopItemDetail.DisPrice = 2000;
+
+            cashShopItem.Remain = 0;
+            cashShopItem.BonusType = 0;
+            cashShopItem.BonusCount = 0;
+            cashShopItem.CmdUi = 0;
+
+            cashShopItemDetail.SelectType = 0;
+            cashShopItemDetail.DefaultFlag = 0;
+            cashShopItemDetail.EventType = 0;
+            cashShopItemDetail.EventDate = DateTime.MinValue;
+            cashShopItemDetail.DisPrice = 0;
+
+            cashShopItem.Remain = (cashShopItem.SubTab == 1) ? 250u : 0u;
+
+            CashShopItem.Add(cashShopItem);
+            CashShopItemDetail.Add(cashShopItem.CashShopId, cashShopItemDetail);
+        }
     }
 }

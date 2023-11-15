@@ -1,5 +1,6 @@
 ﻿using System;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.CashShop;
 
@@ -8,12 +9,15 @@ public class CashShopItemDetail : PacketMarshaler
     public uint CashShopId { get; set; }
     public uint CashUniqId { get; set; }
     public uint ItemTemplateId { get; set; }
+    /// <summary>
+    /// Actual item count sold for this entry
+    /// </summary>
     public uint ItemCount { get; set; }
     public byte SelectType { get; set; }
     public byte DefaultFlag { get; set; }
     public byte EventType { get; set; }
     public DateTime EventDate { get; set; }
-    public byte PriceType { get; set; }
+    public CashShopCurrencyType CurrencyType { get; set; }
     public uint Price { get; set; }
     public uint DisPrice { get; set; }
     public uint BonusType { get; set; }
@@ -29,7 +33,7 @@ public class CashShopItemDetail : PacketMarshaler
         stream.Write(DefaultFlag);
         stream.Write(EventType);
         stream.Write(EventDate);
-        stream.Write(PriceType);
+        stream.Write((byte)CurrencyType);
         stream.Write(Price);
         stream.Write(DisPrice);
         stream.Write(BonusType);

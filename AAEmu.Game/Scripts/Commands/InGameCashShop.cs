@@ -16,7 +16,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "<on||off||reload>";
+            return "<on||off||reload||debug>";
         }
 
         public string GetCommandHelpText()
@@ -53,6 +53,17 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         CashShopManager.Instance.Load();
                         character.SendMessage(ChatType.System, $"[InGameCashShop] Items reloaded");
+                    }
+                    break;
+                case "debug":
+                    if (CashShopManager.Instance.Enabled)
+                    {
+                        character.SendMessage(ChatType.System, $"[InGameCashShop] First disable the shop before reloading it");
+                    }
+                    else
+                    {
+                        CashShopManager.Instance.DebugShopLoad();
+                        character.SendMessage(ChatType.System, $"[InGameCashShop] Debug Shop Loaded");
                     }
                     break;
                 default:
