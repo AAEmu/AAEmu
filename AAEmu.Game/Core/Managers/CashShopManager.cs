@@ -4,6 +4,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.CashShop;
 using AAEmu.Game.Models.StaticValues;
 using NLog;
@@ -151,9 +152,9 @@ public class CashShopManager : Singleton<CashShopManager>
             cashShopItemDetail.Price = cashShopItem.Price = reader.GetUInt32("price");
 
             cashShopItem.Remain = reader.GetUInt32("remain");
-            cashShopItem.BonusType = reader.GetInt32("bonus_type");
+            cashShopItem.BonusType = reader.GetUInt32("bonus_type");
             cashShopItem.BonusCount = reader.GetUInt32("bouns_count"); // Yes, that is a typo, please leave it
-            cashShopItem.CmdUi = reader.GetByte("cmd_ui");
+            cashShopItem.CmdUi = (CashShopCmdUiType)reader.GetByte("cmd_ui");
 
             cashShopItemDetail.ItemCount = reader.GetUInt32("item_count");
             cashShopItemDetail.SelectType = reader.GetByte("select_type");
@@ -200,13 +201,8 @@ public class CashShopManager : Singleton<CashShopManager>
     public void DisableShop()
     {
         Enabled = false;
-        // Send packet to all users to notify it's offline?
-        // If the shop was already opened before, the client will not request a new menu listing
-        // We need to somehow let them know it's offline
-        /*
         foreach (var character in WorldManager.Instance.GetAllCharacters())
-            character?.SendPacket(new SCSomeKindOfICSMaintenanceModePacket());
-        */
+            character?.SendPacket(new SCICSCheckTimePacket());
     }
 
     public void DebugShopLoad()
@@ -247,9 +243,9 @@ public class CashShopManager : Singleton<CashShopManager>
             cashShopItemDetail.DisPrice = 2000;
 
             cashShopItem.Remain = 0;
-            cashShopItem.BonusType = 0;
-            cashShopItem.BonusCount = 0;
-            cashShopItem.CmdUi = 0;
+            cashShopItemDetail.BonusType = cashShopItem.BonusType = 0;
+            cashShopItemDetail.BonusCount = cashShopItem.BonusCount = 0;
+            cashShopItem.CmdUi = (CashShopCmdUiType)(i % 4);
 
             cashShopItemDetail.SelectType = 0;
             cashShopItemDetail.DefaultFlag = 0;

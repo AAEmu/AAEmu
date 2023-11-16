@@ -41,9 +41,9 @@ public class CashShopItem : PacketMarshaler
     public CashShopCurrencyType CurrencyType { get; set; }
     public uint Price { get; set; }
     public uint Remain { get; set; }
-    public int BonusType { get; set; }
+    public uint BonusType { get; set; }
     public uint BonusCount { get; set; }
-    public byte CmdUi { get; set; }
+    public CashShopCmdUiType CmdUi { get; set; }
 
     public override PacketStream Write(PacketStream stream)
     {
@@ -67,7 +67,7 @@ public class CashShopItem : PacketMarshaler
         stream.Write(Remain);
         stream.Write(BonusType);
         stream.Write(BonusCount);
-        stream.Write(CmdUi);
+        stream.Write((byte)CmdUi);
         return stream;
     }
 }
