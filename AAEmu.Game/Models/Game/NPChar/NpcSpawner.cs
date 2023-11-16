@@ -236,15 +236,15 @@ public class NpcSpawner : Spawner<Npc>
                 if (npcs == null) { continue; }
             }
 
-            delnpcs.AddRange(npcs);
-
-            _spawned.AddRange(npcs);
-
             if (npcs.Count == 0)
             {
                 Logger.Error($"Can't spawn npc {UnitId} from spawnerId {Template.Id}");
                 continue;
             }
+
+            delnpcs.AddRange(npcs);
+
+            _spawned.AddRange(npcs);
 
             if (_scheduledCount > 0)
             {
@@ -259,7 +259,7 @@ public class NpcSpawner : Spawner<Npc>
             }
 
             _lastSpawn = _spawned[^1];
-            _lastSpawn.Spawner._lastSpawn = _spawned[^1];
+            _lastSpawn.Spawner = this;
         }
 
         if (_isScheduled)
@@ -522,7 +522,6 @@ public class NpcSpawner : Spawner<Npc>
 
             foreach (var npc in n)
             {
-                _spawned.Add(npc);
                 if (npc.Spawner != null)
                 {
                     npc.Spawner.RespawnTime = 0; // don't respawn
@@ -533,7 +532,7 @@ public class NpcSpawner : Spawner<Npc>
                     npc.Faction = target is Npc ? target.Faction : caster.Faction;
                 }
 
-                if (effect.UseSummonerAggroTarget)
+                if (effect.UseSummonerAggroTarget && !effect.UseSummonerFaction)
                 {
                     // TODO : Pick random target off of Aggro table ?
 
@@ -562,13 +561,12 @@ public class NpcSpawner : Spawner<Npc>
             Logger.Error("Can't spawn npc {0} from spawner {1}", UnitId, template.Id);
             return;
         }
-
         if (n.Count == 0)
         {
             Logger.Error("Can't spawn npc {0} from spawner {1}", UnitId, template.Id);
             return;
         }
-        _lastSpawn = n[^1];
+        _spawned.AddRange(n);
         if (_scheduledCount > 0)
         {
             _scheduledCount -= n.Count;
@@ -578,5 +576,7 @@ public class NpcSpawner : Spawner<Npc>
         {
             _spawnCount = 0;
         }
+        _lastSpawn = n[^1];
+        _lastSpawn.Spawner = this;
     }
 }
