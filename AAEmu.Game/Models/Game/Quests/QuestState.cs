@@ -39,42 +39,48 @@ public abstract class QuestState
         // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет
         // we need to look in the inventory, because we don't know yet if the item is in the inventory or not
         var objectiveCount = 0;
+        var result = false;
         switch (act.DetailType)
         {
             case "QuestActObjMonsterHunt":
                 {
                     //var template = act.GetTemplate<QuestActObjMonsterHunt>(); // для доступа к переменным требуется привидение к нужному типу
                     //objectiveCount = Quest.Owner.Inventory.GetItemsCount(template.NpcId);
+                    result = act.Use(Quest.Owner, Quest, objectiveCount);
                     break;
                 }
             case "QuestActObjItemGather":
                 {
                     var template = act.GetTemplate<QuestActObjItemGather>(); // для доступа к переменным требуется привидение к нужному типу
                     objectiveCount = Quest.Owner.Inventory.GetItemsCount(template.ItemId);
+                    result = act.Use(Quest.Owner, Quest, objectiveCount);
                     break;
                 }
             case "QuestActObjItemUse":
                 {
                     //var template = act.GetTemplate<QuestActObjItemUse>(); // для доступа к переменным требуется привидение к нужному типу
                     //objectiveCount = Quest.Owner.Inventory.GetItemsCount(template.ItemId);
+                    result = act.Use(Quest.Owner, Quest, objectiveCount);
                     break;
                 }
             case "QuestActObjTalk":
                 {
-                    var template = act.GetTemplate<QuestActObjTalk>(); // для доступа к переменным требуется привидение к нужному типу
-                    objectiveCount = Quest.Owner.Inventory.GetItemsCount(template.ItemId);
+                    //var template = act.GetTemplate<QuestActObjTalk>(); // для доступа к переменным требуется привидение к нужному типу
+                    //objectiveCount = Quest.Owner.Inventory.GetItemsCount(template.ItemId);
+                    result = act.Use(Quest.Owner, Quest, objectiveCount);
                     break;
                 }
             case "QuestActObjCraft":
                 {
-                    var template = act.GetTemplate<QuestActObjCraft>(); // для доступа к переменным требуется привидение к нужному типу
-                    objectiveCount = Quest.Owner.Inventory.GetItemsCount(template.CraftId);
+                    //var template = act.GetTemplate<QuestActObjCraft>(); // для доступа к переменным требуется привидение к нужному типу
+                    //objectiveCount = Quest.Owner.Inventory.GetItemsCount(template.CraftId);
+                    result = act.Use(Quest.Owner, Quest, objectiveCount);
                     break;
                 }
         }
 
         //var objective = act.Template.GetCount();
-        var result = CurrentQuestComponent.Execute(Quest.Owner, Quest, objectiveCount).Any(b => b == true);
+        //var result = CurrentQuestComponent.Execute(Quest.Owner, Quest, objectiveCount).Any(b => b == true);
         return result;
     }
 
@@ -95,6 +101,16 @@ public abstract class QuestState
             var acts = QuestManager.Instance.GetActs(component.Id);
             foreach (var act in acts)
             {
+                switch (act.DetailType)
+                {
+                    case "QuestActSupplyItem" when Quest.Step == QuestComponentKind.Progress:
+                        {
+                            // if SupplyItem = 0, we get the item
+                            complete = act.Use(Quest.Owner, Quest, 0);
+                            continue;
+                        }
+                }
+
                 if (Quest.ProgressStepResults[componentIndex])
                 {
                     Logger.Info($"Quest: {Quest.TemplateId}, Step={Quest.Step}, checking the act {act.DetailType} gave the result {complete}.");
@@ -1025,16 +1041,6 @@ public class QuestProgressState : QuestState
                         }
                     case "QuestActObjTalk":
                         {
-                            // нужно посмотреть в инвентарь, так как ещё не знаем, есть предмет в инвентаре или нет
-                            // we need to look in the inventory, because we don't know yet if the item is in the inventory or not
-                            res = CheckCount(act);
-                            //result2 = act.Template.IsCompleted();
-                            if (res)
-                            {
-                                results2.Add(true); // уже выполнили задание, выход
-                                break;
-                            }
-
                             // подписка одна на всех
                             Quest.Owner.Events.OnTalkMade -= Quest.Owner.Quests.OnTalkMadeHandler;
                             Quest.Owner.Events.OnTalkMade += Quest.Owner.Quests.OnTalkMadeHandler;

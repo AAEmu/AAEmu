@@ -553,8 +553,7 @@ public class NpcSpawner : Spawner<Npc>
 
                 if (effect.LifeTime > 0)
                 {
-                    TaskManager.Instance.Schedule(new NpcSpawnerDoDespawnTask(npc),
-                        TimeSpan.FromSeconds(effect.LifeTime));
+                    TaskManager.Instance.Schedule(new NpcSpawnerDoDespawnTask(npc), TimeSpan.FromSeconds(effect.LifeTime));
                 }
             }
         }

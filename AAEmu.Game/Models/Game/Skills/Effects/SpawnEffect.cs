@@ -30,13 +30,14 @@ public class SpawnEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        Logger.Trace("SpawnEffect");
+        Logger.Info($"SpawnEffect: OwnerTypeId={OwnerTypeId}, SubType={SubType}, UseSummonerFaction={UseSummonerFaction}, LifeTime={LifeTime}");
 
         if (OwnerTypeId == 1) // NPC
         {
             var spawner = SpawnManager.Instance.GetNpcSpawner(SubType, target);
             if (spawner == null)
             {
+                Logger.Info($"SpawnEffect: SubType={SubType} not found in spawners.");
                 return;
             }
             var (xx, yy) = MathUtil.AddDistanceToFrontDeg(PosDistance, target.Transform.World.Position.X, target.Transform.World.Position.Y, PosAngle);

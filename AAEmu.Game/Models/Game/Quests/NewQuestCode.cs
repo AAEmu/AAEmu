@@ -435,13 +435,14 @@ public partial class Quest : PacketMarshaler
         }
 
         var ThisIsNotWhatYouNeed = new List<int>();
-        for (var i = 0; i < count; i++)
-        {
-            ThisIsNotWhatYouNeed.Add(0);
-        }
+        //for (var i = 0; i < count; i++)
+        //{
+        //    ThisIsNotWhatYouNeed.Add(0);
+        //}
 
         var results = false;
         var componentIndex = 0;
+        var actIndex = 0;
 
         foreach (var component in context.State.CurrentComponents)
         {
@@ -450,10 +451,11 @@ public partial class Quest : PacketMarshaler
             var acts = _questManager.GetActs(component.Id);
             foreach (var act in acts)
             {
+                ThisIsNotWhatYouNeed.Add(0);
                 // проверка, что есть такой акт для этого квеста
                 if (act.DetailType != typeof(T).Name)
                 {
-                    ThisIsNotWhatYouNeed[componentIndex] = -1; // это не тот акт что нужен
+                    ThisIsNotWhatYouNeed[actIndex] = -1; // это не тот акт что нужен
                     continue;
                 }
 
@@ -470,6 +472,7 @@ public partial class Quest : PacketMarshaler
                 {
                     results = true;
                 }
+                actIndex++;
             }
 
             // если objective для текущего компонента готово, то запустим скилл и/или баф

@@ -23,7 +23,7 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        Logger.Info($"NpcSpawnerSpawnEffect SpawnerId={SpawnerId}, LifeTime={LifeTime}, UseSummonerAggroTarget={UseSummonerAggroTarget}, ActivationState={ActivationState}");
+        Logger.Info($"NpcSpawnerSpawnEffect: SpawnerId={SpawnerId}, LifeTime={LifeTime}, UseSummonerAggroTarget={UseSummonerAggroTarget}, ActivationState={ActivationState}");
 
         var spawners = SpawnManager.Instance.GetNpcSpawner(SpawnerId, (byte)caster.Transform.WorldId);
         if (spawners == null || spawners.Count == 0)
@@ -38,8 +38,14 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
                 spawner.Position.WorldId = caster.Transform.WorldId;
                 spawner.ClearLastSpawnCount();
                 var npc = spawner.Spawn(0);
+                if (npc == null)
+                {
+                    continue;
+                }
+
                 npc.Spawner.RespawnTime = 0; // запретим респавн
-                Logger.Info($"NpcSpawnerSpawnEffect: Do Spawn effect id={Id}, Npc unitId={spawner.UnitId} spawnerId={SpawnerId} worldId={caster.Transform.WorldId}");
+                Logger.Info(
+                    $"NpcSpawnerSpawnEffect: Do Spawn effect id={Id}, Npc unitId={spawner.UnitId} spawnerId={SpawnerId} worldId={caster.Transform.WorldId}");
 
                 if (UseSummonerAggroTarget)
                 {
@@ -61,7 +67,6 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
                 {
                     TaskManager.Instance.Schedule(new NpcSpawnerDoDespawnTask(npc), TimeSpan.FromSeconds(LifeTime));
                 }
-
             }
         }
     }

@@ -415,6 +415,7 @@ public class Unit : BaseUnit, IUnit
         killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, (Unit)killer), true);
         if (killer == this)
         {
+            if (this is Npc) { return; }
             DespawMate((Character)this);
             return;
         }
