@@ -6,14 +6,26 @@ namespace AAEmu.Game.Models.Game.CashShop;
 
 public class CashShopItem : PacketMarshaler
 {
+    /// <summary>
+    /// ID for the visible shop entry
+    /// </summary>
     public uint CashShopId { get; set; }
+    /// <summary>
+    /// Name to display
+    /// </summary>
     public string CashName { get; set; }
+    /// <summary>
+    /// Main Tab Location
+    /// </summary>
     public byte MainTab { get; set; }
     public byte SubTab { get; set; }
     public byte LevelMin { get; set; }
     public byte LevelMax { get; set; }
     public uint ItemTemplateId { get; set; }
     public byte IsSell { get; set; }
+    /// <summary>
+    /// Hides the entry? Does this even work?
+    /// </summary>
     public byte IsHidden { get; set; }
 
     /// <summary>
@@ -31,9 +43,6 @@ public class CashShopItem : PacketMarshaler
     /// </summary>
     public CashShopRestrictSaleType BuyRestrictType { get; set; }
 
-    /// <summary>
-    /// Id to use for BuyRestrictType, either character level or quest id
-    /// </summary>
     public uint BuyRestrictId { get; set; }
 
     public DateTime SDate { get; set; }
@@ -68,6 +77,8 @@ public class CashShopItem : PacketMarshaler
         stream.Write(BonusType);
         stream.Write(BonusCount);
         stream.Write((byte)CmdUi);
+        // stream.Write(0);
+        // stream.Write(0); // In captures this is discount price
         return stream;
     }
 }
