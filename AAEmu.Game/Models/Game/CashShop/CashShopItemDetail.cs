@@ -9,9 +9,6 @@ public class CashShopItemDetail : PacketMarshaler
     public uint CashShopId { get; set; }
     public uint CashUniqId { get; set; }
     public uint ItemTemplateId { get; set; }
-    /// <summary>
-    /// Actual item count sold for this entry
-    /// </summary>
     public uint ItemCount { get; set; }
     public byte SelectType { get; set; }
     public byte DefaultFlag { get; set; }
@@ -20,7 +17,7 @@ public class CashShopItemDetail : PacketMarshaler
     public CashShopCurrencyType CurrencyType { get; set; }
     public uint Price { get; set; }
     public uint DisPrice { get; set; }
-    public uint BonusType { get; set; }
+    public uint BonusItem { get; set; }
     public uint BonusCount { get; set; }
 
     public override PacketStream Write(PacketStream stream)
@@ -36,7 +33,7 @@ public class CashShopItemDetail : PacketMarshaler
         stream.Write((byte)CurrencyType);
         stream.Write(Price);
         stream.Write(DisPrice);
-        stream.Write(BonusType);
+        stream.Write(BonusItem);
         stream.Write(BonusCount);
         return stream;
     }

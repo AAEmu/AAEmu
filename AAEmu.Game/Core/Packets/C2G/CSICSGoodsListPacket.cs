@@ -15,10 +15,13 @@ public class CSICSGoodsListPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        var mainTabId = stream.ReadSByte();
-        var subTabId = stream.ReadSByte();
+        var mainTabId = stream.ReadByte();
+        var subTabId = stream.ReadByte();
         var page = stream.ReadUInt16();
 
+        CashShopManager.Instance.SendICSPage(Connection, mainTabId, subTabId, page);
+
+        /*
         var items = CashShopManager.Instance.GetCashShopItems(mainTabId, subTabId, page);
         var featured = (mainTabId == 1) && (subTabId == 1); //Im sure there is another way to check this..
         var maxPerPage = featured ? 4 : 8;
@@ -34,5 +37,6 @@ public class CSICSGoodsListPacket : GamePacket
             Connection.SendPacket(new SCICSGoodListPacket(end, numPages, item));
             Connection.SendPacket(new SCICSGoodDetailPacket(end, itemDetail));
         }
+        */
     }
 }
