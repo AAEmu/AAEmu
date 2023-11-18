@@ -82,7 +82,7 @@ public class IcsItem
     /// Number of items that are still available for limited sales.
     /// Only usable on the featured tab (1-1), and other tab will not display this amount.
     /// </summary>
-    public uint Remaining { get; set; }
+    public int Remaining { get; set; }
 
     /// <summary>
     /// Used to disable the buy/gift/cart buttons or some combination of them

@@ -235,6 +235,7 @@ public class CashShopManager : Singleton<CashShopManager>
                 entry.IsHidden = reader.GetBoolean("is_hidden");
                 entry.SaleStart = reader.GetDateTime("sale_start");
                 entry.SaleEnd = reader.GetDateTime("sale_end");
+                entry.Remaining = reader.GetInt32("remaining");
                 entry.ShopButtons = (CashShopCmdUiType)reader.GetByte("shop_buttons");
 
                 if (!ShopItems.TryAdd(entry.ShopId, entry))

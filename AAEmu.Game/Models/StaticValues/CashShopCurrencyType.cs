@@ -6,4 +6,5 @@ public enum CashShopCurrencyType : byte
     AaPoints = 1,
     Loyalty = 2,
     Coins = 3,
+    Max = 4
 }
