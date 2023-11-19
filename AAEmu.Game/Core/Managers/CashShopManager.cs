@@ -197,12 +197,12 @@ public class CashShopManager : Singleton<CashShopManager>
                 entry.Position = reader.GetInt32("position");
                 entry.ItemId = reader.GetUInt32("item_id");
                 entry.ItemCount = reader.GetUInt32("item_count");
-                entry.SelectType = reader.GetByte("select-type");
+                entry.SelectType = reader.GetByte("select_type");
                 entry.IsDefault = reader.GetBoolean("is_default");
                 entry.EventType = reader.GetByte("event_type");
-                entry.EventEndDate = reader.GetDateTime("event_end_date");
+                entry.EventEndDate = reader.IsDBNull(reader.GetOrdinal("event_end_date")) ? DateTime.MinValue : reader.GetDateTime("event_end_date");
                 entry.Currency = (CashShopCurrencyType)reader.GetByte("currency");
-                entry.Price = reader.GetUInt32("currency");
+                entry.Price = reader.GetUInt32("price");
                 entry.DiscountPrice = reader.GetUInt32("discount_price");
                 entry.BonusItemId = reader.GetUInt32("bonus_item_id");
                 entry.BonusItemCount = reader.GetUInt32("bonus_item_count");
@@ -224,7 +224,7 @@ public class CashShopManager : Singleton<CashShopManager>
 
                 entry.ShopId = reader.GetUInt32("shop_id");
                 entry.DisplayItemId = reader.GetUInt32("display_item_id");
-                entry.Name = reader.GetString("name");
+                entry.Name = reader.IsDBNull(reader.GetOrdinal("name")) ? "" : reader.GetString("name");
                 entry.LimitedType = (CashShopLimitType)reader.GetByte("limited_type");
                 entry.LimitedStockMax = reader.GetUInt16("limited_stock_max");
                 entry.LevelMin = reader.GetByte("level_min");
@@ -233,8 +233,8 @@ public class CashShopManager : Singleton<CashShopManager>
                 entry.BuyRestrictId = reader.GetUInt32("buy_restrict_id");
                 entry.IsSale = reader.GetBoolean("is_sale");
                 entry.IsHidden = reader.GetBoolean("is_hidden");
-                entry.SaleStart = reader.GetDateTime("sale_start");
-                entry.SaleEnd = reader.GetDateTime("sale_end");
+                entry.SaleStart = reader.IsDBNull(reader.GetOrdinal("sale_start")) ? DateTime.MinValue : reader.GetDateTime("sale_start");
+                entry.SaleEnd = reader.IsDBNull(reader.GetOrdinal("sale_end")) ? DateTime.MinValue : reader.GetDateTime("sale_end");
                 entry.Remaining = reader.GetInt32("remaining");
                 entry.ShopButtons = (CashShopCmdUiType)reader.GetByte("shop_buttons");
 
@@ -248,6 +248,11 @@ public class CashShopManager : Singleton<CashShopManager>
         {
             if (ShopItems.TryGetValue(sku.ShopId, out var shopItem))
             {
+                if ((shopItem.Skus.Count <= 0) && string.IsNullOrWhiteSpace(shopItem.Name))
+                {
+                    // First Item, grab it's name when needed
+                    shopItem.Name = LocalizationManager.Instance.Get("items", "name", sku.ItemId) ?? "???";
+                }
                 shopItem.Skus.Add(sku.Sku, sku);
             }
             else
@@ -265,7 +270,7 @@ public class CashShopManager : Singleton<CashShopManager>
 
         using (var command = connection.CreateCommand())
         {
-            command.CommandText = "SELECT * FROM ics_menu ORDER BY main_tab, sub_tab, tab_position";
+            command.CommandText = "SELECT * FROM ics_menu ORDER BY main_tab, sub_tab, tab_pos";
             command.Prepare();
             using var reader = command.ExecuteReader();
             while (reader.Read())
@@ -405,32 +410,18 @@ public class CashShopManager : Singleton<CashShopManager>
 
         for (var i = 0; i < thisPageItems.Count; i++)
         {
-            var isLast = i == thisTabItems.Count - 1;
+            var isLastItem = i == thisTabItems.Count - 1;
             var shopItem = thisTabItems[i].ShopItem;
             if (shopItem == null)
                 continue;
 
+            var n = 0;
             foreach (var sku in shopItem.Skus.Values)
-                connection.SendPacket(new SCICSGoodDetailPacket(isLast, sku));
+            {
+                var isLastSku = n >= shopItem.Skus.Count - 1;
+                connection.SendPacket(new SCICSGoodDetailPacket(isLastSku && isLastItem, sku));
+                n++;
+            }
         }
-
-        /*
-        var items = CashShopManager.Instance.GetCashShopItems(mainTabId, subTabId, page);
-        var featured = (mainTabId == 1) && (subTabId == 1); //Im sure there is another way to check this..
-        var maxPerPage = featured ? 4 : 8;
-        var numPages = (ushort)Math.Ceiling((float)items.Count / maxPerPage);
-        var pageItems = items.Skip(maxPerPage * (page - 1)).Take(maxPerPage).ToList();
-
-        var i = 0;
-        foreach (var item in pageItems)
-        {
-            i++;
-            var itemDetail = CashShopManager.Instance.GetCashShopItemDetail(item.CashShopId);
-            var end = i >= pageItems.Count;
-            Connection.SendPacket(new SCICSGoodListPacket(end, numPages, item));
-            Connection.SendPacket(new SCICSGoodDetailPacket(end, itemDetail));
-        }
-        */
-
     }
 }

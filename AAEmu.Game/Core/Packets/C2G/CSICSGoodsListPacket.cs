@@ -20,23 +20,5 @@ public class CSICSGoodsListPacket : GamePacket
         var page = stream.ReadUInt16();
 
         CashShopManager.Instance.SendICSPage(Connection, mainTabId, subTabId, page);
-
-        /*
-        var items = CashShopManager.Instance.GetCashShopItems(mainTabId, subTabId, page);
-        var featured = (mainTabId == 1) && (subTabId == 1); //Im sure there is another way to check this..
-        var maxPerPage = featured ? 4 : 8;
-        var numPages = (ushort)Math.Ceiling((float)items.Count / maxPerPage);
-        var pageItems = items.Skip(maxPerPage * (page - 1)).Take(maxPerPage).ToList();
-
-        var i = 0;
-        foreach (var item in pageItems)
-        {
-            i++;
-            var itemDetail = CashShopManager.Instance.GetCashShopItemDetail(item.CashShopId);
-            var end = i >= pageItems.Count;
-            Connection.SendPacket(new SCICSGoodListPacket(end, numPages, item));
-            Connection.SendPacket(new SCICSGoodDetailPacket(end, itemDetail));
-        }
-        */
     }
 }

@@ -52,6 +52,8 @@ public class CSICSBuyGoodPacket : GamePacket
                     sku = detail;
                     break;
                 }
+
+                idx++;
             }
 
             if (sku == null)
