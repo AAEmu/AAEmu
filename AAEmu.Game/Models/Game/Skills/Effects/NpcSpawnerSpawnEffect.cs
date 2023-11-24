@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Linq;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -50,6 +52,23 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
 
                 if (UseSummonerAggroTarget)
                 {
+                    // Npc attacks Npc for Q3886 & Q3887
+                    var units = WorldManager.GetAround<Npc>(npc, npc.Ai.GetCurrentBehavior().CheckSightRangeScale(10f));
+                    if (units != null)
+                    {
+                        foreach (var n in units)
+                        {
+                            if (!npc.Ai.Owner.CanAttack(n)) { continue; }
+                            Logger.Info($"NpcSpawnerSpawnEffect: npc={n.TemplateId}:{npc.ObjId} attack the npc={npc.TemplateId}:{npc.ObjId}");
+                            n.Ai.Owner.AddUnitAggro(AggroKind.Damage, npc, 1);
+                            n.Ai.OnAggroTargetChanged();
+                            n.Ai.GoToCombat();
+                            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, n, 1);
+                        }
+                        npc.Ai.OnAggroTargetChanged();
+                        npc.Ai.GoToCombat();
+                    }
+
                     // Npc attacks the character
                     if (target is Npc)
                     {

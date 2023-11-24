@@ -135,6 +135,10 @@ public class Skill
         InitialTarget = target;
         if (target == null)
         {
+            if (caster is Npc npc)
+            {
+                npc.Ai.OnNoAggroTarget();
+            }
             Logger.Debug($"Skill: SkillResult.NoTarget! - Skill {Template.Id}, Caster {caster.Name} ({caster.ObjId})");
             return SkillResult.NoTarget; // We should try to make sure this doesnt happen, but can happen with NPC skills
         }

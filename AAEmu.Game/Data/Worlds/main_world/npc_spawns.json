@@ -211846,6 +211846,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 68297 ],
         "Position": {
             "X": 10502.07,
             "Y": 13380.58,
@@ -211854,6 +211856,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 68298 ],
         "Position": {
             "X": 10500.51,
             "Y": 13391.87,
@@ -211862,6 +211866,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 68299 ],
         "Position": {
             "X": 10499.84,
             "Y": 13384.76,
@@ -211870,6 +211876,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 68300 ],
         "Position": {
             "X": 10497.5,
             "Y": 13376.96,
@@ -211878,6 +211886,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 68301 ],
         "Position": {
             "X": 10497.79,
             "Y": 13391.42,
@@ -211886,6 +211896,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 68302 ],
         "Position": {
             "X": 10495.8,
             "Y": 13379.39,
@@ -211894,6 +211906,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 93695 ],
         "Position": {
             "X": 10494.439,
             "Y": 13376.38,
@@ -211902,6 +211916,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 93696 ],
         "Position": {
             "X": 10501.58,
             "Y": 13387.67,
@@ -211910,6 +211926,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 93697 ],
         "Position": {
             "X": 10499.36,
             "Y": 13380.84,
@@ -211918,6 +211936,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 93698 ],
         "Position": {
             "X": 10492.561,
             "Y": 13386.68,
@@ -211926,6 +211946,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 93699 ],
         "Position": {
             "X": 10504.01,
             "Y": 13385.22,

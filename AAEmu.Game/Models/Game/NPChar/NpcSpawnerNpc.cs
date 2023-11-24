@@ -94,7 +94,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
             npc.Spawn();
 
             // check what's nearby
-            var aroundNpcs = WorldManager.GetAround<Npc>(npc, 15);
+            var aroundNpcs = WorldManager.GetAround<Npc>(npc, 1); // 15
             var count = 0u;
             foreach (var n in aroundNpcs.Where(n => n.TemplateId == MemberId))
             {

@@ -826,8 +826,15 @@ public class Unit : BaseUnit, IUnit
     {
         if (this is Character) { return; } // do not change the faction for the character
         Logger.Info($"SetFaction: npc={TemplateId}:{ObjId}, factionId={factionId}");
-        BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
-        Faction = FactionManager.Instance.GetFaction(factionId);
+        if (Faction.Id == factionId)
+        {
+            Logger.Info($"SetFaction: faction has already been established factionId={factionId}");
+        }
+        else
+        {
+            BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
+            Faction = FactionManager.Instance.GetFaction(factionId);
+        }
 
         // TODO added for quest Id=2486
         if (this is not Npc npc) { return; }
