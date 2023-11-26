@@ -29,6 +29,6 @@ public class SlaveSpawnSubCommand : SubCommandBase
         }
 
         var owner = (Character)character;
-        SlaveManager.Instance.Create(owner, templateId);
+        SlaveManager.Instance.Create(owner, null, templateId);
     }
 }

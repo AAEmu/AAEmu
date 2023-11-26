@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
+using System.Net.Mime;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -25,6 +26,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
@@ -51,7 +53,6 @@ public partial class Character : Unit, ICharacter
     public AbilityType Ability1 { get; set; }
     public AbilityType Ability2 { get; set; }
     public AbilityType Ability3 { get; set; }
-    public DateTime LastCombatActivity { get; set; }
     public DateTime LastCast { get; set; }
     //public bool IsInCombat { get; set; } // there's already an isInBattle
     public bool IsInPostCast { get; set; }
@@ -120,12 +121,12 @@ public partial class Character : Unit, ICharacter
     public WorldSpawnPosition LocalPingPosition { get; set; } // added as a GM command helper
     private ConcurrentDictionary<uint, DateTime> _hostilePlayers { get; set; }
     public bool IsRiding { get; set; }
+    /// <summary>
+    /// AttachPoint the player currently has in use  
+    /// </summary>
+    public AttachPointKind AttachedPoint { get; set; }
 
-    private bool _inParty;
-    private bool _isOnline;
-
-    private bool _isUnderWater;
-    public bool IsUnderWater
+    public override bool IsUnderWater
     {
         get { return _isUnderWater; }
         set
@@ -137,6 +138,9 @@ public partial class Character : Unit, ICharacter
             SendPacket(new SCUnderWaterPacket(_isUnderWater));
         }
     }
+
+    private bool _inParty;
+    private bool _isOnline;
 
     public bool InParty
     {
@@ -1369,7 +1373,7 @@ public partial class Character : Unit, ICharacter
         {
             actabilityChange = Math.Abs(change);
             actabilityStep = Actability.Actabilities[(uint)actabilityId].Step;
-            Actability.AddPoint((uint)actabilityId, actabilityChange);
+            actabilityChange = Actability.AddPoint((uint)actabilityId, actabilityChange);
         }
 
         // Only grant xp if consuming labor
@@ -1646,6 +1650,28 @@ public partial class Character : Unit, ICharacter
         get { return (Breath <= 0); }
     }
 
+    public override void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
+    {
+        if (AppConfiguration.Instance.World.GodMode)
+        {
+            Logger.Debug($"{Name}'s damage disabled because of GodMode flag (normal damage: {value})");
+            return; // GodMode On : take no damage at all
+        }
+
+        base.ReduceCurrentHp(attacker, value, killReason);
+    }
+
+    public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
+    {
+        if (IsInDuel)
+        {
+            Hp = 1; // we don't let you die during a duel
+            return;
+        }
+
+        base.PostUpdateCurrentHp(attacker, oldHpValue, newHpValue, killReason);
+    }
+
     public void DoChangeBreath()
     {
         if (IsDrowning)
@@ -1731,12 +1757,14 @@ public partial class Character : Unit, ICharacter
         Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Repair, tasks, new List<ulong>()));
     }
 
-    public void Regenerate()
+    public override void Regenerate()
     {
         if (IsDead || !NeedsRegen || IsDrowning)
         {
             return;
         }
+
+        var oldHp = Hp;
 
         if (IsInBattle)
         {
@@ -1759,6 +1787,7 @@ public partial class Character : Unit, ICharacter
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
+        PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
 
     /// <summary>
@@ -1873,6 +1902,7 @@ public partial class Character : Unit, ICharacter
                     if (character.Mp > character.MaxMp)
                         character.Mp = character.MaxMp;
                     character.CheckExp();
+                    character.PostUpdateCurrentHp(character, 0, character.Hp, KillReason.Unknown);
                 }
             }
         }
@@ -1981,6 +2011,7 @@ public partial class Character : Unit, ICharacter
                     if (character.Mp > character.MaxMp)
                         character.Mp = character.MaxMp;
                     character.CheckExp();
+                    character.PostUpdateCurrentHp(character, 0, character.Hp, KillReason.Unknown);
                 }
             }
         }
@@ -2095,7 +2126,7 @@ public partial class Character : Unit, ICharacter
     {
         var template = CharacterManager.Instance.GetTemplate((byte)Race, (byte)Gender);
         ModelId = template.ModelId;
-        BuyBackItems = new ItemContainer(Id, SlotType.None, false, false);
+        BuyBackItems = new ItemContainer(Id, SlotType.None, false);
         Slots = new ActionSlot[MaxActionSlots];
         for (var i = 0; i < Slots.Length; i++)
             Slots[i] = new ActionSlot();

@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.World.Transform;
 public class WorldSpawnPosition
 {
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-    [DefaultValue(1)] // Make sure to manualy change this when default world is changed
+    [DefaultValue(1)] // Make sure to manually change this when default world is changed
     public uint WorldId { get; set; } = WorldManager.DefaultWorldId;
 
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]

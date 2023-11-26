@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
-
+using System.IO;
+using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Utils.DB;
@@ -13,6 +14,7 @@ namespace AAEmu.Game.Core.Managers
 
             private Dictionary<string, Dictionary<uint, Model>> _models;
             private Dictionary<uint, ModelType> _modelTypes;
+            private Dictionary<uint, GameStance> _gameStances;
             private bool _loaded = false;
 
             // Getters
@@ -80,6 +82,7 @@ namespace AAEmu.Game.Core.Managers
             };
 
                 _modelTypes = new Dictionary<uint, ModelType>();
+                _gameStances = new Dictionary<uint, GameStance>();
 
                 using (var connection = SQLite.CreateConnection())
                 {
@@ -162,6 +165,46 @@ namespace AAEmu.Game.Core.Managers
                             }
                         }
                     }
+
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText = "SELECT * FROM game_stances";
+                        command.Prepare();
+                        using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                        {
+                            while (reader.Read())
+                            {
+                                var stance = new GameStance()
+                                {
+                                    Id = reader.GetUInt32("id"),
+                                    ActorModelId = reader.GetUInt32("actor_model_id"),
+                                    StanceId = (GameStanceType)reader.GetByte("stance_id"),
+                                    Name = reader.GetString("name"),
+                                    AiMoveSpeedRun = reader.GetFloat("ai_move_speed_run"),
+                                    AiMoveSpeedSlow = reader.GetFloat("ai_move_speed_slow"),
+                                    AiMoveSpeedSprint = reader.GetFloat("ai_move_speed_sprint"),
+                                    AiMoveSpeedWalk = reader.GetFloat("ai_move_speed_walk"),
+                                    HeightCollider = reader.GetFloat("height_collider"),
+                                    HeightPivot = reader.GetFloat("height_pivot"),
+                                    MaxSpeed = reader.GetFloat("max_speed"),
+                                    ModelOffset = new Vector3(reader.GetFloat("model_offset_x"), reader.GetFloat("model_offset_y"), reader.GetFloat("model_offset_z")),
+                                    NormalSpeed = reader.GetFloat("normal_speed"),
+                                    Size = new Vector3(reader.GetFloat("size_x"), reader.GetFloat("size_y"), reader.GetFloat("size_z")),
+                                    UseCapsule = reader.GetBoolean("use_capsule", true),
+                                    ViewOffset = new Vector3(reader.GetFloat("view_offset_x"), reader.GetFloat("view_offset_y"), reader.GetFloat("view_offset_z")),
+                                };
+
+                                _gameStances.TryAdd(stance.Id, stance);
+                                if (_models["ActorModel"].TryGetValue(stance.ActorModelId, out var m))
+                                {
+                                    var actorModel = m as ActorModel;
+                                    if (actorModel != null)
+                                        actorModel.Stances.Add(stance.StanceId, stance);
+                                }
+                            }
+                        }
+                    }
+
                 }
 
                 _loaded = true;

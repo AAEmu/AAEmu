@@ -385,27 +385,29 @@ public class DamageEffect : EffectTemplate
 
         // TODO : Use proper chance kinds (melee, magic etc.)
         var trgCharacter = trg as Character;
-        var attacker = caster as Character;
-        if (trgCharacter != null)
-        {
-            //trgCharacter.IsInCombat = true;
-            trgCharacter.LastCombatActivity = DateTime.UtcNow;
-            if (attacker != null)
-            {
-                trgCharacter.SetHostileActivity(attacker);
-            }
-            trgCharacter.Procs.RollProcsForKind(ProcChanceKind.TakeDamageAny);
-        }
-        if (attacker != null)
-        {
-            //attacker.IsInCombat = true;
-            attacker.LastCombatActivity = DateTime.UtcNow;
-            attacker.Procs.RollProcsForKind(ProcChanceKind.HitAny);
-        }
+        var attacker = caster as Unit;
 
         // set for all combatants, for RegenTick
         trg.IsInBattle = true;
-        ((Unit)caster).IsInBattle = true;
+        trg.LastCombatActivity = DateTime.UtcNow;
+
+        if (trgCharacter != null)
+        {
+            //trgCharacter.IsInBattle = true;
+            //trgCharacter.LastCombatActivity = DateTime.UtcNow;
+            if (attacker is Character attackerCharacter)
+            {
+                trgCharacter.SetHostileActivity(attackerCharacter);
+            }
+            trgCharacter.Procs?.RollProcsForKind(ProcChanceKind.TakeDamageAny);
+        }
+
+        if (attacker != null)
+        {
+            attacker.IsInBattle = true;
+            attacker.LastCombatActivity = DateTime.UtcNow;
+            attacker.Procs?.RollProcsForKind(ProcChanceKind.HitAny);
+        }
 
         // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
         caster.CombatBuffs.TriggerCombatBuffs((Unit)caster, target as Unit, hitType, false);

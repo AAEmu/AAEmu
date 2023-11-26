@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Numerics;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -9,9 +12,13 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.StaticValues;
 using Jitter.Dynamics;
+using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -25,6 +32,7 @@ public class Slave : Unit
     public SlaveTemplate Template { get; set; }
     // public Character Driver { get; set; }
     public Character Summoner { get; set; }
+    public Item SummoningItem { get; set; }
     public List<Doodad> AttachedDoodads { get; set; }
     public List<Slave> AttachedSlaves { get; set; }
     public Dictionary<AttachPointKind, Character> AttachedCharacters { get; set; }
@@ -47,6 +55,11 @@ public class Slave : Unit
         AttachedDoodads = new List<Doodad>();
         AttachedSlaves = new List<Slave>();
         AttachedCharacters = new Dictionary<AttachPointKind, Character>();
+        HpTriggerPointsPercent.Add(0);
+        HpTriggerPointsPercent.Add(25);
+        HpTriggerPointsPercent.Add(50);
+        HpTriggerPointsPercent.Add(75);
+        HpTriggerPointsPercent.Add(100);
     }
 
     #region Attributes
@@ -176,13 +189,6 @@ public class Slave : Unit
     {
         get
         {
-            // These don't seem to match what the client expects, must be missing something
-            // Example: (level * 70 + sta * 12)
-            // Should be 9216 Hp, but we only have 4796 (at 108 base stamina for Lv50)
-            // For example a clipper would be correct is we added another 368.33 (= +341%) stamina boost
-            // TODO: for now just put a static 250k HP so spawned slaves don't show damaged
-            return 250000;
-            /*
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.MaxHealth);
             var parameters = new Dictionary<string, double>();
             parameters["level"] = Level;
@@ -201,7 +207,6 @@ public class Slave : Unit
                     res += bonus.Value;
             }
             return res;
-            */
         }
     }
 
@@ -579,11 +584,11 @@ public class Slave : Unit
 
     public override void AddVisibleObject(Character character)
     {
-        base.AddVisibleObject(character);
-
         character.SendPacket(new SCUnitStatePacket(this));
         character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
-        character.SendPacket(new SCSlaveStatePacket(ObjId, TlId, Summoner.Name, Summoner.ObjId, Template.Id));
+        character.SendPacket(new SCSlaveStatePacket(ObjId, TlId, Summoner.Name, Summoner.ObjId, Id));
+
+        base.AddVisibleObject(character);
 
         foreach (var ati in AttachedCharacters)
         {
@@ -614,28 +619,15 @@ public class Slave : Unit
         ReduceCurrentHp(this, damage, killReason);
     }
 
-    public override void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
+    public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
     {
-        if (Hp <= 0)
-            return;
+        base.PostUpdateCurrentHp(attacker, oldHpValue, newHpValue, killReason);
+    }
 
-        var absorptionEffects = Buffs.GetAbsorptionEffects().ToList();
-        if (absorptionEffects.Count > 0)
-        {
-            // Handle damage absorb
-            foreach (var absorptionEffect in absorptionEffects)
-            {
-                value = absorptionEffect.ConsumeCharge(value);
-            }
-        }
-
-        Hp = value < 0 ? Math.Max(Hp + value, 0) : Math.Max(Hp - value, 0);
-
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
-
-        if (Hp > 0) { return; }
-        ((Unit)attacker).Events.OnKill(attacker, new OnKillArgs { target = (Unit)attacker });
-        DoDie(attacker, killReason);
+    protected override void DoHpChangeTrigger(int triggerValue, bool tookDamage, int oldHpValue, int newHpValue)
+    {
+        Logger.Debug($"{Name} from {Summoner?.Name ?? "unknown"}'s HP is now at {triggerValue}%");
+        SlaveManager.Instance.UpdateSlaveRepairPoints(this);
     }
 
     public override void DoDie(BaseUnit killer, KillReason killReason)
@@ -644,5 +636,219 @@ public class Slave : Unit
         Events.OnDeath(this, new OnDeathArgs { Killer = (Unit)killer, Victim = this });
         Buffs.RemoveEffectsOnDeath();
         killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, (Unit)killer), true);
+
+        DestroyAttachedItems();
+        DistributeSlaveDropDoodads();
+        MarkSummoningItemAsDestroyed();
+
+        Summoner?.SendPacket(new SCMySlavePacket(ObjId, TlId, Name, TemplateId, Hp, MaxHp, Transform.World.Position.X,Transform.World.Position.Y,Transform.World.Position.Z));
+        Summoner?.SendPacket(new SCSlaveRemovedPacket(ObjId, TlId));
     }
+
+    private void DestroyAttachedItems()
+    {
+        // Destroy Doodads
+        foreach (var doodad in AttachedDoodads)
+        {
+            // Check if the doodad held a item
+            if (doodad.ItemId > 0)
+            {
+                var droppedItem = ItemManager.Instance.GetItemByItemId(doodad.ItemId);
+                // If the held item is a backpack, drop it to the floor
+                if (droppedItem is Backpack backpackItem)
+                {
+                    // Drop Backpack to the floor (spawn doodad)
+                    var putDownSkill = SkillManager.Instance.GetSkillTemplate(backpackItem.Template.UseSkillId);
+                    foreach (var skillEffect in putDownSkill.Effects)
+                    {
+                        if (skillEffect.Template is not PutDownBackpackEffect putDownBackpackEffectTemplate)
+                            continue;
+
+                        var newDoodadId = putDownBackpackEffectTemplate.BackpackDoodadId;
+
+                        // Create the Doodad at location on the floor if it's close to it
+                        var newDoodad = DoodadManager.Instance.Create(0, newDoodadId, null, true);
+                        if (newDoodad == null)
+                        {
+                            Logger.Warn($"Dropped Doodad {newDoodadId}, from BackpackDoodadId could not be created");
+                            return;
+                        }
+                        newDoodad.IsPersistent = true;
+                        newDoodad.Transform = doodad.Transform.CloneDetached();
+                        // Add a bit of randomness to the dropped doodad
+                        newDoodad.Transform.Local.Translate((Random.Shared.NextSingle() * 2f) - 1f,
+                            (Random.Shared.NextSingle() * 2f) - 1f, 0);
+                        newDoodad.AttachPoint = AttachPointKind.None;
+                        newDoodad.ItemId = droppedItem.Id;
+                        newDoodad.ItemTemplateId = droppedItem.TemplateId;
+                        newDoodad.UccId = droppedItem.UccId; // Not sure if it's needed, but let's copy the Ucc for completeness' sake
+                        newDoodad.SetScale(1f);
+                        newDoodad.PlantTime = DateTime.UtcNow;
+                        newDoodad.Faction = FactionManager.Instance.GetFaction(FactionsEnum.Friendly);
+
+                        var floor = WorldManager.Instance.GetHeight(newDoodad.Transform);
+                        var surface = WorldManager.Instance.GetWorld(doodad.Transform.WorldId)?.Water?.GetWaterSurface(newDoodad.Transform.World.Position) ?? 0f;
+                        var depth = surface - floor;
+
+                        // It seems that when the water is deep, drops to the water surface, otherwise, it sinks to the floor
+                        // Requires more testing, possibly a server setting?
+                        newDoodad.Transform.Local.SetHeight(depth < 30f ? floor : Math.Max(floor, surface));
+
+                        // Save new doodad
+                        newDoodad.InitDoodad();
+                        newDoodad.Spawn();
+                        newDoodad.Save();
+
+                        // Remove data from trade pack slot
+                        doodad.ItemTemplateId = 0;
+                        doodad.ItemId = 0;
+
+                        // Hacky way to force move to next phase to reset doodad to default before saving
+                        var funcs = DoodadManager.Instance.GetDoodadFuncs(doodad.FuncGroupId);
+                        foreach (var phaseFunc in funcs)
+                        {
+                            if (phaseFunc.FuncType == "DoodadFuncRecoverItem")
+                            {
+                                doodad.DoChangePhase(null, phaseFunc.NextPhase);
+                                break;
+                            }
+                        }
+
+                        // Save new empty data
+                        doodad.Save();
+                    }
+                }
+            }
+            ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+            doodad.IsPersistent = false;
+            doodad.Delete();
+        }
+
+        // Destroy Slaves
+        foreach (var slave in AttachedSlaves)
+        {
+            ObjectIdManager.Instance.ReleaseId(slave.ObjId);
+            // slave.IsPersistent = false;
+            slave.Delete();
+        }
+    }
+
+    private void DistributeSlaveDropDoodads()
+    {
+        foreach (var dropDoodad in Template.SlaveDropDoodads)
+        {
+            for (var counter = 0; counter < dropDoodad.Count; counter++)
+            {
+                var doodad = DoodadManager.Instance.Create(0, dropDoodad.DoodadId, null, true);
+                var pos = Transform.World.Position;
+                var rng = new Vector3((Random.Shared.NextSingle() * 2f) - 1f, (Random.Shared.NextSingle() * 2f) - 1f, 0);
+                rng = Vector3.Normalize(rng);
+                rng *= Random.Shared.NextSingle() * dropDoodad.Radius;
+                pos += rng;
+                doodad.Transform.Local.SetPosition(pos);
+                if (dropDoodad.OnWater == false)
+                {
+                    doodad.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(doodad.Transform.ZoneId, pos.X, pos.Y));
+                }
+                else
+                {
+                    doodad.Transform.Local.SetHeight(WorldManager.Instance.GetWorld(doodad.Transform.WorldId).Water.GetWaterSurface(pos));
+                }
+                doodad.Transform.Local.Rotate(0,0,(float)(Random.Shared.NextDouble() * Math.PI * 2f));
+                doodad.InitDoodad();
+                doodad.Spawn();
+            }
+        }
+    }
+
+    private void MarkSummoningItemAsDestroyed()
+    {
+        if (SummoningItem is not SummonSlave item)
+            return;
+        item.IsDestroyed = 1;
+        item.RepairStartTime = DateTime.MinValue;
+        item.SummonLocation = Vector3.Zero;
+        item.IsDirty = true;
+        Summoner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.MateDeath, new ItemUpdate(item), new List<ulong>()));
+    }
+
+    public bool Save()
+    {
+        if (Id <= 0)
+            return false;
+
+        using var connection = MySQL.CreateConnection();
+        return Save(connection, null);
+    }
+
+    public bool Save(MySqlConnection connection, MySqlTransaction transaction)
+    {
+        if (Id <= 0)
+            return false;
+
+        var result = false;
+        try
+        {
+            using var command = connection.CreateCommand();
+            command.Connection = connection;
+            if (transaction != null)
+                command.Transaction = transaction;
+
+            command.CommandText =
+                "REPLACE INTO slaves(`id`,`item_id`,`name`,`owner`,`updated_at`,`hp`,`mp`,`x`,`y`,`z`) " +
+                "VALUES (@id, @item_id, @name, @owner, @updated_at, @hp, @mp, @x, @y, @z)";
+            command.Parameters.AddWithValue("@id", Id);
+            command.Parameters.AddWithValue("@item_id", SummoningItem?.Id ?? 0);
+            command.Parameters.AddWithValue("@owner", Summoner?.Id ?? OwnerId);
+            command.Parameters.AddWithValue("@name", Name);
+            command.Parameters.AddWithValue("@hp", Hp);
+            command.Parameters.AddWithValue("@mp", Mp);
+            command.Parameters.AddWithValue("@updated_at", DateTime.UtcNow);
+            command.Parameters.AddWithValue("@x", Transform.World.Position.X);
+            command.Parameters.AddWithValue("@y", Transform.World.Position.Y);
+            command.Parameters.AddWithValue("@z", Transform.World.Position.Z);
+            command.ExecuteNonQuery();
+            result = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex);
+            result = false;
+        }
+
+        return result;
+    }
+
+    public override void Regenerate()
+    {
+        if (!NeedsRegen)
+        {
+            return;
+        }
+        if (IsDead)
+        {
+            foreach (var (_, character) in AttachedCharacters)
+                SlaveManager.Instance.UnbindSlave(character, TlId, AttachUnitReason.None);
+            return;
+        }
+
+        var oldHp = Hp;
+
+        if (IsInBattle)
+        {
+            Hp += PersistentHpRegen;
+            Mp += PersistentMpRegen;
+        }
+        else
+        {
+            Hp += HpRegen;
+            Mp += MpRegen;
+        }
+
+        Hp = Math.Min(Hp, MaxHp);
+        Mp = Math.Min(Mp, MaxMp);
+        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
+        PostUpdateCurrentHp(this,oldHp, Hp, KillReason.Unknown);
+    }
+
 }

@@ -2,6 +2,8 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -25,11 +27,13 @@ public class CSResurrectCharacterPacket : GamePacket
             Connection.ActiveChar.Mp = (int)(Connection.ActiveChar.MaxMp * (Connection.ActiveChar.ResurrectMpPercent / 100.0f));
             Connection.ActiveChar.ResurrectHpPercent = 1;
             Connection.ActiveChar.ResurrectMpPercent = 1;
+            Connection.ActiveChar.PostUpdateCurrentHp(Connection.ActiveChar, 0, Connection.ActiveChar.Hp, KillReason.Unknown);
         }
         else
         {
             Connection.ActiveChar.Hp = (int)(Connection.ActiveChar.MaxHp * 0.1);
             Connection.ActiveChar.Mp = (int)(Connection.ActiveChar.MaxMp * 0.1);
+            Connection.ActiveChar.PostUpdateCurrentHp(Connection.ActiveChar, 0, Connection.ActiveChar.Hp, KillReason.Unknown);
         }
 
         if (portal.X != 0)

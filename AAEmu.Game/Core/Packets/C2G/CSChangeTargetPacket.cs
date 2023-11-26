@@ -45,12 +45,17 @@ public class CSChangeTargetPacket : GamePacket
                 ? npc.Spawner.NpcSpawnerIds[0]
                 : 0u;
 
-            Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3} SpawnerId: {4}\nPos: {5}", targetId, npc.TemplateId, npc.Ai?.GetType().Name.Replace("AiCharacter", ""), npc.Ai?.GetCurrentBehavior()?.GetType().Name.Replace("Behavior", ""), spawnerId, npc.Transform.ToString());
+            Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3} SpawnerId: {4} Stance: {6}, Speed: {7}\nPos: {5}",
+                targetId, npc.TemplateId, npc.Ai?.GetType().Name.Replace("AiCharacter", ""),
+                npc.Ai?.GetCurrentBehavior()?.GetType().Name.Replace("Behavior", ""), spawnerId,
+                npc.Transform.ToString(), npc.CurrentGameStance, npc.BaseMoveSpeed.ToString("F1"));
         }
         else if (Connection.ActiveChar.CurrentTarget is House house)
             Connection.ActiveChar.SendMessage("ObjId: {0}, HouseId: {1}, Pos: {2}", targetId, house.Id, house.Transform.ToString());
         else if (Connection.ActiveChar.CurrentTarget is Transfer transfer)
             Connection.ActiveChar.SendMessage("ObjId: {0}, Transfer TemplateId: {1}\nPos: {2}", targetId, transfer.TemplateId, transfer.Transform.ToString());
+        else if (Connection.ActiveChar.CurrentTarget is Slave slave)
+            Connection.ActiveChar.SendMessage($"ObjId: {slave.ObjId}, Slave TemplateId: {slave.TemplateId}, Id: {slave.Id}, Owner: {slave.Summoner?.Name}\nPos: {slave.Transform}");
         else if (Connection.ActiveChar.CurrentTarget is Character character)
             Connection.ActiveChar.SendMessage("ObjId: {0}, CharacterId: {1}, \nPos: {2}", targetId, character.Id, character.Transform.ToFullString(true, true));
         else

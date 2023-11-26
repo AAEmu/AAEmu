@@ -12,6 +12,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items;
@@ -81,6 +82,16 @@ public class Doodad : BaseUnit
     public DoodadTemplate Template { get; set; }
     public override float Scale => _scale;
 
+    public DoodadFuncPermission FuncPermission
+    {
+        get
+        {
+            foreach (var currentFunc in CurrentFuncs)
+                return (DoodadFuncPermission)currentFunc.PermId;
+            return DoodadFuncPermission.Any;
+        }
+    }
+
     public uint FuncGroupId
     {
         get => _funcGroupId;
@@ -92,11 +103,13 @@ public class Doodad : BaseUnit
                 PhaseTime = DateTime.UtcNow; // Save PhaseTime at start of new phase (group)
                 if (IsPersistent)
                     Save();
+                CurrentFuncs = DoodadManager.Instance.GetFuncsForGroup(_funcGroupId);
+                CurrentPhaseFuncs = DoodadManager.Instance.GetPhaseFunc(_funcGroupId);
             }
         }
     }
 
-    public string FuncType { get; set; }
+    // public string FuncType { get; set; }
     public ulong ItemId { get; set; }
     public ulong UccId { get; set; }
     public uint ItemTemplateId { get; set; }
@@ -108,7 +121,8 @@ public class Doodad : BaseUnit
     public uint ParentObjId { get; set; }
     public DoodadOwnerType OwnerType { get; set; }
     public AttachPointKind AttachPoint { get; set; }
-    public uint DbHouseId { get; set; }
+    public uint OwnerDbId { get; set; }
+    public uint Type2 { get; set; } = 0;
 
     public int Data
     {
@@ -129,10 +143,36 @@ public class Doodad : BaseUnit
     public DoodadSpawner Spawner { get; set; }
     public DoodadFuncTask FuncTask { get; set; }
 
-    public uint TimeLeft =>
-        GrowthTime > DateTime.UtcNow
-            ? (uint)(GrowthTime - DateTime.UtcNow).TotalMilliseconds
-            : 0; // TODO: formula time of phase
+    public List<DoodadFunc> CurrentFuncs { get; set; }
+    public List<DoodadPhaseFunc> CurrentPhaseFuncs { get; set; }
+
+    /// <summary>
+    /// Time left to show on Doodads in milliseconds
+    /// </summary>
+    public uint TimeLeft
+    {
+        get
+        {
+            // This probably needs a better way to calculate, like a separate field to store the end-time
+            foreach (var func in CurrentPhaseFuncs)
+            {
+                var template = DoodadManager.Instance.GetPhaseFuncTemplate(func.FuncId, func.FuncType);
+                if (template is DoodadFuncFinal doodadFuncRecoverItemTemplate)
+                {
+                    if (doodadFuncRecoverItemTemplate.After > 0)
+                    {
+                        var left = (PhaseTime + TimeSpan.FromMilliseconds(doodadFuncRecoverItemTemplate.After) - DateTime.UtcNow).TotalMilliseconds;
+                        return (uint)Math.Round(Math.Max(1, left));
+                    }
+                }
+            }
+
+            if (GrowthTime > DateTime.UtcNow)
+                return (uint)(GrowthTime - DateTime.UtcNow).TotalMilliseconds;
+
+            return 0;
+        }
+    }
 
     public bool ToNextPhase { get; set; }
     public int PhaseRatio { get; set; }
@@ -157,6 +197,8 @@ public class Doodad : BaseUnit
         AttachPoint = AttachPointKind.System;
         Seat = new VehicleSeat(this);
         ListGroupId = new List<uint>();
+        CurrentFuncs = new List<DoodadFunc>();
+        CurrentPhaseFuncs = new List<DoodadPhaseFunc>();
     }
 
     public void SetScale(float scale)
@@ -205,7 +247,8 @@ public class Doodad : BaseUnit
 
         while (true)
         {
-            if (caster is Character)
+            var player = caster as Character;
+            if (player != null)
                 Logger.Debug("Use: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
             else
                 Logger.Trace("Use: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
@@ -552,14 +595,14 @@ public class Doodad : BaseUnit
         stream.Write(OwnerId); // characterId (Database relative)
         stream.Write(UccId);
         stream.Write(ItemTemplateId);
-        stream.Write(0u); //??type2
+        stream.Write(Type2); //??type2
         stream.Write(TimeLeft); // growing
         stream.Write(PlantTime); //Time stamp of when it was planted
         stream.Write(QuestGlow); //When this is higher than 0 it shows a blue orb over the doodad
         stream.Write(0); // family TODO
         stream.Write(PuzzleGroup); // puzzleGroup /for instances maybe?
         stream.Write((byte)OwnerType); // ownerType
-        stream.Write(DbHouseId); // dbHouseId
+        stream.Write(OwnerDbId); // dbHouseId
         stream.Write(Data); // data
 
         return stream;
@@ -574,9 +617,10 @@ public class Doodad : BaseUnit
         if (ItemId > 0)
         {
             var item = ItemManager.Instance.GetItemByItemId(ItemId);
-            if (item != null && (item._holdingContainer.ContainerType == SlotType.None || item._holdingContainer.ContainerType == SlotType.System))
+            if (item != null && item._holdingContainer != null && (item._holdingContainer.ContainerType == SlotType.None || item._holdingContainer.ContainerType == SlotType.System))
                 item._holdingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
         }
+
         if (IsPersistent)
         {
             using (var connection = MySQL.CreateConnection())
@@ -609,11 +653,12 @@ public class Doodad : BaseUnit
                     parentDoodadId = pDoodad.DbId;
 
                 command.CommandText =
-                    "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`) " +
-                    "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @item_id, @house_id, @parent_doodad, @item_template_id, @item_container_id, @data)";
+                    "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `attach_point`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `scale`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`) " +
+                    "VALUES(@id, @owner_id, @owner_type, @attach_point, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @scale, @item_id, @house_id, @parent_doodad, @item_template_id, @item_container_id, @data)";
                 command.Parameters.AddWithValue("@id", DbId);
                 command.Parameters.AddWithValue("@owner_id", OwnerId);
                 command.Parameters.AddWithValue("@owner_type", OwnerType);
+                command.Parameters.AddWithValue("@attach_point", AttachPoint);
                 command.Parameters.AddWithValue("@template_id", TemplateId);
                 command.Parameters.AddWithValue("@current_phase_id", FuncGroupId);
                 command.Parameters.AddWithValue("@plant_time", PlantTime);
@@ -626,8 +671,9 @@ public class Doodad : BaseUnit
                 command.Parameters.AddWithValue("@roll", Transform?.Local.Rotation.X ?? 0f);
                 command.Parameters.AddWithValue("@pitch", Transform?.Local.Rotation.Y ?? 0f);
                 command.Parameters.AddWithValue("@yaw", Transform?.Local.Rotation.Z ?? 0f);
+                command.Parameters.AddWithValue("@scale", Scale);
                 command.Parameters.AddWithValue("@item_id", ItemId);
-                command.Parameters.AddWithValue("@house_id", DbHouseId);
+                command.Parameters.AddWithValue("@house_id", OwnerDbId);
                 command.Parameters.AddWithValue("@parent_doodad", parentDoodadId);
                 command.Parameters.AddWithValue("@item_template_id", ItemTemplateId);
                 command.Parameters.AddWithValue("@item_container_id", GetItemContainerId());

@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -22,8 +23,7 @@ public class Combat : Patrol
         var trg = (Unit)npc.CurrentTarget;
         if (npc.CurrentTarget == null)
         {
-            //npc.BroadcastPacket(new SCCombatClearedPacket(trg.ObjId), true);
-            npc.BroadcastPacket(new SCCombatClearedPacket(npc.ObjId), true);
+            npc.IsInBattle = false;
             npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, 0), true);
             npc.CurrentTarget = null;
             //npc.StartRegen();
@@ -73,6 +73,9 @@ public class Combat : Patrol
             else
             {
                 LoopDelay = 2000;
+                if (npc.CurrentTarget is IUnit targetUnit)
+                    npc.UseSkill(2u, targetUnit);
+                /*
                 var skillId = 2u;
                 var skillCasterType = 0; // who uses
                 var skillCaster = SkillCaster.GetByType((SkillCasterType)skillCasterType);
@@ -85,6 +88,7 @@ public class Combat : Patrol
                 var skillObject = SkillObject.GetByType((SkillObjectType)flagType);
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO переделать...
                 skill.Use(npc, skillCaster, skillCastTarget, skillObject);
+                */
                 LoopAuto(npc);
             }
         }

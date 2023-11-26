@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
@@ -35,7 +36,7 @@ public class SlaveRemoveSubCommand : SubCommandBase
         else
         {
             var currentTarget = ((Character)character).CurrentTarget;
-            if (currentTarget is null || !(currentTarget is Npc))
+            if (currentTarget is null || !(currentTarget is Slave))
             {
                 SendColorMessage(messageOutput, Color.Red, "You need to target a Slave first");
                 return;
@@ -44,8 +45,9 @@ public class SlaveRemoveSubCommand : SubCommandBase
         }
 
         // Remove Slave
-        slave.Spawner.Id = 0xffffffff; // removed from the game manually (укажем, что не надо сохранять в файл npc_spawns_new.json командой /save all)
+        if (slave.Spawner != null)
+            slave.Spawner.Id = 0xffffffff; // removed from the game manually (укажем, что не надо сохранять в файл npc_spawns_new.json командой /save all)
         slave.Hide();
-        SendMessage(messageOutput, $"Slave @NPC_NAME({slave.TemplateId}), ObjId: {slave.ObjId}, TemplateId:{slave.TemplateId} removed successfuly");
+        SendMessage(messageOutput, $"Slave ({slave.Name}), ObjId: {slave.ObjId}, TemplateId:{slave.TemplateId} removed successfully");
     }
 }

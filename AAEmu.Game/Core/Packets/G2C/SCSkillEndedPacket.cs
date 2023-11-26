@@ -19,4 +19,9 @@ public class SCSkillEndedPacket : GamePacket
         stream.Write(_tlId);
         return stream;
     }
+
+    public override string Verbose()
+    {
+        return $" - {_tlId}";
+    }
 }

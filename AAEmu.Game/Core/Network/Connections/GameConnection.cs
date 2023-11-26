@@ -149,10 +149,8 @@ public class GameConnection
         if (ActiveChar == null)
             return;
 
-        // stopping the TransferTelescopeTickStartTask if character disconnected
-        TransferTelescopeManager.Instance.StopTransferTelescopeTickAsync().GetAwaiter().GetResult();
-        // stopping the FishFindTickTask if character disconnected
-        FishSchoolManager.StopFishFinderTickAsync(ActiveChar).GetAwaiter().GetResult();
+        // Remove Radars
+        RadarManager.Instance.UnRegister(ActiveChar);
 
         ActiveChar.Delete();
         // Removed ReleaseId here to try and fix party/raid disconnect and reconnect issues. Replaced with saving the data

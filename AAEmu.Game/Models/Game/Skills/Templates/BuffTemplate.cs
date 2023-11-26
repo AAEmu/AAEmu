@@ -146,7 +146,7 @@ public class BuffTemplate
     public float ScaleDuration { get; set; }
     public bool ImmuneExceptCreator { get; set; }
     public uint ImmuneExceptSkillTagId { get; set; }
-    public float FindSchoolOrFishRange { get; set; }
+    public float FindSchoolOfFishRange { get; set; }
     public uint AnimActionId { get; set; }
     public bool DeadApplicable { get; set; }
     public bool TickAreaUseOriginSource { get; set; }
@@ -224,6 +224,17 @@ public class BuffTemplate
 
         if (!buff.Passive)
             owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);
+
+        // Special properties handling
+        if (owner is Character character)
+        {
+            if (FindSchoolOfFishRange > 0)
+                RadarManager.Instance.RegisterForFishSchool(character, FindSchoolOfFishRange);
+            if (TransferTelescopeRange > 0)
+                RadarManager.Instance.RegisterForPublicTransport(character, TransferTelescopeRange);
+            if (TelescopeRange > 0)
+                RadarManager.Instance.RegisterForShips(character, TelescopeRange);
+        }
     }
 
     public void TimeToTimeApply(BaseUnit caster, BaseUnit owner, Buff buff)
@@ -320,6 +331,17 @@ public class BuffTemplate
 
         if (!buff.Passive && !replaced)
             owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, buff.Index), true);
+
+        // Special properties handling
+        if (owner is Character character)
+        {
+            if (FindSchoolOfFishRange > 0)
+                RadarManager.Instance.RegisterForFishSchool(character, 0f);
+            if (TransferTelescopeRange > 0)
+                RadarManager.Instance.RegisterForPublicTransport(character, 0f);
+            if (TelescopeRange > 0)
+                RadarManager.Instance.RegisterForShips(character, 0f);
+        }
     }
 
     public void WriteData(PacketStream stream, uint abLevel)

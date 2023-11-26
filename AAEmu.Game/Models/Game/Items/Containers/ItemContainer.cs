@@ -92,7 +92,25 @@ public class ItemContainer
     }
 
     public List<Item> Items { get; set; }
-    public bool PartOfPlayerInventory { get; set; }
+
+    public bool PartOfPlayerInventory
+    {
+        get
+        {
+            return ContainerType switch
+            {
+                SlotType.None => false,
+                SlotType.Equipment => true,
+                SlotType.Inventory => true,
+                SlotType.Bank => true,
+                SlotType.Trade => true,
+                SlotType.Mail => false,
+                SlotType.System => false,
+                _ => throw new ArgumentOutOfRangeException()
+            };
+        }
+    }
+
     public int ContainerSize
     {
         get
@@ -124,16 +142,14 @@ public class ItemContainer
         ContainerType = SlotType.None;
         Items = new List<Item>();
         ContainerSize = 0;
-        PartOfPlayerInventory = false;
     }
 
-    public ItemContainer(uint ownerId, SlotType containerType, bool isPartOfPlayerInventory, bool createWithNewId)
+    public ItemContainer(uint ownerId, SlotType containerType, bool createWithNewId)
     {
         OwnerId = ownerId;
         ContainerType = containerType;
         Items = new List<Item>();
         ContainerSize = -1; // Unlimited
-        PartOfPlayerInventory = isPartOfPlayerInventory;
         if (createWithNewId)
             ContainerId = ContainerIdManager.Instance.GetNextId();
     }
@@ -394,6 +410,41 @@ public class ItemContainer
         return ((itemTasks.Count + sourceItemTasks.Count) > 0);
     }
 
+    private bool CanDestroy(Item item)
+    {
+        // TODO: Check if item is expired, then always allow destruction
+        if (item is SummonSlave summonSlaveItem)
+        {
+            var owner = WorldManager.Instance.GetCharacterById(summonSlaveItem._holdingContainer.OwnerId);
+            if (owner != null)
+            {
+                var checkSlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(owner.ObjId);
+                if (checkSlave?.Id == summonSlaveItem.SlaveDbId)
+                {
+                    owner.SendErrorMessage(ErrorMessageType.SlaveSpawnItemLocked);
+                    return false;
+                }
+            }
+        }
+        /*
+        else if (item is SummonMate summonMateItem)
+        {
+            var owner = WorldManager.Instance.GetCharacterById(summonMateItem._holdingContainer.OwnerId);
+            if (owner != null)
+            {
+                var checkSlave = MateManager.Instance.GetActiveMate(owner.ObjId);
+                if (checkSlave.Id == summonMateItem.MateDbId)
+                {
+                    owner.SendErrorMessage(ErrorMessageType.SlaveSpawnItemLocked);
+                    return false;
+                }
+            }
+        }
+        */
+
+        return true;
+    }
+
     /// <summary>
     /// Removes (and Destroys if needed) a item from the container
     /// </summary>
@@ -403,6 +454,9 @@ public class ItemContainer
     /// <returns></returns>
     public bool RemoveItem(ItemTaskType task, Item item, bool releaseIdAsWell)
     {
+        if (!CanDestroy(item))
+            return false;
+
         Owner?.Inventory.OnConsumedItem(item, item.Count);
         OnLeaveContainer(item, null);
 
@@ -748,16 +802,16 @@ public class ItemContainer
     /// <param name="isPartOfPlayerInventory"></param>
     /// <param name="createWithNewId"></param>
     /// <returns></returns>
-    public static ItemContainer CreateByTypeName(string containerTypeName, uint ownerId, SlotType slotType, bool isPartOfPlayerInventory, bool createWithNewId)
+    public static ItemContainer CreateByTypeName(string containerTypeName, uint ownerId, SlotType slotType, bool createWithNewId)
     {
         if (containerTypeName.EndsWith("EquipmentContainer"))
-            return new EquipmentContainer(ownerId, slotType, isPartOfPlayerInventory, createWithNewId);
+            return new EquipmentContainer(ownerId, slotType, createWithNewId);
 
         if (containerTypeName.EndsWith("CofferContainer"))
-            return new CofferContainer(ownerId, isPartOfPlayerInventory, createWithNewId);
+            return new CofferContainer(ownerId, createWithNewId);
 
         // Fall-back
-        return new ItemContainer(ownerId, slotType, isPartOfPlayerInventory, createWithNewId);
+        return new ItemContainer(ownerId, slotType, createWithNewId);
     }
 
     public string ContainerTypeName()

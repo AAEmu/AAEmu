@@ -30,8 +30,15 @@ public class DoodadFuncFinal : DoodadPhaseFuncTemplate
 
         if (After > 0)
         {
+            var afterTimerDelay = (uint)After;
+            if (owner.OverridePhaseTime > DateTime.MinValue)
+            {
+                owner.PhaseTime = owner.OverridePhaseTime;
+                owner.OverridePhaseTime = DateTime.MinValue;
+                afterTimerDelay = owner.TimeLeft;
+            }
             owner.FuncTask = new DoodadFuncFinalTask(caster, owner, 0, Respawn, delay);
-            TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(After)); // After ms remove the object from visibility
+            TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(afterTimerDelay)); // After ms remove the object from visibility
         }
         else
         {

@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.Utils;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
@@ -20,6 +21,7 @@ public class RoamingBehavior : Behavior
         Ai.Owner.InterruptSkills();
         Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, BaseUnitType.Npc, ModelPostureType.ActorModelState, 2), false); // fixed animated
         UpdateRoaming();
+        Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
     }
 
     public override void Tick(TimeSpan delta)
@@ -63,7 +65,7 @@ public class RoamingBehavior : Behavior
         if (_targetRoamPosition.Equals(Vector3.Zero))
             return;
 
-        Ai.Owner.MoveTowards(_targetRoamPosition, 1.8f * (delta.Milliseconds / 1000.0f), 5);
+        Ai.Owner.MoveTowards(_targetRoamPosition, Ai.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f), 5);
         var dist = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, _targetRoamPosition, true);
         if (dist < 1.0f)
         {

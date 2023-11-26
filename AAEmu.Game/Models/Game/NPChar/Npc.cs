@@ -4,19 +4,23 @@ using System.Collections.Generic;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.AStar;
+using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.NPChar;
@@ -38,6 +42,58 @@ public class Npc : Unit
     public ConcurrentDictionary<uint, Aggro> AggroTable { get; }
     public uint CurrentAggroTarget { get; set; }
     public bool CanFly { get; set; } // TODO mark Npc's that can fly so that they don't land on the ground when calculating the Z height
+
+    public override float BaseMoveSpeed
+    {
+        get
+        {
+            var model = ModelManager.Instance.GetActorModel(Template.ModelId);
+            if (model == null)
+                return 1f;
+            // TODO: Implement stance switching mechanic
+            if (!model.Stances.TryGetValue(CurrentGameStance, out var stance))
+                return 1f;
+
+            // Returning? Use sprint speed
+            if (Ai?.GetCurrentBehavior() is ReturnStateBehavior rsb)
+                return stance.AiMoveSpeedSprint;
+
+            // In combat, use running speed
+            if (IsInBattle)
+                return Math.Min(stance.AiMoveSpeedRun, stance.MaxSpeed);
+
+            // Not in combat (should be roaming), use walk speed
+            return Math.Min(stance.AiMoveSpeedWalk, stance.MaxSpeed);
+        }
+    }
+
+    private GameStanceType _currentGameStance = GameStanceType.Combat;
+    public GameStanceType CurrentGameStance
+    {
+        get => _currentGameStance;
+        set
+        {
+            if (_currentGameStance == value)
+                return;
+
+            if (CanFly)
+            {
+                _currentGameStance = GameStanceType.Fly;
+                return;
+            }
+
+            if (IsUnderWater)
+            {
+                if (value == GameStanceType.Combat)
+                    _currentGameStance = GameStanceType.CoSwim;
+                else
+                    _currentGameStance = GameStanceType.Swim;
+                return;
+            }
+
+            _currentGameStance = value;
+        }
+    }
 
     #region Attributes
     [UnitAttribute(UnitAttribute.Str)]
@@ -741,8 +797,8 @@ public class Npc : Unit
     {
         var player = unit as Character;
 
-        player?.SendMessage(ChatType.System, $"AddUnitAggro {player.Name} + {amount} for {this.ObjId}");
-        /*
+        //player?.SendMessage(ChatType.System, $"AddUnitAggro {player.Name} + {amount} for {this.ObjId}");
+
         // check self buff tags
         if (Buffs.CheckBuffTag((uint)TagsEnum.NoFight) || Buffs.CheckBuffTag((uint)TagsEnum.Returning))
         {
@@ -751,12 +807,11 @@ public class Npc : Unit
         }
 
         // check target buff tags
-        if ((unit?.Buffs?.CheckBuffTag((uint)TagsEnum.NoFight) ?? false) || (unit?.Buffs?.CheckBuffTag((uint)TagsEnum.Returning) ?? false))
+        if ((unit.Buffs?.CheckBuffTag((uint)TagsEnum.NoFight) ?? false) || (unit.Buffs?.CheckBuffTag((uint)TagsEnum.Returning) ?? false))
         {
             ClearAggroOfUnit(unit);
             return;
         }
-        */
 
         amount = (int)(amount * (unit.AggroMul / 100.0f));
         amount = (int)(amount * (IncomingAggroMul / 100.0f));
@@ -795,7 +850,7 @@ public class Npc : Unit
 
         var player = unit as Character;
 
-        player?.SendMessage(ChatType.System, $"ClearAggroOfUnit {player.Name} for {this.ObjId}");
+        // player?.SendMessage(ChatType.System, $"ClearAggroOfUnit {player.Name} for {this.ObjId}");
 
         var lastAggroCount = AggroTable.Count;
         if (AggroTable.TryRemove(unit.ObjId, out var value))
@@ -823,6 +878,8 @@ public class Npc : Unit
                 if (distanceToIdle > 4)
                     Ai.GoToReturn();
             }
+
+            IsInBattle = false;
         }
     }
 
@@ -889,6 +946,10 @@ public class Npc : Unit
 
     public void MoveTowards(Vector3 other, float distance, byte flags = 4)
     {
+        distance *= Ai.Owner.MoveSpeedMul; // Apply speed modifier
+        if (distance < 0.01f)
+            return;
+
         if (Buffs.HasEffectsMatchingCondition(e =>
                 e.Template.Stun ||
                 e.Template.Sleep ||
@@ -896,18 +957,12 @@ public class Npc : Unit
                 e.Template.Knockdown ||
                 e.Template.Fastened))
         {
+            //Logger.Debug($"{ObjId} @NPC_NAME({TemplateId}); is stuck in place");
             return;
         }
 
         if ((ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
             return;
-
-        if (Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(shackle)) ||
-            Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(decreaseMoveSpeed)) ||
-            Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(snare)))
-        {
-            return;
-        }
 
         var oldPosition = Transform.Local.ClonePosition();
 

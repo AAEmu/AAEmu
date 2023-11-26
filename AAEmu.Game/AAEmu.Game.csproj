@@ -54,6 +54,7 @@
 
     <ItemGroup>
       <Folder Include="Models\ClientData" />
+      <Folder Include="Models\Tasks\Telescopes\" />
     </ItemGroup>
   
     <ItemGroup>

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -203,13 +203,10 @@ public class HousingManager : Singleton<HousingManager>
                                     bindingDoodad.AttachPointId = (AttachPointKind)reader2.GetInt16("attach_point_id");
                                     bindingDoodad.DoodadId = reader2.GetUInt32("doodad_id");
 
-                                    if (templateBindings != null &&
-                                        templateBindings.AttachPointId.ContainsKey(bindingDoodad.AttachPointId))
-                                        bindingDoodad.Position = templateBindings
-                                            .AttachPointId[bindingDoodad.AttachPointId].Clone();
+                                    if (templateBindings != null && templateBindings.AttachPointId.TryGetValue(bindingDoodad.AttachPointId, out var pos))
+                                        bindingDoodad.Position = pos.Clone();
 
-                                    if (bindingDoodad.Position == null)
-                                        bindingDoodad.Position = new WorldSpawnPosition();
+                                    bindingDoodad.Position ??= new WorldSpawnPosition();
 
                                     doodads.Add(bindingDoodad);
                                 }
@@ -997,7 +994,7 @@ public class HousingManager : Singleton<HousingManager>
                 f.Transform.DetachAll();
                 f.ParentObjId = 0;
                 f.ParentObj = null;
-                f.DbHouseId = 0;
+                f.OwnerDbId = 0;
                 // TODO: probably needs to send a packet as well here
                 continue;
             }
@@ -1009,7 +1006,7 @@ public class HousingManager : Singleton<HousingManager>
                 f.Transform.DetachAll();
                 f.ParentObjId = 0;
                 f.ParentObj = null;
-                f.DbHouseId = 0;
+                f.OwnerDbId = 0;
                 Logger.Warn("ReturnHouseItemsToOwner - Furniture doesn't have design info for Doodad Id:{0} Template:{1}", f.ObjId, f.TemplateId);
                 continue;
             }
@@ -1240,7 +1237,7 @@ public class HousingManager : Singleton<HousingManager>
                 doodad.UccId = 0;
                 doodad.AttachPoint = AttachPointKind.None;
                 doodad.OwnerType = DoodadOwnerType.Housing;
-                doodad.DbHouseId = house.Id;
+                doodad.OwnerDbId = house.Id;
                 doodad.InitDoodad();
 
                 doodad.Spawn();
@@ -1598,7 +1595,7 @@ public class HousingManager : Singleton<HousingManager>
         doodad.Transform.Local.ApplyFromQuaternion(quat);
         doodad.ItemTemplateId = item.TemplateId; // designId;
         doodad.ItemId = (item.Template.MaxCount <= 1) ? itemId : 0;
-        doodad.DbHouseId = house.Id;
+        doodad.OwnerDbId = house.Id;
 
         if (house.Id > 0 && item is BigFish fish)
         {

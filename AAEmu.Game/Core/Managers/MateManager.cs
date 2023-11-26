@@ -26,7 +26,7 @@ public class MateManager : Singleton<MateManager>
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Regex _nameRegex;
 
-    private Dictionary<uint, NpcMountSkills> _slaveMountSkills;
+    private Dictionary<uint, NpcMountSkills> _npcMountSkills;
     private Dictionary<uint, MountSkills> _mountSkills;
     private Dictionary<uint, MountAttachedSkills> _mountAttachedSkills;
     private Dictionary<uint, Mate> _activeMates; // ownerObjId, Mount
@@ -126,10 +126,10 @@ public class MateManager : Singleton<MateManager>
                 seatInfo._objId = character.ObjId;
                 seatInfo._reason = reason;
 
-                character.Transform.Local.SetPosition(mateInfo.Transform.Local.Position); // correct the position of the character
                 character.Transform.Parent = mateInfo.Transform;
+                character.Transform.Local.SetPosition(0,0,0); // correct the position of the character
                 character.IsRiding = true;
-                //character.Transform.StickyParent = mateInfo.Transform;
+                character.AttachedPoint = attachPoint;
 
                 character.IsVisible = true; // When we're on a horse, you can see us
             }
@@ -169,22 +169,26 @@ public class MateManager : Singleton<MateManager>
         if (targetObj != null)
         {
             //targetObj.Transform.StickyParent = null;
-            character.Transform.Parent = null;
-            character.IsRiding = false;
+            targetObj.Transform.Parent = null;
+            targetObj.SetPosition(mateInfo.Transform.World.Position.X, mateInfo.Transform.World.Position.Y, mateInfo.Transform.World.Position.Z,
+                mateInfo.Transform.World.Rotation.X, mateInfo.Transform.World.Rotation.Y, mateInfo.Transform.World.Rotation.Z);
+            // character.Transform = mateInfo.Transform.CloneDetached(character);
+            targetObj.IsRiding = false;
+            targetObj.AttachedPoint = AttachPointKind.None;
 
-            character.BroadcastPacket(new SCUnitDetachedPacket(targetObj.ObjId, reason), true);
+            targetObj.BroadcastPacket(new SCUnitDetachedPacket(targetObj.ObjId, reason), true);
 
-            character.Events.OnUnmount(character, new OnUnmountArgs { });
+            targetObj.Events.OnUnmount(character, new OnUnmountArgs { });
 
             mateInfo.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
-            character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
+            targetObj.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
             Logger.Debug("UnMountMate. mountTlId: {0}, targetObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId,
                 targetObj.ObjId, attachPoint, reason);
         }
         else
         {
             Logger.Warn("UnMountMate. No valid seat entry, mountTlId: {0}, characterObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId,
-                character?.ObjId ?? 0, attachPoint, reason);
+                0, attachPoint, reason);
         }
     }
 
@@ -229,36 +233,63 @@ public class MateManager : Singleton<MateManager>
     public void RemoveAndDespawnAllActiveOwnedMates(Character character)
     {
         if (character == null) return;
-        foreach (var mate in _activeMates)
-            if (mate.Value.OwnerObjId == character.ObjId)
-                RemoveActiveMateAndDespawn(character, mate.Value.TlId);
+        var markForDeleteObj = new List<uint>();
+        foreach (var (key, mate) in _activeMates)
+        {
+            if ((mate.OwnerId == character.Id) || (mate.OwnerObjId == character.ObjId))
+            {
+                foreach (var ati in mate.Passengers)
+                    UnMountMate(WorldManager.Instance.GetCharacterByObjId(ati.Value._objId), mate.TlId, ati.Key, AttachUnitReason.SlaveBinding);
+
+                if (mate.OwnerObjId > 0)
+                    markForDeleteObj.Add(mate.OwnerObjId);
+                mate.Delete();
+                ObjectIdManager.Instance.ReleaseId(mate.ObjId);
+                if (mate.TlId > 0)
+                    TlIdManager.Instance.ReleaseId(mate.TlId);
+            }
+        }
+
+        foreach (var u in markForDeleteObj)
+            _activeMates.Remove(u);
     }
 
     public List<uint> GetMateSkills(uint id)
     {
         var template = new List<uint>();
 
-        foreach (var value in _slaveMountSkills.Values)
+        foreach (var value in _npcMountSkills.Values)
             if (value.NpcId == id && !template.Contains(value.MountSkillId))
                 template.Add(value.MountSkillId);
 
         return template;
     }
 
-    public uint GetMountAttachedSkills(uint mountSkill)
+    /// <summary>
+    /// Get the associated rider skill for a given mountSkill
+    /// </summary>
+    /// <param name="mateSkill">The skill the mate used</param>
+    /// <param name="attachPoint">The attach point the player is currently on</param>
+    /// <returns></returns>
+    public uint GetMountAttachedSkills(uint mateSkill, AttachPointKind attachPoint)
     {
         var id = 0u;
         var skill = 0u;
 
+        // Find the mountSkillId for this mate's skill
         foreach (var ms in _mountSkills)
         {
-            if (ms.Value.SkillId != mountSkill) { continue; }
+            if (ms.Value.SkillId != mateSkill)
+                continue;
             id = ms.Key;
             break;
         }
+
+        // Find the player skill based on the mountSkillId
         foreach (var mas in _mountAttachedSkills)
         {
-            if (mas.Value.MountSkillId != id) { continue; }
+            if ((mas.Value.MountSkillId != id) || (mas.Value.AttachPointId != attachPoint))
+                continue;
             skill = mas.Value.SkillId;
             break;
         }
@@ -266,10 +297,26 @@ public class MateManager : Singleton<MateManager>
         return skill;
     }
 
+    /// <summary>
+    /// Gets MountSkillId for use with Slaves
+    /// </summary>
+    /// <param name="slaveSkillId"></param>
+    /// <returns></returns>
+    public uint GetMountSkillIdForSkill(uint slaveSkillId)
+    {
+        foreach (var ms in _mountSkills.Values)
+        {
+            if (ms.SkillId == slaveSkillId)
+                return ms.Id;
+        }
+
+        return 0;
+    }
+
     public void Load()
     {
         _nameRegex = new Regex(AppConfiguration.Instance.CharacterNameRegex, RegexOptions.Compiled);
-        _slaveMountSkills = new Dictionary<uint, NpcMountSkills>();
+        _npcMountSkills = new Dictionary<uint, NpcMountSkills>();
         _mountSkills = new Dictionary<uint, MountSkills>();
         _mountAttachedSkills = new Dictionary<uint, MountAttachedSkills>();
         _activeMates = new Dictionary<uint, Mate>();
@@ -292,7 +339,7 @@ public class MateManager : Singleton<MateManager>
                             NpcId = reader.GetUInt32("npc_id"),
                             MountSkillId = reader.GetUInt32("mount_skill_id")
                         };
-                        _slaveMountSkills.Add(template.Id, template);
+                        _npcMountSkills.Add(template.Id, template);
                     }
                 }
             }

@@ -19,7 +19,6 @@ public class DoodadFunc
     //public async void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     public void Use(BaseUnit caster, Doodad owner, uint skillId = 0, int nextPhase = 0)
     {
-
         var template = DoodadManager.Instance.GetFuncTemplate(FuncId, FuncType);
 
         template?.Use(caster, owner, skillId, nextPhase);

@@ -46,8 +46,32 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
+    public virtual float BaseMoveSpeed
+    {
+        get
+        {
+            return 1f;
+        }
+    }
+
     public byte Level { get; set; }
+
     public int Hp { get; set; }
+
+    public DateTime LastCombatActivity { get; set; }
+
+    protected bool _isUnderWater;
+
+    public virtual bool IsUnderWater
+    {
+        get => _isUnderWater;
+        set => _isUnderWater = value;
+    }
+
+    /// <summary>
+    /// List of values in the range of 0 -> 100
+    /// </summary>
+    protected List<int> HpTriggerPointsPercent { get; set; } = new();
 
     #region Attributes
 
@@ -194,12 +218,26 @@ public class Unit : BaseUnit, IUnit
     public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
     public UnitCooldowns Cooldowns { get; set; }
     public Expedition Expedition { get; set; }
-    public bool IsInBattle { get; set; }
+
+    public bool IsInBattle
+    {
+        get => _isInBattle;
+        set
+        {
+            if (value == _isInBattle)
+                return;
+            _isInBattle = value;
+            if (!_isInBattle)
+                BroadcastPacket(new SCCombatClearedPacket(ObjId), true);
+        }
+    }
+
     public bool IsInDuel { get; set; }
     public bool IsInPatrol { get; set; } // so as not to run the route a second time
     public int SummarizeDamage { get; set; }
     public bool IsAutoAttack = false;
     public uint SkillId;
+    private bool _isInBattle;
     public ushort TlId { get; set; }
     public ItemContainer Equipment { get; set; }
     public GameConnection Connection { get; set; }
@@ -223,7 +261,7 @@ public class Unit : BaseUnit, IUnit
         GCDLock = new object();
         Bonuses = new Dictionary<uint, List<Bonus>>();
         IsInBattle = false;
-        Equipment = new EquipmentContainer(0, SlotType.Equipment, true, false);
+        Equipment = new EquipmentContainer(0, SlotType.Equipment, false);
         ChargeLock = new object();
         Cooldowns = new UnitCooldowns();
     }
@@ -241,6 +279,12 @@ public class Unit : BaseUnit, IUnit
             Events.OnMovement(this, new OnMovementArgs());
         }
         base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
+
+        var worldDrownThreshold = WorldManager.Instance.GetWorld(Transform.WorldId)?.OceanLevel - 2f ?? 98f;
+        if (!IsUnderWater && Transform.World.Position.Z < worldDrownThreshold)
+            IsUnderWater = true;
+        else if (IsUnderWater && Transform.World.Position.Z > worldDrownThreshold)
+            IsUnderWater = false;
     }
 
     public bool CheckMovedPosition(Vector3 oldPosition)
@@ -259,30 +303,17 @@ public class Unit : BaseUnit, IUnit
     }
 
     /// <summary>
-    /// Make unit take value amount of damage, if the unit dies, killReason is used as a reason
+    /// Make unit take value amount of damage, calls PostReduceCurrentHp() at the end
     /// </summary>
     /// <param name="attacker"></param>
     /// <param name="value"></param>
     /// <param name="killReason"></param>
     public virtual void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
     {
-        if (((Unit)attacker).CurrentTarget is Character character)
-        {
-            if (Hp <= 0 && character.IsInDuel)
-            {
-                Hp = 1; // we don't let you die during a duel
-                return;
-            }
-
-            if (AppConfiguration.Instance.World.GodMode)
-            {
-                Logger.Debug("{1}:{0}'s Damage disabled because of GM or Admin flag", character.Name, character.Id);
-                return; // GodMode On : take 0 damage from Npc
-            }
-        }
-
         if (Hp <= 0)
             return;
+
+        var oldHp = Hp;
 
         var absorptionEffects = Buffs.GetAbsorptionEffects().ToList();
         if (absorptionEffects.Count > 0)
@@ -298,15 +329,63 @@ public class Unit : BaseUnit, IUnit
 
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
 
-        if (Hp > 0) { return; }
-        if (((Unit)attacker).CurrentTarget is Character attacked && attacked.IsInDuel)
+        PostUpdateCurrentHp(attacker, oldHp, Hp, killReason);
+    }
+
+    /// <summary>
+    /// Called at the end of ReduceCurrentHp() and can be overriden and handles things like death
+    /// </summary>
+    /// <param name="attackerBase"></param>
+    /// <param name="oldHpValue"></param>
+    /// <param name="newHpValue"></param>
+    /// <param name="killReason"></param>
+    public virtual void PostUpdateCurrentHp(BaseUnit attackerBase, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
+    {
+        // If Hp triggers are set up, do the calculations for them
+        if (HpTriggerPointsPercent.Count > 0)
         {
-            Hp = 1; // we don't let you die during a duel
-            return;
+            var oldHpP = (int)Math.Round(oldHpValue * 100f / MaxHp);
+            var newHpP = (int)Math.Round(newHpValue * 100f / MaxHp);
+
+            if (oldHpP > newHpP)
+            {
+                // Took damage, check downwards
+                foreach (var triggerValue in HpTriggerPointsPercent)
+                {
+                    if ((oldHpP > triggerValue) && (newHpP <= triggerValue))
+                    {
+                        DoHpChangeTrigger(triggerValue, true, oldHpValue, newHpValue);
+                        break;
+                    }
+                }
+            }
+
+            if (oldHpP < newHpP)
+            {
+                // Healed, check upwards
+                foreach (var triggerValue in HpTriggerPointsPercent)
+                {
+                    if ((oldHpP < triggerValue) && (newHpP >= triggerValue))
+                    {
+                        DoHpChangeTrigger(triggerValue, false, oldHpValue, newHpValue);
+                        break;
+                    }
+                }
+            }
         }
 
-        ((Unit)attacker).Events.OnKill(attacker, new OnKillArgs { target = (Unit)attacker });
-        DoDie(attacker, killReason);
+        if (Hp > 0)
+            return;
+
+        if (attackerBase is Unit attackerUnit)
+            attackerUnit.Events.OnKill(attackerUnit, new OnKillArgs { target = attackerUnit });
+
+        DoDie(attackerBase, killReason);
+    }
+
+    protected virtual void DoHpChangeTrigger(int triggerValue, bool tookDamage, int oldHpValue, int newHpValue)
+    {
+        // Do nothing by default
     }
 
     public virtual void ReduceCurrentMp(BaseUnit unit, int value)
@@ -349,13 +428,17 @@ public class Unit : BaseUnit, IUnit
         if (CurrentTarget != null)
         {
             killer.BroadcastPacket(new SCAiAggroPacket(killer.ObjId, 0), true);
-            ((Unit)killer).SummarizeDamage = 0;
 
-            if (((Unit)killer).CurrentTarget != null)
+            if (killer is Unit killerUnit)
             {
-                killer.BroadcastPacket(new SCCombatClearedPacket(((Unit)killer).CurrentTarget.ObjId), true);
+                killerUnit.SummarizeDamage = 0;
+                if (killerUnit.CurrentTarget is Unit unitTarget)
+                {
+                    unitTarget.IsInBattle = false;
+                }
+
+                killerUnit.IsInBattle = false;
             }
-            killer.BroadcastPacket(new SCCombatClearedPacket(killer.ObjId), true);
             //killer.StartRegen();
             killer.BroadcastPacket(new SCTargetChangedPacket(killer.ObjId, 0), true);
 
@@ -834,5 +917,10 @@ public class Unit : BaseUnit, IUnit
                 stream.Write(0f); // yaw
                 break;
         }
+    }
+
+    public virtual void Regenerate()
+    {
+        // Do nothing
     }
 }
