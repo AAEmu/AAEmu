@@ -18,6 +18,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Doodads;
 
 /*
@@ -189,6 +190,7 @@ public class Doodad : BaseUnit
     private bool _deleted = false;
     public VehicleSeat Seat { get; set; }
     private List<uint> ListGroupId { get; set; }
+    public List<AreaTrigger> AttachAreaTriggers { get; set; } = new List<AreaTrigger>();
 
     public Doodad()
     {
@@ -612,6 +614,11 @@ public class Doodad : BaseUnit
     {
         base.Delete();
         _deleted = true;
+        foreach (var areaTrigger in AttachAreaTriggers)
+        {
+            AreaTriggerManager.Instance.RemoveAreaTrigger(areaTrigger);
+        }
+        AttachAreaTriggers.Clear();
 
         // Delete associated item if expired
         if (ItemId > 0)

@@ -29,6 +29,9 @@ public class RemoveDoodad : SpecialEffectAction
         if (doodads != null)
             foreach (var doodad in doodads)
                 if (doodad.TemplateId == value1)
+                {
+                    doodad.Delete();
                     doodad.BroadcastPacket(new SCDoodadRemovedPacket(doodad.ObjId), false);
+                }
     }
 }

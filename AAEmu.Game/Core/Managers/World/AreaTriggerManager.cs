@@ -31,6 +31,7 @@ public class AreaTriggerManager : Singleton<AreaTriggerManager>
 
     public void AddAreaTrigger(AreaTrigger trigger)
     {
+        trigger.Owner?.AttachAreaTriggers.Add(trigger);
         lock (_addLock)
         {
             _addQueue.Add(trigger);
