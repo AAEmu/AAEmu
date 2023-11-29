@@ -20,6 +20,9 @@ public class AreaTrigger
     public AreaShape Shape { get; set; }
     public Doodad Owner { get; set; }
     public Unit Caster { get; set; }
+    /// <summary>
+    /// Units currently inside the Shape
+    /// </summary>
     private List<Unit> Units { get; set; }
 
 
@@ -36,24 +39,24 @@ public class AreaTrigger
         Units = new List<Unit>();
     }
 
-    public void UpdateUnits()
+    private void UpdateUnits()
     {
-        if (Owner == null || !Owner.IsVisible)
+        if (!Owner?.IsVisible ?? true)
         {
             AreaTriggerManager.Instance.RemoveAreaTrigger(this);
             return;
         }
 
-        var units = WorldManager.GetAroundByShape<Unit>(Owner, Shape);
-        if (units is { Count: 0 })
+        var currentUnitsInShape = WorldManager.GetAroundByShape<Unit>(Owner, Shape);
+        if (currentUnitsInShape is { Count: 0 })
         {
             Logger.Warn("AreaShape with no size values was remove");
             AreaTriggerManager.Instance.RemoveAreaTrigger(this);
             return;
         }
 
-        var leftUnits = Units.Where(u => units.All(u2 => u.ObjId != u2.ObjId));
-        var newUnits = units.Where(u => Units.All(u2 => u.ObjId != u2.ObjId));
+        var leftUnits = Units.Where(oldU => currentUnitsInShape.All(newU => oldU.ObjId != newU.ObjId));
+        var newUnits = currentUnitsInShape.Where(newU => Units.All(oldU => newU.ObjId != oldU.ObjId));
 
         foreach (var newUnit in newUnits)
         {
@@ -65,10 +68,10 @@ public class AreaTrigger
             OnLeave(leftUnit);
         }
 
-        Units = units;
+        Units = currentUnitsInShape;
     }
 
-    public void OnEnter(Unit unit)
+    private void OnEnter(Unit unit)
     {
         if (Caster == null)
             return;
@@ -78,7 +81,7 @@ public class AreaTrigger
         // unit.Effects.AddEffect(new Effect(Owner, Caster, new SkillCasterUnit(Caster.ObjId), InsideBuffTemplate, null, DateTime.UtcNow));
     }
 
-    public void OnLeave(Unit unit)
+    private void OnLeave(Unit unit)
     {
         if (InsideBuffTemplate != null)
             unit.Buffs.RemoveBuff(InsideBuffTemplate.BuffId);
@@ -89,13 +92,11 @@ public class AreaTrigger
         if (InsideBuffTemplate != null)
         {
             foreach (var unit in Units)
-            {
-                unit.Buffs.RemoveBuff(InsideBuffTemplate.BuffId);
-            }
+                OnLeave(unit);
         }
     }
 
-    public void ApplyEffects()
+    private void ApplyEffects()
     {
         if (InsideBuffTemplate == null)
             return;
