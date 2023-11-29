@@ -75,7 +75,6 @@ public class IdManager
 
         return true;
     }
-
     private uint[] ExtractUsedObjectIdTable()
     {
         if (_objTables.Length < 2)

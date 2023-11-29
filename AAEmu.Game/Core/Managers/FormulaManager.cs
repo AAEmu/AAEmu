@@ -26,27 +26,31 @@ public class FormulaManager : Singleton<FormulaManager>
 
     public UnitFormula GetUnitFormula(FormulaOwnerType owner, UnitFormulaKind kind)
     {
-        if (_unitFormulas.ContainsKey(owner) && _unitFormulas[owner].ContainsKey(kind))
-            return _unitFormulas[owner][kind];
+        if (_unitFormulas.TryGetValue(owner, out var value)
+            && value.TryGetValue(kind, out var kindFound))
+            return kindFound;
+
         return null;
     }
 
     public float GetUnitVariable(uint formulaId, UnitFormulaVariableType type, uint key)
     {
-        if (_unitVariables.ContainsKey(formulaId) && _unitVariables[formulaId].ContainsKey(type) &&
-            _unitVariables[formulaId][type].ContainsKey(key))
-            return _unitVariables[formulaId][type][key].Value;
+        if (_unitVariables.TryGetValue(formulaId, out var unitFormulas)
+            && unitFormulas.TryGetValue(type, out var formulaVariables)
+            && formulaVariables.TryGetValue(key, out var formulaVariable))
+            return formulaVariable.Value;
+
         return 0f;
     }
 
     public WearableFormula GetWearableFormula(WearableFormulaType type)
     {
-        return _wearableFormulas.ContainsKey(type) ? _wearableFormulas[type] : null;
+        return _wearableFormulas.TryGetValue(type, out var value) ? value : null;
     }
 
     public Formula GetFormula(uint id)
     {
-        return _formulas.ContainsKey(id) ? _formulas[id] : null;
+        return _formulas.TryGetValue(id, out var value) ? value : null;
     }
 
     public void Load()
@@ -54,7 +58,14 @@ public class FormulaManager : Singleton<FormulaManager>
         if (_loaded)
             return;
         // TODO Funcs: min, max, clamp, if_zero, if_positive, if_negative, floor, log, sqrt
-        CalculationEngine = new CalculationEngine(CultureInfo.InvariantCulture, ExecutionMode.Compiled, true, true, false);
+        CalculationEngine = new(new JaceOptions
+        {
+            CacheEnabled = true,
+            OptimizerEnabled = true,
+            CaseSensitive = true,
+            ExecutionMode = ExecutionMode.Compiled,
+            CultureInfo = CultureInfo.InvariantCulture,
+        });
         CalculationEngine.AddFunction("clamp", (a, b, c) => a < b ? b : (a > c ? c : a));
         CalculationEngine.AddFunction("if_negative", (a, b, c) => a < 0 ? b : c);
         CalculationEngine.AddFunction("if_positive", (a, b, c) => a > 0 ? b : c);
