@@ -15,16 +15,17 @@ public class DoodadFuncCloutTask : DoodadFuncTask
     private Doodad _owner;
     private uint _skillId;
     private int _nextPhase;
-    private AreaTrigger _araAreaTrigger;
+    private AreaTrigger _areaTrigger;
 
-    public DoodadFuncCloutTask(BaseUnit caster, Doodad owner, uint skillId, int nextPhase, AreaTrigger araAreaTrigger) : base(caster, owner, skillId)
+    public DoodadFuncCloutTask(BaseUnit caster, Doodad owner, uint skillId, int nextPhase, AreaTrigger areaTrigger) : base(caster, owner, skillId)
     {
         _caster = caster;
         _owner = owner;
         _skillId = skillId;
         _nextPhase = nextPhase;
-        _araAreaTrigger = araAreaTrigger;
+        _areaTrigger = areaTrigger;
     }
+
     public override void Execute()
     {
         if (_caster is Character)
@@ -37,7 +38,7 @@ public class DoodadFuncCloutTask : DoodadFuncTask
         if (_nextPhase == -1)
             _owner.Delete();
 
-        AreaTriggerManager.Instance.RemoveAreaTrigger(_araAreaTrigger);
+        AreaTriggerManager.Instance.RemoveAreaTrigger(_areaTrigger);
         _owner.DoChangePhase(_caster, _nextPhase);
     }
 }
