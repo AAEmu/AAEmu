@@ -26,7 +26,7 @@ public class CSSelectCharacterPacket : GamePacket
         var gm = stream.ReadBoolean();
         stream.ReadByte();
 
-        if (Connection.Characters.ContainsKey(characterId))
+        if (Connection.Characters.TryGetValue(characterId, out var connectionCharacter))
         {
             // Despawn any old pets this character might have even before loading it
             var character = (Character)Connection.Characters[characterId];
@@ -36,14 +36,14 @@ public class CSSelectCharacterPacket : GamePacket
             MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(character);
 
             Connection.ActiveChar = character;
-            if (Models.Game.Char.Character.UsedCharacterObjIds.TryGetValue(character.Id, out uint oldObjId))
+            if (Character.UsedCharacterObjIds.TryGetValue(character.Id, out uint oldObjId))
             {
                 Connection.ActiveChar.ObjId = oldObjId;
             }
             else
             {
                 Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
-                Models.Game.Char.Character.UsedCharacterObjIds.TryAdd(character.Id, character.ObjId);
+                Character.UsedCharacterObjIds.TryAdd(character.Id, character.ObjId);
             }
 
             Connection.ActiveChar.Simulation = new Simulation(character);
@@ -55,6 +55,7 @@ public class CSSelectCharacterPacket : GamePacket
 
             Connection.ActiveChar.Quests.Send();
             Connection.ActiveChar.Quests.SendCompleted();
+            Connection.ActiveChar.Quests.RecallEvents();
 
             Connection.ActiveChar.Actability.Send();
             Connection.ActiveChar.Mails.SendUnreadMailCount();

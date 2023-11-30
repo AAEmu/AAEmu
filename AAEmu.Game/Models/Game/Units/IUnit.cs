@@ -6,7 +6,8 @@ namespace AAEmu.Game.Models.Game.Units;
 public interface IUnit : IBaseUnit
 {
     byte Level { get; set; }
-    BaseUnit CurrentTarget { get; }
+    BaseUnit CurrentTarget { get; set; }
+    BaseUnit CurrentInteractionObject { get; set; }
     ItemContainer Equipment { get; set; }
     void SendPacket(GamePacket packet);
     void UseSkill(uint skillId, IUnit target);

@@ -151,7 +151,10 @@ public class CraftEffect : EffectTemplate
                     break;
             }
 
-            character.Quests.OnInteraction(WorldInteraction, target);
+            //character.Quests.OnInteraction(WorldInteraction, target);
+            // инициируем событие
+            //Task.Run(() => QuestManager.Instance.DoInteractionEvents((Character)caster, target.TemplateId));
+            QuestManager.Instance.DoInteractionEvents((Character)caster, target.TemplateId);
         }
     }
 }

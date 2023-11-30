@@ -415,6 +415,7 @@ public class Unit : BaseUnit, IUnit
         killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, (Unit)killer), true);
         if (killer == this)
         {
+            if (this is Npc) { return; }
             DespawMate((Character)this);
             return;
         }
@@ -823,9 +824,17 @@ public class Unit : BaseUnit, IUnit
     /// <param name="factionId"></param>
     public void SetFaction(uint factionId)
     {
-        // if (this is Character) { return; } // do not change the faction for the character
-        BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
-        Faction = FactionManager.Instance.GetFaction(factionId);
+        if (this is Character) { return; } // do not change the faction for the character
+        Logger.Info($"SetFaction: npc={TemplateId}:{ObjId}, factionId={factionId}");
+        if (Faction.Id == factionId)
+        {
+            Logger.Info($"SetFaction: faction has already been established factionId={factionId}");
+        }
+        else
+        {
+            BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
+            Faction = FactionManager.Instance.GetFaction(factionId);
+        }
 
         // TODO added for quest Id=2486
         if (this is not Npc npc) { return; }
@@ -833,6 +842,7 @@ public class Unit : BaseUnit, IUnit
         var characters = WorldManager.GetAround<Character>(npc, 5.0f);
         foreach (var character in characters.Where(CanAttack))
         {
+            Logger.Info($"SetFaction: npc={TemplateId}:{ObjId} attack the character={character.Name}:{character.TemplateId}:{character.ObjId}");
             npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, character, 1);
             npc.Ai.OnAggroTargetChanged();
             npc.Ai.GoToCombat();

@@ -11,7 +11,6 @@ using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Models;
@@ -771,7 +770,10 @@ public class Npc : Unit
                 mate.AddExp(KillExp);
                 character.SendMessage($"Pet gained {KillExp} XP");
             }
-            character.Quests.OnKill(this);
+            //character.Quests.OnKill(this);
+            // инициируем событие
+            //Task.Run(() => QuestManager.Instance.DoOnMonsterHuntEvents(character, this));
+            QuestManager.Instance.DoOnMonsterHuntEvents(character, this);
         }
 
         Spawner?.DecreaseCount(this);
@@ -836,11 +838,18 @@ public class Npc : Unit
             if ((Template.EngageCombatGiveQuestId > 0) && player is not null)
             {
                 if (!player.Quests.IsQuestComplete(Template.EngageCombatGiveQuestId) && !player.Quests.HasQuest(Template.EngageCombatGiveQuestId))
-                    player.Quests.AddStart(Template.EngageCombatGiveQuestId);
+                    player.Quests.Add(Template.EngageCombatGiveQuestId);
             }
         }
 
-        player?.Quests.OnAggro(this);
+        if (player == null)
+        {
+            return;
+        }
+        //player?.Quests.OnAggro(this);
+        // инициируем событие
+        //Task.Run(() => QuestManager.Instance.DoOnAggroEvents(player, this));
+        QuestManager.Instance.DoOnAggroEvents(player, this);
     }
 
     public void ClearAggroOfUnit(Unit unit)
@@ -983,7 +992,7 @@ public class Npc : Unit
         {
             // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
             newZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY);
-            if (Math.Abs(Transform.Local.Position.Z - newZ) <= 10)
+            if (Math.Abs(Transform.Local.Position.Z - newZ) < 1f)
             {
                 Transform.Local.SetHeight(newZ);
             }

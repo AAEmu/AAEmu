@@ -2956,10 +2956,12 @@
     },
     {
         "UnitId": 3169,
+        "Title": "Singalt",
+        "NpcSpawnerIds": [ 63905 ],
         "Position": {
             "X": 23414.81,
             "Y": 11202.339,
-            "Z": 322.2393
+            "Z": 365.4
         }
     },
     {
@@ -5537,7 +5539,7 @@
         "Position": {
             "X": 23415.71,
             "Y": 11203.396,
-            "Z": 322.2393
+            "Z": 365.4
         }
     },
     {
@@ -39984,6 +39986,30 @@
         }
     },
     {
+        "UnitId": 2211, // Spotted Ostrich
+        "Position": {
+            "X": 20488.0,
+            "Y": 7242.2,
+            "Z": 188.1
+        }
+    },
+    {
+        "UnitId": 2211, // Spotted Ostrich
+        "Position": {
+            "X": 20525.1,
+            "Y": 7270.3,
+            "Z": 188.4
+        }
+    },
+    {
+        "UnitId": 2211, // Spotted Ostrich
+        "Position": {
+            "X": 20538.5,
+            "Y": 7233.1,
+            "Z": 194.6
+        }
+    },
+    {
         "UnitId": 2213,
         "Position": {
             "X": 21409.33,
@@ -41824,6 +41850,54 @@
         }
     },
     {
+        "UnitId": 2233, // Suspicious Clansman
+        "Position": {
+            "X": 20901.6,
+            "Y": 7444.64,
+            "Z": 206.2
+        }
+    },
+    {
+        "UnitId": 2233, // Suspicious Clansman
+        "Position": {
+            "X": 20887.2,
+            "Y": 7459.2,
+            "Z": 206.2
+        }
+    },
+    {
+        "UnitId": 2233, // Suspicious Clansman
+        "Position": {
+            "X": 20869.4,
+            "Y": 7457.1,
+            "Z": 205.4
+        }
+    },
+    {
+        "UnitId": 2233, // Suspicious Clansman
+        "Position": {
+            "X": 20859.0,
+            "Y": 7469.3,
+            "Z": 206.8
+        }
+    },
+    {
+        "UnitId": 2233, // Suspicious Clansman
+        "Position": {
+            "X": 21016.2,
+            "Y": 7354.9,
+            "Z": 214.0
+        }
+    },
+    {
+        "UnitId": 2233, // Suspicious Clansman
+        "Position": {
+            "X": 20993.8,
+            "Y": 7334.4,
+            "Z": 211.6
+        }
+    },
+    {
         "UnitId": 2235,
         "Position": {
             "X": 21849.92,
@@ -43351,6 +43425,14 @@
         }
     },
     {
+        "UnitId": 5719, // Giant Mantis
+        "Position": {
+            "X": 20555.6,
+            "Y": 7265.0,
+            "Z": 191.5
+        }
+    },
+    {
         "UnitId": 6480,
         "Position": {
             "X": 19607.4,
@@ -43850,9 +43932,9 @@
     {
         "UnitId": 8175,
         "Position": {
-            "X": 19986.49,
-            "Y": 7584.58,
-            "Z": 179.2371
+            "X": 19998.1,
+            "Y": 7590.5,
+            "Z": 179.3
         }
     },
     {
@@ -60569,7 +60651,7 @@
         "Position": {
             "X": 20992.613,
             "Y": 10467.39,
-            "Z": 130.2,
+            "Z": 137.0,
             "Yaw": -140.5
         }
     },
@@ -60599,10 +60681,12 @@
     },
     {
         "UnitId": 10343,
+        "Title": "Enshaka",
+        "NpcSpawnerIds": [ 63579 ],
         "Position": {
             "X": 20987.7,
             "Y": 10467.6,
-            "Z": 130.2,
+            "Z": 137.0,
             "Yaw": -140.9
         }
     },
@@ -185702,7 +185786,7 @@
         "Position": {
             "X": 10461.714,
             "Y": 12041.76,
-            "Z": 151.9867
+            "Z": 151.0
         }
     },
     {
@@ -185733,17 +185817,19 @@
     {
         "UnitId": 11279,
         "Position": {
-            "X": 10707.908,
-            "Y": 12134.648,
-            "Z": 117.73617
+            "X": 10696.4,
+            "Y": 12120.1,
+            "Z": 120.2,
+            "Yaw": 123.8
         }
     },
     {
         "UnitId": 11279,
         "Position": {
-            "X": 10708.937,
-            "Y": 12103.496,
-            "Z": 120.173706
+            "X": 10707.0,
+            "Y": 12103.2,
+            "Z": 120.2,
+            "Yaw": 157.5
         }
     },
     {
@@ -204543,6 +204629,8 @@
     },
     {
         "UnitId": 10564,
+        "Title": "Lucius Quinto",
+        "NpcSpawnerIds": [ 68410 ],
         "Position": {
             "X": 12386.17,
             "Y": 12165.78,
@@ -204564,7 +204652,7 @@
         "Position": {
             "X": 12273.19,
             "Y": 12121.65,
-            "Z": 140.14276
+            "Z": 141.8
         }
     },
     {
@@ -204610,10 +204698,12 @@
     },
     {
         "UnitId": 10849,
+        "Title": "Marian",
+        "NpcSpawnerIds": [ 71441 ],
         "Position": {
             "X": 12273.24,
             "Y": 12120.811,
-            "Z": 140.14276
+            "Z": 140.8
         }
     },
     {
@@ -204652,6 +204742,8 @@
     },
     {
         "UnitId": 10886,
+        "Title": "Janimon",
+        "NpcSpawnerIds": [ 72404 ],
         "Position": {
             "X": 12381.29,
             "Y": 12164.51,
@@ -204678,6 +204770,8 @@
     },
     {
         "UnitId": 10896,
+        "Title": "Malcolm",
+        "NpcSpawnerIds": [ 72476 ],
         "Position": {
             "X": 12383.311,
             "Y": 12165.49,
@@ -204690,7 +204784,7 @@
             "X": 12390.25,
             "Y": 12121.27,
             "Z": 118.3862,
-            "Yaw": 84.375
+            "Yaw": 180.0
         }
     },
     {
@@ -211752,6 +211846,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 68297 ],
         "Position": {
             "X": 10502.07,
             "Y": 13380.58,
@@ -211760,6 +211856,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 68298 ],
         "Position": {
             "X": 10500.51,
             "Y": 13391.87,
@@ -211768,6 +211866,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 68299 ],
         "Position": {
             "X": 10499.84,
             "Y": 13384.76,
@@ -211776,6 +211876,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 68300 ],
         "Position": {
             "X": 10497.5,
             "Y": 13376.96,
@@ -211784,6 +211886,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 68301 ],
         "Position": {
             "X": 10497.79,
             "Y": 13391.42,
@@ -211792,6 +211896,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 68302 ],
         "Position": {
             "X": 10495.8,
             "Y": 13379.39,
@@ -211800,6 +211906,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 93695 ],
         "Position": {
             "X": 10494.439,
             "Y": 13376.38,
@@ -211808,6 +211916,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 93696 ],
         "Position": {
             "X": 10501.58,
             "Y": 13387.67,
@@ -211816,6 +211926,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 93697 ],
         "Position": {
             "X": 10499.36,
             "Y": 13380.84,
@@ -211824,6 +211936,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 93698 ],
         "Position": {
             "X": 10492.561,
             "Y": 13386.68,
@@ -211832,6 +211946,8 @@
     },
     {
         "UnitId": 9858,
+        "Title": "Crimson Army",
+        "NpcSpawnerIds": [ 93699 ],
         "Position": {
             "X": 10504.01,
             "Y": 13385.22,
@@ -213293,6 +213409,86 @@
             "X": 20078.1,
             "Y": 7368.0,
             "Z": 186.9
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20005.8,
+            "Y": 7327.1,
+            "Z": 194.5
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20012.4,
+            "Y": 7318.2,
+            "Z": 194.6
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20054.6,
+            "Y": 7272.7,
+            "Z": 197.5
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20058.1,
+            "Y": 7295.9,
+            "Z": 193.3
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20072.8,
+            "Y": 7303.3,
+            "Z": 192.3
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20121.7,
+            "Y": 7334.9,
+            "Z": 187.8
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20175.3,
+            "Y": 7328.8,
+            "Z": 187.6
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20197.1,
+            "Y": 7293.9,
+            "Z": 187.2
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20213.7,
+            "Y": 7288.0,
+            "Z": 186.6
+        }
+    },
+    {
+        "UnitId": 2204, // Giant Ant
+        "Position": {
+            "X": 20159.4,
+            "Y": 7281.4,
+            "Z": 189.2
         }
     },
     {

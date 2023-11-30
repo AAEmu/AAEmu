@@ -19,6 +19,7 @@ public class NpcControlEffect : EffectTemplate
 
     // ---
     private string fileName { get; set; }
+    private string fileName2 { get; set; }
     private uint skillId { get; set; }
     private uint timeout { get; set; }
     // ---
@@ -29,7 +30,10 @@ public class NpcControlEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        Logger.Debug($"NpcControllEffect: CategoryId={CategoryId}, ParamString={ParamString}, ParamInt={ParamInt}");
+        Logger.Info($"NpcControllEffect: CategoryId={CategoryId}, ParamString={ParamString}, ParamInt={ParamInt}, caster={caster.TemplateId}, target={target.TemplateId}");
+
+        fileName = string.Empty;
+        fileName2 = string.Empty;
 
         if (caster is Npc npc)
         {
@@ -134,7 +138,14 @@ public class NpcControlEffect : EffectTemplate
                                     case AiCommandCategory.FollowUnit:
                                         break;
                                     case AiCommandCategory.FollowPath:
-                                        fileName = aiCommands.Param2;
+                                        if (string.IsNullOrEmpty(fileName))
+                                        {
+                                            fileName = aiCommands.Param2;
+                                        }
+                                        else
+                                        {
+                                            fileName2 = aiCommands.Param2;
+                                        }
                                         break;
                                     case AiCommandCategory.UseSkill:
                                         skillId = aiCommands.Param1;
@@ -154,6 +165,7 @@ public class NpcControlEffect : EffectTemplate
                                 npc2.Simulation.Cycle = false;
                                 npc2.Simulation.MoveToPathEnabled = false;
                                 npc2.Simulation.MoveFileName = fileName;
+                                npc2.Simulation.MoveFileName2 = fileName2;
                                 npc2.Simulation.GoToPath(npc2, true, skillId, timeout);
                             }
                         }

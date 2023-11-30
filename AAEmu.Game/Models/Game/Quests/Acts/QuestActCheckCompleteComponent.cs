@@ -10,6 +10,6 @@ public class QuestActCheckCompleteComponent : QuestActTemplate
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
         Logger.Warn("QuestActCheckCompleteComponent: Complete Component {0}", CompleteComponent);
-        return false;
+        return true;
     }
 }

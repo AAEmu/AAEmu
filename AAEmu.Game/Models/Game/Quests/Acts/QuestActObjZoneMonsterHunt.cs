@@ -13,6 +13,12 @@ public class QuestActObjZoneMonsterHunt : QuestActTemplate
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
         Logger.Warn("QuestActObjZoneMonsterHunt");
+
+        if (character.Transform.ZoneId != ZoneId)
+        {
+            return false;
+        }
+
         return quest.Template.Score > 0 ? objective * Count >= quest.Template.Score : objective >= Count;
     }
 }

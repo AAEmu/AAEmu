@@ -406,7 +406,7 @@ public class DoodadManager : Singleton<DoodadManager>
                 }
             }
 
-            // doodad_func_cleanup_logic_links
+            // doodad_func_cleanupLoggeric_links
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_cleanup_logic_links";

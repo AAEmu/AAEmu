@@ -65,7 +65,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
             {
                 // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
                 var newZ = WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position.X, npcSpawner.Position.Y);
-                if (Math.Abs(npcSpawner.Position.Z - newZ) <= 2f)
+                if (Math.Abs(npcSpawner.Position.Z - newZ) < 1f)
                 {
                     npcSpawner.Position.Z = newZ;
                 }
@@ -94,13 +94,13 @@ public class NpcSpawnerNpc : Spawner<Npc>
             npc.Spawn();
 
             // check what's nearby
-            var aroundNpcs = WorldManager.GetAround<Npc>(npc, 15);
+            var aroundNpcs = WorldManager.GetAround<Npc>(npc, 1); // 15
             var count = 0u;
             foreach (var n in aroundNpcs.Where(n => n.TemplateId == MemberId))
             {
                 count++;
             }
-            if (count >= maxPopulation)
+            if (count > maxPopulation)
             {
                 npc.Delete();
                 Logger.Trace($"Let's not spawn Npc templateId {MemberId} from spawnerId {NpcSpawnerTemplateId} since exceeded MaxPopulation {maxPopulation}");

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Utils;
 
 public class QuestCommandUtil
 {
-    public static void GetCommandChoice(Character character, string choice, string[] args)
+    public static void GetCommandChoice(ICharacter character, string choice, string[] args)
     {
         uint questId;
 
@@ -18,7 +18,7 @@ public class QuestCommandUtil
                 {
                     if (uint.TryParse(args[1], out questId))
                     {
-                        character.Quests.AddStart(questId);
+                        character.Quests.Add(questId, true);
                     }
                 }
                 else
@@ -28,7 +28,7 @@ public class QuestCommandUtil
                 break;
             case "list":
                 character.SendMessage("[Quest] LIST");
-                foreach (var quest in character.Quests.Quests.Values)
+                foreach (var quest in character.Quests.ActiveQuests.Values)
                 {
                     var objectives = quest.GetObjectives(quest.Step).Select(t => t.ToString()).ToList();
                     character.SendMessage("Quest {0}: Step({1}), Objectives({2})", quest.Template.Id, quest.Step, string.Join(", ", objectives));
@@ -87,7 +87,7 @@ public class QuestCommandUtil
                     {
                         if (character.Quests.HasQuest(questId))
                         {
-                            var quest = character.Quests.Quests[questId];
+                            var quest = character.Quests.ActiveQuests[questId];
                             if (quest.Step == QuestComponentKind.None)
                                 quest.Step = QuestComponentKind.Start;
                             if (quest.Step == QuestComponentKind.Start)
@@ -124,12 +124,16 @@ public class QuestCommandUtil
                     {
                         if (character.Quests.HasQuest(questId))
                         {
-                            character.Quests.Drop(questId, true);
+                            character.Quests.Drop(questId, true, true); // удаляем и из CompletedQuests
                         }
                         else
                         {
                             character.SendMessage("[Quest] You do not have the quest {0}", questId);
                         }
+                        // посылаем пакеты для того, что-бы клиент был в курсе обновления квестов
+                        character.Quests.Send();
+                        character.Quests.SendCompleted();
+                        character.Quests.RecallEvents();
                     }
                 }
                 else
@@ -141,7 +145,7 @@ public class QuestCommandUtil
                 character.Quests.ResetDailyQuests(true);
                 break;
             default:
-                character.SendMessage("[Quest] /quest <add/remove/list/prog/reward>\nBefore that, target the Npc you need for the quest");
+                character.SendMessage("[Quest] /quest <add/remove/list/prog/reward/resetdaily>\nBefore that, target the Npc you need for the quest");
                 break;
         }
     }

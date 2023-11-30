@@ -132,7 +132,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
 
     public List<SphereQuest> GetQuestSpheres(uint componentId)
     {
-        return _sphereQuests.ContainsKey(componentId) ? _sphereQuests[componentId] : null;
+        return _sphereQuests.TryGetValue(componentId, out var sphereQuests) ? sphereQuests : null;
     }
 
     public List<SphereQuestTrigger> GetSphereQuestTriggers()
@@ -186,10 +186,10 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
                         try
                         {
                             var sphere = new SphereQuest();
-                            sphere.WorldID = world.Name;
-                            sphere.ZoneID = zoneId;
-                            sphere.QuestID = uint.Parse(l1.Substring(6));
-                            sphere.ComponentID = uint.Parse(l2.Substring(6));
+                            sphere.WorldId = world.Name;
+                            sphere.ZoneId = zoneId;
+                            sphere.QuestId = uint.Parse(l1.Substring(6));
+                            sphere.ComponentId = uint.Parse(l2.Substring(6));
                             var subline = l3.Substring(4).Replace("(", "").Replace(")", "").Replace("x", "").Replace("y", "").Replace("z", "").Replace(" ", "");
                             var posstring = subline.Split(',');
                             if (posstring.Length == 3)
@@ -208,15 +208,15 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
                             sphere.X = vec.X;
                             sphere.Y = vec.Y;
                             sphere.Z = vec.Z;
-                            if (!sphereQuests.ContainsKey(sphere.ComponentID))
+                            if (!sphereQuests.ContainsKey(sphere.ComponentId))
                             {
                                 var sphereList = new List<SphereQuest>();
                                 sphereList.Add(sphere);
-                                sphereQuests.Add(sphere.ComponentID, sphereList);
+                                sphereQuests.Add(sphere.ComponentId, sphereList);
                             }
                             else
                             {
-                                sphereQuests[sphere.ComponentID].Add(sphere);
+                                sphereQuests[sphere.ComponentId].Add(sphere);
                             }
                             i += 4;
                         }

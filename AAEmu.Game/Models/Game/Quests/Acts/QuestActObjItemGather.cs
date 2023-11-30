@@ -17,6 +17,7 @@ public class QuestActObjItemGather : QuestActTemplate // Сбор предмет
     public bool DropWhenDestroy { get; set; }
     public bool DestroyWhenDrop { get; set; }
 
+    private int Objective { get; set; }
     public static int GatherStatus { get; private set; } = 0;
 
     public override bool Use(ICharacter character, Quest quest, int objective)
@@ -33,33 +34,57 @@ public class QuestActObjItemGather : QuestActTemplate // Сбор предмет
 
             if (quest.Template.LetItDone)
             {
-                if (quest.OverCompletionPercent >= quest.Template.Score * 3 / 5)
+                if (quest.OverCompletionPercent >= quest.Template.Score * 1 / 2)
                     quest.EarlyCompletion = true;
 
                 if (quest.OverCompletionPercent > quest.Template.Score)
                     quest.ExtraCompletion = true;
             }
 
+            Update();
+
             res = quest.OverCompletionPercent >= quest.Template.Score;
         }
-        else
+
+        if (quest.Template.LetItDone)
         {
-            if (quest.Template.LetItDone)
-            {
-                quest.OverCompletionPercent = objective * 100 / Count;
+            quest.OverCompletionPercent = objective * 100 / Count;
 
-                if (quest.OverCompletionPercent >= 60)
-                    quest.EarlyCompletion = true;
+            if (quest.OverCompletionPercent >= 50)
+                quest.EarlyCompletion = true;
 
-                if (quest.OverCompletionPercent > 100)
-                    quest.ExtraCompletion = true;
-            }
-            res = objective >= Count;
+            if (quest.OverCompletionPercent > 100)
+                quest.ExtraCompletion = true;
         }
+
+        Update();
+
+        res = objective >= Count;
 
         if (res && Cleanup)
             quest.QuestCleanupItemsPool.Add(new ItemCreationDefinition(ItemId, Math.Min(maxCleanup, objective)));
 
         return res;
+    }
+
+    public override void Update()
+    {
+        Objective++;
+    }
+    public override bool IsCompleted()
+    {
+        return Objective >= Count;
+    }
+    public override int GetCount()
+    {
+        Logger.Info("Получим, информацию на сколько выполнено задание.");
+
+        return Objective;
+    }
+    public override void ClearStatus()
+    {
+        GatherStatus = 0;
+        Objective = 0;
+        Logger.Info("Сбросили статус в ноль.");
     }
 }

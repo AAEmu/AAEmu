@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
-using System.Net.Mime;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -30,6 +30,7 @@ using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
+
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char;
@@ -1275,7 +1276,14 @@ public partial class Character : Unit, ICharacter
             Abilities.AddActiveExp(exp); // TODO ... or all?
         SendPacket(new SCExpChangedPacket(ObjId, exp, shouldAddAbilityExp));
         CheckLevelUp();
-        Quests.OnLevelUp(); // TODO added for quest Id=5967
+
+        //Quests.OnLevelUp(); // TODO added for quest Id=5967
+        // инициируем событие
+        //Task.Run(() => QuestManager.Instance.DoOnLevelUpEvents(Connection.ActiveChar));
+        if (Connection != null)
+        {
+            QuestManager.Instance.DoOnLevelUpEvents(Connection.ActiveChar);
+        }
     }
 
     public void CheckLevelUp()
@@ -1569,7 +1577,13 @@ public partial class Character : Unit, ICharacter
         var item = Inventory.GetItemById(id);
         if (item is { Count: > 0 })
         {
-            Quests.OnItemUse(item);
+            //Quests.OnItemUse(item);
+            // инициируем событие
+            Events?.OnItemUse(this, new OnItemUseArgs
+            {
+                ItemId = item.TemplateId,
+                Count = item.Count
+            });
         }
     }
 

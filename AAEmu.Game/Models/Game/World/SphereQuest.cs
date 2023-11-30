@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
@@ -10,18 +12,18 @@ namespace AAEmu.Game.Models.Game.World;
 
 public enum AreaSphereTriggerCondition
 {
-    INVALID = 0,
-    TRIGGER_ONCE_AT_ALL = 1,
-    TRIGGER_ONCE_IN_RUNTIME = 2,
-    TRIGGER_EVERY_N_TIME_AFTER = 3
+    Invalid = 0,
+    TriggerOnceAtAll = 1,
+    TriggerOnceInRuntime = 2,
+    TriggerEveryNTimeAfter = 3
 }
 
 public class SphereQuest
 {
-    public uint ZoneID { get; set; }
-    public string WorldID { get; set; }
-    public uint QuestID { get; set; }
-    public uint ComponentID { get; set; }
+    public uint ZoneId { get; set; }
+    public string WorldId { get; set; }
+    public uint QuestId { get; set; }
+    public uint ComponentId { get; set; }
     public float Radius { get; set; }
     public float X { get; set; }
     public float Y { get; set; }
@@ -52,13 +54,17 @@ public class SphereQuestTrigger
     {
         foreach (var trigger in Triggers)
         {
-            if (trigger.Quest.ComponentId == trigger.Sphere.ComponentID)
+            if (trigger.Quest.CurrentComponentId == trigger.Sphere.ComponentId)
             {
                 var xyzSphereQuest = new Vector3(trigger.Sphere.X, trigger.Sphere.Y, trigger.Sphere.Z);
                 // TODO срабатывает триггер в радиусе от центра сферы
                 if (MathUtil.CalculateDistance(trigger.Owner.Transform.World.Position, xyzSphereQuest, true) < trigger.Sphere.Radius)
                 {
-                    trigger.Owner.Quests.OnEnterSphere(trigger.Sphere);
+                    //trigger.Owner.Quests.OnEnterSphere(trigger.Sphere);
+                    // инициируем событие
+                    //Task.Run(() => QuestManager.Instance.DoOnEnterSphereEvents((Character)trigger.Owner, trigger.Sphere));
+                    QuestManager.Instance.DoOnEnterSphereEvents((Character)trigger.Owner, trigger.Sphere);
+
                     SphereQuestManager.Instance.RemoveSphereQuestTrigger(trigger);
                 }
             }

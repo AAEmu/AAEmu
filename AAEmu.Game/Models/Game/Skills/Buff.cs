@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills;
 
@@ -18,6 +19,8 @@ public enum EffectState
 
 public class Buff
 {
+    protected static Logger Logger => LogManager.GetCurrentClassLogger();
+
     private object _lock = new();
     private int _count;
 
@@ -116,6 +119,7 @@ public class Buff
 
                     if (Template.FactionId > 0 && Owner is Unit owner)
                     {
+                        Logger.Info($"Buff: buff={Template.BuffId}:{Index}, owner={owner.TemplateId}:{owner.ObjId}");
                         if (saveFactions.ContainsKey(owner.Id))
                         {
                             saveFactions[owner.Id] = owner.Faction.Id;

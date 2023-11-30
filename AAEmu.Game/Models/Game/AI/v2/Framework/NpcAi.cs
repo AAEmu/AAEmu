@@ -112,12 +112,16 @@ public abstract class NpcAi
 
             // If aggro table is populated, check if current aggro targets need to be cleared
             if (Owner?.AggroTable.Count <= 0)
+            {
+                OnNoAggroTarget();
                 return;
+            }
 
             var toRemove = new List<Unit>();
             foreach (var (id, aggro) in Owner.AggroTable)
                 if (aggro.Owner.Buffs.CheckBuffTag((uint)TagsEnum.NoFight) ||
-                    aggro.Owner.Buffs.CheckBuffTag((uint)TagsEnum.Returning))
+                    aggro.Owner.Buffs.CheckBuffTag((uint)TagsEnum.Returning) ||
+                    !Owner.CanAttack(aggro.Owner))
                     toRemove.Add(aggro.Owner);
 
             if (toRemove.Count <= 0)

@@ -135,6 +135,10 @@ public class Skill
         InitialTarget = target;
         if (target == null)
         {
+            if (caster is Npc npc)
+            {
+                npc.Ai.OnNoAggroTarget();
+            }
             Logger.Debug($"Skill: SkillResult.NoTarget! - Skill {Template.Id}, Caster {caster.Name} ({caster.ObjId})");
             return SkillResult.NoTarget; // We should try to make sure this doesnt happen, but can happen with NPC skills
         }
@@ -153,7 +157,7 @@ public class Skill
         // Get a TlId for this skill
         TlId = SkillTlIdManager.GetNextId(caster);
         // if (caster is Character)
-        Logger.Trace($"Created SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.ObjId}) with target {target.Name} ({target.ObjId})");
+        Logger.Trace($"Created SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
 
         // If skill uses Plots, then start the plot
         if (Template.Plot != null)
@@ -652,6 +656,13 @@ public class Skill
             doodad.Spawn();
         }
 
+        // TODO: добавил, так как для квеста 3469 нет события OnItemUse
+        // TODO: added since there is no OnItemUse event for quest 3469
+        if (casterCaster is SkillItem { ItemTemplateId: > 0 } item && caster is Character player)
+        {
+            player.Inventory.ConsumeItem(null, ItemTaskType.SkillReagents, item.ItemTemplateId, 1, null);
+        }
+
         caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
         unit.SkillTask = new EndChannelingTask(this, caster, casterCaster, target, targetCaster, skillObject, doodad);
         TaskManager.Instance.Schedule(unit.SkillTask, TimeSpan.FromMilliseconds(Template.ChannelingTime));
@@ -934,7 +945,16 @@ public class Skill
         {
             //Template can be null for some reason..
             if (item.effect.Template != null)
-                item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                if (item.effect.Template is KillNpcWithoutCorpseEffect nsse)
+                {
+                    // для квеста 3478, требуется чтобы caster был Npc
+                    var npc = WorldManager.Instance.GetNpcByTemplateId(nsse.NpcId);
+                    item.effect.Template.Apply(npc, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                }
+                else
+                {
+                    item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                }
             else
                 Logger.Error($"Template not found for Skill[{Template.Id}] Effect[{item.effect.EffectId}]");
         }

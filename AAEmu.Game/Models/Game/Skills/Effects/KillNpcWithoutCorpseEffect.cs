@@ -23,12 +23,13 @@ public class KillNpcWithoutCorpseEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        Logger.Trace("KillNpcWithoutCorpseEffect");
+        Logger.Info($"KillNpcWithoutCorpseEffect npc={NpcId}, Radius={Radius}, Vanish={Vanish}");
 
         if (caster is Character) { return; } // does not apply to the character
-        if (Vanish && Radius == 0)
+        if (Vanish)
         {
             // Fixed: "Trainer Daru" disappears after selling a bear
+            // quest 3449, buff=4112
             RemoveEffectsAndDelete((Unit)caster);
         }
         else

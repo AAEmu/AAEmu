@@ -6,6 +6,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
@@ -25,7 +26,7 @@ public class Return : SpecialEffectAction
         int value4)
     {
         // TODO ...
-        if (caster is Character) { Logger.Debug("Special effects: Return value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is Character) { Logger.Info("Special effects: Return value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
         if (caster is not Character character) { return; }
         uint returnPointId;
@@ -58,13 +59,13 @@ public class Return : SpecialEffectAction
                     trp.Z,
                     0,
                     0,
-                    trp.Yaw
+                    trp.Yaw.DegToRad()
                 )
             );
             //var xyz = new Vector3(trp.X, trp.Y, trp.Z);
             //character.Transform = new Transform(character, null, xyz);
             // возвращаемся в main_world
-            character.Transform = new Transform(character, null, 0, trp.ZoneId, 0, trp.X, trp.Y, trp.Z, trp.Yaw);
+            character.Transform = new Transform(character, null, 0, trp.ZoneId, 0, trp.X, trp.Y, trp.Z, trp.Yaw.DegToRad());
             character.MainWorldPosition = null;
         }
         else if (character.MainWorldPosition != null)
@@ -86,9 +87,22 @@ public class Return : SpecialEffectAction
             character.Transform = character.MainWorldPosition.Clone(character);
             character.MainWorldPosition = null;
         }
-        if (trp == null) { return; }
+
+        if (trp == null)
+        {
+            Logger.Info($"Return: Требуется добавить информацию в файл worldgates.json:\r\n" +
+                        $"        \"Id\": {value1}\r\n" +
+                        $"        \"ZoneId\": {character.Transform.ZoneId},\r\n" +
+                        $"        \"X\": {character.Transform.World.Position.X},\r\n" +
+                        $"        \"Y\": {character.Transform.World.Position.Y},\r\n" +
+                        $"        \"Z\": {character.Transform.World.Position.Z},\r\n" +
+                        $"        \"Yaw\": {character.Transform.World.Rotation.Z},\r\n" +
+                        $"        \"SubZoneId\": {character.SubZoneId}\r\n" +
+                        $"Координаты надо поставить правильные, эти для примера.");
+            return;
+        }
 
         caster.DisabledSetPosition = true;
-        character.SendPacket(new SCTeleportUnitPacket(TeleportReason.MoveToLocation, 0, trp.X, trp.Y, trp.Z, trp.Yaw));
+        character.SendPacket(new SCTeleportUnitPacket(TeleportReason.MoveToLocation, 0, trp.X, trp.Y, trp.Z, trp.Yaw.DegToRad()));
     }
 }

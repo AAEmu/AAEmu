@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Media;
+
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -12,7 +10,6 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 using AAEmu.Game.Models.Tasks.Skills;
 
 namespace AAEmu.Game.Models.Game.Char;
@@ -59,7 +56,8 @@ public class CharacterCraft
                     break;
                 case DoodadFuncPermission.SameAccount:
                     if (doodad.OwnerType == DoodadOwnerType.Character)
-                        hasPermission = WorldManager.Instance.GetCharacterById(doodad.OwnerId).AccountId == Owner.AccountId;
+                        hasPermission = WorldManager.Instance.GetCharacterById(doodad.OwnerId).AccountId ==
+                                        Owner.AccountId;
                     break;
                 case DoodadFuncPermission.ZoneResidents:
                     hasPermission = false;
@@ -69,7 +67,8 @@ public class CharacterCraft
                     {
                         foreach (var (houseId, playerHouse) in playerHouses)
                         {
-                            var houseZoneGroup = ZoneManager.Instance.GetZoneByKey(playerHouse.Transform.ZoneId)?.GroupId ?? 0;
+                            var houseZoneGroup = ZoneManager.Instance.GetZoneByKey(playerHouse.Transform.ZoneId)
+                                ?.GroupId ?? 0;
                             if (houseZoneGroup == zoneGroup)
                             {
                                 hasPermission = true;
@@ -77,10 +76,12 @@ public class CharacterCraft
                             }
                         }
                     }
+
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+
             Owner.SendMessage($"Crafting using @DOODAD_NAME({doodad.TemplateId}) - {doodad.TemplateId} (objId: {doodad.ObjId}) with current permission {doodad.FuncPermission} = {hasPermission}");
         }
 
@@ -140,7 +141,16 @@ public class CharacterCraft
             Owner.Inventory.Bag.ConsumeItem(ItemTaskType.CraftActSaved, material.ItemId, material.Amount, null);
         }
 
-        Owner.Quests.OnCraft(_craft); // TODO added for quest Id=6024
+        //Owner.Quests.OnCraft(_craft); // TODO added for quest Id=6024
+        // инициируем событие
+        //Task.Run(() =>
+        //{
+        //    if (_craft != null)
+        //    {
+        //        QuestManager.Instance.DoOnCraftEvents(Owner, _craft.Id);
+        //    }
+        //});
+        QuestManager.Instance.DoOnCraftEvents(Owner, _craft.Id);
 
         if (_count > 0)
         {
