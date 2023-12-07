@@ -199,6 +199,6 @@ public class CashShopManager : Singleton<CashShopManager>
 
     public CashShopItemDetail GetCashShopItemDetail(uint cashShopId)
     {
-        return _cashShopItemDetail.ContainsKey(cashShopId) ? _cashShopItemDetail[cashShopId] : new CashShopItemDetail();
+        return _cashShopItemDetail.TryGetValue(cashShopId, out var value) ? value : new CashShopItemDetail();
     }
 }

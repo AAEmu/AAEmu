@@ -39,7 +39,7 @@ public class PacketStream : ICloneable, IComparable
     public int LeftBytes => Count - Pos;
 
     public EndianBitConverter Converter =>
-        (IsLittleEndian ? EndianBitConverter.Little : (EndianBitConverter)EndianBitConverter.Big);
+        (IsLittleEndian ? EndianBitConverter.Little : EndianBitConverter.Big);
 
     #endregion // Properties
 

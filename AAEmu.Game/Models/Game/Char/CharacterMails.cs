@@ -284,7 +284,7 @@ public class CharacterMails
             {
                 var item = ItemManager.Instance.GetItemByItemId(thisMail.Body.Attachments[i].Id);
                 if (item.SlotType == SlotType.None)
-                    itemSlots.Add(((byte)0, (byte)0));
+                    itemSlots.Add((0, 0));
                 else
                     itemSlots.Add((item.SlotType, (byte)item.Slot));
             }

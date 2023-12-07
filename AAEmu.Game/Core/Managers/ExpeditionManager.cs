@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
@@ -157,8 +158,8 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
     public Expedition GetExpedition(uint id)
     {
-        if (_expeditions.ContainsKey(id))
-            return _expeditions[id];
+        if (_expeditions.TryGetValue(id, out var expedition))
+            return expedition;
         return null;
     }
 

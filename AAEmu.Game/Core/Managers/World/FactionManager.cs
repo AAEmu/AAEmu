@@ -20,8 +20,8 @@ public class FactionManager : Singleton<FactionManager>
 
     public SystemFaction GetFaction(uint id)
     {
-        if (_systemFactions.ContainsKey(id))
-            return _systemFactions[id];
+        if (_systemFactions.TryGetValue(id, out var faction))
+            return faction;
 
         return null;
     }

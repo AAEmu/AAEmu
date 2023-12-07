@@ -3,6 +3,7 @@
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
@@ -36,9 +37,9 @@ public class ExitArchemall : SpecialEffectAction
                     character.MainWorldPosition.World.Position.X,
                     character.MainWorldPosition.World.Position.Y,
                     character.MainWorldPosition.World.Position.Z,
-                    character.MainWorldPosition.World.Rotation.X,
-                    character.MainWorldPosition.World.Rotation.Y,
-                    character.MainWorldPosition.World.Rotation.Z
+                    character.MainWorldPosition.World.Rotation.X.DegToRad(),
+                    character.MainWorldPosition.World.Rotation.Y.DegToRad(),
+                    character.MainWorldPosition.World.Rotation.Z.DegToRad()
                 )
             );
 

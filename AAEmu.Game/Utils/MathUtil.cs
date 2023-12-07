@@ -226,10 +226,10 @@ public class MathUtil
 
         // Console.WriteLine("GetCuboidVertices - rotationZ = " + rotationZ.RadToDeg() + "° > F: " + radFront.RadToDeg() + "°  R: " + radRight.RadToDeg() + "°");
 
-        var cosFront = (float)MathF.Cos(radFront);
-        var sinFront = (float)MathF.Sin(radFront);
-        var cosRight = (float)MathF.Cos(radRight);
-        var sinRight = (float)MathF.Sin(radRight);
+        var cosFront = MathF.Cos(radFront);
+        var sinFront = MathF.Sin(radFront);
+        var cosRight = MathF.Cos(radRight);
+        var sinRight = MathF.Sin(radRight);
 
         var result = new (float, float)[4];
 

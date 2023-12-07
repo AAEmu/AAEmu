@@ -33,9 +33,9 @@ public class PlotBuilder
 
         foreach (var childNextEvent in childNextEvents)
         {
-            if (existingNextEvents.ContainsKey(childNextEvent.Id))
+            if (existingNextEvents.TryGetValue(childNextEvent.Id, out var @event))
             {
-                parent.Children.Add(existingNextEvents[childNextEvent.Id]);
+                parent.Children.Add(@event);
             }
             else
             {

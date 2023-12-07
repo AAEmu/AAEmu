@@ -659,6 +659,86 @@ public class SpawnManager : Singleton<SpawnManager>
         });
     }
 
+    public List<Npc> SpawnAll(uint worldId, uint worldTemplateId)
+    {
+        var npcList = new List<Npc>();
+        if (_npcSpawners.TryGetValue((byte)worldTemplateId, out var npcSpawners))
+        {
+            foreach (var spawners in npcSpawners.Values)
+            {
+                foreach (var spawner in spawners)
+                {
+                    spawner.Position.WorldId = worldId;
+                    spawner.ClearSpawnCount();
+                    npcList.Add(spawner.Spawn(0));
+                    spawner.Position.WorldId = worldTemplateId;
+                }
+            }
+        }
+        if (_doodadSpawners.TryGetValue((byte)worldTemplateId, out var doodadSpawners))
+        {
+            foreach (var spawner in doodadSpawners.Values)
+            {
+                spawner.Position.WorldId = worldId;
+                spawner.Spawn(0);
+                spawner.Position.WorldId = worldTemplateId;
+            }
+        }
+        if (_slaveSpawners.TryGetValue((byte)worldTemplateId, out var slaveSpawners))
+        {
+            foreach (var spawner in slaveSpawners.Values)
+            {
+                spawner.Position.WorldId = worldId;
+                spawner.Spawn(0);
+                spawner.Position.WorldId = worldTemplateId;
+            }
+        }
+        if (_gimmickSpawners.TryGetValue((byte)worldTemplateId, out var gimmickSpawners))
+        {
+            foreach (var spawner in gimmickSpawners.Values)
+            {
+                spawner.Position.WorldId = worldId;
+                spawner.Spawn(0);
+                spawner.Position.WorldId = worldTemplateId;
+            }
+        }
+        return npcList;
+    }
+
+    public void SpawnWithinSourceRange(uint templateId, Unit source, int range = 15)
+    {
+        Logger.Warn("SpawnWithinRange - world templateId: " + templateId + ", source templateId: " + source.TemplateId + ", objId: " + source.ObjId);
+        if (_doodadSpawners.TryGetValue((byte)templateId, out var doodad))
+        {
+            foreach (var spawner in doodad.Values)
+            {
+                if (source.Transform.World.Position.X - spawner.Position.X < range)
+                {
+                    if (source.Transform.World.Position.Y - spawner.Position.Y < range)
+                    {
+                        spawner.Spawn(0);
+                    }
+                }
+            }
+        }
+        if (_npcSpawners.TryGetValue((byte)templateId, out var npc))
+        {
+            foreach (var spawners in npc.Values)
+            {
+                foreach (var spawner in spawners)
+                {
+                    if (source.Transform.World.Position.X - spawner.Position.X < range)
+                    {
+                        if (source.Transform.World.Position.Y - spawner.Position.Y < range)
+                        {
+                            spawner.Spawn(0);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     public void Stop()
     {
         lock (_lock)

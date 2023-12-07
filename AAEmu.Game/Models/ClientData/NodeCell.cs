@@ -154,7 +154,7 @@ public class NodeCell
     {
         if (nSize > 0 && nSize < 33)
         {
-            var sourceScale = (float)nSize / 33f;
+            var sourceScale = nSize / 33f;
             var result = new ushort[33 * 33];
 
             for (var targetX = 0; targetX <= 32; targetX++)
@@ -173,8 +173,8 @@ public class NodeCell
                     var rawHeightBL = GetRawHeight(nearestRawPoints.Left, nearestRawPoints.Bottom);
                     var rawHeightBR = GetRawHeight(nearestRawPoints.Right, nearestRawPoints.Bottom);
                     // Calculate offset within points
-                    var offX = ((float)targetX * sourceScale) - sourceX;
-                    var offY = ((float)targetY * sourceScale) - sourceY;
+                    var offX = (targetX * sourceScale) - sourceX;
+                    var offY = (targetY * sourceScale) - sourceY;
                     var height = Blerp(rawHeightTL, rawHeightTR, rawHeightBL, rawHeightBR, offX, offY);
 
                     result[index] = (ushort)Math.Round(height);

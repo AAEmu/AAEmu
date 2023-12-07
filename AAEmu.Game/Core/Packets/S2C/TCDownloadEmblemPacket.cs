@@ -12,7 +12,7 @@ public class TCDownloadEmblemPacket : StreamPacket
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write((long)0); // type
-        stream.Write((int)0); // size
+        stream.Write(0); // size
         /*
         if ( *(_DWORD *)(v3 + 8) > 0 )
         {

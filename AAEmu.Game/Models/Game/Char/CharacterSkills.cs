@@ -45,8 +45,8 @@ public class CharacterSkills
         if (template.SkillPoints > points)
             return;
 
-        if (Skills.ContainsKey(skillId))
-            Owner.SendPacket(new SCSkillLearnedPacket(Skills[skillId]));
+        if (Skills.TryGetValue(skillId, out var skill))
+            Owner.SendPacket(new SCSkillLearnedPacket(skill));
         else
             AddSkill(template, 1, true);
     }

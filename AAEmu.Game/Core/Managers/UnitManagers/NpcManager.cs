@@ -45,8 +45,8 @@ public class NpcManager : Singleton<NpcManager>
 
     public NpcTemplate GetTemplate(uint templateId)
     {
-        if (_templates.ContainsKey(templateId))
-            return _templates[templateId];
+        if (_templates.TryGetValue(templateId, out var template))
+            return template;
         return null;
     }
 
@@ -57,8 +57,8 @@ public class NpcManager : Singleton<NpcManager>
 
     public MerchantGoods GetGoods(uint id)
     {
-        if (_goods.ContainsKey(id))
-            return _goods[id];
+        if (_goods.TryGetValue(id, out var goods))
+            return goods;
         return null;
     }
 
@@ -163,7 +163,7 @@ public class NpcManager : Singleton<NpcManager>
     private NpcTemplate LoadCustom(NpcTemplate template)
     {
         var _template = new NpcTemplate();
-        var totalCustomId = (uint)template.TotalCustomId;
+        var totalCustomId = template.TotalCustomId;
 
         if (totalCustomId != 0 || template.FactionId == 115 || template.FactionId == 116) // 115 - Monstrosity, 116 - Animal
         {

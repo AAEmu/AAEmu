@@ -142,6 +142,14 @@ public class DoodadSpawner : Spawner<Doodad>
     public override void Despawn(Doodad doodad)
     {
         doodad.Delete();
+
+        if (doodad.Transform.WorldId > 99)
+        {
+            // Temporary range for instanced worlds
+            var dungeon = IndunManager.Instance.GetDungeonByWorldId(doodad.Transform.WorldId);
+            dungeon?.UnregisterIndunEvents();
+        }
+
         if (doodad.Respawn == DateTime.MinValue)
         {
             ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
@@ -218,6 +226,20 @@ public class DoodadSpawner : Spawner<Doodad>
         #endregion Schedule
 
         Last.Spawn(); // initialize Doodad with the initial phase and display it on the terrain
+
+        var world = WorldManager.Instance.GetWorld(Last.Transform.WorldId);
+        if (Last.Transform.WorldId > 99)
+        {
+            // Temporary range for instanced worlds
+            var dungeon = IndunManager.Instance.GetDungeonByWorldId(Last.Transform.WorldId);
+
+            if (dungeon is not null)
+            {
+                //dungeon.RegisterIndunEvents();
+                world.Events.OnDoodadSpawn(world, new OnDoodadSpawnArgs { Doodad = Last });
+            }
+        }
+
         _spawned.Add(Last);
         if (!_permanent)
         {

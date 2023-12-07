@@ -57,7 +57,7 @@ public class TeamManager : Singleton<TeamManager>
     private Team GetActiveTeam(uint teamId)
     {
         if (teamId == 0) return null;
-        return _activeTeams.ContainsKey(teamId) ? _activeTeams[teamId] : null;
+        return _activeTeams.TryGetValue(teamId, out var team) ? team : null;
     }
 
     public bool AreTeamMembers(uint unit1, uint unit2)
@@ -68,7 +68,7 @@ public class TeamManager : Singleton<TeamManager>
 
     private InvitationTemplate GetActiveInvitation(uint targetId)
     {
-        return _activeInvitations.ContainsKey(targetId) ? _activeInvitations[targetId] : null;
+        return _activeInvitations.TryGetValue(targetId, out var invitation) ? invitation : null;
     }
 
     public void InviteAreaToTeam(Character owner, uint teamId, bool isParty)

@@ -62,15 +62,15 @@ public class BuffModifiers
 
     public List<BuffModifier> GetModifiersForBuffId(uint skillId)
     {
-        if (_modifiersByBuffId.ContainsKey(skillId))
-            return _modifiersByBuffId[skillId];
+        if (_modifiersByBuffId.TryGetValue(skillId, out var id))
+            return id;
         return null;
     }
 
     public List<BuffModifier> GetModifiersForTagId(uint tagId)
     {
-        if (_modifiersByTagId.ContainsKey(tagId))
-            return _modifiersByTagId[tagId];
+        if (_modifiersByTagId.TryGetValue(tagId, out var id))
+            return id;
         return null;
     }
 

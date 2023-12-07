@@ -62,7 +62,13 @@ public class UnitEvents
     public EventHandler<OnReportJournalArgs> OnReportJournal = delegate { };
     // на шаге Complete?
     public EventHandler<OnQuestCompleteArgs> OnQuestComplete = delegate { };
-    // --- нужен для квестов
+    // --- нужен для indun
+    public EventHandler<OnCombatStartedArgs> OnCombatStarted = delegate { };
+    public EventHandler<InIdleArgs> InIdle = delegate { };
+    public EventHandler<InAlertArgs> InAlert = delegate { };
+    public EventHandler<InDeadArgs> InDead = delegate { };
+    public EventHandler<OnSpawnArgs> OnSpawn = delegate { };
+    public EventHandler<OnDespawnArgs> OnDespawn = delegate { };
 }
 
 public class OnMonsterHuntArgs : EventArgs
@@ -285,5 +291,36 @@ public class OnHealedArgs : EventArgs
 {
     public Unit Healer { get; set; }
     public int HealAmount { get; set; }
+}
+
+public class OnCombatStartedArgs : EventArgs
+{
+    public Unit Owner { get; set; }
+    public Unit Target { get; set; }
+}
+
+public class InIdleArgs : EventArgs
+{
+    public Unit Owner { get; set; }
+}
+
+public class InAlertArgs : EventArgs
+{
+    public Unit Npc { get; set; }
+}
+
+public class InDeadArgs : EventArgs
+{
+    public Unit Npc { get; set; }
+}
+
+public class OnSpawnArgs : EventArgs
+{
+    public Unit Npc { get; set; }
+}
+
+public class OnDespawnArgs : EventArgs
+{
+    public Unit Npc { get; set; }
 }
 

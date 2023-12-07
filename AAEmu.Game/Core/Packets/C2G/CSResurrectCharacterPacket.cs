@@ -1,9 +1,12 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Linq;
+using AAEmu.Commons.Network;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Units.Static;
-using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -19,7 +22,28 @@ public class CSResurrectCharacterPacket : GamePacket
 
         Logger.Debug("ResurrectCharacter, InPlace: {0}", inPlace);
 
-        var portal = PortalManager.Instance.GetClosestReturnPortal(Connection.ActiveChar);
+        var portal = new Portal();
+
+        // поищем сначала "UnitId": 502, "Title": "Temple Priestess",
+        if (Connection.ActiveChar.Transform.WorldId > 99)
+        {
+            var npcs = WorldManager.Instance.GetAllNpcsFromWorld(Connection.ActiveChar.Transform.WorldId);
+            foreach (var npc in npcs.Where(npc => npc.TemplateId == 502))
+            {
+                portal.WorldId = Connection.ActiveChar.Transform.WorldId;
+                portal.ZoneId = npc.Transform.ZoneId;
+                portal.X = npc.Transform.World.Position.X + Rand.Next(1, 3);
+                portal.Y = npc.Transform.World.Position.Y + Rand.Next(1, 3);
+                portal.Z = npc.Transform.World.Position.Z;
+                portal.ZRot = npc.Transform.World.Rotation.Z;
+                portal.Yaw = npc.Transform.World.Rotation.Z;
+            }
+        }
+        else
+        {
+            portal = PortalManager.Instance.GetClosestReturnPortal(Connection.ActiveChar);
+        }
+
 
         if (inPlace)
         {

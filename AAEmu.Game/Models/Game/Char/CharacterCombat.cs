@@ -1,13 +1,12 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
-using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -82,5 +81,15 @@ public partial class Character
             }
 
         }
+    }
+
+    public void OnDisconnect(object sender, OnDisconnectArgs args)
+    {
+        ForceDismount();
+        MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(this);
+    }
+
+    public void OnEnterCombat(object sender, OnCombatStartedArgs args)
+    {
     }
 }

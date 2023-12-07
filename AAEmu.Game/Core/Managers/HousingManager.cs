@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -746,7 +747,7 @@ public class HousingManager : Singleton<HousingManager>
 
             ownerChar?.SendPacket(new SCMyHouseRemovedPacket(house.TlId));
             // Make killable
-            UpdateHouseFaction(house, (uint)FactionsEnum.Monstrosity);
+            UpdateHouseFaction(house, FactionsEnum.Monstrosity);
 
             SetForSaleMarkers(house, false);
 

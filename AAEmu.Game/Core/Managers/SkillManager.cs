@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.AI.Enums;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -12,6 +14,7 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -77,8 +80,8 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
 
     public SkillTemplate GetSkillTemplate(uint id)
     {
-        if (_skills.ContainsKey(id))
-            return _skills[id];
+        if (_skills.TryGetValue(id, out var template))
+            return template;
         return null;
     }
 
@@ -107,8 +110,8 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
         // if(_effects["Buff"].ContainsKey(id))
         //     return (BuffTemplate)_effects["Buff"][id];
         // return null;
-        if (_buffs.ContainsKey(id))
-            return _buffs[id];
+        if (_buffs.TryGetValue(id, out var template))
+            return template;
         return null;
     }
 
@@ -123,10 +126,8 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
 
     public EffectTemplate GetEffectTemplate(uint id)
     {
-        if (_types.ContainsKey(id))
+        if (_types.TryGetValue(id, out var type))
         {
-            var type = _types[id];
-
             Logger.Trace("Get Effect Template: type = {0}, id = {1}", type.Type, type.ActualId);
 
             if (_effects.TryGetValue(type.Type, out var effect))
@@ -158,50 +159,50 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
 
     public List<uint> GetBuffTags(uint buffId)
     {
-        if (_buffTags.ContainsKey(buffId))
-            return _buffTags[buffId];
+        if (_buffTags.TryGetValue(buffId, out var tags))
+            return tags;
         return new List<uint>();
     }
 
     public List<uint> GetBuffsByTagId(uint tagId)
     {
-        if (_taggedBuffs.ContainsKey(tagId))
-            return _taggedBuffs[tagId];
+        if (_taggedBuffs.TryGetValue(tagId, out var id))
+            return id;
         return null;
     }
 
     public List<uint> GetSkillTags(uint skillId)
     {
-        if (_skillTags.ContainsKey(skillId))
-            return _skillTags[skillId];
+        if (_skillTags.TryGetValue(skillId, out var tags))
+            return tags;
         return new List<uint>();
     }
 
     public List<uint> GetSkillsByTag(uint tagId)
     {
-        if (_taggedSkills.ContainsKey(tagId))
-            return _taggedSkills[tagId];
+        if (_taggedSkills.TryGetValue(tagId, out var tag))
+            return tag;
         return new List<uint>();
     }
 
     public PassiveBuffTemplate GetPassiveBuffTemplate(uint id)
     {
-        if (_passiveBuffs.ContainsKey(id))
-            return _passiveBuffs[id];
+        if (_passiveBuffs.TryGetValue(id, out var template))
+            return template;
         return null;
     }
 
     public List<SkillModifier> GetModifiersByOwnerId(uint id)
     {
-        if (_skillModifiers.ContainsKey(id))
-            return _skillModifiers[id];
+        if (_skillModifiers.TryGetValue(id, out var ownerId))
+            return ownerId;
         return new List<SkillModifier>();
     }
 
     public List<CombatBuffTemplate> GetCombatBuffs(uint reqBuffId)
     {
-        if (_combatBuffs.ContainsKey(reqBuffId))
-            return _combatBuffs[reqBuffId];
+        if (_combatBuffs.TryGetValue(reqBuffId, out var buffs))
+            return buffs;
         return new List<CombatBuffTemplate>();
     }
 
@@ -230,6 +231,27 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
         }
 
         return products;
+    }
+
+    /// <summary>
+    /// Returns a skill to be used for npcs with np_skills.
+    /// </summary>
+    /// <param name="npcSkill"></param>
+    /// <returns></returns>
+    public Skill GetNpSkillTemplate(NpcSkill npcSkill)
+    {
+        var skillTemplate = GetSkillTemplate(npcSkill.SkillId);
+
+        // Temporary condition to filter for dungeon OnCombat skills.
+        if (npcSkill.SkillUseCondition == SkillUseConditionKind.InCombat)
+        {
+            if (skillTemplate.IgnoreGlobalCooldown == false || skillTemplate.Plot is not null)
+            {
+                return null;
+            }
+        }
+
+        return new Skill(skillTemplate);
     }
 
     public void Load()
@@ -670,8 +692,8 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         var template = new BuffEffect();
                         template.Id = reader.GetUInt32("id");
                         var buffId = reader.GetUInt32("buff_id");
-                        if (_buffs.ContainsKey(buffId))
-                            template.Buff = _buffs[buffId];
+                        if (_buffs.TryGetValue(buffId, out var buff))
+                            template.Buff = buff;
                         template.Chance = reader.GetInt32("chance");
                         template.Stack = reader.GetInt32("stack");
                         template.AbLevel = reader.GetInt32("ab_level");
@@ -1547,8 +1569,8 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.EffectId = effectId;
 
                         var type = _types[effectId];
-                        if (_effects.ContainsKey(type.Type))
-                            template.Template = _effects[type.Type][type.ActualId];
+                        if (_effects.TryGetValue(type.Type, out var effect))
+                            template.Template = effect[type.ActualId];
                         template.Weight = reader.GetInt32("weight");
                         template.StartLevel = reader.GetByte("start_level");
                         template.EndLevel = reader.GetByte("end_level");

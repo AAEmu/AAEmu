@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Commons.Utils.Updater;
 using AAEmu.Game.Core.Managers;
@@ -18,7 +19,9 @@ using AAEmu.Game.IO;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Utils.Scripts;
+
 using Microsoft.Extensions.Hosting;
+
 using NLog;
 
 namespace AAEmu.Game;
@@ -59,6 +62,7 @@ public sealed class GameService : IHostedService, IDisposable
         TaskManager.Instance.Initialize();
 
         WorldManager.Instance.Load();
+        WorldIdManager.Instance.Initialize();
         FeaturesManager.Initialize();
 
         LocalizationManager.Instance.Load();
@@ -98,6 +102,7 @@ public sealed class GameService : IHostedService, IDisposable
         ShipyardIdManager.Instance.Initialize();
         ShipyardManager.Instance.Initialize();
         // SkillTlIdManager.Instance.Initialize();
+        IndunManager.Instance.Initialize();
 
         GameDataManager.Instance.LoadGameData();
         QuestManager.Instance.Load();

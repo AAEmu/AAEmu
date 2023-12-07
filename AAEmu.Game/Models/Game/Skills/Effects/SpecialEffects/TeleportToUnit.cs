@@ -35,7 +35,7 @@ public class TeleportToUnit : SpecialEffectAction
         }
 
         var pos = target.Transform.World.Position;
-        var distance = (float)value1 / 1000f;
+        var distance = value1 / 1000f;
         var (endX, endY) = MathUtil.AddDistanceToFront(distance, target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.ToRollPitchYawDegrees().Z);
 
         switch (caster)

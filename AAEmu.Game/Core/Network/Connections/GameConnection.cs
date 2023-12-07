@@ -72,8 +72,12 @@ public class GameConnection
         AccountManager.Instance.Remove(AccountId);
 
         if (ActiveChar != null)
+        {
             foreach (var subscriber in ActiveChar.Subscribers)
                 subscriber.Dispose();
+
+            ActiveChar.Events?.OnDisconnect(this, new OnDisconnectArgs { Player = ActiveChar });
+        }
 
         foreach (var subscriber in Subscribers)
             subscriber.Dispose();

@@ -2,29 +2,41 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
+
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Game.World.Xml;
+
+using NLog;
 
 namespace AAEmu.Game.Models.Game.World;
 
 public class World
 {
-    public uint Id { get; set; }
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
+
+    public uint Id { get; set; } // iid - InstanceId
     public string Name { get; set; }
     public float MaxHeight { get; set; }
     public double HeightMaxCoefficient { get; set; }
     public float OceanLevel { get; set; }
     public int CellX { get; set; }
     public int CellY { get; set; }
-    public WorldSpawnPosition SpawnPosition { get; set; } = new WorldSpawnPosition();
+    public uint TemplateId { get; set; } // worldId
+    public WorldSpawnPosition SpawnPosition { get; set; } = new();
     public Region[,] Regions { get; set; } // TODO ... world - okay, instance - ....
     public ushort[,] HeightMaps { get; set; }
-    public List<uint> ZoneKeys { get; set; } = new List<uint>();
+    public List<uint> ZoneKeys { get; set; } = new();
     public ConcurrentDictionary<uint, XmlWorldZone> XmlWorldZones;
 
     public BoatPhysicsManager Physics { get; set; }
     public WaterBodies Water { get; set; }
+    public WorldEvents Events { get; set; } = new();
+
+    ~World()
+    {
+        Logger.Info($"World {Id} removed");
+    }
 
     public bool IsWater(Vector3 point)
     {
@@ -41,8 +53,8 @@ public class World
     public float GetRawHeightMapHeight(int x, int y)
     {
         // This is the old GetHeight()
-        var sx = (int)(x / 2);
-        var sy = (int)(y / 2);
+        var sx = x / 2;
+        var sy = y / 2;
         return (float)(HeightMaps[sx, sy] / HeightMaxCoefficient);
     }
 

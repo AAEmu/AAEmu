@@ -20,15 +20,15 @@ public class PlotManager : Singleton<PlotManager>
 
     public Plot GetPlot(uint id)
     {
-        if (_plots.ContainsKey(id))
-            return _plots[id];
+        if (_plots.TryGetValue(id, out var plot))
+            return plot;
         return null;
     }
 
     public PlotEventTemplate GetEventByPlotId(uint plotId)
     {
-        if (_plots.ContainsKey(plotId))
-            return _plots[plotId].EventTemplate;
+        if (_plots.TryGetValue(plotId, out var plot))
+            return plot.EventTemplate;
         return null;
     }
 
@@ -90,8 +90,8 @@ public class PlotManager : Singleton<PlotManager>
                         template.AoeDiminishing = reader.GetBoolean("aoe_diminishing", true);
                         _eventTemplates.Add(template.Id, template);
 
-                        if (template.Position == 1 && _plots.ContainsKey(template.PlotId))
-                            _plots[template.PlotId].EventTemplate = template;
+                        if (template.Position == 1 && _plots.TryGetValue(template.PlotId, out var plot))
+                            plot.EventTemplate = template;
                     }
                 }
             }

@@ -159,7 +159,7 @@ public class AuctionManager : Singleton<AuctionManager>
                     newMail.Send();
                 }
 
-                player.SubtractMoney(SlotType.Inventory, (int)auctionItem.DirectMoney);
+                player.SubtractMoney(SlotType.Inventory, auctionItem.DirectMoney);
                 RemoveAuctionItemSold(auctionItem, player.Name, auctionItem.DirectMoney);
             }
 
@@ -168,7 +168,7 @@ public class AuctionManager : Singleton<AuctionManager>
                 if ((auctionItem.BidderName != "") && (auctionItem.BidderId != 0)) //Send mail to old bidder. 
                 {
                     var moneyArray = new int[3];
-                    moneyArray[0] = (int)auctionItem.BidMoney;
+                    moneyArray[0] = auctionItem.BidMoney;
 
                     // TODO: Read this from saved data
                     var recalculatedFee = (auctionItem.DirectMoney * .01) * (auctionItem.Duration + 1);
@@ -185,7 +185,7 @@ public class AuctionManager : Singleton<AuctionManager>
                 auctionItem.BidWorldID = (byte)player.Transform.WorldId;
                 auctionItem.BidMoney = bidAmount;
 
-                player.SubtractMoney(SlotType.Inventory, (int)bidAmount);
+                player.SubtractMoney(SlotType.Inventory, bidAmount);
                 player.SendPacket(new SCAuctionBidPacket(auctionItem));
                 auctionItem.IsDirty = true;
             }
