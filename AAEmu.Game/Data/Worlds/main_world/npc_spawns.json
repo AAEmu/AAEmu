@@ -200818,99 +200818,103 @@
         }
     },
     {
-        "UnitId": 1635,
+        "UnitId": 1635, // Sewerstain Slime
         "Position": {
             "X": 13578.36,
             "Y": 10630.09,
-            "Z": 218.75334
+            "Z": 159.8
         }
     },
     {
-        "UnitId": 1635,
+        "UnitId": 1635, // Sewerstain Slime
         "Position": {
             "X": 13477.14,
             "Y": 10748.27,
-            "Z": 181.98715
+            "Z": 125.49
         }
     },
     {
-        "UnitId": 1636,
+        "UnitId": 1636, // Poisonous Slime
         "Position": {
             "X": 13463.91,
             "Y": 10758.55,
-            "Z": 181.79965
+            "Z": 125.5,
+			"Yaw": -90.0
         }
     },
     {
-        "UnitId": 1636,
+        "UnitId": 1636, // Poisonous Slime
         "Position": {
             "X": 13479.55,
             "Y": 10759.73,
-            "Z": 183.19029
+            "Z": 125.52
         }
     },
     {
-        "UnitId": 1636,
+        "UnitId": 1636, // Poisonous Slime
         "Position": {
             "X": 13528.03,
             "Y": 10625.43,
-            "Z": 217.00331
+            "Z": 143.87
         }
     },
     {
-        "UnitId": 1637,
+        "UnitId": 1637, // Sewer Outlaw Warrior
         "Position": {
             "X": 13518.61,
             "Y": 10630.93,
-            "Z": 212.56575
+            "Z": 142.96
         }
     },
     {
-        "UnitId": 1637,
+        "UnitId": 1637, // Sewer Outlaw Warrior
         "Position": {
             "X": 13514.79,
             "Y": 10713.82,
-            "Z": 190.92479
+            "Z": 128.9
         }
     },
     {
-        "UnitId": 1637,
+        "UnitId": 1637, // Sewer Outlaw Warrior
         "Position": {
             "X": 13522.0,
             "Y": 10722.42,
-            "Z": 190.94041
+            "Z": 128.64
         }
     },
     {
-        "UnitId": 1638,
+        "UnitId": 1638, // Sewer Outlaw Spearman
         "Position": {
-            "X": 13445.2,
-            "Y": 10666.59,
-            "Z": 189.42476
+            "X": 13448.9,
+			"Y": 10668.65,
+			"Z": 138.2,
+			"Yaw": -47.8
         }
     },
     {
-        "UnitId": 1638,
+        "UnitId": 1638, // Sewer Outlaw Spearman
         "Position": {
-            "X": 13566.9,
-            "Y": 10639.82,
-            "Z": 218.4877
+            "X": 13567.49,
+			"Y": 10639.52,
+			"Z": 153.07,
+			"Yaw": 227.8
         }
     },
     {
-        "UnitId": 1639,
+        "UnitId": 1639, // Sewer Outlaw Assassin
         "Position": {
             "X": 13449.96,
             "Y": 10676.64,
-            "Z": 185.59659
+            "Z": 138.6
         }
     },
     {
-        "UnitId": 1640,
+        "UnitId": 1640, // Sewer Outlaw Leader
         "Position": {
             "X": 13521.24,
             "Y": 10612.21,
-            "Z": 217.00331
+            "Z": 142.8,
+			"Yaw": -90.0
         }
     },
     {
