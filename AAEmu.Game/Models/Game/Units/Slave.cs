@@ -588,7 +588,7 @@ public class Slave : Unit
         character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
         if (Summoner != null)
         {
-            character.SendPacket(new SCSlaveStatePacket(ObjId, TlId, Summoner.Name, Summoner.ObjId, Id));
+            character.SendPacket(new SCSlaveStatePacket(ObjId, TlId, Summoner?.Name ?? string.Empty, Summoner?.ObjId ?? 0, Id));
         }
 
         base.AddVisibleObject(character);
