@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills;
@@ -120,14 +122,6 @@ public class Buff
                     if (Template.FactionId > 0 && Owner is Unit owner)
                     {
                         Logger.Info($"Buff: buff={Template.BuffId}:{Index}, owner={owner.TemplateId}:{owner.ObjId}");
-                        if (saveFactions.ContainsKey(owner.Id))
-                        {
-                            saveFactions[owner.Id] = owner.Faction.Id;
-                        }
-                        else
-                        {
-                            saveFactions.Add(owner.Id, owner.Faction.Id);
-                        }
                         owner.SetFaction(Template.FactionId);
                     }
                     return;

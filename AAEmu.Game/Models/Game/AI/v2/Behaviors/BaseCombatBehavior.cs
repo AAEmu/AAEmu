@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
+
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
@@ -30,6 +33,13 @@ public abstract class BaseCombatBehavior : Behavior
             return;
         }
 
+        if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle)) ||
+            Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.DecreaseMoveSpeed)) ||
+            Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare)))
+        {
+            return;
+        }
+
         if ((Ai.Owner.ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
             return;
 
@@ -39,66 +49,73 @@ public abstract class BaseCombatBehavior : Behavior
         var speed = Ai.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f);
         var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
 
-        // TODO найдем путь к abuser, только если координаты цели изменились
-        if (target != null && Ai.PathNode?.pos2 != null && Ai.PathNode != null)
+        if (AppConfiguration.Instance.World.GeoDataMode)
         {
-            if (!Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
+            // TODO найдем путь к abuser, только если координаты цели изменились
+            if (target != null && Ai.PathNode?.pos2 != null && Ai.PathNode != null)
             {
-                var stopWatch = new Stopwatch();
-                stopWatch.Start();
-                // TODO найдем путь к abuser
-                Ai.Owner.FindPath((Unit)target);
-                stopWatch.Stop();
-                // Toss warning if it took a long time
-                if (stopWatch.Elapsed.Ticks >= TimeSpan.TicksPerMillisecond)
-                    Logger.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId}");
-                // запомним новые координаты цели
-                Ai.PathNode.pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
-            }
-        }
-
-        if (target != null && Ai.PathNode != null)
-        {
-            if (Ai.PathNode.findPath.Count > 0 && !Ai.PathNode.findPath[0].Equals(Point.Zero))
-            {
-                // TODO взять точку к которой движемся
-                var position = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
-                distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, position, true);
-                if (distanceToTarget > range)
+                if (!Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X,
+                        target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
                 {
-                    Ai.Owner.MoveTowards(position, speed);
+                    var stopWatch = new Stopwatch();
+                    stopWatch.Start();
+                    // TODO найдем путь к abuser
+                    Ai.Owner.FindPath((Unit)target);
+                    stopWatch.Stop();
+                    // Toss warning if it took a long time
+                    if (stopWatch.Elapsed.Ticks >= TimeSpan.TicksPerMillisecond)
+                        Logger.Warn(
+                            $"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId}");
+                    // запомним новые координаты цели
+                    Ai.PathNode.pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y,
+                        target.Transform.World.Position.Z);
+                }
+            }
+
+            if (target != null && Ai.PathNode != null)
+            {
+                if (Ai.PathNode.findPath.Count > 0 && !Ai.PathNode.findPath[0].Equals(Point.Zero))
+                {
+                    // TODO взять точку к которой движемся
+                    var position = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
+                    distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, position, true);
+                    if (distanceToTarget > range)
+                    {
+                        Ai.Owner.MoveTowards(position, speed);
+                    }
+                    else
+                    {
+                        // TODO взять следующую точку к которой движемся
+                        Ai.PathNode.Current++;
+                        if (Ai.PathNode.Current >= Ai.PathNode.findPath.Count)
+                        {
+                            Ai.Owner.StopMovement();
+                            Ai.PathNode.findPath = new List<Point>();
+                            return;
+                        }
+
+                        Ai.PathNode.Position = Ai.PathNode.findPath[(int)Ai.PathNode.Current];
+                    }
                 }
                 else
                 {
-                    // TODO взять следующую точку к которой движемся
-                    Ai.PathNode.Current++;
-                    if (Ai.PathNode.Current >= Ai.PathNode.findPath.Count)
-                    {
+                    // var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
+                    if (distanceToTarget > range)
+                        Ai.Owner.MoveTowards(target.Transform.World.Position, speed);
+                    else
                         Ai.Owner.StopMovement();
-                        Ai.PathNode.findPath = new List<Point>();
-                        return;
-                    }
-                    Ai.PathNode.Position = Ai.PathNode.findPath[(int)Ai.PathNode.Current];
                 }
             }
             else
             {
                 // var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
-                if (distanceToTarget > range)
+                if (distanceToTarget > range && target != null)
+                {
                     Ai.Owner.MoveTowards(target.Transform.World.Position, speed);
+                }
                 else
                     Ai.Owner.StopMovement();
             }
-        }
-        else
-        {
-            // var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
-            if (distanceToTarget > range && target != null)
-            {
-                Ai.Owner.MoveTowards(target.Transform.World.Position, speed);
-            }
-            else
-                Ai.Owner.StopMovement();
         }
     }
 
@@ -164,24 +181,35 @@ public abstract class BaseCombatBehavior : Behavior
 
         foreach (var abuser in abusers)
         {
-            if (Ai.AlreadyTargetted)
-                return true;
+            //if (Ai.AlreadyTargetted)
+            //    return true;
 
-            if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead && !Ai.AlreadyTargetted)
+            if (AppConfiguration.Instance.World.GeoDataMode)
             {
-                Ai.Owner.CurrentAggroTarget = abuser.ObjId;
-                Ai.Owner.SetTarget(abuser);
+                if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead /*&& !Ai.AlreadyTargetted*/)
+                {
+                    Ai.Owner.CurrentAggroTarget = abuser.ObjId;
+                    Ai.Owner.SetTarget(abuser);
+                    UpdateAggroHelp(abuser);
+                    // TODO найдем путь к abuser
+                    Ai.Owner.FindPath(abuser);
 
-                // TODO найдем путь к abuser
-                Ai.Owner.FindPath(abuser);
-
-                return true;
+                    return true;
+                }
             }
             else
             {
-                Ai.Owner.ClearAggroOfUnit(abuser);
+                if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
+                {
+                    Ai.Owner.CurrentAggroTarget = abuser.ObjId;
+                    Ai.Owner.SetTarget(abuser);
+                    UpdateAggroHelp(abuser);
+                    return true;
+                }
             }
+            Ai.Owner.ClearAggroOfUnit(abuser);
         }
+
         Ai.Owner.SetTarget(null);
         return false;
     }

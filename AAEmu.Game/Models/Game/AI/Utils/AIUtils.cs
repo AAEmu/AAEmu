@@ -37,7 +37,7 @@ public static class AIUtils
 
     public static bool IsOutOfIdleArea(AbstractAI AI)
     {
-        var distToIdlePos = AAEmu.Game.Utils.MathUtil.CalculateDistance(AI.Owner.Transform.World.Position, AI.IdlePosition.Position, true);
+        var distToIdlePos = AAEmu.Game.Utils.MathUtil.CalculateDistance(AI.Owner.Transform.World.Position, AI.IdlePosition.Position);
         var range = 15;
 
         // if (isGroupMember)

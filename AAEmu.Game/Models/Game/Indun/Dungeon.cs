@@ -32,7 +32,7 @@ namespace AAEmu.Game.Models.Game.Indun
         private readonly ZoneInstanceId _zoneInstanceId;
         private readonly List<Npc> _spawnedNpcs;
         public readonly IndunZone _indunZone;
-        private List<Character> _teleportList;
+        // unused private List<Character> _teleportList;
         private ConcurrentDictionary<uint, DateTime> _leaveRequests;
         private Character _characterOwner;
         private Team.Team _teamOwner;

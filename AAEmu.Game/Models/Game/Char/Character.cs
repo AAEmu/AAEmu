@@ -59,6 +59,7 @@ public partial class Character : Unit, ICharacter
     public bool IsInPostCast { get; set; }
     public bool IgnoreSkillCooldowns { get; set; }
     public string FactionName { get; set; }
+    public string OriginFactionName { get; set; }
     public uint Family { get; set; }
     public short DeadCount { get; set; }
     public DateTime DeadTime { get; set; }

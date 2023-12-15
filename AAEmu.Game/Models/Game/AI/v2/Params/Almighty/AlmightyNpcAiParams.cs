@@ -11,6 +11,7 @@ public class AlmightyNpcAiParams : AiParams
     public string IdleAi { get; set; } = "hold_position";
 
     public float AlertDuration { get; set; } = 3.0f;
+    public bool AlertToAttack { get; set; }
     public float AlertSafeTargetRememberTime { get; set; } = 5.0f;
     public int CanChangeAiUnitAttr { get; set; } = 0;
 
@@ -38,6 +39,7 @@ public class AlmightyNpcAiParams : AiParams
             aiParams.DoString($"data = {{\n{data}\n}}");
             IdleAi = (string)aiParams.GetObjectFromPath("data.idle_ai") ?? "";
             AlertDuration = Convert.ToSingle(aiParams.GetObjectFromPath("data.alertDuration"));
+            AlertToAttack = Convert.ToBoolean(aiParams.GetObjectFromPath("data.alertToAttack"));
             AlertSafeTargetRememberTime = Convert.ToSingle(aiParams.GetObjectFromPath("data.alertSafeTargetRememberTime"));
             CanChangeAiUnitAttr = aiParams.GetInteger("data.canChangeAiUnitAttr");
             MeleeAttackRange = aiParams.GetInteger("data.meleeAttackRange");

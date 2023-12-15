@@ -592,5 +592,12 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
         }
+
+        public Dungeon GetSoloDungeon(uint characterId)
+        {
+            _soloDungeons.TryGetValue(characterId, out var dungeon);
+
+            return dungeon;
+        }
     }
 }

@@ -839,8 +839,17 @@ public class Unit : BaseUnit, IUnit
     /// <param name="factionId"></param>
     public void SetFaction(uint factionId)
     {
-        if (this is Character) { return; } // do not change the faction for the character
+        // Keep origin faction data temporarily for arena players
+        OriginFaction = Faction;
+
+        if (this is Character player)
+        {
+            // change the faction for the character
+            player.OriginFactionName = player.FactionName;
+        }
+
         Logger.Info($"SetFaction: npc={TemplateId}:{ObjId}, factionId={factionId}");
+
         if (Faction.Id == factionId)
         {
             Logger.Info($"SetFaction: faction has already been established factionId={factionId}");
@@ -853,6 +862,7 @@ public class Unit : BaseUnit, IUnit
 
         // TODO added for quest Id=2486
         if (this is not Npc npc) { return; }
+
         // Npc attacks the character
         var characters = WorldManager.GetAround<Character>(npc, 5.0f);
         foreach (var character in characters.Where(CanAttack))
