@@ -949,6 +949,7 @@ public class Skill
                 {
                     // для квеста 3478, требуется чтобы caster был Npc
                     var npc = WorldManager.Instance.GetNpcByTemplateId(nsse.NpcId);
+                    if (npc != null) { return; }
                     item.effect.Template.Apply(npc, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
                 }
                 else

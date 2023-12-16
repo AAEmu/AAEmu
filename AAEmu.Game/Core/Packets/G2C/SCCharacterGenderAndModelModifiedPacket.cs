@@ -17,7 +17,7 @@ public class SCCharacterGenderAndModelModifiedPacket : GamePacket
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(_character.Id);
-        stream.Write(_character.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Hair)?.TemplateId ?? (uint)0);
+        stream.Write(_character.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Hair)?.TemplateId ?? 0);
         _character.ModelParams.Write(stream);
         stream.Write((uint)0); // I got no idea what this is, but it gives a packet error without it
         return stream;

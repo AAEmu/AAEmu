@@ -238,7 +238,7 @@ public class PlotTargetInfo
                 return true;
             });
 
-        filtered = (IEnumerable<Unit>)SkillTargetingUtil.FilterWithRelation(args.UnitRelationType, state.Caster, filtered);
+        filtered = SkillTargetingUtil.FilterWithRelation(args.UnitRelationType, state.Caster, filtered);
         filtered = filtered.Where(o => ((byte)o.TypeFlag & args.UnitTypeFlag) != 0);
 
         return filtered;

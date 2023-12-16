@@ -14,7 +14,7 @@ public class DoodadFuncFishSchool : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        Logger.Debug("DoodadFuncFishSchool");
+        Logger.Debug($"DoodadFuncFishSchool NpcSpawnerId={NpcSpawnerId}");
 
         var npcSpawnerNpc = NpcGameData.Instance.GetNpcSpawnerNpc(NpcSpawnerId);
         var unitId = npcSpawnerNpc.MemberId;
@@ -28,19 +28,17 @@ public class DoodadFuncFishSchool : DoodadPhaseFuncTemplate
             spawner[0].Id = NpcSpawnerId;
             spawner[0].NpcSpawnerIds = new List<uint> { NpcSpawnerId };
             spawner[0].Template = NpcGameData.Instance.GetNpcSpawnerTemplate(NpcSpawnerId);
-            if (spawner[0].Template == null)
-            {
-                return false;
-            }
+            if (spawner[0].Template == null) { return false; }
 
-            spawner[0].Template.Npcs = new List<NpcSpawnerNpc>();
-            var nsn = NpcGameData.Instance.GetNpcSpawnerNpc(NpcSpawnerId);
-            if (nsn == null)
+            if (spawner[0].Template.Npcs.Count == 0)
             {
-                return false;
+                spawner[0].Template.Npcs = new List<NpcSpawnerNpc>();
+                var nsn = NpcGameData.Instance.GetNpcSpawnerNpc(NpcSpawnerId);
+                if (nsn == null) { return false; }
+                spawner[0].Template.Npcs.Add(nsn);
             }
+            if (spawner[0].Template.Npcs == null) { return false; }
 
-            spawner[0].Template.Npcs.Add(nsn);
             spawner[0].Template.Npcs[0].MemberId = unitId;
             spawner[0].Template.Npcs[0].UnitId = unitId;
 
@@ -49,7 +47,8 @@ public class DoodadFuncFishSchool : DoodadPhaseFuncTemplate
         //spawnPos.World.AddDistanceToFront(3f);
         //spawnPos.World.SetHeight(WorldManager.Instance.GetHeight(spawnPos));
         spawner[0].Position = spawnPos.CloneAsSpawnPosition();
-        spawner[0].Spawn(0);
+        var npc = spawner[0].Spawn(0);
+        npc.Spawner.RespawnTime = 0; // запретим респавн
 
         return false;
     }

@@ -21,7 +21,7 @@ public class DoodadFuncGrowth : DoodadPhaseFuncTemplate
         owner.Scale = StartScale / 1000f;
         var customDelay = Delay / AppConfiguration.Instance.World.GrowthRate; // decrease delay
         if (ZoneManager.DoodadHasMatchingClimate(owner))
-            customDelay = (double)customDelay * 0.73f;
+            customDelay = customDelay * 0.73f;
         var timeLeft = customDelay;
 
         if (owner.OverridePhaseTime > DateTime.MinValue)

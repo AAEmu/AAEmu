@@ -1,10 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
@@ -24,17 +26,17 @@ public class ZoneManager : Singleton<ZoneManager>
 
     public Zone GetZoneById(uint zoneId)
     {
-        return _zoneIdToKey.ContainsKey(zoneId) ? _zones[_zoneIdToKey[zoneId]] : null;
+        return _zoneIdToKey.TryGetValue(zoneId, out var value) ? _zones[value] : null;
     }
 
     public Zone GetZoneByKey(uint zoneKey)
     {
-        return _zones.ContainsKey(zoneKey) ? _zones[zoneKey] : null;
+        return _zones.TryGetValue(zoneKey, out var zone) ? zone : null;
     }
 
     public ZoneGroup GetZoneGroupById(uint zoneId)
     {
-        return _groups.ContainsKey(zoneId) ? _groups[zoneId] : null;
+        return _groups.TryGetValue(zoneId, out var group) ? group : null;
     }
 
     public List<uint> GetZoneKeysInZoneGroupById(uint zoneGroupId)
@@ -158,7 +160,7 @@ public class ZoneManager : Singleton<ZoneManager>
                                     .Conflict); // Set to Conflict for testing, normally it should start at Tension
                         }
                         else
-                            Logger.Warn("ZoneGroupId: {1} doesn't exist for conflict", zoneGroupId);
+                            Logger.Warn("ZoneGroupId: {0} doesn't exist for conflict", zoneGroupId);
                     }
                 }
             }

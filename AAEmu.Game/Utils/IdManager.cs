@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Utils;
@@ -27,8 +29,7 @@ public class IdManager
     private readonly bool _distinct;
     private readonly object _lock = new();
 
-    public IdManager(string name, uint firstId, uint lastId, string[,] objTables, uint[] exclude,
-        bool distinct = false)
+    public IdManager(string name, uint firstId, uint lastId, string[,] objTables, uint[] exclude, bool distinct = false)
     {
         _name = name;
         _firstId = firstId;
@@ -59,7 +60,7 @@ public class IdManager
             var allUsedObjects = Array.Empty<uint>();
             try
             {
-                allUsedObjects = (uint[])ExtractUsedObjectIdTable();
+                allUsedObjects = ExtractUsedObjectIdTable();
             }
             catch
             {

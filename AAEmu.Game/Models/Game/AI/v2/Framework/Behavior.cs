@@ -4,11 +4,12 @@ using System.Linq;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
-
+using AAEmu.Game.Utils;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Framework;
@@ -201,5 +202,55 @@ public abstract class Behavior
     {
         Ai.Owner.AddUnitAggro(AggroKind.Damage, target, 1);
         Ai.GoToCombat();
+    }
+
+    public void CheckAggression()
+    {
+        if (!Ai.Owner.Template.Aggression) { return; }
+        var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, CheckSightRangeScale(10f));
+
+        foreach (var unit in nearbyUnits)
+        {
+            // Need to check for stealth detection here
+            if (Ai.Owner.Template.SightFovScale >= 2.0f || MathUtil.IsFront(Ai.Owner, unit))
+            {
+                if (Ai.Owner.CanAttack(unit))
+                {
+                    OnEnemySeen(unit);
+                    break;
+                }
+            }
+            else
+            {
+                var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, unit, true);
+                if (rangeOfUnit < 3 * Ai.Owner.Template.SightRangeScale)
+                {
+                    if (Ai.Owner.CanAttack(unit))
+                    {
+                        OnEnemySeen(unit);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    public void UpdateAggroHelp(Unit abuser, int radius = 100)
+    {
+        var npcs = WorldManager.GetAround<Npc>(Ai.Owner, radius);
+        if (npcs != null)
+        {
+            foreach (var npc in npcs)
+            {
+                if (npc.Template.Aggression && !npc.IsInBattle && npc.Template.AcceptAggroLink)
+                {
+                    if (npc.GetDistanceTo(abuser) <= npc.Template.AggroLinkHelpDist)
+                    {
+                        npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, abuser, 1);
+                        npc.Ai.GoToCombat();
+                    }
+                }
+            }
+        }
     }
 }

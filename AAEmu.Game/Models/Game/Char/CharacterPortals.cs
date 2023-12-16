@@ -33,9 +33,9 @@ public class CharacterPortals
 
     public Portal GetPortalInfo(uint id)
     {
-        if (DistrictPortals.ContainsKey(id))
-            return DistrictPortals[id];
-        return PrivatePortals.ContainsKey(id) ? PrivatePortals[id] : null;
+        if (DistrictPortals.TryGetValue(id, out var info))
+            return info;
+        return PrivatePortals.TryGetValue(id, out var portal) ? portal : null;
     }
 
     public void RemoveFromBookPortal(Portal portal, bool isPrivate)

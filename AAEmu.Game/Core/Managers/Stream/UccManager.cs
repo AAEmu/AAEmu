@@ -206,8 +206,8 @@ public class UccManager : Singleton<UccManager>
 
     public void UccComplex(StreamConnection connection, ulong id)
     {
-        if (_uccs.ContainsKey(id))
-            connection.SendPacket(new TCUccComplexPacket(_uccs[id]));
+        if (_uccs.TryGetValue(id, out var ucc))
+            connection.SendPacket(new TCUccComplexPacket(ucc));
     }
 
     public void RequestUcc(StreamConnection connection, ulong id)
@@ -219,8 +219,8 @@ public class UccManager : Singleton<UccManager>
         lock (s_lockObject)
         {
 
-            if (_downloadQueue.ContainsKey(connection.Id))
-                if (_downloadQueue[connection.Id] == id)
+            if (_downloadQueue.TryGetValue(connection.Id, out var value))
+                if (value == id)
                 {
                     //Logger.Warn("User {0} is already requesting UCC {1}, skipping request !", connection.GameConnection.ActiveChar.Name, id);
                     Logger.Warn("User {0} is already requesting UCC {1}, sending first block !", connection.GameConnection.ActiveChar.Name, id);
@@ -278,7 +278,7 @@ public class UccManager : Singleton<UccManager>
                 _downloadQueue.Remove(connection.Id);
             }
             Logger.Warn("User {0} UCC {1}, sending end part TCEmblemStreamSendStatusPacket", connection.GameConnection.ActiveChar.Name, customUcc.Id);
-            connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, (EmblemStreamStatus)0)); // 1?
+            connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, 0)); // 1?
             return;
         }
 

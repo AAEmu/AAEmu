@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -57,13 +58,13 @@ public class GoldSetSubCommand : SubCommandBase
         var copperAmount = 0;
         var multiplier = triggerArgument == "remove" ? -1 : 1;
         int goldAmount = parameters["gold"];
-        if (parameters.ContainsKey("silver"))
+        if (parameters.TryGetValue("silver", out var parameter))
         {
-            silverAmount = parameters["silver"];
+            silverAmount = parameter;
         }
-        if (parameters.ContainsKey("copper"))
+        if (parameters.TryGetValue("copper", out var parameter1))
         {
-            copperAmount = parameters["copper"];
+            copperAmount = parameter1;
         }
 
         var totalAmount = copperAmount * multiplier + silverAmount * 100 * multiplier + goldAmount * 10000 * multiplier;

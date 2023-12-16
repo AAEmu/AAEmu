@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units.Route;
@@ -105,6 +106,20 @@ public class NpcSpawnerNpc : Spawner<Npc>
                 npc.Delete();
                 Logger.Trace($"Let's not spawn Npc templateId {MemberId} from spawnerId {NpcSpawnerTemplateId} since exceeded MaxPopulation {maxPopulation}");
                 return null;
+            }
+
+            var world = WorldManager.Instance.GetWorld(npc.Transform.WorldId);
+            if (npc.Transform.WorldId > 99)
+            {
+                // Temporary range for instanced worlds
+                var dungeon = IndunManager.Instance.GetDungeonByWorldId(npc.Transform.WorldId);
+                if (dungeon is not null)
+                {
+                    dungeon.RegisterNpcEvents(npc);
+                    //dungeon.RegisterIndunEvents();
+
+                    world.Events.OnUnitSpawn(world, new OnUnitSpawnArgs { Npc = npc });
+                }
             }
 
             npc.Simulation = new Simulation(npc);

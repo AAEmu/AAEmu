@@ -36,7 +36,7 @@ public class CharacterMates
 
     public MateDb GetMateInfo(ulong itemId)
     {
-        return _mates.ContainsKey(itemId) ? _mates[itemId] : null;
+        return _mates.TryGetValue(itemId, out var mate) ? mate : null;
     }
 
     private MateDb CreateNewMate(ulong itemId, NpcTemplate npctemplate)

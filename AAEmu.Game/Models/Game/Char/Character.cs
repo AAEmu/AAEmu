@@ -43,7 +43,7 @@ public partial class Character : Unit, ICharacter
     private Dictionary<ushort, string> _options;
 
     public List<IDisposable> Subscribers { get; set; }
-
+    public override CharacterEvents Events { get; } = new();
     //public uint Id { get; set; } // moved to BaseUnit
     public uint AccountId { get; set; }
     public Race Race { get; set; }
@@ -59,6 +59,7 @@ public partial class Character : Unit, ICharacter
     public bool IsInPostCast { get; set; }
     public bool IgnoreSkillCooldowns { get; set; }
     public string FactionName { get; set; }
+    public string OriginFactionName { get; set; }
     public uint Family { get; set; }
     public short DeadCount { get; set; }
     public DateTime DeadTime { get; set; }
@@ -1214,6 +1215,8 @@ public partial class Character : Unit, ICharacter
         Subscribers = new List<IDisposable>();
         ChargeLock = new object();
         FishSchool = new FishSchool(this);
+        //Events.OnDisconnect += OnDisconnect;
+        //Events.OnCombatStarted += OnEnterCombat;
     }
 
     public WeaponWieldKind GetWeaponWieldKind()
@@ -1601,16 +1604,13 @@ public partial class Character : Unit, ICharacter
 
     public void SetOption(ushort key, string value)
     {
-        if (_options.ContainsKey(key))
-            _options[key] = value;
-        else
-            _options.Add(key, value);
+        _options[key] = value;
     }
 
     public string GetOption(ushort key)
     {
-        if (_options.ContainsKey(key))
-            return _options[key];
+        if (_options.TryGetValue(key, out var option))
+            return option;
         return "";
     }
 

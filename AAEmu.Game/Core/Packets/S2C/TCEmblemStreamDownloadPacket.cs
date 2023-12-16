@@ -21,8 +21,8 @@ public class TCEmblemStreamDownloadPacket : StreamPacket
     {
         if ((_ucc == null) || (_ucc.Data.Count <= 0))
         {
-            stream.Write((int)_currentIndex);
-            stream.Write((int)0);
+            stream.Write(_currentIndex);
+            stream.Write(0);
             stream.Write((short)0);
             return stream;
         }

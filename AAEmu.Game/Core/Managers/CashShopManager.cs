@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
@@ -320,7 +320,7 @@ public class CashShopManager : Singleton<CashShopManager>
 
     public CashShopItemDetail GetCashShopItemDetail(uint cashShopId)
     {
-        return CashShopItemDetail.TryGetValue(cashShopId, out var value) ? value : new CashShopItemDetail();
+        return _cashShopItemDetail.TryGetValue(cashShopId, out var value) ? value : new CashShopItemDetail();
     }
 
     public void EnabledShop()

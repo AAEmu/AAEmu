@@ -9,6 +9,7 @@ using System.Xml;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.XML;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.IO;
@@ -24,7 +25,7 @@ using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
-using Microsoft.CodeAnalysis.CSharp;
+
 using NLog;
 
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
@@ -1291,5 +1292,49 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         if (bodiesLoaded > 0)
             Logger.Info($"{bodiesLoaded} waters bodies loaded for {world.Name}");
         return true;
+    }
+
+    public InstanceWorld CreateWorld(InstanceWorld originalWorld)
+    {
+        if (originalWorld == null)
+            return null;
+
+        // Apply Data to world
+        var newInstance = new InstanceWorld();
+        newInstance.Id = WorldIdManager.Instance.GetNextId();
+        newInstance.TemplateId = originalWorld.Id;
+        newInstance.Name = originalWorld.Name;
+        newInstance.CellX = originalWorld.CellX;
+        newInstance.CellY = originalWorld.CellY;
+        newInstance.OceanLevel = originalWorld.OceanLevel;
+        newInstance.MaxHeight = originalWorld.MaxHeight;
+        newInstance.HeightMaxCoefficient = originalWorld.HeightMaxCoefficient;
+        newInstance.SpawnPosition = originalWorld.SpawnPosition.Clone();
+        newInstance.SpawnPosition.WorldId = newInstance.Id;
+        newInstance.ZoneKeys = originalWorld.ZoneKeys;
+        newInstance.HeightMaps = originalWorld.HeightMaps; // TODO слишком долго копирует, клиент дисконнектит .CloneJson();
+        newInstance.XmlWorldZones = originalWorld.XmlWorldZones; // TODO копирование зацикливается
+        newInstance.Physics = originalWorld.Physics;  // TODO копирование зацикливается .CloneJson();
+        newInstance.Water = originalWorld.Water; // TODO .CloneJson();
+        var dx = originalWorld.CellX * SECTORS_PER_CELL;
+        var dy = originalWorld.CellY * SECTORS_PER_CELL;
+        newInstance.Regions = new Region[dx, dy];
+        for (var y = 0; y < dy; y++)
+        {
+            for (var x = 0; x < dx; x++)
+            {
+                newInstance.Regions[x, y] = new Region(newInstance.Id, x, y, originalWorld.ZoneKeys[0]);
+            }
+        }
+
+        _worlds.Add(newInstance.Id, newInstance);
+
+        return newInstance;
+    }
+
+    public void RemoveWorld(uint worldId)
+    {
+        if (_worlds.ContainsKey(worldId))
+            _worlds.Remove(worldId);
     }
 }

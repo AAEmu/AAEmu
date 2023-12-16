@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game.Animation;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -17,12 +19,12 @@ public class AnimationManager : Singleton<AnimationManager>
 
     public Anim GetAnimation(uint id)
     {
-        return _animations.ContainsKey(id) ? _animations[id] : null;
+        return _animations.TryGetValue(id, out var animation) ? animation : null;
     }
 
     public Anim GetAnimation(string name)
     {
-        return _animationsByName.ContainsKey(name) ? _animationsByName[name] : null;
+        return _animationsByName.TryGetValue(name, out var value) ? value : null;
     }
 
     /// <summary>

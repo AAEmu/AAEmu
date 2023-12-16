@@ -22,8 +22,8 @@ public class GameController : Singleton<GameController>
 
     public byte? GetParentId(byte gsId)
     {
-        if (_mirrorsId.ContainsKey(gsId))
-            return _mirrorsId[gsId];
+        if (_mirrorsId.TryGetValue(gsId, out var id))
+            return id;
         return null;
     }
 
@@ -140,8 +140,8 @@ public class GameController : Singleton<GameController>
 
         foreach (var mirrorId in gameServer.MirrorsId)
         {
-            if (_gameServers.ContainsKey(mirrorId))
-                _gameServers[mirrorId].Connection = null;
+            if (_gameServers.TryGetValue(mirrorId, out var server))
+                server.Connection = null;
 
             _mirrorsId.Remove(mirrorId);
         }
@@ -198,9 +198,9 @@ public class GameController : Singleton<GameController>
     {
         if (result == 0)
         {
-            if (_gameServers.ContainsKey(gsId))
+            if (_gameServers.TryGetValue(gsId, out var server))
             {
-                connection.SendPacket(new ACWorldCookiePacket(connection, _gameServers[gsId]));
+                connection.SendPacket(new ACWorldCookiePacket(connection, server));
             }
             else
             {

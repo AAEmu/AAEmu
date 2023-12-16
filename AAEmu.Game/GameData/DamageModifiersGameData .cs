@@ -17,7 +17,7 @@ public class DamageModifierGameData : Singleton<DamageModifierGameData>, IGameDa
 
     public List<BonusTemplate> GetModifiersForBuff(uint ownerId)
     {
-        return __damageModifiers.ContainsKey(ownerId) ? __damageModifiers[ownerId] : new List<BonusTemplate>();
+        return __damageModifiers.TryGetValue(ownerId, out var modifier) ? modifier : new List<BonusTemplate>();
     }
 
     public void Load(SqliteConnection connection)

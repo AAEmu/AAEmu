@@ -16,7 +16,7 @@ public class DoodadChainSubCommandTests
     {
         var mockSubCommand = new Mock<ICommandV2>();
         var mockUnitCustomModelParams = new Mock<UnitCustomModelParams>(UnitCustomModelType.None);
-        var mockCharacter = new Mock<Character>(mockUnitCustomModelParams.Object);
+        var fakeCharacter = new Character(mockUnitCustomModelParams.Object);
 
         var command = new TestCommand(new Dictionary<ICommandV2, string[]>
         {
@@ -25,9 +25,9 @@ public class DoodadChainSubCommandTests
             }
         });
 
-        command.PreExecute(mockCharacter.Object, "test", new[] { "sdf", "123" }, new CharacterMessageOutput(mockCharacter.Object));
+        command.PreExecute(fakeCharacter, "test", new[] { "sdf", "123" }, new CharacterMessageOutput(fakeCharacter));
 
-        mockSubCommand.Verify(s => s.PreExecute(It.IsIn(mockCharacter.Object), It.IsIn("sdf"), It.Is<string[]>(a => a.Length == 1 && a[0] == "123"), It.IsAny<IMessageOutput>()));
+        mockSubCommand.Verify(s => s.PreExecute(It.IsIn(fakeCharacter), It.IsIn("sdf"), It.Is<string[]>(a => a.Length == 1 && a[0] == "123"), It.IsAny<IMessageOutput>()));
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class DoodadChainSubCommandTests
     {
         var mockSubSubCommand = new Mock<ICommandV2>();
         var mockUnitCustomModelParams = new Mock<UnitCustomModelParams>(UnitCustomModelType.None);
-        var mockCharacter = new Mock<Character>(mockUnitCustomModelParams.Object);
+        var fakeCharacter = new Character(mockUnitCustomModelParams.Object);
 
         var subCommand = new SubTestCommand(new Dictionary<ICommandV2, string[]>
         {
@@ -51,20 +51,21 @@ public class DoodadChainSubCommandTests
             }
         });
 
-        command.PreExecute(mockCharacter.Object, "test", new[] { "first", "second", "parameter1second", "parameter2second" }, new CharacterMessageOutput(mockCharacter.Object));
+        command.PreExecute(fakeCharacter, "test", new[] { "first", "second", "parameter1second", "parameter2second" }, new CharacterMessageOutput(fakeCharacter));
 
-        mockSubSubCommand.Verify(s => s.PreExecute(It.IsIn(mockCharacter.Object), It.IsIn("second"), It.Is<string[]>(a => a.Length == 2 && a[0] == "parameter1second" && a[1] == "parameter2second"), It.IsAny<IMessageOutput>()));
+        mockSubSubCommand.Verify(s => s.PreExecute(It.IsIn(fakeCharacter), It.IsIn("second"), It.Is<string[]>(a => a.Length == 2 && a[0] == "parameter1second" && a[1] == "parameter2second"), It.IsAny<IMessageOutput>()));
     }
 
     [Fact]
     public void Execute_WhenOnlyCommand_ShouldNotThrowException()
     {
         var mockUnitCustomModelParams = new Mock<UnitCustomModelParams>(UnitCustomModelType.None);
-        var mockCharacter = new Mock<Character>(mockUnitCustomModelParams.Object);
+        var fakeCharacter = new Character(mockUnitCustomModelParams.Object);
+
         var mockMessageOutput = new Mock<IMessageOutput>();
 
         var testCommand = new TestCommand(new Dictionary<ICommandV2, string[]>());
-        testCommand.PreExecute(mockCharacter.Object, "doodad", System.Array.Empty<string>(), mockMessageOutput.Object);
+        testCommand.PreExecute(fakeCharacter, "doodad", System.Array.Empty<string>(), mockMessageOutput.Object);
     }
 
     [Theory]

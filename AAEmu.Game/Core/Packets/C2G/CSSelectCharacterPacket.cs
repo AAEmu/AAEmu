@@ -29,7 +29,7 @@ public class CSSelectCharacterPacket : GamePacket
         if (Connection.Characters.TryGetValue(characterId, out var connectionCharacter))
         {
             // Despawn any old pets this character might have even before loading it
-            var character = (Character)Connection.Characters[characterId];
+            var character = Connection.Characters[characterId];
             character.Load();
             character.Connection = Connection;
             var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id);

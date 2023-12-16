@@ -81,6 +81,19 @@ public class NpcSpawner : Spawner<Npc>
     public override void Despawn(Npc npc)
     {
         npc.Delete();
+
+        if (npc.Transform.WorldId > 99)
+        {
+            // Temporary range for instanced worlds
+            var dungeon = IndunManager.Instance.GetDungeonByWorldId(npc.Transform.WorldId);
+
+            if (dungeon is not null)
+            {
+                dungeon.UnregisterNpcEvents(npc);
+                dungeon.UnregisterIndunEvents();
+            }
+        }
+
         if (npc.Respawn == DateTime.MinValue)
         {
             npc.Spawner._spawned.Remove(npc);
@@ -578,5 +591,15 @@ public class NpcSpawner : Spawner<Npc>
         }
         _lastSpawn = n[^1];
         _lastSpawn.Spawner = this;
+    }
+    
+    public void ClearSpawnCount()
+    {
+        _spawnCount = 0;
+    }
+
+    public bool CanSpawn()
+    {
+        return _spawnCount < Template.MaxPopulation;
     }
 }

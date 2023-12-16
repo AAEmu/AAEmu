@@ -35,7 +35,7 @@ public class CSSendMailPacket : GamePacket
             var slotType = stream.ReadByte();
             var slot = stream.ReadByte();
             if (slotType == 0)
-                itemSlots.Add(((byte)0, (byte)0));
+                itemSlots.Add((0, 0));
             else
                 itemSlots.Add(((SlotType)slotType, slot));
         }
