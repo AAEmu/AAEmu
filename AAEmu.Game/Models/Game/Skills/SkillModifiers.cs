@@ -60,15 +60,15 @@ public class SkillModifiers
 
     public List<SkillModifier> GetModifiersForSkillId(uint skillId)
     {
-        if (_modifiersBySkillId.ContainsKey(skillId))
-            return _modifiersBySkillId[skillId];
+        if (_modifiersBySkillId.TryGetValue(skillId, out var id))
+            return id;
         return null;
     }
 
     public List<SkillModifier> GetModifiersForTagId(uint tagId)
     {
-        if (_modifiersByTagId.ContainsKey(tagId))
-            return _modifiersByTagId[tagId];
+        if (_modifiersByTagId.TryGetValue(tagId, out var id))
+            return id;
         return null;
     }
 

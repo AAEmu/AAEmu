@@ -11,8 +11,8 @@ public class ACEnterOtpPacket : LoginPacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((int)0); // mt
-        stream.Write((int)0); // ct
+        stream.Write(0); // mt
+        stream.Write(0); // ct
 
         return stream;
     }

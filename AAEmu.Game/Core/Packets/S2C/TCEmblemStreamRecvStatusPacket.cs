@@ -15,7 +15,7 @@ public class TCEmblemStreamRecvStatusPacket : StreamPacket
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write((byte)_status); // status
-        stream.Write((int)0);
+        stream.Write(0);
 
         return stream;
     }

@@ -16,7 +16,7 @@ public class ExpressTextManager : Singleton<ExpressTextManager>, IExpressTextMan
 
     public uint GetExpressAnimId(uint emotionId)
     {
-        return _expressTexts.ContainsKey(emotionId) ? _expressTexts[emotionId] : 0;
+        return _expressTexts.TryGetValue(emotionId, out var text) ? text : 0;
     }
 
     public void Load()

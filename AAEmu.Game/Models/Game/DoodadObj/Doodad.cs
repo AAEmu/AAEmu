@@ -541,7 +541,7 @@ public class Doodad : BaseUnit
         // Apply Climate settings
         var growTime = Template.TotalDoodadGrowthTime / AppConfiguration.Instance.World.GrowthRate;
         if (Template.TotalDoodadGrowthTime > 0 && ZoneManager.DoodadHasMatchingClimate(this))
-            growTime = (int)Math.Round((double)growTime * 0.73f);
+            growTime = (int)Math.Round(growTime * 0.73f);
         GrowthTime = PlantTime.AddMilliseconds(growTime);
 
         // Actually do the phase change

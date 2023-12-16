@@ -77,7 +77,7 @@ public class SendPacket : ICommand
             raw[i] = (byte)((high << 4) | low);
         }
 
-        ushort typeId = (ushort)((ushort)raw[0] | (ushort)raw[1] << 8);
+        ushort typeId = (ushort)(raw[0] | raw[1] << 8);
         var payload = new byte[(hex.Length - 4) / 2];
         Array.Copy(raw, 2, payload, 0, payload.Length);
 

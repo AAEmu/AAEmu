@@ -18,6 +18,7 @@ public class BaseUnit : GameObject, IBaseUnit
     public uint TemplateId { get; set; }
     public string Name { get; set; } = string.Empty;
     public SystemFaction Faction { get; set; }
+    public SystemFaction OriginFaction { get; set; }
 
     public virtual float Scale { get; set; } = 1f;
 

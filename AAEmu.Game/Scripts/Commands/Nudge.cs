@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Utils.Scripts;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -29,19 +30,19 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void Execute(Character character, string[] args, IMessageOutput messageOutput)
         {
-			float dist = 5f;
+            float dist = 5f;
             if ((args.Length > 1) && (!float.TryParse(args[0], out dist)))
             {
                 character.SendMessage("|cFFFF0000[Nudge] Distance parse error|r");
                 return;
             }
-			
-			character.DisabledSetPosition = true;
-			// character.SendMessage("|cFFFF0000[Nudge] from {0}, {1}, {2}|r", character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z);
-			character.Transform.Local.AddDistanceToFront(dist, false);
+
+            character.DisabledSetPosition = true;
+            // character.SendMessage("|cFFFF0000[Nudge] from {0}, {1}, {2}|r", character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z);
+            character.Transform.Local.AddDistanceToFront(dist, false);
             character.Transform.FinalizeTransform();
-			// character.SendMessage("|cFFFF0000[Nudge] from {0}, {1}, {2}|r", character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z);
-            character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Gm, 0, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z, character.Transform.World.Rotation.Z));
+            // character.SendMessage("|cFFFF0000[Nudge] from {0}, {1}, {2}|r", character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z);
+            character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Gm, 0, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z, character.Transform.World.Rotation.Z.DegToRad()));
         }
     }
 }

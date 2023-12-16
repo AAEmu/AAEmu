@@ -162,8 +162,8 @@ public sealed class SQLiteWrapperReader : IDisposable
 
     public int GetOrdinal(string column)
     {
-        if (_ordinal.ContainsKey(column))
-            return _ordinal[column];
+        if (_ordinal.TryGetValue(column, out var ordinal1))
+            return ordinal1;
 
         var ordinal = _reader.GetOrdinal(column);
         _ordinal.Add(column, ordinal);

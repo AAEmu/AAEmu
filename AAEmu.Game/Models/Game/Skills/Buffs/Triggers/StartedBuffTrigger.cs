@@ -21,12 +21,12 @@ internal class StartedBuffTrigger : BuffTrigger
         owner = (Unit)_buff.Owner;
         if (Template.EffectOnSource)
         {
-            target = (Unit)_buff.Caster;
+            target = _buff.Caster;
             //do what?
         }
         if (Template.UseOriginalSource)
         {
-            owner = (Unit)_buff.Caster;
+            owner = _buff.Caster;
         }
 
         if (Template.TargetBuffTagId != 0)

@@ -131,7 +131,7 @@ public class WaterEdit : ICommand
 
                 for (int i = 1; i < dividers; i++)
                 {
-                    var h = SelectedWater.Height / dividers * (float)i;
+                    var h = SelectedWater.Height / dividers * i;
                     var middleDoodad = DoodadManager.Instance.Create(0, middleDoodadId);
                     middleDoodad.Transform.Local.SetPosition(point);
                     middleDoodad.Transform.Local.SetHeight(point.Z + h);

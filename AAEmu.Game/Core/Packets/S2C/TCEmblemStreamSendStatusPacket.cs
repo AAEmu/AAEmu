@@ -18,9 +18,9 @@ public class TCEmblemStreamSendStatusPacket : StreamPacket
     {
         stream.Write((long)_ucc.Id); // type
         if (_ucc is CustomUcc customUcc)
-            stream.Write((int)customUcc.Data.Count); // total data bytes 
+            stream.Write(customUcc.Data.Count); // total data bytes 
         else
-            stream.Write((int)0); // total
+            stream.Write(0); // total
         _ucc.Write(stream);
 
         stream.Write((byte)_emblemStreamStatus); // status

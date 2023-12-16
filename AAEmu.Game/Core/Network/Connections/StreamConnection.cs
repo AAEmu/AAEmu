@@ -35,8 +35,8 @@ public class StreamConnection
 
     public Doodad[] GetRequest(int requestId)
     {
-        if (_requests.ContainsKey(requestId))
-            return _requests[requestId];
+        if (_requests.TryGetValue(requestId, out var request))
+            return request;
         return null;
     }
 

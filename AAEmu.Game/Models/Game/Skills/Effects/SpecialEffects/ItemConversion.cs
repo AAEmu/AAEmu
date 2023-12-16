@@ -76,7 +76,7 @@ public class ItemConversion : SpecialEffectAction
             // give product
             // TODO: add in weights
             int value = Rand.Next(product.MinOutput, product.MaxOutput + 1);
-            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Conversion, (uint)product.OuputItemId, value))
+            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Conversion, product.OuputItemId, value))
             {
                 skill.Cancelled = true;
                 character.SendErrorMessage(ErrorMessageType.BagFull);

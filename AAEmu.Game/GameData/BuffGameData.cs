@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Skills;
@@ -7,6 +8,7 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
+
 using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.GameData;
@@ -20,12 +22,12 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
 
     public List<BuffModifier> GetModifiersForBuff(uint ownerId)
     {
-        return _buffModifiers.ContainsKey(ownerId) ? _buffModifiers[ownerId] : new List<BuffModifier>();
+        return _buffModifiers.TryGetValue(ownerId, out var modifier) ? modifier : new List<BuffModifier>();
     }
 
     public BuffTolerance GetBuffToleranceForBuffTag(uint buffTag)
     {
-        return _buffTolerances.ContainsKey(buffTag) ? _buffTolerances[buffTag] : null;
+        return _buffTolerances.TryGetValue(buffTag, out var tolerance) ? tolerance : null;
     }
 
     public void Load(SqliteConnection connection)

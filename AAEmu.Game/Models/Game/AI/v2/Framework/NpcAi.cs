@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Framework;

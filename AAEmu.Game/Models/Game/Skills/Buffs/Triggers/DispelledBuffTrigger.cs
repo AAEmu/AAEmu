@@ -18,7 +18,7 @@ public class DispelledBuffTrigger : BuffTrigger
         }
 
         var target = _buff.Owner;
-        owner = (Unit)_buff.Caster;
+        owner = _buff.Caster;
         if (Template.EffectOnSource)
         {
             target = _buff.Caster;

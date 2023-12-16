@@ -34,7 +34,7 @@ public class GimmickManager : Singleton<GimmickManager>
 
     public GimmickTemplate GetGimmickTemplate(uint id)
     {
-        return _templates.ContainsKey(id) ? _templates[id] : null;
+        return _templates.TryGetValue(id, out var template) ? template : null;
     }
 
     public Gimmick Create(uint objectId, uint templateId, GimmickSpawner spawner)

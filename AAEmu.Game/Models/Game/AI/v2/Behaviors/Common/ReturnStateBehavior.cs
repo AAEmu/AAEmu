@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Models;
@@ -53,7 +54,7 @@ public class ReturnStateBehavior : Behavior
     {
         Ai.Owner.MoveTowards(Ai.IdlePosition.Local.Position, Ai.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f)); // TODO: Get proper npc speed
 
-        var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition.Local.Position, Ai.Owner.Transform.World.Position, true);
+        var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition.Local.Position, Ai.Owner.Transform.World.Position);
         if (distanceToIdle < 1.0f)
             OnCompletedReturnNoTeleport();
 
@@ -63,7 +64,7 @@ public class ReturnStateBehavior : Behavior
 
     private void OnCompletedReturn()
     {
-        var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition.Local.Position, Ai.Owner.Transform.World.Position, true);
+        var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition.Local.Position, Ai.Owner.Transform.World.Position);
         if (distanceToIdle > 2 * 2)
         {
             Ai.Owner.MoveTowards(Ai.IdlePosition.Local.Position, 1000000.0f);

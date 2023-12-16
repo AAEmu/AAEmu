@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.v2.Params.BigMonster;
 using AAEmu.Game.Models.Game.AI.V2.Params.BigMonster;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster;
 
@@ -15,8 +17,11 @@ public class BigMonsterAttackBehavior : BaseCombatBehavior
     public override void Enter()
     {
         Ai.Owner.InterruptSkills();
-
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        if (Ai.Owner is { } npc)
+        {
+            npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc});
+        }
     }
 
     public override void Tick(TimeSpan delta)
@@ -61,7 +66,7 @@ public class BigMonsterAttackBehavior : BaseCombatBehavior
 
     private List<BigMonsterCombatSkill> RequestAvailableSkills(BigMonsterAiParams aiParams, float trgDist)
     {
-        int healthRatio = (int)(((float)Ai.Owner.Hp / Ai.Owner.MaxHp) * 100);
+        var healthRatio = (int)(((float)Ai.Owner.Hp / Ai.Owner.MaxHp) * 100);
 
         var baseList = aiParams.CombatSkills.AsEnumerable();
 

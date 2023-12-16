@@ -59,13 +59,13 @@ public class SlaveManager : Singleton<SlaveManager>
 
     public SlaveTemplate GetSlaveTemplate(uint id)
     {
-        return _slaveTemplates.ContainsKey(id) ? _slaveTemplates[id] : null;
+        return _slaveTemplates.TryGetValue(id, out var template) ? template : null;
     }
 
     public Slave GetActiveSlaveByOwnerObjId(uint objId)
     {
         lock (_slaveListLock)
-            return _activeSlaves.ContainsKey(objId) ? _activeSlaves[objId] : null;
+            return _activeSlaves.TryGetValue(objId, out var slave) ? slave : null;
     }
 
     /// <summary>
@@ -138,7 +138,7 @@ public class SlaveManager : Singleton<SlaveManager>
     /// <returns></returns>
     public uint GetSlaveMountSkillFromId(uint slaveMountSkillId)
     {
-        return _slaveMountSkills.TryGetValue(slaveMountSkillId, out var res) ? res.MountSkillId : (uint)0;
+        return _slaveMountSkills.TryGetValue(slaveMountSkillId, out var res) ? res.MountSkillId : 0;
     }
 
     /// <summary>

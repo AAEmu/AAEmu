@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.v2.Params.WildBoar;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.WildBoar;
 
@@ -41,6 +42,11 @@ public class WildBoatAttackBehavior : BaseCombatBehavior
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(startCombatSkillId);
         var skill = new Skill(skillTemplate);
         UseSkill(skill, Ai.Owner.CurrentTarget);
+
+        if (Ai.Owner is { } npc)
+        {
+            npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc});
+        }
     }
 
     public override void Tick(TimeSpan delta)

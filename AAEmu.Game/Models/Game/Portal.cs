@@ -16,6 +16,7 @@ public class Portal : PacketMarshaler
 
     public uint SubZoneId { get; set; }
     public uint Owner { get; set; }
+    public uint WorldId { get; set; }
 
     public override PacketStream Write(PacketStream stream)
     {

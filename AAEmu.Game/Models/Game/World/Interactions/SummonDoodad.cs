@@ -10,7 +10,7 @@ public class SummonDoodad : IWorldInteraction
     public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
         uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
     {
-        var doodad = DoodadManager.Instance.Create(0, (uint)doodadId, caster, true);
+        var doodad = DoodadManager.Instance.Create(0, doodadId, caster, true);
         if (doodad == null)
         {
             return;

@@ -80,9 +80,9 @@ public abstract class SubCommandBase : ICommandV2
                 {
                     SendHelpMessage(messageOutput);
                 }
-                else if (_subCommands.ContainsKey(firstArgument))
+                else if (_subCommands.TryGetValue(firstArgument, out var command))
                 {
-                    _subCommands[firstArgument].PreExecute(character, firstArgument, args.Skip(1).ToArray(), messageOutput);
+                    command.PreExecute(character, firstArgument, args.Skip(1).ToArray(), messageOutput);
                 }
                 else
                 {

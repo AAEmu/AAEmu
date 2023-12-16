@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Models;
@@ -23,7 +24,9 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Characters;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
+
 using MySql.Data.MySqlClient;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers;
@@ -58,8 +61,8 @@ public class CharacterManager : Singleton<CharacterManager>
 
     public AppellationTemplate GetAppellationsTemplate(uint id)
     {
-        if (_appellations.ContainsKey(id))
-            return _appellations[id];
+        if (_appellations.TryGetValue(id, out var template))
+            return template;
         return null;
     }
 
@@ -75,15 +78,15 @@ public class CharacterManager : Singleton<CharacterManager>
 
     public ExpertLimit GetExpertLimit(int step)
     {
-        if (_expertLimits.ContainsKey(step))
-            return _expertLimits[step];
+        if (_expertLimits.TryGetValue(step, out var limit))
+            return limit;
         return null;
     }
 
     public ExpandExpertLimit GetExpandExpertLimit(int step)
     {
-        if (_expandExpertLimits.ContainsKey(step))
-            return _expandExpertLimits[step];
+        if (_expandExpertLimits.TryGetValue(step, out var limit))
+            return limit;
         return null;
     }
 
@@ -716,9 +719,8 @@ public class CharacterManager : Singleton<CharacterManager>
 
     public static void SetDeleteCharacter(GameConnection gameConnection, uint characterId)
     {
-        if (gameConnection.Characters.ContainsKey(characterId))
+        if (gameConnection.Characters.TryGetValue(characterId, out var character))
         {
-            var character = gameConnection.Characters[characterId];
             character.DeleteRequestTime = DateTime.UtcNow;
 
             var targetDeleteDelay = 0;
@@ -765,9 +767,8 @@ public class CharacterManager : Singleton<CharacterManager>
 
     public static void SetRestoreCharacter(GameConnection gameConnection, uint characterId)
     {
-        if (gameConnection.Characters.ContainsKey(characterId))
+        if (gameConnection.Characters.TryGetValue(characterId, out var character))
         {
-            var character = gameConnection.Characters[characterId];
             character.DeleteRequestTime = DateTime.MinValue;
             character.DeleteTime = DateTime.MinValue;
             gameConnection.SendPacket(new SCCancelCharacterDeleteResponsePacket(character.Id, 3));

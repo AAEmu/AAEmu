@@ -99,12 +99,12 @@ public class TransferManager : Singleton<TransferManager>
 
     public TransferTemplate GetTemplate(uint templateId)
     {
-        return _templates.ContainsKey(templateId) ? _templates[templateId] : null;
+        return _templates.TryGetValue(templateId, out var template) ? template : null;
     }
 
     private TransferTemplate GetTransferTemplate(uint id)
     {
-        return _templates.ContainsKey(id) ? _templates[id] : null;
+        return _templates.TryGetValue(id, out var template) ? template : null;
     }
     /*
     private Transfer GetActiveTransferBiTemplateId(uint id)

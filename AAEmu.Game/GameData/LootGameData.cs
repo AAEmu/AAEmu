@@ -169,8 +169,8 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
 
     public LootPack GetPack(uint id)
     {
-        if (_lootPacks.ContainsKey(id))
-            return _lootPacks[id];
+        if (_lootPacks.TryGetValue(id, out var pack))
+            return pack;
         return null;
     }
 }

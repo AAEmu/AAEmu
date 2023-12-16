@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Skills.Static;
 

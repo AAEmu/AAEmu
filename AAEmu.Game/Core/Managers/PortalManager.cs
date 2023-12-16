@@ -65,8 +65,8 @@ public class PortalManager : Singleton<PortalManager>
 
     public List<Portal> GetRecallBySubZoneId(uint subZoneId)
     {
-        return _recalls != null && _recalls.ContainsKey(subZoneId)
-            ? _recalls[subZoneId]
+        return _recalls != null && _recalls.TryGetValue(subZoneId, out var recall)
+            ? recall
             : null;
     }
 
@@ -80,8 +80,8 @@ public class PortalManager : Singleton<PortalManager>
 
     public Portal GetRespawnBySubZoneId(uint subZoneId)
     {
-        return _respawns != null && _respawns.ContainsKey(subZoneId)
-            ? _respawns[subZoneId]
+        return _respawns != null && _respawns.TryGetValue(subZoneId, out var respawn)
+            ? respawn
             : null;
     }
 
@@ -96,8 +96,8 @@ public class PortalManager : Singleton<PortalManager>
 
     public Portal GetWorldgatesBySubZoneId(uint subZoneId)
     {
-        return _worldgates != null && _worldgates.ContainsKey(subZoneId)
-            ? _worldgates[subZoneId]
+        return _worldgates != null && _worldgates.TryGetValue(subZoneId, out var worldgate)
+            ? worldgate
             : null;
     }
 
@@ -334,7 +334,7 @@ public class PortalManager : Singleton<PortalManager>
         #endregion
     }
 
-    private static bool CheckItemAndRemove(Character owner, uint itemId, int amount)
+    public static bool CheckItemAndRemove(Character owner, uint itemId, int amount)
     {
         if (!owner.Inventory.CheckItems(SlotType.Inventory, itemId, amount)) return false;
         owner.Inventory.Bag.ConsumeItem(ItemTaskType.Teleport, itemId, amount, null);
@@ -432,7 +432,7 @@ public class PortalManager : Singleton<PortalManager>
         // TODO - Reason, ErrorMessage
         character.SendPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.World.Position.X,
             portalInfo.TeleportPosition.World.Position.Y, portalInfo.TeleportPosition.World.Position.Z,
-            portalInfo.TeleportPosition.World.Rotation.Z));
+            portalInfo.TeleportPosition.World.Rotation.Z.DegToRad()));
     }
 
     public static void DeletePortal(Character owner, byte type, uint id)

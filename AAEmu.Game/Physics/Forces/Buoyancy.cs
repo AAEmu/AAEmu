@@ -132,9 +132,9 @@ public class Buoyancy : ForceGenerator
             {
                 for (int k = 0; k < subdivisions; k++)
                 {
-                    testVector.X = body.Shape.BoundingBox.Min.X + (diff.X / (float)(subdivisions - 1)) * ((float)i);
-                    testVector.Y = body.Shape.BoundingBox.Min.Y + (diff.Y / (float)(subdivisions - 1)) * ((float)e);
-                    testVector.Z = body.Shape.BoundingBox.Min.Z + (diff.Z / (float)(subdivisions - 1)) * ((float)k);
+                    testVector.X = body.Shape.BoundingBox.Min.X + (diff.X / (subdivisions - 1)) * i;
+                    testVector.Y = body.Shape.BoundingBox.Min.Y + (diff.Y / (subdivisions - 1)) * e;
+                    testVector.Z = body.Shape.BoundingBox.Min.Z + (diff.Z / (subdivisions - 1)) * k;
 
                     JMatrix ident = JMatrix.Identity;
                     JVector zero = JVector.Zero;

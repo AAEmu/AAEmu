@@ -23,6 +23,7 @@ using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
@@ -33,7 +34,7 @@ public class Unit : BaseUnit, IUnit
 {
     public virtual UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.None;
 
-    public UnitEvents Events { get; }
+    public virtual UnitEvents Events { get; }
     private Task _regenTask;
     public uint ModelId { get; set; }
     public SkillController ActiveSkillController { get; set; }
@@ -378,7 +379,21 @@ public class Unit : BaseUnit, IUnit
             return;
 
         if (attackerBase is Unit attackerUnit)
+        {
             attackerUnit.Events.OnKill(attackerUnit, new OnKillArgs { target = attackerUnit });
+
+            var world = WorldManager.Instance.GetWorld(Transform.WorldId);
+            if (Transform.WorldId > 99)
+            {
+                var dungeon = IndunManager.Instance.GetDungeonByWorldId(Transform.WorldId);
+                if (dungeon is not null)
+                {
+                    world.Events.OnUnitKilled(world, new OnUnitKilledArgs { Killer = attackerUnit, Victim = this });
+                    world.Events.OnUnitCombatEnd(world, new OnUnitCombatEndArgs { Npc = this });
+                    Events.OnDeath(this, new OnDeathArgs { Killer = attackerUnit, Victim = this });
+                }
+            }
+        }
 
         DoDie(attackerBase, killReason);
     }
@@ -590,7 +605,7 @@ public class Unit : BaseUnit, IUnit
 
     public override void AddBonus(uint bonusIndex, Bonus bonus)
     {
-        var bonuses = Bonuses.ContainsKey(bonusIndex) ? Bonuses[bonusIndex] : new List<Bonus>();
+        var bonuses = Bonuses.TryGetValue(bonusIndex, out var bonuse) ? bonuse : new List<Bonus>();
         bonuses.Add(bonus);
         Bonuses[bonusIndex] = bonuses;
     }
@@ -824,8 +839,17 @@ public class Unit : BaseUnit, IUnit
     /// <param name="factionId"></param>
     public void SetFaction(uint factionId)
     {
-        if (this is Character) { return; } // do not change the faction for the character
+        // Keep origin faction data temporarily for arena players
+        OriginFaction = Faction;
+
+        if (this is Character player)
+        {
+            // change the faction for the character
+            player.OriginFactionName = player.FactionName;
+        }
+
         Logger.Info($"SetFaction: npc={TemplateId}:{ObjId}, factionId={factionId}");
+
         if (Faction.Id == factionId)
         {
             Logger.Info($"SetFaction: faction has already been established factionId={factionId}");
@@ -838,6 +862,7 @@ public class Unit : BaseUnit, IUnit
 
         // TODO added for quest Id=2486
         if (this is not Npc npc) { return; }
+
         // Npc attacks the character
         var characters = WorldManager.GetAround<Character>(npc, 5.0f);
         foreach (var character in characters.Where(CanAttack))
@@ -851,7 +876,7 @@ public class Unit : BaseUnit, IUnit
 
     public virtual void UseSkill(uint skillId, IUnit target)
     {
-        var skill = new Skill(SkillManager.Instance.GetSkillTemplate((uint)skillId));
+        var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
 
         var caster = SkillCaster.GetByType(SkillCasterType.Unit);
         caster.ObjId = ObjId;

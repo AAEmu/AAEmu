@@ -79,7 +79,7 @@ public class MailForTax : BaseMail
 
         // Extra tag
         ushort extraUnknown = 0;
-        mail.Header.Extra = ((long)zone.GroupId << 48) + ((long)extraUnknown << 32) + ((long)house.Id);
+        mail.Header.Extra = ((long)zone.GroupId << 48) + ((long)extraUnknown << 32) + house.Id;
         mail.Header.Status = MailStatus.Unpaid;
 
         return true;
