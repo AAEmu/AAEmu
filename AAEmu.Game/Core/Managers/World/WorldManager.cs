@@ -235,44 +235,62 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 worldNames.Add(worldName);
         }
 
-        for (uint id = 0; id < worldNames.Count; id++)
+        var nextId = (uint)worldSpawnLookup.Count;
+        foreach (var worldName in worldNames)
         {
-            var worldName = worldNames[(int)id];
-            if (worldName == "main_world")
-                WorldManager.DefaultWorldId = id; // prefer to do it like this, in case we change order or IDs later on
-
             using var worldXmlData = ClientFileManager.GetFileStream(Path.Combine("game", "worlds", worldName, "world.xml"));
             var xml = new XmlDocument();
             xml.Load(worldXmlData);
             var worldNode = xml.SelectSingleNode("/World");
-            if (worldNode != null)
+            if (worldNode == null) { continue; }
+
+            var xmlWorld = new XmlWorld();
+            var world = new InstanceWorld();
+            xmlWorld.ReadNode(worldNode, world);
+
+            foreach (var wsl in worldSpawnLookup)
             {
-                var xmlWorld = new XmlWorld();
-                var world = new InstanceWorld();
-                world.Id = id;
-                xmlWorld.ReadNode(worldNode, world);
-                world.SpawnPosition = worldSpawnLookup.FirstOrDefault(w => w.Name == world.Name)?.SpawnPosition ?? new WorldSpawnPosition();
-                // add coordinates for zones
-                foreach (var worldZones in world.XmlWorldZones.Values)
+                if (worldName == "main_world")
                 {
-                    foreach (var wsl in worldSpawnLookup)
-                    {
-                        if (wsl.Name == worldZones.Name)
-                        {
-                            worldZones.SpawnPosition = wsl.SpawnPosition;
-                            break;
-                        }
-                    }
+                    world.Id = DefaultWorldId;
+                    break;
                 }
 
-                _worlds.Add(id, world);
+                if (wsl.Name != worldName) { continue; }
 
-                // cache zone keys to world reference
-                foreach (var zoneKey in world.ZoneKeys)
-                    _worldIdByZoneId.Add(zoneKey, world.Id);
-
-                world.Water = new WaterBodies();
+                world.SpawnPosition = wsl?.SpawnPosition ?? new WorldSpawnPosition();
+                world.Id = wsl?.Id ?? nextId++;
+                world.SpawnPosition.WorldId = world.Id;
+                break;
             }
+
+            if (worldName != "main_world" && world.Id == 0)
+            {
+                world.Id = nextId++;
+            }
+
+
+            // add coordinates for zones
+            foreach (var worldZones in world.XmlWorldZones.Values)
+            {
+                foreach (var wsl in worldSpawnLookup)
+                {
+                    if (wsl.Name == worldZones.Name)
+                    {
+                        worldZones.SpawnPosition = wsl.SpawnPosition;
+                        worldZones.SpawnPosition.WorldId = world.Id;
+                        break;
+                    }
+                }
+            }
+
+            _worlds.Add(world.Id, world);
+
+            // cache zone keys to world reference
+            foreach (var zoneKey in world.ZoneKeys)
+                _worldIdByZoneId.Add(zoneKey, world.Id);
+
+            world.Water = new WaterBodies();
         }
 
         #endregion

@@ -22,6 +22,7 @@ namespace AAEmu.Game.Core.Managers
 
         private Dictionary<Team, List<Dungeon>> _teamDungeons;
         private Dictionary<uint, Dungeon> _soloDungeons;
+        private Dictionary<uint, Dungeon> _sysDungeons;
         private Dictionary<uint, Dictionary<uint, int>> _attempts; // <ownerId, <zoneGroupId, attempts>> - использовано попыток прохождения данжона
         private const int FreeAttempts = 3;  // свободных попыток
         private const int ExtraAttempts = 2; // дополнительных попыток
@@ -34,6 +35,7 @@ namespace AAEmu.Game.Core.Managers
         {
             _teamDungeons = new Dictionary<Team, List<Dungeon>>();
             _soloDungeons = new Dictionary<uint, Dungeon>();
+            _sysDungeons = new Dictionary<uint, Dungeon>();
             TickManager.Instance.OnTick.Subscribe(IndunInfoTick, TimeSpan.FromSeconds(10), true);
             _attempts ??= new Dictionary<uint, Dictionary<uint, int>>();
             _waitingDungeonAccessAttemptsCleared ??= new Dictionary<uint, Dictionary<uint, bool>>();
@@ -49,6 +51,10 @@ namespace AAEmu.Game.Core.Managers
             {
                 Logger.Info($"Solo dungeons: 0");
             }
+            if (_sysDungeons is { Count: 0 })
+            {
+                Logger.Info($"Sys dungeons: 0");
+            }
             foreach (var td in _teamDungeons)
             {
                 Logger.Info($"Team dungeon: team Id={td.Key.Id}, member counts={td.Key.MembersCount()}:");
@@ -61,8 +67,38 @@ namespace AAEmu.Game.Core.Managers
             {
                 Logger.Info($"Solo dungeon for char Id={sd.Key}: {sd.Value.GetPlayerCount()} player in dungeon Id={sd.Value.GetDungeonWorldId()}");
             }
+            foreach (var sd in _sysDungeons)
+            {
+                Logger.Info($"Sys dungeon for zone Id={sd.Key}: {sd.Value.GetPlayerCount()} player in dungeon Id={sd.Value.GetDungeonWorldId()}");
+            }
 
             InfoAttempt();
+        }
+
+        /// <summary>
+        /// Requests an instance for the character's team or for the player.
+        /// </summary>
+        /// <param name="character"></param>
+        /// <param name="zoneId"></param>
+        /// <returns></returns>
+        public bool RequestSysInstance(Character character, uint zoneId)
+        {
+            // TODO ZoneId=183 - Arche mall
+            if (character == null)
+            {
+                Logger.Info("[IndunManager] Player offline.");
+                return false;
+            }
+
+            var dungeon = CreateSysInstance(character, zoneId);
+            if (dungeon == null)
+            {
+                return false;
+            }
+
+            dungeon.AddPlayer(character);
+
+            return true;
         }
 
         /// <summary>
@@ -322,6 +358,42 @@ namespace AAEmu.Game.Core.Managers
             //character.SendErrorMessage(ErrorMessageType.InstanceInMsgStart);
 
             return true;
+        }
+
+        private Dungeon CreateSysInstance(Character character, uint zoneId)
+        {
+            Logger.Info($"[IndunManager] Requesting system instance, characterId: {character.Id}");
+            Logger.Info($"[IndunManager] Total dungeons created: Party={_teamDungeons.Count}, Solo={_soloDungeons.Count}, Sys={_sysDungeons.Count}");
+
+            // Если не было инстанса - создадим его
+            if (!_sysDungeons.TryGetValue(zoneId, out var dungeon))
+            {
+                dungeon = new Dungeon(IndunGameData.Instance.GetDungeonZone(ZoneManager.Instance.GetZoneById(zoneId).GroupId), character);
+                _sysDungeons.Add(zoneId, dungeon);
+            }
+
+            if (dungeon?._indunZone?.ZoneGroupId != ZoneManager.Instance.GetZoneById(zoneId)?.GroupId)
+            {
+                Logger.Info("[IndunManager] system dungeon request on different area.");
+                character.SendErrorMessage(ErrorMessageType.ProhibitedInInstance);
+                return null;
+            }
+
+            if (!(character.Level >= dungeon?._indunZone?.LevelMin && character.Level <= dungeon._indunZone?.LevelMax))
+            {
+                Logger.Info("[IndunManager] Not the right level of character to visit the area.");
+                character.SendErrorMessage(ErrorMessageType.InstanceLevel);
+                return null;
+            }
+
+            if (dungeon.IsFull)
+            {
+                Logger.Info("[IndunManager] There is no place for you in this area.");
+                character.SendErrorMessage(ErrorMessageType.InstanceQuota);
+                return null;
+            }
+
+            return dungeon;
         }
 
         public bool RequestDeletion(Character character, Dungeon dungeon)

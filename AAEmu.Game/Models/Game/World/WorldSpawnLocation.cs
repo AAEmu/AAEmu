@@ -4,6 +4,7 @@ namespace AAEmu.Game.Models.Game.World;
 
 public class WorldSpawnLocation
 {
+    public uint Id { get; set; }
     public string Name { get; set; }
     public WorldSpawnPosition SpawnPosition { get; set; }
 

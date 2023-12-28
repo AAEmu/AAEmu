@@ -237,18 +237,6 @@ namespace AAEmu.Game.Models.Game.Indun
         /// <param name="character"></param>
         private void MoveCharacterToWorld(Character character)
         {
-            //if (_world.SpawnPosition != null)
-            //{
-            //    // we take the coordinates of the zone
-            //    foreach (var wz in _world.XmlWorldZones.Values)
-            //    {
-            //        if (wz.Id == _zoneInstanceId.ZoneId)
-            //        {
-            //            _world.SpawnPosition = wz.SpawnPosition;
-            //        }
-            //    }
-            //}
-
             if (_world.SpawnPosition != null)
             {
                 character.DisabledSetPosition = true;
