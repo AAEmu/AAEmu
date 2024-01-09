@@ -633,7 +633,9 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
         var height = 0f;
-        if (AppConfiguration.Instance.World.GeoDataMode)
+        var world = GetWorldByZone(zoneId);
+
+        if (AppConfiguration.Instance.World.GeoDataMode && world.Id > 0)
         {
             var position = new WorldSpawnPosition { WorldId = 0, ZoneId = zoneId, X = x, Y = y, Z = 0, Yaw = 0, Pitch = 0, Roll = 0 };
             height = AiGeoDataManager.Instance.GetHeight(zoneId, position);
@@ -646,7 +648,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             {
                 try
                 {
-                    var world = GetWorldByZone(zoneId);
+                    //var world = GetWorldByZone(zoneId);
                     height = world?.GetHeight(x, y) ?? 0f;
                 }
                 catch
@@ -668,7 +670,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
         var height = 0f;
-        if (AppConfiguration.Instance.World.GeoDataMode)
+        if (AppConfiguration.Instance.World.GeoDataMode && transform.WorldId > 0)
         {
             height = AiGeoDataManager.Instance.GetHeight(transform.ZoneId, transform.World.Position);
         }

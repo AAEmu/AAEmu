@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -17,7 +18,9 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.StaticValues;
+
 using Jitter.Dynamics;
+
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Units;
@@ -586,10 +589,7 @@ public class Slave : Unit
     {
         character.SendPacket(new SCUnitStatePacket(this));
         character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
-        if (Summoner != null)
-        {
-            character.SendPacket(new SCSlaveStatePacket(ObjId, TlId, Summoner?.Name ?? string.Empty, Summoner?.ObjId ?? 0, Id));
-        }
+        character.SendPacket(new SCSlaveStatePacket(ObjId, TlId, Summoner?.Name ?? string.Empty, Summoner?.ObjId ?? 0, Id));
 
         base.AddVisibleObject(character);
 
@@ -644,7 +644,7 @@ public class Slave : Unit
         DistributeSlaveDropDoodads();
         MarkSummoningItemAsDestroyed();
 
-        Summoner?.SendPacket(new SCMySlavePacket(ObjId, TlId, Name, TemplateId, Hp, MaxHp, Transform.World.Position.X,Transform.World.Position.Y,Transform.World.Position.Z));
+        Summoner?.SendPacket(new SCMySlavePacket(ObjId, TlId, Name, TemplateId, Hp, MaxHp, Transform.World.Position.X, Transform.World.Position.Y, Transform.World.Position.Z));
         Summoner?.SendPacket(new SCSlaveRemovedPacket(ObjId, TlId));
     }
 
@@ -757,7 +757,7 @@ public class Slave : Unit
                 {
                     doodad.Transform.Local.SetHeight(WorldManager.Instance.GetWorld(doodad.Transform.WorldId).Water.GetWaterSurface(pos));
                 }
-                doodad.Transform.Local.Rotate(0,0,(float)(Random.Shared.NextDouble() * Math.PI * 2f));
+                doodad.Transform.Local.Rotate(0, 0, (float)(Random.Shared.NextDouble() * Math.PI * 2f));
                 doodad.InitDoodad();
                 doodad.Spawn();
             }
@@ -851,7 +851,7 @@ public class Slave : Unit
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
-        PostUpdateCurrentHp(this,oldHp, Hp, KillReason.Unknown);
+        PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
 
 }
