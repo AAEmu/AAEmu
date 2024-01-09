@@ -4,7 +4,6 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
@@ -60,8 +59,8 @@ public class CSMoveUnitPacket : GamePacket
 
         if (character == null) return;
 
-        //// если движение запрещено при телепортах в инстансы, то на выход
-        //if(character.DisabledSetPosition) return;
+        // if movement is forbidden when teleporting to instances, then to exit
+        if (character.DisabledSetPosition) return;
 
         var targetUnit = WorldManager.Instance.GetBaseUnit(_objId);
 
