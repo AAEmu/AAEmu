@@ -983,7 +983,7 @@ public class Npc : Unit
 
         var travelDist = Math.Min(targetDist, distance);
 
-        // TODO: Implement proper use for Transform.World.AddDistanceToFront)
+        // TODO: Implement proper use for Transform.World.AddDistanceToFront
         var (newX, newY, newZ) = World.Transform.PositionAndRotation.AddDistanceToFront(travelDist, targetDist, Transform.Local.Position, other);
         Transform.Local.SetPosition(newX, newY, newZ);
 
@@ -991,10 +991,10 @@ public class Npc : Unit
         if (!CanFly)
         {
             // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
-            newZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY);
-            if (Math.Abs(Transform.Local.Position.Z - newZ) < 1f)
+            var updZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY);
+            if (Math.Abs(newZ - updZ) < 1f)
             {
-                Transform.Local.SetHeight(newZ);
+                Transform.Local.SetHeight(updZ);
             }
         }
 
@@ -1008,6 +1008,7 @@ public class Npc : Unit
         moveType.Z = Transform.Local.Position.Z;
         moveType.VelX = (short)velX;
         moveType.VelY = (short)velY;
+        //moveType.VelZ = (short)velZ;
         moveType.RotationX = rx;
         moveType.RotationY = ry;
         moveType.RotationZ = rz;
@@ -1043,6 +1044,9 @@ public class Npc : Unit
         moveType.X = Transform.Local.Position.X;
         moveType.Y = Transform.Local.Position.Y;
         moveType.Z = Transform.Local.Position.Z;
+        moveType.VelX = 0;
+        moveType.VelY = 0;
+        moveType.VelZ = 0;
         moveType.RotationX = rx;
         moveType.RotationY = ry;
         moveType.RotationZ = rz;
@@ -1068,6 +1072,9 @@ public class Npc : Unit
         moveType.X = Transform.Local.Position.X;
         moveType.Y = Transform.Local.Position.Y;
         moveType.Z = Transform.Local.Position.Z;
+        moveType.VelX = 0;
+        moveType.VelY = 0;
+        moveType.VelZ = 0;
         moveType.RotationX = 0;
         moveType.RotationY = 0;
         moveType.RotationZ = Transform.Local.ToRollPitchYawSBytesMovement().Item3;
