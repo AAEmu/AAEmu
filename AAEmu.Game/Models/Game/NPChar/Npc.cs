@@ -949,10 +949,6 @@ public class Npc : Unit
         */
     }
 
-    private const int decreaseMoveSpeed = 161;
-    private const int shackle = 160;
-    private const int snare = 27;
-
     public void MoveTowards(Vector3 other, float distance, byte flags = 4)
     {
         distance *= Ai.Owner.MoveSpeedMul; // Apply speed modifier
@@ -967,6 +963,13 @@ public class Npc : Unit
                 e.Template.Fastened))
         {
             //Logger.Debug($"{ObjId} @NPC_NAME({TemplateId}); is stuck in place");
+            return;
+        }
+
+        if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle)) ||
+            Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.DecreaseMoveSpeed)) ||
+            Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare)))
+        {
             return;
         }
 
