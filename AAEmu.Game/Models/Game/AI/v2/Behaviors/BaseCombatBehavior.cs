@@ -49,7 +49,7 @@ public abstract class BaseCombatBehavior : Behavior
         var speed = Ai.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f);
         var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
 
-        if (AppConfiguration.Instance.World.GeoDataMode)
+        if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
         {
             // TODO найдем путь к abuser, только если координаты цели изменились
             if (target != null && Ai.PathNode?.pos2 != null && Ai.PathNode != null)
@@ -99,7 +99,6 @@ public abstract class BaseCombatBehavior : Behavior
                 }
                 else
                 {
-                    // var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
                     if (distanceToTarget > range)
                         Ai.Owner.MoveTowards(target.Transform.World.Position, speed);
                     else
@@ -108,14 +107,18 @@ public abstract class BaseCombatBehavior : Behavior
             }
             else
             {
-                // var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
                 if (distanceToTarget > range && target != null)
-                {
                     Ai.Owner.MoveTowards(target.Transform.World.Position, speed);
-                }
                 else
                     Ai.Owner.StopMovement();
             }
+        }
+        else
+        {
+            if (distanceToTarget > range && target != null)
+                Ai.Owner.MoveTowards(target.Transform.World.Position, speed);
+            else
+                Ai.Owner.StopMovement();
         }
     }
 
@@ -184,8 +187,10 @@ public abstract class BaseCombatBehavior : Behavior
             //if (Ai.AlreadyTargetted)
             //    return true;
 
-            if (AppConfiguration.Instance.World.GeoDataMode)
+            if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
             {
+                // включена геодата и не основной мир
+                // geodata enabled and not the main world
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead /*&& !Ai.AlreadyTargetted*/)
                 {
                     Ai.Owner.CurrentAggroTarget = abuser.ObjId;
