@@ -301,7 +301,7 @@ namespace AAEmu.Game.Core.Managers
                 return false;
             }
 
-            var dungeon = new Dungeon(IndunGameData.Instance.GetDungeonZone(ZoneManager.Instance.GetZoneById(zoneId).GroupId), character);
+            var dungeon = new Dungeon(IndunGameData.Instance.GetDungeonZone(ZoneManager.Instance.GetZoneById(zoneId).GroupId), character, null);
 
             if (dungeon._indunZone?.ZoneGroupId != ZoneManager.Instance.GetZoneById(zoneId)?.GroupId)
             {
@@ -399,12 +399,13 @@ namespace AAEmu.Game.Core.Managers
         public bool RequestDeletion(Character character, Dungeon dungeon)
         {
             if (character == null) { return false; }
-            if (character.InParty) { return false; } // данж для тимы не удаляем
             if (dungeon == null)
             {
                 character.SendErrorMessage(ErrorMessageType.AlreadyUnboundInstance);
                 return false;
             }
+            if (dungeon.IsSystem) { return false; } // do not delete system dungeons
+            if (character.InParty) { return false; }// dungeon for the team will not be deleted.
             if (!dungeon.DestroySoloDungeon(character, dungeon)) { return false; }
             _soloDungeons.Remove(character.Id);
 
@@ -449,6 +450,19 @@ namespace AAEmu.Game.Core.Managers
             return true;
         }
 
+        public bool RequestSysLeave(Character character)
+        {
+            if (character == null) { return false; }
+
+            foreach (var dungeon in _sysDungeons.Values.Where(dungeon => dungeon.IsPlayerInDungeon(character.Id)))
+            {
+                dungeon.LeaveSysInstance(character);
+                return true;
+            }
+
+            return false;
+        }
+
         public bool SoloToParty(Character character, Team team, Dungeon dungeon)
         {
             if (!_soloDungeons.ContainsKey(character.Id)) { return false; }
@@ -465,7 +479,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 var action = IndunGameData.Instance.GetIndunActionById(startActionId);
                 action.Execute(world);
-                Logger.Warn($"DoIndunActions - world={world.Id}, action.Id={action.Id}, action.NextActionId={action.NextActionId}");
+                Logger.Warn($"DoIndunActions: world={world.Id}, action.Id={action.Id}, action.NextActionId={action.NextActionId}");
                 if (action.NextActionId > 0)
                 {
                     startActionId = action.NextActionId;

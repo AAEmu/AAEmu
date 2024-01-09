@@ -17,6 +17,15 @@ public class DoodadFuncEnterInstance : DoodadFuncTemplate
 
         if (caster is Character character)
         {
+            if (character.MainWorldPosition == null)
+            {
+                character.MainWorldPosition = character.Transform.CloneDetached(character); // сохраним координаты для возврата в основной мир
+            }
+            else if (character.Transform.WorldId == 0)
+            {
+                character.MainWorldPosition = character.Transform.CloneDetached(character); // сохраним координаты для возврата в основной мир
+            }
+
             IndunManager.Instance.RequestInstance(character, ZoneId);
         }
     }

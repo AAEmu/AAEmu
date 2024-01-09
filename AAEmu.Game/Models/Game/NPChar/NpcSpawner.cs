@@ -90,7 +90,6 @@ public class NpcSpawner : Spawner<Npc>
             if (dungeon is not null)
             {
                 dungeon.UnregisterNpcEvents(npc);
-                dungeon.UnregisterIndunEvents();
             }
         }
 

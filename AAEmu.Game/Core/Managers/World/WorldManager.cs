@@ -230,67 +230,52 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         foreach (var worldXmlPath in worldXmlPaths)
         {
-            var worldName = Path.GetFileName(Path.GetDirectoryName(worldXmlPath)); // the the base name of the current directory
+            var worldName = Path.GetFileName(Path.GetDirectoryName(worldXmlPath)); // the base name of the current directory
             if (!worldNames.Contains(worldName))
                 worldNames.Add(worldName);
         }
 
-        var nextId = (uint)worldSpawnLookup.Count;
-        foreach (var worldName in worldNames)
+        for (uint id = 0; id < worldNames.Count; id++)
         {
+            var worldName = worldNames[(int)id];
+            if (worldName == "main_world")
+                WorldManager.DefaultWorldId = id; // prefer to do it like this, in case we change order or IDs later on
+
             using var worldXmlData = ClientFileManager.GetFileStream(Path.Combine("game", "worlds", worldName, "world.xml"));
             var xml = new XmlDocument();
             xml.Load(worldXmlData);
             var worldNode = xml.SelectSingleNode("/World");
-            if (worldNode == null) { continue; }
-
-            var xmlWorld = new XmlWorld();
-            var world = new InstanceWorld();
-            xmlWorld.ReadNode(worldNode, world);
-
-            foreach (var wsl in worldSpawnLookup)
+            if (worldNode != null)
             {
-                if (worldName == "main_world")
+                var xmlWorld = new XmlWorld();
+                var world = new InstanceWorld();
+                world.Id = id;
+                world.TemplateId = id;
+                xmlWorld.ReadNode(worldNode, world);
+                world.SpawnPosition = worldSpawnLookup.FirstOrDefault(w => w.Name == world.Name)?.SpawnPosition ?? new WorldSpawnPosition();
+                world.SpawnPosition.WorldId = id;
+                // add coordinates for zones
+                foreach (var worldZones in world.XmlWorldZones.Values)
                 {
-                    world.Id = DefaultWorldId;
-                    break;
-                }
-
-                if (wsl.Name != worldName) { continue; }
-
-                world.SpawnPosition = wsl?.SpawnPosition ?? new WorldSpawnPosition();
-                world.Id = wsl?.Id ?? nextId++;
-                world.SpawnPosition.WorldId = world.Id;
-                break;
-            }
-
-            if (worldName != "main_world" && world.Id == 0)
-            {
-                world.Id = nextId++;
-            }
-
-
-            // add coordinates for zones
-            foreach (var worldZones in world.XmlWorldZones.Values)
-            {
-                foreach (var wsl in worldSpawnLookup)
-                {
-                    if (wsl.Name == worldZones.Name)
+                    foreach (var wsl in worldSpawnLookup)
                     {
-                        worldZones.SpawnPosition = wsl.SpawnPosition;
-                        worldZones.SpawnPosition.WorldId = world.Id;
-                        break;
+                        if (wsl.Name == worldZones.Name)
+                        {
+                            worldZones.SpawnPosition = wsl.SpawnPosition;
+                            worldZones.SpawnPosition.WorldId = id;
+                            break;
+                        }
                     }
                 }
+
+                _worlds.Add(id, world);
+
+                // cache zone keys to world reference
+                foreach (var zoneKey in world.ZoneKeys)
+                    _worldIdByZoneId.Add(zoneKey, id);
+
+                world.Water = new WaterBodies();
             }
-
-            _worlds.Add(world.Id, world);
-
-            // cache zone keys to world reference
-            foreach (var zoneKey in world.ZoneKeys)
-                _worldIdByZoneId.Add(zoneKey, world.Id);
-
-            world.Water = new WaterBodies();
         }
 
         #endregion
@@ -1115,7 +1100,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     private bool ValidRegion(uint worldId, int x, int y)
     {
         var world = GetWorld(worldId);
-        return world.ValidRegion(x, y);
+        return world != null && world.ValidRegion(x, y);
     }
 
     public void OnPlayerJoin(Character character)

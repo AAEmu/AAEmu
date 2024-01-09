@@ -84,7 +84,7 @@ public class SpawnManager : Singleton<SpawnManager>
 
     internal void SpawnAllNpcs(byte worldId)
     {
-        Logger.Info("Spawning {0} NPC spawners in world {1}", _npcSpawners[worldId].Count, worldId);
+        Logger.Info($"Spawning {_npcSpawners[worldId].Count} NPC spawners in world {worldId}");
         var count = 0;
         foreach (var spawners in _npcSpawners[worldId].Values)
         {
@@ -92,20 +92,20 @@ public class SpawnManager : Singleton<SpawnManager>
             {
                 if (spawner.Template == null)
                 {
-                    Logger.Warn("Templates not found for Npc templateId {0} in world {1}", spawner.UnitId, worldId);
+                    Logger.Warn($"Templates not found for Npc templateId {spawner.UnitId} in world {worldId}");
                 }
                 else
                 {
                     spawner.SpawnAll(true);
                     count++;
-                    if (count % 5000 == 0 && worldId == 0)
+                    if (count % 5000 == 0)
                     {
-                        Logger.Info("{0} NPC spawners spawned...", count);
+                        Logger.Info($"{count} NPC spawners spawned in world {worldId}");
                     }
                 }
             }
         }
-        Logger.Info("{0} NPC spawners spawned...", count);
+        Logger.Info($"{count} NPC spawners spawned in world {worldId}");
     }
 
     public void Load()
@@ -562,7 +562,7 @@ public class SpawnManager : Singleton<SpawnManager>
         {
             Task.Run(() =>
             {
-                Logger.Info($"Spawning {worldSpawners.Count} doodads in world {worldId}");
+                Logger.Info($"Spawning {worldSpawners.Count} Doodads in world {worldId}");
                 var count = 0;
                 foreach (var spawner in worldSpawners.Values)
                 {
@@ -570,22 +570,22 @@ public class SpawnManager : Singleton<SpawnManager>
                     count++;
                     if (count % 1000 == 0 && worldId == 0)
                     {
-                        Logger.Info($"in world {worldId} doodads spawned: {count}...");
+                        Logger.Info($"in world {worldId} Doodads spawned: {count}...");
                     }
                 }
-                Logger.Info($"in world {worldId} doodads spawned: {count}");
+                Logger.Info($"in world {worldId} Doodads spawned: {count}");
 
                 // необходимо дождаться спавна всех doodads
                 FishSchoolManager.Instance.Load(worldId);
             });
         }
 
-        Logger.Info("Spawning transfers...");
+        Logger.Info("Spawning Transfers...");
         foreach (var (worldId, worldSpawners) in _transferSpawners)
         {
             Task.Run(() =>
             {
-                Logger.Info($"Spawning {worldSpawners.Count} transfers in world {worldId}");
+                Logger.Info($"Spawning {worldSpawners.Count} Transfers in world {worldId}");
                 var count = 0;
                 foreach (var spawner in worldSpawners.Values)
                 {
@@ -593,19 +593,19 @@ public class SpawnManager : Singleton<SpawnManager>
                     count++;
                     if (count % 10 == 0 && worldId == 0)
                     {
-                        Logger.Info($"in world {worldId} transfers spawned: {count}...");
+                        Logger.Info($"in world {worldId} Transfers spawned: {count}...");
                     }
                 }
-                Logger.Info($"in world {worldId} transfers spawned: {count}");
+                Logger.Info($"in world {worldId} Transfers spawned: {count}");
             });
         }
 
-        Logger.Info("Spawning gimmicks...");
+        Logger.Info("Spawning Gimmicks...");
         foreach (var (worldId, worldSpawners) in _gimmickSpawners)
         {
             Task.Run(() =>
             {
-                Logger.Info($"Spawning {worldSpawners.Count} gimmicks in world {worldId}");
+                Logger.Info($"Spawning {worldSpawners.Count} Gimmicks in world {worldId}");
                 var count = 0;
                 foreach (var spawner in worldSpawners.Values)
                 {
@@ -613,19 +613,19 @@ public class SpawnManager : Singleton<SpawnManager>
                     count++;
                     if (count % 5 == 0 && worldId == 0)
                     {
-                        Logger.Info($"in world {worldId} gimmicks spawned: {count}...");
+                        Logger.Info($"in world {worldId} Gimmicks spawned: {count}...");
                     }
                 }
-                Logger.Info($"in world {worldId} gimmicks spawned: {count}");
+                Logger.Info($"in world {worldId} Gimmicks spawned: {count}");
             });
         }
 
-        Logger.Info("Spawning slaves...");
+        Logger.Info("Spawning Slaves...");
         foreach (var (worldId, worldSpawners) in _slaveSpawners)
         {
             Task.Run(() =>
             {
-                Logger.Info($"Spawning {worldSpawners.Count} slaves in world {worldId}");
+                Logger.Info($"Spawning {worldSpawners.Count} Slaves in world {worldId}");
                 var count = 0;
                 foreach (var spawner in worldSpawners.Values)
                 {
@@ -633,7 +633,7 @@ public class SpawnManager : Singleton<SpawnManager>
                     count++;
                     if (count % 5 == 0 && worldId == 0)
                     {
-                        Logger.Info($"in world {worldId} slaves spawned: {count}...");
+                        Logger.Info($"in world {worldId} Slaves spawned: {count}...");
                     }
                 }
                 Logger.Info($"in world {worldId} slaves spawned: {count}");
@@ -664,6 +664,8 @@ public class SpawnManager : Singleton<SpawnManager>
         var npcList = new List<Npc>();
         if (_npcSpawners.TryGetValue((byte)worldTemplateId, out var npcSpawners))
         {
+            //Task.Run(() =>
+            //{
             foreach (var spawners in npcSpawners.Values)
             {
                 foreach (var spawner in spawners)
@@ -674,33 +676,43 @@ public class SpawnManager : Singleton<SpawnManager>
                     spawner.Position.WorldId = worldTemplateId;
                 }
             }
+            //});
         }
         if (_doodadSpawners.TryGetValue((byte)worldTemplateId, out var doodadSpawners))
         {
+            //Task.Run(() =>
+            //{
             foreach (var spawner in doodadSpawners.Values)
             {
                 spawner.Position.WorldId = worldId;
                 spawner.Spawn(0);
                 spawner.Position.WorldId = worldTemplateId;
             }
+            //});
         }
         if (_slaveSpawners.TryGetValue((byte)worldTemplateId, out var slaveSpawners))
         {
+            //Task.Run(() =>
+            //{
             foreach (var spawner in slaveSpawners.Values)
             {
                 spawner.Position.WorldId = worldId;
                 spawner.Spawn(0);
                 spawner.Position.WorldId = worldTemplateId;
             }
+            //});
         }
         if (_gimmickSpawners.TryGetValue((byte)worldTemplateId, out var gimmickSpawners))
         {
+            //Task.Run(() =>
+            //{
             foreach (var spawner in gimmickSpawners.Values)
             {
                 spawner.Position.WorldId = worldId;
                 spawner.Spawn(0);
                 spawner.Position.WorldId = worldTemplateId;
             }
+            //});
         }
         return npcList;
     }

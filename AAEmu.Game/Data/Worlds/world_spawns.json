@@ -1,6 +1,5 @@
 ﻿[
     {
-        "Id": 2,
         "Name": "arche_mall_world",
         "SpawnPosition": {
             "ZoneId": 260,
@@ -11,7 +10,7 @@
         }
     },
     {
-        "Id": 2,
+
         "Name": "arche_mall",
         "SpawnPosition": {
             "ZoneId": 260,
@@ -22,7 +21,7 @@
         }
     },
     {
-        "Id": 3,
+
         "Name": "instance_burntcastle_armory",
         "SpawnPosition": {
             "ZoneId": 236,
@@ -33,7 +32,7 @@
         }
     },
     {
-        "Id": 4,
+
         "Name": "instance_cradle_of_destruction",
         "SpawnPosition": {
             "ZoneId": 264,
@@ -44,7 +43,7 @@
         }
     },
     {
-        "Id": 5,
+
         "Name": "instance_cuttingwind_deadmine",
         "SpawnPosition": {
             "ZoneId": 262,
@@ -55,7 +54,7 @@
         }
     },
     {
-        "Id": 6,
+
         "Name": "instance_hadir_farm",
         "SpawnPosition": {
             "ZoneId": 241,
@@ -65,7 +64,7 @@
         }
     },
     {
-        "Id": 7,
+
         "Name": "instance_howling_abyss",
         "SpawnPosition": {
             "ZoneId": 265,
@@ -76,7 +75,7 @@
         }
     },
     {
-        "Id": 8,
+
         "Name": "instance_howling_abyss_2",
         "SpawnPosition": {
             "ZoneId": 280,
@@ -87,7 +86,7 @@
         }
     },
     {
-        "Id": 9,
+
         "Name": "instance_immortal_isle",
         "SpawnPosition": {
             "ZoneId": 285,
@@ -97,7 +96,7 @@
         }
     },
     {
-        "Id": 10,
+
         "Name": "instance_immortal_isle_easy",
         "SpawnPosition": {
             "ZoneId": 290,
@@ -107,7 +106,7 @@
         }
     },
     {
-        "Id": 11,
+
         "Name": "instance_library",
         "SpawnPosition": {
             "ZoneId": 296,
@@ -135,12 +134,13 @@
         }
     },
     {
-        "Name": "instance_library_3",
+        "Name": "instance_library_3", // Screaming Archives Entrance 
         "SpawnPosition": {
             "ZoneId": 298,
             "X": 516.8,
             "Y": 4611.5,
-            "Z": 255.7
+            "Z": 255.7,
+            "Yaw": 0.0
         }
     },
     {
@@ -149,7 +149,8 @@
             "ZoneId": 303,
             "X": 2498.29,
             "Y": 181.488,
-            "Z": 131.087
+            "Z": 131.087,
+            "Yaw": 0.0
         }
     },
     {
@@ -158,7 +159,8 @@
             "ZoneId": 304,
             "X": 2867.995,
             "Y": 1645.93,
-            "Z": 136.859
+            "Z": 136.859,
+            "Yaw": 0.0
         }
     },
     {
@@ -167,20 +169,21 @@
             "ZoneId": 305,
             "X": 2624.0,
             "Y": 2416.0,
-            "Z": 129.0
+            "Z": 129.0,
+            "Yaw": 0.0
         }
     },
     {
-        "Name": "instance_library_tower_defense",
+        "Name": "instance_library_tower_defense", // Corner Reading Room lobby
         "SpawnPosition": {
             "ZoneId": 306,
-            "X": 3671.562,
-            "Y": 631.305,
-            "Z": 210.962 // TODO уточнить координаты
+            "X": 3701.7,
+            "Y": 631.2,
+            "Z": 210.9,
+            "Yaw": 90.0 // TODO уточнить координаты
         }
     },
     {
-        "Id": 12,
         "Name": "instance_nachashgar",
         "SpawnPosition": {
             "ZoneId": 278,
@@ -191,7 +194,6 @@
         }
     },
     {
-        "Id": 13,
         "Name": "instance_nachashgar_easy",
         "SpawnPosition": {
             "ZoneId": 292,
@@ -202,7 +204,6 @@
         }
     },
     {
-        "Id": 14,
         "Name": "instance_prologue",
         "SpawnPosition": {
             "ZoneId": 300,
@@ -213,7 +214,6 @@
         }
     },
     {
-        "Id": 15,
         "Name": "instance_sal_temple",
         "SpawnPosition": {
             "ZoneId": 240,
@@ -224,7 +224,6 @@
         }
     },
     {
-        "Id": 16,
         "Name": "instance_training_camp",
         "SpawnPosition": {
             "ZoneId": 198,
@@ -235,7 +234,6 @@
         }
     },
     {
-        "Id": 17,
         "Name": "instance_training_camp_1on1",
         "SpawnPosition": {
             "ZoneId": 302,

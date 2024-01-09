@@ -60,6 +60,9 @@ public class CSMoveUnitPacket : GamePacket
 
         if (character == null) return;
 
+        //// если движение запрещено при телепортах в инстансы, то на выход
+        //if(character.DisabledSetPosition) return;
+
         var targetUnit = WorldManager.Instance.GetBaseUnit(_objId);
 
         // Invalid Object ?
