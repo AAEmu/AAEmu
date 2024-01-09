@@ -86,7 +86,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
             }
 
             npc.Spawner = new NpcSpawner();
-            npc.Spawner.Position = npcSpawner.Position;
+            npc.Spawner.Position = npcSpawner.Position.Clone();
             npc.Spawner.Id = npcSpawner.Id;
             npc.Spawner.UnitId = MemberId;
             npc.Spawner.NpcSpawnerIds.Add(NpcSpawnerTemplateId);
@@ -109,15 +109,13 @@ public class NpcSpawnerNpc : Spawner<Npc>
             }
 
             var world = WorldManager.Instance.GetWorld(npc.Transform.WorldId);
-            if (npc.Transform.WorldId > 99)
+            if (npc.Transform.WorldId is > 0)
             {
                 // Temporary range for instanced worlds
                 var dungeon = IndunManager.Instance.GetDungeonByWorldId(npc.Transform.WorldId);
                 if (dungeon is not null)
                 {
                     dungeon.RegisterNpcEvents(npc);
-                    //dungeon.RegisterIndunEvents();
-
                     world.Events.OnUnitSpawn(world, new OnUnitSpawnArgs { Npc = npc });
                 }
             }

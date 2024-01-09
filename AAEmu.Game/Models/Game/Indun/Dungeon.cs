@@ -14,7 +14,6 @@ using AAEmu.Game.Models.Game.Indun.Events;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
-using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
@@ -49,7 +48,7 @@ namespace AAEmu.Game.Models.Game.Indun
         public Character GetCharacterOwner { get => _characterOwner; }
         public Team.Team GetTeamOwner { get => _teamOwner; }
         public uint GetZoneGroupId { get => _indunZone.ZoneGroupId; }
-
+        public bool IsSystem { get => !_isTeamOwned && _characterOwner == null; }
 
         public Dungeon(IndunZone indunZone, Character character, Team.Team team = null)
         {
@@ -90,21 +89,71 @@ namespace AAEmu.Game.Models.Game.Indun
                         return;
                     }
             }
+
             var world = WorldManager.Instance.GetWorldByZone(zoneKeys[0]);
-            _world = WorldManager.Instance.CreateWorld(world);
+            //if (_indunZone.ZoneGroupId is 49 or 70 or 71 or 72)
+            Logger.Info($"[Dungeon] Create dungeon...");
+            Logger.Info($"[Dungeon] делаем копию инстанса...");
+            _world = WorldManager.Instance.CreateWorld(world); // делаем копию инстанса
+            Logger.Info($"[Dungeon] сделали копию инстанса...");
+
+            _zoneInstanceId = new ZoneInstanceId(zoneKeys[0], _world.Id);
+            // выводится окошко о том, что создается данжон
+            character.SendPacket(new SCProcessingInstancePacket((int)_zoneInstanceId.ZoneId));
+
+            // let's spawn Npc, Doodad, Slave, Gimmick
+            Logger.Info($"[Dungeon] spawning Npc, Doodad, Slave, Gimmick...");
             _spawnedNpcs = SpawnManager.Instance.SpawnAll(_world.Id, _world.TemplateId);
-            foreach (var ev in IndunGameData.Instance.GetIndunEvents(_indunZone.ZoneGroupId))
-            {
-                ev?.Subscribe(_world);
-            }
+            Logger.Info($"[Dungeon] spawned Npc, Doodad, Slave, Gimmick...");
+
+            RegisterIndunEvents();
 
             foreach (var npc in _spawnedNpcs)
             {
                 if (npc == null) { continue; }
                 RegisterNpcEvents(npc);
             }
+        }
 
+        // для системных данжей, таких как мираж и библиотека
+        public Dungeon(IndunZone indunZone, Character character)
+        {
+            _indunZone = indunZone;
+            _players = new List<uint>();
+            _leaveRequests = new ConcurrentDictionary<uint, DateTime>();
+            _rooms = new Dictionary<uint, bool>();
+            _characterOwner = character;
+
+            _isTeamOwned = false;
+            _characterOwner = null;
+
+            var zoneKeys = ZoneManager.Instance.GetZoneKeysInZoneGroupById(_indunZone.ZoneGroupId);
+            switch (zoneKeys.Count)
+            {
+                case > 1:
+                    {
+                        Logger.Info("There are more than one zone keys for this dungeon?!");
+                        break;
+                    }
+                case 0:
+                    {
+                        Logger.Error("No Zone Keys found for this zone group id.");
+                        return;
+                    }
+            }
+            var world = WorldManager.Instance.GetWorldByZone(zoneKeys[0]);
+
+            Logger.Info($"[Dungeon] Create system dungeon...");
+            // для zone_key: 260=arche_mall, 296=instance_library_1, 297=instance_library_2, 298=instance_library_3
+            // или
+            // для group_id: 49=arche_mall, 70=instance_library_1, 71=instance_library_2, 72=instance_library_3
+            Logger.Info($"[Dungeon] не делаем копию инстанса...");
+            _world = world; // не делаем копию инстанса
             _zoneInstanceId = new ZoneInstanceId(zoneKeys[0], _world.Id);
+            // выводится окошко о том, что создается данжон
+            character.SendPacket(new SCProcessingInstancePacket((int)_zoneInstanceId.ZoneId));
+
+            RegisterIndunEvents();
         }
 
         /// <summary>
@@ -125,9 +174,6 @@ namespace AAEmu.Game.Models.Game.Indun
         {
             Logger.Info($"[Dungeon] Adding player {character.Name} to dungeon {_zoneInstanceId.InstanceId}, {_zoneInstanceId.ZoneId}");
 
-            // выводится окошко о том, что создается данжон
-            character.SendPacket(new SCProcessingInstancePacket((int)_zoneInstanceId.ZoneId));
-
             lock (_lock)
             {
                 if (!_players.Contains(character.Id))
@@ -139,8 +185,17 @@ namespace AAEmu.Game.Models.Game.Indun
                     Logger.Info($"[Dungeon] Player {character.Name} already exists in dungeon {_zoneInstanceId.InstanceId}, {_zoneInstanceId.ZoneId}. Most likely an error in logic?");
                 }
             }
-            MoveCharacterToWorld(character);
+
+            if (IsSystem)
+            {
+                MoveCharacterToSysWorld(character);
+            }
+            else
+            {
+                MoveCharacterToWorld(character);
+            }
         }
+
 
         /// <summary>
         /// Remove player from Dungeon
@@ -162,15 +217,12 @@ namespace AAEmu.Game.Models.Game.Indun
         {
             await Task.Delay(5000);
 
-            Logger.Info($"[Dungeon] instanceId: {_zoneInstanceId.InstanceId}, zoneId: {_zoneInstanceId.ZoneId}. Destroying team dungeon...");
+            Logger.Info($"[Dungeon] instanceId={_zoneInstanceId.InstanceId}, zoneId={_zoneInstanceId.ZoneId}: Destroying team dungeon...");
 
             IndunManager.Instance.RemoveDungeon(_teamOwner);
             if (_world == null) { return; }
 
-            foreach (var ev in IndunGameData.Instance.GetIndunEvents(_indunZone.ZoneGroupId))
-            {
-                ev?.UnSubscribe(_world);
-            }
+            UnregisterIndunEvents();
 
             var npcList = new List<Npc>();
             foreach (var region in _world.Regions)
@@ -198,6 +250,8 @@ namespace AAEmu.Game.Models.Game.Indun
         {
             if (character == null) { return false; }
 
+            Logger.Info($"[Dungeon] instanceId={_zoneInstanceId.InstanceId}, zoneId={_zoneInstanceId.ZoneId}: Destroying solo dungeon...");
+
             TickManager.Instance.OnTick.UnSubscribe(AreaClearTick);
 
             RemovePlayer(character);
@@ -205,20 +259,19 @@ namespace AAEmu.Game.Models.Game.Indun
             if (!soloDungeon.IsOwner(character) || soloDungeon.HasPlayers) { return false; }
             if (_world == null) { return true; }
 
-            foreach (var ev in IndunGameData.Instance.GetIndunEvents(_indunZone.ZoneGroupId))
-            {
-                ev.UnSubscribe(_world);
-            }
+            UnregisterIndunEvents();
 
             var npcList = new List<Npc>();
 
             foreach (var region in _world.Regions)
             {
-                region.GetList(npcList, 0);
+                region?.GetList(npcList, 0);
             }
 
             foreach (var npc in npcList)
             {
+                if (npc == null) { continue; }
+
                 UnregisterNpcEvents(npc);
                 npc.Delete();
                 ObjectIdManager.Instance.ReleaseId(npc.ObjId);
@@ -235,25 +288,72 @@ namespace AAEmu.Game.Models.Game.Indun
         /// Moves character to instanced dungeon world
         /// </summary>
         /// <param name="character"></param>
-        private void MoveCharacterToWorld(Character character)
+        private void MoveCharacterToSysWorld(Character character)
         {
-            //if (_world.SpawnPosition != null)
-            //{
-            //    // we take the coordinates of the zone
-            //    foreach (var wz in _world.XmlWorldZones.Values)
-            //    {
-            //        if (wz.Id == _zoneInstanceId.ZoneId)
-            //        {
-            //            _world.SpawnPosition = wz.SpawnPosition;
-            //        }
-            //    }
-            //}
-
+            // we take the coordinates of the zone
+            foreach (var wz in _world.XmlWorldZones.Values)
+            {
+                if (wz.Id == _zoneInstanceId.ZoneId)
+                {
+                    _world.SpawnPosition = wz.SpawnPosition;
+                    break;
+                }
+            }
             if (_world.SpawnPosition != null)
             {
                 character.DisabledSetPosition = true;
-                character.MainWorldPosition = character.Transform.CloneDetached(character); // сохраним координаты для возврата в основной мир
-                character.SendPacket(new SCLoadInstancePacket(_world.Id, _zoneInstanceId.ZoneId, _world.SpawnPosition.X, _world.SpawnPosition.Y, _world.SpawnPosition.Z, 0, 0, _world.SpawnPosition.Yaw.DegToRad()));
+                //character.MainWorldPosition = character.Transform.CloneDetached(character); // сохраним координаты для возврата в основной мир
+                character.SendPacket(
+                    new SCLoadInstancePacket(
+                        _world.Id,
+                        _zoneInstanceId.ZoneId,
+                        _world.SpawnPosition.X,
+                        _world.SpawnPosition.Y,
+                        _world.SpawnPosition.Z,
+                    _world.SpawnPosition.Roll.DegToRad(),
+                    _world.SpawnPosition.Pitch.DegToRad(),
+                    _world.SpawnPosition.Yaw.DegToRad()));
+                character.Transform.ApplyWorldSpawnPosition(_world.SpawnPosition, _world.Id);
+                character.InstanceId = _world.Id;
+
+                character.Events.OnDungeonLeave += OnDungeonLeave;
+                character.Events.OnDisconnect += OnDisconnect;
+            }
+            else
+            {
+                Logger.Info($"World #{_world.Id}, not have default spawn position.");
+                character.SendErrorMessage(ErrorMessageType.NoServerInstanceResource);
+            }
+        }
+        /// <summary>
+        /// Moves character to instanced dungeon world
+        /// </summary>
+        /// <param name="character"></param>
+        private void MoveCharacterToWorld(Character character)
+        {
+            // we take the coordinates of the zone
+            foreach (var wz in _world.XmlWorldZones.Values)
+            {
+                if (wz.Id == _zoneInstanceId.ZoneId)
+                {
+                    _world.SpawnPosition = wz.SpawnPosition;
+                    break;
+                }
+            }
+            if (_world.SpawnPosition != null)
+            {
+                character.DisabledSetPosition = true;
+                //character.MainWorldPosition = character.Transform.CloneDetached(character); // сохраним координаты для возврата в основной мир
+                character.SendPacket(
+                    new SCLoadInstancePacket(
+                        _world.Id,
+                        _zoneInstanceId.ZoneId,
+                        _world.SpawnPosition.X,
+                        _world.SpawnPosition.Y,
+                        _world.SpawnPosition.Z,
+                    _world.SpawnPosition.Roll.DegToRad(),
+                    _world.SpawnPosition.Pitch.DegToRad(),
+                    _world.SpawnPosition.Yaw.DegToRad()));
                 character.Transform.ApplyWorldSpawnPosition(_world.SpawnPosition, _world.Id);
                 character.InstanceId = _world.Id;
 
@@ -262,18 +362,6 @@ namespace AAEmu.Game.Models.Game.Indun
                 character.Events.OnTeamLeave += OnTeamLeave;
                 character.Events.OnDungeonLeave += OnDungeonLeave;
                 character.Events.OnDisconnect += OnDisconnect;
-
-                Task.Run(() =>
-                {
-                    Task.Delay(5000);
-                    if (character.Transform.World.Position == character.MainWorldPosition.World.Position)
-                    {
-                        // проверим, если координаты остались как в основном мире, то пробуем телепортнуть персонажа
-                        // check if the coordinates are the same as in the main world, then try to teleport the character
-                        character.DisabledSetPosition = true;
-                        character.SendPacket(new SCTeleportUnitPacket(TeleportReason.IndunDirectTel, 0, _world.SpawnPosition.X, _world.SpawnPosition.Y, _world.SpawnPosition.Z, _world.SpawnPosition.Yaw.DegToRad()));
-                    }
-                });
             }
             else
             {
@@ -294,12 +382,15 @@ namespace AAEmu.Game.Models.Game.Indun
             character.Events.OnDungeonLeave -= OnDungeonLeave;
             character.Events.OnDisconnect -= OnDisconnect;
 
-            _leaveRequests.TryRemove(character.Id, out var _);
+            _leaveRequests.TryRemove(character.Id, out _);
             RemovePlayer(character);
 
-            if (character.MainWorldPosition == null) { return; }
+            if (character.MainWorldPosition == null)
+            {
+                Logger.Info($"World #.{_world.Id}, not have Main World spawn position.");
+                return;
+            }
 
-            var tmpTransform = character.Transform.Clone(); // временно сохраним координаты положения персонажа в данже // temporarily save the position of the character in the dungeon
             character.DisabledSetPosition = true;
             character.SendPacket(
                 new SCLoadInstancePacket(
@@ -308,30 +399,43 @@ namespace AAEmu.Game.Models.Game.Indun
                     character.MainWorldPosition.World.Position.X,
                     character.MainWorldPosition.World.Position.Y,
                     character.MainWorldPosition.World.Position.Z,
-                    0,
-                    0,
+                    character.MainWorldPosition.World.Rotation.X.DegToRad(),
+                    character.MainWorldPosition.World.Rotation.Y.DegToRad(),
                     character.MainWorldPosition.World.Rotation.Z.DegToRad()
                 )
             );
             character.InstanceId = character.MainWorldPosition.WorldId;
             character.Transform = character.MainWorldPosition.Clone();
-            character.MainWorldPosition.Dispose();
-            character.MainWorldPosition = null; // уничтожаем, так как мы переместились в основной мир // destroy since we moved to the main world
+        }
+        internal void LeaveSysInstance(Character character)
+        {
+            character.Events.OnDungeonLeave -= OnDungeonLeave;
+            character.Events.OnDisconnect -= OnDisconnect;
 
-            Task.Run(() =>
+            _leaveRequests.TryRemove(character.Id, out _);
+            RemovePlayer(character);
+
+            if (character.MainWorldPosition == null)
             {
-                Task.Delay(5000);
-                if (character.Transform.World.Position == tmpTransform.World.Position)
-                {
-                    // проверим, если координаты остались как в данже, то пробуем телепортнуть персонажа
-                    // check if the coordinates are the same as in the dungeon, then try to teleport the character
-                    character.DisabledSetPosition = true;
-                    character.SendPacket(new SCTeleportUnitPacket(TeleportReason.IndunDirectTel, 0, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z, character.Transform.World.Rotation.Z.DegToRad()));
-                }
+                Logger.Info($"World #.{_world.Id}, not have Main World spawn position.");
+                return;
+            }
 
-                tmpTransform.Dispose();
-                tmpTransform = null;
-            });
+            character.DisabledSetPosition = true;
+            character.SendPacket(
+                new SCLoadInstancePacket(
+                    character.MainWorldPosition.WorldId,
+                    character.MainWorldPosition.ZoneId,
+                    character.MainWorldPosition.World.Position.X,
+                    character.MainWorldPosition.World.Position.Y,
+                    character.MainWorldPosition.World.Position.Z,
+                    character.MainWorldPosition.World.Rotation.X.DegToRad(),
+                    character.MainWorldPosition.World.Rotation.Y.DegToRad(),
+                    character.MainWorldPosition.World.Rotation.Z.DegToRad()
+                )
+            );
+            character.InstanceId = character.MainWorldPosition.WorldId;
+            character.Transform = character.MainWorldPosition.Clone();
         }
 
         private void OnTeamJoin(object sender, OnTeamJoinArgs args)
@@ -364,7 +468,7 @@ namespace AAEmu.Game.Models.Game.Indun
         private void OnTeamLeave(object sender, OnTeamLeaveArgs args)
         {
             var teamId = args.Id;
-            var team = args.Team;
+            //var team = args.Team;
             var character = args.Player;
 
             if (character == null) { return; }
@@ -382,7 +486,7 @@ namespace AAEmu.Game.Models.Game.Indun
             var character = args.Player;
             if (character == null) { return; }
 
-            Logger.Info($"Player {character.Name} has exit from dungeon {_world.Id}!");
+            Logger.Info($"Player={character.Name} has exit from dungeon={_world.Id}!");
 
             if (character.InParty)
             {
@@ -398,7 +502,15 @@ namespace AAEmu.Game.Models.Game.Indun
 
         private void OnDisconnect(object sender, OnDisconnectArgs args)
         {
-            Logger.Info($"[Dungeon] instanceId: {_zoneInstanceId.InstanceId}, zoneId: {_zoneInstanceId.ZoneId} name: {args.Player.Name} disconnected!");
+            Logger.Info($"[Dungeon] instanceId={_zoneInstanceId.InstanceId}, zoneId={_zoneInstanceId.ZoneId} player={args.Player.Name} disconnected!");
+
+            if (IsSystem)
+            {
+                RemovePlayer(args.Player);
+                args.Player.Events.OnDungeonLeave -= OnDungeonLeave;
+                args.Player.Events.OnDisconnect -= OnDisconnect;
+                return;
+            }
 
             if (!args.Player.InParty)
             {
@@ -493,10 +605,10 @@ namespace AAEmu.Game.Models.Game.Indun
             var skills = NpcGameData.Instance.GetNpSkill(npc.TemplateId, SkillUseConditionKind.OnDeath);
             if (skills == null) { return; }
 
-            Logger.Info($"Npc objId: {npc.ObjId}, templateId: {npc.TemplateId} has died.");
+            Logger.Info($"Npc objId={npc.ObjId}, templateId={npc.TemplateId} has died.");
 
-            UnregisterNpcEvents(npc);
-            UnregisterIndunEvents();
+            //UnregisterNpcEvents(npc);
+            //UnregisterIndunEvents();
 
             foreach (var npcSkill in skills)
             {
@@ -610,7 +722,7 @@ namespace AAEmu.Game.Models.Game.Indun
 
         public bool IsOwner(Character character)
         {
-            return _isTeamOwned == false && _characterOwner.Id == character.Id;
+            return _isTeamOwned == false && _characterOwner?.Id == character?.Id;
         }
 
         public bool IsPlayerInDungeon(uint characterId)
@@ -624,11 +736,18 @@ namespace AAEmu.Game.Models.Game.Indun
         /// <param name="delta"></param>
         private void LeaveDungeonTick(TimeSpan delta)
         {
-            if (_teamOwner != null && _teamOwner.MembersOnlineCount() == 0 && _leaveRequests.IsEmpty)
+            if (_teamOwner != null)
             {
-                TickManager.Instance.OnTick.UnSubscribe(LeaveDungeonTick);
-                TickManager.Instance.OnTick.UnSubscribe(AreaClearTick);
-                _ = DestroyTeamDungeon();
+                if (_teamOwner.MembersOnlineCount() == 0 && _leaveRequests.IsEmpty)
+                {
+                    TickManager.Instance.OnTick.UnSubscribe(LeaveDungeonTick);
+                    TickManager.Instance.OnTick.UnSubscribe(AreaClearTick);
+                    _ = DestroyTeamDungeon();
+                }
+                else if (_leaveRequests.IsEmpty)
+                {
+                    return;
+                }
             }
             else if (_leaveRequests.IsEmpty)
             {
@@ -639,11 +758,11 @@ namespace AAEmu.Game.Models.Game.Indun
             {
                 if (DateTime.UtcNow <= leaveRequest.Value) { continue; }
 
-                Logger.Info($"[Dungeon] instanceId: {_zoneInstanceId.InstanceId}, zoneId: {_zoneInstanceId.ZoneId}. Removing qualifying players from instance.");
+                Logger.Info($"[Dungeon] instanceId={_zoneInstanceId.InstanceId}, zoneId={_zoneInstanceId.ZoneId}: Removing qualifying players from instance.");
                 var character = WorldManager.Instance.GetCharacterById(leaveRequest.Key);
                 if (character == null)
                 {
-                    Logger.Info($"[Dungeon] instanceId: {_zoneInstanceId.InstanceId}, zoneId: {_zoneInstanceId.ZoneId}. Player Id not found. Remove from processing..");
+                    Logger.Info($"[Dungeon] instanceId={_zoneInstanceId.InstanceId}, zoneId={_zoneInstanceId.ZoneId}: Player Id not found. Remove from processing..");
                     _leaveRequests.TryRemove(leaveRequest);
                     return;
                 }
@@ -651,7 +770,7 @@ namespace AAEmu.Game.Models.Game.Indun
                 {
                     if (PlayerInSameTeam(character))
                     {
-                        Logger.Info($"[Dungeon] instanceId: {_zoneInstanceId.InstanceId}, zoneId: {_zoneInstanceId.ZoneId} player name: {character.Name} rejoined party, aborting.");
+                        Logger.Info($"[Dungeon] instanceId={_zoneInstanceId.InstanceId}, zoneId={_zoneInstanceId.ZoneId}: player={character.Name} rejoined party, aborting.");
                         _leaveRequests.TryRemove(leaveRequest);
                         return;
                     }
@@ -687,7 +806,7 @@ namespace AAEmu.Game.Models.Game.Indun
 
             if (np is null) { return; }
 
-            Logger.Info($"Registering Events for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}");
+            //Logger.Info($"Registering Events for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}");
 
             foreach (var skill in np)
             {
@@ -695,50 +814,49 @@ namespace AAEmu.Game.Models.Game.Indun
                 {
                     case SkillUseConditionKind.InCombat:
                         {
-                            Logger.Info($"Found OnCombat event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
+                            Logger.Info($"Registering OnCombat event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
                             npc.Events.OnCombatStarted += OnCombatStarted;
                             break;
                         }
                     case SkillUseConditionKind.InIdle:
                         {
-                            Logger.Info($"Found InIdle event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
+                            Logger.Info($"Registering InIdle event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
                             npc.Events.InIdle += InIdle;
                             break;
                         }
                     case SkillUseConditionKind.OnDeath:
                         {
-                            Logger.Info($"Found OnDeath event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
+                            Logger.Info($"Registering OnDeath event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
                             npc.Events.OnDeath += OnDeath;
                             break;
                         }
                     case SkillUseConditionKind.InAlert:
                         {
-                            Logger.Info($"Found InAlert event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
+                            Logger.Info($"Registering InAlert event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
                             npc.Events.InAlert += InAlert;
                             break;
                         }
                     case SkillUseConditionKind.InDead:
                         {
-                            Logger.Info($"Found InDead event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
+                            Logger.Info($"Registering InDead event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
                             npc.Events.InDead += InDead;
                             break;
                         }
                     case SkillUseConditionKind.OnSpawn:
                         {
-                            Logger.Info($"Found OnSpawn event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
+                            Logger.Info($"Registering OnSpawn event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
                             npc.Events.OnSpawn += OnSpawn;
                             break;
                         }
                     case SkillUseConditionKind.OnDespawn:
                         {
-                            Logger.Info($"Found OnDespawn event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
+                            Logger.Info($"Registering OnDespawn event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
                             npc.Events.OnDespawn += OnDespawn;
                             break;
                         }
                     default:
                         {
                             Logger.Info("No SkillUseCondition found for skill " + skill.SkillId + " for npc " + npc.TemplateId);
-                            Logger.Info($"Found InDead event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}");
                             break;
                         }
                 }
@@ -750,7 +868,7 @@ namespace AAEmu.Game.Models.Game.Indun
             var np = NpcGameData.Instance.GetNpSkill(npc.TemplateId);
             if (np is null) { return; }
 
-            Logger.Info("Unregistering Npc Events for " + npc.TemplateId);
+            //Logger.Info($"Unregistering Npc Events for  objId: {npc.ObjId}, templateId: {npc.TemplateId}");
 
             foreach (var skill in np)
             {
@@ -758,49 +876,49 @@ namespace AAEmu.Game.Models.Game.Indun
                 {
                     case SkillUseConditionKind.InCombat:
                         {
-                            Logger.Info($"Found OnCombat event for npc {npc.TemplateId}, skill {skill.SkillId}");
+                            Logger.Info($"Unregistering OnCombat event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
                             npc.Events.OnCombatStarted -= OnCombatStarted;
                             break;
                         }
                     case SkillUseConditionKind.InIdle:
                         {
-                            Logger.Info($"Found InIdle event for npc {npc.TemplateId}, skill {skill.SkillId}");
+                            Logger.Info($"Unregistering InIdle event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
                             npc.Events.InIdle -= InIdle;
                             break;
                         }
                     case SkillUseConditionKind.OnDeath:
                         {
-                            Logger.Info($"Found OnDeath event for npc {npc.TemplateId}, skill {skill.SkillId}");
+                            Logger.Info($"Unregistering OnDeath event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
                             npc.Events.OnDeath -= OnDeath;
                             break;
                         }
                     case SkillUseConditionKind.InAlert:
                         {
-                            Logger.Info($"Found InAlert event for npc {npc.TemplateId}, skill {skill.SkillId}");
+                            Logger.Info($"Unregistering InAlert event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
                             npc.Events.InAlert += InAlert;
                             break;
                         }
                     case SkillUseConditionKind.InDead:
                         {
-                            Logger.Info($"Found InDead event for npc {npc.TemplateId}, skill {skill.SkillId}");
+                            Logger.Info($"Unregistering InDead event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
                             npc.Events.InDead += InDead;
                             break;
                         }
                     case SkillUseConditionKind.OnSpawn:
                         {
-                            Logger.Info($"Found OnSpawn event for npc {npc.TemplateId}, skill {skill.SkillId}");
+                            Logger.Info($"Unregistering OnSpawn event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
                             npc.Events.OnSpawn += OnSpawn;
                             break;
                         }
                     case SkillUseConditionKind.OnDespawn:
                         {
-                            Logger.Info($"Found OnDespawn event for npc {npc.TemplateId}, skill {skill.SkillId}");
+                            Logger.Info($"Unregistering OnDespawn event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
                             npc.Events.OnDespawn += OnDespawn;
                             break;
                         }
                     default:
                         {
-                            Logger.Info($"No SkillUseCondition found for skill {skill.SkillId}, for npc {npc.TemplateId}");
+                            Logger.Info("No SkillUseCondition found for skill " + skill.SkillId + " for npc " + npc.TemplateId);
                             break;
                         }
                 }
@@ -838,24 +956,21 @@ namespace AAEmu.Game.Models.Game.Indun
                     if (IsRoomCleared(room.RoomId)) { return; }
 
                     var indunRoom = IndunGameData.Instance.GetRoom(room.RoomId);
-                    if (_world != null)
+                    var doodad = room.GetRoomDoodad(_world.Id);
+
+                    if (doodad == null) { continue; }
+
+                    var radiusCount = WorldManager.GetAround<Character>(doodad, indunRoom.Radius)
+                        .Where(o => o.GetDistanceTo(doodad) <= indunRoom.Radius).ToList().Count;
+
+                    Logger.Info($"Character:{radiusCount} in room:{room.RoomId}");
+
+                    if (radiusCount == 0 && room.GetRoomPlayerCount(_world.Id) != 0)
                     {
-                        var doodad = room.GetRoomDoodad(_world.Id);
-
-                        if (doodad == null) { continue; }
-
-                        var radiusCount = WorldManager.GetAround<Character>(doodad, indunRoom.Radius)
-                            .Where(o => o.GetDistanceTo(doodad) <= indunRoom.Radius).ToList().Count;
-
-                        Logger.Info($"Character:{radiusCount} in room:{room.RoomId}");
-
-                        if (radiusCount == 0 && room.GetRoomPlayerCount(_world.Id) != 0)
-                        {
-                            IndunManager.DoIndunActions(ev.StartActionId, _world); // запускаем задачу при первом входе в данжон
-                        }
-
-                        room.SetRoomPlayerCount(_world.Id, (uint)radiusCount);
+                        IndunManager.DoIndunActions(ev.StartActionId, _world);
                     }
+
+                    room.SetRoomPlayerCount(_world.Id, (uint)radiusCount);
                 }
             }
         }

@@ -143,13 +143,6 @@ public class DoodadSpawner : Spawner<Doodad>
     {
         doodad.Delete();
 
-        if (doodad.Transform.WorldId > 99)
-        {
-            // Temporary range for instanced worlds
-            var dungeon = IndunManager.Instance.GetDungeonByWorldId(doodad.Transform.WorldId);
-            dungeon?.UnregisterIndunEvents();
-        }
-
         if (doodad.Respawn == DateTime.MinValue)
         {
             ObjectIdManager.Instance.ReleaseId(doodad.ObjId);

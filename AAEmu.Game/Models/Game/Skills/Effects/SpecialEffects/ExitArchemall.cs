@@ -1,9 +1,8 @@
 ﻿using System;
 
-using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
@@ -28,23 +27,7 @@ public class ExitArchemall : SpecialEffectAction
 
         if (caster is Character character)
         {
-            character.DisabledSetPosition = true;
-
-            character.SendPacket(
-                new SCLoadInstancePacket(
-                    character.MainWorldPosition.InstanceId,
-                    character.MainWorldPosition.ZoneId,
-                    character.MainWorldPosition.World.Position.X,
-                    character.MainWorldPosition.World.Position.Y,
-                    character.MainWorldPosition.World.Position.Z,
-                    character.MainWorldPosition.World.Rotation.X.DegToRad(),
-                    character.MainWorldPosition.World.Rotation.Y.DegToRad(),
-                    character.MainWorldPosition.World.Rotation.Z.DegToRad()
-                )
-            );
-
-            character.Transform = character.MainWorldPosition.Clone();
-            character.MainWorldPosition = null;
+            IndunManager.Instance.RequestSysLeave(character);
         }
     }
 }

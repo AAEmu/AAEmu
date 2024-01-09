@@ -230,7 +230,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         foreach (var worldXmlPath in worldXmlPaths)
         {
-            var worldName = Path.GetFileName(Path.GetDirectoryName(worldXmlPath)); // the the base name of the current directory
+            var worldName = Path.GetFileName(Path.GetDirectoryName(worldXmlPath)); // the base name of the current directory
             if (!worldNames.Contains(worldName))
                 worldNames.Add(worldName);
         }
@@ -250,8 +250,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 var xmlWorld = new XmlWorld();
                 var world = new InstanceWorld();
                 world.Id = id;
+                world.TemplateId = id;
                 xmlWorld.ReadNode(worldNode, world);
                 world.SpawnPosition = worldSpawnLookup.FirstOrDefault(w => w.Name == world.Name)?.SpawnPosition ?? new WorldSpawnPosition();
+                world.SpawnPosition.WorldId = id;
                 // add coordinates for zones
                 foreach (var worldZones in world.XmlWorldZones.Values)
                 {
@@ -260,6 +262,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                         if (wsl.Name == worldZones.Name)
                         {
                             worldZones.SpawnPosition = wsl.SpawnPosition;
+                            worldZones.SpawnPosition.WorldId = id;
                             break;
                         }
                     }
@@ -269,7 +272,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
                 // cache zone keys to world reference
                 foreach (var zoneKey in world.ZoneKeys)
-                    _worldIdByZoneId.Add(zoneKey, world.Id);
+                    _worldIdByZoneId.Add(zoneKey, id);
 
                 world.Water = new WaterBodies();
             }
@@ -1097,7 +1100,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     private bool ValidRegion(uint worldId, int x, int y)
     {
         var world = GetWorld(worldId);
-        return world.ValidRegion(x, y);
+        return world != null && world.ValidRegion(x, y);
     }
 
     public void OnPlayerJoin(Character character)
