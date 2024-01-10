@@ -435,8 +435,15 @@ namespace AAEmu.Game.Core.Managers
                     //character.SendErrorMessage(ErrorMessageType.InstanceInMsgEnd);
                     return true;
                 }
+            }
 
-                return false;
+            foreach (var sysDungeon in _sysDungeons)
+            {
+                if (sysDungeon.Value.IsPlayerInDungeon(character.Id))
+                {
+                    character.Events.OnDungeonLeave(sysDungeon, new OnDungeonLeaveArgs { Player = character });
+                    return true;
+                }
             }
 
             if (!_soloDungeons.TryGetValue(character.Id, out var soloDungeon)) { return false; }

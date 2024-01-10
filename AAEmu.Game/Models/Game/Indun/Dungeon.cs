@@ -122,7 +122,7 @@ namespace AAEmu.Game.Models.Game.Indun
             _players = new List<uint>();
             _leaveRequests = new ConcurrentDictionary<uint, DateTime>();
             _rooms = new Dictionary<uint, bool>();
-            _characterOwner = character;
+            //_characterOwner = character;
 
             _isTeamOwned = false;
             _characterOwner = null;
@@ -488,10 +488,17 @@ namespace AAEmu.Game.Models.Game.Indun
 
             Logger.Info($"Player={character.Name} has exit from dungeon={_world.Id}!");
 
+            if (IsSystem)
+            {
+                LeaveSysInstance(character);
+                return;
+            }
+
             if (character.InParty)
             {
                 // выход из данжона (без его удаления)
                 LeaveInstance(character);
+                return;
             }
 
             if (!_players.Contains(character.Id) || character.InstanceId != _zoneInstanceId.InstanceId) { return; }
