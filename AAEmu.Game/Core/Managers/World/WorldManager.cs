@@ -230,7 +230,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         foreach (var worldXmlPath in worldXmlPaths)
         {
-            var worldName = Path.GetFileName(Path.GetDirectoryName(worldXmlPath)); // the the base name of the current directory
+            var worldName = Path.GetFileName(Path.GetDirectoryName(worldXmlPath)); // the base name of the current directory
             if (!worldNames.Contains(worldName))
                 worldNames.Add(worldName);
         }
@@ -250,8 +250,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 var xmlWorld = new XmlWorld();
                 var world = new InstanceWorld();
                 world.Id = id;
+                world.TemplateId = id;
                 xmlWorld.ReadNode(worldNode, world);
                 world.SpawnPosition = worldSpawnLookup.FirstOrDefault(w => w.Name == world.Name)?.SpawnPosition ?? new WorldSpawnPosition();
+                world.SpawnPosition.WorldId = id;
                 // add coordinates for zones
                 foreach (var worldZones in world.XmlWorldZones.Values)
                 {
@@ -260,6 +262,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                         if (wsl.Name == worldZones.Name)
                         {
                             worldZones.SpawnPosition = wsl.SpawnPosition;
+                            worldZones.SpawnPosition.WorldId = id;
                             break;
                         }
                     }
@@ -269,7 +272,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
                 // cache zone keys to world reference
                 foreach (var zoneKey in world.ZoneKeys)
-                    _worldIdByZoneId.Add(zoneKey, world.Id);
+                    _worldIdByZoneId.Add(zoneKey, id);
 
                 world.Water = new WaterBodies();
             }
@@ -615,7 +618,9 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
         var height = 0f;
-        if (AppConfiguration.Instance.World.GeoDataMode)
+        var world = GetWorldByZone(zoneId);
+
+        if (AppConfiguration.Instance.World.GeoDataMode && world.Id > 0)
         {
             var position = new WorldSpawnPosition { WorldId = 0, ZoneId = zoneId, X = x, Y = y, Z = 0, Yaw = 0, Pitch = 0, Roll = 0 };
             height = AiGeoDataManager.Instance.GetHeight(zoneId, position);
@@ -628,7 +633,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             {
                 try
                 {
-                    var world = GetWorldByZone(zoneId);
+                    //var world = GetWorldByZone(zoneId);
                     height = world?.GetHeight(x, y) ?? 0f;
                 }
                 catch
@@ -650,7 +655,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
         var height = 0f;
-        if (AppConfiguration.Instance.World.GeoDataMode)
+        if (AppConfiguration.Instance.World.GeoDataMode && transform.WorldId > 0)
         {
             height = AiGeoDataManager.Instance.GetHeight(transform.ZoneId, transform.World.Position);
         }
@@ -1095,7 +1100,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     private bool ValidRegion(uint worldId, int x, int y)
     {
         var world = GetWorld(worldId);
-        return world.ValidRegion(x, y);
+        return world != null && world.ValidRegion(x, y);
     }
 
     public void OnPlayerJoin(Character character)

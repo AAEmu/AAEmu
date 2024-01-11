@@ -14,17 +14,17 @@ public class UnitCooldowns
 
     public void AddCooldown(uint skillId, uint duration)
     {
-        if (!Cooldowns.ContainsKey(skillId))
+        if (!Cooldowns.TryGetValue(skillId, out _))
             Cooldowns.TryAdd(skillId, DateTime.UtcNow + TimeSpan.FromMilliseconds(duration));
     }
 
     public bool CheckCooldown(uint skillId)
     {
-        if (!Cooldowns.ContainsKey(skillId))
+        if (!Cooldowns.TryGetValue(skillId, out var endTime))
             return false;
 
-        var endTime = Cooldowns[skillId];
-        if (DateTime.UtcNow < endTime)
+        var timeLeft = endTime - DateTime.UtcNow;
+        if (timeLeft > TimeSpan.FromMilliseconds(250))
             return true;
 
         RemoveCooldown(skillId);

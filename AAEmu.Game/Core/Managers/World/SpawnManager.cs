@@ -57,13 +57,13 @@ public class SpawnManager : Singleton<SpawnManager>
             var npcSpawnerIds = NpcGameData.Instance.GetSpawnerIds(npcSpawner.UnitId);
             // TODO добавил список спавнеров // added a list of spawners
             var spawners = new List<NpcSpawner>();
-            foreach (var npcSpawnerId in npcSpawnerIds)
+            foreach (var id in npcSpawnerIds)
             {
-                npcSpawner.NpcSpawnerIds.Add(npcSpawnerId);
-                npcSpawner.Id = npcSpawnerId;
-                npcSpawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(npcSpawnerId);
-                spawners.Add(npcSpawner);
+                npcSpawner.NpcSpawnerIds.Add(id);
+                npcSpawner.Id = id;
+                npcSpawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(id);
             }
+            spawners.Add(npcSpawner);
             _npcSpawners[(byte)npcSpawner.Position.WorldId].Add(_nextId, spawners);
             _nextId++; //we'll renumber
         }
@@ -71,12 +71,12 @@ public class SpawnManager : Singleton<SpawnManager>
         {
             // Load NPC Spawns for Events
             var spawners = new List<NpcSpawner>();
-            for (var i = 0; i < npcSpawner.NpcSpawnerIds.Count; i++)
+            foreach (var id in npcSpawner.NpcSpawnerIds)
             {
-                npcSpawner.Id = npcSpawner.NpcSpawnerIds[i];
-                npcSpawner.Template = new NpcSpawnerTemplate(npcSpawner.Id);
-                spawners.Add(npcSpawner);
+                npcSpawner.Id = id;
+                npcSpawner.Template = new NpcSpawnerTemplate(id);
             }
+            spawners.Add(npcSpawner);
             _npcEventSpawners[(byte)npcSpawner.Position.WorldId].Add(_nextId, spawners);
             _nextId++; //we'll renumber
         }
@@ -84,25 +84,28 @@ public class SpawnManager : Singleton<SpawnManager>
 
     internal void SpawnAllNpcs(byte worldId)
     {
-        Logger.Info("Spawning {0} NPC spawners in world {1}", _npcSpawners[worldId].Count, worldId);
+        Logger.Info($"Spawning {_npcSpawners[worldId].Count} NPC spawners in world {worldId}");
         var count = 0;
-        foreach (var spawner in _npcSpawners[worldId].Values)
+        foreach (var spawners in _npcSpawners[worldId].Values)
         {
-            if (spawner[0].Template == null)
+            foreach (var spawner in spawners)
             {
-                Logger.Warn("Templates not found for Npc templateId {0} in world {1}", spawner[0].UnitId, worldId);
-            }
-            else
-            {
-                spawner[0].SpawnAll(true);
-                count++;
-                if (count % 5000 == 0 && worldId == 0)
+                if (spawner.Template == null)
                 {
-                    Logger.Info("{0} NPC spawners spawned...", count);
+                    Logger.Warn($"Templates not found for Npc templateId {spawner.UnitId} in world {worldId}");
+                }
+                else
+                {
+                    spawner.SpawnAll(true);
+                    count++;
+                    if (count % 5000 == 0)
+                    {
+                        Logger.Info($"{count} NPC spawners spawned in world {worldId}");
+                    }
                 }
             }
         }
-        Logger.Info("{0} NPC spawners spawned...", count);
+        Logger.Info($"{count} NPC spawners spawned in world {worldId}");
     }
 
     public void Load()
@@ -216,9 +219,8 @@ public class SpawnManager : Singleton<SpawnManager>
                             spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
                             spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
                             spawner.Position.Roll = spawner.Position.Roll.DegToRad();
-                            if (!doodadSpawners.ContainsKey(_nextId))
+                            if (doodadSpawners.TryAdd(_nextId, spawner))
                             {
-                                doodadSpawners.Add(_nextId, spawner);
                                 _nextId++;
                             }
                         }
@@ -263,9 +265,8 @@ public class SpawnManager : Singleton<SpawnManager>
                             spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
                             spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
                             spawner.Position.Roll = spawner.Position.Roll.DegToRad();
-                            if (!transferSpawners.ContainsKey(_nextId))
+                            if (transferSpawners.TryAdd(_nextId, spawner))
                             {
-                                transferSpawners.Add(_nextId, spawner);
                                 _nextId++;
                             }
                         }
@@ -308,9 +309,8 @@ public class SpawnManager : Singleton<SpawnManager>
                             spawner.Id = _nextId;
                             spawner.Position.WorldId = world.Id;
                             spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
-                            if (!gimmickSpawners.ContainsKey(_nextId))
+                            if (gimmickSpawners.TryAdd(_nextId, spawner))
                             {
-                                gimmickSpawners.Add(_nextId, spawner);
                                 _nextId++;
                             }
                         }
@@ -353,9 +353,8 @@ public class SpawnManager : Singleton<SpawnManager>
                             spawner.Id = _nextId;
                             spawner.Position.WorldId = world.Id;
                             spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
-                            if (!slaveSpawners.ContainsKey(_nextId))
+                            if (slaveSpawners.TryAdd(_nextId, spawner))
                             {
-                                slaveSpawners.Add(_nextId, spawner);
                                 _nextId++;
                             }
                         }
@@ -563,7 +562,7 @@ public class SpawnManager : Singleton<SpawnManager>
         {
             Task.Run(() =>
             {
-                Logger.Info("Spawning {0} Doodads in world {1}", worldSpawners.Count, worldId);
+                Logger.Info($"Spawning {worldSpawners.Count} Doodads in world {worldId}");
                 var count = 0;
                 foreach (var spawner in worldSpawners.Values)
                 {
@@ -571,10 +570,10 @@ public class SpawnManager : Singleton<SpawnManager>
                     count++;
                     if (count % 1000 == 0 && worldId == 0)
                     {
-                        Logger.Info("{0} Doodads spawned", count);
+                        Logger.Info($"in world {worldId} Doodads spawned: {count}...");
                     }
                 }
-                Logger.Info("{0} Doodads spawned", count);
+                Logger.Info($"in world {worldId} Doodads spawned: {count}");
 
                 // необходимо дождаться спавна всех doodads
                 FishSchoolManager.Instance.Load(worldId);
@@ -586,7 +585,7 @@ public class SpawnManager : Singleton<SpawnManager>
         {
             Task.Run(() =>
             {
-                Logger.Info("Spawning {0} Transfers in world {1}", worldSpawners.Count, worldId);
+                Logger.Info($"Spawning {worldSpawners.Count} Transfers in world {worldId}");
                 var count = 0;
                 foreach (var spawner in worldSpawners.Values)
                 {
@@ -594,10 +593,10 @@ public class SpawnManager : Singleton<SpawnManager>
                     count++;
                     if (count % 10 == 0 && worldId == 0)
                     {
-                        Logger.Info("{0} Transfers spawned...", count);
+                        Logger.Info($"in world {worldId} Transfers spawned: {count}...");
                     }
                 }
-                Logger.Info("{0} Transfers spawned...", count);
+                Logger.Info($"in world {worldId} Transfers spawned: {count}");
             });
         }
 
@@ -606,7 +605,7 @@ public class SpawnManager : Singleton<SpawnManager>
         {
             Task.Run(() =>
             {
-                Logger.Info("Spawning {0} Gimmicks in world {1}", worldSpawners.Count, worldId);
+                Logger.Info($"Spawning {worldSpawners.Count} Gimmicks in world {worldId}");
                 var count = 0;
                 foreach (var spawner in worldSpawners.Values)
                 {
@@ -614,10 +613,10 @@ public class SpawnManager : Singleton<SpawnManager>
                     count++;
                     if (count % 5 == 0 && worldId == 0)
                     {
-                        Logger.Info("{0} Gimmicks spawned...", count);
+                        Logger.Info($"in world {worldId} Gimmicks spawned: {count}...");
                     }
                 }
-                Logger.Info("{0} Gimmicks spawned...", count);
+                Logger.Info($"in world {worldId} Gimmicks spawned: {count}");
             });
         }
 
@@ -626,7 +625,7 @@ public class SpawnManager : Singleton<SpawnManager>
         {
             Task.Run(() =>
             {
-                Logger.Info("Spawning {0} Slaves in world {1}", worldSpawners.Count, worldId);
+                Logger.Info($"Spawning {worldSpawners.Count} Slaves in world {worldId}");
                 var count = 0;
                 foreach (var spawner in worldSpawners.Values)
                 {
@@ -634,16 +633,17 @@ public class SpawnManager : Singleton<SpawnManager>
                     count++;
                     if (count % 5 == 0 && worldId == 0)
                     {
-                        Logger.Info("{0} Slaves spawned...", count);
+                        Logger.Info($"in world {worldId} Slaves spawned: {count}...");
                     }
                 }
-                Logger.Info("{0} Slaves spawned...", count);
+                Logger.Info($"in world {worldId} slaves spawned: {count}");
             });
         }
 
         Logger.Info("Spawning Player Doodads asynchronously...");
         Task.Run(() =>
         {
+            Logger.Info($"Spawning {_playerDoodads.Count} Player Doodads");
             foreach (var doodad in _playerDoodads)
             {
                 if (doodad.Spawner == null)
@@ -664,6 +664,8 @@ public class SpawnManager : Singleton<SpawnManager>
         var npcList = new List<Npc>();
         if (_npcSpawners.TryGetValue((byte)worldTemplateId, out var npcSpawners))
         {
+            //Task.Run(() =>
+            //{
             foreach (var spawners in npcSpawners.Values)
             {
                 foreach (var spawner in spawners)
@@ -674,33 +676,43 @@ public class SpawnManager : Singleton<SpawnManager>
                     spawner.Position.WorldId = worldTemplateId;
                 }
             }
+            //});
         }
         if (_doodadSpawners.TryGetValue((byte)worldTemplateId, out var doodadSpawners))
         {
+            //Task.Run(() =>
+            //{
             foreach (var spawner in doodadSpawners.Values)
             {
                 spawner.Position.WorldId = worldId;
                 spawner.Spawn(0);
                 spawner.Position.WorldId = worldTemplateId;
             }
+            //});
         }
         if (_slaveSpawners.TryGetValue((byte)worldTemplateId, out var slaveSpawners))
         {
+            //Task.Run(() =>
+            //{
             foreach (var spawner in slaveSpawners.Values)
             {
                 spawner.Position.WorldId = worldId;
                 spawner.Spawn(0);
                 spawner.Position.WorldId = worldTemplateId;
             }
+            //});
         }
         if (_gimmickSpawners.TryGetValue((byte)worldTemplateId, out var gimmickSpawners))
         {
+            //Task.Run(() =>
+            //{
             foreach (var spawner in gimmickSpawners.Values)
             {
                 spawner.Position.WorldId = worldId;
                 spawner.Spawn(0);
                 spawner.Position.WorldId = worldTemplateId;
             }
+            //});
         }
         return npcList;
     }
