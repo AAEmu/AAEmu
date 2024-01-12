@@ -498,9 +498,13 @@ public partial class CharacterQuests
                     quest.ReadData((byte[])reader.GetValue("data"));
                     quest.Owner = Owner;
                     quest.Template = QuestManager.Instance.GetTemplate(quest.TemplateId);
+                    var oldStatus = quest.Status;
+                    var oldStep = quest.Step;
                     quest.RecalcObjectives(false);
                     quest.CreateContextInstance();
-                    //quest.RecallEvents();
+                    // quest.RecallEvents();
+                    quest.Step = oldStep;
+                    quest.Status = oldStatus;
                     ActiveQuests.Add(quest.TemplateId, quest);
                 }
             }
