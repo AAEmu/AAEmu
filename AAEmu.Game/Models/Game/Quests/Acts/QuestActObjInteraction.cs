@@ -16,7 +16,7 @@ public class QuestActObjInteraction : QuestActTemplate
     public uint QuestActObjAliasId { get; set; }
     public uint Phase { get; set; }
 
-    public static int InteractionStatus { get; private set; } = 0;
+    //public static int InteractionStatus { get; private set; } = 0;
     private int Objective { get; set; }
 
     public override bool Use(ICharacter character, Quest quest, int objective)
@@ -24,8 +24,8 @@ public class QuestActObjInteraction : QuestActTemplate
         Logger.Warn("QuestActObjInteraction");
         if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
         {
-            InteractionStatus = objective * Count; // Count в данном случае % за единицу
-            quest.OverCompletionPercent = InteractionStatus + QuestActObjMonsterGroupHunt.GroupHuntStatus + QuestActObjMonsterHunt.HuntStatus + QuestActObjItemGather.GatherStatus;
+            quest.InteractionStatus = objective * Count; // Count в данном случае % за единицу
+            quest.OverCompletionPercent = quest.InteractionStatus + quest.GroupHuntStatus + quest.HuntStatus + quest.GatherStatus;
 
             if (quest.Template.LetItDone)
             {
@@ -35,7 +35,7 @@ public class QuestActObjInteraction : QuestActTemplate
                 if (quest.OverCompletionPercent > quest.Template.Score)
                     quest.ExtraCompletion = true;
             }
-            Logger.Debug("QuestActObjInteraction: DoodadId {0}, Count {1}, InteractionStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}", DoodadId, Count, InteractionStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
+            Logger.Debug("QuestActObjInteraction: DoodadId {0}, Count {1}, InteractionStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}", DoodadId, Count, quest.InteractionStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
 
             Update();
 
@@ -74,7 +74,7 @@ public class QuestActObjInteraction : QuestActTemplate
     }
     public override void ClearStatus()
     {
-        InteractionStatus = 0;
+        //InteractionStatus = 0;
         Objective = 0;
         Logger.Info("Сбросили статус в ноль.");
     }

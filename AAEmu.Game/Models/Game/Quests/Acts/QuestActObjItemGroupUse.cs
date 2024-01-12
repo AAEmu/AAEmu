@@ -15,7 +15,7 @@ public class QuestActObjItemGroupUse : QuestActTemplate
     public uint QuestActObjAliasId { get; set; }
     public bool DropWhenDestroy { get; set; }
 
-    public static int ItemGroupUseStatus { get; private set; } = 0;
+    //public static int ItemGroupUseStatus { get; private set; } = 0;
     private int Objective { get; set; }
 
     public override bool Use(ICharacter character, Quest quest, int objective)
@@ -23,8 +23,8 @@ public class QuestActObjItemGroupUse : QuestActTemplate
         Logger.Warn("QuestActObjItemGroupUse");
         if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
         {
-            ItemGroupUseStatus = objective * Count; // Count в данном случае % за единицу
-            quest.OverCompletionPercent = ItemGroupUseStatus + QuestActObjMonsterHunt.HuntStatus + QuestActObjMonsterGroupHunt.GroupHuntStatus + QuestActObjInteraction.InteractionStatus;
+            quest.ItemGroupUseStatus = objective * Count; // Count в данном случае % за единицу
+            quest.OverCompletionPercent = quest.ItemGroupUseStatus + quest.HuntStatus + quest.GroupHuntStatus + quest.InteractionStatus;
 
             if (quest.Template.LetItDone)
             {
@@ -71,7 +71,7 @@ public class QuestActObjItemGroupUse : QuestActTemplate
     }
     public override void ClearStatus()
     {
-        ItemGroupUseStatus = 0;
+        //ItemGroupUseStatus = 0;
         Objective = 0;
         Logger.Info("Сбросили статус в ноль.");
     }
