@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Quests.Templates;
@@ -18,19 +19,19 @@ public class QuestActObjItemGather : QuestActTemplate // Сбор предмет
     public bool DestroyWhenDrop { get; set; }
 
     private int Objective { get; set; }
-    public static int GatherStatus { get; private set; } = 0;
+    //public static int GatherStatus { get; private set; } = 0;
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Debug("QuestActObjItemGather: QuestActObjItemGatherId {0}, Count {1}, UseAlias {2}, QuestActObjAliasId {3}, HighlightDoodadId {4}, HighlightDoodadPhase {5}, quest {6}, objective {7}, Score {8}",
+        Logger.Debug("QuestActObjItemGather: ItemId {0}, Count {1}, UseAlias {2}, QuestActObjAliasId {3}, HighlightDoodadId {4}, HighlightDoodadPhase {5}, quest {6}, objective {7}, Score {8}",
             ItemId, Count, UseAlias, QuestActObjAliasId, HighlightDoodadId, HighlightDoodadPhase, quest.TemplateId, objective, quest.Template.Score);
 
         var res = false;
         var maxCleanup = quest.Template.LetItDone ? Count * 7 / 5 : Count;
         if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
         {
-            GatherStatus = objective * Count; // Count в данном случае % за единицу
-            quest.OverCompletionPercent = GatherStatus + QuestActObjMonsterHunt.HuntStatus + QuestActObjMonsterGroupHunt.GroupHuntStatus + QuestActObjInteraction.InteractionStatus;
+            quest.GatherStatus = objective * Count; // Count в данном случае % за единицу
+            quest.OverCompletionPercent = quest.GatherStatus + quest.HuntStatus + quest.GroupHuntStatus + quest.InteractionStatus;
 
             if (quest.Template.LetItDone)
             {
@@ -45,21 +46,23 @@ public class QuestActObjItemGather : QuestActTemplate // Сбор предмет
 
             res = quest.OverCompletionPercent >= quest.Template.Score;
         }
-
-        if (quest.Template.LetItDone)
+        else
         {
-            quest.OverCompletionPercent = objective * 100 / Count;
+            if (quest.Template.LetItDone)
+            {
+                quest.OverCompletionPercent = objective * 100 / Count;
 
-            if (quest.OverCompletionPercent >= 50)
-                quest.EarlyCompletion = true;
+                if (quest.OverCompletionPercent >= 50)
+                    quest.EarlyCompletion = true;
 
-            if (quest.OverCompletionPercent > 100)
-                quest.ExtraCompletion = true;
+                if (quest.OverCompletionPercent > 100)
+                    quest.ExtraCompletion = true;
+            }
+
+            Update();
+
+            res = objective >= Count;
         }
-
-        Update();
-
-        res = objective >= Count;
 
         if (res && Cleanup)
             quest.QuestCleanupItemsPool.Add(new ItemCreationDefinition(ItemId, Math.Min(maxCleanup, objective)));
@@ -83,7 +86,7 @@ public class QuestActObjItemGather : QuestActTemplate // Сбор предмет
     }
     public override void ClearStatus()
     {
-        GatherStatus = 0;
+        //GatherStatus = 0;
         Objective = 0;
         Logger.Info("Сбросили статус в ноль.");
     }

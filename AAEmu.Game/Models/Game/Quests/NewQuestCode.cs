@@ -22,6 +22,16 @@ public partial class Quest : PacketMarshaler
     public QuestContext QuestReadyState { get; set; }
     public QuestContext QuestRewardState { get; set; }
 
+    // перенес сюда переменные из QuestAcObj... для подсчета статуса квеста
+    public int GroupGatherStatus { get; set; } = 0;
+    public int GatherStatus { get; set; } = 0;
+    public int HuntStatus { get; set; } = 0;
+    public int GroupHuntStatus { get; set; } = 0;
+    public int InteractionStatus { get; set; } = 0;
+    public int ItemGroupUseStatus { get; set; } = 0;
+    public int ItemUseStatus { get; set; } = 0;
+    public int ItemObtainStatus { get; set; } = 0;
+
     #region Framework
 
     /// <summary>
@@ -409,6 +419,7 @@ public partial class Quest : PacketMarshaler
             : QuestStatus.Progress; // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
         Condition = QuestConditionObj.Progress;
         Logger.Info($"{str} Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
+        Logger.Info($"GroupGatherStatus: {GroupGatherStatus}, GatherStatus={GatherStatus}, HuntStatus={HuntStatus}, GroupHuntStatus={GroupHuntStatus}, InteractionStatus={InteractionStatus}, ItemGroupUseStatus={ItemGroupUseStatus}, ItemUseStatus={ItemUseStatus}, ItemObtainStatus={ItemObtainStatus}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
         UpdateActiveStep();
@@ -547,7 +558,9 @@ public partial class Quest : PacketMarshaler
                             Logger.Info($"[OnItemGatherHandler] Quest={TemplateId}. Это предмет {args.ItemId} не тот, что нужен нам {template?.ItemId}.");
                             return false;
                         }
-                        Objectives[idx] = Owner.Inventory.GetItemsCount(template.ItemId) - 1; // помезвем на один предмет меньше, так как позже будет инкремент
+
+                        var objective = Owner.Inventory.GetItemsCount(template.ItemId);
+                        Objectives[idx] = objective > 0 ? objective - 1 : 0; // покажем на один предмет меньше, так как позже будет инкремент
 
                         break;
                     }
@@ -561,6 +574,10 @@ public partial class Quest : PacketMarshaler
                             Logger.Info($"[OnItemGatherHandler] Quest={TemplateId}. Это предмет {args.ItemId} не тот, что нужен нам {template.ItemGroupId}.");
                             return false;
                         }
+
+                        var objective = Owner.Inventory.GetItemsCount(args.ItemId);
+                        Objectives[idx] = objective > 0 ? objective - 1 : 0; // покажем на один предмет меньше, так как позже будет инкремент
+
                         break;
                     }
                 case "QuestActObjZoneKill":
