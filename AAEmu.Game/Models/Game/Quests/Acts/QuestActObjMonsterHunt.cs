@@ -12,7 +12,7 @@ public class QuestActObjMonsterHunt : QuestActTemplate
     public uint HighlightDoodadId { get; set; }
     public int HighlightDoodadPhase { get; set; }
 
-    public static int HuntStatus { get; private set; } = 0;
+    //public static int HuntStatus { get; private set; } = 0;
     private int Objective { get; set; }
 
     public override bool Use(ICharacter character, Quest quest, int objective)
@@ -22,8 +22,8 @@ public class QuestActObjMonsterHunt : QuestActTemplate
 
         if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
         {
-            HuntStatus = objective * Count; // Count в данном случае % за единицу
-            quest.OverCompletionPercent = HuntStatus + QuestActObjItemGather.GatherStatus + QuestActObjMonsterGroupHunt.GroupHuntStatus + QuestActObjInteraction.InteractionStatus;
+            quest.HuntStatus = objective * Count; // Count в данном случае % за единицу
+            quest.OverCompletionPercent = quest.HuntStatus + quest.GatherStatus + quest.GroupHuntStatus + quest.InteractionStatus;
 
             if (quest.Template.LetItDone)
             {
@@ -34,7 +34,7 @@ public class QuestActObjMonsterHunt : QuestActTemplate
                     quest.ExtraCompletion = true;
             }
 
-            Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, HuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}", NpcId, Count, HuntStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
+            Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, HuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}", NpcId, Count, quest.HuntStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
 
             Update();
 
@@ -73,7 +73,7 @@ public class QuestActObjMonsterHunt : QuestActTemplate
     }
     public override void ClearStatus()
     {
-        HuntStatus = 0;
+        //HuntStatus = 0;
         Objective = 0;
         Logger.Info("Сбросили статус в ноль.");
     }

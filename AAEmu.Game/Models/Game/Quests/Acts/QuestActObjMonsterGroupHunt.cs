@@ -13,7 +13,7 @@ public class QuestActObjMonsterGroupHunt : QuestActTemplate
     public int HighlightDoodadPhase { get; set; }
 
     private int Objective { get; set; }
-    public static int GroupHuntStatus { get; private set; } = 0;
+    //public static int GroupHuntStatus { get; private set; } = 0;
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
@@ -23,8 +23,8 @@ public class QuestActObjMonsterGroupHunt : QuestActTemplate
 
         if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
         {
-            GroupHuntStatus = objective * Count; // Count в данном случае % за единицу
-            quest.OverCompletionPercent = GroupHuntStatus + QuestActObjMonsterHunt.HuntStatus + QuestActObjItemGather.GatherStatus + QuestActObjInteraction.InteractionStatus;
+            quest.GroupHuntStatus = objective * Count; // Count в данном случае % за единицу
+            quest.OverCompletionPercent = quest.GroupHuntStatus + quest.HuntStatus + quest.GatherStatus + quest.InteractionStatus;
 
             if (quest.Template.LetItDone)
             {
@@ -35,7 +35,7 @@ public class QuestActObjMonsterGroupHunt : QuestActTemplate
                     quest.ExtraCompletion = true;
             }
 
-            Logger.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, GroupHuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}", QuestMonsterGroupId, Count, GroupHuntStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
+            Logger.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, GroupHuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}", QuestMonsterGroupId, Count, quest.GroupHuntStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
 
             Update();
 
@@ -74,7 +74,7 @@ public class QuestActObjMonsterGroupHunt : QuestActTemplate
     }
     public override void ClearStatus()
     {
-        GroupHuntStatus = 0;
+        //GroupHuntStatus = 0;
         Objective = 0;
         Logger.Info("Сбросили статус в ноль.");
     }
