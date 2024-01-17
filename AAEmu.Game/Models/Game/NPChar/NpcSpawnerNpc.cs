@@ -85,12 +85,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
                 npc.Ai.GoToSpawn();
             }
 
-            npc.Spawner = new NpcSpawner();
-            npc.Spawner.Position = npcSpawner.Position.Clone();
-            npc.Spawner.Id = npcSpawner.Id;
-            npc.Spawner.UnitId = MemberId;
-            npc.Spawner.NpcSpawnerIds.Add(NpcSpawnerTemplateId);
-            npc.Spawner.Template = npcSpawner.Template;
+            npc.Spawner = npcSpawner;
             npc.Spawner.RespawnTime = (int)Rand.Next(npc.Spawner.Template.SpawnDelayMin, npc.Spawner.Template.SpawnDelayMax);
             npc.Spawn();
 
