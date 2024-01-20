@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -439,7 +439,7 @@ public class SlaveManager : Singleton<SlaveManager>
             }
 
             // Always spawn horizontal(level) and 90° CCW of the player
-            spawnPos.Local.SetRotation(0f, 0f, owner?.Transform.World.Rotation.Z + (MathF.PI / 2) ?? 0f);
+            spawnPos.Local.SetRotation(0f, 0f, owner?.Transform.World.Rotation.Z + MathF.PI / 2 ?? useSpawner.Position.Yaw);
         }
 
         if (item is SummonSlave slaveSummonItem)
