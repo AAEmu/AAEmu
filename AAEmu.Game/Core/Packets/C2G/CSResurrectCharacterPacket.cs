@@ -25,7 +25,7 @@ public class CSResurrectCharacterPacket : GamePacket
         var portal = new Portal();
 
         // поищем сначала "UnitId": 502, "Title": "Temple Priestess",
-        if (Connection.ActiveChar.Transform.WorldId > 99)
+        if (Connection.ActiveChar.Transform.WorldId > 0)
         {
             var npcs = WorldManager.Instance.GetAllNpcsFromWorld(Connection.ActiveChar.Transform.WorldId);
             foreach (var npc in npcs.Where(npc => npc.TemplateId == 502))

@@ -82,7 +82,7 @@ public class NpcSpawner : Spawner<Npc>
     {
         npc.Delete();
 
-        if (npc.Transform.WorldId > 99)
+        if (npc.Transform.WorldId > 0)
         {
             // Temporary range for instanced worlds
             var dungeon = IndunManager.Instance.GetDungeonByWorldId(npc.Transform.WorldId);
