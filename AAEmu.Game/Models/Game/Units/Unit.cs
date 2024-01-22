@@ -383,7 +383,7 @@ public class Unit : BaseUnit, IUnit
             attackerUnit.Events.OnKill(attackerUnit, new OnKillArgs { target = attackerUnit });
 
             var world = WorldManager.Instance.GetWorld(Transform.WorldId);
-            if (Transform.WorldId > 99)
+            if (Transform.WorldId > 0)
             {
                 var dungeon = IndunManager.Instance.GetDungeonByWorldId(Transform.WorldId);
                 if (dungeon is not null)

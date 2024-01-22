@@ -221,7 +221,7 @@ public class DoodadSpawner : Spawner<Doodad>
         Last.Spawn(); // initialize Doodad with the initial phase and display it on the terrain
 
         var world = WorldManager.Instance.GetWorld(Last.Transform.WorldId);
-        if (Last.Transform.WorldId > 99)
+        if (Last.Transform.WorldId > 0)
         {
             // Temporary range for instanced worlds
             var dungeon = IndunManager.Instance.GetDungeonByWorldId(Last.Transform.WorldId);
