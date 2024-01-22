@@ -382,7 +382,10 @@ public class SlaveManager : Singleton<SlaveManager>
             // If no spawn position override has been provided, then handle normal spawning algorithm
 
             // owner.SendMessage("SlaveSpawnOffset: x:{0} y:{1}", slaveTemplate.SpawnXOffset, slaveTemplate.SpawnYOffset);
-            spawnPos.Local.AddDistanceToFront(Math.Clamp(slaveTemplate.SpawnYOffset, 5f, 50f));
+            if (owner != null)
+            {
+                spawnPos.Local.AddDistanceToFront(Math.Clamp(slaveTemplate.SpawnYOffset, 5f, 50f));
+            }
             // INFO: Seems like X offset is defined as the size of the vehicle summoned, but visually it's nicer if we just ignore this 
             // spawnPos.Local.AddDistanceToRight(slaveTemplate.SpawnXOffset);
             if (slaveTemplate.IsABoat())

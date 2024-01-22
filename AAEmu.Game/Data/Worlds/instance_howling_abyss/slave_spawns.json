@@ -1,8 +1,47 @@
 [
   {
-    "Id": 89736,
+    "Id": 105556,
     "UnitId": 87,
-    "Title": "Barkbridge Trail Worker",
+    "Title": "Blackscale Corps Cannon",
+    "Position": {
+      "X": 619.708,
+      "Y": 683.762,
+      "Z": 178.4303,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 177.1875
+    }
+  },
+  {
+    "Id": 128862,
+    "UnitId": 87,
+    "Title": "Blackscale Corps Cannon",
+    "Position": {
+      "X": 604.836,
+      "Y": 663.082,
+      "Z": 178.3853,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -33.75
+    }
+  },
+  {
+    "Id": 109155,
+    "UnitId": 87,
+    "Title": "Blackscale Corps Cannon",
+    "Position": {
+      "X": 607.694,
+      "Y": 658.8,
+      "Z": 178.3853,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -81.5625
+    }
+  },
+  {
+    "Id": 64083,
+    "UnitId": 87,
+    "Title": "Blackscale Corps Cannon",
     "Position": {
       "X": 504.756,
       "Y": 461.184,
@@ -13,68 +52,29 @@
     }
   },
   {
-    "Id": 89733,
+    "Id": 74450,
     "UnitId": 87,
-    "Title": "Barkbridge Trail Worker",
+    "Title": "Blackscale Corps Cannon",
     "Position": {
       "X": 502.25,
       "Y": 459.38,
       "Z": 203.342,
       "Roll": 0.0,
       "Pitch": 0.0,
-      "Yaw": -90.0
+      "Yaw": -109.6875
     }
   },
   {
-    "Id": 89737,
+    "Id": 69232,
     "UnitId": 87,
-    "Title": "Barkbridge Trail Worker",
+    "Title": "Blackscale Corps Cannon",
     "Position": {
       "X": 499.572,
       "Y": 458.026,
       "Z": 203.342,
       "Roll": 0.0,
       "Pitch": 0.0,
-      "Yaw": -6.5
-    }
-  },
-  {
-    "Id": 89738,
-    "UnitId": 87,
-    "Title": "Barkbridge Trail Worker",
-    "Position": {
-      "X": 619.706,
-      "Y": 683.762,
-      "Z": 178.4313,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 218.6
-    }
-  },
-  {
-    "Id": 89735,
-    "UnitId": 87,
-    "Title": "Barkbridge Trail Worker",
-    "Position": {
-      "X": 604.834,
-      "Y": 663.08,
-      "Z": 178.3752,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 272.5
-    }
-  },
-  {
-    "Id": 89734,
-    "UnitId": 87,
-    "Title": "Barkbridge Trail Worker",
-    "Position": {
-      "X": 607.694,
-      "Y": 658.8,
-      "Z": 178.3832,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 170.5
+      "Yaw": -112.5
     }
   }
 ]
