@@ -1,29 +1,4274 @@
 [
   {
+    "Id": 276,
+    "UnitId": 9930,
+    "Title": "",
+    "Position": {
+      "X": 355.494,
+      "Y": 511.614,
+      "Z": 170.5322,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28124,
+    "Scale": 1.0
+  },
+  {
+    "Id": 223,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 353.568,
+      "Y": 511.582,
+      "Z": 169.986,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 216,
+    "UnitId": 6374,
+    "Title": "Portal",
+    "Position": {
+      "X": 319.58,
+      "Y": 508.74,
+      "Z": 170.4201,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16869,
+    "Scale": 1.0
+  },
+  {
+    "Id": 197,
+    "UnitId": 6357,
+    "Title": "Iron Gate",
+    "Position": {
+      "X": 435.018,
+      "Y": 472.46,
+      "Z": 184.3106,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16815,
+    "Scale": 1.0
+  },
+  {
+    "Id": 196,
+    "UnitId": 6356,
+    "RelatedIds": [6357],
+    "Title": "Strange Device",
+    "Position": {
+      "X": 418.364,
+      "Y": 448.284,
+      "Z": 184.3536,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 16.99904
+    },
+    "funcGroupId": 16818,
+    "Scale": 1.0
+  },
+  {
+    "Id": 195,
+    "UnitId": 6355,
+    "Title": "Door",
+    "Position": {
+      "X": 501.912,
+      "Y": 481.494,
+      "Z": 187.5408,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 18.9995918
+    },
+    "funcGroupId": 16812,
+    "Scale": 1.0
+  },
+  {
+    "Id": 135,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 354.692,
+      "Y": 512.0,
+      "Z": 169.986,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 118,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 460.786,
+      "Y": 457.466,
+      "Z": 183.9774,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 84,
+    "UnitId": 6286,
+    "Title": "Awakening Hammer",
+    "Position": {
+      "X": 357.886,
+      "Y": 494.974,
+      "Z": 170.6162,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 38.0004
+    },
+    "funcGroupId": 16632,
+    "Scale": 1.0
+  },
+  {
+    "Id": 82,
+    "UnitId": 6286,
+    "Title": "Awakening Hammer",
+    "Position": {
+      "X": 324.678,
+      "Y": 484.31,
+      "Z": 170.6692,
+      "Roll": 68.74222,
+      "Pitch": 19.0044136,
+      "Yaw": 101.932396
+    },
+    "funcGroupId": 16632,
+    "Scale": 1.0
+  },
+  {
+    "Id": 81,
+    "UnitId": 6286,
+    "Title": "Awakening Hammer",
+    "Position": {
+      "X": 314.262,
+      "Y": 511.994,
+      "Z": 170.5132,
+      "Roll": 59.96255,
+      "Pitch": 8.214756,
+      "Yaw": 103.911766
+    },
+    "funcGroupId": 16632,
+    "Scale": 1.0
+  },
+  {
+    "Id": 67,
+    "UnitId": 6277,
+    "Title": "Caleil's Water Chamber_Float",
+    "Position": {
+      "X": 346.134,
+      "Y": 500.54,
+      "Z": 169.4308,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16612,
+    "Scale": 1.0
+  },
+  {
+    "Id": 65,
+    "UnitId": 6277,
+    "Title": "Caleil's Water Chamber_Float",
+    "Position": {
+      "X": 332.234,
+      "Y": 495.47,
+      "Z": 169.5818,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16612,
+    "Scale": 1.0
+  },
+  {
+    "Id": 64,
+    "UnitId": 6277,
+    "Title": "Caleil's Water Chamber_Float",
+    "Position": {
+      "X": 327.274,
+      "Y": 509.764,
+      "Z": 169.4808,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16612,
+    "Scale": 1.0
+  },
+  {
+    "Id": 63,
+    "UnitId": 6276,
+    "Title": "Drain",
+    "Position": {
+      "X": 356.274,
+      "Y": 504.722,
+      "Z": 170.8583,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16610,
+    "Scale": 1.0
+  },
+  {
+    "Id": 62,
+    "UnitId": 6276,
+    "Title": "Drain",
+    "Position": {
+      "X": 350.392,
+      "Y": 490.646,
+      "Z": 170.7413,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16610,
+    "Scale": 1.0
+  },
+  {
+    "Id": 60,
+    "UnitId": 6276,
+    "Title": "Drain",
+    "Position": {
+      "X": 348.058,
+      "Y": 489.966,
+      "Z": 170.7953,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16610,
+    "Scale": 1.0
+  },
+  {
+    "Id": 58,
+    "UnitId": 6276,
+    "Title": "Drain",
+    "Position": {
+      "X": 337.282,
+      "Y": 485.97,
+      "Z": 170.8403,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16610,
+    "Scale": 1.0
+  },
+  {
+    "Id": 56,
+    "UnitId": 6276,
+    "Title": "Drain",
+    "Position": {
+      "X": 335.032,
+      "Y": 484.958,
+      "Z": 170.7373,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16610,
+    "Scale": 1.0
+  },
+  {
+    "Id": 54,
+    "UnitId": 6276,
+    "Title": "Drain",
+    "Position": {
+      "X": 321.478,
+      "Y": 492.078,
+      "Z": 170.7663,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.00115
+    },
+    "funcGroupId": 16610,
+    "Scale": 1.0
+  },
+  {
+    "Id": 53,
+    "UnitId": 6276,
+    "Title": "Drain",
+    "Position": {
+      "X": 314.486,
+      "Y": 511.124,
+      "Z": 170.7483,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.00115
+    },
+    "funcGroupId": 16610,
+    "Scale": 1.0
+  },
+  {
+    "Id": 7,
+    "UnitId": 5338,
+    "Title": "Weeping Charnel House",
+    "Position": {
+      "X": 336.344,
+      "Y": 505.334,
+      "Z": 169.8249,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 109.999046
+    },
+    "funcGroupId": 13820,
+    "Scale": 1.0
+  },
+  {
+    "Id": 284,
+    "UnitId": 9930,
+    "Title": "",
+    "Position": {
+      "X": 465.314,
+      "Y": 628.666,
+      "Z": 166.7697,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28124,
+    "Scale": 1.0
+  },
+  {
+    "Id": 283,
+    "UnitId": 9930,
+    "Title": "",
+    "Position": {
+      "X": 464.194,
+      "Y": 640.25,
+      "Z": 166.7887,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28124,
+    "Scale": 1.0
+  },
+  {
+    "Id": 282,
+    "UnitId": 9930,
+    "Title": "",
+    "Position": {
+      "X": 464.194,
+      "Y": 642.14,
+      "Z": 166.7887,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28124,
+    "Scale": 1.0
+  },
+  {
+    "Id": 281,
+    "UnitId": 9930,
+    "Title": "",
+    "Position": {
+      "X": 360.226,
+      "Y": 513.902,
+      "Z": 170.5322,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28124,
+    "Scale": 1.0
+  },
+  {
+    "Id": 280,
+    "UnitId": 9930,
+    "Title": "",
+    "Position": {
+      "X": 357.462,
+      "Y": 512.894,
+      "Z": 170.4101,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28124,
+    "Scale": 1.0
+  },
+  {
+    "Id": 279,
+    "UnitId": 9930,
+    "Title": "",
+    "Position": {
+      "X": 357.17,
+      "Y": 513.862,
+      "Z": 170.5322,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28124,
+    "Scale": 1.0
+  },
+  {
+    "Id": 278,
+    "UnitId": 9930,
+    "Title": "",
+    "Position": {
+      "X": 356.664,
+      "Y": 513.434,
+      "Z": 170.5322,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28124,
+    "Scale": 1.0
+  },
+  {
+    "Id": 277,
+    "UnitId": 9930,
+    "Title": "",
+    "Position": {
+      "X": 355.6,
+      "Y": 512.65,
+      "Z": 170.5322,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28124,
+    "Scale": 1.0
+  },
+  {
+    "Id": 275,
+    "UnitId": 9929,
+    "Title": "",
+    "Position": {
+      "X": 464.428,
+      "Y": 628.974,
+      "Z": 166.7697,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28122,
+    "Scale": 1.0
+  },
+  {
+    "Id": 274,
+    "UnitId": 9929,
+    "Title": "",
+    "Position": {
+      "X": 459.124,
+      "Y": 642.6,
+      "Z": 166.7687,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28122,
+    "Scale": 1.0
+  },
+  {
+    "Id": 273,
+    "UnitId": 9929,
+    "Title": "",
+    "Position": {
+      "X": 366.172,
+      "Y": 515.998,
+      "Z": 177.8821,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28122,
+    "Scale": 1.0
+  },
+  {
+    "Id": 272,
+    "UnitId": 9929,
+    "Title": "",
+    "Position": {
+      "X": 365.594,
+      "Y": 517.854,
+      "Z": 177.9111,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28122,
+    "Scale": 1.0
+  },
+  {
+    "Id": 271,
+    "UnitId": 9929,
+    "Title": "",
+    "Position": {
+      "X": 359.342,
+      "Y": 514.198,
+      "Z": 170.5322,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28122,
+    "Scale": 1.0
+  },
+  {
+    "Id": 270,
+    "UnitId": 9929,
+    "Title": "",
+    "Position": {
+      "X": 356.564,
+      "Y": 513.19,
+      "Z": 170.4101,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28122,
+    "Scale": 1.0
+  },
+  {
+    "Id": 269,
+    "UnitId": 9910,
+    "Title": "",
+    "Position": {
+      "X": 469.162,
+      "Y": 641.016,
+      "Z": 166.7687,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28054,
+    "Scale": 1.0
+  },
+  {
+    "Id": 268,
+    "UnitId": 9910,
+    "Title": "",
+    "Position": {
+      "X": 468.294,
+      "Y": 641.316,
+      "Z": 166.7687,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28054,
+    "Scale": 1.0
+  },
+  {
+    "Id": 267,
+    "UnitId": 9910,
+    "Title": "",
+    "Position": {
+      "X": 465.072,
+      "Y": 643.51,
+      "Z": 166.7687,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28054,
+    "Scale": 1.0
+  },
+  {
+    "Id": 266,
+    "UnitId": 9910,
+    "Title": "",
+    "Position": {
+      "X": 461.018,
+      "Y": 641.518,
+      "Z": 166.7687,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28054,
+    "Scale": 1.0
+  },
+  {
+    "Id": 265,
+    "UnitId": 9910,
+    "Title": "",
+    "Position": {
+      "X": 459.55,
+      "Y": 641.422,
+      "Z": 166.7687,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28054,
+    "Scale": 1.0
+  },
+  {
+    "Id": 264,
+    "UnitId": 9909,
+    "Title": "",
+    "Position": {
+      "X": 469.156,
+      "Y": 642.502,
+      "Z": 166.7687,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28052,
+    "Scale": 1.0
+  },
+  {
+    "Id": 263,
+    "UnitId": 9909,
+    "Title": "",
+    "Position": {
+      "X": 468.288,
+      "Y": 642.79,
+      "Z": 166.7687,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28052,
+    "Scale": 1.0
+  },
+  {
+    "Id": 262,
+    "UnitId": 9909,
+    "Title": "",
+    "Position": {
+      "X": 461.01,
+      "Y": 643.004,
+      "Z": 166.7687,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28052,
+    "Scale": 1.0
+  },
+  {
+    "Id": 261,
+    "UnitId": 9909,
+    "Title": "",
+    "Position": {
+      "X": 459.544,
+      "Y": 642.896,
+      "Z": 166.7687,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28052,
+    "Scale": 1.0
+  },
+  {
+    "Id": 260,
+    "UnitId": 9908,
+    "Title": "",
+    "Position": {
+      "X": 468.94,
+      "Y": 643.524,
+      "Z": 166.7647,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28050,
+    "Scale": 1.0
+  },
+  {
+    "Id": 259,
+    "UnitId": 9908,
+    "Title": "",
+    "Position": {
+      "X": 468.08,
+      "Y": 642.474,
+      "Z": 166.7647,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28050,
+    "Scale": 1.0
+  },
+  {
+    "Id": 258,
+    "UnitId": 9908,
+    "Title": "",
+    "Position": {
+      "X": 468.062,
+      "Y": 643.824,
+      "Z": 166.7647,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28050,
+    "Scale": 1.0
+  },
+  {
+    "Id": 257,
+    "UnitId": 9908,
+    "Title": "",
+    "Position": {
+      "X": 460.796,
+      "Y": 644.026,
+      "Z": 166.7647,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28050,
+    "Scale": 1.0
+  },
+  {
+    "Id": 256,
+    "UnitId": 9908,
+    "Title": "",
+    "Position": {
+      "X": 459.328,
+      "Y": 643.932,
+      "Z": 166.7647,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 28050,
+    "Scale": 1.0
+  },
+  {
+    "Id": 252,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 470.95,
+      "Y": 646.146,
+      "Z": 166.7607,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 251,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 468.528,
+      "Y": 644.622,
+      "Z": 166.7607,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 250,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 467.886,
+      "Y": 646.432,
+      "Z": 166.7607,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 249,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 464.462,
+      "Y": 644.322,
+      "Z": 166.8577,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 248,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 464.462,
+      "Y": 642.76,
+      "Z": 166.8577,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 247,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 464.462,
+      "Y": 641.96,
+      "Z": 166.8577,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 246,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 464.462,
+      "Y": 646.34,
+      "Z": 166.8577,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 245,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 464.462,
+      "Y": 643.552,
+      "Z": 166.8577,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 244,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 464.462,
+      "Y": 628.34,
+      "Z": 166.8577,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 243,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 464.456,
+      "Y": 638.52,
+      "Z": 166.8577,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 242,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 464.456,
+      "Y": 641.152,
+      "Z": 166.8577,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 241,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 464.456,
+      "Y": 639.418,
+      "Z": 166.8577,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 240,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 464.456,
+      "Y": 640.304,
+      "Z": 166.8577,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 239,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 460.368,
+      "Y": 646.864,
+      "Z": 166.7607,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 238,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 459.866,
+      "Y": 644.622,
+      "Z": 166.7607,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 237,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 459.866,
+      "Y": 643.68,
+      "Z": 166.7607,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 236,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 458.282,
+      "Y": 645.68,
+      "Z": 166.7607,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 235,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 455.606,
+      "Y": 644.622,
+      "Z": 166.7607,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 234,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 455.59,
+      "Y": 643.67,
+      "Z": 166.7607,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 233,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 450.868,
+      "Y": 644.622,
+      "Z": 166.7607,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 232,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 450.868,
+      "Y": 643.68,
+      "Z": 166.7607,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 231,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 446.104,
+      "Y": 643.68,
+      "Z": 166.7607,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 230,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 446.104,
+      "Y": 644.622,
+      "Z": 166.7607,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 229,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 361.086,
+      "Y": 514.324,
+      "Z": 169.986,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 228,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 358.506,
+      "Y": 513.384,
+      "Z": 169.986,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 227,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 357.754,
+      "Y": 513.104,
+      "Z": 169.986,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 226,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 356.98,
+      "Y": 512.826,
+      "Z": 169.986,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 225,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 356.232,
+      "Y": 512.55,
+      "Z": 169.986,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 224,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 355.496,
+      "Y": 512.284,
+      "Z": 169.986,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 222,
+    "UnitId": 8324,
+    "Title": "",
+    "Position": {
+      "X": 463.38,
+      "Y": 688.31,
+      "Z": 166.9968,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 23286,
+    "Scale": 1.0
+  },
+  {
+    "Id": 221,
+    "UnitId": 6418,
+    "Title": "Howling_3 Puzzles_Gate",
+    "Position": {
+      "X": 486.59,
+      "Y": 565.17,
+      "Z": 186.9996,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16956,
+    "Scale": 1.0
+  },
+  {
+    "Id": 220,
+    "UnitId": 6416,
+    "Title": "Howling Abyss Exit",
+    "Position": {
+      "X": 439.446,
+      "Y": 670.848,
+      "Z": 167.42,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.99961
+    },
+    "funcGroupId": 16943,
+    "Scale": 0.98
+  },
+  {
+    "Id": 219,
+    "UnitId": 6384,
+    "Title": "Sacred Relic",
+    "Position": {
+      "X": 463.36,
+      "Y": 695.652,
+      "Z": 169.2327,
+      "Roll": 90.00115,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16913,
+    "Scale": 0.5671
+  },
+  {
+    "Id": 218,
+    "UnitId": 6383,
+    "Title": "Portal",
+    "Position": {
+      "X": 463.362,
+      "Y": 695.344,
+      "Z": 167.519,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16894,
+    "Scale": 0.5808
+  },
+  {
+    "Id": 217,
+    "UnitId": 6374,
+    "Title": "Portal",
+    "Position": {
+      "X": 463.358,
+      "Y": 693.724,
+      "Z": 167.535,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16869,
+    "Scale": 1.0
+  },
+  {
+    "Id": 215,
+    "UnitId": 6369,
+    "Title": "Howling Abyss Permanent Dungeon_Restricted Attack Area_4Boss",
+    "Position": {
+      "X": 467.748,
+      "Y": 630.764,
+      "Z": 166.8267,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16854,
+    "Scale": 1.0
+  },
+  {
+    "Id": 214,
+    "UnitId": 6369,
+    "Title": "Howling Abyss Permanent Dungeon_Restricted Attack Area_4Boss",
+    "Position": {
+      "X": 465.31,
+      "Y": 604.708,
+      "Z": 155.0893,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16854,
+    "Scale": 1.0
+  },
+  {
+    "Id": 213,
+    "UnitId": 6369,
+    "Title": "Howling Abyss Permanent Dungeon_Restricted Attack Area_4Boss",
+    "Position": {
+      "X": 464.926,
+      "Y": 632.728,
+      "Z": 166.8277,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16854,
+    "Scale": 1.0
+  },
+  {
+    "Id": 212,
+    "UnitId": 6369,
+    "Title": "Howling Abyss Permanent Dungeon_Restricted Attack Area_4Boss",
+    "Position": {
+      "X": 464.522,
+      "Y": 619.78,
+      "Z": 169.4868,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16854,
+    "Scale": 1.0
+  },
+  {
+    "Id": 211,
+    "UnitId": 6369,
+    "Title": "Howling Abyss Permanent Dungeon_Restricted Attack Area_4Boss",
+    "Position": {
+      "X": 459.43,
+      "Y": 630.524,
+      "Z": 166.8327,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16854,
+    "Scale": 1.0
+  },
+  {
+    "Id": 210,
+    "UnitId": 6369,
+    "Title": "Howling Abyss Permanent Dungeon_Restricted Attack Area_4Boss",
+    "Position": {
+      "X": 453.904,
+      "Y": 630.5,
+      "Z": 166.8397,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16854,
+    "Scale": 1.0
+  },
+  {
+    "Id": 209,
+    "UnitId": 6369,
+    "Title": "Howling Abyss Permanent Dungeon_Restricted Attack Area_4Boss",
+    "Position": {
+      "X": 448.202,
+      "Y": 630.334,
+      "Z": 166.8557,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16854,
+    "Scale": 1.0
+  },
+  {
+    "Id": 208,
+    "UnitId": 6369,
+    "Title": "Howling Abyss Permanent Dungeon_Restricted Attack Area_4Boss",
+    "Position": {
+      "X": 442.244,
+      "Y": 630.15,
+      "Z": 167.466,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16854,
+    "Scale": 1.0
+  },
+  {
+    "Id": 207,
+    "UnitId": 6368,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 470.724,
+      "Y": 637.002,
+      "Z": 166.2125,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.99961
+    },
+    "funcGroupId": 16852,
+    "Scale": 1.0
+  },
+  {
+    "Id": 206,
+    "UnitId": 6367,
+    "Title": "Howling_Water Backflow 1",
+    "Position": {
+      "X": 479.236,
+      "Y": 615.02,
+      "Z": 152.8904,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16847,
+    "Scale": 1.0
+  },
+  {
+    "Id": 205,
+    "UnitId": 6366,
+    "RelatedIds": [6367],
+    "Title": "Strange Device 5",
+    "Position": {
+      "X": 484.902,
+      "Y": 576.138,
+      "Z": 169.3137,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 125.002396
+    },
+    "funcGroupId": 36576,
+    "Scale": 1.0
+  },
+  {
+    "Id": 204,
+    "UnitId": 6365,
+    "RelatedIds": [6367],
+    "Title": "Strange Device 4",
+    "Position": {
+      "X": 469.198,
+      "Y": 585.826,
+      "Z": 154.5781,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.00115
+    },
+    "funcGroupId": 16841,
+    "Scale": 1.0
+  },
+  {
+    "Id": 203,
+    "UnitId": 6364,
+    "Title": "Lion Gate",
+    "Position": {
+      "X": 372.336,
+      "Y": 556.108,
+      "Z": 170.4441,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16833,
+    "Scale": 1.0
+  },
+  {
+    "Id": 202,
+    "UnitId": 6363,
+    "Title": "Iron Gate",
+    "Position": {
+      "X": 390.93,
+      "Y": 578.952,
+      "Z": 170.6162,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16834,
+    "Scale": 1.0
+  },
+  {
+    "Id": 201,
+    "UnitId": 6362,
+    "RelatedIds": [6363],
+    "Title": "Lion Statue",
+    "Position": {
+      "X": 390.882,
+      "Y": 574.688,
+      "Z": 172.506,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 110.999115
+    },
+    "funcGroupId": 16837,
+    "Scale": 0.76
+  },
+  {
+    "Id": 200,
+    "UnitId": 6361,
+    "RelatedIds": [6363],
+    "Title": "Lion Statue",
+    "Position": {
+      "X": 388.262,
+      "Y": 582.234,
+      "Z": 172.506,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 110.999115
+    },
+    "funcGroupId": 16829,
+    "Scale": 0.76
+  },
+  {
+    "Id": 199,
+    "UnitId": 6360,
+    "Title": "Howling Abyss Gate",
+    "Position": {
+      "X": 329.5,
+      "Y": 523.9,
+      "Z": 170.3851,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16826,
+    "Scale": 1.0
+  },
+  {
+    "Id": 198,
+    "UnitId": 6359,
+    "Title": "Howling Abyss Permanent Dungeon_Restricted Attack Area_3Boss",
+    "Position": {
+      "X": 363.96,
+      "Y": 515.196,
+      "Z": 170.184,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16823,
+    "Scale": 1.0
+  },
+  {
+    "Id": 185,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 435.828,
+      "Y": 595.012,
+      "Z": 170.188,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.9928
+  },
+  {
+    "Id": 184,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 434.348,
+      "Y": 591.302,
+      "Z": 170.2481,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.73
+  },
+  {
+    "Id": 183,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 433.186,
+      "Y": 591.114,
+      "Z": 170.3411,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.9928
+  },
+  {
+    "Id": 182,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 432.176,
+      "Y": 590.65,
+      "Z": 170.2451,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.6424
+  },
+  {
+    "Id": 181,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 396.524,
+      "Y": 547.066,
+      "Z": 180.7742,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.9928
+  },
+  {
+    "Id": 180,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 395.79,
+      "Y": 546.272,
+      "Z": 180.7062,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.6375
+  },
+  {
+    "Id": 179,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 395.286,
+      "Y": 544.378,
+      "Z": 180.0429,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 1.0
+  },
+  {
+    "Id": 178,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 395.1,
+      "Y": 545.534,
+      "Z": 180.348,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.80325
+  },
+  {
+    "Id": 177,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 394.796,
+      "Y": 554.664,
+      "Z": 181.8476,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.9928
+  },
+  {
+    "Id": 176,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 394.516,
+      "Y": 553.628,
+      "Z": 181.6495,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.6375
+  },
+  {
+    "Id": 175,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 393.76,
+      "Y": 553.006,
+      "Z": 181.3184,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.85
+  },
+  {
+    "Id": 174,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 392.962,
+      "Y": 552.36,
+      "Z": 181.1423,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.68
+  },
+  {
+    "Id": 173,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 388.782,
+      "Y": 543.234,
+      "Z": 178.9955,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.9928
+  },
+  {
+    "Id": 172,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 388.188,
+      "Y": 540.652,
+      "Z": 178.3492,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.9928
+  },
+  {
+    "Id": 171,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 374.942,
+      "Y": 523.176,
+      "Z": 173.5724,
+      "Roll": 9.235513,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.9928
+  },
+  {
+    "Id": 170,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 373.91,
+      "Y": 521.998,
+      "Z": 173.0752,
+      "Roll": 6.238524,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.9
+  },
+  {
+    "Id": 169,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 372.904,
+      "Y": 522.276,
+      "Z": 173.3973,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 65.59521
+    },
+    "funcGroupId": 16796,
+    "Scale": 1.0
+  },
+  {
+    "Id": 168,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 370.134,
+      "Y": 514.728,
+      "Z": 171.6476,
+      "Roll": 30.9275169,
+      "Pitch": 12.0467281,
+      "Yaw": 3.34403062
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.9928
+  },
+  {
+    "Id": 167,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 367.508,
+      "Y": 514.286,
+      "Z": 171.1434,
+      "Roll": 25.36128,
+      "Pitch": 72.89288,
+      "Yaw": 33.8889732
+    },
+    "funcGroupId": 16796,
+    "Scale": 0.83
+  },
+  {
+    "Id": 166,
+    "UnitId": 6349,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 366.882,
+      "Y": 513.366,
+      "Z": 170.6082,
+      "Roll": 19.7382832,
+      "Pitch": 19.2728138,
+      "Yaw": 3.383942
+    },
+    "funcGroupId": 16796,
+    "Scale": 1.0
+  },
+  {
+    "Id": 164,
+    "UnitId": 6347,
+    "RelatedIds": [6348],
+    "Title": "Howling Abyss Device",
+    "Position": {
+      "X": 489.55,
+      "Y": 537.732,
+      "Z": 191.2313,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16790,
+    "Scale": 0.54
+  },
+  {
+    "Id": 163,
+    "UnitId": 6346,
+    "Title": "Iron Gate",
+    "Position": {
+      "X": 498.252,
+      "Y": 551.358,
+      "Z": 189.8907,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 13.9989691
+    },
+    "funcGroupId": 16787,
+    "Scale": 1.0
+  },
+  {
+    "Id": 162,
+    "UnitId": 6345,
+    "RelatedIds": [6346],
+    "Title": "Strange Device",
+    "Position": {
+      "X": 505.568,
+      "Y": 540.098,
+      "Z": 189.8627,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 11.0014839
+    },
+    "funcGroupId": 16785,
+    "Scale": 1.0
+  },
+  {
+    "Id": 161,
+    "UnitId": 6345,
+    "RelatedIds": [6346],
+    "Title": "Strange Device",
+    "Position": {
+      "X": 504.648,
+      "Y": 538.266,
+      "Z": 189.8337,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16785,
+    "Scale": 1.0
+  },
+  {
+    "Id": 160,
+    "UnitId": 6345,
+    "RelatedIds": [6346],
+    "Title": "Strange Device",
+    "Position": {
+      "X": 503.938,
+      "Y": 541.19,
+      "Z": 189.8367,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16785,
+    "Scale": 1.0
+  },
+  {
+    "Id": 159,
+    "UnitId": 6344,
+    "Title": "Heavy Trade Pack",
+    "Position": {
+      "X": 511.748,
+      "Y": 526.454,
+      "Z": 189.6406,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 51.9995842
+    },
+    "funcGroupId": 16782,
+    "Scale": 1.0
+  },
+  {
+    "Id": 158,
+    "UnitId": 6344,
+    "Title": "Heavy Trade Pack",
+    "Position": {
+      "X": 508.194,
+      "Y": 531.55,
+      "Z": 189.6577,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 107.999641
+    },
+    "funcGroupId": 16782,
+    "Scale": 1.0
+  },
+  {
+    "Id": 157,
+    "UnitId": 6344,
+    "Title": "Heavy Trade Pack",
+    "Position": {
+      "X": 498.87,
+      "Y": 552.824,
+      "Z": 189.9198,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 51.0017166
+    },
+    "funcGroupId": 16782,
+    "Scale": 1.0
+  },
+  {
+    "Id": 155,
+    "UnitId": 6341,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 415.052,
+      "Y": 583.736,
+      "Z": 173.5123,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16770,
+    "Scale": 1.152
+  },
+  {
+    "Id": 154,
+    "UnitId": 6341,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 414.094,
+      "Y": 584.672,
+      "Z": 173.5073,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16770,
+    "Scale": 0.78
+  },
+  {
+    "Id": 153,
+    "UnitId": 6341,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 413.474,
+      "Y": 583.562,
+      "Z": 173.5264,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16770,
+    "Scale": 0.936
+  },
+  {
+    "Id": 152,
+    "UnitId": 6341,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 412.604,
+      "Y": 561.866,
+      "Z": 183.8334,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16770,
+    "Scale": 0.8
+  },
+  {
+    "Id": 151,
+    "UnitId": 6341,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 411.342,
+      "Y": 562.822,
+      "Z": 183.8544,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16770,
+    "Scale": 1.0
+  },
+  {
+    "Id": 150,
+    "UnitId": 6341,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 410.22,
+      "Y": 588.55,
+      "Z": 173.5324,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16770,
+    "Scale": 1.0
+  },
+  {
+    "Id": 149,
+    "UnitId": 6341,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 405.114,
+      "Y": 563.444,
+      "Z": 183.9134,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16770,
+    "Scale": 0.8
+  },
+  {
+    "Id": 148,
+    "UnitId": 6341,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 404.276,
+      "Y": 561.766,
+      "Z": 183.8534,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16770,
+    "Scale": 0.78
+  },
+  {
+    "Id": 147,
+    "UnitId": 6341,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 403.924,
+      "Y": 563.086,
+      "Z": 183.8634,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16770,
+    "Scale": 1.04
+  },
+  {
+    "Id": 146,
+    "UnitId": 6341,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 388.632,
+      "Y": 527.622,
+      "Z": 176.0093,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16770,
+    "Scale": 1.0
+  },
+  {
+    "Id": 145,
+    "UnitId": 6341,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 388.292,
+      "Y": 523.802,
+      "Z": 176.0333,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16770,
+    "Scale": 1.0
+  },
+  {
+    "Id": 136,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 464.462,
+      "Y": 645.34,
+      "Z": 166.8577,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 117,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 326.122,
+      "Y": 545.472,
+      "Z": 170.1961,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 116,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 317.646,
+      "Y": 563.894,
+      "Z": 170.6432,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 85,
+    "UnitId": 6288,
+    "Title": "Weeping Charnel House_Rising Water",
+    "Position": {
+      "X": 311.196,
+      "Y": 516.622,
+      "Z": 170.8393,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16636,
+    "Scale": 1.0
+  },
+  {
+    "Id": 83,
+    "UnitId": 6286,
+    "Title": "Awakening Hammer",
+    "Position": {
+      "X": 345.008,
+      "Y": 527.452,
+      "Z": 170.7203,
+      "Roll": 4.53231573,
+      "Pitch": 2.11075473,
+      "Yaw": 0.08353739
+    },
+    "funcGroupId": 16632,
+    "Scale": 1.0
+  },
+  {
+    "Id": 80,
+    "UnitId": 6284,
+    "Title": "Trieste Secret Weapon",
+    "Position": {
+      "X": 485.264,
+      "Y": 691.886,
+      "Z": 166.9728,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16627,
+    "Scale": 1.0
+  },
+  {
+    "Id": 79,
+    "UnitId": 6284,
+    "Title": "Trieste Secret Weapon",
+    "Position": {
+      "X": 468.128,
+      "Y": 692.798,
+      "Z": 166.9788,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16627,
+    "Scale": 1.0
+  },
+  {
+    "Id": 78,
+    "UnitId": 6284,
+    "Title": "Trieste Secret Weapon",
+    "Position": {
+      "X": 458.274,
+      "Y": 648.604,
+      "Z": 166.9118,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 153.997147
+    },
+    "funcGroupId": 16627,
+    "Scale": 1.0
+  },
+  {
+    "Id": 77,
+    "UnitId": 6284,
+    "Title": "Trieste Secret Weapon",
+    "Position": {
+      "X": 447.88,
+      "Y": 692.248,
+      "Z": 167.1489,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 42.00134
+    },
+    "funcGroupId": 16627,
+    "Scale": 1.0
+  },
+  {
+    "Id": 76,
+    "UnitId": 6284,
+    "Title": "Trieste Secret Weapon",
+    "Position": {
+      "X": 359.274,
+      "Y": 560.11,
+      "Z": 170.9123,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16627,
+    "Scale": 1.0
+  },
+  {
+    "Id": 75,
+    "UnitId": 6284,
+    "Title": "Trieste Secret Weapon",
+    "Position": {
+      "X": 357.504,
+      "Y": 557.596,
+      "Z": 170.3611,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16627,
+    "Scale": 1.0
+  },
+  {
+    "Id": 74,
+    "UnitId": 6284,
+    "Title": "Trieste Secret Weapon",
+    "Position": {
+      "X": 354.376,
+      "Y": 573.682,
+      "Z": 170.9193,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16627,
+    "Scale": 1.0
+  },
+  {
+    "Id": 73,
+    "UnitId": 6284,
+    "Title": "Trieste Secret Weapon",
+    "Position": {
+      "X": 351.408,
+      "Y": 573.394,
+      "Z": 170.9884,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 53.0017052
+    },
+    "funcGroupId": 16627,
+    "Scale": 1.0
+  },
+  {
+    "Id": 72,
+    "UnitId": 6283,
+    "Title": "Mirror Shield",
+    "Position": {
+      "X": 487.13,
+      "Y": 695.414,
+      "Z": 167.8011,
+      "Roll": 0.340266138,
+      "Pitch": -0.533758759,
+      "Yaw": 114.965973
+    },
+    "funcGroupId": 16625,
+    "Scale": 1.0
+  },
+  {
+    "Id": 71,
+    "UnitId": 6283,
+    "Title": "Mirror Shield",
+    "Position": {
+      "X": 484.258,
+      "Y": 648.87,
+      "Z": 167.1659,
+      "Roll": 5.450636,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16625,
+    "Scale": 1.0
+  },
+  {
+    "Id": 69,
+    "UnitId": 6283,
+    "Title": "Mirror Shield",
+    "Position": {
+      "X": 449.004,
+      "Y": 646.888,
+      "Z": 167.3189,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16625,
+    "Scale": 1.0
+  },
+  {
+    "Id": 68,
+    "UnitId": 6283,
+    "Title": "Mirror Shield",
+    "Position": {
+      "X": 442.342,
+      "Y": 691.136,
+      "Z": 167.429,
+      "Roll": 0.6353028,
+      "Pitch": -1.75622535,
+      "Yaw": 140.228
+    },
+    "funcGroupId": 16625,
+    "Scale": 1.0
+  },
+  {
+    "Id": 66,
+    "UnitId": 6277,
+    "Title": "Caleil's Water Chamber_Float",
+    "Position": {
+      "X": 340.57,
+      "Y": 514.946,
+      "Z": 169.5058,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16612,
+    "Scale": 1.0
+  },
+  {
+    "Id": 61,
+    "UnitId": 6276,
+    "Title": "Drain",
+    "Position": {
+      "X": 349.362,
+      "Y": 523.846,
+      "Z": 170.7243,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16610,
+    "Scale": 1.0
+  },
+  {
+    "Id": 59,
+    "UnitId": 6276,
+    "Title": "Drain",
+    "Position": {
+      "X": 337.666,
+      "Y": 525.636,
+      "Z": 170.8473,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 3.00090933
+    },
+    "funcGroupId": 16610,
+    "Scale": 1.0
+  },
+  {
+    "Id": 57,
+    "UnitId": 6276,
+    "Title": "Drain",
+    "Position": {
+      "X": 335.402,
+      "Y": 524.77,
+      "Z": 170.8383,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 1.00020146
+    },
+    "funcGroupId": 16610,
+    "Scale": 1.0
+  },
+  {
+    "Id": 55,
+    "UnitId": 6276,
+    "Title": "Drain",
+    "Position": {
+      "X": 324.574,
+      "Y": 520.84,
+      "Z": 170.8573,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 1.00020146
+    },
+    "funcGroupId": 16610,
+    "Scale": 1.0
+  },
+  {
+    "Id": 50,
+    "UnitId": 5977,
+    "Title": "Vine",
+    "Position": {
+      "X": 506.142,
+      "Y": 531.16,
+      "Z": 149.8502,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 15405,
+    "Scale": 1.0
+  },
+  {
+    "Id": 49,
+    "UnitId": 5757,
+    "Title": "Musperosa's Diary, Entry #8",
+    "Position": {
+      "X": 445.572,
+      "Y": 643.814,
+      "Z": 180.9823,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 119.999611
+    },
+    "funcGroupId": 14756,
+    "Scale": 1.0
+  },
+  {
+    "Id": 48,
+    "UnitId": 5756,
+    "Title": "Musperosa's Diary, Entry #7",
+    "Position": {
+      "X": 503.422,
+      "Y": 708.184,
+      "Z": 180.9412,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 114.997353
+    },
+    "funcGroupId": 14755,
+    "Scale": 1.0
+  },
+  {
+    "Id": 47,
+    "UnitId": 5755,
+    "Title": "Musperosa's Diary, Entry #6",
+    "Position": {
+      "X": 457.284,
+      "Y": 710.65,
+      "Z": 181.0313,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 168.994644
+    },
+    "funcGroupId": 14754,
+    "Scale": 1.0
+  },
+  {
+    "Id": 46,
+    "UnitId": 5754,
+    "Title": "Musperosa's Diary, Entry #5",
+    "Position": {
+      "X": 470.426,
+      "Y": 632.018,
+      "Z": 181.2804,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14753,
+    "Scale": 1.0
+  },
+  {
+    "Id": 45,
+    "UnitId": 5753,
+    "Title": "Musperosa's Diary, Entry #4",
+    "Position": {
+      "X": 480.686,
+      "Y": 633.11,
+      "Z": 181.9747,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14752,
+    "Scale": 1.0
+  },
+  {
+    "Id": 44,
+    "UnitId": 5752,
+    "Title": "Musperosa's Diary, Entry #3",
+    "Position": {
+      "X": 504.044,
+      "Y": 667.724,
+      "Z": 182.796,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 135.002182
+    },
+    "funcGroupId": 14751,
+    "Scale": 1.0
+  },
+  {
+    "Id": 43,
+    "UnitId": 5751,
+    "Title": "Musperosa's Diary, Entry #2",
+    "Position": {
+      "X": 488.51,
+      "Y": 631.884,
+      "Z": 171.9767,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 47.00072
+    },
+    "funcGroupId": 14750,
+    "Scale": 1.0
+  },
+  {
+    "Id": 42,
+    "UnitId": 5750,
+    "Title": "Musperosa's Diary, Entry #1",
+    "Position": {
+      "X": 469.474,
+      "Y": 630.21,
+      "Z": 166.7807,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 42.99945
+    },
+    "funcGroupId": 14749,
+    "Scale": 1.0
+  },
+  {
+    "Id": 35,
+    "UnitId": 5708,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 464.918,
+      "Y": 586.51,
+      "Z": 170.2571,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 14648,
+    "Scale": 1.0
+  },
+  {
+    "Id": 34,
+    "UnitId": 5708,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 460.814,
+      "Y": 585.394,
+      "Z": 170.2571,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 14648,
+    "Scale": 1.0
+  },
+  {
+    "Id": 33,
+    "UnitId": 5708,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 459.386,
+      "Y": 586.99,
+      "Z": 170.2691,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14648,
+    "Scale": 1.0
+  },
+  {
+    "Id": 32,
+    "UnitId": 5708,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 455.508,
+      "Y": 588.742,
+      "Z": 170.2691,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14648,
+    "Scale": 1.0
+  },
+  {
+    "Id": 31,
+    "UnitId": 5708,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 452.872,
+      "Y": 591.716,
+      "Z": 170.2691,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14648,
+    "Scale": 1.0
+  },
+  {
+    "Id": 30,
+    "UnitId": 5708,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 449.902,
+      "Y": 594.156,
+      "Z": 170.2471,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14648,
+    "Scale": 1.0
+  },
+  {
+    "Id": 29,
+    "UnitId": 5708,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 449.608,
+      "Y": 598.324,
+      "Z": 170.2921,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14648,
+    "Scale": 1.0
+  },
+  {
+    "Id": 28,
+    "UnitId": 5708,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 447.074,
+      "Y": 602.03,
+      "Z": 170.2361,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14648,
+    "Scale": 1.0
+  },
+  {
+    "Id": 22,
+    "UnitId": 5706,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 464.844,
+      "Y": 585.466,
+      "Z": 170.2571,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 14640,
+    "Scale": 1.0
+  },
+  {
+    "Id": 21,
+    "UnitId": 5706,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 460.89,
+      "Y": 586.448,
+      "Z": 170.2571,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 14640,
+    "Scale": 1.0
+  },
+  {
+    "Id": 20,
+    "UnitId": 5706,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 458.88,
+      "Y": 586.29,
+      "Z": 170.2691,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14640,
+    "Scale": 1.0
+  },
+  {
+    "Id": 19,
+    "UnitId": 5706,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 456.002,
+      "Y": 589.44,
+      "Z": 170.2691,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14640,
+    "Scale": 1.0
+  },
+  {
+    "Id": 18,
+    "UnitId": 5706,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 452.368,
+      "Y": 591.016,
+      "Z": 170.2691,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14640,
+    "Scale": 1.0
+  },
+  {
+    "Id": 17,
+    "UnitId": 5706,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 450.78,
+      "Y": 594.504,
+      "Z": 170.2921,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14640,
+    "Scale": 1.0
+  },
+  {
+    "Id": 16,
+    "UnitId": 5706,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 448.728,
+      "Y": 597.988,
+      "Z": 170.2471,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14640,
+    "Scale": 1.0
+  },
+  {
+    "Id": 15,
+    "UnitId": 5706,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 448.06,
+      "Y": 595.77,
+      "Z": 170.5692,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14640,
+    "Scale": 1.0
+  },
+  {
+    "Id": 14,
+    "UnitId": 5706,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 447.984,
+      "Y": 602.252,
+      "Z": 170.2791,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14640,
+    "Scale": 1.0
+  },
+  {
+    "Id": 13,
+    "UnitId": 5518,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 496.806,
+      "Y": 536.774,
+      "Z": 189.6547,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14147,
+    "Scale": 1.0
+  },
+  {
+    "Id": 12,
+    "UnitId": 5518,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 493.286,
+      "Y": 535.656,
+      "Z": 189.6436,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14147,
+    "Scale": 1.0
+  },
+  {
+    "Id": 11,
+    "UnitId": 5517,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 495.702,
+      "Y": 540.09,
+      "Z": 189.6567,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14144,
+    "Scale": 1.0
+  },
+  {
+    "Id": 10,
+    "UnitId": 5517,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 491.512,
+      "Y": 539.582,
+      "Z": 189.6376,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14144,
+    "Scale": 1.0
+  },
+  {
+    "Id": 9,
+    "UnitId": 5516,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 495.148,
+      "Y": 543.138,
+      "Z": 189.6296,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14140,
+    "Scale": 1.0
+  },
+  {
+    "Id": 8,
+    "UnitId": 5516,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 491.172,
+      "Y": 542.834,
+      "Z": 189.6096,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14140,
+    "Scale": 1.0
+  },
+  {
+    "Id": 6,
+    "UnitId": 5148,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 494.616,
+      "Y": 546.524,
+      "Z": 189.6206,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 13414,
+    "Scale": 1.0
+  },
+  {
+    "Id": 5,
+    "UnitId": 5148,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 490.77,
+      "Y": 546.09,
+      "Z": 189.5816,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 13414,
+    "Scale": 1.0
+  },
+  {
+    "Id": 4,
+    "UnitId": 5147,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 493.976,
+      "Y": 549.874,
+      "Z": 189.6026,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 13411,
+    "Scale": 1.0
+  },
+  {
+    "Id": 3,
+    "UnitId": 5147,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 490.082,
+      "Y": 549.362,
+      "Z": 189.5716,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 13411,
+    "Scale": 1.0
+  },
+  {
+    "Id": 2,
+    "UnitId": 3244,
+    "Title": "Ladder",
+    "Position": {
+      "X": 470.502,
+      "Y": 618.814,
+      "Z": 169.5728,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 7393,
+    "Scale": 1.0
+  },
+  {
+    "Id": 1,
+    "UnitId": 804,
+    "Title": "5m Ladder",
+    "Position": {
+      "X": 482.484,
+      "Y": 579.526,
+      "Z": 164.4208,
+      "Roll": 7.00118876,
+      "Pitch": 0.00132939941,
+      "Yaw": 35.00066
+    },
+    "funcGroupId": 140,
+    "Scale": 1.0
+  },
+  {
+    "Id": 255,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 522.002,
+      "Y": 503.206,
+      "Z": 187.4948,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 254,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 521.236,
+      "Y": 504.82,
+      "Z": 187.7019,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 253,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 520.914,
+      "Y": 505.558,
+      "Z": 187.3818,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 194,
+    "UnitId": 6354,
+    "RelatedIds": [6351, 6355],
+    "Title": "Hidden Device",
+    "Position": {
+      "X": 541.816,
+      "Y": 445.044,
+      "Z": 187.5748,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 106.000641
+    },
+    "funcGroupId": 16809,
+    "Scale": 1.0
+  },
+  {
+    "Id": 193,
+    "UnitId": 6353,
+    "Title": "Hidden Door",
+    "Position": {
+      "X": 538.588,
+      "Y": 451.884,
+      "Z": 186.7255,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 107.000137
+    },
+    "funcGroupId": 16806,
+    "Scale": 1.42
+  },
+  {
+    "Id": 192,
+    "UnitId": 6352,
+    "Title": "Howling Abyss Teleport_Invisible Creature",
+    "Position": {
+      "X": 529.118,
+      "Y": 477.38,
+      "Z": 187.6749,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16804,
+    "Scale": 1.0
+  },
+  {
+    "Id": 137,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 521.638,
+      "Y": 504.036,
+      "Z": 187.4888,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 100,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 552.326,
+      "Y": 459.044,
+      "Z": 201.5983,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 1.0
+  },
+  {
+    "Id": 99,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 551.294,
+      "Y": 457.79,
+      "Z": 202.1855,
+      "Roll": 90.00115,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 1.0
+  },
+  {
+    "Id": 98,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 549.794,
+      "Y": 456.984,
+      "Z": 201.5663,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 1.0
+  },
+  {
+    "Id": 97,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 546.892,
+      "Y": 456.12,
+      "Z": 202.1015,
+      "Roll": 66.1327057,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 1.0
+  },
+  {
+    "Id": 96,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 545.744,
+      "Y": 457.36,
+      "Z": 201.5703,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 1.0
+  },
+  {
+    "Id": 95,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 533.134,
+      "Y": 450.722,
+      "Z": 201.5133,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 1.0
+  },
+  {
+    "Id": 94,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 532.112,
+      "Y": 451.396,
+      "Z": 201.6723,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.761904
+  },
+  {
+    "Id": 93,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 531.968,
+      "Y": 450.138,
+      "Z": 201.5533,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.86
+  },
+  {
+    "Id": 92,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 531.618,
+      "Y": 452.232,
+      "Z": 201.5873,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.66
+  },
+  {
+    "Id": 91,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 531.106,
+      "Y": 451.07,
+      "Z": 201.5343,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.571428
+  },
+  {
+    "Id": 90,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 528.632,
+      "Y": 448.146,
+      "Z": 202.1365,
+      "Roll": 44.6580658,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 1.0
+  },
+  {
+    "Id": 89,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 528.252,
+      "Y": 449.814,
+      "Z": 201.5703,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.78
+  },
+  {
+    "Id": 88,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 525.218,
+      "Y": 449.224,
+      "Z": 201.5603,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.78
+  },
+  {
+    "Id": 87,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 525.082,
+      "Y": 450.428,
+      "Z": 201.8174,
+      "Roll": 89.9985046,
+      "Pitch": 0.000760851661,
+      "Yaw": 54.00081
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.455988
+  },
+  {
+    "Id": 86,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 524.528,
+      "Y": 450.076,
+      "Z": 201.5703,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.5772
+  },
+  {
+    "Id": 52,
+    "UnitId": 5977,
+    "Title": "Vine",
+    "Position": {
+      "X": 739.302,
+      "Y": 374.028,
+      "Z": 119.9996,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 15405,
+    "Scale": 1.0
+  },
+  {
+    "Id": 285,
+    "UnitId": 6327,
+    "Title": "Treasure Chest",
+    "Position": {
+      "X": 591.278,
+      "Y": 717.672,
+      "Z": 194.1574,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 144.994827
+    },
+    "funcGroupId": 16729,
+    "Scale": 1.0
+  },
+  {
+    "Id": 191,
+    "UnitId": 6351,
+    "RelatedIds": [6361],
+    "Title": "Howling Abyss Teleportation",
+    "Position": {
+      "X": 688.556,
+      "Y": 734.976,
+      "Z": 185.2339,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16803,
+    "Scale": 1.0
+  },
+  {
+    "Id": 190,
+    "UnitId": 6350,
+    "Title": "Howling Abyss Permanent Dungeon_Restricted Attack Area_2Boss",
+    "Position": {
+      "X": 533.524,
+      "Y": 523.132,
+      "Z": 199.7446,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16799,
+    "Scale": 1.0
+  },
+  {
+    "Id": 189,
+    "UnitId": 6350,
+    "Title": "Howling Abyss Permanent Dungeon_Restricted Attack Area_2Boss",
+    "Position": {
+      "X": 530.804,
+      "Y": 517.896,
+      "Z": 187.4158,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16799,
+    "Scale": 1.0
+  },
+  {
+    "Id": 188,
+    "UnitId": 6350,
+    "Title": "Howling Abyss Permanent Dungeon_Restricted Attack Area_2Boss",
+    "Position": {
+      "X": 523.1,
+      "Y": 515.25,
+      "Z": 187.4578,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16799,
+    "Scale": 1.0
+  },
+  {
+    "Id": 187,
+    "UnitId": 6350,
+    "Title": "Howling Abyss Permanent Dungeon_Restricted Attack Area_2Boss",
+    "Position": {
+      "X": 517.578,
+      "Y": 513.114,
+      "Z": 187.4758,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16799,
+    "Scale": 1.0
+  },
+  {
+    "Id": 186,
+    "UnitId": 6350,
+    "Title": "Howling Abyss Permanent Dungeon_Restricted Attack Area_2Boss",
+    "Position": {
+      "X": 515.154,
+      "Y": 512.34,
+      "Z": 187.4298,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16799,
+    "Scale": 1.0
+  },
+  {
+    "Id": 165,
+    "UnitId": 6348,
+    "Title": "Iron Gate",
+    "Position": {
+      "X": 516.092,
+      "Y": 519.166,
+      "Z": 202.1845,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16793,
+    "Scale": 1.0
+  },
+  {
+    "Id": 156,
+    "UnitId": 6341,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 556.108,
+      "Y": 540.16,
+      "Z": 192.9279,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16770,
+    "Scale": 1.0
+  },
+  {
+    "Id": 144,
+    "UnitId": 6335,
+    "RelatedIds": [6334],
+    "Title": "Lion Statue",
+    "Position": {
+      "X": 660.818,
+      "Y": 572.814,
+      "Z": 198.5921,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 17548,
+    "Scale": 1.0
+  },
+  {
+    "Id": 143,
+    "UnitId": 6334,
+    "Title": "Howling Ranch Exit",
+    "Position": {
+      "X": 664.628,
+      "Y": 571.116,
+      "Z": 196.9405,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 85.99981
+    },
+    "funcGroupId": 16752,
+    "Scale": 1.0
+  },
+  {
+    "Id": 142,
+    "UnitId": 6333,
+    "Title": "Sturdy Explosive Keg",
+    "Position": {
+      "X": 683.416,
+      "Y": 607.424,
+      "Z": 196.5263,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16749,
+    "Scale": 1.52
+  },
+  {
+    "Id": 141,
+    "UnitId": 6333,
+    "Title": "Sturdy Explosive Keg",
+    "Position": {
+      "X": 682.18,
+      "Y": 572.596,
+      "Z": 196.5393,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16749,
+    "Scale": 1.52
+  },
+  {
+    "Id": 140,
+    "UnitId": 6333,
+    "Title": "Sturdy Explosive Keg",
+    "Position": {
+      "X": 648.7,
+      "Y": 609.624,
+      "Z": 196.4833,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16749,
+    "Scale": 1.52
+  },
+  {
+    "Id": 139,
+    "UnitId": 6333,
+    "Title": "Sturdy Explosive Keg",
+    "Position": {
+      "X": 646.546,
+      "Y": 573.932,
+      "Z": 196.5023,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16749,
+    "Scale": 1.52
+  },
+  {
+    "Id": 138,
+    "UnitId": 6332,
+    "Title": "Stone Gate",
+    "Position": {
+      "X": 666.36,
+      "Y": 610.504,
+      "Z": 196.3173,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16747,
+    "Scale": 1.0
+  },
+  {
+    "Id": 134,
+    "UnitId": 6331,
+    "Title": "Howling Abyss Permanent Dungeon_Restricted Attack Area_1Boss",
+    "Position": {
+      "X": 667.748,
+      "Y": 630.004,
+      "Z": 192.9369,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16743,
+    "Scale": 1.0
+  },
+  {
+    "Id": 133,
+    "UnitId": 6330,
+    "Title": "Stacked Lumber",
+    "Position": {
+      "X": 668.396,
+      "Y": 643.48,
+      "Z": 194.1524,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16738,
+    "Scale": 1.0
+  },
+  {
+    "Id": 132,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 682.272,
+      "Y": 586.322,
+      "Z": 196.6774,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 131,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 677.886,
+      "Y": 664.406,
+      "Z": 190.662,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 130,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 670.286,
+      "Y": 658.594,
+      "Z": 190.7681,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 129,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 669.72,
+      "Y": 608.078,
+      "Z": 196.7334,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 128,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 667.962,
+      "Y": 573.656,
+      "Z": 196.7384,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 127,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 663.126,
+      "Y": 644.53,
+      "Z": 193.6672,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 126,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 661.378,
+      "Y": 661.708,
+      "Z": 190.7281,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 125,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 659.75,
+      "Y": 562.85,
+      "Z": 196.9085,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 124,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 656.554,
+      "Y": 672.322,
+      "Z": 190.9402,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 123,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 652.552,
+      "Y": 664.318,
+      "Z": 190.662,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 122,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 648.004,
+      "Y": 588.132,
+      "Z": 196.6884,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 121,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 609.616,
+      "Y": 536.716,
+      "Z": 193.231,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 120,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 590.732,
+      "Y": 552.632,
+      "Z": 192.8109,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 119,
+    "UnitId": 6329,
+    "Title": "Torch",
+    "Position": {
+      "X": 563.786,
+      "Y": 539.26,
+      "Z": 193.194,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16736,
+    "Scale": 1.0
+  },
+  {
+    "Id": 115,
+    "UnitId": 6328,
+    "Title": "Howling Ranch Gate",
+    "Position": {
+      "X": 644.3,
+      "Y": 668.814,
+      "Z": 191.0452,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16733,
+    "Scale": 1.0
+  },
+  {
+    "Id": 114,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 636.29,
+      "Y": 670.436,
+      "Z": 193.037,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 1.0
+  },
+  {
+    "Id": 113,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 635.946,
+      "Y": 667.162,
+      "Z": 192.995,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 1.0
+  },
+  {
+    "Id": 112,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 635.668,
+      "Y": 671.35,
+      "Z": 192.8939,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.67
+  },
+  {
+    "Id": 111,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 635.34,
+      "Y": 666.246,
+      "Z": 193.2951,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.5628
+  },
+  {
+    "Id": 110,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 635.286,
+      "Y": 670.236,
+      "Z": 192.8769,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.5628
+  },
+  {
+    "Id": 109,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 621.294,
+      "Y": 651.762,
+      "Z": 193.4611,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.5628
+  },
+  {
+    "Id": 108,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 620.71,
+      "Y": 650.72,
+      "Z": 193.3831,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 1.0
+  },
+  {
+    "Id": 107,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 617.342,
+      "Y": 686.074,
+      "Z": 193.7192,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.67
+  },
+  {
+    "Id": 106,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 616.996,
+      "Y": 685.21,
+      "Z": 193.7513,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.5628
+  },
+  {
+    "Id": 105,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 616.844,
+      "Y": 651.734,
+      "Z": 193.4151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.5628
+  },
+  {
+    "Id": 104,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 616.124,
+      "Y": 685.912,
+      "Z": 193.7402,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 1.0
+  },
+  {
+    "Id": 103,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 615.994,
+      "Y": 651.244,
+      "Z": 193.3991,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 1.0
+  },
+  {
+    "Id": 102,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 612.604,
+      "Y": 683.788,
+      "Z": 193.8363,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 0.5628
+  },
+  {
+    "Id": 101,
+    "UnitId": 6326,
+    "Title": "Explosive Keg",
+    "Position": {
+      "X": 611.682,
+      "Y": 684.38,
+      "Z": 193.7983,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 16725,
+    "Scale": 1.0
+  },
+  {
+    "Id": 51,
+    "UnitId": 5977,
+    "Title": "Vine",
+    "Position": {
+      "X": 635.252,
+      "Y": 659.822,
+      "Z": 148.7048,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 50.00026
+    },
+    "funcGroupId": 15405,
+    "Scale": 1.0
+  },
+  {
+    "Id": 41,
     "UnitId": 5711,
+    "Title": "Howling Abyss Exit",
     "Position": {
-      "X": 703.9,
-      "Y": 723.7,
-      "Z": 184.9,
-      "Yaw": 77.3644
-    }
+      "X": 704.422,
+      "Y": 723.488,
+      "Z": 184.8728,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14652,
+    "Scale": 0.96
   },
   {
-    "UnitId": 5977,
+    "Id": 40,
+    "UnitId": 5708,
+    "Title": "Metal Gate",
     "Position": {
-      "X": 635.2,
-      "Y": 659.8,
-      "Z": 178.5,
-      "Yaw": 66.3058
-    }
+      "X": 679.9,
+      "Y": 730.1,
+      "Z": 184.7457,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14648,
+    "Scale": 1.0
   },
   {
-    "UnitId": 5977,
+    "Id": 39,
+    "UnitId": 5708,
+    "Title": "Metal Gate",
     "Position": {
-      "X": 506.3,
-      "Y": 530.6,
-      "Z": 149.7,
-      "Yaw": -77.3644
-    }
+      "X": 677.774,
+      "Y": 730.748,
+      "Z": 184.7457,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14648,
+    "Scale": 1.0
+  },
+  {
+    "Id": 38,
+    "UnitId": 5708,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 675.992,
+      "Y": 731.368,
+      "Z": 184.7457,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14648,
+    "Scale": 1.0
+  },
+  {
+    "Id": 37,
+    "UnitId": 5708,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 673.876,
+      "Y": 732.034,
+      "Z": 184.7457,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14648,
+    "Scale": 1.0
+  },
+  {
+    "Id": 36,
+    "UnitId": 5708,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 671.778,
+      "Y": 732.762,
+      "Z": 184.7457,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14648,
+    "Scale": 1.0
+  },
+  {
+    "Id": 27,
+    "UnitId": 5706,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 680.79,
+      "Y": 729.798,
+      "Z": 184.7457,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14640,
+    "Scale": 1.0
+  },
+  {
+    "Id": 26,
+    "UnitId": 5706,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 679.008,
+      "Y": 730.416,
+      "Z": 184.7457,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14640,
+    "Scale": 1.0
+  },
+  {
+    "Id": 25,
+    "UnitId": 5706,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 676.884,
+      "Y": 731.052,
+      "Z": 184.7457,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14640,
+    "Scale": 1.0
+  },
+  {
+    "Id": 24,
+    "UnitId": 5706,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 674.784,
+      "Y": 731.778,
+      "Z": 184.7457,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14640,
+    "Scale": 1.0
+  },
+  {
+    "Id": 23,
+    "UnitId": 5706,
+    "Title": "Metal Gate",
+    "Position": {
+      "X": 672.986,
+      "Y": 732.35,
+      "Z": 184.7457,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 14640,
+    "Scale": 1.0
   }
 ]
