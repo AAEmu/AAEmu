@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Linq;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -28,7 +26,8 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
     {
         Logger.Info($"NpcSpawnerSpawnEffect: SpawnerId={SpawnerId}, LifeTime={LifeTime}, UseSummonerAggroTarget={UseSummonerAggroTarget}, ActivationState={ActivationState}");
 
-        var spawners = SpawnManager.Instance.GetNpcSpawner(SpawnerId, (byte)caster.Transform.WorldId);
+        var world = WorldManager.Instance.GetWorldByZone(caster.Transform.ZoneId);
+        var spawners = SpawnManager.Instance.GetNpcSpawner(SpawnerId, (byte)world.TemplateId);
         if (spawners == null || spawners.Count == 0)
         {
             Logger.Info($"NpcSpawnerSpawnEffect: SpawnerId={SpawnerId} not found in spawners.");

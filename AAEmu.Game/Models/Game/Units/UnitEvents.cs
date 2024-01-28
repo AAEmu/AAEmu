@@ -26,7 +26,6 @@ public class UnitEvents
     public EventHandler<OnMovementArgs> OnMovement = delegate { }; // Only for walking? Or Movement in general?
     public EventHandler<OnChannelingCancelArgs> OnChannelingCancel = delegate { }; //This one might need fixing
     //public EventHandler<OnRemoveOnDamagedArgs> OnRemoveOnDamaged = delegate { }; // Covered by OnDamaged? Maybe?
-    public EventHandler<OnDeathArgs> OnDeath = delegate { };
     public EventHandler<OnUnmountArgs> OnUnmount = delegate { };
     public EventHandler<OnKillArgs> OnKill = delegate { };
     //public EventHandler<OnDamagedCollisionArgs> OnDamagedCollision = delegate { };//I think for ships
@@ -67,6 +66,7 @@ public class UnitEvents
     public EventHandler<InIdleArgs> InIdle = delegate { };
     public EventHandler<InAlertArgs> InAlert = delegate { };
     public EventHandler<InDeadArgs> InDead = delegate { };
+    public EventHandler<OnDeathArgs> OnDeath = delegate { };
     public EventHandler<OnSpawnArgs> OnSpawn = delegate { };
     public EventHandler<OnDespawnArgs> OnDespawn = delegate { };
 }

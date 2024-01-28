@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units.Route;
@@ -33,6 +32,14 @@ public class NpcSpawnerNpc : Spawner<Npc>
     public NpcSpawnerNpc(uint spawnerTemplateId)
     {
         NpcSpawnerTemplateId = spawnerTemplateId;
+    }
+
+    public NpcSpawnerNpc(uint spawnerTemplateId, uint memberId)
+    {
+        NpcSpawnerTemplateId = spawnerTemplateId;
+        MemberId = memberId;
+        UnitId = memberId;
+        MemberType = "Npc";
     }
 
     public List<Npc> Spawn(NpcSpawner npcSpawner, uint quantity = 1, uint maxPopulation = 1)
@@ -79,6 +86,9 @@ public class NpcSpawnerNpc : Spawner<Npc>
                 return null;
             }
 
+            npc.Transform.InstanceId = npc.Transform.WorldId;
+            npc.InstanceId = npc.Transform.WorldId;
+
             if (npc.Ai != null)
             {
                 npc.Ai.IdlePosition = npc.Transform.CloneDetached();
@@ -104,17 +114,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
             }
 
             var world = WorldManager.Instance.GetWorld(npc.Transform.WorldId);
-            if (npc.Transform.WorldId is > 0)
-            {
-                // Temporary range for instanced worlds
-                var dungeon = IndunManager.Instance.GetDungeonByWorldId(npc.Transform.WorldId);
-                if (dungeon is not null)
-                {
-                    dungeon.RegisterNpcEvents(npc);
-                    world.Events.OnUnitSpawn(world, new OnUnitSpawnArgs { Npc = npc });
-                }
-            }
-
+            world.Events.OnUnitSpawn(world, new OnUnitSpawnArgs { Npc = npc });
             npc.Simulation = new Simulation(npc);
             npcs.Add(npc);
         }
