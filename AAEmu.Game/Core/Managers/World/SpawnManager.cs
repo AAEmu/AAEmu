@@ -62,6 +62,10 @@ public class SpawnManager : Singleton<SpawnManager>
                 npcSpawner.NpcSpawnerIds.Add(id);
                 npcSpawner.Id = id;
                 npcSpawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(id);
+                foreach (var n in npcSpawner.Template.Npcs)
+                {
+                    n.Position = npcSpawner.Position;
+                }
             }
             spawners.Add(npcSpawner);
             _npcSpawners[(byte)npcSpawner.Position.WorldId].Add(_nextId, spawners);
@@ -74,7 +78,11 @@ public class SpawnManager : Singleton<SpawnManager>
             foreach (var id in npcSpawner.NpcSpawnerIds)
             {
                 npcSpawner.Id = id;
-                npcSpawner.Template = new NpcSpawnerTemplate(id);
+                npcSpawner.Template = new NpcSpawnerTemplate(id, npcSpawner.UnitId);
+                foreach (var n in npcSpawner.Template.Npcs)
+                {
+                    n.Position = npcSpawner.Position;
+                }
             }
             spawners.Add(npcSpawner);
             _npcEventSpawners[(byte)npcSpawner.Position.WorldId].Add(_nextId, spawners);
@@ -955,5 +963,15 @@ public class SpawnManager : Singleton<SpawnManager>
 
             return spawner;
         }
+    }
+
+    public bool CloneNpcEventSpawners(byte from, byte to)
+    {
+        _npcEventSpawners.TryGetValue(from, out var value);
+        return _npcEventSpawners.TryAdd(to, value);
+    }
+    public bool RemoveNpcEventSpawners(byte from)
+    {
+        return _npcEventSpawners.Remove(from, out _);
     }
 }

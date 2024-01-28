@@ -44,8 +44,8 @@ public class NpcSpawner : Spawner<Npc>
         _spawned = new List<Npc>();
         Count = 1;
         NpcSpawnerIds = new List<uint>();
-        Template = new NpcSpawnerTemplate();
-        _lastSpawn = new Npc();
+        Template = null;
+        _lastSpawn = null;
     }
 
     /// <summary>
@@ -271,7 +271,7 @@ public class NpcSpawner : Spawner<Npc>
             }
 
             _lastSpawn = _spawned[^1];
-            _lastSpawn.Spawner = this;
+            //_lastSpawn.Spawner = this;
         }
 
         if (_isScheduled)
@@ -591,10 +591,12 @@ public class NpcSpawner : Spawner<Npc>
         _lastSpawn = n[^1];
         _lastSpawn.Spawner = this;
     }
-    
+
     public void ClearSpawnCount()
     {
         _spawnCount = 0;
+        _spawned = new List<Npc>();
+        _lastSpawn = null;
     }
 
     public bool CanSpawn()

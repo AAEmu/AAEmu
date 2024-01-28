@@ -1307,7 +1307,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         // Apply Data to world
         var newInstance = new InstanceWorld();
         newInstance.Id = WorldIdManager.Instance.GetNextId();
-        newInstance.TemplateId = originalWorld.Id;
+        newInstance.TemplateId = originalWorld.TemplateId;
         newInstance.Name = originalWorld.Name;
         newInstance.CellX = originalWorld.CellX;
         newInstance.CellY = originalWorld.CellY;
@@ -1320,6 +1320,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         newInstance.HeightMaps = originalWorld.HeightMaps; // TODO слишком долго копирует, клиент дисконнектит .CloneJson();
         newInstance.XmlWorldZones = originalWorld.XmlWorldZones; // TODO копирование зацикливается
         newInstance.Physics = originalWorld.Physics;  // TODO копирование зацикливается .CloneJson();
+        newInstance.Physics.SimulationWorld.Id = newInstance.Id;
         newInstance.Water = originalWorld.Water; // TODO .CloneJson();
         var dx = originalWorld.CellX * SECTORS_PER_CELL;
         var dy = originalWorld.CellY * SECTORS_PER_CELL;
@@ -1332,6 +1333,9 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             }
         }
 
+        newInstance.Physics.SimulationWorld.Regions = newInstance.Regions;
+        //SpawnManager.Instance.CloneNpcEventSpawners((byte)originalWorld.TemplateId, (byte)newInstance.Id);
+
         _worlds.Add(newInstance.Id, newInstance);
 
         return newInstance;
@@ -1339,7 +1343,13 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     public void RemoveWorld(uint worldId)
     {
-        if (_worlds.ContainsKey(worldId))
-            _worlds.Remove(worldId);
+        if (!_worlds.Remove(worldId))
+        {
+            Logger.Info($"[Dungeon] couldn't remove the dungeon id={worldId}!");
+        }
+        //if (!SpawnManager.Instance.RemoveNpcEventSpawners((byte)worldId))
+        //{
+        //    Logger.Info($"[Dungeon] could not delete the list of NpcEventSpawners for dungeon id={worldId}!");
+        //}
     }
 }

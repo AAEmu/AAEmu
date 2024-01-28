@@ -32,4 +32,11 @@ public class NpcSpawnerTemplate
         var npcs = new List<NpcSpawnerNpc> { new(spawnerId) };
         Npcs = npcs;
     }
+
+    public NpcSpawnerTemplate(uint spawnerId, uint memberId)
+    {
+        Id = spawnerId;
+        var npcs = new List<NpcSpawnerNpc> { new(spawnerId, memberId) };
+        Npcs = npcs;
+    }
 }
