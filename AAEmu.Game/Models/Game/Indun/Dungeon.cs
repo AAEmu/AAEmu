@@ -835,6 +835,7 @@ namespace AAEmu.Game.Models.Game.Indun
                         {
                             Logger.Info($"Registering OnDeath event for npc objId: {npc.ObjId}, templateId: {npc.TemplateId}, skill {skill.SkillId}");
                             npc.Events.OnDeath += OnDeath;
+                            //int invocationCount = npc.Events.OnDeath.GetInvocationList().GetLength(0);
                             break;
                         }
                     case SkillUseConditionKind.InAlert:

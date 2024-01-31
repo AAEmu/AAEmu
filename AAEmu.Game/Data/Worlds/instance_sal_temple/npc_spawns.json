@@ -1,211 +1,227 @@
 [
   {
+    "Id": 62025,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 511.946,
+      "Y": 284.41,
+      "Z": 147.5783,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 76095,
+    "UnitId": 9839,
+    "Title": "Hellhound Trainer",
+    "Position": {
+      "X": 500.0,
+      "Y": 295.0,
+      "Z": 148.3996,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 38618,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 464.386,
+      "Y": 301.85,
+      "Z": 150.3994,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 49868,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 476.666,
+      "Y": 301.538,
+      "Z": 146.73,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -267.1875
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 39581,
+    "UnitId": 9857,
+    "Title": "Salphira Disciple",
+    "Position": {
+      "X": 504.438,
+      "Y": 301.206,
+      "Z": 147.8094,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -118.125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 14168,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 499.418,
+      "Y": 301.964,
+      "Z": 147.8614,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 123614,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 459.564,
+      "Y": 300.456,
+      "Z": 150.0403,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 96943,
+    "UnitId": 9857,
+    "Title": "Salphira Disciple",
+    "Position": {
+      "X": 492.714,
+      "Y": 295.954,
+      "Z": 147.7904,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 84.375
+    },
+    "Scale": 1.0
+  },
+  {
     "Id": 120553,
     "UnitId": 10075,
     "Title": "Salphira Pyromancer",
     "Position": {
-      "X": 505.5366,
-      "Y": 299.5462,
-      "Z": 147.5094,
+      "X": 505.866,
+      "Y": 299.962,
+      "Z": 147.8094,
       "Roll": 0.0,
       "Pitch": 0.0,
-      "Yaw": 0.0
-    }
+      "Yaw": 90.0
+    },
+    "Scale": 1.0
   },
   {
-    "Id": 98442,
-    "UnitId": 9839,
-    "Title": "Hellhound Trainer",
-    "Position": {
-      "X": 590.0,
-      "Y": 337.0,
-      "Z": 147.3993,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 0.0
-    }
-  },
-  {
-    "Id": 69410,
+    "Id": 83342,
     "UnitId": 10661,
     "Title": "Rotten Rat",
     "Position": {
-      "X": 564.606,
-      "Y": 421.68,
-      "Z": 159.0248,
+      "X": 443.05,
+      "Y": 300.15,
+      "Z": 153.3996,
       "Roll": 0.0,
       "Pitch": 0.0,
-      "Yaw": -160.3125
-    }
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
   },
   {
-    "Id": 23638,
+    "Id": 82438,
     "UnitId": 9844,
     "Title": "Salphira Assassin",
     "Position": {
-      "X": 599.838,
-      "Y": 354.294,
-      "Z": 146.9521,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 53.4375
-    }
-  },
-  {
-    "Id": 96583,
-    "UnitId": 10661,
-    "Title": "Rotten Rat",
-    "Position": {
-      "X": 577.988,
-      "Y": 341.38,
-      "Z": 147.4103,
+      "X": 510.228,
+      "Y": 289.746,
+      "Z": 147.5993,
       "Roll": 0.0,
       "Pitch": 0.0,
       "Yaw": 0.0
-    }
+    },
+    "Scale": 1.0
   },
   {
-    "Id": 95517,
-    "UnitId": 10661,
-    "Title": "Rotten Rat",
-    "Position": {
-      "X": 587.614,
-      "Y": 315.538,
-      "Z": 147.3993,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 0.0
-    }
-  },
-  {
-    "Id": 55538,
-    "UnitId": 10661,
-    "Title": "Rotten Rat",
-    "Position": {
-      "X": 594.606,
-      "Y": 367.106,
-      "Z": 147.0161,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 0.0
-    }
-  },
-  {
-    "Id": 63797,
-    "UnitId": 9857,
-    "Title": "Salphira Disciple",
-    "Position": {
-      "X": 562.88,
-      "Y": 246.138,
-      "Z": 143.5527,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": -90.0
-    }
-  },
-  {
-    "Id": 89934,
-    "UnitId": 10661,
-    "Title": "Rotten Rat",
-    "Position": {
-      "X": 514.47,
-      "Y": 251.076,
-      "Z": 144.0569,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 0.0
-    }
-  },
-  {
-    "Id": 89175,
+    "Id": 43566,
     "UnitId": 9838,
     "Title": "Salphira Monk",
     "Position": {
-      "X": 618.992,
-      "Y": 448.818,
-      "Z": 148.5927,
+      "X": 467.302,
+      "Y": 302.296,
+      "Z": 150.3994,
       "Roll": 0.0,
       "Pitch": 0.0,
-      "Yaw": -67.5
-    }
+      "Yaw": 90.0
+    },
+    "Scale": 1.0
   },
   {
-    "Id": 18097,
-    "UnitId": 9844,
-    "Title": "Salphira Assassin",
+    "Id": 121478,
+    "UnitId": 9838,
+    "Title": "Salphira Monk",
     "Position": {
-      "X": 621.322,
-      "Y": 449.368,
-      "Z": 148.5697,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 101.25
-    }
-  },
-  {
-    "Id": 53404,
-    "UnitId": 10681,
-    "Title": "Bennid Zims",
-    "Position": {
-      "X": 639.728,
-      "Y": 449.052,
-      "Z": 169.8009,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 70.3125
-    }
-  },
-  {
-    "Id": 127787,
-    "UnitId": 10661,
-    "Title": "Rotten Rat",
-    "Position": {
-      "X": 637.108,
-      "Y": 452.538,
-      "Z": 169.7879,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 154.6875
-    }
-  },
-  {
-    "Id": 75863,
-    "UnitId": 10680,
-    "Title": "Akmit Armor Sample",
-    "Position": {
-      "X": 637.092,
-      "Y": 452.668,
-      "Z": 169.7659,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 123.75
-    }
-  },
-  {
-    "Id": 54502,
-    "UnitId": 10724,
-    "Title": "Salphira Assassin",
-    "Position": {
-      "X": 512.782,
-      "Y": 310.416,
-      "Z": 147.5183,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 151.875
-    }
-  },
-  {
-    "Id": 98818,
-    "UnitId": 9810,
-    "Title": "Giant Fire Elemental",
-    "Position": {
-      "X": 576.16,
-      "Y": 251.532,
-      "Z": 144.0429,
+      "X": 511.082,
+      "Y": 267.942,
+      "Z": 147.3993,
       "Roll": 0.0,
       "Pitch": 0.0,
       "Yaw": 0.0
-    }
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 65664,
+    "UnitId": 9844,
+    "Title": "Salphira Assassin",
+    "Position": {
+      "X": 467.23,
+      "Y": 297.874,
+      "Z": 150.3994,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 96553,
+    "UnitId": 9840,
+    "Title": "Volcanic Hellhound",
+    "Position": {
+      "X": 496.046,
+      "Y": 300.42,
+      "Z": 147.8094,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 0.8
+  },
+  {
+    "Id": 111414,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 481.092,
+      "Y": 298.978,
+      "Z": 147.0731,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
   },
   {
     "Id": 29883,
@@ -218,60 +234,1494 @@
       "Roll": 0.0,
       "Pitch": 0.0,
       "Yaw": 120.9375
-    }
+    },
+    "Scale": 1.1
   },
   {
-    "UnitId": 9845,
+    "Id": 90693,
+    "UnitId": 9857,
+    "Title": "Salphira Disciple",
     "Position": {
-      "X": 466.6,
-      "Y": 297.2,
-      "Z": 150.0,
-      "Yaw": -253.125
-    }
+      "X": 504.438,
+      "Y": 298.598,
+      "Z": 147.8094,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -64.6875
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 98422,
+    "UnitId": 9857,
+    "Title": "Salphira Disciple",
+    "Position": {
+      "X": 492.178,
+      "Y": 294.722,
+      "Z": 147.7664,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 42.1875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 75972,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 451.702,
+      "Y": 298.93,
+      "Z": 150.0573,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 76225,
     "UnitId": 9840,
+    "Title": "Volcanic Hellhound",
     "Position": {
-      "X": 497.4,
-      "Y": 300.0,
-      "Z": 147.4,
-      "Yaw": 61.875
-    }
+      "X": 589.778,
+      "Y": 338.618,
+      "Z": 147.5653,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -177.1875
+    },
+    "Scale": 0.8
   },
   {
+    "Id": 29663,
+    "UnitId": 9831,
+    "Title": "Salphira Royal Guard",
+    "Position": {
+      "X": 591.606,
+      "Y": 349.236,
+      "Z": 146.9521,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 103412,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 562.242,
+      "Y": 297.58,
+      "Z": 150.4124,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 10936,
+    "UnitId": 10081,
+    "Title": "Combat Drillmaster Tushan",
+    "Position": {
+      "X": 567.522,
+      "Y": 308.422,
+      "Z": 150.3994,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -177.1875
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 35879,
+    "UnitId": 9844,
+    "Title": "Salphira Assassin",
+    "Position": {
+      "X": 566.948,
+      "Y": 430.586,
+      "Z": 160.9686,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 98879,
     "UnitId": 9840,
+    "Title": "Volcanic Hellhound",
     "Position": {
-      "X": 522.6,
-      "Y": 301.0,
-      "Z": 147.4
-    }
+      "X": 520.146,
+      "Y": 294.166,
+      "Z": 147.8704,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.8
   },
   {
-    "UnitId": 9809,
+    "Id": 128301,
+    "UnitId": 9857,
+    "Title": "Salphira Disciple",
     "Position": {
-      "X": 579.25,
-      "Y": 250.0,
-      "Z": 144.0,
-      "Yaw": -253.125
-    }
+      "X": 583.862,
+      "Y": 293.154,
+      "Z": 147.4433,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -53.4375
+    },
+    "Scale": 1.0
   },
   {
-    "UnitId": 9796,
+    "Id": 18634,
+    "UnitId": 9831,
+    "Title": "Salphira Royal Guard",
+    "Position": {
+      "X": 535.834,
+      "Y": 302.68,
+      "Z": 147.5903,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 76367,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 553.754,
+      "Y": 298.334,
+      "Z": 148.6277,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 96226,
+    "UnitId": 9857,
+    "Title": "Salphira Disciple",
+    "Position": {
+      "X": 585.244,
+      "Y": 295.818,
+      "Z": 147.3993,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -151.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 68190,
+    "UnitId": 10073,
+    "Title": "Dreamer of Purity Melkina",
+    "Position": {
+      "X": 512.912,
+      "Y": 289.768,
+      "Z": 147.7894,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 98442,
+    "UnitId": 9839,
+    "Title": "Hellhound Trainer",
     "Position": {
       "X": 590.0,
-      "Y": 366.8,
-      "Z": 147.0,
-      "Yaw": 168.75
-    }
+      "Y": 337.0,
+      "Z": 147.3993,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 85637,
+    "UnitId": 9838,
+    "Title": "Salphira Monk",
+    "Position": {
+      "X": 594.352,
+      "Y": 340.898,
+      "Z": 146.9351,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 146.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 61483,
+    "UnitId": 9845,
+    "Title": "Salphira Pyromancer",
+    "Position": {
+      "X": 581.118,
+      "Y": 355.546,
+      "Z": 146.9531,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 45.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 128767,
+    "UnitId": 10080,
+    "Title": "Salphira Disciple",
+    "Position": {
+      "X": 567.484,
+      "Y": 307.79,
+      "Z": 150.3994,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -177.1875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 66281,
+    "UnitId": 9838,
+    "Title": "Salphira Monk",
+    "Position": {
+      "X": 586.35,
+      "Y": 293.262,
+      "Z": 147.3993,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 56.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 55779,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 588.928,
+      "Y": 380.526,
+      "Z": 147.4433,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -160.3125
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 78909,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 581.654,
+      "Y": 436.762,
+      "Z": 161.0616,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -160.3125
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 96708,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 598.072,
+      "Y": 358.104,
+      "Z": 146.5419,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 69410,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 564.606,
+      "Y": 421.68,
+      "Z": 159.0248,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -160.3125
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 100239,
+    "UnitId": 9839,
+    "Title": "Hellhound Trainer",
+    "Position": {
+      "X": 527.0,
+      "Y": 300.0,
+      "Z": 148.3996,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 163.125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 116620,
+    "UnitId": 9831,
+    "Title": "Salphira Royal Guard",
+    "Position": {
+      "X": 596.384,
+      "Y": 429.088,
+      "Z": 148.6727,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 71956,
+    "UnitId": 9814,
+    "Title": "Salphira Sacrifice Hunter",
+    "Position": {
+      "X": 596.466,
+      "Y": 433.198,
+      "Z": 148.6407,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 50611,
+    "UnitId": 9814,
+    "Title": "Salphira Sacrifice Hunter",
+    "Position": {
+      "X": 587.382,
+      "Y": 324.234,
+      "Z": 147.3993,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -177.1875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 98392,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 583.98,
+      "Y": 307.196,
+      "Z": 147.4343,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 104576,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 562.444,
+      "Y": 266.36,
+      "Z": 144.4931,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 73684,
     "UnitId": 12189,
     "Title": "Salphira's Avatar Akmit",
     "Position": {
-      "X": 609.7,
-      "Y": 423.5,
-      "Z": 148.7
-    }
+      "X": 615.54,
+      "Y": 434.442,
+      "Z": 148.8358,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 87.1875
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 23638,
+    "UnitId": 9844,
+    "Title": "Salphira Assassin",
+    "Position": {
+      "X": 599.838,
+      "Y": 354.294,
+      "Z": 146.9521,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 53.4375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 70107,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 607.612,
+      "Y": 349.8,
+      "Z": 147.4103,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 21964,
+    "UnitId": 9845,
+    "Title": "Salphira Pyromancer",
+    "Position": {
+      "X": 562.79,
+      "Y": 259.542,
+      "Z": 143.9519,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 149.0625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 29791,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 583.556,
+      "Y": 402.468,
+      "Z": 152.9954,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -160.3125
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 61597,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 600.428,
+      "Y": 344.572,
+      "Z": 147.0611,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 122231,
+    "UnitId": 9838,
+    "Title": "Salphira Monk",
+    "Position": {
+      "X": 588.45,
+      "Y": 349.236,
+      "Z": 146.9521,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 17168,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 546.042,
+      "Y": 300.12,
+      "Z": 146.9811,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 17733,
+    "UnitId": 9845,
+    "Title": "Salphira Pyromancer",
+    "Position": {
+      "X": 592.368,
+      "Y": 324.104,
+      "Z": 147.3993,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -177.1875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 96583,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 577.988,
+      "Y": 341.38,
+      "Z": 147.4103,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 98299,
+    "UnitId": 10087,
+    "Title": "Salphira Monk",
+    "Position": {
+      "X": 613.224,
+      "Y": 434.878,
+      "Z": 148.8868,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 22.5
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 71353,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 602.028,
+      "Y": 336.26,
+      "Z": 147.4083,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 93698,
+    "UnitId": 9814,
+    "Title": "Salphira Sacrifice Hunter",
+    "Position": {
+      "X": 535.834,
+      "Y": 297.584,
+      "Z": 147.5293,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 97442,
+    "UnitId": 9838,
+    "Title": "Salphira Monk",
+    "Position": {
+      "X": 573.282,
+      "Y": 307.4,
+      "Z": 150.5945,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 70379,
+    "UnitId": 9838,
+    "Title": "Salphira Monk",
+    "Position": {
+      "X": 598.016,
+      "Y": 355.876,
+      "Z": 146.9531,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -129.375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 109929,
+    "UnitId": 9845,
+    "Title": "Salphira Pyromancer",
+    "Position": {
+      "X": 585.572,
+      "Y": 340.922,
+      "Z": 146.9351,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -140.625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 36477,
+    "UnitId": 9814,
+    "Title": "Salphira Sacrifice Hunter",
+    "Position": {
+      "X": 515.83,
+      "Y": 289.8,
+      "Z": 147.6754,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 95517,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 587.614,
+      "Y": 315.538,
+      "Z": 147.3993,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 93343,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 574.392,
+      "Y": 347.766,
+      "Z": 147.4753,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 20238,
+    "UnitId": 9831,
+    "Title": "Salphira Royal Guard",
+    "Position": {
+      "X": 579.862,
+      "Y": 356.932,
+      "Z": 146.9531,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -129.375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 81968,
+    "UnitId": 10816,
+    "Title": "Secret Salphira Weapon",
+    "Position": {
+      "X": 589.85,
+      "Y": 312.74,
+      "Z": 147.4993,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -177.1875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 122043,
+    "UnitId": 9845,
+    "Title": "Salphira Pyromancer",
+    "Position": {
+      "X": 513.004,
+      "Y": 309.14,
+      "Z": 147.7204,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 64.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 39724,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 514.372,
+      "Y": 276.576,
+      "Z": 147.4863,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 71380,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 512.654,
+      "Y": 256.612,
+      "Z": 144.4721,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 88219,
+    "UnitId": 9838,
+    "Title": "Salphira Monk",
+    "Position": {
+      "X": 569.384,
+      "Y": 307.918,
+      "Z": 150.3994,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 177.1875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 55538,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 594.606,
+      "Y": 367.106,
+      "Z": 147.0161,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 39222,
+    "UnitId": 9845,
+    "Title": "Salphira Pyromancer",
+    "Position": {
+      "X": 557.09,
+      "Y": 434.016,
+      "Z": 160.6314,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 98358,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 591.932,
+      "Y": 298.884,
+      "Z": 147.0481,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 52013,
+    "UnitId": 10035,
+    "Title": "Salphira Meteor Summoner",
+    "Position": {
+      "X": 562.666,
+      "Y": 427.922,
+      "Z": 160.6154,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -177.1875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 71983,
+    "UnitId": 9796,
+    "Title": "Combat Drillmaster Tushan",
+    "Position": {
+      "X": 589.958,
+      "Y": 366.288,
+      "Z": 147.0121,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 177.1875
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 27952,
+    "UnitId": 9857,
+    "Title": "Salphira Disciple",
+    "Position": {
+      "X": 556.872,
+      "Y": 246.03,
+      "Z": 143.6058,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 92927,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 545.428,
+      "Y": 250.986,
+      "Z": 144.0429,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 91851,
+    "UnitId": 9814,
+    "Title": "Salphira Sacrifice Hunter",
+    "Position": {
+      "X": 536.392,
+      "Y": 252.73,
+      "Z": 144.0469,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 63797,
+    "UnitId": 9857,
+    "Title": "Salphira Disciple",
+    "Position": {
+      "X": 562.88,
+      "Y": 246.138,
+      "Z": 143.5527,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 97691,
+    "UnitId": 9831,
+    "Title": "Salphira Royal Guard",
+    "Position": {
+      "X": 519.37,
+      "Y": 254.886,
+      "Z": 144.073,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -112.5
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 27877,
+    "UnitId": 9857,
+    "Title": "Salphira Disciple",
+    "Position": {
+      "X": 570.278,
+      "Y": 253.482,
+      "Z": 143.5738,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -95.625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 72511,
+    "UnitId": 9844,
+    "Title": "Salphira Assassin",
+    "Position": {
+      "X": 536.512,
+      "Y": 247.264,
+      "Z": 144.0459,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 49762,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 549.008,
+      "Y": 238.006,
+      "Z": 144.0529,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 12956,
+    "UnitId": 9814,
+    "Title": "Salphira Sacrifice Hunter",
+    "Position": {
+      "X": 562.722,
+      "Y": 240.182,
+      "Z": 143.6528,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 11.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 93595,
+    "UnitId": 9809,
+    "Title": "Dreamer of Purity Melkina",
+    "Position": {
+      "X": 578.822,
+      "Y": 250.144,
+      "Z": 144.0119,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 98406,
+    "UnitId": 9857,
+    "Title": "Salphira Disciple",
+    "Position": {
+      "X": 519.586,
+      "Y": 253.126,
+      "Z": 144.0359,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -56.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 89934,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 514.47,
+      "Y": 251.076,
+      "Z": 144.0569,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 98473,
+    "UnitId": 10152,
+    "Title": "마하데비_이벤트2_멜키나의 설파 (연출용NPC)",
+    "Position": {
+      "X": 580.892,
+      "Y": 250.248,
+      "Z": 144.0089,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 18191,
+    "UnitId": 9857,
+    "Title": "Salphira Disciple",
+    "Position": {
+      "X": 556.998,
+      "Y": 253.424,
+      "Z": 143.5588,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -95.625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 88660,
+    "UnitId": 9857,
+    "Title": "Salphira Disciple",
+    "Position": {
+      "X": 570.152,
+      "Y": 246.088,
+      "Z": 143.6048,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 95959,
+    "UnitId": 9857,
+    "Title": "Salphira Disciple",
+    "Position": {
+      "X": 520.658,
+      "Y": 255.834,
+      "Z": 144.069,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -163.125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 102750,
+    "UnitId": 9857,
+    "Title": "Salphira Disciple",
+    "Position": {
+      "X": 563.006,
+      "Y": 253.52,
+      "Z": 143.6008,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -95.625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 89175,
+    "UnitId": 9838,
+    "Title": "Salphira Monk",
+    "Position": {
+      "X": 618.992,
+      "Y": 448.818,
+      "Z": 148.5927,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -67.5
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 18097,
+    "UnitId": 9844,
+    "Title": "Salphira Assassin",
+    "Position": {
+      "X": 621.322,
+      "Y": 449.368,
+      "Z": 148.5697,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 101.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 53404,
+    "UnitId": 10681,
+    "Title": "Bennid Zims",
+    "Position": {
+      "X": 639.728,
+      "Y": 449.052,
+      "Z": 169.8009,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 70.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 127787,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 637.108,
+      "Y": 452.538,
+      "Z": 169.7879,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 154.6875
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 75863,
+    "UnitId": 10680,
+    "Title": "Akmit Armor Sample",
+    "Position": {
+      "X": 637.092,
+      "Y": 452.668,
+      "Z": 169.7659,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 123.75
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 54502,
+    "UnitId": 10724,
+    "Title": "Salphira Assassin",
+    "NpcSpawnerIds": [
+      67172
+    ],
+    "Position": {
+      "X": 512.782,
+      "Y": 310.416,
+      "Z": 147.5183,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 151.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 98818,
+    "UnitId": 9810,
+    "Title": "Giant Fire Elemental",
+    "Position": {
+      "X": 576.16,
+      "Y": 251.532,
+      "Z": 144.0429,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 78909,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 580.746,
+      "Y": 438.51,
+      "Z": 160.6564,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 96708,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 597.916,
+      "Y": 356.586,
+      "Z": 146.4999,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 267.1875
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 69410,
+    "UnitId": 10661,
+    "Position": {
+      "X": 564.068,
+      "Y": 418.828,
+      "Z": 158.0554,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -39.375
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 98392,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 588.772,
+      "Y": 308.226,
+      "Z": 147.0261,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -87.1875
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 104576,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 560.7,
+      "Y": 265.23,
+      "Z": 144.0129,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 230.625
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 70107,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 609.192,
+      "Y": 350.182,
+      "Z": 147.0411,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 29791,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 586.728,
+      "Y": 401.758,
+      "Z": 151.99,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 61597,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 600.878,
+      "Y": 343.752,
+      "Z": 146.8921,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 267.1875
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 17168,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 546.526,
+      "Y": 301.738,
+      "Z": 146.869,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 96583,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 578.402,
+      "Y": 340.272,
+      "Z": 147.0101,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -70.3125
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 71353,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 602.85,
+      "Y": 340.706,
+      "Z": 147.0131,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -106.875
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 95517,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 588.134,
+      "Y": 314.238,
+      "Z": 147.0871,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 267.1875
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 93343,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 576.87,
+      "Y": 349.742,
+      "Z": 147.0111,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -92.8125
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 127787,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 635.42,
+      "Y": 451.784,
+      "Z": 169.7949,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 160.3125
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 55538,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 594.082,
+      "Y": 367.068,
+      "Z": 147.0131,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 59.0625
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 98358,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 589.176,
+      "Y": 296.566,
+      "Z": 146.745,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 84.375
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 49762,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 546.866,
+      "Y": 239.834,
+      "Z": 144.076,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 267.1875
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 89934,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 509.088,
+      "Y": 247.122,
+      "Z": 143.7588,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -47.8125
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 38618,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 463.104,
+      "Y": 298.826,
+      "Z": 150.0533,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 14168,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 494.956,
+      "Y": 300.254,
+      "Z": 147.4143,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 123614,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 455.946,
+      "Y": 298.724,
+      "Z": 149.7192,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 56.25
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 83342,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 445.628,
+      "Y": 300.276,
+      "Z": 152.5853,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -98.4375
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 111414,
+    "UnitId": 10661,
+    "Title": "Rotten Rat",
+    "Position": {
+      "X": 478.692,
+      "Y": 301.57,
+      "Z": 146.732,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 81.5625
+    },
+    "Scale": 1.5
   },
   {
     "Id": 75972,
@@ -284,51 +1734,16 @@
       "Roll": 0.0,
       "Pitch": 0.0,
       "Yaw": -90.0
-    }
-  },
-  {
-    "Id": 39758,
-    "UnitId": 10799,
-    "Title": "Bennid Zims",
-    "Position": {
-      "X": 624.12,
-      "Y": 447.894,
-      "Z": 148.9599,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 154.6875
-    }
-  },
-  {
-    "Id": 44958,
-    "UnitId": 10799,
-    "Title": "Bennid Zims",
-    "Position": {
-      "X": 624.12,
-      "Y": 447.894,
-      "Z": 148.9599,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 154.6875
-    }
-  },
-  {
-    "Id": 33063,
-    "UnitId": 10799,
-    "Title": "Bennid Zims",
-    "Position": {
-      "X": 624.12,
-      "Y": 447.894,
-      "Z": 148.9599,
-      "Roll": 0.0,
-      "Pitch": 0.0,
-      "Yaw": 154.6875
-    }
+    },
+    "Scale": 1.5
   },
   {
     "Id": 77622,
     "UnitId": 10799,
     "Title": "Bennid Zims",
+    "NpcSpawnerIds": [
+      68201
+    ],
     "Position": {
       "X": 624.12,
       "Y": 447.894,
@@ -336,12 +1751,16 @@
       "Roll": 0.0,
       "Pitch": 0.0,
       "Yaw": 154.6875
-    }
+    },
+    "Scale": 1.0
   },
   {
     "Id": 97485,
     "UnitId": 10576,
     "Title": "Salphira",
+    "NpcSpawnerIds": [
+      65780
+    ],
     "Position": {
       "X": 612.83,
       "Y": 434.166,
@@ -349,411 +1768,7 @@
       "Roll": 0.0,
       "Pitch": 0.0,
       "Yaw": 151.875
-    }
-  },
-  {
-    "UnitId": 9845,
-    "Position": {
-      "X": 466.7,
-      "Y": 302.6,
-      "Z": 150,
-      "Yaw": 98.4
-    }
-  },
-  {
-    "UnitId": 9857,
-    "Position": {
-      "X": 492.8,
-      "Y": 291.9,
-      "Z": 147.2,
-      "Yaw": 8.4
-    }
-  },
-  {
-    "UnitId": 9857,
-    "Position": {
-      "X": 497.2,
-      "Y": 291.6,
-      "Z": 147.2,
-      "Yaw": 5.6
-    }
-  },
-  {
-    "UnitId": 9857,
-    "Position": {
-      "X": 505.6,
-      "Y": 297.6,
-      "Z": 147.5,
-      "Yaw": -91.6
-    }
-  },
-  {
-    "UnitId": 9857,
-    "Position": {
-      "X": 505.7,
-      "Y": 303,
-      "Z": 147.5,
-      "Yaw": 180
-    }
-  },
-  {
-    "UnitId": 9814,
-    "Position": {
-      "X": 511.7,
-      "Y": 291.6,
-      "Z": 147.6,
-      "Yaw": 8.4
-    }
-  },
-  {
-    "UnitId": 9814,
-    "Position": {
-      "X": 514.8,
-      "Y": 291.4,
-      "Z": 147.5,
-      "Yaw": 2.8
-    }
-  },
-  {
-    "UnitId": 9814,
-    "Position": {
-      "X": 534.3,
-      "Y": 302,
-      "Z": 147.3,
-      "Yaw": 95.6
-    }
-  },
-  {
-    "UnitId": 9814,
-    "Position": {
-      "X": 534.4,
-      "Y": 298.2,
-      "Z": 147.2,
-      "Yaw": 90
-    }
-  },
-  {
-    "UnitId": 9839,
-    "Position": {
-      "X": 526.1,
-      "Y": 300.3,
-      "Z": 147.4,
-      "Yaw": 87.2
-    }
-  },
-  {
-    "UnitId": 9839,
-    "Position": {
-      "X": 501.1,
-      "Y": 299.7,
-      "Z": 147.4,
-      "Yaw": 87.2
-    }
-  },
-  {
-    "UnitId": 9831,
-    "Position": {
-      "X": 535.2,
-      "Y": 247.5,
-      "Z": 144.1,
-      "Yaw": 95.6
-    }
-  },
-  {
-    "UnitId": 9857,
-    "Position": {
-      "X": 518.6,
-      "Y": 257.5,
-      "Z": 144,
-      "Yaw": 182.8
-    }
-  },
-  {
-    "UnitId": 9857,
-    "Position": {
-      "X": 518.6,
-      "Y": 252.4,
-      "Z": 144,
-      "Yaw": 2.8
-    }
-  },
-  {
-    "UnitId": 10724,
-    "Position": {
-      "X": 516.3,
-      "Y": 254.1,
-      "Z": 144.1,
-      "Yaw": -84.4
-    }
-  },
-  {
-    "UnitId": 9831,
-    "Position": {
-      "X": 506.8,
-      "Y": 269.3,
-      "Z": 147.1,
-      "Yaw": -90
-    }
-  },
-  {
-    "UnitId": 10075,
-    "Position": {
-      "X": 534.9,
-      "Y": 252.1,
-      "Z": 144,
-      "Yaw": 95.6
-    }
-  },
-  {
-    "UnitId": 9857,
-    "Position": {
-      "X": 567.1,
-      "Y": 246.2,
-      "Z": 143.6,
-      "Yaw": -87.2
-    }
-  },
-  {
-    "UnitId": 9857,
-    "Position": {
-      "X": 557.8,
-      "Y": 246.2,
-      "Z": 143.6,
-      "Yaw": -90
-    }
-  },
-  {
-    "UnitId": 9857,
-    "Position": {
-      "X": 557.3,
-      "Y": 254.3,
-      "Z": 143.6,
-      "Yaw": -87.2
-    }
-  },
-  {
-    "UnitId": 9857,
-    "Position": {
-      "X": 562.3,
-      "Y": 254.2,
-      "Z": 143.6,
-      "Yaw": -90
-    }
-  },
-  {
-    "UnitId": 9857,
-    "Position": {
-      "X": 566.7,
-      "Y": 254.3,
-      "Z": 143.6,
-      "Yaw": -92.9
-    }
-  },
-  {
-    "UnitId": 10724,
-    "Position": {
-      "X": 563.5,
-      "Y": 233.2,
-      "Z": 144,
-      "Yaw": 0
-    }
-  },
-  {
-    "UnitId": 10075,
-    "Position": {
-      "X": 563,
-      "Y": 264.6,
-      "Z": 144,
-      "Yaw": 182.8
-    }
-  },
-  {
-    "UnitId": 10816,
-    "Position": {
-      "X": 589.9,
-      "Y": 315.9,
-      "Z": 147.2,
-      "Yaw": 180
-    }
-  },
-  {
-    "UnitId": 10724,
-    "Position": {
-      "X": 583.2,
-      "Y": 306,
-      "Z": 147.1,
-      "Yaw": 180
-    }
-  },
-  {
-    "UnitId": 10724,
-    "Position": {
-      "X": 569.2,
-      "Y": 306.3,
-      "Z": 150.1,
-      "Yaw": 180
-    }
-  },
-  {
-    "UnitId": 10724,
-    "Position": {
-      "X": 585.7,
-      "Y": 294.1,
-      "Z": 147.1,
-      "Yaw": 5.6
-    }
-  },
-  {
-    "UnitId": 9857,
-    "Position": {
-      "X": 586.3,
-      "Y": 297.5,
-      "Z": 147.1,
-      "Yaw": 163.1
-    }
-  },
-  {
-    "UnitId": 9857,
-    "Position": {
-      "X": 583.7,
-      "Y": 297.2,
-      "Z": 147.1,
-      "Yaw": 208.1
-    }
-  },
-  {
-    "UnitId": 10075,
-    "Position": {
-      "X": 590.9,
-      "Y": 322.8,
-      "Z": 147,
-      "Yaw": 180
-    }
-  },
-  {
-    "UnitId": 10075,
-    "Position": {
-      "X": 588.1,
-      "Y": 322.9,
-      "Z": 147,
-      "Yaw": 180
-    }
-  },
-  {
-    "UnitId": 9840,
-    "Position": {
-      "X": 587.1,
-      "Y": 336.8,
-      "Z": 147,
-      "Yaw": 5.6
-    }
-  },
-  {
-    "UnitId": 9831,
-    "Position": {
-      "X": 592.6,
-      "Y": 344.1,
-      "Z": 146.6,
-      "Yaw": 95.6
-    }
-  },
-  {
-    "UnitId": 9831,
-    "Position": {
-      "X": 586.9,
-      "Y": 343.8,
-      "Z": 146.6,
-      "Yaw": -87.2
-    }
-  },
-  {
-    "UnitId": 10724,
-    "Position": {
-      "X": 601.8,
-      "Y": 341.4,
-      "Z": 147,
-      "Yaw": 90
-    }
-  },
-  {
-    "UnitId": 10724,
-    "Position": {
-      "X": 578.5,
-      "Y": 341.1,
-      "Z": 147,
-      "Yaw": -90
-    }
-  },
-  {
-    "UnitId": 10075,
-    "Position": {
-      "X": 589.6,
-      "Y": 348.4,
-      "Z": 146.6,
-      "Yaw": 180
-    }
-  },
-  {
-    "UnitId": 9831,
-    "Position": {
-      "X": 600.1,
-      "Y": 351.1,
-      "Z": 146.7,
-      "Yaw": 90
-    }
-  },
-  {
-    "UnitId": 9831,
-    "Position": {
-      "X": 581.4,
-      "Y": 353.7,
-      "Z": 146.6,
-      "Yaw": -87.2
-    }
-  },
-  {
-    "UnitId": 10075,
-    "Position": {
-      "X": 581.5,
-      "Y": 350.8,
-      "Z": 146.6,
-      "Yaw": -87.2
-    }
-  },
-  {
-    "UnitId": 10075,
-    "Position": {
-      "X": 567.9,
-      "Y": 431.8,
-      "Z": 160.6,
-      "Yaw": 92.8
-    }
-  },
-  {
-    "UnitId": 10075,
-    "Position": {
-      "X": 558.1,
-      "Y": 431.7,
-      "Z": 160.6,
-      "Yaw": -81.6
-    }
-  },
-  {
-    "UnitId": 9838,
-    "Position": {
-      "X": 597.7,
-      "Y": 437.3,
-      "Z": 148.6,
-      "Yaw": -104.1
-    }
-  },
-  {
-    "UnitId": 9838,
-    "Position": {
-      "X": 597.5,
-      "Y": 434.3,
-      "Z": 148.6,
-      "Yaw": -59.1
-    }
+    },
+    "Scale": 1.5
   }
 ]

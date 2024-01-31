@@ -62,6 +62,10 @@ public class SpawnManager : Singleton<SpawnManager>
                 npcSpawner.NpcSpawnerIds.Add(id);
                 npcSpawner.Id = id;
                 npcSpawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(id);
+                foreach (var n in npcSpawner.Template.Npcs)
+                {
+                    n.Position = npcSpawner.Position;
+                }
             }
             spawners.Add(npcSpawner);
             _npcSpawners[(byte)npcSpawner.Position.WorldId].Add(_nextId, spawners);
@@ -74,7 +78,11 @@ public class SpawnManager : Singleton<SpawnManager>
             foreach (var id in npcSpawner.NpcSpawnerIds)
             {
                 npcSpawner.Id = id;
-                npcSpawner.Template = new NpcSpawnerTemplate(id);
+                npcSpawner.Template = new NpcSpawnerTemplate(id, npcSpawner.UnitId);
+                foreach (var n in npcSpawner.Template.Npcs)
+                {
+                    n.Position = npcSpawner.Position;
+                }
             }
             spawners.Add(npcSpawner);
             _npcEventSpawners[(byte)npcSpawner.Position.WorldId].Add(_nextId, spawners);
@@ -353,6 +361,10 @@ public class SpawnManager : Singleton<SpawnManager>
                             spawner.Id = _nextId;
                             spawner.Position.WorldId = world.Id;
                             spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                            // Convert degrees from the file to radians for use
+                            spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
+                            spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
+                            spawner.Position.Roll = spawner.Position.Roll.DegToRad();
                             if (slaveSpawners.TryAdd(_nextId, spawner))
                             {
                                 _nextId++;
@@ -951,5 +963,15 @@ public class SpawnManager : Singleton<SpawnManager>
 
             return spawner;
         }
+    }
+
+    public bool CloneNpcEventSpawners(byte from, byte to)
+    {
+        _npcEventSpawners.TryGetValue(from, out var value);
+        return _npcEventSpawners.TryAdd(to, value);
+    }
+    public bool RemoveNpcEventSpawners(byte from)
+    {
+        return _npcEventSpawners.Remove(from, out _);
     }
 }

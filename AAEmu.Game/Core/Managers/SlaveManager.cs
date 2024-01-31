@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -382,7 +382,10 @@ public class SlaveManager : Singleton<SlaveManager>
             // If no spawn position override has been provided, then handle normal spawning algorithm
 
             // owner.SendMessage("SlaveSpawnOffset: x:{0} y:{1}", slaveTemplate.SpawnXOffset, slaveTemplate.SpawnYOffset);
-            spawnPos.Local.AddDistanceToFront(Math.Clamp(slaveTemplate.SpawnYOffset, 5f, 50f));
+            if (owner != null)
+            {
+                spawnPos.Local.AddDistanceToFront(Math.Clamp(slaveTemplate.SpawnYOffset, 5f, 50f));
+            }
             // INFO: Seems like X offset is defined as the size of the vehicle summoned, but visually it's nicer if we just ignore this 
             // spawnPos.Local.AddDistanceToRight(slaveTemplate.SpawnXOffset);
             if (slaveTemplate.IsABoat())
@@ -439,7 +442,7 @@ public class SlaveManager : Singleton<SlaveManager>
             }
 
             // Always spawn horizontal(level) and 90° CCW of the player
-            spawnPos.Local.SetRotation(0f, 0f, owner?.Transform.World.Rotation.Z + (MathF.PI / 2) ?? 0f);
+            spawnPos.Local.SetRotation(0f, 0f, owner?.Transform.World.Rotation.Z + MathF.PI / 2 ?? useSpawner.Position.Yaw);
         }
 
         if (item is SummonSlave slaveSummonItem)

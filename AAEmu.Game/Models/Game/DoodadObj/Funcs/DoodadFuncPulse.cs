@@ -39,7 +39,7 @@ public class DoodadFuncPulse : DoodadPhaseFuncTemplate
                     {
                         switch (func.FuncType)
                         {
-                            case "DoodadFuncPulseTrigger":
+                            case "DoodadFuncPulseTrigger" when Flag:
                                 {
                                     DoodadFuncPulseTrigger.Halt = false; // разрешаем однократное выполнение // allow one-time execution
                                     doodad.DoChangePhase(caster, (int)doodad.FuncGroupId);

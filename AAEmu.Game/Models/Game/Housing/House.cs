@@ -303,7 +303,7 @@ public sealed class House : Unit
         stream.Write(Helpers.ConvertLongY(Transform.World.Position.Y));
         stream.Write(Transform.World.Position.Z);
         stream.Write(Name); // house // TODO max length 128
-        stream.Write(true); // allowRecover
+        stream.Write(AllowRecover); // allowRecover
         stream.Write(SellPrice); // Sale moneyAmount
         stream.Write(SellToPlayerId); // type(id)
         stream.Write(sellToPlayerName ?? ""); // sellToName

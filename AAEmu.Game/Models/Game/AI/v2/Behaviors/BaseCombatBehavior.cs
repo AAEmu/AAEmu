@@ -184,8 +184,8 @@ public abstract class BaseCombatBehavior : Behavior
 
         foreach (var abuser in abusers)
         {
-            //if (Ai.AlreadyTargetted)
-            //    return true;
+            if (Ai.AlreadyTargetted)
+                return true;
 
             if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
             {
