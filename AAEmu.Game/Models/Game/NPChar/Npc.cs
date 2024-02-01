@@ -12,6 +12,7 @@ using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
@@ -31,6 +32,7 @@ public class Npc : Unit
     public NpcTemplate Template { get; set; }
     //public Item[] Equip { get; set; }
     public NpcSpawner Spawner { get; set; }
+    public Gimmick Gimmick { get; set; }
 
     public override UnitCustomModelParams ModelParams => Template.ModelParams;
     public override float Scale => Template.Scale;
@@ -1121,6 +1123,23 @@ public class Npc : Unit
                 Logger.Trace($"AStar: point {i} coordinates X:{Ai.PathNode.findPath[i].X}, Y:{Ai.PathNode.findPath[i].Y}, Z:{Ai.PathNode.findPath[i].Z}");
             }
         }
+    }
+
+    /// <summary>
+    /// Find the nearest point
+    /// </summary>
+    /// <param name="unit"></param>
+    /// <returns>return coordinates and change the index of the current point</returns>
+    public Vector3 GetClosestPoint(BaseUnit unit)
+    {
+        // TODO взять точку к которой движемся
+        if (Ai.PathNode.findPath == null)
+            return Vector3.Zero;
+
+        var pos = new Point(unit.Transform.World.Position.X, unit.Transform.World.Position.Y, unit.Transform.World.Position.Z);
+        Ai.PathNode.Current = AiGeoDataManager.FindClosestIndexPoint(Ai.PathNode.findPath, pos);
+
+        return new Vector3(Ai.PathNode.findPath[(int)Ai.PathNode.Current].X, Ai.PathNode.findPath[(int)Ai.PathNode.Current].Y, Ai.PathNode.findPath[(int)Ai.PathNode.Current].Z);
     }
 
     public void DoDespawn(Npc npc)

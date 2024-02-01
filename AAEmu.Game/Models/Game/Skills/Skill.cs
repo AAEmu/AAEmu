@@ -251,12 +251,13 @@ public class Skill
 
     private BaseUnit GetInitialTarget(BaseUnit caster, SkillCaster skillCaster, SkillCastTarget targetCaster)
     {
-        if (caster is not Unit unit) { return null; }
+        if (caster is not Unit)
+            return null;
+
         var target = caster;
         if (targetCaster == null || skillCaster == null) // проверяем, так как иногда бывает null
-        {
             return null;
-        }
+
         // HACKFIX : Mounts and Turbulence
         if (skillCaster.Type == SkillCasterType.Mount || skillCaster.Type == SkillCasterType.Unit)
             target = WorldManager.Instance.GetUnit(skillCaster.ObjId);
@@ -403,17 +404,14 @@ public class Skill
                 }
             case SkillTargetType.Pos:
                 {
-                    if (targetCaster is SkillCastPositionTarget positionTarget)
-                    {
-                        var positionUnit = new BaseUnit();
-                        positionUnit.ObjId = uint.MaxValue;
-                        positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
-                        positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
-                        caster.Region ??= WorldManager.Instance.GetRegion(caster.Transform.ZoneId, caster.Transform.World.Position.X, caster.Transform.World.Position.Y);
-                        positionUnit.Region = caster.Region;
-                        target = positionUnit;
-                    }
-                    if (target != null && caster.ObjId == target.ObjId)
+                    var positionTarget = (SkillCastPositionTarget)targetCaster;
+                    var positionUnit = new BaseUnit();
+                    positionUnit.ObjId = uint.MaxValue;
+                    positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
+                    positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                    positionUnit.Region = WorldManager.Instance.GetRegion(positionUnit);
+                    target = positionUnit;
+                    if (caster.ObjId == target.ObjId)
                     {
                         return null; //TODO отправлять ошибку?
                     }
@@ -421,16 +419,14 @@ public class Skill
                 }
             case SkillTargetType.BallisticPos:
                 {
-                    if (targetCaster is SkillCastPositionTarget positionTarget)
-                    {
-                        var positionUnit = new BaseUnit();
-                        positionUnit.ObjId = uint.MaxValue;
-                        positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
-                        positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
-                        caster.Region ??= WorldManager.Instance.GetRegion(caster.Transform.ZoneId, caster.Transform.World.Position.X, caster.Transform.World.Position.Y);
-                        target = positionUnit;
-                    }
-                    if (target != null && caster.ObjId == target.ObjId)
+                    var positionTarget = (SkillCastPositionTarget)targetCaster;
+                    var positionUnit = new BaseUnit();
+                    positionUnit.ObjId = uint.MaxValue;
+                    positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
+                    positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                    positionUnit.Region = WorldManager.Instance.GetRegion(positionUnit);
+                    target = positionUnit;
+                    if (caster.ObjId == target.ObjId)
                     {
                         return null; //TODO отправлять ошибку?
                     }
@@ -452,17 +448,14 @@ public class Skill
                 break;
             case SkillTargetType.ArtilleryPos:
                 {
-                    if (targetCaster is SkillCastPosition3Target positionTarget)
-                    {
-                        var positionUnit = new BaseUnit();
-                        positionUnit.ObjId = uint.MaxValue;
-                        positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
-                        positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
-                        caster.Region ??= WorldManager.Instance.GetRegion(caster.Transform.ZoneId, caster.Transform.World.Position.X, caster.Transform.World.Position.Y);
-                        positionUnit.Region = caster.Region;
-                        target = positionUnit;
-                    }
-                    if (target != null && caster.ObjId == target.ObjId)
+                    var positionTarget = (SkillCastPositionTarget)targetCaster;
+                    var positionUnit = new BaseUnit();
+                    positionUnit.ObjId = uint.MaxValue;
+                    positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
+                    positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                    positionUnit.Region = WorldManager.Instance.GetRegion(positionUnit);
+                    target = positionUnit;
+                    if (caster.ObjId == target.ObjId)
                     {
                         return null; //TODO отправлять ошибку?
                     }
