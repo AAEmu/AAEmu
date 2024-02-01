@@ -309,12 +309,13 @@ public class SpawnManager : Singleton<SpawnManager>
                         foreach (var spawner in spawners)
                         {
                             entry++;
-                            if (!GimmickManager.Instance.Exist(spawner.UnitId))
+                            if (spawner.UnitId !=0 && !GimmickManager.Instance.Exist(spawner.UnitId))
                             {
                                 Logger.Warn($"Gimmick Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
                                 continue; // TODO ... so mb warn here?
                             }
                             spawner.Id = _nextId;
+                            //spawner.UnitId = 0; // EntityGuid is used for elevators
                             spawner.Position.WorldId = world.Id;
                             spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
                             if (gimmickSpawners.TryAdd(_nextId, spawner))

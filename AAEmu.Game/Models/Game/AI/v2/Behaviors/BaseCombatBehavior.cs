@@ -54,8 +54,7 @@ public abstract class BaseCombatBehavior : Behavior
             // TODO найдем путь к abuser, только если координаты цели изменились
             if (target != null && Ai.PathNode?.pos2 != null && Ai.PathNode != null)
             {
-                if (!Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X,
-                        target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
+                if (!Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
                 {
                     var stopWatch = new Stopwatch();
                     stopWatch.Start();
@@ -64,11 +63,9 @@ public abstract class BaseCombatBehavior : Behavior
                     stopWatch.Stop();
                     // Toss warning if it took a long time
                     if (stopWatch.Elapsed.Ticks >= TimeSpan.TicksPerMillisecond)
-                        Logger.Warn(
-                            $"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId}");
+                        Logger.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId}");
                     // запомним новые координаты цели
-                    Ai.PathNode.pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y,
-                        target.Transform.World.Position.Z);
+                    Ai.PathNode.pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
                 }
             }
 
@@ -184,6 +181,7 @@ public abstract class BaseCombatBehavior : Behavior
 
         foreach (var abuser in abusers)
         {
+            Ai.Owner.LookTowards(abuser.Transform.World.Position);
             if (Ai.AlreadyTargetted)
                 return true;
 

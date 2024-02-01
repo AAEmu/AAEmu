@@ -18,7 +18,7 @@ public class SCGimmickMovementPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_gimmick.GimmickId);
+        stream.Write(_gimmick.ObjId);
         stream.Write(_gimmick.Time);
         stream.Write(Helpers.ConvertLongX(_gimmick.Transform.World.Position.X)); // WorldPosition qx,qx,fz
         stream.Write(Helpers.ConvertLongY(_gimmick.Transform.World.Position.Y));

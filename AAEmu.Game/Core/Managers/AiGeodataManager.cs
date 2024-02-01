@@ -364,6 +364,30 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             .First().point;
     }
 
+    /// <summary>
+    /// Find the nearest point
+    /// </summary>
+    /// <param name="searchIn"></param>
+    /// <param name="compareTo"></param>
+    /// <returns>returns the index of the found point</returns>
+    public static uint FindClosestIndexPoint(List<Point> searchIn, Point compareTo)
+    {
+        var minDistance = 0f;
+        var pointN = 0u;
+
+        for (var i = 0; i < searchIn.Count; i++)
+        {
+            var distance = DistanceBetweenPoints(searchIn[i], compareTo);
+            if (distance > minDistance)
+                continue;
+
+            pointN = (uint)i;
+            minDistance = distance;
+        }
+
+        return pointN;
+    }
+
     public float GetHeight2(uint zoneKey, Vector3 pos)
     {
         var rrr = 0f;

@@ -46,8 +46,7 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
                 }
 
                 npc.Spawner.RespawnTime = 0; // запретим респавн
-                Logger.Info(
-                    $"NpcSpawnerSpawnEffect: Do Spawn effect id={Id}, Npc unitId={spawner.UnitId} spawnerId={SpawnerId} worldId={caster.Transform.WorldId}");
+                Logger.Info($"NpcSpawnerSpawnEffect: Do Spawn effect id={Id}, Npc unitId={spawner.UnitId} spawnerId={SpawnerId} worldId={caster.Transform.WorldId}");
 
                 if (UseSummonerAggroTarget)
                 {

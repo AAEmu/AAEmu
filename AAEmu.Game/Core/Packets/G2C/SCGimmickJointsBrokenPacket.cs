@@ -22,9 +22,9 @@ public class SCGimmickJointsBrokenPacket : GamePacket
         stream.Write((byte)_gimmick.Length); // TODO max length 200
         foreach (var gimmick in _gimmick)
         {
-            stream.Write(gimmick.GimmickId); // gimmickId
-            stream.Write(_jointId);          // jointId
-            stream.Write(_epicentr);         // epicentr
+            stream.Write(gimmick.ObjId); // gimmickId
+            stream.Write(_jointId);      // jointId
+            stream.Write(_epicentr);     // epicentr
         }
 
         return stream;
