@@ -318,11 +318,6 @@ public class CashShopManager : Singleton<CashShopManager>
         return CashShopItem.FindAll(a => a.MainTab == mainTab && a.SubTab == subTab);
     }
 
-    public CashShopItemDetail GetCashShopItemDetail(uint cashShopId)
-    {
-        return _cashShopItemDetail.TryGetValue(cashShopId, out var value) ? value : new CashShopItemDetail();
-    }
-
     public void EnabledShop()
     {
         Enabled = true;
