@@ -28,6 +28,6 @@ public class EndChannelingTask : SkillTask
     public override void Execute()
     {
         // Skill.ScheduleEffects(_caster, _casterCaster, _target, _targetCaster, _skillObject);
-        Skill.EndChanneling(_caster, _channelDoodad);
+        Skill.EndChanneling(_caster, _channelDoodad, _casterCaster);
     }
 }

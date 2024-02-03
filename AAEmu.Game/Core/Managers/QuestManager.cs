@@ -43,6 +43,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     {
         return _templates.TryGetValue(id, out var template) ? template : null;
     }
+
     public QuestComponent[] GetTemplate(uint id, uint componentId)
     {
         _templates.TryGetValue(id, out var template);
@@ -63,6 +64,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         // 
         return res;
     }
+
     public QuestActTemplate GetActTemplate(uint id, string type)
     {
         if (!_actTemplates.ContainsKey(type))
@@ -118,6 +120,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             }
         }
     }
+
     public void Load()
     {
         if (_loaded)
@@ -290,6 +293,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             _actsDic.Add(template.Id, template);
         }
     }
+
     private void LoadQuestSupplies(SqliteConnection connection)
     {
         Logger.Info("Loaded {0} quests", _templates.Count);
@@ -383,6 +387,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             questAct.Template = template;
         }
     }
+
     private void LoadQuestActTemplates(SqliteConnection connection)
     {
         using (var command = connection.CreateCommand())
@@ -1527,6 +1532,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             }
         }
     }
+
     public void DoReportEvents(ICharacter owner, uint questContextId, uint npcObjId, uint doodadObjId, int selected)
     {
         if (npcObjId > 0)
@@ -1570,6 +1576,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             owner.Quests.Complete(questContextId, selected, true);
         }
     }
+
     public void DoConsumedEvents(ICharacter owner, uint templateId, int count)
     {
         //Owner?.Quests?.OnItemUse(item);
@@ -1585,6 +1592,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             Count = count
         });
     }
+
     public void DoAcquiredEvents(ICharacter owner, uint templateId, int count)
     {
         //Owner?.Quests?.OnItemGather(item, count);
@@ -1600,6 +1608,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             Count = count
         });
     }
+
     public void DoInteractionEvents(ICharacter owner, uint templateId)
     {
         //character.Quests.OnInteraction(WorldInteraction, target);
@@ -1609,6 +1618,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             DoodadId = templateId
         });
     }
+
     public void DoTalkMadeEvents(ICharacter owner, uint npcObjId, uint questContextId, uint questComponentId, uint questActId)
     {
         if (npcObjId <= 0) { return; }
@@ -1635,6 +1645,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             Transform = npc.Transform
         });
     }
+
     public void DoOnMonsterHuntEvents(ICharacter owner, Npc npc)
     {
         if (npc == null) { return; }
@@ -1673,6 +1684,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     //        Position = npc.Transform
     //    });
     //}
+
     public void DoOnAggroEvents(ICharacter owner, Npc npc)
     {
         if (npc == null) { return; }
@@ -1684,6 +1696,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             Transform = npc.Transform
         });
     }
+
     public void DoOnExpressFireEvents(ICharacter owner, uint emotionId, uint characterObjId, uint npcObjId)
     {
         if (npcObjId <= 0) { return; }
@@ -1698,6 +1711,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             EmotionId = emotionId
         });
     }
+
     public void DoOnLevelUpEvents(ICharacter owner)
     {
         //Quests.OnLevelUp(); // TODO added for quest Id=5967
@@ -1705,6 +1719,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
 
         owner.Events?.OnAbilityLevelUp(this, new OnAbilityLevelUpArgs());
     }
+
     public void DoOnCraftEvents(ICharacter owner, uint craftId)
     {
         //Owner.Quests.OnCraft(_craft); // TODO added for quest Id=6024
@@ -1713,6 +1728,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             CraftId = craftId
         });
     }
+
     public void DoOnEnterSphereEvents(ICharacter owner, SphereQuest sphereQuest)
     {
         //trigger.Owner.Quests.OnEnterSphere(trigger.Sphere);
