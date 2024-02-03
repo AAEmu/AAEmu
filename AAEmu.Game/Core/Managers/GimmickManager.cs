@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
+using static System.String;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -37,33 +38,76 @@ public class GimmickManager : Singleton<GimmickManager>
         return _templates.TryGetValue(id, out var template) ? template : null;
     }
 
+    /// <summary>
+    /// Create for spawning elevators
+    /// </summary>
+    /// <param name="objectId"></param>
+    /// <param name="templateId"></param>
+    /// <param name="spawner"></param>
+    /// <returns></returns>
     public Gimmick Create(uint objectId, uint templateId, GimmickSpawner spawner)
     {
-        if (!_templates.ContainsKey(templateId))
-        {
-            return null;
-        }
-
-        var template = _templates[templateId];
-        //var template = GetGimmickTemplate(templateId);
+        /*
+         * for elevators: templateId=0 and Template=null, but EntityGuid is used
+         */
 
         var gimmick = new Gimmick();
+        if (templateId != 0)
+        {
+            var template = _templates[templateId];
+            //var template = GetGimmickTemplate(templateId);
+            if (template == null) { return null; }
+            gimmick.Template = template;
+            gimmick.ModelPath = template.ModelPath;
+            gimmick.EntityGuid = 0;
+        }
+        else
+        {
+            gimmick.Template = null;
+            gimmick.ModelPath = Empty;
+            gimmick.EntityGuid = spawner.EntityGuid;
+        }
+
         gimmick.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
         gimmick.Spawner = spawner;
-        gimmick.Template = template;
-        gimmick.GimmickId = gimmick.ObjId;
-        gimmick.TemplateId = template.Id; // duplicate Id
-        gimmick.Id = template.Id;
+        gimmick.TemplateId = templateId;
         gimmick.Faction = new SystemFaction();
-        gimmick.ModelPath = template.ModelPath;
-        gimmick.Patrol = null;
         gimmick.Transform.ApplyWorldSpawnPosition(spawner.Position);
         gimmick.Vel = new Vector3(0f, 0f, 0f);
         gimmick.Rot = new Quaternion(spawner.RotationX, spawner.RotationY, spawner.RotationZ, spawner.RotationW);
         gimmick.ModelParams = new UnitCustomModelParams();
+        gimmick.SetScale(spawner.Scale);
 
-        gimmick.Spawn();
+        if (gimmick.Transform.World.IsOrigin())
+        {
+            Logger.Error($"Can't spawn gimmick {templateId}");
+            return null;
+        }
+
+        gimmick.Spawn(); // adding to the world
         _activeGimmicks.Add(gimmick.ObjId, gimmick);
+
+        return gimmick;
+    }
+
+    /// <summary>
+    /// Create for spawning projectiles
+    /// </summary>
+    /// <param name="templateId"></param>
+    /// <returns></returns>
+    public Gimmick Create(uint templateId)
+    {
+        var template = _templates[templateId];
+        if (template == null) { return null; }
+
+        var gimmick = new Gimmick();
+        gimmick.ObjId = ObjectIdManager.Instance.GetNextId();
+        gimmick.Spawner = new GimmickSpawner();
+        gimmick.Template = template;
+        gimmick.TemplateId = template.Id;
+        gimmick.Faction = new SystemFaction();
+        gimmick.ModelPath = template.ModelPath;
+        gimmick.ModelParams = new UnitCustomModelParams();
 
         return gimmick;
     }
@@ -170,158 +214,69 @@ public class GimmickManager : Singleton<GimmickManager>
     private static void GimmickTick(Gimmick gimmick)
     {
         if (gimmick.TimeLeft > 0)
-        {
             return;
-        }
-        var maxVelocityForward = 4.5f;
-        var maxVelocityBackward = -4.5f;
-        var deltaTime = 0.05f;
-        var movingDistance = 0.27f;
 
-        Vector3 vPosition;
-        Vector3 vTarget;
-        Vector3 vDistance;
+        const float maxVelocity = 4.5f;
+        const float deltaTime = 0.05f;
+        const float movingDistance = 0.27f;
 
+        var position = gimmick.Transform.World.Position;
         var velocityZ = gimmick.Vel.Z;
-        var positionZ = gimmick.Transform.World.Position.Z;
-        vPosition = gimmick.Transform.World.ClonePosition();
 
-        if (gimmick.Spawner.MiddleZ > 0)
+        var middleTarget = position with { Z = gimmick.Spawner.MiddleZ };
+        var topTarget = position with { Z = gimmick.Spawner.TopZ };
+        var bottomTarget = position with { Z = gimmick.Spawner.BottomZ };
+
+        var isMovingDown = gimmick.moveDown;
+        var isInMiddleZ = gimmick.Spawner.MiddleZ > 0;
+
+        if (isInMiddleZ)
         {
-            if (positionZ < gimmick.Spawner.MiddleZ && gimmick.Vel.Z >= 0 && !gimmick.moveDown)
-            {
-                vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.MiddleZ);
-                vDistance = vTarget - vPosition; // dx, dy, dz
-                velocityZ = maxVelocityForward;
-
-                movingDistance = velocityZ * deltaTime;
-
-                if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
-                {
-                    positionZ += movingDistance;
-                    gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
-                }
-                else
-                {
-                    positionZ = vTarget.Z;
-                    gimmick.Vel = new Vector3(0f, 0f, 0f);
-                }
-            }
-            else if (vPosition.Z < gimmick.Spawner.TopZ && gimmick.Vel.Z >= 0 && !gimmick.moveDown)
-            {
-                vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.TopZ);
-                vDistance = vTarget - vPosition; // dx, dy, dz
-                velocityZ = maxVelocityForward;
-                movingDistance = velocityZ * deltaTime;
-
-                if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
-                {
-                    positionZ += movingDistance;
-                    gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
-                    gimmick.moveDown = false;
-                }
-                else
-                {
-                    positionZ = vTarget.Z;
-                    gimmick.Vel = new Vector3(0f, 0f, 0f);
-                    gimmick.moveDown = true;
-                }
-            }
-            else if (vPosition.Z > gimmick.Spawner.MiddleZ && gimmick.Vel.Z <= 0 && gimmick.moveDown)
-            {
-                vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.MiddleZ);
-                vDistance = vTarget - vPosition; // dx, dy, dz
-                velocityZ = maxVelocityBackward;
-                movingDistance = velocityZ * deltaTime;
-
-                if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
-                {
-                    positionZ += movingDistance;
-                    gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
-                }
-                else
-                {
-                    positionZ = vTarget.Z;
-                    gimmick.Vel = new Vector3(0f, 0f, 0f);
-                }
-            }
+            if (position.Z < gimmick.Spawner.MiddleZ && gimmick.Vel.Z >= 0 && !isMovingDown)
+                MoveAlongZAxis(gimmick, ref position, middleTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
+            else if (position.Z < gimmick.Spawner.TopZ && gimmick.Vel.Z >= 0 && !isMovingDown)
+                MoveAlongZAxis(gimmick, ref position, topTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
+            else if (position.Z > gimmick.Spawner.MiddleZ && gimmick.Vel.Z <= 0 && isMovingDown)
+                MoveAlongZAxis(gimmick, ref position, middleTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
             else
-            {
-                vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.BottomZ);
-                vDistance = vTarget - vPosition; // dx, dy, dz
-                velocityZ = maxVelocityBackward;
-                movingDistance = velocityZ * deltaTime;
-
-                if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
-                {
-                    positionZ += movingDistance;
-                    gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
-                    gimmick.moveDown = true;
-                }
-                else
-                {
-                    positionZ = vTarget.Z;
-                    gimmick.Vel = new Vector3(0f, 0f, 0f);
-                    gimmick.moveDown = false;
-                }
-            }
+                MoveAlongZAxis(gimmick, ref position, bottomTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
         }
         else
         {
-            if (vPosition.Z < gimmick.Spawner.TopZ && gimmick.Vel.Z >= 0)
-            {
-                vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.TopZ);
-                vDistance = vTarget - vPosition; // dx, dy, dz
-                velocityZ = maxVelocityForward;
-
-                movingDistance = velocityZ * deltaTime;
-
-                if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
-                {
-                    positionZ += movingDistance;
-                    gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
-                }
-                else
-                {
-                    positionZ = vTarget.Z;
-                    gimmick.Vel = new Vector3(0f, 0f, 0f);
-                }
-            }
+            if (position.Z < gimmick.Spawner.TopZ && gimmick.Vel.Z >= 0)
+                MoveAlongZAxis(gimmick, ref position, topTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
             else
-            {
-                vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.BottomZ);
-                vDistance = vTarget - vPosition; // dx, dy, dz
-                velocityZ = maxVelocityBackward;
-                movingDistance = velocityZ * deltaTime;
-
-                if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
-                {
-                    positionZ += movingDistance;
-                    gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
-                }
-                else
-                {
-                    positionZ = vTarget.Z;
-                    gimmick.Vel = new Vector3(0f, 0f, 0f);
-                }
-            }
+                MoveAlongZAxis(gimmick, ref position, bottomTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
         }
 
-        // TODO: replace this with .World.SetHeight after .World is correctly implemented
-        gimmick.Transform.Local.SetHeight(positionZ);
+        gimmick.Transform.Local.SetHeight(position.Z);
 
-        // If the number of executions is less than the angle, continue adding tasks or stop moving
-        if (Math.Abs(gimmick.Vel.Z) > 0)
+        var isMoving = Math.Abs(gimmick.Vel.Z) > 0;
+        gimmick.Time += 50;
+        gimmick.BroadcastPacket(new SCGimmickMovementPacket(gimmick), true);
+
+        if (isMoving)
+            return;
+
+        gimmick.WaitTime = DateTime.UtcNow.AddSeconds(gimmick.Spawner.WaitTime);
+        gimmick.moveDown = !gimmick.moveDown;
+    }
+
+    private static void MoveAlongZAxis(Gimmick gimmick, ref Vector3 position, Vector3 target, float maxVelocity, float deltaTime, float movingDistance, ref float velocityZ, ref bool isMovingDown)
+    {
+        var distance = target - position;
+        velocityZ = maxVelocity * Math.Sign(distance.Z);
+        movingDistance = velocityZ * deltaTime;
+
+        if (Math.Abs(distance.Z) >= Math.Abs(movingDistance))
         {
-            gimmick.Time += 50;    // has to change all the time for normal motion.
-            gimmick.BroadcastPacket(new SCGimmickMovementPacket(gimmick), true);
+            position.Z += movingDistance;
+            gimmick.Vel = gimmick.Vel with { Z = velocityZ };
         }
         else
         {
-            // stop for a few seconds
-            gimmick.Time += 50;    // has to change all the time for normal motion.
-            gimmick.BroadcastPacket(new SCGimmickMovementPacket(gimmick), true);
-            gimmick.WaitTime = DateTime.UtcNow.AddSeconds(gimmick.Spawner.WaitTime);
+            position.Z = target.Z;
+            gimmick.Vel = Vector3.Zero;
         }
     }
 }
