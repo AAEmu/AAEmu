@@ -216,35 +216,20 @@ public class DamageEffect : EffectTemplate
             }
         }
 
-
         min *= Multiplier;
         max *= Multiplier;
 
-        var damageMultiplier = 0.0f;
-        switch (DamageType)
+        var damageMultiplier = DamageType switch
         {
-            case DamageType.Melee:
-                // damageMultiplier = caster.Dps???
-                damageMultiplier = ((Unit)caster).MeleeDamageMul;
-                break;
-            case DamageType.Magic:
-                damageMultiplier = ((Unit)caster).SpellDamageMul;
-                break;
-            case DamageType.Ranged:
-                damageMultiplier = ((Unit)caster).RangedDamageMul;
-                break;
-            case DamageType.Siege:
-                // TODO 
-                damageMultiplier = 1.0f;
-                break;
-        }
+            DamageType.Melee  => ((Unit)caster).MeleeDamageMul,
+            DamageType.Magic  => ((Unit)caster).SpellDamageMul,
+            DamageType.Ranged => ((Unit)caster).RangedDamageMul,
+            DamageType.Siege  => 1.0f, // TODO
+            _ => 1f
+        };
 
-        var iVar1 = (int)(min * (damageMultiplier + 1000));
-        var uVar3 = iVar1 / 1000 + (iVar1 >> 0x1f);
-        min = (uVar3 >> 0x1f) + uVar3;
-        iVar1 = (int)(max * (damageMultiplier + 1000));
-        uVar3 = iVar1 / 1000 + (iVar1 >> 0x1f);
-        max = (uVar3 >> 0x1f) + uVar3;
+        min = MathF.Floor(min * damageMultiplier);
+        max = MathF.Ceiling(max * damageMultiplier);
 
         if (source.Skill != null)
         {
