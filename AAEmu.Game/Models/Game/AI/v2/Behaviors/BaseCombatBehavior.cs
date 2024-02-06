@@ -46,6 +46,10 @@ public abstract class BaseCombatBehavior : Behavior
         //Ai.Owner.Template.AttackStartRangeScale * 4,
         //var range = 2f;// Ai.Owner.Template.AttackStartRangeScale * 6;
         var range = Ai.Owner.Template.AttackStartRangeScale;
+        if (Ai.Owner.Template.UseRangeMod)
+        {
+            range *= _maxWeaponRange;
+        }
         var speed = Ai.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f);
         var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
 
@@ -175,27 +179,28 @@ public abstract class BaseCombatBehavior : Behavior
 
     public bool UpdateTarget()
     {
-        //We might want to optimize this somehow..
+        // We might want to optimize this somehow.
         var aggroList = Ai.Owner.AggroTable.Values;
         var abusers = aggroList.OrderByDescending(o => o.TotalAggro).Select(o => o.Owner).ToList();
 
         foreach (var abuser in abusers)
         {
             Ai.Owner.LookTowards(abuser.Transform.World.Position);
-            //if (Ai.AlreadyTargetted)
-            //    return true;
 
             if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
             {
                 // включена геодата и не основной мир
                 // geodata enabled and not the main world
-                if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead /*&& !Ai.AlreadyTargetted*/)
+                if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
+                    if (Ai.Owner.CurrentAggroTarget != abuser.ObjId && !Ai.AlreadyTargetted)
+                    {
+                        // TODO найдем путь к abuser
+                        Ai.Owner.FindPath(abuser);
+                    }
                     Ai.Owner.CurrentAggroTarget = abuser.ObjId;
                     Ai.Owner.SetTarget(abuser);
                     UpdateAggroHelp(abuser);
-                    // TODO найдем путь к abuser
-                    Ai.Owner.FindPath(abuser);
 
                     return true;
                 }
