@@ -46,6 +46,10 @@ public abstract class BaseCombatBehavior : Behavior
         //Ai.Owner.Template.AttackStartRangeScale * 4,
         //var range = 2f;// Ai.Owner.Template.AttackStartRangeScale * 6;
         var range = Ai.Owner.Template.AttackStartRangeScale;
+        if (Ai.Owner.Template.UseRangeMod)
+        {
+            range *= _maxWeaponRange;
+        }
         var speed = Ai.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f);
         var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
 

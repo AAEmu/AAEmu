@@ -4,10 +4,14 @@ using System.Linq;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
+using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
@@ -24,6 +28,7 @@ public abstract class Behavior
 
     protected DateTime _delayEnd;
     protected float _nextTimeToDelay;
+    protected float _maxWeaponRange;
 
     public NpcAi Ai { get; set; }
 
@@ -103,6 +108,8 @@ public abstract class Behavior
         }
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(pickedSkillId);
         var skill = new Skill(skillTemplate);
+
+        SetMaxWeaponRange(skill, target); // установим максимальную дистанцию для атаки скиллом
 
         var delay2 = (int)(Ai.Owner.Template.BaseSkillDelay * 1000);
         if (Ai.Owner.Template.BaseSkillDelay == 0)
@@ -253,5 +260,35 @@ public abstract class Behavior
                 }
             }
         }
+    }
+
+    public void SetMaxWeaponRange(Skill skill, BaseUnit target)
+    {
+        var unit = (Unit)target;
+        // Check if target is within range
+        var skillRange = Ai.Owner.ApplySkillModifiers(skill, SkillAttribute.Range, skill.Template.MaxRange);
+
+        var minRangeCheck = skill.Template.MinRange * 1.0;
+        var maxRangeCheck = skillRange;
+
+        // HACKFIX : Used mostly for boats, since the actual position of the doodad is the boat's origin, and not where it is displayed
+        // TODO: Do a check based on model size or bounding box instead
+
+        // If weapon is used to calculate range, use that
+        if (skill.Template.WeaponSlotForRangeId > 0)
+        {
+            var minWeaponRange = 0.0f; // Fist default
+            var maxWeaponRange = 3.0f; // Fist default
+            if (unit.Equipment.GetItemBySlot(skill.Template.WeaponSlotForRangeId)?.Template is WeaponTemplate weaponTemplate)
+            {
+                minWeaponRange = weaponTemplate.HoldableTemplate.MinRange;
+                maxWeaponRange = weaponTemplate.HoldableTemplate.MaxRange;
+            }
+
+            minRangeCheck = minWeaponRange;
+            maxRangeCheck = maxWeaponRange;
+        }
+
+        _maxWeaponRange = (float)maxRangeCheck;
     }
 }
