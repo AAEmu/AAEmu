@@ -998,6 +998,9 @@ EndLoop:
         return value;
     }
 
+    /// <summary>
+    /// Removes items from the player that need to be removed when a quest finishes
+    /// </summary>
     private void RemoveQuestItems()
     {
         for (var step = QuestComponentKind.None; step <= QuestComponentKind.Reward; step++)
@@ -1013,7 +1016,7 @@ EndLoop:
                 {
                     switch (act.DetailType)
                     {
-                        case "QuestActSupplyItem" when step == QuestComponentKind.Supply:
+                        case "QuestActSupplyItem":
                             {
                                 var template = act.GetTemplate<QuestActSupplyItem>();
                                 if (template.DestroyWhenDrop || template.DropWhenDestroy || template.Cleanup)
@@ -1024,11 +1027,6 @@ EndLoop:
                                     Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
                                     Logger.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId {6}, Count {7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
                                 }
-                                //Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
-                                Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
-                                Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[componentIndex], null);
-                                //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
-                                Logger.Debug("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId {6}, Count {7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
                                 break;
                             }
                         case "QuestActObjItemGather":

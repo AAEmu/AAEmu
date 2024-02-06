@@ -649,19 +649,12 @@ public class Skill
             doodad.Spawn();
         }
 
-        // TODO: добавил, так как для квеста 3469 нет события OnItemUse
-        // TODO: added since there is no OnItemUse event for quest 3469
-        if (casterCaster is SkillItem { ItemTemplateId: > 0 } item && caster is Character player)
-        {
-            player.Inventory.ConsumeItem(null, ItemTaskType.SkillReagents, item.ItemTemplateId, 1, null);
-        }
-
         caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
         unit.SkillTask = new EndChannelingTask(this, caster, casterCaster, target, targetCaster, skillObject, doodad);
         TaskManager.Instance.Schedule(unit.SkillTask, TimeSpan.FromMilliseconds(Template.ChannelingTime));
     }
 
-    public void EndChanneling(BaseUnit caster, Doodad channelDoodad)
+    public void EndChanneling(BaseUnit caster, Doodad channelDoodad, SkillCaster casterCaster)
     {
         if (caster is not Unit unit) { return; }
         unit.SkillTask = null;
@@ -677,6 +670,13 @@ public class Skill
         channelDoodad?.Delete();
 
         EndSkill(caster);
+
+        // TODO: добавил, так как для квеста 3469 нет события OnItemUse
+        // TODO: added since there is no OnItemUse event for quest 3469 and other quests that require the use on non-consuming items
+        if ((Cancelled == false) && (casterCaster is SkillItem { ItemTemplateId: > 0 } item && caster is Character player))
+        {
+            player.ItemUse(item.ItemId);
+        }
 
         unit.Events.OnChannelingCancel(this, new OnChannelingCancelArgs());
     }
@@ -1038,12 +1038,12 @@ public class Skill
     /// </summary>
     /// <param name="caster"></param>
     /// <param name="channelDoodad"></param>
-    public void Stop(BaseUnit caster, Doodad channelDoodad = null)
+    public void Stop(BaseUnit caster, Doodad channelDoodad = null, SkillCaster casterCaster = null)
     {
         if (caster is not Unit unit) { return; }
         if (Template.ChannelingTime > 0)
         {
-            EndChanneling(caster, channelDoodad);
+            EndChanneling(caster, channelDoodad, casterCaster);
         }
 
         if (Template.ToggleBuffId != 0)
