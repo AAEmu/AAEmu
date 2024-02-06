@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -28,10 +29,8 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
 
         var world = WorldManager.Instance.GetWorldByZone(caster.Transform.ZoneId);
         var spawners = SpawnManager.Instance.GetNpcSpawner(SpawnerId, (byte)world.TemplateId);
-        if (spawners == null || spawners.Count == 0)
-        {
+        if (spawners is not { Count: not 0 })
             Logger.Info($"NpcSpawnerSpawnEffect: SpawnerId={SpawnerId} not found in spawners.");
-        }
         else
         {
             foreach (var spawner in spawners)
@@ -41,44 +40,45 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
                 spawner.ClearLastSpawnCount();
                 var npc = spawner.Spawn(0);
                 if (npc == null)
-                {
                     continue;
-                }
 
                 npc.Spawner.RespawnTime = 0; // запретим респавн
                 Logger.Info($"NpcSpawnerSpawnEffect: Do Spawn effect id={Id}, Npc unitId={spawner.UnitId} spawnerId={SpawnerId} worldId={caster.Transform.WorldId}");
 
                 if (UseSummonerAggroTarget)
                 {
-                    // Npc attacks Npc for Q3886 & Q3887
-                    var units = WorldManager.GetAround<Npc>(npc, npc.Ai.GetCurrentBehavior().CheckSightRangeScale(10f));
-                    if (units != null)
+                    if (LifeTime == 0)
                     {
-                        foreach (var n in units)
-                        {
-                            if (!npc.Ai.Owner.CanAttack(n)) { continue; }
-                            Logger.Info($"NpcSpawnerSpawnEffect: npc={n.TemplateId}:{npc.ObjId} attack the npc={npc.TemplateId}:{npc.ObjId}");
-                            n.Ai.Owner.AddUnitAggro(AggroKind.Damage, npc, 1);
-                            n.Ai.OnAggroTargetChanged();
-                            n.Ai.GoToCombat();
-                            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, n, 1);
-                        }
-                        npc.Ai.OnAggroTargetChanged();
-                        npc.Ai.GoToCombat();
-                    }
+                        // Npc attacks Npc for Q3886 & Q3887
+                        var units = WorldManager.GetAround<Npc>(npc, npc.Ai.GetCurrentBehavior().CheckSightRangeScale(30f));
+                        if (units is not { Count: not 0 })
+                            continue;
 
-                    // Npc attacks the character
-                    if (target is Npc)
-                    {
-                        npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, (Unit)target, 1);
+                        foreach (var n in units.Where(n => npc.Ai.Owner.CanAttack(n)))
+                        {
+                            Logger.Info($"NpcSpawnerSpawnEffect: npc={n.TemplateId}:{npc.ObjId} attack the npc={npc.TemplateId}:{npc.ObjId}");
+                            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, n, 1);
+                            npc.Ai.OnAggroTargetChanged();
+
+                            n.Ai.Owner.AddUnitAggro(AggroKind.Damage, npc, 1);
+                        }
+                        npc.Ai.GoToCombat();
                     }
                     else
                     {
-                        npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, (Unit)caster, 1);
-                    }
+                        // Npc attacks the character
+                        if (target is Npc)
+                        {
+                            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, (Unit)target, 1);
+                        }
+                        else
+                        {
+                            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, (Unit)caster, 1);
+                        }
 
-                    npc.Ai.OnAggroTargetChanged();
-                    npc.Ai.GoToCombat();
+                        npc.Ai.OnAggroTargetChanged();
+                        npc.Ai.GoToCombat();
+                    }
                 }
 
                 if (LifeTime > 0)

@@ -157,7 +157,7 @@ public class Skill
         // Get a TlId for this skill
         TlId = SkillTlIdManager.GetNextId(caster);
         // if (caster is Character)
-        Logger.Trace($"Created SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
+        Logger.Info($"Created SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
 
         // If skill uses Plots, then start the plot
         if (Template.Plot != null)
@@ -936,14 +936,14 @@ public class Skill
 
         foreach (var item in effectsToApply)
         {
-            //Template can be null for some reason..
+            // Template can be null for some reason.
             if (item.effect.Template != null)
                 if (item.effect.Template is KillNpcWithoutCorpseEffect nsse)
                 {
                     // для квеста 3478, требуется чтобы caster был Npc
+                    // для квеста 3993 должен выполняться эффект, а он прерывался из-за неправильного сравнения!
                     var npc = WorldManager.Instance.GetNpcByTemplateId(nsse.NpcId);
-                    if (npc != null) { return; }
-                    item.effect.Template.Apply(npc, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                    item.effect.Template.Apply(npc ?? caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
                 }
                 else
                 {

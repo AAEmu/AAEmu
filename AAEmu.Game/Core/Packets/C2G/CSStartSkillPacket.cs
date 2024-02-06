@@ -7,7 +7,6 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
@@ -40,8 +39,6 @@ public class CSStartSkillPacket : GamePacket
         }
 
         var skillId = stream.ReadUInt32();
-        // if (skillId == 2 || skillId == 3 || skillId == 4)
-        //     return;
 
         var skillCasterType = stream.ReadByte();
         var skillCaster = SkillCaster.GetByType((SkillCasterType)skillCasterType);
@@ -56,13 +53,13 @@ public class CSStartSkillPacket : GamePacket
         var skillObject = SkillObject.GetByType((SkillObjectType)flagType);
         if (flagType > 0) skillObject.Read(stream);
 
-        Logger.Trace($"StartSkill: Id {skillId}, flag {flag}");
+        Logger.Info($"StartSkill: Id {skillId}, flag {flag}, caster={skillCaster.ObjId}, target={skillCastTarget.ObjId}");
 
         if (skillCaster is SkillCasterUnit scu)
         {
             var unit = WorldManager.Instance.GetUnit(scu.ObjId);
             if (unit is Character character)
-                Logger.Debug($"{character.Name} is using skill {skillId}");
+                Logger.Info($"{character.Name}:{character.ObjId} is using skill={skillId}");
         }
 
         if (skillCaster is SkillCasterMount scm)
