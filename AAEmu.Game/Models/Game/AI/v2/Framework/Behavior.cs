@@ -240,22 +240,18 @@ public abstract class Behavior
         }
     }
 
-    public void UpdateAggroHelp(Unit abuser, int radius = 100)
+    public void UpdateAggroHelp(Unit abuser, int radius = 20)
     {
         var npcs = WorldManager.GetAround<Npc>(Ai.Owner, radius);
-        if (npcs != null)
+        if (npcs == null)
+            return;
+
+        foreach (var npc in npcs
+                     .Where(npc => npc.Template.Aggression && !npc.IsInBattle && npc.Template.AcceptAggroLink)
+                     .Where(npc => npc.GetDistanceTo(npc.Ai.Owner) <= npc.Template.AggroLinkHelpDist))
         {
-            foreach (var npc in npcs)
-            {
-                if (npc.Template.Aggression && !npc.IsInBattle && npc.Template.AcceptAggroLink)
-                {
-                    if (npc.GetDistanceTo(abuser) <= npc.Template.AggroLinkHelpDist)
-                    {
-                        npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, abuser, 1);
-                        npc.Ai.GoToCombat();
-                    }
-                }
-            }
+            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, abuser, 1);
+            npc.Ai.GoToCombat();
         }
     }
 
