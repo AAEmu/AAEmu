@@ -29,10 +29,13 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
                 }
             }
         }
+
+        // Otherwise find a reagent depending on item grade
         foreach (var reagent in _reagents)
         {
-            if (implId == reagent.ImplId && grade >= reagent.MinItemGrade && grade <= reagent.MinItemGrade
-                    && level >= reagent.MinLevel && level <= reagent.MaxLevel)
+            if (implId == reagent.ImplId
+                && grade >= reagent.MinItemGrade && grade <= reagent.MaxItemGrade
+                && level >= reagent.MinLevel && level <= reagent.MaxLevel)
             {
                 return reagent;
             }
