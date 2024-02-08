@@ -19,6 +19,7 @@ public class BigMonsterAttackBehavior : BaseCombatBehavior
     {
         Ai.Owner.InterruptSkills();
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        Ai.Owner.IsInBattle = true;
         if (Ai.Owner is { } npc)
         {
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
@@ -46,9 +47,6 @@ public class BigMonsterAttackBehavior : BaseCombatBehavior
         _strafeDuringDelay = false;
 
         #region Pick a skill
-
-        Ai.Owner.StopMovement();
-        Ai.Owner.IsInBattle = true;
 
         // TODO: Get skill list
         var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);

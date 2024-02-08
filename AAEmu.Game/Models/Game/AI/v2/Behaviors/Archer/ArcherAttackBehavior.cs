@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.AI.v2.Params.Archer;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Archer;
 
@@ -18,12 +19,29 @@ public class ArcherAttackBehavior : BaseCombatBehavior
 
     public override void Enter()
     {
+        /*
+           -- "entity.AI.phase" list
+           --   base
+           --   tryingMeleeSkill
+           --   usedMeleeSkill
+           --   tryingRangedDefSkill
+           --   usedRangedDefSkill
+           --   tryingMakeAGapSkill
+           --   needMakeAGap
+         */
+        Phase = "base";
         MakeAGapCount = 0;
         Ai.Owner.InterruptSkills();
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        Ai.Owner.IsInBattle = true;
         if (Ai.Owner is { } npc)
         {
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
+        }
+        if (!UpdateTarget() || ShouldReturn)
+        {
+            Ai.GoToReturn();
+            return;
         }
     }
 
@@ -39,6 +57,28 @@ public class ArcherAttackBehavior : BaseCombatBehavior
             return;
         }
 
+        if (Phase == "needMakeAGap")
+        {
+            var idlePosition = Ai.IdlePosition.World.Position;
+            var npcPosition = Ai.Owner.Transform.World.Position;
+            var abuserPosition = Ai.Owner.CurrentTarget.Transform.World.Position;
+
+            Ai.Owner.MoveTowards(idlePosition, Ai.Owner.BaseMoveSpeed * (100 / 1000.0f));
+
+            var dist = MathUtil.CalculateDistance(npcPosition, idlePosition, true);
+            var dist2 = MathUtil.CalculateDistance(npcPosition, abuserPosition, true);
+            if (dist < 1.0f || dist2 > aiParams.PreferedCombatDist)
+            {
+                Ai.Owner.StopMovement();
+                MakeAGapCount++;
+                Phase = "tryingRangedDefSkill";
+            }
+            else
+            {
+                return;
+            }
+        }
+        else
         if (CanStrafe && !IsUsingSkill)
             MoveInRange(Ai.Owner.CurrentTarget, delta);
 
@@ -47,10 +87,8 @@ public class ArcherAttackBehavior : BaseCombatBehavior
 
         #region Pick a skill
 
-        Ai.Owner.StopMovement();
-        Ai.Owner.IsInBattle = true;
-
         // TODO: Get skill list
+        _maxWeaponRange = aiParams.PreferedCombatDist;
         var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
         var selectedSkill = PickSkill(RequestAvailableSkills(aiParams, targetDist));
 
@@ -67,10 +105,8 @@ public class ArcherAttackBehavior : BaseCombatBehavior
     {
     }
 
-    private void OnUseSkillDone(bool inMeleeAttackRange)
+    private void OnUseSkillDone()
     {
-        Phase = inMeleeAttackRange ? "tryingMeleeSkill" : "tryingRangedDefSkill";
-
         switch (Phase)
         {
             case "tryingMeleeSkill":
@@ -81,7 +117,9 @@ public class ArcherAttackBehavior : BaseCombatBehavior
                 break;
             case "tryingMakeAGapSkill":
                 Phase = "needMakeAGap";
-                MakeAGapCount++;
+                break;
+            case "needMakeAGap":
+                Phase = "needMakeAGap";
                 break;
             default:
                 Phase = "base";
@@ -89,49 +127,40 @@ public class ArcherAttackBehavior : BaseCombatBehavior
         }
     }
 
+    // OnRequestSkillInfo
     private List<uint> RequestAvailableSkills(ArcherAiParams aiParams, float trgDist)
     {
         var inMeleeAttackRange = trgDist <= aiParams.MeleeAttackRange;
 
-        OnUseSkillDone(inMeleeAttackRange);
-
         var baseList = aiParams.CombatSkills;
         var skillList = new List<uint>();
 
-        switch (Phase)
+        if (Phase == "usedMeleeSkill")
         {
-            case "usedMeleeSkill":
+            var needMakeAGap = inMeleeAttackRange && MakeAGapCount < aiParams.MaxMakeAGapCount;
+            if (needMakeAGap)
+            {
+                // skillList = entity.AI.param.combatSkills.makeAGap;
+                foreach (var acs in baseList)
                 {
-                    var needMakeAGap = inMeleeAttackRange && MakeAGapCount < aiParams.MaxMakeAGapCount;
-                    if (needMakeAGap)
-                    {
-                        // skillList = entity.AI.param.combatSkills.makeAGap;
-                        foreach (var acs in baseList)
-                        {
-                            skillList.AddRange(acs.MakeAGap.Where(skillId => !Ai.Owner.Cooldowns.CheckCooldown(skillId)));
-                        }
-                        Phase = "tryingMakeAGapSkill";
-                    }
-                    else
-                    {
-                        Phase = "base";
-                        // self:OnRequestSkillInfo(entity);    -- call again with phase change ("base")
-                        if (!Ai.Owner.Cooldowns.CheckCooldown((uint)Ai.Owner.Template.BaseSkillId))
-                            skillList.Add((uint)Ai.Owner.Template.BaseSkillId);
-                    }
-
-                    break;
+                    skillList.AddRange(acs.MakeAGap.Where(skillId => !Ai.Owner.Cooldowns.CheckCooldown(skillId)));
                 }
-            case "usedRangedDefSkill":
-                {
-                    //skillList = entity.AI.param.combatSkills.rangedStrong;
-                    foreach (var acs in baseList)
-                    {
-                        skillList.AddRange(acs.RangedStrong.Where(skillId => !Ai.Owner.Cooldowns.CheckCooldown(skillId)));
-                    }
-
-                    break;
-                }
+                Phase = "tryingMakeAGapSkill";
+            }
+            else
+            {
+                Phase = "base";
+                // self:OnRequestSkillInfo(entity);    -- call again with phase change ("base")
+                return RequestAvailableSkills(aiParams, trgDist);
+            }
+        }
+        else if (Phase == "usedRangedDefSkill")
+        {
+            //skillList = entity.AI.param.combatSkills.rangedStrong;
+            foreach (var acs in baseList)
+            {
+                skillList.AddRange(acs.RangedStrong.Where(skillId => !Ai.Owner.Cooldowns.CheckCooldown(skillId)));
+            }
         }
 
         if (skillList.Count == 0)
@@ -156,6 +185,8 @@ public class ArcherAttackBehavior : BaseCombatBehavior
             }
         }
 
+        OnUseSkillDone();
+
         return skillList;
     }
 
@@ -167,6 +198,6 @@ public class ArcherAttackBehavior : BaseCombatBehavior
         if (!Ai.Owner.Cooldowns.CheckCooldown((uint)Ai.Owner.Template.BaseSkillId))
             return (uint)Ai.Owner.Template.BaseSkillId;
 
-        return 2; // melee Skill
+        return 0; // no melee Skill
     }
 }

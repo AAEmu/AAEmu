@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
@@ -11,6 +12,7 @@ public class AttackBehavior : BaseCombatBehavior
     {
         Ai.Owner.InterruptSkills();
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        Ai.Owner.IsInBattle = true;
         if (Ai.Owner is { } npc)
         {
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc});
@@ -34,8 +36,6 @@ public class AttackBehavior : BaseCombatBehavior
         if (!CanUseSkill)
             return;
 
-        Ai.Owner.StopMovement();
-        Ai.Owner.IsInBattle = true;
         var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
         PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget, targetDist);
     }
