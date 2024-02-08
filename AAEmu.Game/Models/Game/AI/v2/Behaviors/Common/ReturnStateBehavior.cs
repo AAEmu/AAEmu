@@ -22,7 +22,8 @@ public class ReturnStateBehavior : Behavior
         Ai.Owner.SetTarget(null);
         // TODO: Ai.Owner.DisableAggro();
 
-        Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        Ai.Owner.IsInBattle = false;
+        Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
 
         var needRestorationOnReturn = true; // TODO: Use params & alertness values
         if (needRestorationOnReturn)

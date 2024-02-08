@@ -28,7 +28,6 @@ public abstract class Behavior
     protected float _maxWeaponRange;
 
     public NpcAi Ai { get; set; }
-
     public abstract void Enter();
     public abstract void Tick(TimeSpan delta);
     public abstract void Exit();
@@ -43,10 +42,9 @@ public abstract class Behavior
         return Ai.AddTransition(this, transition);
     }
 
-    public SkillResult PickSkillAndUseIt(SkillUseConditionKind kind, BaseUnit target)
+    public SkillResult PickSkillAndUseIt(SkillUseConditionKind kind, BaseUnit target, float targetDist)
     {
         var res = SkillResult.InvalidSkill;
-        var targetDist = Ai.Owner.GetDistanceTo(target);
         // Attack behavior probably only uses base skill ?
         var skills = new List<NpcSkill>();
         if (Ai.Owner.Template.Skills.TryGetValue(kind, out var templateSkill))

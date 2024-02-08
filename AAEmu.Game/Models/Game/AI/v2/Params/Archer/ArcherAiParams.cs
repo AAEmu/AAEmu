@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Game.Models.Game.AI.V2.Params;
 using AAEmu.Game.Models.Game.AI.V2.Params.Archer;
 using NLua;
@@ -9,10 +10,10 @@ public class ArcherAiParams : AiParams
 {
     public float AlertDuration { get; set; } = 3.0f;
     public float AlertSafeTargetRememberTime { get; set; } = 5.0f;
-    //public int MeleeAttackRange { get; set; } // This is found in the entity?
     public List<ArcherCombatSkill> CombatSkills { get; set; }
-    //public int PreferedCombastDist { get; set; } // Also found in entity
-    public int MaxMakeAGapeCount { get; set; } = 3;
+    public float MeleeAttackRange { get; set; } // This is found in the entity?
+    public float PreferedCombatDist { get; set; } // 5, 10, 15 Also found in entity
+    public int MaxMakeAGapCount { get; set; } = 3;
 
     public ArcherAiParams(string aiPramsString)
     {
@@ -37,7 +38,13 @@ public class ArcherAiParams : AiParams
                 CombatSkills.Add(combatSkill);
             }
             if (aiParams.GetObjectFromPath("data.maxMakeAGapCount") != null)
-                MaxMakeAGapeCount = aiParams.GetInteger("data.maxMakeAGapCount");
+                MaxMakeAGapCount = aiParams.GetInteger("data.maxMakeAGapCount");
+
+            if (aiParams.GetObjectFromPath("data.meleeAttackRange") != null)
+                MeleeAttackRange = aiParams.GetInteger("data.meleeAttackRange");
+
+            if (aiParams.GetObjectFromPath("data.preferedCombatDist") != null)
+                PreferedCombatDist = aiParams.GetInteger("data.preferedCombatDist");
         }
     }
 }
