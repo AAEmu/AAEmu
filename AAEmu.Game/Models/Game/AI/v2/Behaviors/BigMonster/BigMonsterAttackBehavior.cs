@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.AI.v2.Params.BigMonster;
 using AAEmu.Game.Models.Game.AI.V2.Params.BigMonster;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster;
@@ -20,7 +21,7 @@ public class BigMonsterAttackBehavior : BaseCombatBehavior
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
         if (Ai.Owner is { } npc)
         {
-            npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc});
+            npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
         }
     }
 
@@ -43,30 +44,40 @@ public class BigMonsterAttackBehavior : BaseCombatBehavior
             return;
 
         _strafeDuringDelay = false;
+
         #region Pick a skill
+
+        Ai.Owner.StopMovement();
+        Ai.Owner.IsInBattle = true;
+
         // TODO: Get skill list
         var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
         var selectedSkill = PickSkill(RequestAvailableSkills(aiParams, targetDist));
         if (selectedSkill == null)
+        {
+            // If skill list is empty, get Base skill
+            PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget, targetDist);
             return;
-        var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillType);
+        }
 
+        var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillType);
         if (skillTemplate == null)
             return;
 
-        if (targetDist >= skillTemplate.MinRange && targetDist <= skillTemplate.MaxRange || skillTemplate.TargetType == SkillTargetType.Self)
-        {
-            Ai.Owner.StopMovement();
-            UseSkill(new Skill(skillTemplate), Ai.Owner.CurrentTarget, selectedSkill.SkillDelay);
-            _strafeDuringDelay = selectedSkill.StrafeDuringDelay;
-        }
-        // If skill list is empty, get Base skill
+        UseSkill(new Skill(skillTemplate), Ai.Owner.CurrentTarget, selectedSkill.SkillDelay);
+        _strafeDuringDelay = selectedSkill.StrafeDuringDelay;
+
         #endregion
+    }
+
+    public override void Exit()
+    {
+        // Clear combat state here
     }
 
     private List<BigMonsterCombatSkill> RequestAvailableSkills(BigMonsterAiParams aiParams, float trgDist)
     {
-        var healthRatio = (int)(((float)Ai.Owner.Hp / Ai.Owner.MaxHp) * 100);
+        var healthRatio = (int)((float)Ai.Owner.Hp / Ai.Owner.MaxHp * 100);
 
         var baseList = aiParams.CombatSkills.AsEnumerable();
 
@@ -95,10 +106,5 @@ public class BigMonsterAttackBehavior : BaseCombatBehavior
             };
 
         return null;
-    }
-
-    public override void Exit()
-    {
-        // Clear combat state here
     }
 }

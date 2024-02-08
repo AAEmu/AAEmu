@@ -25,7 +25,7 @@ public class WildBoarRoamingAiCharacter : NpcAi
         AddBehavior(BehaviorKind.Alert, new AlertBehavior())
             .AddTransition(TransitionEvent.OnAggroTargetChanged, BehaviorKind.WildBoarAttack);
 
-        AddBehavior(BehaviorKind.WildBoarAttack, new WildBoatAttackBehavior())
+        AddBehavior(BehaviorKind.WildBoarAttack, new WildBoarAttackBehavior())
             .AddTransition(TransitionEvent.OnNoAggroTarget, BehaviorKind.ReturnState);
 
         AddBehavior(BehaviorKind.FollowPath, new FollowPathBehavior())

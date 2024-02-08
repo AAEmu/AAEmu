@@ -7,5 +7,5 @@ public enum TransitionEvent
     OnTalk,
     OnReturnToTalkPos,
     OnNoAggroTarget,
-    ReturnToIdlePos,
+    ReturnToIdlePos
 }

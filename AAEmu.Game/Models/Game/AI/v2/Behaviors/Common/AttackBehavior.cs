@@ -9,6 +9,7 @@ public class AttackBehavior : BaseCombatBehavior
 {
     public override void Enter()
     {
+        Ai.Owner.InterruptSkills();
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
         if (Ai.Owner is { } npc)
         {
@@ -20,7 +21,6 @@ public class AttackBehavior : BaseCombatBehavior
     {
         if (!UpdateTarget() || ShouldReturn)
         {
-            Ai.Owner.IsInBattle = false;
             Ai.GoToReturn();
             return;
         }
@@ -28,12 +28,16 @@ public class AttackBehavior : BaseCombatBehavior
         if (Ai.Owner.CurrentTarget == null)
             return;
 
-        MoveInRange(Ai.Owner.CurrentTarget, delta);
+        if (CanStrafe && !IsUsingSkill)
+            MoveInRange(Ai.Owner.CurrentTarget, delta);
+
         if (!CanUseSkill)
             return;
 
+        Ai.Owner.StopMovement();
         Ai.Owner.IsInBattle = true;
-        PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget);
+        var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+        PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget, targetDist);
     }
 
     public override void Exit()
