@@ -38,11 +38,6 @@ public class ArcherAttackBehavior : BaseCombatBehavior
         {
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
         }
-        if (!UpdateTarget() || ShouldReturn)
-        {
-            Ai.GoToReturn();
-            return;
-        }
     }
 
     public override void Tick(TimeSpan delta)
