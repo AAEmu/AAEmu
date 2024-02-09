@@ -34,8 +34,12 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
             return;
         }
 
+        if (!CanUseSkill)
+            return;
+
         // On Combat Start Skill
         var startCombatSkillId = _aiParams.OnCombatStartSkills.FirstOrDefault();
+        Ai.Owner.IsInBattle = true;
         if (startCombatSkillId == 0)
             return;
 
@@ -74,8 +78,6 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
             return;
 
         // Spurt or base?
-        Ai.Owner.StopMovement();
-        Ai.Owner.IsInBattle = true;
         var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
         var numOfSkills = _aiParams.OnSpurtSkills.Count;
 

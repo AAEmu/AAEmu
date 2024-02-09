@@ -185,7 +185,7 @@ public abstract class BaseCombatBehavior : Behavior
 
         foreach (var abuser in abusers)
         {
-            Ai.Owner.LookTowards(abuser.Transform.World.Position);
+            //Ai.Owner.LookTowards(abuser.Transform.World.Position); // Prevents archers from escaping (they spin around all the time)
 
             if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
             {
