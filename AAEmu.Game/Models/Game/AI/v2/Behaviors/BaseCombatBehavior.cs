@@ -170,9 +170,15 @@ public abstract class BaseCombatBehavior : Behavior
                 absoluteReturnDistance = Ai.Owner.Template.AbsoluteReturnDistance;
             }
 
-            var res = Ai.Owner.CurrentTarget != null && MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.Owner.CurrentTarget.Transform.World.Position, true) > returnDistance;
-            if (!res)
-                res = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.IdlePosition.Local.Position, true) > absoluteReturnDistance;
+            if (Ai.Owner.CurrentTarget == null)
+                return true; // нет цели, возвращаемся
+
+            var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.Owner.CurrentTarget.Transform.World.Position, true);
+            var distanceToIdlePosition = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.IdlePosition.Local.Position, true);
+
+            var res = distanceToTarget > returnDistance || distanceToIdlePosition > returnDistance;
+            if (res)
+                res = distanceToIdlePosition <= absoluteReturnDistance; // если больше, то нужен телепорт на место спавна
             return res;
         }
     }
