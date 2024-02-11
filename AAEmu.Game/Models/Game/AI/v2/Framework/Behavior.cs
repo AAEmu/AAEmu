@@ -5,6 +5,7 @@ using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -24,9 +25,9 @@ public abstract class Behavior
 
     protected DateTime _delayEnd;
     protected float _nextTimeToDelay;
+    protected float _maxWeaponRange;
 
     public NpcAi Ai { get; set; }
-
     public abstract void Enter();
     public abstract void Tick(TimeSpan delta);
     public abstract void Exit();
@@ -41,10 +42,9 @@ public abstract class Behavior
         return Ai.AddTransition(this, transition);
     }
 
-    public SkillResult PickSkillAndUseIt(SkillUseConditionKind kind, BaseUnit target)
+    public SkillResult PickSkillAndUseIt(SkillUseConditionKind kind, BaseUnit target, float targetDist)
     {
         var res = SkillResult.InvalidSkill;
-        var targetDist = Ai.Owner.GetDistanceTo(target);
         // Attack behavior probably only uses base skill ?
         var skills = new List<NpcSkill>();
         if (Ai.Owner.Template.Skills.TryGetValue(kind, out var templateSkill))
@@ -103,6 +103,8 @@ public abstract class Behavior
         }
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(pickedSkillId);
         var skill = new Skill(skillTemplate);
+
+        SetMaxWeaponRange(skill, target); // установим максимальную дистанцию для атаки скиллом
 
         var delay2 = (int)(Ai.Owner.Template.BaseSkillDelay * 1000);
         if (Ai.Owner.Template.BaseSkillDelay == 0)
@@ -169,7 +171,7 @@ public abstract class Behavior
         skill.Callback = OnSkillEnded;
         var result = skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject);
         // fix the eastward turn when using SelfSkill
-        if ((skill.Template.TargetType != SkillTargetType.Self) && (result == SkillResult.Success))
+        if (skill.Template.TargetType != SkillTargetType.Self && result == SkillResult.Success)
             Ai.Owner.LookTowards(target.Transform.World.Position);
         return result;
     }
@@ -236,22 +238,48 @@ public abstract class Behavior
         }
     }
 
-    public void UpdateAggroHelp(Unit abuser, int radius = 100)
+    public void UpdateAggroHelp(Unit abuser, int radius = 20)
     {
         var npcs = WorldManager.GetAround<Npc>(Ai.Owner, radius);
-        if (npcs != null)
+        if (npcs == null)
+            return;
+
+        foreach (var npc in npcs
+                     .Where(npc => npc.Template.Aggression && !npc.IsInBattle && npc.Template.AcceptAggroLink)
+                     .Where(npc => npc.GetDistanceTo(npc.Ai.Owner) <= npc.Template.AggroLinkHelpDist))
         {
-            foreach (var npc in npcs)
-            {
-                if (npc.Template.Aggression && !npc.IsInBattle && npc.Template.AcceptAggroLink)
-                {
-                    if (npc.GetDistanceTo(abuser) <= npc.Template.AggroLinkHelpDist)
-                    {
-                        npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, abuser, 1);
-                        npc.Ai.GoToCombat();
-                    }
-                }
-            }
+            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, abuser, 1);
+            npc.Ai.GoToCombat();
         }
+    }
+
+    public void SetMaxWeaponRange(Skill skill, BaseUnit target)
+    {
+        var unit = (Unit)target;
+        // Check if target is within range
+        var skillRange = Ai.Owner.ApplySkillModifiers(skill, SkillAttribute.Range, skill.Template.MaxRange);
+
+        var minRangeCheck = skill.Template.MinRange * 1.0;
+        var maxRangeCheck = skillRange;
+
+        // HACKFIX : Used mostly for boats, since the actual position of the doodad is the boat's origin, and not where it is displayed
+        // TODO: Do a check based on model size or bounding box instead
+
+        // If weapon is used to calculate range, use that
+        if (skill.Template.WeaponSlotForRangeId > 0)
+        {
+            var minWeaponRange = 0.0f; // Fist default
+            var maxWeaponRange = 3.0f; // Fist default
+            if (unit.Equipment.GetItemBySlot(skill.Template.WeaponSlotForRangeId)?.Template is WeaponTemplate weaponTemplate)
+            {
+                minWeaponRange = weaponTemplate.HoldableTemplate.MinRange;
+                maxWeaponRange = weaponTemplate.HoldableTemplate.MaxRange;
+            }
+
+            minRangeCheck = minWeaponRange;
+            maxRangeCheck = maxWeaponRange;
+        }
+
+        _maxWeaponRange = (float)maxRangeCheck;
     }
 }

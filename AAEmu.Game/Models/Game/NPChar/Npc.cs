@@ -800,7 +800,11 @@ public class Npc : Unit
     public void AddUnitAggro(AggroKind kind, Unit unit, int amount)
     {
         //var player = unit as Character; // TODO player.Region становится равным null | player.Region becomes null
-        var player = (Character)unit;
+        Character player = null;
+        if (unit is not Npc)
+        {
+            player = (Character)unit;
+        }
 
         //player?.SendMessage(ChatType.System, $"AddUnitAggro {player.Name} + {amount} for {this.ObjId}");
 

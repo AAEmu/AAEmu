@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
@@ -15,6 +15,8 @@ public class FlytrapAttackBehavior : Behavior
 {
     public override void Enter()
     {
+        Ai.Owner.InterruptSkills();
+        Ai.Owner.CurrentGameStance = GameStanceType.Combat;
         if (Ai.Owner is { } npc)
         {
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
@@ -25,7 +27,6 @@ public class FlytrapAttackBehavior : Behavior
     {
         if (!UpdateTarget())
         {
-            Ai.Owner.IsInBattle = false;
             Ai.GoToReturn();
             return;
         }
@@ -34,12 +35,11 @@ public class FlytrapAttackBehavior : Behavior
             return;
 
         if (Ai.Owner.Gimmick?.CurrentTarget != null)
-        {
             MoveInRange(Ai.Owner.Gimmick.CurrentTarget, delta);
-        }
 
         Ai.Owner.IsInBattle = true;
-        PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget);
+        var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+        PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget, targetDist);
     }
 
     public override void Exit()
