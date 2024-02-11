@@ -18,13 +18,14 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
     // },
 
     private WildBoarAiParams _aiParams;
-    private float _prevHealth;
+    //private float _prevHealth;
     private float _currHealth;
-    private float _healthPercentage;
+    //private float _healthPercentage;
 
     public override void Enter()
     {
-        _aiParams = Ai.Param as WildBoarAiParams;
+        //_aiParams = Ai.Param as WildBoarAiParams;
+        _aiParams = Ai.Owner.Template.AiParams as WildBoarAiParams;
         if (_aiParams == null)
             return;
 
@@ -33,9 +34,6 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
             Ai.GoToReturn();
             return;
         }
-
-        if (!CanUseSkill)
-            return;
 
         // On Combat Start Skill
         var startCombatSkillId = _aiParams.OnCombatStartSkills.FirstOrDefault();
@@ -48,7 +46,7 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
         var skill = new Skill(skillTemplate);
         UseSkill(skill, Ai.Owner.CurrentTarget);
 
-        _healthPercentage = Ai.Owner.Hp / (float)Ai.Owner.MaxHp * 100;
+        //_healthPercentage = Ai.Owner.Hp / (float)Ai.Owner.MaxHp * 100;
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
         if (Ai.Owner is { } npc)
         {
@@ -61,9 +59,9 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
         if (_aiParams == null)
             return;
 
-        _prevHealth = _healthPercentage;
+        //_prevHealth = _healthPercentage;
         _currHealth = Ai.Owner.Hp / (float)Ai.Owner.MaxHp * 100;
-        _healthPercentage = _currHealth;
+        //_healthPercentage = _currHealth;
 
         if (!UpdateTarget() || ShouldReturn)
         {
@@ -79,6 +77,10 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
 
         // Spurt or base?
         var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+
+        if (_aiParams.OnSpurtSkills == null)
+            return;
+
         var numOfSkills = _aiParams.OnSpurtSkills.Count;
 
         if (numOfSkills == 0)
@@ -90,11 +92,19 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
         for (var i = 0; i < numOfSkills; i++)
         {
             var skillData = _aiParams.OnSpurtSkills[i];
-            if (_currHealth < skillData.HealthCondition && skillData.HealthCondition <= _prevHealth)
+            if (_currHealth < skillData.HealthCondition/* && skillData.HealthCondition <= _prevHealth*/)
             {
                 var skillTemplate = SkillManager.Instance.GetSkillTemplate(skillData.SkillType);
                 var skill = new Skill(skillTemplate);
-                UseSkill(skill, Ai.Owner.CurrentTarget);
+                if (targetDist >= skill.Template.MinRange && targetDist <= skill.Template.MaxRange)
+                {
+                    SetMaxWeaponRange(skill, Ai.Owner.CurrentTarget); // установим максимальную дистанцию для атаки скиллом
+                    var result = UseSkill(skill, Ai.Owner.CurrentTarget);
+                    if (result == SkillResult.CooldownTime)
+                    {
+                        PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget, targetDist);
+                    }
+                }
             }
             else
             {
@@ -105,9 +115,5 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
 
     public override void Exit()
     {
-        if (UpdateTarget() && !ShouldReturn)
-            return;
-
-        Ai.GoToReturn();
     }
 }

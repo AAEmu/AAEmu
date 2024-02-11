@@ -57,8 +57,7 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
                     var npcId = reader.GetUInt32("id");
                     var type = (AiParams.AiParamType)reader.GetUInt32("ai_file_id");
                     var id = reader.GetUInt32("npc_ai_param_id");
-                    if (!fileTypeToId.ContainsKey(id))
-                        fileTypeToId.Add(id, type);
+                    fileTypeToId.TryAdd(id, type);
                 }
             }
         }
@@ -82,8 +81,8 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
                         var data = reader.IsDBNull("ai_param") ? string.Empty : reader.GetString("ai_param");
                         var aiParams = AiParams.CreateByType(fileType, data);
 #pragma warning disable CA1508 // Avoid dead conditional code
-                        if (aiParams != null && !_aiParams.ContainsKey(id))
-                            _aiParams.Add(id, aiParams);
+                        if (aiParams != null)
+                            _aiParams.TryAdd(id, aiParams);
 #pragma warning restore CA1508 // Avoid dead conditional code
                     }
                     catch (Exception e)
@@ -140,10 +139,7 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
                     template.Name = reader.GetString("name");
                     template.CanInteract = reader.GetBoolean("can_interact");
 
-                    if (!_aiCommandSets.ContainsKey(template.Id))
-                    {
-                        _aiCommandSets.Add(template.Id, template);
-                    }
+                    _aiCommandSets.TryAdd(template.Id, template);
                 }
             }
         }
