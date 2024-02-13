@@ -6,6 +6,11 @@
 public class IcsMenu
 {
     /// <summary>
+    /// Auto-Increment unique value to be able to use EF
+    /// </summary>
+    public long Id { get; set; }
+
+    /// <summary>
     /// Main Tab this item is on
     /// </summary>
     public byte MainTab { get; set; }

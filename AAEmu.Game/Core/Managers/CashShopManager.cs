@@ -283,6 +283,7 @@ public class CashShopManager : Singleton<CashShopManager>
                 }
 
                 var entry = new IcsMenu();
+                entry.Id = reader.GetInt64("id");
                 entry.MainTab = reader.GetByte("main_tab");
                 entry.SubTab = reader.GetByte("sub_tab");
                 entry.TabPos = reader.GetUInt16("tab_pos");
@@ -395,8 +396,8 @@ public class CashShopManager : Singleton<CashShopManager>
 
         for (var i = 0; i < thisPageItems.Count; i++)
         {
-            var isLast = i == thisTabItems.Count - 1;
-            var shopItem = thisTabItems[i].ShopItem;
+            var isLast = i == thisPageItems.Count - 1;
+            var shopItem = thisPageItems[i].ShopItem;
             if (shopItem == null)
                 continue;
 
@@ -405,8 +406,8 @@ public class CashShopManager : Singleton<CashShopManager>
 
         for (var i = 0; i < thisPageItems.Count; i++)
         {
-            var isLastItem = i == thisTabItems.Count - 1;
-            var shopItem = thisTabItems[i].ShopItem;
+            var isLastItem = i >= thisPageItems.Count - 1;
+            var shopItem = thisPageItems[i].ShopItem;
             if (shopItem == null)
                 continue;
 

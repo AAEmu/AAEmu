@@ -50,11 +50,12 @@ AUTO_INCREMENT=2000000
 ;
 
 CREATE TABLE `ics_menu` (
-    `main_tab` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'Which main tab to display on',
-    `sub_tab` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'Which sub tab to display on',
-    `tab_pos` INT(11) NOT NULL DEFAULT '0' COMMENT 'Used to change display order',
-    `shop_id` INT(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Id of the item group for sale (shop item)',
-    PRIMARY KEY (`main_tab`, `sub_tab`, `tab_pos`) USING BTREE
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`main_tab` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'Which main tab to display on',
+	`sub_tab` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'Which sub tab to display on',
+	`tab_pos` INT(11) NOT NULL DEFAULT '0' COMMENT 'Used to change display order',
+	`shop_id` INT(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Id of the item group for sale (shop item)',
+	PRIMARY KEY (`id`) USING BTREE
 )
 COMMENT='Contains what item will be displayed on which tab'
 COLLATE='utf8mb4_0900_ai_ci'
