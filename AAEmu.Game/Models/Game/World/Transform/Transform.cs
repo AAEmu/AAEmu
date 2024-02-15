@@ -15,7 +15,6 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.World.Transform;
 
-
 /// <summary>
 /// Helper Class to help manipulating GameObjects positions in 3D space
 /// </summary>
@@ -305,8 +304,14 @@ public class Transform : IDisposable
             _children.Add(child);
             // TODO: This needs better handling and take into account rotations
             //child.Local.SubDistance(World.Position);
+            //child.Local.Position -= World.Position;
+            //child.Local.Rotation -= World.Rotation;
+
+            // NLObP version of transformations
             child.Local.Position -= World.Position;
-            child.Local.Rotation -= World.Rotation;
+            var rot = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, -World.Rotation.Z);
+            child.Local.Position = Vector3.Transform(child.Local.Position, rot);
+
             if (child.GameObject != null)
                 child.GameObject.ParentObj = this.GameObject;
         }
