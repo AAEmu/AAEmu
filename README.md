@@ -32,3 +32,7 @@ Yes you can! Contributions are welcomed provided that they comply with our [Cont
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 atel0/AAEmu are not affiliated with XLGames. All brands and trademarks belong to their respective owners. AAEmu is not a XLGames-approved software, nor is it associated with XLGames.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=AAEmu/AAEmu,NL0bP/AAEmu&type=Timeline)](https://star-history.com/#AAEmu/AAEmu&NL0bP/AAEmu&Timeline)
