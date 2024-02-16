@@ -470,6 +470,7 @@ CREATE TABLE `item_containers` (
 ) COLLATE 'utf8mb4_general_ci';
 
 
+DROP TABLE IF EXISTS `slaves`;
 CREATE TABLE `slaves` (
 	`id` INT(10) UNSIGNED NOT NULL,
 	`item_id` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Item that is used to summon this vehicle',
@@ -486,6 +487,7 @@ CREATE TABLE `slaves` (
 ) COMMENT='Player vehicles summons' COLLATE 'utf8mb4_general_ci' ENGINE=InnoDB;
 
 
+DROP TABLE IF EXISTS `ics_skus`;
 CREATE TABLE `ics_skus` (
     `sku` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
     `shop_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Reference to the shop item',
@@ -509,6 +511,8 @@ ENGINE=InnoDB
 AUTO_INCREMENT=1000000
 ;
 
+
+DROP TABLE IF EXISTS `ics_shop_items`;
 CREATE TABLE `ics_shop_items` (
     `shop_id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'SKU item id',
     `display_item_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Item who\'s icon to use for displaying in the shop, leave 0 for first item in the group',
@@ -533,6 +537,8 @@ ENGINE=InnoDB
 AUTO_INCREMENT=2000000
 ;
 
+
+DROP TABLE IF EXISTS `ics_menu`;
 CREATE TABLE `ics_menu` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `main_tab` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'Which main tab to display on',
@@ -547,6 +553,8 @@ ENGINE=InnoDB
 AUTO_INCREMENT=100
 ;
 
+
+DROP TABLE IF EXISTS `audit_ics_sales`;
 CREATE TABLE `audit_ics_sales` (
     `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
     `buyer_account` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Account ID of the person buying this item',
