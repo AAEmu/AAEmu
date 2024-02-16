@@ -35,7 +35,7 @@ public class GimmickManager : Singleton<GimmickManager>
 
     public GimmickTemplate GetGimmickTemplate(uint id)
     {
-        return _templates.TryGetValue(id, out var template) ? template : null;
+        return _templates.GetValueOrDefault(id);
     }
 
     /// <summary>
@@ -185,7 +185,8 @@ public class GimmickManager : Singleton<GimmickManager>
         //TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMinutes(DelayInit));
         TickManager.Instance.OnTick.Subscribe(GimmickTick, TimeSpan.FromMilliseconds(Delay), true);
     }
-    internal void GimmickTick(TimeSpan delta)
+
+    private void GimmickTick(TimeSpan delta)
     {
         var activeGimmicks = GetActiveGimmicks();
         foreach (var gimmick in activeGimmicks)
@@ -208,7 +209,10 @@ public class GimmickManager : Singleton<GimmickManager>
 
     private Gimmick[] GetActiveGimmicks()
     {
-        return _activeGimmicks.Values.ToArray();
+        lock (_activeGimmicks)
+        {
+            return _activeGimmicks.Values.ToArray();
+        }
     }
 
     private static void GimmickTick(Gimmick gimmick)

@@ -53,7 +53,7 @@ public class TransferManager : Singleton<TransferManager>
         _initialized = true;
     }
 
-    internal void TransferTick(TimeSpan delta)
+    private void TransferTick(TimeSpan delta)
     {
         var activeTransfers = GetTransfers();
         foreach (var transfer in activeTransfers)
@@ -94,17 +94,20 @@ public class TransferManager : Singleton<TransferManager>
 
     public Transfer[] GetTransfers()
     {
-        return _activeTransfers.Values.ToArray();
+        lock (_activeTransfers)
+        {
+            return _activeTransfers.Values.ToArray();
+        }
     }
 
     public TransferTemplate GetTemplate(uint templateId)
     {
-        return _templates.TryGetValue(templateId, out var template) ? template : null;
+        return _templates.GetValueOrDefault(templateId);
     }
 
     private TransferTemplate GetTransferTemplate(uint id)
     {
-        return _templates.TryGetValue(id, out var template) ? template : null;
+        return _templates.GetValueOrDefault(id);
     }
     /*
     private Transfer GetActiveTransferBiTemplateId(uint id)
@@ -160,16 +163,16 @@ public class TransferManager : Singleton<TransferManager>
 
         // create a wagon cabin
         var owner = new Transfer();
-        var Carriage = GetTransferTemplate(templateId); // 6 - Salislead Peninsula ~ Liriot Hillside Loop Carriage
-        owner.Name = Carriage.Name;
+        var carriage = GetTransferTemplate(templateId); // 6 - Salislead Peninsula ~ Liriot Hillside Loop Carriage
+        owner.Name = carriage.Name;
         owner.TlId = (ushort)TlIdManager.Instance.GetNextId();
         owner.ObjId = objectId == 0 ? ObjectIdManager.Instance.GetNextId() : objectId;
         owner.OwnerId = 255;
         owner.Spawner = spawner;
-        owner.TemplateId = Carriage.Id;
-        owner.Id = Carriage.Id;
-        owner.ModelId = Carriage.ModelId;
-        owner.Template = Carriage;
+        owner.TemplateId = carriage.Id;
+        owner.Id = carriage.Id;
+        owner.ModelId = carriage.ModelId;
+        owner.Template = carriage;
         owner.AttachPointId = AttachPointKind.System;
         owner.BondingObjId = 0;
         owner.Level = 1;
@@ -188,9 +191,9 @@ public class TransferManager : Singleton<TransferManager>
         _activeTransfers.Add(owner.ObjId, owner);
 
         // Add additional transfer units if defined (like a Carriage/Boarding Part for example)
-        if (Carriage.TransferBindings.Count <= 0) { return owner; }
+        if (carriage.TransferBindings.Count <= 0) { return owner; }
 
-        var boardingPart = GetTransferTemplate(Carriage.TransferBindings[0].TransferId); // 46 - The wagon boarding part
+        var boardingPart = GetTransferTemplate(carriage.TransferBindings[0].TransferId); // 46 - The wagon boarding part
         var transfer = new Transfer();
         transfer.Name = boardingPart.Name;
         transfer.TlId = owner.TlId; // (ushort)TlIdManager.Instance.GetNextId();
