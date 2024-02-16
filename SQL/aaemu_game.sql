@@ -83,40 +83,6 @@ CREATE TABLE `blocked` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
 
-DROP TABLE IF EXISTS `cash_shop_item`;
-CREATE TABLE `cash_shop_item` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'shop_id',
-  `uniq_id` int unsigned DEFAULT '0' COMMENT 'Unique ID',
-  `cash_name` varchar(255) NOT NULL COMMENT 'Sale Item Name',
-  `main_tab` tinyint unsigned DEFAULT '1' COMMENT 'Main Tab Page 1-6',
-  `sub_tab` tinyint unsigned DEFAULT '1' COMMENT 'Sub Tab Page 1-7',
-  `level_min` tinyint unsigned DEFAULT '0' COMMENT 'Minimum level to buy',
-  `level_max` tinyint unsigned DEFAULT '0' COMMENT 'Maximum level to buy',
-  `item_template_id` int unsigned DEFAULT '0' COMMENT 'Item Template Id',
-  `is_sell` tinyint unsigned DEFAULT '0' COMMENT 'Is it for sale',
-  `is_hidden` tinyint unsigned DEFAULT '0' COMMENT 'Hidden item',
-  `limit_type` tinyint unsigned DEFAULT '0',
-  `buy_count` smallint unsigned DEFAULT '0',
-  `buy_type` tinyint unsigned DEFAULT '0',
-  `buy_id` int unsigned DEFAULT '0',
-  `start_date` datetime DEFAULT '0001-01-01 00:00:00' COMMENT 'Sell start date',
-  `end_date` datetime DEFAULT '0001-01-01 00:00:00' COMMENT 'Sell end date',
-  `type` tinyint unsigned DEFAULT '0' COMMENT 'Currency Type',
-  `price` int unsigned DEFAULT '0' COMMENT 'Sell price',
-  `remain` int unsigned DEFAULT '0' COMMENT 'Remaining stock',
-  `bonus_type` int unsigned DEFAULT '0' COMMENT 'Bonus type',
-  `bouns_count` int unsigned DEFAULT '0' COMMENT 'Bonus amount',
-  `cmd_ui` tinyint unsigned DEFAULT '0' COMMENT 'Whether to restrict one person at a time',
-  `item_count` int unsigned DEFAULT '1' COMMENT 'Number of bundles',
-  `select_type` tinyint unsigned DEFAULT '0',
-  `default_flag` tinyint unsigned DEFAULT '0',
-  `event_type` tinyint unsigned DEFAULT '0' COMMENT 'Event type',
-  `event_date` datetime DEFAULT '0001-01-01 00:00:00' COMMENT 'Event time',
-  `dis_price` int unsigned DEFAULT '0' COMMENT 'Current selling price',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='In-game cashshop listings';
-
-
 DROP TABLE IF EXISTS `characters`;
 CREATE TABLE `characters` (
   `id` int unsigned NOT NULL,
