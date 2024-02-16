@@ -237,6 +237,7 @@ public class CashShopBuyTask : Task
         }
 
         _buyer.SendPacket(new SCICSCashPointPacket(CashShopManager.Instance.GetAccountCredits(_buyer.AccountId)));
+        _buyer.SendPacket(new SCBmPointPacket(_buyer.BmPoint));
         _buyer.SendPacket(new SCICSBuyResultPacket(true, _buyMode, _targetPlayer.Name, (int)costs[(byte)CashShopCurrencyType.AaPoints]));
         #endregion
     }
