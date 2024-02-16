@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.StaticValues;
 using NLog;
+using NLog.Config;
 
 namespace AAEmu.Game.Models.Tasks.CashShop;
 
@@ -168,6 +169,7 @@ public class CashShopBuyTask : Task
 
         #region transactions
         // Make the actual sales
+        var entriesSold = 0;
         foreach (var sku in _shoppingCart)
         {
             if (!CashShopManager.Instance.ShopItems.TryGetValue(sku.ShopId, out var shopItem))
@@ -176,11 +178,60 @@ public class CashShopBuyTask : Task
                 continue;
             }
 
-            // Reduce remaining stock
-            if (shopItem.Remaining > 0)
+            // Validate Limited Sales
+            if (shopItem.LimitedType != CashShopLimitType.None)
             {
-                shopItem.Remaining -= 1;
-                // TODO: Save this back to the MySQL
+                // If there is a limit type set, grab previous sales of this ShopItem (any SKU attached)
+                var oldSales = CashShopManager.Instance.GetSalesForShopItem(
+                    _buyer.AccountId,
+                    shopItem.LimitedType == CashShopLimitType.Character ? _buyer.Id : 0,
+                    shopItem.ShopId);
+
+                // Calculate old amount bought
+                var oldSalesCount = 0u;
+                foreach (var oldSale in oldSales)
+                {
+                    // Ignore if SKU no longer exists
+                    if (!CashShopManager.Instance.SKUs.TryGetValue(oldSale.Sku, out var oldSKU))
+                        continue;
+
+                    if (shopItem.LimitedType == CashShopLimitType.Character)
+                    {
+                        if (oldSale.BuyerChar == _buyer.Id)
+                            oldSalesCount += oldSKU.ItemCount;
+                    }
+                    else if (shopItem.LimitedType == CashShopLimitType.Account)
+                    {
+                        if (oldSale.BuyerAccount == _buyer.AccountId)
+                            oldSalesCount += oldSKU.ItemCount;
+                    }
+                }
+
+                // Check if with the new amount we still stay under the limit
+                if (oldSalesCount + sku.ItemCount > shopItem.LimitedStockMax)
+                {
+                    // Too many sales for this item!!!
+                    Logger.Error($"Tried to buy more items than allowed by the limit");
+                    _buyer.SendErrorMessage(ErrorMessageType.IngameShopSoldOut);
+                    continue;
+                }
+            }
+
+            // Reduce remaining stock if needed
+            if (shopItem.Remaining >= 0)
+            {
+                if (shopItem.Remaining >= sku.ItemCount)
+                {
+                    shopItem.Remaining -= (int)sku.ItemCount;
+                    CashShopManager.Instance.UpdateRemainingShopItemStock(shopItem.ShopId, shopItem.Remaining);
+                }
+                else
+                {
+                    // Out of Stock!!!
+                    Logger.Error($"Sale validation failed for {_buyer.Name}, ShopItem: {shopItem.ShopId}, Sku: {sku.Sku}, not enough stock remaining {shopItem.Remaining}");
+                    _buyer.SendErrorMessage(ErrorMessageType.IngameShopSoldOut);
+                    continue;
+                }
             }
 
             // Reduce currency
@@ -232,13 +283,28 @@ public class CashShopBuyTask : Task
                 _targetPlayer.SendErrorMessage(ErrorMessageType.IngameShopBuyFail); // This is the wrong error, but likely the most fitting for now
             }
 
-            // TODO: Add purchase logs
+            entriesSold++;
+
             Logger.Info($"ICSBuyGood {_buyer.Name} -> {_targetPlayer.Name} - {useName} x {sku.ItemCount}, SKU:{sku.Sku}");
+            if (!CashShopManager.Instance.LogSale(_buyer.AccountId, _buyer.Id, _targetPlayer.AccountId,
+                    _targetPlayer.Id, DateTime.UtcNow, shopItem.ShopId, sku.Sku, (sku.DiscountPrice > 0 ? sku.DiscountPrice : sku.Price), sku.Currency, string.Empty))
+                Logger.Error(
+                    $"ICSBuyGood {_buyer.Name} -> {_targetPlayer.Name} - {useName} x {sku.ItemCount}, SKU:{sku.Sku}, save failed!");
         }
 
-        _buyer.SendPacket(new SCICSCashPointPacket(CashShopManager.Instance.GetAccountCredits(_buyer.AccountId)));
-        _buyer.SendPacket(new SCBmPointPacket(_buyer.BmPoint));
-        _buyer.SendPacket(new SCICSBuyResultPacket(true, _buyMode, _targetPlayer.Name, (int)costs[(byte)CashShopCurrencyType.AaPoints]));
+        if (entriesSold > 0)
+        {
+            _buyer.SendPacket(new SCICSCashPointPacket(CashShopManager.Instance.GetAccountCredits(_buyer.AccountId)));
+            _buyer.SendPacket(new SCBmPointPacket(_buyer.BmPoint));
+            _buyer.SendPacket(new SCICSBuyResultPacket(true, _buyMode, _targetPlayer.Name,
+                (int)costs[(byte)CashShopCurrencyType.AaPoints]));
+        }
+        else
+        {
+            _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name,
+                (int)costs[(byte)CashShopCurrencyType.AaPoints]));
+        }
+
         #endregion
     }
 }
