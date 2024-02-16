@@ -142,6 +142,11 @@ public abstract class Behavior
             return SkillResult.Failure;
         }
 
+        if (Ai.Owner.Cooldowns.CheckCooldown(skill.Id))
+        {
+            return SkillResult.CooldownTime;
+        }
+
         _nextTimeToDelay = delay;
         var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);
         skillCaster.ObjId = Ai.Owner.ObjId;
