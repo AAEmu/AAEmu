@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Core.Managers;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
@@ -74,9 +75,8 @@ public class ItemSocketing : SpecialEffectAction
 
         // Add gem to proper slot
         var gemRoll = Rand.Next(0, 10000);
-        /// TODO : REMOVE THIS
-        // var gemChance = ItemManager.Instance.GetSocketChance(gemCount);
-        var gemChance = int.MaxValue;
+        var gemChance = ItemManager.Instance.GetSocketChance(gemCount); // fetches chances from sqlite3
+        // var gemChance = int.MaxValue; //gives 100% success rates
 
         byte result = 0;
         if (gemRoll < gemChance)
