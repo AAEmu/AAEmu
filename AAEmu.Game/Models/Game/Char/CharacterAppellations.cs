@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using MySql.Data.MySqlClient;
 using NLog;
 
@@ -21,6 +22,24 @@ public class CharacterAppellations
         ActiveAppellation = 0;
     }
 
+    private void addBuff(uint titleId)
+    {
+        var buffId = CharacterManager.Instance.GetAppellationsTemplate(titleId)? .BuffId ?? 0;
+        if (buffId != 0) Owner.Buffs.AddBuff(buffId, Owner);
+
+        Logger.Info($"title: {titleId} giving buff {buffId}");
+    }
+    private void removeCurrentBuff()
+    {
+        if (ActiveAppellation != 0) //i.e. you have no title to begin with, so this is skipped
+        { 
+            var buffId = CharacterManager.Instance.GetAppellationsTemplate(ActiveAppellation)? .BuffId ?? 0;
+            if (buffId != 0) Owner.Buffs.RemoveBuff(buffId); //i.e. checking if title actually has a buff
+
+            Logger.Info($"removing current buff: {buffId}");
+        }
+    }
+
     public void Add(uint id)
     {
         // SCAppellationGainedPacket
@@ -38,22 +57,22 @@ public class CharacterAppellations
     {
         if (id == 0)
         {
-            // TODO remove buff
+            removeCurrentBuff();
             ActiveAppellation = 0;
         }
         else
         {
             if (Appellations.Contains(id))
             {
+                removeCurrentBuff();
                 ActiveAppellation = id;
-                // TODO add/change buff if exist in template
+                addBuff(id);
             }
             else
             {
                 Logger.Warn("Id {0} doesn't exist, owner {1}", id, Owner.Id);
             }
         }
-
         Owner.BroadcastPacket(new SCAppellationChangedPacket(Owner.ObjId, ActiveAppellation), true);
     }
 
@@ -85,7 +104,10 @@ public class CharacterAppellations
 
                     Appellations.Add(id);
                     if (active)
-                        ActiveAppellation = id; // TODO нужно повесить баф
+                    {
+                        ActiveAppellation = id;
+                        addBuff(id);
+                    }
                 }
             }
         }

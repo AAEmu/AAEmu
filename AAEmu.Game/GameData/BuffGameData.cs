@@ -100,7 +100,7 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
                 while (reader.Read())
                 {
                     var buffToleranceId = reader.GetUInt32("buff_tolerance_id");
-                    if (!_buffTolerancesById.ContainsKey(buffToleranceId))
+                    if (!_buffTolerancesById.ContainsKey(buffToleranceId)) // potential bug?
                         continue;
                     var buffTolerance = _buffTolerancesById[buffToleranceId];
                     var template = new BuffToleranceStep()
