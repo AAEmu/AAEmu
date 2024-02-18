@@ -192,7 +192,7 @@ public class LootPack
                 continue;
             }
 
-            if (!character.Inventory.Bag.AcquireDefaultItem(taskType, tuple.itemId, tuple.count, tuple.grade))
+            if (!character.Inventory.TryAddNewItem(taskType, tuple.itemId, tuple.count, tuple.grade))
                 Logger.Error($"Unable to give loot to {character.Name} - ItemId: {tuple.itemId} x {tuple.count} at grade {tuple.grade}");
         }
     }
