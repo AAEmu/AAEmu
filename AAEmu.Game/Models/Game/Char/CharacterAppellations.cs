@@ -24,21 +24,19 @@ public class CharacterAppellations
 
     private void addBuff(uint titleId)
     {
-        var template = CharacterManager.Instance.GetAppellationsTemplate(titleId);
-        var buffId = template is null ? 0 : template.BuffId;
+        var buffId = CharacterManager.Instance.GetAppellationsTemplate(titleId)? .BuffId ?? 0;
         if (buffId != 0) Owner.Buffs.AddBuff(buffId, Owner);
 
         Logger.Info($"title: {titleId} giving buff {buffId}");
     }
     private void removeCurrentBuff()
     {
-        if (ActiveAppellation != 0) { //i.e. you have no title to begin with, so this is skipped
-
-            var template = CharacterManager.Instance.GetAppellationsTemplate(ActiveAppellation);
-            var buffId = template is null ? 0 : template.BuffId;
+        if (ActiveAppellation != 0) //i.e. you have no title to begin with, so this is skipped
+        { 
+            var buffId = CharacterManager.Instance.GetAppellationsTemplate(ActiveAppellation)? .BuffId ?? 0;
             if (buffId != 0) Owner.Buffs.RemoveBuff(buffId); //i.e. checking if title actually has a buff
 
-            Logger.Info($"removing buff: {buffId}");
+            Logger.Info($"removing current buff: {buffId}");
         }
     }
 
