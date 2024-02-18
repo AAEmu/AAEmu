@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.GameData;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using MySql.Data.MySqlClient;
 using NLog;
 
@@ -24,16 +24,16 @@ public class CharacterAppellations
 
     private void addBuff(uint titleId)
     {
-        uint buffId = BuffGameData.Instance.getTitleBuff(titleId);
+        uint buffId = CharacterManager.Instance.GetAppellationsTemplate(titleId).BuffId;
         if (buffId != 0) Owner.Buffs.AddBuff(buffId, Owner);
 
         Logger.Info($"title: {titleId} giving buff {buffId}");
     }
     private void removeCurrentBuff()
     {
-        if (ActiveAppellation != 0) { //i.e. you have no title to begin with
-            uint buffId = BuffGameData.Instance.getTitleBuff(ActiveAppellation);
-            if (buffId != 0) Owner.Buffs.RemoveBuff(buffId); //i.e. the title has no buff
+        if (ActiveAppellation != 0) { //i.e. you have no title to begin with, so this is skipped
+            uint buffId = CharacterManager.Instance.GetAppellationsTemplate(ActiveAppellation).BuffId;
+            if (buffId != 0) Owner.Buffs.RemoveBuff(buffId); //i.e. checking if title actually has a buff
 
             Logger.Info($"removing buff: {buffId}");
         }

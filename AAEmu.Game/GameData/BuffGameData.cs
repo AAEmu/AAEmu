@@ -19,7 +19,6 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
     private Dictionary<uint, List<BuffModifier>> _buffModifiers;
     private Dictionary<uint, BuffTolerance> _buffTolerances;
     private Dictionary<uint, BuffTolerance> _buffTolerancesById;
-    private Dictionary<uint, uint> _titleToBuff;
 
     public List<BuffModifier> GetModifiersForBuff(uint ownerId)
     {
@@ -31,17 +30,11 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
         return _buffTolerances.TryGetValue(buffTag, out var tolerance) ? tolerance : null;
     }
 
-    public uint getTitleBuff(uint titleId)
-    {
-        return _titleToBuff.TryGetValue(titleId, out uint buffId) ? buffId : 0;
-    }
-
     public void Load(SqliteConnection connection)
     {
         _buffModifiers = new Dictionary<uint, List<BuffModifier>>();
         _buffTolerances = new Dictionary<uint, BuffTolerance>();
         _buffTolerancesById = new Dictionary<uint, BuffTolerance>();
-        _titleToBuff = new Dictionary<uint, uint>();
 
         using (var command = connection.CreateCommand())
         {
@@ -119,23 +112,6 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
                     };
 
                     buffTolerance.Steps.Add(template);
-                }
-            }
-        }
-
-        using (var command = connection.CreateCommand())
-        {
-            command.CommandText = "SELECT * FROM appellations";
-            command.Prepare();
-            using (var sqliteReader = command.ExecuteReader())
-            using (var reader = new SQLiteWrapperReader(sqliteReader))
-            {
-                while (reader.Read())
-                {
-                    var titleId = reader.GetUInt32("id");
-                    var buffId = reader.IsDBNull("buff_id") ? 0 : reader.GetUInt32("buff_id");
-                
-                    _titleToBuff.Add(titleId, buffId);
                 }
             }
         }
