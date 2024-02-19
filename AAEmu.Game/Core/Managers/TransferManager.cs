@@ -105,7 +105,7 @@ public class TransferManager : Singleton<TransferManager>
         return _templates.GetValueOrDefault(templateId);
     }
 
-    private TransferTemplate GetTransferTemplate(uint id)
+    public TransferTemplate GetTransferTemplate(uint id)
     {
         return _templates.GetValueOrDefault(id);
     }

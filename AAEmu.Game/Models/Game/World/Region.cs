@@ -373,27 +373,11 @@ public class Region
 
     public Region[] FindDifferenceBetweenRegions(Region other)
     {
-        var regions = new List<Region>();
         var oldNeighbors = this.GetNeighbors();
         var newNeighbors = other.GetNeighbors();
 
-        foreach (var oldNeighbor in oldNeighbors)
-        {
-            var add = true;
-            foreach (var newNeighbor in newNeighbors)
-            {
-                if (newNeighbor.Equals(oldNeighbor))
-                {
-                    add = false;
-                    break;
-                }
-            }
+        var difference = oldNeighbors.Except(newNeighbors).ToArray();
 
-            if (add)
-            {
-                regions.Add(oldNeighbor);
-            }
-        }
-        return regions.ToArray(); ;
+        return difference;
     }
 }

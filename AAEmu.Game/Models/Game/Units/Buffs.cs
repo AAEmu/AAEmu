@@ -154,14 +154,19 @@ public class Buffs : IBuffs
 
     public bool CheckBuffs(List<uint> ids)
     {
-        if (ids == null)
+        if (ids is not { Count: not 0 })
             return false;
-        foreach (var effect in _effects.ToList())
-            if (effect != null && effect.Template.BuffId > 0 && ids.Contains(effect.Template.BuffId))
+
+        var buffIdsSet = new HashSet<uint>(ids);
+
+        foreach (var effect in _effects)
+        {
+            if (effect?.Template?.BuffId > 0 && buffIdsSet.Contains(effect.Template.BuffId))
                 return true;
+        }
+
         return false;
     }
-
     public int GetBuffCountById(uint buffId)
     {
         var count = 0;

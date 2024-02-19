@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Models;
@@ -11,10 +12,12 @@ using AAEmu.Game.Services;
 using AAEmu.Game.Services.WebApi;
 using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Utils.Scripts;
+
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+
 using NLog;
 using NLog.Config;
 
@@ -58,7 +61,6 @@ public static class Program
         {
             return 1;
         }
-
 
         // Apply MySQL Configuration
         MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);

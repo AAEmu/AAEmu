@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Numerics;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Utils;
 
@@ -57,6 +58,11 @@ public class PositionAndRotation
         Position = new Vector3(Position.X, Position.Y, z);
     }
 
+    public void SetPosition(Vector3 xyz, Vector3 rpy)
+    {
+        Position = xyz;
+        Rotation = rpy;
+    }
     public void SetPosition(float x, float y, float z, float roll, float pitch, float yaw)
     {
         Position = new Vector3(x, y, z);
@@ -222,10 +228,6 @@ public class PositionAndRotation
     public void AddDistance(Vector3 move) => AddDistance(move.X, move.Y, move.Z);
     public void SubDistance(Vector3 move) => AddDistance(-move.X, -move.Y, -move.Z);
 
-
-
-
-
     /// <summary>
 
     /// Rotates Transform to make it face towards targetPosition's direction
@@ -293,7 +295,6 @@ public class PositionAndRotation
 
         return q;
     }
-
 
     /// <summary>
     /// Sets Rotation from Quaternion values

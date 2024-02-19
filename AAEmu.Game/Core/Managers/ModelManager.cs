@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 using System.Numerics;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Utils.DB;
@@ -57,6 +57,22 @@ namespace AAEmu.Game.Core.Managers
                 return null;
             }
 
+            public VehicleModel GetVehicleModels(uint modelId)
+            {
+                if (!_modelTypes.ContainsKey(modelId))
+                    return null;
+
+                var modelType = _modelTypes[modelId];
+
+                if (!_models.ContainsKey(modelType.SubType) || !_models[modelType.SubType].ContainsKey(modelType.SubId))
+                    return null;
+
+                var model = _models[modelType.SubType][modelType.SubId];
+                if (model is VehicleModel vehicleModel)
+                    return vehicleModel;
+                return null;
+            }
+
             public bool IsFlyOrSwim(uint modelId)
             {
                 if (!_modelTypes.ContainsKey(modelId))
@@ -74,12 +90,12 @@ namespace AAEmu.Game.Core.Managers
                     return;
 
                 _models = new Dictionary<string, Dictionary<uint, Model>>
-            {
-                {"ActorModel", new Dictionary<uint, Model>()},
-                {"VehicleModel", new Dictionary<uint, Model>()},
-                {"PrefabModel", new Dictionary<uint, Model>()},
-                {"ShipModel", new Dictionary<uint, Model>()}
-            };
+                {
+                    {"ActorModel", new Dictionary<uint, Model>()},
+                    {"VehicleModel", new Dictionary<uint, Model>()},
+                    {"PrefabModel", new Dictionary<uint, Model>()},
+                    {"ShipModel", new Dictionary<uint, Model>()}
+                };
 
                 _modelTypes = new Dictionary<uint, ModelType>();
                 _gameStances = new Dictionary<uint, GameStance>();
@@ -142,6 +158,42 @@ namespace AAEmu.Game.Core.Managers
                                 };
 
                                 _models["ShipModel"].TryAdd(model.Id, model);
+                            }
+                        }
+                    }
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText = "SELECT * FROM vehicle_models";
+                        command.Prepare();
+                        using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                        {
+                            while (reader.Read())
+                            {
+                                var model = new VehicleModel()
+                                {
+                                    Id = reader.GetUInt32("id"),
+                                    LinInertia = reader.GetFloat("lin_inertia"),
+                                    LinDeaccelInertia = reader.GetFloat("lin_deaccel_inertia"),
+                                    RotInertia = reader.GetFloat("rot_inertia"),
+                                    RotDeaccelInertia = reader.GetFloat("rot_deaccel_inertia"),
+                                    Velocity = reader.GetFloat("velocity"),
+                                    AngVel = reader.GetFloat("angVel"),
+                                    CanFly = reader.GetFloat("can_fly"),
+                                    WheeledVehicleMass = reader.GetFloat("wheeled_vehicle_mass"),
+                                    WheeledVehiclePower = reader.GetFloat("wheeled_vehicle_power"),
+                                    WheeledVehicleBrakeTorque = reader.GetFloat("wheeled_vehicle_brake_torque"),
+                                    WheeledVehicleMaxGear = reader.GetUInt32("wheeled_vehicle_max_gear"),
+                                    WheeledVehicleGearSpeedRatioReverse = reader.GetFloat("wheeled_vehicle_gear_speed_ratio_reverse"),
+                                    WheeledVehicleGearSpeedRatio1 = reader.GetFloat("wheeled_vehicle_gear_speed_ratio_1"),
+                                    WheeledVehicleGearSpeedRatio2 = reader.GetFloat("wheeled_vehicle_gear_speed_ratio_2"),
+                                    WheeledVehicleGearSpeedRatio3 = reader.GetFloat("wheeled_vehicle_gear_speed_ratio_3"),
+                                    WheeledVehicleSuspStroke = reader.GetFloat("wheeled_vehicle_susp_stroke"),
+                                    WheeledVehicleDrive = reader.GetFloat("wheeled_vehicle_drive"),
+                                    WheeledVehicleFrontOptimalSa = reader.GetFloat("wheeled_vehicle_front_optimal_sa"),
+                                    WheeledVehicleRearOptimalSa = reader.GetFloat("wheeled_vehicle_rear_optimal_sa")
+                                };
+
+                                _models["VehicleModel"].TryAdd(model.Id, model);
                             }
                         }
                     }

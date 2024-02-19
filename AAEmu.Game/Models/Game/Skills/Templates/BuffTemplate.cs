@@ -283,16 +283,10 @@ public class BuffTemplate
         owner ??= caster;
 
         var ownerUnit = owner as Unit;
-        if (TickAreaExcludeSource)
-        {
-            if (ownerUnit != null)
-                units.Remove(ownerUnit);
-        }
-        else
-        {
-            if (!units.Contains(owner) && ownerUnit != null)
-                units.Add(ownerUnit);
-        }
+        if (TickAreaExcludeSource && ownerUnit != null)
+            units.Remove(ownerUnit);
+        else if (ownerUnit != null && !units.Contains(owner))
+            units.Add(ownerUnit);
 
         units = SkillTargetingUtil.FilterWithRelation((SkillTargetRelation)TickAreaRelationId, (Unit)caster, units).ToList();
 
@@ -301,22 +295,27 @@ public class BuffTemplate
         //source = (Unit)owner;
         var skillObj = new SkillObject(); // TODO ?
 
-
-        foreach (var tickEff in TickEffects)
+        // Create a copy of the units collection for safe iteration
+        var unitsCopy = units.ToList();
+        //lock (units)
         {
-            var eff = SkillManager.Instance.GetEffectTemplate(tickEff.EffectId);
-
-            foreach (var trg in units)
+            foreach (var tickEff in TickEffects)
             {
-                if (tickEff.TargetBuffTagId > 0 &&
-                    !trg.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
-                    continue;
-                if (tickEff.TargetNoBuffTagId > 0 &&
-                    trg.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
-                    continue;
+                var eff = SkillManager.Instance.GetEffectTemplate(tickEff.EffectId);
 
-                var targetObj = new SkillCastUnitTarget(trg.ObjId);
-                eff.Apply(source, buff.SkillCaster, trg, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.UtcNow);
+                foreach (var trg in unitsCopy)
+                //foreach (var trg in units)
+                {
+                    if (tickEff.TargetBuffTagId > 0 &&
+                        !trg.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
+                        continue;
+                    if (tickEff.TargetNoBuffTagId > 0 &&
+                        trg.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
+                        continue;
+
+                    var targetObj = new SkillCastUnitTarget(trg.ObjId);
+                    eff.Apply(source, buff.SkillCaster, trg, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.UtcNow);
+                }
             }
         }
     }

@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Effects;
