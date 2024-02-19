@@ -354,7 +354,6 @@ public class MathUtil
             MathF.Sqrt(MathF.Pow(v1.X - v2.X, 2) + MathF.Pow(v1.Y - v2.Y, 2));
     }
 
-
     public static Vector3 GetVectorFromQuat(Quaternion quat)
     {
         double sqw = quat.W * quat.W;

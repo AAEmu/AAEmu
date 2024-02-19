@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -11,7 +12,6 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
-using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -28,7 +28,6 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
-using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Slave;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
@@ -647,7 +646,6 @@ public class SlaveManager : Singleton<SlaveManager>
         return summonedSlave;
     }
 
-
     /// <summary>
     /// Use loaded attachPoint location and apply them depending on the slave and point
     /// </summary>
@@ -1132,7 +1130,7 @@ public class SlaveManager : Singleton<SlaveManager>
         mySlave.SendPacket(new SCUnitsRemovedPacket(new[] { mySlave.ObjId }));
 
         // Move location
-        mySlave.SetPosition(skillCastPositionTarget.PosX, skillCastPositionTarget.PosY, skillCastPositionTarget.PosZ, 0f,0f,skillCastPositionTarget.PosRot);
+        mySlave.SetPosition(skillCastPositionTarget.PosX, skillCastPositionTarget.PosY, skillCastPositionTarget.PosZ, 0f, 0f, skillCastPositionTarget.PosRot);
         // Without this offset, it just doesn't feel right
         mySlave.Transform.Local.AddDistanceToFront(mySlave.Template.SpawnXOffset / 2f);
         mySlave.Transform.Local.AddDistanceToRight(mySlave.Template.SpawnYOffset / 2f);
@@ -1197,7 +1195,7 @@ public class SlaveManager : Singleton<SlaveManager>
         if ((pointsToAdd > 0) && (unUsedHealPoints.Count > 0))
         {
             // We don't have enough points, add some
-            for(var iAdd = 0; (iAdd < pointsToAdd) && (unUsedHealPoints.Count > 0); iAdd++)
+            for (var iAdd = 0; (iAdd < pointsToAdd) && (unUsedHealPoints.Count > 0); iAdd++)
             {
                 // pick a random spot
                 var wreckPointLocation = unUsedHealPoints[Random.Shared.Next(unUsedHealPoints.Count)];

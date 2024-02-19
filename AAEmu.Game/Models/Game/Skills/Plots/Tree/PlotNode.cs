@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills.Static;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree;
@@ -20,7 +22,6 @@ public class PlotNode
     // Plots
     public PlotEventTemplate Event;
     public PlotNextEvent ParentNextEvent;
-
 
     public PlotNode()
     {
