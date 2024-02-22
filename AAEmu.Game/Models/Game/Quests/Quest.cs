@@ -1003,7 +1003,7 @@ EndLoop:
     /// </summary>
     private void RemoveQuestItems()
     {
-        for (var step = QuestComponentKind.None; step <= QuestComponentKind.Reward; step++)
+        for (var step = QuestComponentKind.None; step < QuestComponentKind.Reward; step++)
         {
             var components = Template.GetComponents(step);
             if (components.Length == 0)

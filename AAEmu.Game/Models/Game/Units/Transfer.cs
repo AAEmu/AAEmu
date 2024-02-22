@@ -4,6 +4,7 @@ using System.Numerics;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -41,8 +42,8 @@ public class Transfer : Unit
     public float RotSpeed { get; set; }  // ?
     public Quaternion Rot { get; set; }
     public bool Reverse { get; set; }
-    public sbyte RequestSteering { get; set; }
-    public sbyte RequestThrottle { get; set; }
+    //public sbyte RequestSteering { get; set; }
+    //public sbyte RequestThrottle { get; set; }
     public DateTime WaitTime { get; set; }
     public uint TimeLeft => WaitTime > DateTime.UtcNow ? (uint)(WaitTime - DateTime.UtcNow).TotalMilliseconds : 0;
 
@@ -434,17 +435,19 @@ public class Transfer : Unit
     public bool MoveToPathEnabled { get; set; }    // разрешено движение транспорта
     public bool MoveToForward { get; set; }        // movement direction true -> forward, true -> back
     public int MoveStepIndex { get; set; }         // current checkpoint (where are we running now)
-    public float DeltaTime { get; set; } = 0.1f;
+    //public float DeltaTime { get; set; } = 0.1f;
     public Vector3 vPosition { get; set; }
     public Vector3 vTarget { get; set; }
     public Vector3 vDistance { get; set; }
     public Vector3 vVelocity { get; set; }
     public float Distance { get; set; }
     public float MaxVelocityForward { get; set; } = 5.4f;
-    public float MaxVelocityBackward { get; set; } = 0.25f;
-    public float RangeToCheckPoint { get; set; } = 0.9f; // distance to checkpoint at which it is considered that we have reached it
-    public float velAccel { get; set; } = 0.3f;
+    //public float MaxVelocityBackward { get; set; } = 0.25f;
+    public float RangeToCheckPoint { get; set; } = 1.5f; // distance to checkpoint at which it is considered that we have reached it
+    public float VelAccel { get; set; } = 0.3f;
     public double Angle { get; set; }
+    public float Mass { get; set; }
+    public float MaxForce { get; set; }
 
     public void GoToPath(Transfer transfer)
     {
@@ -540,16 +543,15 @@ public class Transfer : Unit
         transfer.RotSpeed = 0;
         transfer.Velocity = Vector3.Zero;
         transfer.vVelocity = Vector3.Zero;
+    }
 
-        //transfer.Angle = MathUtil.CalculateDirection(transfer.vPosition, transfer.vTarget);
-        //var quat = Quaternion.CreateFromYawPitchRoll((float)Angle, 0.0f, 0.0f);
-        //Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
-
-        //var moveTypeTr = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
-        //moveTypeTr.UseTransferBase(transfer);
-        //SetPosition(moveTypeTr.X, moveTypeTr.Y, moveTypeTr.Z, 0, 0, Helpers.ConvertRadianToSbyteDirection((float)Angle));
-        //BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeTr), true);
-        ////MoveToPathEnabled = false;
+    private static Vector3 Truncate(Vector3 steering, float maxForce)
+    {
+        if (steering.Length() > maxForce)
+        {
+            return Vector3.Normalize(steering) * maxForce;
+        }
+        return steering;
     }
 
     public void MoveTo(Transfer transfer)
@@ -562,189 +564,82 @@ public class Transfer : Unit
             return;
         }
 
+        /* Поведение Seek (поиск) */
+        /* Behaviors: Seek */
+        // https://code.tutsplus.com/understanding-steering-behaviors-flee-and-arrival--gamedev-1303t?_ga=2.235770881.1818027478.1708218508-301354123.1708218508
+        var vehicleModel = ModelManager.Instance.GetVehicleModels(transfer.Template.ModelId);
+        if (vehicleModel == null)
+            return;
+
         transfer.vPosition = transfer.Transform.World.ClonePosition();
+        MaxVelocityForward = vehicleModel.Velocity;
+        MaxForce = vehicleModel.AngVel;
+        Mass = vehicleModel.WheeledVehicleMass;
+        //var slowingRadius = transfer.Template.PathSmoothing; // расстояние с которого начинаем тормозить
+
+        transfer.VelAccel = vehicleModel.WheeledVehicleMaxGear switch
+        {
+            1 => vehicleModel.WheeledVehicleGearSpeedRatio1,
+            2 => vehicleModel.WheeledVehicleGearSpeedRatio2,
+            3 => vehicleModel.WheeledVehicleGearSpeedRatio3,
+            _ => 0.3f
+        };
 
         // вектор направление на таргет (последовательность аргументов важно, чтобы смотреть на таргет)
-        transfer.vDistance = transfer.vTarget - transfer.vPosition; // dx, dy, dz
+        // vector direction to the target (the sequence of arguments is important to look at the target)
+        transfer.vDistance = transfer.vTarget - transfer.vPosition;
 
         // distance to the point where we are moving
-        transfer.Distance = MathUtil.GetDistance(transfer.vTarget, transfer.vPosition);
-
-        if (!(transfer.Distance > 0))
+        transfer.Distance = transfer.vDistance.Length();
+        var nextPoint = transfer.Distance < transfer.RangeToCheckPoint;
+        if (nextPoint)
         {
+            transfer.vPosition = transfer.vTarget;
             // get next path or point # in current path
             transfer.NextPoint(transfer);
             return;
         }
 
-        DoSpeedReduction(transfer);
-        // accelerate to maximum speed
-        transfer.Speed += transfer.velAccel * transfer.DeltaTime;
+        transfer.vVelocity = Vector3.Normalize(transfer.vDistance) * transfer.VelAccel;
+        var desiredVelocity = Vector3.Normalize(transfer.vDistance) * MaxVelocityForward;
+        var steering = desiredVelocity - transfer.vVelocity;
+        steering = Truncate(steering, MaxForce);
+        steering /= Mass;
+        transfer.vVelocity = Truncate(transfer.vVelocity + steering, MaxVelocityForward);
+        transfer.vPosition += transfer.vVelocity;
 
-        //check that it is not more than the maximum forward or reverse speed
-        transfer.Speed = Math.Clamp(transfer.Speed, transfer.MaxVelocityBackward, transfer.MaxVelocityForward);
-
-        //var velocity = MaxVelocityForward * DeltaTime;
-        var velocity = transfer.Speed * transfer.DeltaTime;
-        // вектор направление на цель (последовательность аргументов важно, чтобы смотреть на цель)
-        // вектор направления необходимо нормализовать
-        var direction = transfer.vDistance != Vector3.Zero ? Vector3.Normalize(transfer.vDistance) : Vector3.Zero;
-
-        // вектор скорости (т.е. координаты, куда попадём двигаясь со скоростью velociti по направдению direction)
-        var diff = direction * velocity;
-        transfer.Transform.Local.Translate(diff.X, diff.Y, diff.Z);
-
-        var nextPoint = Math.Abs(transfer.vDistance.X) < transfer.RangeToCheckPoint
-                        && Math.Abs(transfer.vDistance.Y) < transfer.RangeToCheckPoint
-                        && Math.Abs(transfer.vDistance.Z) < transfer.RangeToCheckPoint;
+        // следующие вычисления Speed, Velocity and AngVel дают вращаться колесам и пропеллерам на дирижаблях
+        // the following calculations Speed, Velocity and AngVel allow the wheels and propellers on airships to rotate
+        transfer.Speed = MaxVelocityForward;
+        transfer.Velocity = transfer.vVelocity * 5;
 
         transfer.Angle = MathUtil.CalculateDirection(transfer.vPosition, transfer.vTarget);
         if (transfer.Reverse)
         {
             transfer.Angle += MathF.PI;
-        }
-        var quat = MathUtil.ConvertRadianToDirectionShort(transfer.Angle);
-        transfer.Transform.Local.SetZRotation((float)Angle);
-        Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
-
-        transfer.Velocity = new Vector3(direction.X * 30, direction.Y * 30, direction.Z * 30);
-        transfer.AngVel = new Vector3(0f, 0f, (float)transfer.Angle); // сюда записывать дельту, в радианах, угла поворота между начальным вектором и конечным
-
-        //// попробуем двигать прицеп следом за кабиной, если имеется прицеп
-        //if (Bounded != null)
-        //{
-        //    Bounded.Position = Position.Clone();
-        //    (Bounded.Position.X, Bounded.Position.Y) = MathUtil.AddDistanceToFront(-9.24417f, Position.X, Position.Y, Position.RotationZ);
-        //    Bounded.Rot = Rot;
-        //    Bounded.Velocity = Velocity;
-        //}
-
-        //if (TemplateId == 700)
-        //{
-        //    // для проверки
-
-        //    Logger.Warn("Reverse=" + Reverse + " Cyclic=" + Template.Cyclic);
-        //    Logger.Warn("MoveStepIndex=" + MoveStepIndex + " Steering=" + Steering);
-        //    Logger.Warn("x=" + Position.X + " y=" + Position.Y + " z=" + Position.Z + " Angle=" + Angle + " Rot=" + Rot);
-        //    //Logger.Warn("velx=" + Velocity.X + " vely=" + Velocity.Y + " velz=" + Velocity.Z);
-        //}
-
-        if (nextPoint)
-        {
-            // get next path or point # in current path
-            transfer.NextPoint(transfer);
+            //transfer.velAccel = vehicleModel.WheeledVehicleGearSpeedRatioReverse; // задний ход
+            transfer.AngVel = new Vector3(MaxVelocityForward, 0, 0);
         }
         else
         {
-            // update TransfersPath variable
-            //transfer.PathPointIndex = transfer.MoveStepIndex; // текущая точка, куда движемся
-            //transfer.Steering = transfer.MoveStepIndex; // текущий участок пути
-
-            // moving to the point #
-            var moveTypeTr = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
-            moveTypeTr.UseTransferBase(transfer);
-            transfer.SetPosition(moveTypeTr.X, moveTypeTr.Y, moveTypeTr.Z, 0, 0, (float)transfer.Angle);
-            // Added so whatever riding this, doesn't clip out of existence when moving
-            transfer.Transform.FinalizeTransform(true);
-            //if (transfer.TemplateId == 49)
-            //{
-            //    Logger.Info($"transfer:{transfer.TemplateId}-{transfer.ObjId} is moving X={transfer.Transform.World.Position.X} Y={transfer.Transform.World.Position.Y}");
-            //    var region = WorldManager.Instance.GetRegion(transfer); // Get region of Object or it's Root object if it has one
-            //    var currentRegion = transfer.Region; // Current Region this object is in
-            //    Logger.Info($"transfer is moving from region={currentRegion.Id} to region={region.Id}");
-            //    Logger.Warn("----------");
-            //}
-            // Only send movement of the main vehicle motor, client will drag carriage on it's own
-            if ((transfer.Bounded != null) || (transfer.ParentObj == null))
-            {
-                transfer.BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeTr), false);
-                /*
-                // Debug stuff
-                if (transfer.Transform._debugTrackers.Count > 0)
-                {
-                    var neighbouringPlayers = WorldManager.Instance.GetAround<Character>(transfer);
-                    Logger.Debug("TransferMovement {0} visible to {1} player(s)", DebugName(), neighbouringPlayers.Count);
-                }
-                */
-            }
-
-            /*
-            if (Bounded != null)
-            {
-                var moveTypeB = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
-                moveTypeB.UseTransferBase(Bounded);
-                SetPosition(moveTypeB.X, moveTypeB.Y, moveTypeB.Z, 0, 0, (float)Angle);
-                BroadcastPacket(new SCOneUnitMovementPacket(Bounded.ObjId, moveTypeB), false);
-            }
-            */
+            transfer.AngVel = new Vector3(-MaxVelocityForward, 0, 0);
         }
-    }
+        var rot = MathUtil.ConvertRadianToDirectionShort(transfer.Angle);
+        transfer.Transform.World.SetZRotation((float)Angle);
+        transfer.Rot = new Quaternion(rot.X, rot.Z, rot.Y, rot.W);
 
-    public void CheckWaitTime(Transfer transfer)
-    {
-        var time = 0.0d;
-        // Проверяем остановки на маршруте
+        // update TransfersPath variable
+        var moveTypeTr = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
+        moveTypeTr.UseTransferBase(transfer);
 
-        //// 1.начало пути
-        //if (MoveStepIndex == 0 && Steering == 0 && transfer.Template.WaitTime > 0)
-        //{
-        //    time = transfer.Template.WaitTime;
-        //}
-        // 2.конец участка
-        //else
-        if (transfer.MoveStepIndex == 0 && transfer.Steering != 0 && transfer.Template.TransferAllPaths[transfer.Steering - 1].WaitTimeEnd > 0)
-        {
-            time = transfer.Template.TransferAllPaths[transfer.Steering - 1].WaitTimeEnd;
-            WaitTime = DateTime.UtcNow.AddSeconds(time);
-        }
-        // 3.начало участка
-        else if (MoveStepIndex == 0 && transfer.Steering == 0 && transfer.Template.TransferAllPaths[transfer.Steering].WaitTimeStart > 0)
-        {
-            time = transfer.Template.TransferAllPaths[transfer.Steering].WaitTimeStart;
-            WaitTime = DateTime.UtcNow.AddSeconds(time);
-        }
-        //Logger.Info("TransfersPath #" + transfer.Template.Id);
-        //Logger.Warn("path #" + Steering);
-        //Logger.Warn("walk to #" + MoveStepIndex);
-        //Logger.Info("pause to #" + time);
-        //Logger.Warn("x:=" + transfer.Position.X + " y:=" + transfer.Position.Y + " z:=" + transfer.Position.Z);
-    }
+        // Only send movement of the main vehicle motor, client will drag carriage on it's own
+        if (transfer.Bounded is not null || transfer.ParentObj is null)
+            transfer.BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeTr), false);
 
-    private static bool DoSpeedReduction(Transfer transfer)
-    {
-        var current = transfer.Steering;
-        var next = 0;
-        if (transfer.Steering + 1 >= transfer.Template.TransferAllPaths.Count)
-        {
-            next = 0;
-        }
-        else
-        {
-            next++;
-        }
-
-        if ((current < transfer.Template.TransferAllPaths.Count) && (next < transfer.Template.TransferAllPaths.Count))
-            if (transfer.Template.TransferAllPaths[current].WaitTimeEnd > 0 || transfer.Template.TransferAllPaths[next].WaitTimeStart > 0)
-            {
-                // за несколько (3 ?) точек до конца участка будем тормозить
-                // several (3?) points before the end of the section we will slow down
-                if (transfer.TransferPath.Count - transfer.MoveStepIndex <= 1)
-                {
-                    if (transfer.velAccel > 0)
-                    {
-                        transfer.velAccel *= -1.0f;
-                    }
-
-                    return true;
-                }
-            }
-
-        if (transfer.velAccel < 0)
-        {
-            transfer.velAccel *= -1.0f;
-        }
-
-        return false;
+        // Added so whatever riding this, doesn't clip out of existence when moving
+        transfer.Transform.FinalizeTransform();
+        transfer.SetPosition(transfer.vPosition.X, transfer.vPosition.Y, transfer.vPosition.Z, 0, 0, (float)transfer.Angle);
+        transfer.Transform.World.SetPosition(transfer.vPosition, new Vector3(0, 0, (float)transfer.Angle));
     }
 
     private void NextPoint(Transfer transfer)

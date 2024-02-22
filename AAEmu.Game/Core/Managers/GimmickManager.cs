@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
+
 using static System.String;
 
 namespace AAEmu.Game.Core.Managers;
