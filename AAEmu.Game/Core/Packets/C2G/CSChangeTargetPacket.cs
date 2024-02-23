@@ -34,31 +34,34 @@ public class CSChangeTargetPacket : GamePacket
         }
         if (Connection.ActiveChar.CurrentTarget == null)
         {
-            Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: not found in Db", targetId);
+            Connection.ActiveChar.SendMessage($"ObjId: {targetId}, TemplateId: not found in Db");
             return;
         }
         if (Connection.ActiveChar.CurrentTarget is Portal portal)
-            Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}\nPos: {2}", targetId, portal.TemplateId, portal.Transform.ToString());
+            Connection.ActiveChar.SendMessage($"ObjId: {targetId}, TemplateId: {portal.TemplateId}\nPos: {portal.Transform}");
         else if (Connection.ActiveChar.CurrentTarget is Npc npc)
         {
             var spawnerId = npc.Spawner != null && npc.Spawner.NpcSpawnerIds.Count > 0
                 ? npc.Spawner.NpcSpawnerIds[0]
                 : 0u;
 
-            Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3} SpawnerId: {4} Stance: {6}, Speed: {7}\nPos: {5}",
-                targetId, npc.TemplateId, npc.Ai?.GetType().Name.Replace("AiCharacter", ""),
+            Connection.ActiveChar.SendMessage(string.Format("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3} SpawnerId: {4} Stance: {6}, Speed: {7:F1}\nPos: {5}",
+                targetId,
+                npc.TemplateId,
+                npc.Ai?.GetType().Name.Replace("AiCharacter", ""),
                 npc.Ai?.GetCurrentBehavior()?.GetType().Name.Replace("Behavior", ""), spawnerId,
-                npc.Transform.ToString(), npc.CurrentGameStance, npc.BaseMoveSpeed.ToString("F1"));
+                npc.Transform,
+                npc.CurrentGameStance, npc.BaseMoveSpeed));
         }
         else if (Connection.ActiveChar.CurrentTarget is House house)
-            Connection.ActiveChar.SendMessage("ObjId: {0}, HouseId: {1}, Pos: {2}", targetId, house.Id, house.Transform.ToString());
+            Connection.ActiveChar.SendMessage($"ObjId: {targetId}, HouseId: {house.Id}, Pos: {house.Transform}");
         else if (Connection.ActiveChar.CurrentTarget is Transfer transfer)
-            Connection.ActiveChar.SendMessage("ObjId: {0}, Transfer TemplateId: {1}\nPos: {2}", targetId, transfer.TemplateId, transfer.Transform.ToString());
+            Connection.ActiveChar.SendMessage($"ObjId: {targetId}, Transfer TemplateId: {transfer.TemplateId}\nPos: {transfer.Transform}");
         else if (Connection.ActiveChar.CurrentTarget is Slave slave)
             Connection.ActiveChar.SendMessage($"ObjId: {slave.ObjId}, Slave TemplateId: {slave.TemplateId}, Id: {slave.Id}, Owner: {slave.Summoner?.Name}\nPos: {slave.Transform}");
         else if (Connection.ActiveChar.CurrentTarget is Character character)
-            Connection.ActiveChar.SendMessage("ObjId: {0}, CharacterId: {1}, \nPos: {2}", targetId, character.Id, character.Transform.ToFullString(true, true));
+            Connection.ActiveChar.SendMessage($"ObjId: {targetId}, CharacterId: {character.Id}, \nPos: {character.Transform.ToFullString(true, true)}");
         else
-            Connection.ActiveChar.SendMessage("ObjId: {0}, Pos: {1}, {2}", targetId, Connection.ActiveChar.CurrentTarget.Transform.ToString(), Connection.ActiveChar.CurrentTarget.Name);
+            Connection.ActiveChar.SendMessage($"ObjId: {targetId}, Pos: {Connection.ActiveChar.CurrentTarget.Transform}, {Connection.ActiveChar.CurrentTarget.Name}");
     }
 }

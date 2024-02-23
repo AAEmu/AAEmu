@@ -28,7 +28,7 @@ public class NpcRemoveSubCommand : SubCommandBase
             npc = WorldManager.Instance.GetNpc(npcObjId);
             if (npc is null)
             {
-                SendColorMessage(messageOutput, Color.Red, "Npc with objId {0} does not exist |r", npcObjId);
+                SendColorMessage(messageOutput, Color.Red, $"Npc with objId {npcObjId} does not exist");
                 return;
             }
         }

@@ -59,17 +59,17 @@ public class AddBuff : ICommand
 
             if (goodBuffs.Count + badBuffs.Count + hiddenBuffs.Count > 0)
             {
-                character.SendMessage("[AddBuff] Listing buffs for {0} - {1} !", selectedUnit.ObjId, selectedUnit.Name);
+                character.SendMessage($"[AddBuff] Listing buffs for {selectedUnit.ObjId} - {selectedUnit.Name} !");
                 foreach (var b in goodBuffs)
-                    character.SendMessage("[AddBuff] |cFF00FF00{0} - {1}|r", b.Template.Id, LocalizationManager.Instance.Get("buffs", "name", b.Template.Id));
+                    character.SendMessage($"[AddBuff] |cFF00FF00{b.Template.Id} - {LocalizationManager.Instance.Get("buffs", "name", b.Template.Id)}|r");
                 foreach (var b in badBuffs)
-                    character.SendMessage("[AddBuff] |cFFFF0000{0} - {1}|r", b.Template.Id, LocalizationManager.Instance.Get("buffs", "name", b.Template.Id));
+                    character.SendMessage($"[AddBuff] |cFFFF0000{b.Template.Id} - {LocalizationManager.Instance.Get("buffs", "name", b.Template.Id)}|r");
                 foreach (var b in hiddenBuffs)
-                    character.SendMessage("[AddBuff] |cFF6666FF{0} - {1}|r", b.Template.Id, LocalizationManager.Instance.Get("buffs", "name", b.Template.Id));
+                    character.SendMessage($"[AddBuff] |cFF6666FF{b.Template.Id} - {LocalizationManager.Instance.Get("buffs", "name", b.Template.Id)}|r");
             }
             else
             {
-                character.SendMessage("[AddBuff] No buffs on {0} - {1}", selectedUnit.ObjId, selectedUnit.Name);
+                character.SendMessage($"[AddBuff] No buffs on {selectedUnit.ObjId} - {selectedUnit.Name}");
             }
 
             return;
@@ -104,7 +104,7 @@ public class AddBuff : ICommand
         var buffTemplate = SkillManager.Instance.GetBuffTemplate(buffId);
         if (buffTemplate == null)
         {
-            character.SendMessage("|cFFFF0000[AddBuff] Unknown buffId {0}|r", buffId);
+            character.SendMessage($"|cFFFF0000[AddBuff] Unknown buffId {buffId}|r");
             return;
         }
 
@@ -127,7 +127,7 @@ public class AddBuff : ICommand
                 selectedUnit.Buffs.RemoveBuff(buffId);
             else
             {
-                character.SendMessage("|cFFFF0000[AddBuff] Target didn't have buff to remove|r", buffId);
+                character.SendMessage($"|cFFFF0000[AddBuff] Target didn't have buff to remove {buffId}|r");
             }
         }
         else

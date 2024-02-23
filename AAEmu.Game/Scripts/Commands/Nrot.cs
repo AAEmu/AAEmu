@@ -81,7 +81,7 @@ public class Nrot : ICommand
             moveType.Alertness = 0; //idle=0, combat=2
             moveType.Time = Seq;
 
-            character.SendMessage("[nrot] New position {0}", character.CurrentTarget.Transform.Local.ToString());
+            character.SendMessage($"[nrot] New position {character.CurrentTarget.Transform.Local}");
             character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
         }
         else

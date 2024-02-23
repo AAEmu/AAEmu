@@ -24,7 +24,7 @@ public class DoodadChainSubCommand : SubCommandBase
         var doodad = DoodadManager.Instance.Create(0, templateId);
         if (doodad == null)
         {
-            SendColorMessage(messageOutput, Color.Red, "Doodad with templateId {0} was not found |r", templateId);
+            SendColorMessage(messageOutput, Color.Red, $"Doodad with templateId {templateId} was not found");
             return;
         }
 

@@ -72,6 +72,6 @@ public class ItemCapScale : SpecialEffectAction
         // temperItem._holdingContainer.ConsumeItem(ItemTaskType.EnchantPhysical, temperItem.TemplateId, 1, temperItem);
         owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantPhysical, new List<ItemTask>() { new ItemUpdate(equipItem) }, new List<ulong>()));
         // Note: According to various videos I have found, there is no information on the % reached by a temper ingame. This is sent to help indicate what was achieved.
-        owner.SendMessage(ChatType.System, "Temper:\n |cFFFFFFFF{0}%|r Physical\n|cFFFFFFFF{1}%|r Magical", physicalScale, magicalScale);
+        owner.SendMessage(ChatType.System, $"Temper:\n |cFFFFFFFF{physicalScale}%|r Physical\n|cFFFFFFFF{magicalScale}%|r Magical");
     }
 }

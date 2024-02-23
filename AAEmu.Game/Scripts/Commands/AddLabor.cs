@@ -37,7 +37,7 @@ public class AddLabor : ICommand
             return;
         }
 
-        Character targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
+        var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
 
         short count = 0;
 
@@ -52,9 +52,8 @@ public class AddLabor : ICommand
         targetPlayer.ChangeLabor(count, vocationSkillId);
         if (character.Id != targetPlayer.Id)
         {
-            character.SendMessage("[Labor] added {0} labor to {1}", count, targetPlayer.Name);
-            targetPlayer.SendMessage("[GM] {0} has updated your labor by {1}", character.Name, count);
+            character.SendMessage($"[Labor] added {count} labor to {targetPlayer.Name}");
+            targetPlayer.SendMessage($"[GM] {character.Name} has changed your labor by {count}");
         }
-
     }
 }

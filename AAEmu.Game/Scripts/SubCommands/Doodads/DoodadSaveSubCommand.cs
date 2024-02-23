@@ -32,14 +32,14 @@ public class DoodadSaveSubCommand : SubCommandBase
         var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
         if (doodad is null)
         {
-            SendColorMessage(messageOutput, Color.Red, $"Doodad with objId {doodadObjId} does not exist |r");
+            SendColorMessage(messageOutput, Color.Red, $"Doodad with objId {doodadObjId} does not exist");
             return;
         }
 
         var world = WorldManager.Instance.GetWorld(doodad.Transform.WorldId);
         if (world is null)
         {
-            SendColorMessage(messageOutput, Color.Red, "Could not find the worldId {0} |r", doodad.Transform.WorldId);
+            SendColorMessage(messageOutput, Color.Red, $"Could not find the worldId {doodad.Transform.WorldId}");
             return;
         }
 
@@ -96,6 +96,6 @@ public class DoodadSaveSubCommand : SubCommandBase
 
         var serialized = JsonConvert.SerializeObject(fileSpawners.Values.ToArray(), Formatting.Indented, new JsonModelsConverter());
         FileManager.SaveFile(serialized, string.Format(jsonFileName, FileManager.AppPath));
-        SendMessage(messageOutput, "Doodad ObjId: {0} has been saved!", doodad.ObjId);
+        SendMessage(messageOutput, $"Doodad ObjId: {doodad.ObjId} has been saved!");
     }
 }

@@ -34,7 +34,7 @@ public class SlavePositionSubCommand : SubCommandBase
             slave = (Models.Game.Units.Slave)WorldManager.Instance.GetGameObject(objId);
             if (slave is null)
             {
-                SendColorMessage(messageOutput, Color.Red, "Slave with objId {0} does not exist |r", objId);
+                SendColorMessage(messageOutput, Color.Red, $"Slave with objId {objId} does not exist");
                 return;
             }
         }
@@ -56,8 +56,7 @@ public class SlavePositionSubCommand : SubCommandBase
         var pitch = GetOptionalParameterValue(parameters, "pitch", slave.Transform.Local.Rotation.Y.RadToDeg()).DegToRad();
         var roll = GetOptionalParameterValue(parameters, "roll", slave.Transform.Local.Rotation.X.RadToDeg()).DegToRad();
 
-        SendMessage(messageOutput, "Slave ObjId:{0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, roll:{5:0.#}°, pitch:{6:0.#}°, yaw:{7:0.#}°",
-            slave.ObjId, slave.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());
+        SendMessage(messageOutput, $"Slave ObjId:{slave.ObjId} TemplateId:{slave.TemplateId}, x:{x}, y:{y}, z:{z}, roll:{roll.RadToDeg():0.#}°, pitch:{pitch.RadToDeg():0.#}°, yaw:{yaw.RadToDeg():0.#}°");
 
         slave.Transform.Local.SetPosition(x, y, z, roll, pitch, yaw);
         slave.Hide();

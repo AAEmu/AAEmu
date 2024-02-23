@@ -19,11 +19,11 @@ public class WorldSetHonorrateSubCommand : SubCommandBase
         float honorRate = parameters["HonorRate"];
         if (honorRate < 1.0f || honorRate > 1000.0f)
         {
-            SendColorMessage(messageOutput, Color.Coral, $"Honor rate = {honorRate} must be at least 1.0 and no more than 1000.0 |r");
+            SendColorMessage(messageOutput, Color.Coral, $"Honor rate = {honorRate} must be at least 1.0 and no more than 1000.0");
             return;
         }
         character.SetHonorRate(honorRate);
-        SendMessage(messageOutput, "Set HonorRate {0}", honorRate);
+        SendMessage(messageOutput, $"Set HonorRate {honorRate}");
         Logger.Warn($"{Title}: {honorRate}");
     }
 }

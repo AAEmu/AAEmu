@@ -19,13 +19,13 @@ public class WorldSetAutosaveintervalSubCommand : SubCommandBase
         float autoSaveInterval = parameters["AutoSaveInterval"];
         if (autoSaveInterval < 1.0f || autoSaveInterval > 1440.0f)
         {
-            SendColorMessage(messageOutput, Color.Coral, $"AutoSaveInterval = {autoSaveInterval} must be at least 1.0 and no more than 1440.0 minutes |r");
+            SendColorMessage(messageOutput, Color.Coral, $"AutoSaveInterval = {autoSaveInterval} must be at least 1.0 and no more than 1440.0 minutes");
             return;
         }
         character.SetAutoSaveInterval(autoSaveInterval);
         SaveManager.Instance.SetAutoSaveInterval();
 
-        SendMessage(messageOutput, "Set AutoSaveInterval {0}", autoSaveInterval);
+        SendMessage(messageOutput, $"Set AutoSaveInterval {autoSaveInterval}");
         Logger.Warn($"{Title}: {autoSaveInterval}");
     }
 }

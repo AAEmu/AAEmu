@@ -1,7 +1,9 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System.Drawing;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Utils;
@@ -87,27 +89,24 @@ public class SpawnGrid : ICommand
             case "npc":
                 if (!NpcManager.Instance.Exist(templateId))
                 {
-                    character.SendMessage("|cFFFF0000[Spawn] NPC {0} don't exist|r", templateId);
+                    character.SendMessage(ChatType.System, $"[Spawn] NPC {templateId} don't exist", Color.Red);
                     return;
                 }
                 break;
             case "doodad":
                 if (!DoodadManager.Instance.Exist(templateId))
                 {
-                    character.SendMessage("|cFFFF0000[Spawn] Doodad {0} don't exist|r", templateId);
+                    character.SendMessage(ChatType.System, $"[Spawn] Doodad {templateId} don't exist", Color.Red);
                     return;
                 }
                 break;
             default:
-                character.SendMessage("|cFFFF0000[Spawn] Unknown object type.|r");
+                character.SendMessage(ChatType.System, $"[Spawn] Unknown object type.", Color.Red);
                 return;
         }
 
-        float startX;
-        float startY;
-
         // Origin point for spawns
-        (startX, startY) = MathUtil.AddDistanceToFront(3f, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Rotation.Z);
+        var (startX, startY) = MathUtil.AddDistanceToFront(3f, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Rotation.Z);
         for (var y = 0; y < rows; y++)
         {
             float sizeY = rows * spacing;

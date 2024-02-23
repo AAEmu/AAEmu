@@ -222,7 +222,7 @@ public class QuestTests
                 mockCharacter.Verify(o => o.SendMessage(It.Is<string>(s => s.Contains("quest {1} will end in {2} minutes")), It.Is<object[]>(o => o.Contains(questId) && o.Contains(checkTimerAct.LimitTime / 60000))), Times.Once);
             }
 
-            //Started successfuly
+            //Started successfully
             Assert.True(result);
         }
     }

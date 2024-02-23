@@ -38,23 +38,20 @@ public class Around : ICommand
         indexStr += (index + 1).ToString();
 
         if (go is Doodad gDoodad)
-            messageOutput.SendMessage("#{0} -> BcId: {1} DoodadTemplateId: {2} - @DOODAD_NAME({2}) FuncGroupId {3}",
-                indexStr, gDoodad.ObjId, gDoodad.TemplateId, gDoodad.FuncGroupId);
+            messageOutput.SendMessage($"#{indexStr} -> BcId: {gDoodad.ObjId} DoodadTemplateId: {gDoodad.TemplateId} - @DOODAD_NAME({gDoodad.TemplateId}) FuncGroupId {gDoodad.FuncGroupId}");
         else
         if (go is Character gChar)
-            messageOutput.SendMessage("#{0} -> BcId: {1} CharacterId: {2} - {3}",
-                indexStr, gChar.ObjId, gChar.Id, gChar.Name);
+            messageOutput.SendMessage($"#{indexStr} -> BcId: {gChar.ObjId} CharacterId: {gChar.Id} - {gChar.Name}");
         else
         if (go is BaseUnit gBase)
-            messageOutput.SendMessage("#{0} -> BcId: {1} - {2}",
-                indexStr, gBase.ObjId, gBase.Name);
+            messageOutput.SendMessage($"#{indexStr} -> BcId: {gBase.ObjId} - {gBase.Name}");
         else
-            messageOutput.SendMessage("#{0} -> BcId: {1}", indexStr, go.ObjId.ToString());
+            messageOutput.SendMessage($"#{indexStr} -> BcId: {go.ObjId}");
         if (verbose)
         {
             // var shorts = go.Transform.World.ToRollPitchYawShorts();
             // var shortString = "(short[3])(r:" + shorts.Item1.ToString() + " p:" + shorts.Item2.ToString() + " y:" + shorts.Item3.ToString()+")";
-            messageOutput.SendMessage("#{0} -> {1}", indexStr, go.Transform.ToFullString(true, true));
+            messageOutput.SendMessage($"#{indexStr} -> {go.Transform.ToFullString(true, true)}");
         }
 
         // Cycle Children
@@ -93,19 +90,19 @@ public class Around : ICommand
                 {
                     messageOutput.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString() + " - @DOODAD_NAME(" + doodads[i].TemplateId.ToString() + ")" + ", FuncGroupId: " + doodads[i].FuncGroupId.ToString());
 
-                    messageOutput.SendMessage("#{0} -> SpawnerID = {1}, Respawns Template: {2}\n", (i + 1).ToString(), doodads[i].Spawner?.Id.ToString() ?? "none", doodads[i].Spawner?.RespawnDoodadTemplateId.ToString() ?? "default");
+                    messageOutput.SendMessage($"#{(i + 1)} -> SpawnerID = {(doodads[i].Spawner?.Id.ToString() ?? "none")}, Respawns Template: {(doodads[i].Spawner?.RespawnDoodadTemplateId.ToString() ?? "default")}\n");
 
                     // sb.AppendLine("#" + (i + 1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString());
                     if (verbose)
                     {
                         var shorts = doodads[i].Transform.World.ToRollPitchYawShorts();
                         var shortString = "(short[3])(r:" + shorts.Item1.ToString() + " p:" + shorts.Item2.ToString() + " y:" + shorts.Item3.ToString() + ")";
-                        messageOutput.SendMessage("#{0} -> {1} = {2}\n", (i + 1).ToString(), doodads[i].Transform.ToString(), shortString);
+                        messageOutput.SendMessage($"#{(i + 1)} -> {doodads[i].Transform} = {shortString}\n");
                     }
 
                 }
                 messageOutput.SendMessage(sb.ToString());
-                messageOutput.SendMessage("[Around] Doodad count: {0}", doodads.Count);
+                messageOutput.SendMessage($"[Around] Doodad count: {doodads.Count}");
                 break;
 
             case "mob":
@@ -125,7 +122,7 @@ public class Around : ICommand
                 }
 
                 // character.SendMessage(sb.ToString());
-                messageOutput.SendMessage("[Around] NPC count: {0}", npcs.Count);
+                messageOutput.SendMessage($"[Around] NPC count: {npcs.Count}");
                 break;
 
             case "character":
@@ -144,7 +141,7 @@ public class Around : ICommand
                         messageOutput.SendMessage("#" + (i + 1).ToString() + " -> " + characters[i].Transform.ToString() + "\n");
                 }
                 // character.SendMessage(sb.ToString());
-                messageOutput.SendMessage("[Around] Character count: {0}", characters.Count);
+                messageOutput.SendMessage($"[Around] Character count: {characters.Count}");
                 break;
 
             default:
@@ -166,7 +163,7 @@ public class Around : ICommand
                     }
                     */
                 }
-                messageOutput.SendMessage("[Around] Object Count: {0}", c);
+                messageOutput.SendMessage($"[Around] Object Count: {c}");
                 break;
         }
 

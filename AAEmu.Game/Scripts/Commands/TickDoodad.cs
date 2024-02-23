@@ -54,6 +54,6 @@ public class TickDoodad : ICommand
                 }
             }
         }
-        character.SendMessage("[tickdoodad] phased {0} Doodad(s) with TemplateID {1} - @DOODAD_NAME({1})", tickedCount, unitId);
+        character.SendMessage($"[tickdoodad] phased {tickedCount} Doodad(s) with TemplateID {unitId} - @DOODAD_NAME({unitId})");
     }
 }

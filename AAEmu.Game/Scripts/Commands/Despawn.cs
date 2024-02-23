@@ -1,8 +1,10 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System.Drawing;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
@@ -57,47 +59,47 @@ public class Despawn : ICommand
                 case "doodad":
                     var myDoodad = WorldManager.Instance.GetDoodad(unitId);
 
-                    if ((myDoodad != null) && (myDoodad is Doodad))
+                    if (myDoodad != null)
                     {
-                        character.SendMessage("[Despawn] Removing Doodad with ID {0} - @DOODAD_NAME({1})", myDoodad.ObjId, myDoodad.TemplateId);
+                        character.SendMessage($"[Despawn] Removing Doodad with ID {myDoodad.ObjId} - @DOODAD_NAME({myDoodad.TemplateId})");
                         ObjectIdManager.Instance.ReleaseId(myDoodad.ObjId);
                         myDoodad.Delete();
                     }
                     else
                     {
-                        character.SendMessage("|cFFFF0000[Despawn] Doodad with Id {0} Does not exist |r", unitId);
+                        character.SendMessage(ChatType.System, $"[Despawn] Doodad with Id {unitId} Does not exist", Color.Red);
                     }
                     break;
                 case "npc":
                     var myNPC = WorldManager.Instance.GetNpc(unitId);
 
-                    if ((myNPC != null) && (myNPC is Npc))
+                    if (myNPC != null)
                     {
-                        character.SendMessage("[Despawn] Removing NPC with ID {0} - @NPC_NAME({1})", myNPC.ObjId, myNPC.TemplateId);
+                        character.SendMessage($"[Despawn] Removing NPC with ID {myNPC.ObjId} - @NPC_NAME({myNPC.TemplateId})");
                         ObjectIdManager.Instance.ReleaseId(myNPC.ObjId);
                         myNPC.Delete();
                     }
                     else
                     {
-                        character.SendMessage("|cFFFF0000[Despawn] NPC with objectId {0} don't exist|r", unitId);
+                        character.SendMessage(ChatType.System, $"[Despawn] NPC with objectId {unitId} don't exist", Color.Red);
                     }
                     break;
                 case "unit":
                     var myUnit = WorldManager.Instance.GetBaseUnit(unitId);
 
-                    if ((myUnit != null) && (myUnit is BaseUnit))
+                    if (myUnit != null)
                     {
-                        character.SendMessage("[Despawn] Removing Transfer with ID {0}", myUnit.ObjId);
+                        character.SendMessage($"[Despawn] Removing Transfer with ID {myUnit.ObjId}");
                         ObjectIdManager.Instance.ReleaseId(myUnit.ObjId);
                         myUnit.Delete();
                     }
                     else
                     {
-                        character.SendMessage("|cFFFF0000[Despawn] NPC with objectId {0} don't exist|r", unitId);
+                        character.SendMessage(ChatType.System, $"[Despawn] NPC with objectId {unitId} don't exist", Color.Red);
                     }
                     break;
                 default:
-                    character.SendMessage("|cFFFF0000[Despawn] Unknown object type|r");
+                    character.SendMessage(ChatType.System, $"[Despawn] Unknown object type", Color.Red);
                     break;
             }
         }
@@ -119,7 +121,7 @@ public class Despawn : ICommand
                             removedCount++;
                         }
                     }
-                    character.SendMessage("[Despawn] Removed {0} Doodad(s) with TemplateID {1} - @DOODAD_NAME({1})", removedCount, unitId);
+                    character.SendMessage($"[Despawn] Removed {removedCount} Doodad(s) with TemplateID {unitId} - @DOODAD_NAME({unitId})");
                     break;
                 case "npc":
                     var myNPCs = WorldManager.GetAround<Npc>(character, radius);
@@ -133,10 +135,10 @@ public class Despawn : ICommand
                             removedCount++;
                         }
                     }
-                    character.SendMessage("[Despawn] Removed {0} NPC(s) with TemplateID {1} - @NPC_NAME({1})", removedCount, unitId);
+                    character.SendMessage($"[Despawn] Removed {removedCount} NPC(s) with TemplateID {unitId} - @NPC_NAME({unitId})");
                     break;
                 default:
-                    character.SendMessage("|cFFFF0000[Despawn] Unknown object type|r");
+                    character.SendMessage(ChatType.System,"[Despawn] Unknown object type", Color.Red);
                     break;
             }
         }
