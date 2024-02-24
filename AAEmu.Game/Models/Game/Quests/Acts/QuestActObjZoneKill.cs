@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -7,6 +7,9 @@ public class QuestActObjZoneKill : QuestActTemplate
 {
     public int CountPlayerKill { get; set; }
     public int CountNpc { get; set; }
+    /// <summary>
+    /// This is actually the ZoneGroupId
+    /// </summary>
     public uint ZoneId { get; set; }
     public bool TeamShare { get; set; }
     public bool UseAlias { get; set; }

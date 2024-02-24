@@ -1650,6 +1650,8 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     {
         if (npc == null) { return; }
 
+        var npcZoneGroupId = ZoneManager.Instance.GetZoneByKey(npc.Transform.ZoneId)?.GroupId ?? 0;
+
         //character.Quests.OnKill(this);
         owner.Events?.OnMonsterHunt(this, new OnMonsterHuntArgs
         {
@@ -1665,11 +1667,13 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         });
         owner.Events?.OnZoneKill(this, new OnZoneKillArgs
         {
-            ZoneId = npc.Transform.ZoneId
+            ZoneGroupId = npcZoneGroupId,
+            Killer = owner,
+            Victim = npc
         });
         owner.Events?.OnZoneMonsterHunt(this, new OnZoneMonsterHuntArgs
         {
-            ZoneId = npc.Transform.ZoneId
+            ZoneGroupId = npcZoneGroupId
         });
     }
     //public void DoOnMonsterGroupHuntEvents(Character owner, Npc npc)

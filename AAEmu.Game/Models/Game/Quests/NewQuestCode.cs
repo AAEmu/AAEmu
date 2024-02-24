@@ -4,6 +4,8 @@ using System.Linq;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
@@ -502,10 +504,9 @@ public partial class Quest : PacketMarshaler
 
         return results ? 1 : 0;
 
+        // Helper function to checks this Quest Component Act is valid for the given EventArgs
         bool CheckAct(QuestComponent component, IQuestAct act, int idx)
         {
-            if (eventArgs == null) { return false; }
-
             switch (act.DetailType)
             {
                 case "QuestActObjInteraction":
@@ -582,10 +583,59 @@ public partial class Quest : PacketMarshaler
                     }
                 case "QuestActObjZoneKill":
                     {
-                        if (eventArgs is not OnZoneKillArgs args) { return false; }
+                        if (eventArgs is not OnZoneKillArgs args)
+                            return false;
+
                         var template = act.GetTemplate<QuestActObjZoneKill>(); // для доступа к переменным требуется привидение к нужному типу
-                        // сначала проверим, может быть не то, что надо по квесту
-                        if (template.ZoneId != args.ZoneId) { return false; }
+
+                        // Check quest conditions
+                        // Check if we're in the correct zone
+                        if ((template.ZoneId > 0) && (template.ZoneId != args.ZoneGroupId))
+                            return false;
+
+                        // Check level-range of the player
+                        if ((args.Killer.Level < template.LvlMin) || (args.Killer.Level > template.LvlMax))
+                            return false;
+
+                        // Check if this requires a player kill
+                        if ((template.CountPlayerKill > 0) && (args.Victim is Character))
+                        {
+                            // If it has a specific faction defined, check it
+                            // PC Faction not Allowed
+                            if ((template.PcFactionId > 0) && (template.PcFactionExclusive == true))
+                            {
+                                if (template.PcFactionId == args.Victim.Faction.Id)
+                                    return false;
+                            }
+                            // PC Faction required
+                            else if ((template.PcFactionId > 0) && (template.PcFactionExclusive == false))
+                            {
+                                if (template.PcFactionId != args.Victim.Faction.Id)
+                                    return false;
+                            }
+                        }
+
+                        // Check if this is a NPC kill
+                        if ((template.CountNpc > 0) && (args.Victim is Npc))
+                        {
+                            // Check NPC level-range if needed
+                            if ((template.LvlMinNpc > 0) && (template.LvlMaxNpc > 0) && ((args.Victim.Level < template.LvlMinNpc) || (args.Victim.Level > template.LvlMaxNpc)))
+                                return false;
+
+                            // If it has a specific faction defined, check it
+                            // NPC Faction not Allowed
+                            if ((template.NpcFactionId > 0) && (template.NpcFactionExclusive))
+                            {
+                                if (template.NpcFactionId == args.Victim.Faction.Id)
+                                    return false;
+                            }
+                            // NPC Faction required
+                            else if ((template.NpcFactionId > 0) && (template.NpcFactionExclusive == false))
+                            {
+                                if (template.NpcFactionId != args.Victim.Faction.Id)
+                                    return false;
+                            }
+                        }
                         break;
                     }
                 case "QuestActObjZoneMonsterHunt":
@@ -593,7 +643,7 @@ public partial class Quest : PacketMarshaler
                         if (eventArgs is not OnZoneMonsterHuntArgs args) { return false; }
                         var template = act.GetTemplate<QuestActObjZoneMonsterHunt>(); // для доступа к переменным требуется привидение к нужному типу
                         // сначала проверим, может быть не то, что надо по квесту
-                        if (template.ZoneId != args.ZoneId) { return false; }
+                        if (template.ZoneId != args.ZoneGroupId) { return false; }
                         break;
                     }
                 case "QuestActObjSphere":
@@ -1350,17 +1400,16 @@ public partial class Quest : PacketMarshaler
     {
         // Quest: 2819 AcceptSphere & ZoneKill
         // Quest: 2820, 2821, 2822 AcceptNpc & ZoneKill
-        var args = eventArgs as OnZoneKillArgs;
-        if (args == null)
+        if (eventArgs is not OnZoneKillArgs args)
         {
-            Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, нет аргументов у события!");
+            Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, event has no arguments!");
             //BadChoice("OnZoneKillHandler");
             return;
         }
 
         if (GetQuestContext(out var context))
         {
-            Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, попытка взаимодействовать на шаге {Step} вместо шага Progress!");
+            Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, trying to interact on the {Step} step instead of the Progress step!");
             //BadChoice("OnZoneKillHandler");
             return;
         }
@@ -1373,7 +1422,7 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjZoneKill>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, this event is not for this quest, exit ...");
             //BadChoice("OnZoneKillHandler");
             return;
         }
@@ -1386,8 +1435,8 @@ public partial class Quest : PacketMarshaler
             Logger.Info($"[OnZoneKillHandler] Отписываемся от события.");
             Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
             Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, Event: 'OnZoneKill', Handler: 'OnZoneKillHandler'");
-            Owner.Events.OnZoneKill -= Owner.Quests.OnZoneKillHandler; // отписываемся
-            Owner.Events.OnZoneKill += Owner.Quests.OnZoneKillHandler; // снова подписываемся
+            Owner.Events.OnZoneKill -= Owner.Quests.OnZoneKillHandler; // unsubscribe
+            Owner.Events.OnZoneKill += Owner.Quests.OnZoneKillHandler; // subscribe again
 
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
