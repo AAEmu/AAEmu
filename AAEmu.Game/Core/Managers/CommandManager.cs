@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using NLog;
@@ -156,7 +157,7 @@ public class CommandManager : Singleton<CommandManager>
         }
         catch (Exception e)
         {
-            character.SendMessage(Color.Red, e.Message);
+            character.SendMessage(ChatType.System, e.Message, Color.Red);
             Logger.Error(e.Message);
             Logger.Error(e.StackTrace);
         }

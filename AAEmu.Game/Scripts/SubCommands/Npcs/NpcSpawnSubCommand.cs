@@ -29,7 +29,7 @@ public class NpcSpawnSubCommand : SubCommandBase
 
         if (!NpcManager.Instance.Exist(npcTemplateId))
         {
-            SendColorMessage(messageOutput, Color.Red, $"NPC template {npcTemplateId} doesn't exist|r");
+            SendColorMessage(messageOutput, Color.Red, $"NPC template {npcTemplateId} doesn't exist");
             return;
         }
         var selfCharacter = (Character)character;

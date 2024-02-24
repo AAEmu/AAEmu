@@ -29,11 +29,11 @@ public class Kick : ICommand
     {
         if (args.Length < 3)
         {
-            character.SendMessage("[Kick] Usage : {0}", GetCommandLineHelp());
+            character.SendMessage($"[Kick] Usage : {GetCommandLineHelp()}");
             return;
         }
 
-        var targetChar = uint.TryParse(args[0], out uint characterId) ? WorldManager.Instance.GetCharacterById(characterId) : WorldManager.Instance.GetCharacter(args[0]);
+        var targetChar = uint.TryParse(args[0], out var characterId) ? WorldManager.Instance.GetCharacterById(characterId) : WorldManager.Instance.GetCharacter(args[0]);
 
         if (targetChar == null)
         {

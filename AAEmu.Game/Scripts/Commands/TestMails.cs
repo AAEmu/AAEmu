@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Utils.Scripts;
@@ -60,7 +62,7 @@ public class TestMails : ICommand
                 case "list":
                     character.SendMessage("[TestMail] List of Mails");
                     foreach (var m in MailManager.Instance.GetCurrentMailList(character))
-                        character.SendMessage("{0} - {1} - ({3}) {2}", m.Value.Id, m.Value.MailType, m.Value.Title, m.Value.Header.Status);
+                        character.SendMessage($"{m.Value.Id} - {m.Value.MailType} - ({m.Value.Header.Status}) {m.Value.Title}");
                     character.SendMessage("[TestMail] End of List");
                     return;
                 case "clear":
@@ -73,10 +75,10 @@ public class TestMails : ICommand
                     return;
                 case "check":
                     character.Mails.SendUnreadMailCount();
-                    character.SendMessage("[TestMail] {0} unread mails", character.Mails.unreadMailCount.Received);
+                    character.SendMessage($"[TestMail] {character.Mails.unreadMailCount.Received} unread mails");
                     return;
                 default:
-                    if (MailType.TryParse(args[0], out MailType mTypeByName))
+                    if (Enum.TryParse(args[0], out MailType mTypeByName))
                         mType = mTypeByName;
                     break;
             }
@@ -84,11 +86,11 @@ public class TestMails : ICommand
 
         if (mType == MailType.InvalidMailType)
         {
-            character.SendMessage("[TestMail] Invalid type: {0}", mType);
+            character.SendMessage($"[TestMail] Invalid type: {mType}");
             return;
         }
 
-        character.SendMessage("[TestMail] Testing type: {0}", mType);
+        character.SendMessage($"[TestMail] Testing type: {mType}");
         try
         {
             var mail = new BaseMail();
@@ -113,21 +115,21 @@ public class TestMails : ICommand
                 var n = args[1];
                 mail.Header.SenderName = n;
                 mail.Header.SenderId = NameManager.Instance.GetCharacterId(n);
-                character.SendMessage("[TestMail] From: {0}", n);
+                character.SendMessage($"[TestMail] From: {n}");
             }
 
             if (args.Length > 2)
             {
                 var n = args[2];
                 mail.Title = n;
-                character.SendMessage("[TestMail] Title: {0}", n);
+                character.SendMessage($"[TestMail] Title: {n}");
             }
 
             if (args.Length > 3)
             {
                 var n = args[3];
                 mail.Body.Text = n;
-                character.SendMessage("[TestMail] Body: {0}", n);
+                character.SendMessage($"[TestMail] Body: {n}");
             }
 
             if (args.Length > 4)
@@ -136,7 +138,7 @@ public class TestMails : ICommand
                 if (int.TryParse(n, out var copper))
                 {
                     mail.Body.CopperCoins = copper;
-                    character.SendMessage("[TestMail] Money: {0}", copper);
+                    character.SendMessage($"[TestMail] Money: {copper}");
                 }
                 else
                 {
@@ -150,7 +152,7 @@ public class TestMails : ICommand
                 if (int.TryParse(n, out var billing))
                 {
                     mail.Body.BillingAmount = billing;
-                    character.SendMessage("[TestMail] BillingCost: {0}", billing);
+                    character.SendMessage($"[TestMail] BillingCost: {billing}");
                 }
                 else
                 {
@@ -171,7 +173,7 @@ public class TestMails : ICommand
                             var itemTemplate = ItemManager.Instance.GetTemplate(itemId);
                             if (itemTemplate == null)
                             {
-                                character.SendMessage("|cFFFF0000Item template does not exist for {0} !|r", itemId);
+                                character.SendMessage(ChatType.System, $"template does not exist for {itemId} !", Color.Red);
                                 return;
                             }
 
@@ -188,7 +190,7 @@ public class TestMails : ICommand
                             newItem.SlotType = SlotType.Mail;
                             mail.Body.Attachments.Add(newItem);
 
-                            character.SendMessage("[TestMail] Attachment: @ITEM_NAME({0}) ({0}) x {1}", itemId, itemCount);
+                            character.SendMessage($"[TestMail] Attachment: @ITEM_NAME({itemId}) ({itemId}) x {itemCount}");
                         }
                         else
                         {
@@ -207,7 +209,7 @@ public class TestMails : ICommand
         }
         catch (Exception e)
         {
-            character.SendMessage("[TestMail] Exception: {0}", e.Message);
+            character.SendMessage($"[TestMail] Exception: {e.Message}");
         }
     }
 }

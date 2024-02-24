@@ -60,7 +60,7 @@ public class Nwrite : ICommand
 
         if ((doodad == null) && (npc == null) && (saveAll == false))
         {
-            character.SendMessage("[Nwrite] {0}", GetCommandLineHelp());
+            character.SendMessage($"[Nwrite] {GetCommandLineHelp()}");
             return;
         }
 
@@ -123,7 +123,7 @@ public class Nwrite : ICommand
 
                                 string json = JsonConvert.SerializeObject(spawners.ToArray(), Formatting.Indented);
                                 File.WriteAllText(jsonPath, json);
-                                character.SendMessage("[Nwrite] Doodad ObjId: {0} has been saved!", doodad.ObjId);
+                                character.SendMessage($"[Nwrite] Doodad ObjId: {doodad.ObjId} has been saved!");
                             }
                         }
                     }

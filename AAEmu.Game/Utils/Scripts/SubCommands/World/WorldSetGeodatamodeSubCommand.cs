@@ -19,7 +19,7 @@ public class WorldSetGeodatamodeSubCommand : SubCommandBase
         string geoDataMode = parameters["GeoDataMode"];
         if (geoDataMode is "")
         {
-            SendColorMessage(messageOutput, Color.Coral, $"GeoDataMode must be an 'true' or 'false' |r");
+            SendColorMessage(messageOutput, Color.Coral, $"GeoDataMode must be an 'true' or 'false'");
             return;
         }
 

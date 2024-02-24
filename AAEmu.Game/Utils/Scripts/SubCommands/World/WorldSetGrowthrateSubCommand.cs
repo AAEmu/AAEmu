@@ -19,11 +19,11 @@ public class WorldSetGrowthrateSubCommand : SubCommandBase
         float growthRate = parameters["GrowthRate"];
         if (growthRate < 1.0f || growthRate > 1000.0f)
         {
-            SendColorMessage(messageOutput, Color.Coral, $"Growth rate = {growthRate} must be at least 1.0 and no more than 1000.0 |r");
+            SendColorMessage(messageOutput, Color.Coral, $"Growth rate = {growthRate} must be at least 1.0 and no more than 1000.0");
             return;
         }
         character.SetGrowthRate(growthRate);
-        SendMessage(messageOutput, "Set GrowthRate {0}", growthRate);
+        SendMessage(messageOutput, $"Set GrowthRate {growthRate}");
         Logger.Warn($"{Title}: {growthRate}");
     }
 }

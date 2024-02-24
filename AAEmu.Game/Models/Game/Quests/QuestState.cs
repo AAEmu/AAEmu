@@ -765,7 +765,7 @@ public class QuestStartState : QuestState
 
                                         // если сфера по какой-то причине отсутствует, будем считать, что мы её посетили
                                         // if the sphere is missing for some reason, we will assume that we have visited it
-                                        Quest.Owner.SendMessage("[Quest] Quest {Quest.TemplateId}, Sphere not found - skipped..");
+                                        Quest.Owner.SendMessage($"[Quest] Quest {Quest.TemplateId}, Sphere not found - skipped..");
                                         Logger.Info($"[QuestStartState][Start] Quest {Quest.TemplateId}, Sphere not found - skipped..");
                                         break;
                                     }

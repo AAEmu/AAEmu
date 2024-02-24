@@ -122,7 +122,7 @@ public partial class CharacterQuests
         }
 
         ActiveQuests.Add(quest.TemplateId, quest);
-        quest.Owner.SendMessage("[Quest] {0}, quest {1} added.", Owner.Name, questId);
+        quest.Owner.SendMessage($"[Quest] {Owner.Name}, quest {questId} added.");
         //quest.ContextProcessing();
         quest.GoToNextStep();
 
@@ -206,8 +206,8 @@ public partial class CharacterQuests
 
         if (forcibly) { ResetCompletedQuest(questId); }
 
-        quest.Owner.SendMessage("[Quest] for player: {0}, quest: {1} removed.", Owner.Name, questId);
-        Logger.Warn("[Quest] for player: {0}, quest: {1} removed.", Owner.Name, questId);
+        quest.Owner.SendMessage($"[Quest] for player: {Owner.Name}, quest: {questId} removed.");
+        Logger.Warn($"[Quest] for player: {Owner.Name}, quest: {questId} removed.");
 
         if (QuestManager.Instance.QuestTimeoutTask.ContainsKey(quest.Owner.Id))
         {

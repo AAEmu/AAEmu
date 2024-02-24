@@ -33,6 +33,6 @@ public class Dist : ICommand
         var modelDistance = character.GetDistanceTo(target);
         var modelDistanceZ = character.GetDistanceTo(target, true);
 
-        character.SendMessage("[Distance]\nRaw distance : {0}\nRaw distance (Z) : {1}\nModel adjusted distance: {2}\nModel adjusted distance (Z): {3}", rawDistance, rawDistanceZ, modelDistance, modelDistanceZ);
+        character.SendMessage($"[Distance]\nRaw distance : {rawDistance}\nRaw distance (Z) : {rawDistanceZ}\nModel adjusted distance: {modelDistance}\nModel adjusted distance (Z): {modelDistanceZ}");
     }
 }

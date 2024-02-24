@@ -36,10 +36,9 @@ public class TestTracker : ICommand
 
         if ((targetObject != null) && (targetObject.Transform != null))
         {
-            character.SendMessage("[TestTracking] {0} tracking {1} - {2}",
-                targetObject.Transform.ToggleDebugTracker(character) ? "Now" : "No longer",
-                targetObject.ObjId,
-                (targetObject is BaseUnit bu) ? bu.Name : "<gameobject>");
+            var toggleResult = targetObject.Transform.ToggleDebugTracker(character) ? "Now" : "No longer";
+            var unitName = (targetObject is BaseUnit bu) ? bu.Name : "<gameobject>";
+            character.SendMessage($"[TestTracking] {toggleResult} tracking {targetObject.ObjId} - {unitName}");
         }
         else
         {

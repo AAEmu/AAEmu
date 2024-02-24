@@ -19,7 +19,7 @@ public class WorldSetMotdmessageSubCommand : SubCommandBase
         string motd = parameters["MOTD"];
         if (motd is "")
         {
-            SendColorMessage(messageOutput, Color.Coral, $"MOTD message must not be an empty string |r");
+            SendColorMessage(messageOutput, Color.Coral, $"MOTD message must not be an empty string");
             return;
         }
         character.SetMotdMessage(motd);

@@ -1,8 +1,10 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System.Drawing;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
@@ -57,10 +59,10 @@ public class Move : ICommand
             var myY = character.Transform.World.Position.Y;
             var myZ = character.Transform.World.Position.Z + 2f; // drop them slightly above you to avoid weird collision stuff
             if (targetPlayer != character)
-                targetPlayer.SendMessage("[Move] |cFFFFFFFF{0}|r has called upon your presence !", character.Name);
+                targetPlayer.SendMessage($"[Move] |cFFFFFFFF{character.Name}|r has called upon your presence !");
             targetPlayer.DisabledSetPosition = true;
             targetPlayer.SendPacket(new SCTeleportUnitPacket(0, 0, myX, myY, myZ, 0f));
-            character.SendMessage("[Move] Moved |cFFFFFFFF{0}|r to your location.", targetPlayer.Name);
+            character.SendMessage($"[Move] Moved |cFFFFFFFF{targetPlayer.Name}|r to your location.");
             return;
         }
 
@@ -71,21 +73,21 @@ public class Move : ICommand
             var targetZ = targetPlayer.Transform.World.Position.Z + 2f; // drop me slightly above them to avoid weird collision stuff
             character.DisabledSetPosition = true;
             character.SendPacket(new SCTeleportUnitPacket(0, 0, targetX, targetY, targetZ, 0f));
-            character.SendMessage("[Move] Moved to |cFFFFFFFF{0}|r.", targetPlayer.Name);
+            character.SendMessage($"[Move] Moved to |cFFFFFFFF{targetPlayer.Name}|r.");
             return;
         }
 
         if ((args.Length == firstarg + 3) && float.TryParse(args[firstarg + 0], out var newX) && float.TryParse(args[firstarg + 1], out var newY) && float.TryParse(args[firstarg + 2], out var newZ))
         {
             if (targetPlayer != character)
-                targetPlayer.SendMessage("[Move] |cFFFFFFFF{0}|r has moved you do position X: {1}, Y: {2}, Z: {3}", character.Name, newX, newY, newZ);
+                targetPlayer.SendMessage($"[Move] |cFFFFFFFF{character.Name}|r has moved you do position X: {newX}, Y: {newY}, Z: {newZ}");
             targetPlayer.DisabledSetPosition = true;
             targetPlayer.SendPacket(new SCTeleportUnitPacket(0, 0, newX, newY, newZ, 0f));
-            character.SendMessage("[Move] |cFFFFFFFF{0}|r moved to X: {1}, Y: {2}, Z: {3}", targetPlayer.Name, newX, newY, newZ);
+            character.SendMessage($"[Move] |cFFFFFFFF{targetPlayer.Name}|r moved to X: {newX}, Y: {newY}, Z: {newZ}");
         }
         else
         {
-            character.SendMessage("|cFFFF0000[Move] Position parse error|r");
+            character.SendMessage(ChatType.System, $"[Move] Position parse error", Color.Red);
         }
 
     }

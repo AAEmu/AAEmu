@@ -67,8 +67,7 @@ public class Heal : ICommand
                 unit.Hp = unit.MaxHp;
                 unit.Mp = unit.MaxMp;
                 unit.BroadcastPacket(new SCUnitPointsPacket(unit.ObjId, unit.Hp, unit.Mp), true);
-                character.SendMessage("{0} => {1}/{2} HP, {3}/{4} MP",
-                    unit.Name, unit.Hp, unit.MaxHp, unit.Mp, unit.MaxMp);
+                character.SendMessage($"{unit.Name} => {unit.Hp}/{unit.MaxHp} HP, {unit.Mp}/{unit.MaxMp} MP");
                 unit.PostUpdateCurrentHp(unit,oldHp, unit.Hp, KillReason.Unknown);
             }
         }

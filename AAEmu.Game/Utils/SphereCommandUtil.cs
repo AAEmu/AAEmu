@@ -113,12 +113,12 @@ public class SphereCommandUtil
         {
             foreach (var x in sphereIds)
             {
-                character.SendMessage("Found SphereId: {0} for QuestId: {1}", x, questId);
+                character.SendMessage($"Found SphereId: {x} for QuestId: {questId}");
             }
         }
         else
         {
-            character.SendMessage("No Sphere's required for QuestId: {0}", questId);
+            character.SendMessage($"No Spheres required for QuestId: {questId}");
         }
     }
 
@@ -216,17 +216,17 @@ public class SphereCommandUtil
                         {
                             if (found == false)
                             {
-                                character.SendMessage("Sphere's in quest_sphere.json for questId {0}", questId);
+                                character.SendMessage($"Sphere's in quest_sphere.json for questId {questId}");
                                 found = true;
                             }
 
-                            character.SendMessage("JsonId {0}", sphere.Id);
+                            character.SendMessage($"JsonId {sphere.Id}");
                         }
                     }
 
                     if (!found)
                     {
-                        character.SendMessage("Found 0 Sphere's in quest_sphere.json for questId {0}", questId);
+                        character.SendMessage($"Found no Sphere's in quest_sphere.json for questId {questId}");
                     }
                 }
                 else
@@ -279,7 +279,7 @@ public class SphereCommandUtil
 
                     if (!found)
                     {
-                        character.SendMessage("Json entry with ID {0} does not exist!", jsonId);
+                        character.SendMessage($"Json entry with ID {jsonId} does not exist!");
                     }
                 }
                 else
@@ -290,7 +290,7 @@ public class SphereCommandUtil
                 File.WriteAllText(path, json);
 
                 if (found)
-                    character.SendMessage("Removed Json entry with ID {0} successfully", jsonId);
+                    character.SendMessage($"Removed Json entry with ID {jsonId} successfully");
             }
         }
     }
@@ -331,7 +331,7 @@ public class SphereCommandUtil
 
                     if (!found)
                     {
-                        character.SendMessage("Json entry with ID {0} does not exist!", jsonId);
+                        character.SendMessage($"Json entry with ID {jsonId} does not exist!");
                     }
                 }
                 else

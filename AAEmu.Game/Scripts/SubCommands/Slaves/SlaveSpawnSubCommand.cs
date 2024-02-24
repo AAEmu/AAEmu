@@ -24,7 +24,7 @@ public class SlaveSpawnSubCommand : SubCommandBase
 
         if (!SlaveManager.Instance.Exist(templateId))
         {
-            SendColorMessage(messageOutput, Color.Red, $"Slave template {templateId} doesn't exist|r");
+            SendColorMessage(messageOutput, Color.Red, $"Slave template {templateId} doesn't exist");
             return;
         }
 

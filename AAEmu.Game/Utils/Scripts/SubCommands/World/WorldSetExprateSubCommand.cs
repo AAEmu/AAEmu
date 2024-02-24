@@ -19,11 +19,11 @@ public class WorldSetExprateSubCommand : SubCommandBase
         float expRate = parameters["ExpRate"];
         if (expRate < 1.0f || expRate > 1000.0f)
         {
-            SendColorMessage(messageOutput, Color.Coral, $"Exp Rate = {expRate} must be at least 1.0 and no more than 1000.0 |r");
+            SendColorMessage(messageOutput, Color.Coral, $"Exp Rate = {expRate} must be at least 1.0 and no more than 1000.0");
             return;
         }
         character.SetExpRate(expRate);
-        SendMessage(messageOutput, "Set ExpRate {0}", expRate);
+        SendMessage(messageOutput, $"Set ExpRate {expRate}");
         Logger.Warn($"{Title}: {expRate}");
     }
 }

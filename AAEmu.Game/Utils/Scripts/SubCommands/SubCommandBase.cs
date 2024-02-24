@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Chat;
 using NLog;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands;
@@ -225,6 +226,7 @@ public abstract class SubCommandBase : ICommandV2
     /// <param name="character">character reference</param>
     /// <param name="triggerArgument">argument that triggered this subcommand</param>
     /// <param name="args">additional arguments</param>
+    /// <param name="messageOutput">Output Handler</param>
     public virtual void Execute(ICharacter character, string triggerArgument, string[] args, IMessageOutput messageOutput)
     {
         SendHelpMessage(messageOutput);
@@ -235,7 +237,8 @@ public abstract class SubCommandBase : ICommandV2
     /// </summary>
     /// <param name="character">character reference</param>
     /// <param name="triggerArgument">argument that triggered this subcommand</param>
-    /// <param name="args">additional arguments</param>
+    /// <param name="parameters">additional arguments</param>
+    /// <param name="messageOutput"></param>
     public virtual void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         SendHelpMessage(messageOutput);
@@ -244,35 +247,33 @@ public abstract class SubCommandBase : ICommandV2
     /// <summary>
     /// Adds the subcommand prefix to the message
     /// </summary>
-    /// <param name="character">character reference</param>
+    /// <param name="messageOutput">Output handler</param>
     /// <param name="message">Message to send to the character</param>
-    /// <param name="parameters">Message parameters</param>
-    protected void SendMessage(IMessageOutput messageOutput, string message, params object[] parameters)
+    protected void SendMessage(IMessageOutput messageOutput, string message)
     {
-        messageOutput.SendMessage($"{Title} {message}", parameters);
+        messageOutput.SendMessage($"{Title} {message}");
     }
 
     /// <summary>
     /// Adds the subcommand prefix to the message
     /// </summary>
-    /// <param name="character">character reference</param>
+    /// <param name="target">character reference</param>
+    /// <param name="messageOutput">Output handler</param>
     /// <param name="message">Message to send to the character</param>
-    /// <param name="parameters">Message parameters</param>
-    protected void SendMessage(ICharacter target, IMessageOutput messageOutput, string message, params object[] parameters)
+    protected void SendMessage(ICharacter target, IMessageOutput messageOutput, string message)
     {
-        messageOutput.SendMessage(target, $"{Title} {message}", parameters);
+        messageOutput.SendMessage(target, $"{Title} {message}");
     }
 
     /// <summary>
     /// Wrapper to send colored messages to the character (useful for error messages)
     /// </summary>
-    /// <param name="character">character reference</param>
+    /// <param name="messageOutput"></param>
     /// <param name="color">Color to display the message</param>
     /// <param name="message">Message to send to the character</param>
-    /// <param name="parameters">Message parameters</param>
-    protected void SendColorMessage(IMessageOutput messageOutput, Color color, string message, params object[] parameters)
+    protected void SendColorMessage(IMessageOutput messageOutput, Color color, string message)
     {
-        messageOutput.SendMessage(color, $"{Title} {message}", parameters);
+        messageOutput.SendMessage(ChatType.System, $"{Title} {message}", color);
     }
 
     protected static string GetOptionalArgumentValue(string[] args, string argumentName, string defaultArgumentValue)

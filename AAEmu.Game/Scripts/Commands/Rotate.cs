@@ -38,7 +38,7 @@ public class Rotate : ICommand
 
         if (character.CurrentTarget != null)
         {
-            character.SendMessage("[Rotate] Unit: {0}, ObjId: {1}", character.CurrentTarget.Name, character.CurrentTarget.ObjId);
+            character.SendMessage($"[Rotate] Unit: {character.CurrentTarget.Name}, ObjId: {character.CurrentTarget.ObjId}");
 
             var Seq = (uint)Rand.Next(0, 10000);
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
@@ -78,9 +78,8 @@ public class Rotate : ICommand
             moveType.Time += 50; // has to change all the time for normal motion.
 
             character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
-            character.SendMessage("New rotation {0}° ({1} rad, sbyte {2}) for {3}", angle, character.CurrentTarget.Transform.Local.Rotation.Z.ToString("0.00"), rotZ, character.CurrentTarget.ObjId);
-            character.SendMessage("New position {0}", character.CurrentTarget.Transform.Local.ToString());
-            //character.SendMessage("New position A1:{0}  A2:{1}  {2}",angle,angle2,character.CurrentTarget.Transform.Local.ToString());
+            character.SendMessage($"New rotation {angle}° ({character.CurrentTarget.Transform.Local.Rotation.Z:0.00} rad, sbyte {rotZ}) for {character.CurrentTarget.ObjId}");
+            character.SendMessage($"New position {character.CurrentTarget.Transform.Local}");
         }
         else
             character.SendMessage("[Rotate] You need to target something first");

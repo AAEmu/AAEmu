@@ -74,7 +74,7 @@ public class Region
         // Show debug info to subscribed players
         if (obj.Transform?._debugTrackers?.Count > 0)
             foreach (var chr in obj.Transform._debugTrackers)
-                chr?.SendMessage("[{0}] {1} entered region ({2} {3})){4}", DateTime.UtcNow.ToString("HH:mm:ss"), obj.ObjId, X, Y, obj is BaseUnit bu ? " - " + bu.Name : "");
+                chr?.SendMessage($"[{DateTime.UtcNow:HH:mm:ss}] {obj.ObjId} entered region ({X} {Y})){(obj is BaseUnit bu ? " - " + bu.Name : "")}");
     }
 
     public void RemoveObject(GameObject obj) // TODO Нужно доделать =_+
@@ -121,7 +121,7 @@ public class Region
         // Show debug info to subscribed players
         if (obj.Transform?._debugTrackers?.Count > 0)
             foreach (var chr in obj.Transform._debugTrackers)
-                chr?.SendMessage("[{0}] {1} left the region ({2} {3})){4}", DateTime.UtcNow.ToString("HH:mm:ss"), obj.ObjId, X, Y, obj is BaseUnit bu ? " - " + bu.Name : "");
+                chr?.SendMessage($"[{DateTime.UtcNow:HH:mm:ss}] {obj.ObjId} left the region ({X} {Y})){(obj is BaseUnit bu ? " - " + bu.Name : "")}");
     }
 
     public void AddToCharacters(GameObject obj)

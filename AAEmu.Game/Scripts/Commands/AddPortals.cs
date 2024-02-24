@@ -34,7 +34,7 @@ public class AddPortals : ICommand
             return;
         }
 
-        Character targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
+        var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
 
         var portalName = args[firstarg + 0];
         var position = character.Transform.CloneAsSpawnPosition();
@@ -44,14 +44,14 @@ public class AddPortals : ICommand
         var zRot = position.Roll;
         var zoneId = position.ZoneId;
 
-        if ((args.Length == firstarg + 5) && (float.TryParse(args[firstarg + 1], out float argx)))
-            x = argx;
-        if ((args.Length == firstarg + 5) && (float.TryParse(args[firstarg + 2], out float argy)))
-            y = argy;
-        if ((args.Length == firstarg + 5) && (float.TryParse(args[firstarg + 3], out float argz)))
-            z = argz;
-        if ((args.Length == firstarg + 5) && (uint.TryParse(args[firstarg + 4], out uint argzoneId)))
-            zoneId = argzoneId;
+        if ((args.Length == firstarg + 5) && (float.TryParse(args[firstarg + 1], out var argX)))
+            x = argX;
+        if ((args.Length == firstarg + 5) && (float.TryParse(args[firstarg + 2], out var argY)))
+            y = argY;
+        if ((args.Length == firstarg + 5) && (float.TryParse(args[firstarg + 3], out var argZ)))
+            z = argZ;
+        if ((args.Length == firstarg + 5) && (uint.TryParse(args[firstarg + 4], out var argZoneId)))
+            zoneId = argZoneId;
         // If not using the current location, set the rotation to zero
         if (args.Length == firstarg + 5)
             zRot = 0;
@@ -59,12 +59,12 @@ public class AddPortals : ICommand
         targetPlayer.Portals.AddPrivatePortal(x, y, z, zRot, zoneId, portalName);
         if (character.Id != targetPlayer.Id)
         {
-            character.SendMessage("[Portal] added {0} labor to {1}'s portal book", portalName, targetPlayer.Name);
-            targetPlayer.SendMessage("[GM] {0} has added the entry \"{1}\" to your portal book", character.Name, portalName);
+            character.SendMessage($"[Portal] added {portalName} entry to {targetPlayer.Name}'s portal book");
+            targetPlayer.SendMessage($"[GM] {character.Name} has added the entry \"{portalName}\" to your portal book");
         }
         else
         {
-            character.SendMessage("[Portal] Registered \"{0}\" in your portal book", portalName);
+            character.SendMessage($"[Portal] Registered \"{portalName}\" in your portal book");
         }
     }
 }
