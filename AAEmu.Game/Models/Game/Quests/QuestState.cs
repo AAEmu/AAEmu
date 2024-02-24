@@ -7,6 +7,8 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.Enums;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Units;
@@ -250,10 +252,59 @@ public abstract class QuestState
                     }
                 case "QuestActObjZoneKill":
                     {
-                        if (eventArgs is not OnZoneKillArgs args) { return false; }
+                        if (eventArgs is not OnZoneKillArgs args)
+                            return false;
+
                         var template = act.GetTemplate<QuestActObjZoneKill>(); // для доступа к переменным требуется привидение к нужному типу
-                        // сначала проверим, может быть не то, что надо по квесту
-                        if (template.ZoneId != args.ZoneId) { return false; }
+
+                        // Check quest conditions
+                        // Check if we're in the correct zone
+                        if ((template.ZoneId > 0) && (template.ZoneId != args.ZoneGroupId))
+                            return false;
+
+                        // Check level-range of the player
+                        if ((args.Killer.Level < template.LvlMin) || (args.Killer.Level > template.LvlMax))
+                            return false;
+
+                        // Check if this requires a player kill
+                        if ((template.CountPlayerKill > 0) && (args.Victim is Character))
+                        {
+                            // If it has a specific faction defined, check it
+                            // PC Faction not Allowed
+                            if ((template.PcFactionId > 0) && (template.PcFactionExclusive == true))
+                            {
+                                if (template.PcFactionId == args.Victim.Faction.Id)
+                                    return false;
+                            }
+                            // PC Faction required
+                            else if ((template.PcFactionId > 0) && (template.PcFactionExclusive == false))
+                            {
+                                if (template.PcFactionId != args.Victim.Faction.Id)
+                                    return false;
+                            }
+                        }
+
+                        // Check if this is a NPC kill
+                        if ((template.CountNpc > 0) && (args.Victim is Npc))
+                        {
+                            // Check NPC level-range if needed
+                            if ((template.LvlMinNpc > 0) && (template.LvlMaxNpc > 0) && ((args.Victim.Level < template.LvlMinNpc) || (args.Victim.Level > template.LvlMaxNpc)))
+                                return false;
+
+                            // If it has a specific faction defined, check it
+                            // NPC Faction not Allowed
+                            if ((template.NpcFactionId > 0) && (template.NpcFactionExclusive))
+                            {
+                                if (template.NpcFactionId == args.Victim.Faction.Id)
+                                    return false;
+                            }
+                            // NPC Faction required
+                            else if ((template.NpcFactionId > 0) && (template.NpcFactionExclusive == false))
+                            {
+                                if (template.NpcFactionId != args.Victim.Faction.Id)
+                                    return false;
+                            }
+                        }
                         break;
                     }
                 case "QuestActObjZoneMonsterHunt":
@@ -261,7 +312,7 @@ public abstract class QuestState
                         if (eventArgs is not OnZoneMonsterHuntArgs args) { return false; }
                         var template = act.GetTemplate<QuestActObjZoneMonsterHunt>(); // для доступа к переменным требуется привидение к нужному типу
                         // сначала проверим, может быть не то, что надо по квесту
-                        if (template.ZoneId != args.ZoneId) { return false; }
+                        if (template.ZoneId != args.ZoneGroupId) { return false; }
                         break;
                     }
                 case "QuestActObjSphere":
@@ -874,7 +925,7 @@ public class QuestProgressState : QuestState
         var results2 = new List<bool>();
         CurrentComponent = CurrentQuestComponent.GetFirstComponent();
 
-        Logger.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}. Подписываемся на события, которые требуются для активных актов");
+        Logger.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}. Subscribe to events that are required for active acts.");
 
         foreach (var component in CurrentComponents)
         {
@@ -1005,8 +1056,11 @@ public class QuestProgressState : QuestState
                         }
                     case "QuestActObjZoneKill":
                         {
-                            //Quest.Owner.Events.OnMateLevel += Quest.Owner.Quests.OnMateLevelHandler;
-                            //result2 = false;
+                            Quest.Owner.Events.OnZoneKill -= Quest.Owner.Quests.OnZoneKillHandler;
+                            Quest.Owner.Events.OnZoneKill += Quest.Owner.Quests.OnZoneKillHandler;
+
+                            Logger.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}, Event: 'OnZoneKill', Handler: 'OnZoneKillHandler'");
+                            results2.Add(false); // we'll wait for the event
                             break;
                         }
                     case "QuestActObjZoneMonsterHunt":
@@ -1131,7 +1185,7 @@ public class QuestProgressState : QuestState
 
         if (results2.All(b => b == true))
         {
-            Logger.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}. Подписываться на событие не надо, так как в инвентаре уже лежать нужные вещи.");
+            Logger.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}. There is no need to subscribe to the event, since the necessary things are already in your inventory.");
             Quest.ComponentId = CurrentComponent.Id;
             Quest.Status = QuestStatus.Ready;
             //Quest.Step = QuestComponentKind.Progress;
@@ -1150,6 +1204,7 @@ public class QuestProgressState : QuestState
         //Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
         return false;
     }
+
     public override bool Update()
     {
         Logger.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId} уже в процессе выполнения.");

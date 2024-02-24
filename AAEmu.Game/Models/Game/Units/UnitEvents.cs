@@ -1,5 +1,5 @@
 ﻿using System;
-
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 
@@ -77,23 +77,27 @@ public class OnMonsterHuntArgs : EventArgs
     public uint Count { get; set; }
     public Transform Transform { get; set; }
 }
+
 public class OnMonsterGroupHuntArgs : EventArgs
 {
     public uint NpcId { get; set; }
     public uint Count { get; set; }
     public Transform Position { get; set; }
 }
+
 public class OnItemGatherArgs : EventArgs
 {
     public uint QuestId { get; set; } // QuestContextId
     public uint ItemId { get; set; }
     public int Count { get; set; }
 }
+
 public class OnItemGroupGatherArgs : EventArgs
 {
     public uint ItemId { get; set; }
     public int Count { get; set; }
 }
+
 public class OnTalkMadeArgs : EventArgs
 {
     public uint QuestId { get; set; } // QuestContextId
@@ -102,6 +106,7 @@ public class OnTalkMadeArgs : EventArgs
     public uint QuestActId { get; set; }
     public Transform Transform { get; set; }
 }
+
 public class OnTalkNpcGroupMadeArgs : EventArgs
 {
     public uint QuestId { get; set; } // QuestContextId
@@ -110,53 +115,68 @@ public class OnTalkNpcGroupMadeArgs : EventArgs
     public uint QuestActId { get; set; }
     public Transform Transform { get; set; }
 }
+
 public class OnAggroArgs : EventArgs
 {
     public uint NpcId { get; set; }
     public Transform Transform { get; set; }
 }
+
 public class OnItemUseArgs : EventArgs
 {
     public uint ItemId { get; set; }
     public int Count { get; set; }
 }
+
 public class OnItemGroupUseArgs : EventArgs
 {
     public uint ItemGroupId { get; set; }
     public int Count { get; set; }
 }
+
 public class OnInteractionArgs : EventArgs
 {
     public uint DoodadId { get; set; } // Doodad.TemplateId
 }
+
 public class OnCraftArgs : EventArgs
 {
     public uint CraftId { get; set; }
 }
+
 public class OnExpressFireArgs : EventArgs
 {
     public uint NpcId { get; set; } // Npc.TemplateId
     public uint EmotionId { get; set; }
 }
+
 public class OnLevelUpArgs : EventArgs
 {
+    // Empty
 }
+
 public class OnAbilityLevelUpArgs : EventArgs
 {
+    // Empty
 }
+
 public class OnEnterSphereArgs : EventArgs
 {
     public SphereQuest SphereQuest { get; set; }
-
 }
+
 public class OnZoneKillArgs : EventArgs
 {
-    public uint ZoneId { get; set; }
+    public uint ZoneGroupId { get; set; }
+    public ICharacter Killer { get; set; }
+    public Unit Victim { get; set; }
 }
+
 public class OnZoneMonsterHuntArgs : EventArgs
 {
-    public uint ZoneId { get; set; }
+    public uint ZoneGroupId { get; set; }
 }
+
 public class OnReportNpcArgs : EventArgs
 {
     public uint QuestId { get; set; } // QuestContextId
@@ -164,12 +184,14 @@ public class OnReportNpcArgs : EventArgs
     public int Selected { get; set; }
     public Transform Transform { get; set; } // чтобы проверять расстояние до него
 }
+
 public class OnAcceptDoodadArgs : EventArgs
 {
     //public uint QuestId { get; set; } // QuestContextId
     public uint DoodadId { get; set; } // Doodad.TemplateId
     //public int Selected { get; set; }
 }
+
 public class OnReportDoodadArgs : EventArgs
 {
     public uint QuestId { get; set; } // QuestContextId
@@ -177,14 +199,18 @@ public class OnReportDoodadArgs : EventArgs
     public int Selected { get; set; }
     public Transform Transform { get; set; } // чтобы проверять расстояние до него
 }
+
 public class OnReportJournalArgs : EventArgs
 {
+    // Empty
 }
+
 public class OnQuestCompleteArgs : EventArgs
 {
     public uint QuestId { get; set; }
     public int Selected { get; set; }
 }
+
 public class OnAttackArgs : EventArgs
 {
     public Unit Attacker { get; set; }
@@ -192,7 +218,7 @@ public class OnAttackArgs : EventArgs
 
 public class OnAttackedArgs : EventArgs
 {
-
+    // Empty
 }
 
 public class OnDamageArgs : EventArgs
@@ -233,22 +259,22 @@ public class OnDamagedSiegeArgs : EventArgs
 
 public class OnLandingArgs : EventArgs
 {
-
+    // Empty
 }
 
 public class OnMovementArgs : EventArgs
 {
-
+    // Empty
 }
 
 public class OnChannelingCancelArgs : EventArgs
 {
-
+    // Empty
 }
 
 public class OnRemoveOnDamagedArgs : EventArgs
 {
-
+    // Empty
 }
 
 public class OnDeathArgs : EventArgs
@@ -259,7 +285,7 @@ public class OnDeathArgs : EventArgs
 
 public class OnUnmountArgs : EventArgs
 {
-
+    // Empty
 }
 
 public class OnKillArgs : EventArgs
@@ -269,22 +295,22 @@ public class OnKillArgs : EventArgs
 
 public class OnDamagedCollisionArgs : EventArgs
 {
-
+    // Empty
 }
 
 public class OnImmortalityArgs : EventArgs
 {
-
+    // Empty
 }
 
 public class OnTimeArgs : EventArgs
 {
-
+    // Empty
 }
 
 public class OnKillAnyArgs : EventArgs
 {
-
+    // Empty
 }
 
 public class OnHealedArgs : EventArgs
@@ -323,4 +349,3 @@ public class OnDespawnArgs : EventArgs
 {
     public Unit Npc { get; set; }
 }
-
