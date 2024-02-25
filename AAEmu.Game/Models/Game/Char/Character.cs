@@ -1551,9 +1551,7 @@ public partial class Character : Unit, ICharacter
         */
         // Send extra info to player if we are still in a real but unreleased zone (not null), this is not retail behaviour!
         if (newZone != null)
-            SendMessage(ChatType.System,
-                "|cFFFF0000You have entered a closed zone ({0} - {1})!\nPlease leave immediately!|r",
-                newZone.ZoneKey, newZone.Name);
+            SendMessage(ChatType.System, $"You have entered a closed zone ({newZone.ZoneKey} - {newZone.Name})!\nPlease leave immediately!", Color.Red);
         // Send the error message
         SendErrorMessage(ErrorMessageType.ClosedZone);
     }
@@ -1624,21 +1622,20 @@ public partial class Character : Unit, ICharacter
         Connection.SendPacket(new SCResponseUIDataPacket(Id, key, GetOption(key)));
     }
 
-    public void SendMessage(Color color, string message, params object[] parameters)
+    /// <summary>
+    /// Sends a chat message
+    /// </summary>
+    /// <param name="type">Chat Type to use</param>
+    /// <param name="message">The actual text</param>
+    /// <param name="color">If set, adds a color tags to the beginning and the end of the text</param>
+    public void SendMessage(ChatType type, string message, Color? color = null)
     {
-        message = $"|c{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}{message}";
-        SendMessage(message, parameters);
+        if (color != null)
+            message = $"|c{color.Value.A:X2}{color.Value.R:X2}{color.Value.G:X2}{color.Value.B:X2}{message}|r";
+        SendPacket(new SCChatMessagePacket(type, message));
     }
 
-    public void SendMessage(string message, params object[] parameters)
-    {
-        SendMessage(ChatType.System, message, parameters);
-    }
-
-    public void SendMessage(ChatType type, string message, params object[] parameters)
-    {
-        SendPacket(new SCChatMessagePacket(type, string.Format(message, parameters)));
-    }
+    public void SendMessage(string message) => SendMessage(ChatType.System, message, null);
 
     public void SendErrorMessage(ErrorMessageType errorMsgType, uint type = 0, bool isNotify = true)
     {

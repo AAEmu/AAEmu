@@ -116,14 +116,14 @@ public class NpcSaveSubCommand : SubCommandBase
         var npc = WorldManager.Instance.GetNpc(npcObjId);
         if (npc is null)
         {
-            SendColorMessage(messageOutput, Color.Red, "Npc with objId {0} Does not exist |r", npcObjId);
+            SendColorMessage(messageOutput, Color.Red, $"Npc with objId {npcObjId} Does not exist");
             return;
         }
 
         var world = WorldManager.Instance.GetWorld(npc.Transform.WorldId);
         if (world is null)
         {
-            SendColorMessage(messageOutput, Color.Red, "Could not find the worldId {0} |r", npc.Transform.WorldId);
+            SendColorMessage(messageOutput, Color.Red, $"Could not find the worldId {npc.Transform.WorldId}");
             return;
         }
 
@@ -159,7 +159,7 @@ public class NpcSaveSubCommand : SubCommandBase
         var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
         var json = JsonConvert.SerializeObject(spawnersFromFile.Values.ToArray(), Formatting.Indented, new JsonModelsConverter());
         File.WriteAllText(jsonPathOut, json);
-        SendMessage(messageOutput, "All npcs have been saved with added npc ObjId:{0}, TemplateId:{1}", npc.ObjId, npc.TemplateId);
+        SendMessage(messageOutput, $"All npcs have been saved with added npc ObjId:{npc.ObjId}, TemplateId:{npc.TemplateId}");
     }
 
     private List<JsonNpcSpawns> LoadNpcsFromFileByWorld(World world)

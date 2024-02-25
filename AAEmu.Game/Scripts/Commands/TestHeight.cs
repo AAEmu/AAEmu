@@ -12,6 +12,9 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestHeight : ICommand
 {
+    private const float TargetX = 22500f;
+    private const float TargetY = 18500f;
+    private const float TargetZ = 10f;
     public void OnLoad()
     {
         string[] names = { "testheightvisualizer", "test_height_visualizer" };
@@ -41,8 +44,8 @@ public class TestHeight : ICommand
         if ((args.Length > firstarg) && (args[firstarg] == "testpos"))
         {
             targetPlayer.DisabledSetPosition = true;
-            targetPlayer.SendPacket(new SCTeleportUnitPacket(0, 0, 22500f, 18500f, 10f, 0f));
-            targetPlayer.SendMessage("[Move] |cFFFFFFFF{0}|r moved to X: {1}, Y: {2}, Z: {3}", targetPlayer.Name, 22500f, 18500f, 10f);
+            targetPlayer.SendPacket(new SCTeleportUnitPacket(0, 0, TargetX, TargetY, TargetZ, 0f));
+            targetPlayer.SendMessage($"[Move] |cFFFFFFFF{targetPlayer.Name}|r moved to X: {TargetX}, Y: {TargetY}, Z: {TargetZ}");
         }
         else
         if ((args.Length > firstarg) && (args[firstarg] == "mark"))
@@ -131,10 +134,9 @@ public class TestHeight : ICommand
 
             var height = world.GetHeight(targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y);
             var hDelta = character.Transform.World.Position.Z - height;
-            character.SendMessage("[Height] {2} Z-Pos: {0} - Floor: {1} - HeightmapDelta: {3}", character.Transform.World.Position.Z, height, targetPlayer.Name, hDelta);
+            character.SendMessage($"[Height] {targetPlayer.Name} Z-Pos: {character.Transform.World.Position.Z} - Floor: {height} - HeightmapDelta: {hDelta}");
 
-            character.SendMessage("[Position] |cFFFFFFFF{0}|r X: |cFFFFFFFF{1:F1}|r  Y: |cFFFFFFFF{2:F1}|r  Z: |cFFFFFFFF{3:F1}|r ",
-                targetPlayer.Name, targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y, targetPlayer.Transform.World.Position.Z);
+            character.SendMessage($"[Position] |cFFFFFFFF{targetPlayer.Name}|r X: |cFFFFFFFF{targetPlayer.Transform.World.Position.X:F1}|r  Y: |cFFFFFFFF{targetPlayer.Transform.World.Position.Y:F1}|r  Z: |cFFFFFFFF{targetPlayer.Transform.World.Position.Z:F1}|r ");
 
             var borderLeft = (int)Math.Floor(targetPlayer.Transform.World.Position.X);
             borderLeft = borderLeft - (borderLeft % 2);
@@ -148,10 +150,10 @@ public class TestHeight : ICommand
             var heightTR = world.GetRawHeightMapHeight(borderRight, borderTop);       // 6
             var heightBL = world.GetRawHeightMapHeight(borderLeft, borderBottom);     // 14
             var heightBR = world.GetRawHeightMapHeight(borderRight, borderBottom);    // 16
-            character.SendMessage("[Height] TL @ {0}x{1} = {2}", borderLeft, borderTop, heightTL);
-            character.SendMessage("[Height] TR @ {0}x{1} = {2}", borderRight, borderTop, heightTR);
-            character.SendMessage("[Height] BL @ {0}x{1} = {2}", borderLeft, borderBottom, heightBL);
-            character.SendMessage("[Height] BR @ {0}x{1} = {2}", borderRight, borderBottom, heightBR);
+            character.SendMessage($"[Height] TL @ {borderLeft}x{borderTop} = {heightTL}");
+            character.SendMessage($"[Height] TR @ {borderRight}x{borderTop} = {heightTR}");
+            character.SendMessage($"[Height] BL @ {borderLeft}x{borderBottom} = {heightBL}");
+            character.SendMessage($"[Height] BR @ {borderRight}x{borderBottom} = {heightBR}");
         }
     }
 }

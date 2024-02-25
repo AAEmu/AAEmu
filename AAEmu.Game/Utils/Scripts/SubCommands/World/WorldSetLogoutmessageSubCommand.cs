@@ -19,7 +19,7 @@ public class WorldSetLogoutmessageSubCommand : SubCommandBase
         string logoutMessage = parameters["LogoutMessage"];
         if (logoutMessage is "")
         {
-            SendColorMessage(messageOutput, Color.Coral, $"Logout message must not be an empty string |r");
+            SendColorMessage(messageOutput, Color.Coral, $"Logout message must not be an empty string");
             return;
         }
         character.SetLogoutMessage(logoutMessage);

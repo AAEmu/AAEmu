@@ -26,7 +26,7 @@ public class DoodadSpawnSubCommand : SubCommandBase
         uint unitTemplateId = parameters["templateId"];
         if (!DoodadManager.Instance.Exist(unitTemplateId))
         {
-            SendColorMessage(messageOutput, Color.Red, "Doodad templateId:{0} don't exist|r", unitTemplateId);
+            SendColorMessage(messageOutput, Color.Red, $"Doodad templateId:{unitTemplateId} don't exist");
             return;
         }
 

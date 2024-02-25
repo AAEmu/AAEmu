@@ -1,15 +1,18 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Drawing;
 using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Chat;
 using Newtonsoft.Json;
 using NLog;
 using AAEmu.Game.Utils.Scripts;
+using NLog.Targets;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -119,22 +122,22 @@ public class AddKit : ICommand
             var itemTemplate = ItemManager.Instance.GetTemplate(kit.itemId);
             if (itemTemplate == null)
             {
-                character.SendMessage("|cFFFF0000Item could not be created, ID: {0} ! |r", kit.itemId);
-                Logger.Error("itemId not found: " + kit.itemId.ToString());
+                character.SendMessage(ChatType.System, $"Item could not be created, ID: {kit.itemId} !");
+                Logger.Error($"itemId not found: {kit.itemId}");
                 continue;
             }
             else
             {
                 if (!targetPlayer.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Gm, kit.itemId, kit.itemCount, kit.itemGrade))
                 {
-                    character.SendMessage("|cFFFF0000Item could not be created!|r");
+                    character.SendMessage(ChatType.System, "Item could not be created!", Color.Red);
                     continue;
                 }
 
                 if (character.Id != targetPlayer.Id)
                 {
-                    character.SendMessage("[Items] added item {0} to {1}'s inventory", kit.itemId, targetPlayer.Name);
-                    targetPlayer.SendMessage("[GM] {0} has added a item to your inventory", character.Name);
+                    character.SendMessage($"[Items] added item {kit.itemId} to {targetPlayer.Name}'s inventory");
+                    targetPlayer.SendMessage($"[GM] {character.Name} has added a item to your inventory");
                 }
                 itemsAdded++;
                 //Logger.Debug("kit.itemID: " + kit.itemID.ToString()+ " added to " + targetPlayer.Name);
@@ -146,13 +149,13 @@ public class AddKit : ICommand
         {
             if (character.Id != targetPlayer.Id)
             {
-                character.SendMessage("[Items] added {0} items to {1}'s inventory", itemsAdded, targetPlayer.Name);
-                targetPlayer.SendMessage("[GM] {0} has added a {1} item to your inventory", character.Name, itemsAdded);
+                character.SendMessage($"[Items] added {itemsAdded} items to {targetPlayer.Name}'s inventory");
+                targetPlayer.SendMessage($"[GM] {character.Name} has added a {itemsAdded} item to your inventory");
             }
         }
         else
         {
-            character.SendMessage("[Items] No items in kit \"{0}\"", kitname);
+            character.SendMessage($"[Items] No items in kit \"{kitname}\"");
         }
 
     }
@@ -162,16 +165,16 @@ public class AddKit : ICommand
         //Logger.Info("Init");
         kitconfig.Clear();
 
-        GMItemKitConfig jsonkit = new GMItemKitConfig();
+        var jsonKit = new GMItemKitConfig();
         try
         {
             var filePath = Path.Combine(FileManager.AppPath, "Scripts", "Commands", "kits.json");
             var contents = FileManager.GetFileContents(filePath);
             if (string.IsNullOrWhiteSpace(contents))
                 throw new IOException($"File {filePath} doesn't exists or is empty.");
-            jsonkit = JsonConvert.DeserializeObject<GMItemKitConfig>(contents);
+            jsonKit = JsonConvert.DeserializeObject<GMItemKitConfig>(contents);
 
-            kitconfig.itemkits.AddRange(jsonkit.itemkits);
+            kitconfig.itemkits.AddRange(jsonKit.itemkits);
         }
         catch (Exception x)
         {
@@ -186,6 +189,5 @@ public class AddKit : ICommand
                     kitconfig.itemkitnames.Add(kn);
         }
         kitconfig.itemkitnames.Sort();
-
     }
 }

@@ -430,8 +430,19 @@ public class Unit : BaseUnit, IUnit
         killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, (Unit)killer), true);
         if (killer == this)
         {
-            if (this is Npc) { return; }
-            DespawMate((Character)this);
+            switch (this)
+            {
+                //case Npc:
+                //    break;
+                case Mate mate:
+                    DespawMate(WorldManager.Instance.GetCharacterByObjId(mate.OwnerObjId));
+                    break;
+                case Character character:
+                    DespawMate(character);
+                    break;
+                //default:
+                //    break;
+            }
             return;
         }
 

@@ -28,7 +28,7 @@ public class SlaveInformationSubCommand : SubCommandBase
             slave = (Models.Game.Units.Slave)WorldManager.Instance.GetGameObject(objId);
             if (slave is null)
             {
-                SendColorMessage(messageOutput, Color.Red, "Slave with objId {0} does not exist |r", objId);
+                SendColorMessage(messageOutput, Color.Red, $"Slave with objId {objId} does not exist");
                 return;
             }
         }

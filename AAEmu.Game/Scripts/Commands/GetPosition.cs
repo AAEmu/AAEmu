@@ -32,12 +32,11 @@ public class GetPosition : ICommand
             var pos = character.CurrentTarget.Transform.CloneAsSpawnPosition();
 
             if (character.CurrentTarget is Npc npc)
-                character.SendMessage("[Position] Id: {0}, ObjId: {1}, TemplateId: {2} X: |cFFFFFFFF{3}|r  Y: |cFFFFFFFF{4}|r  Z: |cFFFFFFFF{5}|r",
-                    npc.Spawner.Id, character.CurrentTarget.ObjId, npc.TemplateId, pos.X, pos.Y, pos.Z);
+                character.SendMessage($"[Position] Id: {npc.Spawner.Id}, ObjId: {character.CurrentTarget.ObjId}, TemplateId: {npc.TemplateId} X: |cFFFFFFFF{pos.X}|r  Y: |cFFFFFFFF{pos.Y}|r  Z: |cFFFFFFFF{pos.Z}|r");
         }
         else
         {
-            Character targetPlayer = character;
+            var targetPlayer = character;
             if (args.Length > 0)
                 targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
 
@@ -49,8 +48,7 @@ public class GetPosition : ICommand
             if (zone != null)
                 zonename = "@ZONE_NAME(" + zone.Id.ToString() + ")";
 
-            character.SendMessage("[Position] |cFFFFFFFF{0}|r X: |cFFFFFFFF{1:F1}|r  Y: |cFFFFFFFF{2:F1}|r  Z: |cFFFFFFFF{3:F1}|r  RotZ: |cFFFFFFFF{4:F0}|r  ZoneId: |cFFFFFFFF{5}|r {6}  SubZoneId: |cFFFFFFFF{7}|r",
-                targetPlayer.Name, pos.X, pos.Y, pos.Z, pos.Roll, pos.ZoneId, zonename, character.SubZoneId);
+            character.SendMessage($"[Position] |cFFFFFFFF{targetPlayer.Name}|r X: |cFFFFFFFF{pos.X:F1}|r  Y: |cFFFFFFFF{pos.Y:F1}|r  Z: |cFFFFFFFF{pos.Z:F1}|r  RotZ: |cFFFFFFFF{pos.Yaw:F0}|r  ZoneId: |cFFFFFFFF{pos.ZoneId}|r {zonename}  SubZoneId: |cFFFFFFFF{character.SubZoneId}|r");
         }
     }
 }

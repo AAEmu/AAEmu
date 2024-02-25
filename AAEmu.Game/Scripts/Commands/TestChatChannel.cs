@@ -33,7 +33,7 @@ public class TestChatChannel : ICommand
             var channels = ChatManager.Instance.ListAllChannels();
             foreach (var c in channels)
             {
-                character.SendMessage("T:{0} ST:{1} F:{2} => {3} - {4} ({5})", c.chatType, c.subType, c.faction, c.internalId, c.internalName, c.members.Count);
+                character.SendMessage($"T:{c.chatType} ST:{c.subType} F:{c.faction} => {c.internalId} - {c.internalName} ({c.members.Count})");
             }
             character.SendMessage("[TestChatChannel] End of list");
             return;
@@ -42,7 +42,7 @@ public class TestChatChannel : ICommand
         if ((args.Length == 1) && (args[0].ToLower() == "clean"))
         {
             var removed = ChatManager.Instance.CleanUpChannels();
-            character.SendMessage("[TestChatChannel] {0} empty channel(s) removed", removed);
+            character.SendMessage($"[TestChatChannel] {removed} empty channel(s) removed");
             return;
         }
 

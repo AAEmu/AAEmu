@@ -1,8 +1,10 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System.Drawing;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Utils.Scripts;
@@ -41,10 +43,9 @@ public class ShowInventory : ICommand
                 var countName = "|ng;" + item.Count.ToString() + "|r x ";
                 if (item.Count == 1)
                     countName = string.Empty;
-                character.SendMessage("[{0}][{1}] {2}|nn;{3}|r = @ITEM_NAME({3})", templateName, slotName, countName, item.TemplateId);
+                character.SendMessage($"[{templateName}][{slotName}] {countName}|nn;{item.TemplateId}|r = @ITEM_NAME({item.TemplateId})");
             }
-            character.SendMessage("[ShowInv][{0}][{1}] {2} entries", templateName, targetContainer.ContainerType, targetContainer.Items.Count);
-
+            character.SendMessage($"[ShowInv][{templateName}][{targetContainer.ContainerType}] {targetContainer.Items.Count} entries");
             return;
         }
         else
@@ -79,16 +80,13 @@ public class ShowInventory : ICommand
                     var countName = "|ng;" + item.Count.ToString() + "|r x ";
                     if (item.Count == 1)
                         countName = string.Empty;
-                    character.SendMessage("[|nd;{0}|r][{1}] |nb;{2}|r {3}|nn;{4}|r = @ITEM_NAME({4})",
-                        targetPlayer.Name, slotName,
-                        item.Id, countName, item.TemplateId
-                        );
+                    character.SendMessage($"[|nd;{targetPlayer.Name}|r][{slotName}] |nb;{item.Id}|r {countName}|nn;{item.TemplateId}|r = @ITEM_NAME({item.TemplateId})");
                 }
-                character.SendMessage("[ShowInv][|nd;{0}|r][{1}] {2} entries", targetPlayer.Name, targetContainer.ContainerType, targetContainer.Items.Count);
+                character.SendMessage($"[ShowInv][|nd;{targetPlayer.Name}|r][{targetContainer.ContainerType}] {targetContainer.Items.Count} entries");
             }
             else
             {
-                character.SendMessage("|cFFFF0000[ShowInv] Unused container Id.|r");
+                character.SendMessage(ChatType.System, $"[ShowInv] Unused container Id.", Color.Red);
             }
         }
 

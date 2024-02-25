@@ -36,7 +36,7 @@ public class AStarViewSubCommand : SubCommandBase
         }
         if (!DoodadManager.Instance.Exist(unitTemplateId))
         {
-            SendColorMessage(messageOutput, Color.Coral, $"AStar: Doodad templateId:{unitTemplateId} don't exist|r");
+            SendColorMessage(messageOutput, Color.Coral, $"AStar: Doodad templateId:{unitTemplateId} don't exist");
             return;
         }
 

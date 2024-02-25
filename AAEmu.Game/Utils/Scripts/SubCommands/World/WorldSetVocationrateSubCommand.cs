@@ -19,11 +19,11 @@ public class WorldSetVocationrateSubCommand : SubCommandBase
         float vocationRate = parameters["VocationRate"];
         if (vocationRate < 1.0f || vocationRate > 1000.0f)
         {
-            SendColorMessage(messageOutput, Color.Coral, $"Vocation rate = {vocationRate} must be at least 1.0 and no more than 1000.0 |r");
+            SendColorMessage(messageOutput, Color.Coral, $"Vocation rate = {vocationRate} must be at least 1.0 and no more than 1000.0");
             return;
         }
         character.SetVocationRate(vocationRate);
-        SendMessage(messageOutput, "Set VocationRate {0}", vocationRate);
+        SendMessage(messageOutput, $"Set VocationRate {vocationRate}");
         Logger.Warn($"{Title}: {vocationRate}");
     }
 }

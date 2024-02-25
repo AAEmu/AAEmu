@@ -31,7 +31,7 @@ public class QuestCommandUtil
                 foreach (var quest in character.Quests.ActiveQuests.Values)
                 {
                     var objectives = quest.GetObjectives(quest.Step).Select(t => t.ToString()).ToList();
-                    character.SendMessage("Quest {0}: Step({1}), Objectives({2})", quest.Template.Id, quest.Step, string.Join(", ", objectives));
+                    character.SendMessage($"Quest {quest.Template.Id}: Step({quest.Step}), Objectives({string.Join(", ", objectives)})");
                 }
                 break;
             case "reward":
@@ -64,14 +64,14 @@ public class QuestCommandUtil
                             if (args.Length >= 3 && uint.TryParse(args[2], out var stepId))
                             {
                                 if (character.Quests.SetStep(questId, stepId))
-                                    character.SendMessage("[Quest] set Step {0} for Quest {1}", stepId, questId);
+                                    character.SendMessage($"[Quest] set Step {stepId} for Quest {questId}");
                                 else
                                     character.SendMessage("[Quest] Proper usage: /quest step <questId> <stepId>");
                             }
                         }
                         else
                         {
-                            character.SendMessage("[Quest] You do not have the quest {0}", questId);
+                            character.SendMessage($"[Quest] You do not have the quest {questId}");
                         }
                     }
                 }
@@ -103,12 +103,12 @@ public class QuestCommandUtil
                                 quest.Drop(true);
                                 break;
                             }
-                            character.SendMessage("[Quest] Perform step {1} for quest {0}", questId, quest.Step);
+                            character.SendMessage($"[Quest] Perform step {quest.Step} for quest {questId}");
                             quest.Update();
                         }
                         else
                         {
-                            character.SendMessage("[Quest] You do not have the quest {0}", questId);
+                            character.SendMessage($"[Quest] You do not have the quest {questId}");
                         }
                     }
                 }
@@ -128,7 +128,7 @@ public class QuestCommandUtil
                         }
                         else
                         {
-                            character.SendMessage("[Quest] You do not have the quest {0}", questId);
+                            character.SendMessage($"[Quest] You do not have the quest {questId}");
                         }
                         // посылаем пакеты для того, что-бы клиент был в курсе обновления квестов
                         character.Quests.Send();

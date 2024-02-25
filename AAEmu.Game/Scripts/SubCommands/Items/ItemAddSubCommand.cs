@@ -61,7 +61,7 @@ public class ItemAddSubCommand : SubCommandBase
         var itemTemplate = ItemManager.Instance.GetTemplate(templateId);
         if (itemTemplate is null)
         {
-            SendColorMessage(messageOutput, Color.Red, $"Item template id {templateId} does not exist!|r");
+            SendColorMessage(messageOutput, Color.Red, $"Item template id {templateId} does not exist!");
             return;
         }
 
@@ -70,18 +70,18 @@ public class ItemAddSubCommand : SubCommandBase
             var currentBackpack = addTarget.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack);
             if (currentBackpack != null)
             {
-                SendColorMessage(messageOutput, Color.Red, "No room on the backpack slot to place a tradepack!|r");
+                SendColorMessage(messageOutput, Color.Red, "No room on the backpack slot to place a tradepack!");
                 return;
             }
             if (!addTarget.Inventory.Equipment.AcquireDefaultItem(ItemTaskType.Gm, templateId, itemAmount, itemGrade))
             {
-                SendColorMessage(messageOutput, Color.Red, "Tradepack could not be created!|r");
+                SendColorMessage(messageOutput, Color.Red, "Tradepack could not be created!");
                 return;
             }
         }
         else if (!addTarget.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Gm, templateId, itemAmount, itemGrade))
         {
-            SendColorMessage(messageOutput, Color.Red, "Item could not be created!|r");
+            SendColorMessage(messageOutput, Color.Red, "Item could not be created!");
             return;
         }
 

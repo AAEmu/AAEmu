@@ -28,7 +28,7 @@ public class AStarEndPositionSubCommand : SubCommandBase
             npc = WorldManager.Instance.GetNpc(npcObjId);
             if (npc is null)
             {
-                SendColorMessage(messageOutput, Color.Coral, $"AStar: Npc with objId {npcObjId} does not exist |r");
+                SendColorMessage(messageOutput, Color.Coral, $"AStar: Npc with objId {npcObjId} does not exist");
                 return;
             }
         }

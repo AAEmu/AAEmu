@@ -79,7 +79,7 @@ public class Nloc : ICommand
             moveType.Alertness = 0; //idle=0, combat=2
             moveType.Time += 50; // has to change all the time for normal motion.
 
-            character.SendMessage("[nloc] New position {0} {1} {2}", character.CurrentTarget.Transform.World.Position.X, character.CurrentTarget.Transform.World.Position.Y, character.CurrentTarget.Transform.World.Position.Z);
+            character.SendMessage($"[nloc] New position {character.CurrentTarget.Transform.World.Position.X} {character.CurrentTarget.Transform.World.Position.Y} {character.CurrentTarget.Transform.World.Position.Z}");
             character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
         }
         else

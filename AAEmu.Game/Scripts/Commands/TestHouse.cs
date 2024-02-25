@@ -60,50 +60,47 @@ public class TestHouse : ICommand
             var a0 = args[0].ToLower();
             if (a0 == "info")
             {
-                character.SendMessage("[House] ObjId: {0} - TlId: {5} - HouseId: {1} - TemplateId: {2} - ModelId: {3} - {4}",
-                    house.ObjId, house.Id, house.TemplateId, house.ModelId, house.Name, house.TlId);
+                character.SendMessage($"[House] ObjId: {house.ObjId} - TlId: {house.TlId} - HouseId: {house.Id} - TemplateId: {house.TemplateId} - ModelId: {house.ModelId} - {house.Name}");
 
                 HousingManager.Instance.CalculateBuildingTaxInfo(house.AccountId, house.Template, false,
                     out var totalTaxAmountDue, out var heavyTaxHouseCount, out var normalTaxHouseCount,
                     out var hostileTaxRate, out _);
 
                 if (DateTime.UtcNow >= house.TaxDueDate)
-                    character.SendMessage("[House] Tax Due: {0}{1} by {2}", totalTaxAmountDue,
-                        house.Template.HeavyTax ? "" : "(no heavy tax)", house.TaxDueDate);
+                    character.SendMessage($"[House] Tax Due: {totalTaxAmountDue}{(house.Template.HeavyTax ? "" : "(no heavy tax)")} by {house.TaxDueDate}");
                 else if (DateTime.UtcNow >= house.TaxDueDate.AddDays(7))
-                    character.SendMessage("[House] Tax Overdue: {0}{1}, demolition at {2}", totalTaxAmountDue * 2,
-                        house.Template.HeavyTax ? "" : "(no heavy tax)", house.ProtectionEndDate);
+                    character.SendMessage($"[House] Tax Overdue: {totalTaxAmountDue * 2}{(house.Template.HeavyTax ? "" : "(no heavy tax)")}, demolition at {house.ProtectionEndDate}");
             }
             else if (a0 == "taxmail")
             {
                 var newMail = new MailForTax(house);
                 newMail.FinalizeMail();
                 newMail.Send();
-                character.SendMessage("[House] Created tax for {0}", house.Name);
+                character.SendMessage($"[House] Created tax for {house.Name}");
             }
             else if (a0 == "settaxpaid")
             {
                 house.ProtectionEndDate = DateTime.UtcNow.AddDays(21);
                 HousingManager.UpdateTaxInfo(house);
-                character.SendMessage("[House] {0} tax paid", house.Name);
+                character.SendMessage($"[House] {house.Name} tax paid");
             }
             else if (a0 == "settaxdue")
             {
                 house.ProtectionEndDate = DateTime.UtcNow.AddDays(14);
                 HousingManager.UpdateTaxInfo(house);
-                character.SendMessage("[House] {0} tax due", house.Name);
+                character.SendMessage($"[House] {house.Name} tax due");
             }
             else if (a0 == "settaxoverdue")
             {
                 house.ProtectionEndDate = DateTime.UtcNow.AddDays(7);
                 HousingManager.UpdateTaxInfo(house);
-                character.SendMessage("[House] {0} tax overdue", house.Name);
+                character.SendMessage($"[House] {house.Name} tax overdue");
             }
             else if (a0 == "setdemosoon")
             {
                 house.ProtectionEndDate = DateTime.UtcNow.AddSeconds(20);
                 HousingManager.UpdateTaxInfo(house);
-                character.SendMessage("[House] {0} demolished in about 20 seconds", house.Name);
+                character.SendMessage($"[House] {house.Name} demolished in about 20 seconds");
             }
             else if (a0 == "setforsale")
             {
@@ -134,7 +131,7 @@ public class TestHouse : ICommand
                     }
                     else
                     {
-                        character.SendMessage("[House] invalid buyer name {0}", args[2]);
+                        character.SendMessage($"[House] invalid buyer name {args[2]}");
                         return;
                     }
                 }
@@ -152,10 +149,9 @@ public class TestHouse : ICommand
                     }
 
                     if (HousingManager.SetForSale(house, price, buyerId, null))
-                        character.SendMessage("[House] Setting {0} for sale with a price of {1} to buy for {2}.",
-                            house.Name, price, buyer);
+                        character.SendMessage($"[House] Setting {house.Name} for sale with a price of {price} to buy for {buyer}.");
                     else
-                        character.SendMessage("[House] Failed to set {0} for sale !", house.Name);
+                        character.SendMessage($"[House] Failed to set {house.Name} for sale !");
                 }
                 else
                 {
@@ -167,25 +163,25 @@ public class TestHouse : ICommand
 
                     // Remove sale (for GM commands we don't return certificates)
                     if (HousingManager.CancelForSale(house, false))
-                        character.SendMessage("[House] {0} is no longer for sale", house.Name);
+                        character.SendMessage($"[House] {house.Name} is no longer for sale");
                     else
-                        character.SendMessage("[House] Failed to remove sale from {0} !", house.Name);
+                        character.SendMessage($"[House] Failed to remove sale from {house.Name} !");
                 }
 
             }
             else if (a0 == "forcedemo")
             {
                 HousingManager.Instance.Demolish(null, house, false, true);
-                character.SendMessage("[House] {0} demolished with full restore", house.Name);
+                character.SendMessage($"[House] {house.Name} demolished with full restore");
             }
             else
             {
-                character.SendMessage("[House] Unknown command: {0}", a0);
+                character.SendMessage($"[House] Unknown command: {a0}");
             }
         }
         catch (Exception e)
         {
-            character.SendMessage("[House] Exception: {0}", e.Message);
+            character.SendMessage($"[House] Exception: {e.Message}");
         }
     }
 

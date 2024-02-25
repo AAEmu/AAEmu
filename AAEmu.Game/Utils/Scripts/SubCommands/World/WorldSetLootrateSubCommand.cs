@@ -19,11 +19,11 @@ public class WorldSetLootrateSubCommand : SubCommandBase
         float lootRate = parameters["LootRate"];
         if (lootRate < 1.0f || lootRate > 1000.0f)
         {
-            SendColorMessage(messageOutput, Color.Coral, $"Loot rate = {lootRate} must be at least 1.0 and no more than 1000.0 |r");
+            SendColorMessage(messageOutput, Color.Coral, $"Loot rate = {lootRate} must be at least 1.0 and no more than 1000.0");
             return;
         }
         character.SetLootRate(lootRate);
-        SendMessage(messageOutput, "Set GrowthRate {0}", lootRate);
+        SendMessage(messageOutput, $"Set GrowthRate {lootRate}");
         Logger.Warn($"{Title}: {lootRate}");
     }
 }

@@ -37,7 +37,7 @@ public class NpcPositionSubCommand : SubCommandBase
             npc = WorldManager.Instance.GetNpc(npcObjId);
             if (npc is null)
             {
-                SendColorMessage(messageOutput, Color.Red, "Npc with objId {0} does not exist |r", npcObjId);
+                SendColorMessage(messageOutput, Color.Red, $"Npc with objId {npcObjId} does not exist");
                 return;
             }
         }
@@ -59,8 +59,7 @@ public class NpcPositionSubCommand : SubCommandBase
         var pitch = GetOptionalParameterValue(parameters, "pitch", npc.Transform.Local.Rotation.Y.RadToDeg()).DegToRad();
         var roll = GetOptionalParameterValue(parameters, "roll", npc.Transform.Local.Rotation.X.RadToDeg()).DegToRad();
 
-        SendMessage(messageOutput, "Npc ObjId:{0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, roll:{5:0.#}°, pitch:{6:0.#}°, yaw:{7:0.#}°",
-            npc.ObjId, npc.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());
+        SendMessage(messageOutput, $"Npc ObjId:{npc.ObjId} TemplateId:{npc.TemplateId}, x:{x}, y:{y}, z:{z}, roll:{roll.RadToDeg():0.#}°, pitch:{pitch.RadToDeg():0.#}°, yaw:{yaw.RadToDeg():0.#}°");
 
         npc.Transform.Local.SetPosition(x, y, z, roll, pitch, yaw);
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);

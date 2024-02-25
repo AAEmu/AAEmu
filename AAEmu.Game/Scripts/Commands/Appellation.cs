@@ -1,7 +1,9 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System.Drawing;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
@@ -35,11 +37,11 @@ public class Appellation : ICommand
         if (uint.TryParse(args[0], out var id))
         {
             if (CharacterManager.Instance.GetAppellationsTemplate(id) == null)
-                character.SendMessage("[Title] <titleId> {0} doesn't exist in the database ...", id);
+                character.SendMessage($"[Title] <titleId> {id} doesn't exist in the database ...");
             else
                 character.Appellations.Add(id);
         }
         else
-            character.SendMessage("|cFFFF0000[Title] Error parsing <titleId> !|r");
+            character.SendMessage(ChatType.System, "[Title] Error parsing <titleId> !", Color.Red);
     }
 }

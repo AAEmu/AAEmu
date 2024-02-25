@@ -45,7 +45,7 @@ public class QuestActCheckTimer : QuestActTemplate
 
 
         TaskManager.Instance.Schedule(QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id][quest.TemplateId], TimeSpan.FromMilliseconds(LimitTime));
-        character.SendMessage("[Quest] {0}, quest {1} will end in {2} minutes.", character.Name, quest.TemplateId, LimitTime / 60000);
+        character.SendMessage($"[Quest] {character.Name}, quest {quest.TemplateId} will end in {LimitTime / 60000} minutes.");
         quest.Time = DateTime.UtcNow.AddMilliseconds(LimitTime);
 
         //if (SustainBuff)

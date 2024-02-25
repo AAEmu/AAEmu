@@ -65,8 +65,8 @@ public class MoveTo : ICommand
             return;
         }
 
-        character.SendMessage("[MoveTo] cmd: {0}, nameFile: {1}", cmd, nameFile);
-        moveTo = character.Simulation; // take the AI ​​movement
+        character.SendMessage($"[MoveTo] cmd: {cmd}, nameFile: {nameFile}");
+        moveTo = character.Simulation; // take the AI movement
         moveTo.Npc = (Npc)character.CurrentTarget;
         if (moveTo.Npc == null)
         {

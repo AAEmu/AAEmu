@@ -63,8 +63,8 @@ public class AddGold : ICommand
             targetPlayer.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, new List<ItemTask> { new MoneyChange(argTotal) }, new List<ulong>()));
             if (character.Id != targetPlayer.Id)
             {
-                character.SendMessage("[Gold] changed {0}'s money by {1}g {2}s {3}c", targetPlayer.Name, argGold, argSilver, argCopper);
-                targetPlayer.SendMessage("[GM] {0} has adjusted your money", character.Name);
+                character.SendMessage($"[Gold] changed {targetPlayer.Name}'s money by {argGold}g {argSilver}s {argCopper}c");
+                targetPlayer.SendMessage($"[GM] {character.Name} has adjusted your money");
             }
         }
         else

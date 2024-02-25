@@ -102,8 +102,8 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     public void CancelQuest(ICharacter owner, uint questId)
     {
         owner.Quests.Drop(questId, true);
-        owner.SendMessage("[Quest] {0}, quest {1} time is over, you didn't make it. Try again.", owner.Name, questId);
-        Logger.Warn("[Quest] {0}, quest {1} time is over, you didn't make it. Try again.", owner.Name, questId);
+        owner.SendMessage($"[Quest] {owner.Name}, quest {questId} time is over, you didn't make it. Try again.");
+        Logger.Warn($"[Quest] {owner.Name}, quest {questId} time is over, you didn't make it. Try again.");
     }
 
     private void UpdateQuestComponentActs()
@@ -1650,6 +1650,8 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     {
         if (npc == null) { return; }
 
+        var npcZoneGroupId = ZoneManager.Instance.GetZoneByKey(npc.Transform.ZoneId)?.GroupId ?? 0;
+
         //character.Quests.OnKill(this);
         owner.Events?.OnMonsterHunt(this, new OnMonsterHuntArgs
         {
@@ -1665,11 +1667,13 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         });
         owner.Events?.OnZoneKill(this, new OnZoneKillArgs
         {
-            ZoneId = npc.Transform.ZoneId
+            ZoneGroupId = npcZoneGroupId,
+            Killer = owner,
+            Victim = npc
         });
         owner.Events?.OnZoneMonsterHunt(this, new OnZoneMonsterHuntArgs
         {
-            ZoneId = npc.Transform.ZoneId
+            ZoneGroupId = npcZoneGroupId
         });
     }
     //public void DoOnMonsterGroupHuntEvents(Character owner, Npc npc)

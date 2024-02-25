@@ -20,8 +20,8 @@ public class DoodadFuncBinding : DoodadFuncTemplate
 
         var returnPointId = PortalManager.Instance.GetDistrictReturnPoint(DistrictId, character.Faction.Id);
 
-        Logger.Trace("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}, SubZonesId {2}", DistrictId, returnPointId, character.SubZoneId);
-        character.SendMessage("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}, SubZonesId {2}", DistrictId, returnPointId, character.SubZoneId);
+        Logger.Trace($"DoodadFuncBinding: DistrictId {DistrictId} ==> ReturnPointId {returnPointId}, SubZonesId {character.SubZoneId}");
+        character.SendMessage($"DoodadFuncBinding: DistrictId {DistrictId} ==> ReturnPointId {returnPointId}, SubZonesId {character.SubZoneId}");
 
         if (returnPointId == 0) { return; }
 
