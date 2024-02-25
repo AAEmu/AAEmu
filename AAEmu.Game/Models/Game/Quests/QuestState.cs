@@ -707,6 +707,7 @@ public class QuestNoneState : QuestState
         Logger.Info($"[QuestNoneState][Drop] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
     }
 }
+
 public class QuestStartState : QuestState
 {
     public override bool Start(bool forcibly = false, int selected = 0)
@@ -757,8 +758,8 @@ public class QuestStartState : QuestState
                     var progressContexts = Quest.QuestProgressState.State.CurrentQuestComponent.GetComponents();
                     foreach (var progressContext in progressContexts)
                     {
-                        var actss = QuestManager.Instance.GetActs(progressContext.Id);
-                        foreach (var act in actss)
+                        var acts = QuestManager.Instance.GetActs(progressContext.Id);
+                        foreach (var act in acts)
                         {
                             switch (act?.DetailType)
                             {
@@ -768,38 +769,9 @@ public class QuestStartState : QuestState
                                         // prepare QuestSphere's work
                                         Logger.Info($"[QuestStartState][Start] Quest: {Quest.TemplateId}. Подписываемся на события, которые требуются для работы сферы");
                                         Quest.CurrentComponentId = progressContext.Id;
-                                        var spheres = SphereQuestManager.Instance.GetQuestSpheres(progressContext.Id);
-                                        if (spheres != null)
+
+                                        if (Quest.AddQuestSphereTriggers(progressContext))
                                         {
-                                            foreach (var sphere in spheres)
-                                            {
-                                                var sphereQuestTrigger = new SphereQuestTrigger();
-                                                sphereQuestTrigger.Sphere = sphere;
-
-                                                if (sphereQuestTrigger.Sphere == null)
-                                                {
-                                                    Logger.Info($"[QuestStartState][Start] QuestActObjSphere: Sphere not found with cquest {CurrentComponent.Id} in quest_sign_spheres.json!");
-                                                    break;
-                                                }
-
-                                                sphereQuestTrigger.Owner = Quest.Owner;
-                                                sphereQuestTrigger.Quest = Quest;
-                                                sphereQuestTrigger.TickRate = 500;
-
-                                                SphereQuestManager.Instance.AddSphereQuestTrigger(sphereQuestTrigger);
-                                            }
-
-                                            const int Duration = 500;
-                                            // TODO : Add a proper delay in here
-                                            Task.Run(async () =>
-                                            {
-                                                await Task.Delay(Duration);
-                                            });
-
-                                            // подписка одна на всех
-                                            Quest.Owner.Events.OnEnterSphere -= Quest.Owner.Quests.OnEnterSphereHandler;
-                                            Quest.Owner.Events.OnEnterSphere += Quest.Owner.Quests.OnEnterSphereHandler;
-
                                             Logger.Info($"[QuestStartState][Start] Quest: {Quest.TemplateId}, Event: 'OnEnterSphere', Handler: 'OnEnterSphereHandler'");
                                             break;
                                         }
@@ -1083,8 +1055,8 @@ public class QuestProgressState : QuestState
                             // На шаге Start уже подписальсь на событие
                             Quest.CurrentComponentId = component.Id;
                             // подписка одна на всех
-                            Quest.Owner.Events.OnEnterSphere -= Quest.Owner.Quests.OnEnterSphereHandler;
-                            Quest.Owner.Events.OnEnterSphere += Quest.Owner.Quests.OnEnterSphereHandler;
+
+                            Quest.AddQuestSphereTriggers(component);
 
                             Logger.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}, Event: 'OnEnterSphere', Handler: 'OnEnterSphereHandler'");
                             results2.Add(false); // будем ждать события

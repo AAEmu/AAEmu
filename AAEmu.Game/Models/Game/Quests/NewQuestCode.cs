@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
@@ -10,6 +12,7 @@ using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Quests;
@@ -365,6 +368,46 @@ public partial class Quest : PacketMarshaler
 
                 break;
         }
+    }
+
+    public bool AddQuestSphereTriggers(QuestComponent progressContext)
+    {
+        var spheres = SphereQuestManager.Instance.GetQuestSpheres(progressContext.Id);
+        if (spheres != null)
+        {
+            foreach (var sphere in spheres)
+            {
+                var sphereQuestTrigger = new SphereQuestTrigger();
+                sphereQuestTrigger.Sphere = sphere;
+
+                if (sphereQuestTrigger.Sphere == null)
+                {
+                    Logger.Info($"[QuestStartState][Start] QuestActObjSphere: Sphere not found with for cquest {progressContext.Id} !");
+                    break;
+                }
+
+                sphereQuestTrigger.Owner = Owner;
+                sphereQuestTrigger.Quest = this;
+                sphereQuestTrigger.TickRate = 500;
+
+                SphereQuestManager.Instance.AddSphereQuestTrigger(sphereQuestTrigger);
+            }
+
+            const int Duration = 500;
+            // TODO : Add a proper delay in here
+            Task.Run(async () =>
+            {
+                await Task.Delay(Duration);
+            });
+
+            // one subscription for everyone
+            Owner.Events.OnEnterSphere -= Owner.Quests.OnEnterSphereHandler;
+            Owner.Events.OnEnterSphere += Owner.Quests.OnEnterSphereHandler;
+
+            return true;
+        }
+
+        return false;
     }
 
     private bool GetQuestContext(out QuestContext context)
