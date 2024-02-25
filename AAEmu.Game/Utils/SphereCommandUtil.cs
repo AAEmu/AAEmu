@@ -188,6 +188,19 @@ public class SphereCommandUtil
 
     public static void GetSphereList(Character character, uint questId)
     {
+        var triggers = SphereQuestManager.Instance.GetSphereQuestTriggers();
+        var count = 0;
+        foreach (var questTrigger in triggers)
+        {
+            if ((questId > 0) && (questTrigger.Quest.Id != questId))
+                continue;
+            character.SendMessage($"[Sphere] Quest {questTrigger.Quest.Id} - TriggerSphere x:{questTrigger.Sphere.X} , y:{questTrigger.Sphere.Y} , z:{questTrigger.Sphere.Z} , radius:{questTrigger.Sphere.Radius}");
+            count++;
+        }
+        if (count <= 0)
+            character.SendMessage($"[Sphere] No active sphere triggers found");
+        return;
+
         var worlds = WorldManager.Instance.GetWorlds();
 
         foreach (var world in worlds)
@@ -203,8 +216,7 @@ public class SphereCommandUtil
                 FileManager.GetFileContents(
                     $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
             if (string.IsNullOrWhiteSpace(contents))
-                Logger.Warn(
-                    $"File {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json doesn't exists or is empty.");
+                Logger.Warn($"File {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json doesn't exists or is empty.");
             else
             {
                 if (JsonHelper.TryDeserializeObject(contents, out List<JsonQuestSphere> spheres, out _))
@@ -226,7 +238,7 @@ public class SphereCommandUtil
 
                     if (!found)
                     {
-                        character.SendMessage($"Found no Sphere's in quest_sphere.json for questId {questId}");
+                        character.SendMessage($"No Spheres found in quest_sphere.json for questId {questId}");
                     }
                 }
                 else
