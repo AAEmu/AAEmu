@@ -75,16 +75,19 @@ public class QuestActObjItemGather : QuestActTemplate, IQuestActGenericItem // �
     {
         Objective++;
     }
+
     public override bool IsCompleted()
     {
         return Objective >= Count;
     }
+
     public override int GetCount()
     {
         Logger.Info("Получим, информацию на сколько выполнено задание.");
 
         return Objective;
     }
+
     public override void ClearStatus()
     {
         //GatherStatus = 0;

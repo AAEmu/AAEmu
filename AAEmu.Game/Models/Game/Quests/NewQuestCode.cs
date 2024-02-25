@@ -133,6 +133,7 @@ public partial class Quest : PacketMarshaler
             }
         }
     }
+
     public void UpdateActiveStep()
     {
         while (true)
@@ -394,6 +395,7 @@ public partial class Quest : PacketMarshaler
     private void BadChoice(string str)
     {
         // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
+        // Not all objective components are ready yet, we are waiting for the task to be completed
         ComponentId = 0;
         Status = QuestStatus.Progress;
         Condition = QuestConditionObj.Progress;
@@ -409,6 +411,7 @@ public partial class Quest : PacketMarshaler
             Logger.Info($"{str} Подписываемся на событие.");
             Logger.Info($"{str} Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
             // так как события OnReport содержат в параметре questId - нужна только подписка
+            // since OnReport events contain questId in the parameter - only a subscription is needed
             //Owner.Events.OnReportNpc -= Owner.Quests.OnReportNpcHandler; // отписываемся
             Owner.Events.OnReportNpc += Owner.Quests.OnReportNpcHandler; // подписываемся, что-бы сдать квест
             ReadyToReportNpc = true;
@@ -552,8 +555,8 @@ public partial class Quest : PacketMarshaler
                 case "QuestActObjItemGather":
                     {
                         if (eventArgs is not OnItemGatherArgs args) { return false; }
-                        var template = act.GetTemplate<QuestActObjItemGather>(); // для доступа к переменным требуется привидение к нужному типу
-                        // сначала проверим, что там подобрали, может быть не то, что надо по квесту
+                        var template = act.GetTemplate<QuestActObjItemGather>(); // accessing variables requires casting to the desired type
+                        // First, let's check what we picked up there, maybe it's not what we need for the quest
                         if (template?.ItemId != args.ItemId)
                         {
                             Logger.Info($"[OnItemGatherHandler] Quest={TemplateId}. Это предмет {args.ItemId} не тот, что нужен нам {template?.ItemId}.");
@@ -561,15 +564,15 @@ public partial class Quest : PacketMarshaler
                         }
 
                         var objective = Owner.Inventory.GetItemsCount(template.ItemId);
-                        Objectives[idx] = objective > 0 ? objective - 1 : 0; // покажем на один предмет меньше, так как позже будет инкремент
+                        Objectives[idx] = objective > 0 ? objective - 1 : 0; // we will show one less item, since there will be an increment later
 
                         break;
                     }
                 case "QuestActObjItemGroupGather":
                     {
                         if (eventArgs is not OnItemGroupGatherArgs args) { return false; }
-                        var template = act.GetTemplate<QuestActObjItemGroupGather>(); // для доступа к переменным требуется привидение к нужному типу
-                        // сначала проверим, что там подобрали, может быть не то, что надо по квесту
+                        var template = act.GetTemplate<QuestActObjItemGroupGather>(); // accessing variables requires casting to the desired type
+                        // First, let's check what we picked up there, maybe it's not what we need for the quest
                         if (!_questManager.CheckGroupItem(template.ItemGroupId, args.ItemId))
                         {
                             Logger.Info($"[OnItemGatherHandler] Quest={TemplateId}. Это предмет {args.ItemId} не тот, что нужен нам {template.ItemGroupId}.");
@@ -577,7 +580,7 @@ public partial class Quest : PacketMarshaler
                         }
 
                         var objective = Owner.Inventory.GetItemsCount(args.ItemId);
-                        Objectives[idx] = objective > 0 ? objective - 1 : 0; // покажем на один предмет меньше, так как позже будет инкремент
+                        Objectives[idx] = objective > 0 ? objective - 1 : 0; // we will show one less item, since there will be an increment later
 
                         break;
                     }

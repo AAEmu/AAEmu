@@ -86,7 +86,7 @@ public abstract class QuestState
         return result;
     }
 
-    public bool CheckResults(QuestState context, bool successive, bool selective, int count, bool letItDone, int score, EventArgs eventArgs)
+    public bool CheckResults(QuestState context, bool successive, bool selective, int currentComponentCount, bool letItDone, int score, EventArgs eventArgs)
     {
         if (eventArgs == null)
         {
@@ -109,13 +109,14 @@ public abstract class QuestState
                         {
                             // if SupplyItem = 0, we get the item
                             complete = act.Use(Quest.Owner, Quest, 0);
+                            Quest.ProgressStepResults[componentIndex] = complete;
                             continue;
                         }
                 }
 
                 if (Quest.ProgressStepResults[componentIndex])
                 {
-                    Logger.Info($"Quest: {Quest.TemplateId}, Step={Quest.Step}, checking the act {act.DetailType} gave the result {complete}.");
+                    Logger.Info($"Quest: {Quest.TemplateId}, Step={Quest.Step}, checking the act {act.DetailType} already completed for part {componentIndex}.");
                     continue; // уже выполнен компонент
                 }
 
@@ -139,20 +140,20 @@ public abstract class QuestState
                     results = true;
                     Logger.Info($"Quest: {Quest.TemplateId}, Step={Quest.Step}, allows you to make a choice Selective={selective}.");
                 }
-                else if (complete && count == 1 && !letItDone)
+                else if (complete && currentComponentCount == 1 && !letItDone)
                 {
                     // состоит из одного компонента и он выполнен
                     results = true;
                     Logger.Info($"Quest: {Quest.TemplateId}, Step={Quest.Step}, the only one stage completed with the result {results}.");
                 }
-                else if (complete && score == 0 && count > 1 && !letItDone)
+                else if (complete && score == 0 && currentComponentCount > 1 && !letItDone)
                 {
                     // Должны быть выполнены все компоненты
                     // All components must be executed
-                    results = Quest.ProgressStepResults.All(b => b);
+                    results = Quest.ProgressStepResults.All(b => b == true);
                     Logger.Info($"Quest: {Quest.TemplateId}, Step={Quest.Step}, stage {componentIndex} with result {complete}, all components must be executed.");
                 }
-                else if (complete && score == 0 && componentIndex == count - 1 && count > 1 && !letItDone)
+                else if (complete && score == 0 && componentIndex == currentComponentCount - 1 && currentComponentCount > 1 && !letItDone)
                 {
                     // выполнен последний компонент из нескольких
                     // the last component of several components is executed
@@ -223,20 +224,8 @@ public abstract class QuestState
                 case "QuestActObjItemGather":
                     {
                         var template = act.GetTemplate<QuestActObjItemGather>(); // для доступа к переменным требуется привидение к нужному типу
-                        if (eventArgs == null)
-                        {
-                            // сюда попадаем сразу после шага Supply, поэтому событие не инициировано
-                            var objectiveCount = Quest.Owner.Inventory.GetItemsCount(template.ItemId);
-                            return act.Use(Quest.Owner, Quest, objectiveCount); // return the result of the check
-                        }
-                        // сначала проверим, что там подобрали, может быть не то, что надо по квесту
-                        if (eventArgs is not OnItemGatherArgs args) { return false; }
-                        if (template?.ItemId != args.ItemId)
-                        {
-                            Logger.Info($"[OnItemGatherHandler] Quest={Quest.TemplateId}. Это предмет {args.ItemId} не тот, что нужен нам {template?.ItemId}.");
-                            return false;
-                        }
-                        break;
+                        var objectiveCount = Quest.Owner.Inventory.GetItemsCount(template.ItemId);
+                        return act.Use(Quest.Owner, Quest, objectiveCount); // return the result of the check
                     }
                 case "QuestActObjItemGroupGather":
                     {
@@ -509,6 +498,7 @@ public abstract class QuestState
             return act.Use(Quest.Owner, Quest, Quest.Objectives[idx]); // return the result of the check
         }
     }
+
     public void UpdateContext(Quest quest, QuestState questState, QuestContext questContext, QuestComponentKind questComponentKind)
     {
         var exit = false;
@@ -893,12 +883,14 @@ public class QuestSupplyState : QuestState
         Quest.GoToNextStep(selected); // переход к следующему шагу // go to next step
         return true;
     }
+
     public override bool Update()
     {
         Logger.Info($"[QuestSupplyState][Update] Quest: {Quest.TemplateId} в процессе выполнения.");
         Logger.Info($"[QuestSupplyState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
         return true;
     }
+
     public override bool Complete(int selected = 0, EventArgs eventArgs = null)
     {
         Logger.Info($"[QuestSupplyState][Complete] Quest: {Quest.TemplateId}. Шаг успешно завершен!");
@@ -906,11 +898,13 @@ public class QuestSupplyState : QuestState
         Quest.GoToNextStep(selected); // переход к следующему шагу // go to next step
         return true;
     }
+
     public override void Fail()
     {
         Logger.Info($"[QuestSupplyState][Fail] Quest: {Quest.TemplateId} провален");
         Logger.Info($"[QuestSupplyState][Fail] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
     }
+
     public override void Drop()
     {
         Logger.Info($"[QuestSupplyState][Drop] Quest: {Quest.TemplateId} сброшен");
@@ -927,8 +921,9 @@ public class QuestProgressState : QuestState
 
         Logger.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}. Subscribe to events that are required for active acts.");
 
-        foreach (var component in CurrentComponents)
+        for (var componentIndex = 0 ; componentIndex < CurrentComponents.Count ; componentIndex++)
         {
+            var component = CurrentComponents[componentIndex];
             var acts = QuestManager.Instance.GetActs(component.Id);
 
             foreach (var act in acts)
@@ -963,6 +958,8 @@ public class QuestProgressState : QuestState
                             //result2 = act.Template.IsCompleted();
                             if (res)
                             {
+                                Logger.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}, QuestActObjItemGather already has the required items.'");
+                                Quest.Objectives[componentIndex] = (act.Template as QuestActObjItemGather)?.Count ?? 0;
                                 results2.Add(true); // уже выполнили задание, выход
                                 break;
                             }
@@ -1183,6 +1180,7 @@ public class QuestProgressState : QuestState
             }
         }
 
+        // All parts are completed?
         if (results2.All(b => b == true))
         {
             Logger.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}. There is no need to subscribe to the event, since the necessary things are already in your inventory.");
@@ -1196,28 +1194,43 @@ public class QuestProgressState : QuestState
             return true;
         }
 
+        // Some parts are completed?
+        if (results2.Any(b => b == true))
+        {
+            Logger.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}. Some of the objectives have already completed, but not all of them.");
+            Quest.ComponentId = 0;
+            Quest.Status = QuestStatus.Progress;
+            Quest.Step = QuestComponentKind.Progress;
+            Quest.Condition = QuestConditionObj.Progress;
+            Logger.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
+            Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
+            // Quest.GoToNextStep(selected); // переход к следующему шагу // go to next step
+            return true;
+        }
+
+        // None of the objectives have been completed
         // подписка на события и прерываем цикл
+        // Subscribed to events and break the loop
         Quest.ComponentId = 0;
         Quest.Status = QuestStatus.Progress;
         Quest.Condition = QuestConditionObj.Progress;
         Logger.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
-        //Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
         return false;
     }
 
     public override bool Update()
     {
-        Logger.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId} уже в процессе выполнения.");
+        Logger.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId} already in progress.");
         Logger.Info($"[QuestProgressState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
         return true;
     }
+
     public override bool Complete(int selected = 0, EventArgs eventArgs = null)
     {
-
         var results = CheckResults(this, Quest.Template.Successive, Quest.Template.Selective, CurrentComponents.Count, Quest.Template.LetItDone, Quest.Template.Score, eventArgs);
         if (results)
         {
-            Logger.Info($"[QuestProgressState][Complete] Quest: {Quest.TemplateId}. Шаг успешно завершен!");
+            Logger.Info($"[QuestProgressState][Complete] Quest: {Quest.TemplateId}. Step completed successfully!");
             Quest.Status = QuestStatus.Ready;
             Quest.Condition = QuestConditionObj.Progress;
             Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
@@ -1226,7 +1239,7 @@ public class QuestProgressState : QuestState
             return true;
         }
 
-        Logger.Info($"[QuestProgressState][Complete] Quest: {Quest.TemplateId}. Не все компоненты выполнены!");
+        Logger.Info($"[QuestProgressState][Complete] Quest: {Quest.TemplateId}. Not all components are completed!");
         // ждем выполнение всех комронентов шага...
         // wait for all step components to complete...
         Quest.Status = QuestStatus.Progress;
@@ -1235,17 +1248,20 @@ public class QuestProgressState : QuestState
         Logger.Info($"[QuestProgressState][Complete] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
         return false;
     }
+
     public override void Fail()
     {
         Logger.Info($"[QuestProgressState][Fail] Quest: {Quest.TemplateId} провален");
         Logger.Info($"[QuestProgressState][Fail] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
     }
+
     public override void Drop()
     {
         Logger.Info($"[QuestProgressState][Drop] Quest: {Quest.TemplateId} сброшен");
         Logger.Info($"[QuestProgressState][Drop] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
     }
 }
+
 public class QuestReadyState : QuestState
 {
     public override bool Start(bool forcibly = false, int selected = 0)
@@ -1348,6 +1364,7 @@ public class QuestReadyState : QuestState
         Logger.Info($"[QuestReadyState][Drop] Квест {Quest.TemplateId} уже завершен. Нельзя провалить.");
     }
 }
+
 public class QuestRewardState : QuestState
 {
     public override bool Start(bool forcibly = false, int selected = 0)
@@ -1359,12 +1376,14 @@ public class QuestRewardState : QuestState
         Logger.Info($"[QuestRewardState][Start] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
         return true;
     }
+
     public override bool Update()
     {
         Logger.Info($"[QuestRewardState][Update] Quest: {Quest.TemplateId}. Уже в процессе выполнения.");
         Logger.Info($"[QuestRewardState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
         return true;
     }
+
     public override bool Complete(int selected = 0, EventArgs eventArgs = null)
     {
         Logger.Info($"[QuestRewardState][Complete] Quest: {Quest.TemplateId}. Завершаем квест.");
@@ -1372,11 +1391,13 @@ public class QuestRewardState : QuestState
         Quest.Owner.Quests.Complete(Quest.TemplateId, selected); // Завершаем квест
         return true;
     }
+
     public override void Fail()
     {
         Logger.Info($"[QuestRewardState][Fail] Quest: {Quest.TemplateId} уже завершен. Нельзя провалить.");
         Logger.Info($"[QuestRewardState][Fail] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
     }
+
     public override void Drop()
     {
         Logger.Info($"[QuestRewardState][Drop] Quest: {Quest.TemplateId} уже завершен. Нельзя сбросить.");
