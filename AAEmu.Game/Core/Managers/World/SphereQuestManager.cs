@@ -64,19 +64,40 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
     {
         try
         {
+            // Add new triggers
             lock (_addLock)
             {
                 if (_addQueue?.Count > 0)
-                    _sphereQuestTriggers.AddRange(_addQueue);
+                {
+                    foreach (var addQuestSphereTrigger in _addQueue)
+                    {
+                        var addNew = true;
+                        foreach (var sphereQuestTrigger in _sphereQuestTriggers)
+                        {
+                            if ((addQuestSphereTrigger.Owner.Id == sphereQuestTrigger.Owner.Id) &&
+                                (addQuestSphereTrigger.Quest.TemplateId == sphereQuestTrigger.Quest.TemplateId))
+                            {
+                                addNew = false;
+                                break;
+                            }
+                        }
+
+                        if (addNew)
+                            _sphereQuestTriggers.Add(addQuestSphereTrigger);
+                    }
+                }
+                // Erase the list again for next tick
                 _addQueue = new List<SphereQuestTrigger>();
             }
 
+            // Handle Triggers
             foreach (var trigger in _sphereQuestTriggers)
             {
                 if (trigger?.Owner?.Region?.HasPlayerActivity() ?? false)
                     trigger?.Tick(delta);
             }
 
+            // Remove triggers
             lock (_remLock)
             {
                 foreach (var triggerToRemove in _removeQueue)
