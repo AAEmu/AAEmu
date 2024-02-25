@@ -1,10 +1,11 @@
 ﻿using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Quests.ActsInterface;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActConAcceptItem : QuestActTemplate
+public class QuestActConAcceptItem : QuestActTemplate, IQuestActGenericItem
 {
     public uint ItemId { get; set; }
     public bool Cleanup { get; set; }

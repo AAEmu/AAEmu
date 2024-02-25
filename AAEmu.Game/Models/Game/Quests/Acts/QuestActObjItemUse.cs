@@ -1,9 +1,10 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using System.Configuration;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjItemUse : QuestActTemplate
+internal class QuestActObjItemUse : QuestActTemplate
 {
     public uint ItemId { get; set; }
     public int Count { get; set; }

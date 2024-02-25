@@ -2,11 +2,12 @@
 
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Quests.ActsInterface;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjItemGather : QuestActTemplate // Сбор предметов
+public class QuestActObjItemGather : QuestActTemplate, IQuestActGenericItem // Сбор предметов
 {
     public uint ItemId { get; set; }
     public int Count { get; set; }

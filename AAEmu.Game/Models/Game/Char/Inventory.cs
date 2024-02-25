@@ -936,8 +936,9 @@ public class Inventory
     {
         if (item?.Template.LootQuestId > 0)
             if (Owner.Quests.HasQuest(item.Template.LootQuestId))
-                Owner.Quests.Drop(item.Template.LootQuestId, true);
+                Owner.Quests.OnQuestItemManuallyDestroyed(item);
     }
+
     public bool SwapCofferItems(ulong fromItemId, ulong toItemId, SlotType fromSlotType, byte fromSlot, SlotType toSlotType, byte toSlot, ulong dbId)
     {
         // TODO: Verify if you have access to the coffer
