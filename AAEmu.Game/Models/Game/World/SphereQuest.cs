@@ -58,7 +58,7 @@ public class SphereQuestTrigger
             {
                 var xyzSphereQuest = new Vector3(trigger.Sphere.X, trigger.Sphere.Y, trigger.Sphere.Z);
                 // TODO срабатывает триггер в радиусе от центра сферы
-                if (MathUtil.CalculateDistance(trigger.Owner.Transform.World.Position, xyzSphereQuest, true) < trigger.Sphere.Radius)
+                if (MathUtil.CalculateDistance(trigger.Owner.Transform.World.Position, xyzSphereQuest, true) <= trigger.Sphere.Radius)
                 {
                     //trigger.Owner.Quests.OnEnterSphere(trigger.Sphere);
                     // инициируем событие
