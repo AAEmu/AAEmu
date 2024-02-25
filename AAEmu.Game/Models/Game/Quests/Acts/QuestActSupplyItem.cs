@@ -1,12 +1,13 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Quests.ActsInterface;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActSupplyItem : QuestActTemplate
+public class QuestActSupplyItem : QuestActTemplate, IQuestActGenericItem
 {
     public uint ItemId { get; set; }
     public int Count { get; set; }

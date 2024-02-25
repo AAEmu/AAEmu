@@ -12,6 +12,8 @@ using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
+using AAEmu.Game.Models.Game.Quests.Acts;
+using AAEmu.Game.Models.Game.Quests.ActsInterface;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.World;
 
@@ -314,6 +316,102 @@ public partial class CharacterQuests
     {
         foreach (var quest in ActiveQuests.Values.ToList())
             quest.OnItemUse(item);
+    }
+
+    /// <summary>
+    /// Player manually tossed this quest item, checks if this action should remove the quest or not
+    /// </summary>
+    /// <param name="item"></param>
+    public void OnQuestItemManuallyDestroyed(Item item)
+    {
+        // Check if the quest needs to be cancelled
+        if (item.Template.LootQuestId <= 0)
+            return;
+
+        // Check all the quests
+        var doDropQuest = false;
+        foreach (var quest in ActiveQuests.Values.ToList())
+        {
+            // Go through the steps in reverse order starting from the currently active one
+            // This is needed because it's possible for the same item to be used in multiple acts, but will only cancel
+            // the quest if it's on a specific step in the quest progress
+            // For example: "The Mad Scholar" ( 3544 ), where "Kyrios's Helm Fragment" ( 21500 ) would only cancel the
+            // quest if it's happening on the quest supply part.
+            // From what I think needs to happen is that the DropOnDestroy setting from the last used/active
+            // is the only one that counts. If you encounter any setting, stop looking and evaluate that one.
+
+            for(var step = quest.Step; step >= QuestComponentKind.Start; step--)
+            {
+                var currentComponents = quest.Template.GetComponents(step);
+                foreach (var currentComponent in currentComponents)
+                {
+                    // Check if the item is related
+                    foreach (var currentComponentActValue in currentComponent.Acts)
+                    {
+                        var currentComponentAct = currentComponentActValue.Template;
+
+                        // QuestActConAcceptItem, QuestActObjItemGather, QuestActSupplyItem
+                        if ((currentComponentAct is IQuestActGenericItem iQuestActGenericItem) && (iQuestActGenericItem.ItemId == item.TemplateId))
+                        {
+                            if (iQuestActGenericItem.DropWhenDestroy)
+                            {
+                                doDropQuest = true;
+                                break;
+                            }
+                            // it's a match, but we don't need drop the quest, just exit
+                            return;
+                        }
+
+                        // QuestActObjItemGroupGather
+                        if ((currentComponentAct is QuestActObjItemGroupGather questActObjItemGroupGather) && (QuestManager.Instance.CheckGroupItem(questActObjItemGroupGather.ItemGroupId, item.TemplateId)))
+                        {
+                            if (questActObjItemGroupGather.DropWhenDestroy)
+                            {
+                                doDropQuest = true;
+                                break;
+                            }
+                            // it's a match, but we don't need drop the quest, just exit
+                            return;
+                        }
+
+                        // QuestActObjItemGroupUse
+                        if ((currentComponentAct is QuestActObjItemGroupUse questActObjItemGroupUse) && (QuestManager.Instance.CheckGroupItem(questActObjItemGroupUse.ItemGroupId, item.TemplateId)))
+                        {
+                            if (questActObjItemGroupUse.DropWhenDestroy)
+                            {
+                                doDropQuest = true;
+                                break;
+                            }
+                            // it's a match, but we don't need drop the quest, just exit
+                            return;
+                        }
+
+                        // QuestActObjItemUse
+                        if ((currentComponentAct is QuestActObjItemUse questActObjItemUse) && (questActObjItemUse.ItemId == item.TemplateId))
+                        {
+                            if (questActObjItemUse.DropWhenDestroy)
+                            {
+                                doDropQuest = true;
+                                break;
+                            }
+                            // it's a match, but we don't need drop the quest, just exit
+                            return;
+                        }
+
+                        if (doDropQuest)
+                            break;
+                    }
+
+                    if (doDropQuest)
+                        break;
+                }
+            }
+            if (doDropQuest)
+                break;
+        }
+
+        if (doDropQuest)
+            Owner.Quests.Drop(item.Template.LootQuestId, true);
     }
 
     /// <summary>
