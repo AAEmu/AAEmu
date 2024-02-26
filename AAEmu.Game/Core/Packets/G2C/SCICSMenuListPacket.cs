@@ -1,41 +1,47 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.CashShop;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCICSMenuListPacket : GamePacket
 {
-    private readonly byte _result;
-    private readonly (byte mainTab, List<byte> subTabs)[] _tabs;
+    private const byte MainTabCount = 6;
+    private const byte SubTabCount = 7;
+    private readonly bool _enabled;
+    private Dictionary<byte, Dictionary<byte, bool>> _tabsEnabled;
 
-    public SCICSMenuListPacket(byte result) : base(SCOffsets.SCICSMenuListPacket, 1)
+    public SCICSMenuListPacket(bool enabled) : base(SCOffsets.SCICSMenuListPacket, 1)
     {
-        _result = result;
-        _tabs = new (byte mainTab, List<byte> subTabs)[]
+        _enabled = enabled;
+
+        // Initialize tabs
+        _tabsEnabled = new();
+        for (byte mainTab = 1; mainTab <= MainTabCount; mainTab++)
         {
-            (1, new List<byte> { 1,2,3,4,5,6,7 }),
-            (2, new List<byte> { 1,2,3,4,5,6,7 }),
-            (3, new List<byte> { 1,2,3,4,5,6,7 }),
-            (4, new List<byte> { 1,2,3,4,5,6,7 }),
-            (5, new List<byte> { 1,2,3,4,5,6,7 }),
-            (6, new List<byte> { 1,2,3,4,5,6,7 })
-        };
+            _tabsEnabled.Add(mainTab, new Dictionary<byte, bool>());
+            for (byte subTab = 1; subTab <= SubTabCount; subTab++)
+                _tabsEnabled[mainTab].Add(subTab, false);
+        }
+
+        // Set tab state to true for used tabs
+        foreach (var item in CashShopManager.Instance.MenuItems)
+            _tabsEnabled[item.MainTab][item.SubTab] = true;
     }
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_result);
-        for (var i = 0; i < 6; i++)
+        stream.Write(_enabled);
+
+        for (byte mainTab = 1; mainTab <= MainTabCount; mainTab++)
         {
-            stream.Write(_tabs[i].mainTab); // mainTab
-            for (byte j = 1; j <= 7; j++)
-            {
-                if (_tabs[i].subTabs.IndexOf(j) > -1)
-                    stream.Write(j); // subTab
-                else
-                    stream.Write((byte)0);
-            }
+            stream.Write(mainTab);
+
+            for (byte subTab = 1; subTab <= SubTabCount; subTab++)
+                stream.Write((byte)(_tabsEnabled[mainTab][subTab] ? subTab : 0));
         }
 
         return stream;

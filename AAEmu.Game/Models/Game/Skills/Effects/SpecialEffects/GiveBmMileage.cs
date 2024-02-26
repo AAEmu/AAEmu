@@ -29,6 +29,7 @@ public class GiveBmMileage : SpecialEffectAction
             return;
 
         character.BmPoint += value1;
-        character.SendPacket(new SCMileageChangedPacket(character.ObjId, (int)character.BmPoint));
+        // character.SendPacket(new SCMileageChangedPacket(character.ObjId, (int)character.BmPoint));
+        character.SendPacket(new SCBmPointPacket((int)character.BmPoint));
     }
 }

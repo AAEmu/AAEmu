@@ -83,40 +83,6 @@ CREATE TABLE `blocked` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
 
-DROP TABLE IF EXISTS `cash_shop_item`;
-CREATE TABLE `cash_shop_item` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'shop_id',
-  `uniq_id` int unsigned DEFAULT '0' COMMENT 'Unique ID',
-  `cash_name` varchar(255) NOT NULL COMMENT 'Sale Item Name',
-  `main_tab` tinyint unsigned DEFAULT '1' COMMENT 'Main Tab Page 1-6',
-  `sub_tab` tinyint unsigned DEFAULT '1' COMMENT 'Sub Tab Page 1-7',
-  `level_min` tinyint unsigned DEFAULT '0' COMMENT 'Minimum level to buy',
-  `level_max` tinyint unsigned DEFAULT '0' COMMENT 'Maximum level to buy',
-  `item_template_id` int unsigned DEFAULT '0' COMMENT 'Item Template Id',
-  `is_sell` tinyint unsigned DEFAULT '0' COMMENT 'Is it for sale',
-  `is_hidden` tinyint unsigned DEFAULT '0' COMMENT 'Hidden item',
-  `limit_type` tinyint unsigned DEFAULT '0',
-  `buy_count` smallint unsigned DEFAULT '0',
-  `buy_type` tinyint unsigned DEFAULT '0',
-  `buy_id` int unsigned DEFAULT '0',
-  `start_date` datetime DEFAULT '0001-01-01 00:00:00' COMMENT 'Sell start date',
-  `end_date` datetime DEFAULT '0001-01-01 00:00:00' COMMENT 'Sell end date',
-  `type` tinyint unsigned DEFAULT '0' COMMENT 'Currency Type',
-  `price` int unsigned DEFAULT '0' COMMENT 'Sell price',
-  `remain` int unsigned DEFAULT '0' COMMENT 'Remaining stock',
-  `bonus_type` int unsigned DEFAULT '0' COMMENT 'Bonus type',
-  `bouns_count` int unsigned DEFAULT '0' COMMENT 'Bonus amount',
-  `cmd_ui` tinyint unsigned DEFAULT '0' COMMENT 'Whether to restrict one person at a time',
-  `item_count` int unsigned DEFAULT '1' COMMENT 'Number of bundles',
-  `select_type` tinyint unsigned DEFAULT '0',
-  `default_flag` tinyint unsigned DEFAULT '0',
-  `event_type` tinyint unsigned DEFAULT '0' COMMENT 'Event type',
-  `event_date` datetime DEFAULT '0001-01-01 00:00:00' COMMENT 'Event time',
-  `dis_price` int unsigned DEFAULT '0' COMMENT 'Current selling price',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='In-game cashshop listings';
-
-
 DROP TABLE IF EXISTS `characters`;
 CREATE TABLE `characters` (
   `id` int unsigned NOT NULL,
@@ -504,6 +470,7 @@ CREATE TABLE `item_containers` (
 ) COLLATE 'utf8mb4_general_ci';
 
 
+DROP TABLE IF EXISTS `slaves`;
 CREATE TABLE `slaves` (
 	`id` INT(10) UNSIGNED NOT NULL,
 	`item_id` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Item that is used to summon this vehicle',
@@ -518,3 +485,95 @@ CREATE TABLE `slaves` (
 	`z` FLOAT NULL DEFAULT NULL,
 	PRIMARY KEY (`id`) USING BTREE
 ) COMMENT='Player vehicles summons' COLLATE 'utf8mb4_general_ci' ENGINE=InnoDB;
+
+
+DROP TABLE IF EXISTS `ics_skus`;
+CREATE TABLE `ics_skus` (
+    `sku` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `shop_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Reference to the shop item',
+    `position` INT(10) NOT NULL DEFAULT '0' COMMENT 'Used for display order inside the item details',
+    `item_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Item that is for sale',
+    `item_count` INT(10) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'Number of items for this detail',
+    `select_type` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0',
+    `is_default` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Is this the default selection?',
+    `event_type` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0',
+    `event_end_date` DATETIME NULL DEFAULT NULL,
+    `currency` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Credits(0), AAPoints(1), Loyalty(2), Coins(3)',
+    `price` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Price of the item',
+    `discount_price` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Discounted price (this is used if set)',
+    `bonus_item_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Bonus item included for this purchase',
+    `bonus_item_count` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of bonus items included',
+    PRIMARY KEY (`sku`) USING BTREE
+)
+COMMENT='Has the actual sales items for the details'
+COLLATE='utf8mb4_general_ci'
+ENGINE=InnoDB
+AUTO_INCREMENT=1000000
+;
+
+
+DROP TABLE IF EXISTS `ics_shop_items`;
+CREATE TABLE `ics_shop_items` (
+    `shop_id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'SKU item id',
+    `display_item_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Item who\'s icon to use for displaying in the shop, leave 0 for first item in the group',
+    `name` TEXT NULL DEFAULT NULL COMMENT 'Can be used to override the name in the shop' COLLATE 'utf8mb4_general_ci',
+    `limited_type` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Enables limited stock mode if non-zero, Account(1), Chracter(2)',
+    `limited_stock_max` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Number of items left in stock for this SKU if limited stock is enabled',
+    `level_min` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Minimum level to buy the item (does not show on UI)',
+    `level_max` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Maximum level to buy the item (does not show on UI)',
+    `buy_restrict_type` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Buy restriction rule, none (0), level (1) or quest(2)',
+    `buy_restrict_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Level or QuestId for restrict rule',
+    `is_sale` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0',
+    `is_hidden` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0',
+    `sale_start` DATETIME NULL DEFAULT NULL COMMENT 'Limited sale start time',
+    `sale_end` DATETIME NULL DEFAULT NULL COMMENT 'Limited sale end time',
+    `shop_buttons` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'All (0), NoCart (1), NoGift (2), OnlyBuy (3)',
+    `remaining` INT(11) NOT NULL DEFAULT '-1' COMMENT 'Number of items remaining, only for tab 1-1 (limited)',
+    PRIMARY KEY (`shop_id`) USING BTREE
+)
+COMMENT='Possible Item listings that are for sale'
+COLLATE='utf8mb4_general_ci'
+ENGINE=InnoDB
+AUTO_INCREMENT=2000000
+;
+
+
+DROP TABLE IF EXISTS `ics_menu`;
+CREATE TABLE `ics_menu` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `main_tab` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'Which main tab to display on',
+    `sub_tab` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'Which sub tab to display on',
+    `tab_pos` INT(11) NOT NULL DEFAULT '0' COMMENT 'Used to change display order',
+    `shop_id` INT(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Id of the item group for sale (shop item)',
+    PRIMARY KEY (`id`) USING BTREE
+)
+COMMENT='Contains what item will be displayed on which tab'
+COLLATE='utf8mb4_general_ci'
+ENGINE=InnoDB
+AUTO_INCREMENT=100
+;
+
+
+DROP TABLE IF EXISTS `audit_ics_sales`;
+CREATE TABLE `audit_ics_sales` (
+    `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `buyer_account` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Account ID of the person buying this item',
+    `buyer_char` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Character that was logged in when buying',
+    `target_account` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Account of the person receiving the goods',
+    `target_char` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Character that received the goods',
+    `sale_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Time of purchase (in UTC)',
+    `shop_item_id` INT(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Shop item entry id of the sold item',
+    `sku` INT(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'SKU of the sold item',
+    `sale_cost` INT(11) NOT NULL DEFAULT '0' COMMENT 'Amount this item was sold for',
+    `sale_currency` TINYINT(4) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Which currency was used',
+    `description` TEXT NOT NULL COMMENT 'Added description of this transaction' COLLATE 'utf8mb4_general_ci',
+    PRIMARY KEY (`id`) USING BTREE,
+    INDEX `buyer_account` (`buyer_account`) USING BTREE,
+    INDEX `buyer_char` (`buyer_char`) USING BTREE,
+    INDEX `target_account` (`target_account`) USING BTREE,
+    INDEX `target_char` (`target_char`) USING BTREE
+)
+COMMENT='Sales history for the ICS'
+COLLATE='utf8mb4_general_ci'
+ENGINE=InnoDB
+;

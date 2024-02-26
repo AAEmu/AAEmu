@@ -153,6 +153,7 @@ public sealed class GameService : IHostedService, IDisposable
 
         AccessLevelManager.Instance.Load();
         CashShopManager.Instance.Load();
+        CashShopManager.Instance.EnabledShop();
         UccManager.Instance.Load();
         MusicManager.Instance.Load();
         AiGeoDataManager.Instance.Load();
