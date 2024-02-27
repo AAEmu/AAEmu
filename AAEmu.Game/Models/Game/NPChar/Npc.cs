@@ -801,7 +801,7 @@ public class Npc : Unit
     {
         //var player = unit as Character; // TODO player.Region становится равным null | player.Region becomes null
         Character player = null;
-        if (unit is not Npc)
+        if (unit is not Npc and not Units.Mate)
         {
             player = (Character)unit;
         }
@@ -963,11 +963,12 @@ public class Npc : Unit
             return;
 
         if (Buffs.HasEffectsMatchingCondition(e =>
-                e.Template.Stun ||
-                e.Template.Sleep ||
-                e.Template.Root ||
-                e.Template.Knockdown ||
-                e.Template.Fastened))
+                e.Template.Stun
+                || e.Template.Sleep
+                || e.Template.Root
+                || e.Template.Knockdown
+                || e.Template.Fastened)
+            || Ai.Owner.IsDead)
         {
             //Logger.Debug($"{ObjId} @NPC_NAME({TemplateId}); is stuck in place");
             return;
@@ -985,7 +986,7 @@ public class Npc : Unit
         var oldPosition = Transform.Local.ClonePosition();
 
         var targetDist = MathUtil.CalculateDistance(Transform.Local.Position, other, true);
-        if (targetDist <= 0.5f)
+        if (targetDist <= 1f)
             return;
 
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);

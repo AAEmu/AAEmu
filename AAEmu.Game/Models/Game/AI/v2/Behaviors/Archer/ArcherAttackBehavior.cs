@@ -38,12 +38,12 @@ public class ArcherAttackBehavior : BaseCombatBehavior
         {
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
         }
+        Ai.Param = Ai.Owner.Template.AiParams;
     }
 
     public override void Tick(TimeSpan delta)
     {
-        var aiParams = Ai.Owner.Template.AiParams as ArcherAiParams;
-        if (aiParams == null)
+        if (Ai.Param is not ArcherAiParams aiParams)
             return;
 
         if (!UpdateTarget() || ShouldReturn)

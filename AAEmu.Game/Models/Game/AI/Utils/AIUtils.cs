@@ -1,7 +1,6 @@
 ﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.AI.Framework;
-using AAEmu.Game.Models.Game.AI.Params;
+using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.AI.v2.AiCharacters;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.NPChar;
@@ -35,50 +34,50 @@ public static class AIUtils
         return newPosition;
     }
 
-    public static bool IsOutOfIdleArea(AbstractAI AI)
-    {
-        var distToIdlePos = AAEmu.Game.Utils.MathUtil.CalculateDistance(AI.Owner.Transform.World.Position, AI.IdlePosition.Position);
-        var range = 15;
+    //public static bool IsOutOfIdleArea(AbstractAI AI)
+    //{
+    //    var distToIdlePos = AAEmu.Game.Utils.MathUtil.CalculateDistance(AI.Owner.Transform.World.Position, AI.IdlePosition.Position);
+    //    var range = 15;
 
-        // if (isGroupMember)
-        //     then
-        //         range = 50;
-        // end
-        if (distToIdlePos > range)
-            return true;
-        return false;
-    }
+    //    // if (isGroupMember)
+    //    //     then
+    //    //         range = 50;
+    //    // end
+    //    if (distToIdlePos > range)
+    //        return true;
+    //    return false;
+    //}
 
     public static NpcAi GetAiByType(AiParamType type, Npc owner)
     {
         switch (type)
         {
             case AiParamType.AlmightyNpc:
-                return new AlmightyNpcAiCharacter() { Owner = owner };
+                return new AlmightyNpcAiCharacter { Owner = owner };
             case AiParamType.ArcherHoldPosition:
-                return new ArcherHoldPositionAiCharacter() { Owner = owner };
+                return new ArcherHoldPositionAiCharacter { Owner = owner };
             case AiParamType.ArcherRoaming:
-                return new ArcherRoamingAiCharacter() { Owner = owner };
+                return new ArcherRoamingAiCharacter { Owner = owner };
             case AiParamType.BigMonsterRoaming:
-                return new BigMonsterRoamingAiCharacter() { Owner = owner };
+                return new BigMonsterRoamingAiCharacter { Owner = owner };
             case AiParamType.BigMonsterHoldPosition:
-                return new BigMonsterHoldPositionAiCharacter() { Owner = owner };
+                return new BigMonsterHoldPositionAiCharacter { Owner = owner };
             case AiParamType.Default:
-                return new DefaultAiCharacter() { Owner = owner };
+                return new DefaultAiCharacter { Owner = owner };
             case AiParamType.Dummy:
-                return new DummyAiCharacter() { Owner = owner };
+                return new DummyAiCharacter { Owner = owner };
             case AiParamType.Flytrap:
-                return new FlytrapAiCharacter() { Owner = owner };
+                return new FlytrapAiCharacter { Owner = owner };
             case AiParamType.HoldPosition:
-                return new HoldPositionAiCharacter() { Owner = owner };
+                return new HoldPositionAiCharacter { Owner = owner };
             case AiParamType.Roaming:
-                return new RoamingAiCharacter() { Owner = owner };
+                return new RoamingAiCharacter { Owner = owner };
             case AiParamType.TowerDefenseAttacker:
-                return new TowerDefenseAttackerAiCharacter() { Owner = owner };
+                return new TowerDefenseAttackerAiCharacter { Owner = owner };
             case AiParamType.WildBoarHoldPosition:
-                return new WildBoarHoldPositionAiCharacter() { Owner = owner };
+                return new WildBoarHoldPositionAiCharacter { Owner = owner };
             case AiParamType.WildBoarRoaming:
-                return new WildBoarRoamingAiCharacter() { Owner = owner };
+                return new WildBoarRoamingAiCharacter { Owner = owner };
             default:
                 return null;
         }

@@ -43,6 +43,7 @@ namespace AAEmu.Game.Core.Managers
 
         private void IndunInfoTick(TimeSpan delta)
         {
+            return;
             if (_teamDungeons is { Count: 0 })
             {
                 Logger.Info($"Team dungeons: 0");

@@ -20,7 +20,7 @@ public class RoamingBehavior : Behavior
     {
         Ai.Owner.InterruptSkills();
         Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, BaseUnitType.Npc, ModelPostureType.ActorModelState, 2), false); // fixed animated
-        UpdateRoaming();
+        //UpdateRoaming();
         Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
     }
 

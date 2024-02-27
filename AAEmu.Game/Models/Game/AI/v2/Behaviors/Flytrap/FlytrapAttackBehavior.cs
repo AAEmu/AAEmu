@@ -4,6 +4,7 @@ using System.Numerics;
 
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
+using AAEmu.Game.Models.Game.AI.v2.Params.Flytrap;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
@@ -13,6 +14,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Flytrap;
 
 public class FlytrapAttackBehavior : Behavior
 {
+    private FlytrapAiParams _aiParams;
     public override void Enter()
     {
         Ai.Owner.InterruptSkills();
@@ -21,10 +23,16 @@ public class FlytrapAttackBehavior : Behavior
         {
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
         }
+        Ai.Param = Ai.Owner.Template.AiParams;
     }
 
     public override void Tick(TimeSpan delta)
     {
+        if (Ai.Param is not FlytrapAiParams aiParams)
+            return;
+
+        _aiParams = aiParams;
+
         if (!UpdateTarget())
         {
             Ai.GoToReturn();
@@ -40,12 +48,15 @@ public class FlytrapAttackBehavior : Behavior
         Ai.Owner.IsInBattle = true;
         var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
         PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget, targetDist);
+
+        Update();
     }
 
     public override void Exit()
     {
     }
 
+    #region Gimmick
     private void MoveInRange(BaseUnit target, TimeSpan delta)
     {
         if (Ai?.Owner?.Gimmick == null)
@@ -161,5 +172,30 @@ public class FlytrapAttackBehavior : Behavior
 
         Ai.Owner.SetTarget(null);
         return false;
+    }
+    #endregion
+
+    public void Update()
+    {
+        var abuser = (Unit)Ai.Owner.CurrentTarget;
+        var abuserPos = Ai.Owner.CurrentTarget.Transform.World.Position;
+        var currentPos = Ai.Owner.Transform.World.Position;
+        var idlePos = Ai.IdlePosition.World.Position;
+        // Check out of idle pos
+        if (Ai.Param.AlwaysTeleportOnReturn && MathUtil.DistanceSqVectors(currentPos, idlePos) > 3 * 3)
+        {
+            // NpcTeleportTo(entity.AI.idlePos);
+            Ai.Owner.ClearAggroOfUnit(abuser);
+            Ai.GoToReturn();
+            return;
+        }
+
+        // Check that some target was gone out from attack end distance
+        if (MathUtil.DistanceSqVectors(abuserPos, idlePos) > _aiParams.AttackEndDistance * _aiParams.AttackEndDistance)
+        {
+            // entity.unit:NpcRemoveAggroOutOfRange(entity.AI.param.attackEndDistance);
+            Ai.Owner.ClearAggroOfUnit(abuser);
+            Ai.GoToReturn();
+        }
     }
 }

@@ -24,11 +24,12 @@ public abstract class BaseCombatBehavior : Behavior
             return;
 
         if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e =>
-                e.Template.Stun ||
-                e.Template.Sleep ||
-                e.Template.Root ||
-                e.Template.Knockdown ||
-                e.Template.Fastened))
+                e.Template.Stun
+                || e.Template.Sleep
+                || e.Template.Root
+                || e.Template.Knockdown
+                || e.Template.Fastened)
+            || Ai.Owner.IsDead)
         {
             return;
         }
@@ -47,7 +48,8 @@ public abstract class BaseCombatBehavior : Behavior
         var range = Ai.Owner.Template.AttackStartRangeScale;
         if (Ai.Owner.Template.UseRangeMod)
         {
-            range *= _maxWeaponRange;
+            if (_maxWeaponRange != 0)
+                range *= _maxWeaponRange;
         }
         var speed = Ai.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f);
         var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);

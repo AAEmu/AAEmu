@@ -53,8 +53,13 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Compile Remove="Models\Tasks\Telescopes\**" />
+      <EmbeddedResource Remove="Models\Tasks\Telescopes\**" />
+      <None Remove="Models\Tasks\Telescopes\**" />
+    </ItemGroup>
+
+    <ItemGroup>
       <Folder Include="Models\ClientData" />
-      <Folder Include="Models\Tasks\Telescopes\" />
     </ItemGroup>
   
     <ItemGroup>

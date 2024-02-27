@@ -28,7 +28,6 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
     private Dictionary<uint, List<SphereAcceptQuests>> _sphereAcceptQuests;
     private Dictionary<uint, List<SphereAcceptQuestQuests>> _sphereAcceptQuestQuests;
 
-
     public void Load(SqliteConnection connection)
     {
         _spheres = new Dictionary<uint, List<Spheres>>();

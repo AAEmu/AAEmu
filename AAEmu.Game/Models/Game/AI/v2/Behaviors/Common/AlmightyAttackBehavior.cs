@@ -4,6 +4,7 @@ using System.Linq;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 using AAEmu.Game.Models.Game.AI.V2.Params;
 using AAEmu.Game.Models.Game.Models;
@@ -21,7 +22,6 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
     public override void Enter()
     {
         Ai.Owner.InterruptSkills();
-        _aiParams = Ai.Owner.Template.AiParams as AlmightyNpcAiParams;
         _skillQueue = new Queue<AiSkill>();
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
         //if (_aiParams != null)
@@ -38,12 +38,15 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
         {
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
         }
+        Ai.Param = Ai.Owner.Template.AiParams;
     }
 
     public override void Tick(TimeSpan delta)
     {
-        if (_aiParams == null)
+        if (Ai.Param is not AlmightyNpcAiParams aiParams)
             return;
+
+        _aiParams = aiParams;
 
         if (!UpdateTarget() || ShouldReturn)
         {

@@ -1,4 +1,5 @@
 ﻿using System.Text;
+
 using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.V2.Params;
@@ -13,7 +14,6 @@ public class AiLua : Lua
         aiConsts.Append("USE_SEQUENCE = 1;");
         aiConsts.Append("USE_RANDOM = 2;");
 
-
         //TargetTypes
         aiConsts.Append("AGGRO_TOTAL = 1;");
         aiConsts.Append("AGGRO_HEAL = 2;");
@@ -25,7 +25,6 @@ public class AiLua : Lua
         //PhaseTypes
         aiConsts.Append("PHASE_DRAGON_GROUND = 1;");
         aiConsts.Append("PHASE_DRAGON_HOVERING = 2;");
-
 
         DoString(aiConsts.ToString());
     }

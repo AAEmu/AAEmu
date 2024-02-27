@@ -24,12 +24,12 @@ public class BigMonsterAttackBehavior : BaseCombatBehavior
         {
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
         }
+        Ai.Param = Ai.Owner.Template.AiParams;
     }
 
     public override void Tick(TimeSpan delta)
     {
-        var aiParams = Ai.Owner.Template.AiParams as BigMonsterAiParams;
-        if (aiParams == null)
+        if (Ai.Param is not BigMonsterAiParams aiParams)
             return;
 
         if (!UpdateTarget() || ShouldReturn)

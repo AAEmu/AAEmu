@@ -19,14 +19,16 @@ public class ReturnStateBehavior : Behavior
 
         if (!Ai.Owner.AggroTable.IsEmpty)
             Ai.Owner.ClearAllAggro();
+
         Ai.Owner.SetTarget(null);
         // TODO: Ai.Owner.DisableAggro();
 
         Ai.Owner.IsInBattle = false;
         Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
 
-        var needRestorationOnReturn = true; // TODO: Use params & alertness values
-        if (needRestorationOnReturn)
+        //var needRestorationOnReturn = true; // TODO: Use params & alertness values
+        //if (needRestorationOnReturn)
+        if (Ai.Param == null || Ai.Param.RestorationOnReturn)
         {
             // StartSkill RETURN SKILL TYPE
             Ai.Owner.Buffs.AddBuff((uint)BuffConstants.NpcReturn, Ai.Owner);
@@ -36,10 +38,12 @@ public class ReturnStateBehavior : Behavior
             Ai.Owner.BroadcastPacket(new SCUnitPointsPacket(Ai.Owner.ObjId, Ai.Owner.Hp, Ai.Owner.Mp), true);
         }
 
-        var alwaysTeleportOnReturn = false; // TODO: get from params
-        if (alwaysTeleportOnReturn)
+        //var alwaysTeleportOnReturn = false; // TODO: get from params
+        //if (alwaysTeleportOnReturn)
+        if (Ai.Param is { AlwaysTeleportOnReturn: true })
         {
             OnCompletedReturn();
+            return;
         }
 
         var goReturnState = true; // TODO: get from params

@@ -20,6 +20,7 @@ public class FlytrapAlertBehavior : Behavior
 
     public override void Tick(TimeSpan delta)
     {
+        CheckAggression();
     }
 
     public override void Exit()

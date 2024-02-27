@@ -1,10 +1,14 @@
 ﻿using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
+using NLog;
+
 namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
 
 public class SkillController
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
     public enum SCState
     {
         Created,
@@ -25,11 +29,13 @@ public class SkillController
     public virtual void Execute()
     {
         State = SCState.Running;
+        Logger.Debug($"SkillController: Npc {Owner.Name}:{Owner.ObjId} entering execute state={State}");
     }
 
     public virtual void End()
     {
         State = SCState.Ended;
+        Logger.Debug($"SkillController: Npc {Owner.Name}:{Owner.ObjId} entering end state={State}");
     }
 
     public static SkillController CreateSkillController(SkillControllerTemplate template, BaseUnit owner, BaseUnit target)
@@ -42,12 +48,17 @@ public class SkillController
         switch ((SkillControllerKind)template.KindId)
         {
             case SkillControllerKind.Floating:
+                Logger.Debug($"SkillController: create FloatingSkillController");
                 return null; // TODO: Add Floating (telekinesis, bubble ?)
             case SkillControllerKind.Wandering:
+                Logger.Debug($"SkillController: create WanderingSkillController");
                 return null;// TODO: Add Wandering (Fear ?)
             case SkillControllerKind.Leap:
-                return new LeapSkillController(template, owner, target);
+                Logger.Debug($"SkillController: create LeapSkillController");
+                var ctrl = new LeapSkillController(template, owner, target) { State = SCState.Created };
+                return ctrl;
             default:
+                Logger.Debug($"SkillController: create defaultSkillController");
                 return null;
         }
     }
