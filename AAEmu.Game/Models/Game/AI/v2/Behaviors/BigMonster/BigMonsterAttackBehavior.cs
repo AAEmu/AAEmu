@@ -4,6 +4,7 @@ using System.Linq;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.AI.v2.Params.BigMonster;
 using AAEmu.Game.Models.Game.AI.V2.Params.BigMonster;
 using AAEmu.Game.Models.Game.Models;
@@ -29,6 +30,8 @@ public class BigMonsterAttackBehavior : BaseCombatBehavior
 
     public override void Tick(TimeSpan delta)
     {
+        Ai.Param ??= new BigMonsterAiParams("");
+
         if (Ai.Param is not BigMonsterAiParams aiParams)
             return;
 

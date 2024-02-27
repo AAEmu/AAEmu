@@ -30,15 +30,20 @@ public class WildBoarAiParams : AiParams
         // general
         if (aiParams.GetObjectFromPath("data.alertDuration") !=null)
             AlertDuration = (float)aiParams.GetNumber("data.alertDuration");
+        if (aiParams.GetObjectFromPath("data.alertToAttack") !=null)
+            AlertToAttack = Convert.ToBoolean(aiParams.GetObjectFromPath("data.alertToAttack"));
         if (aiParams.GetObjectFromPath("data.alertSafeTargetRememberTime") !=null)
             AlertSafeTargetRememberTime = (float)aiParams.GetNumber("data.alertSafeTargetRememberTime");
-        AlwaysTeleportOnReturn = Convert.ToBoolean(aiParams.GetObjectFromPath("data.alwaysTeleportOnReturn"));
-        MaxMakeAGapCount = aiParams.GetInteger("data.maxMakeAGapCount");
+        if (aiParams.GetObjectFromPath("data.alwaysTeleportOnReturn") !=null)
+            AlwaysTeleportOnReturn = Convert.ToBoolean(aiParams.GetObjectFromPath("data.alwaysTeleportOnReturn"));
+        if (aiParams.GetObjectFromPath("data.maxMakeAGapCount") !=null)
+            MaxMakeAGapCount = aiParams.GetInteger("data.maxMakeAGapCount");
         if (aiParams.GetObjectFromPath("data.meleeAttackRange") !=null)
             MeleeAttackRange = (float)aiParams.GetNumber("data.meleeAttackRange");
         if (aiParams.GetObjectFromPath("data.preferedCombatDist") !=null)
             PreferedCombatDist = (float)aiParams.GetNumber("data.preferedCombatDist");
-        RestorationOnReturn = Convert.ToBoolean(aiParams.GetObjectFromPath("data.restorationOnReturn"));
+        if (aiParams.GetObjectFromPath("data.restorationOnReturn") !=null)
+            RestorationOnReturn = Convert.ToBoolean(aiParams.GetObjectFromPath("data.restorationOnReturn"));
 
         // individually
         OnCombatStartSkills = new List<uint>();

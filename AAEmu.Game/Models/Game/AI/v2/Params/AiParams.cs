@@ -12,12 +12,13 @@ public class AiParams
 {
     // should be in float: AlertDuration, MeleeAttackRange, TimeRange, SkillDelay, Delay : found in npc_ai_params
     public float AlertDuration { get; set; }
-    public float AlertSafeTargetRememberTime { get; set; }
-    public bool AlwaysTeleportOnReturn { get; set; }
-    public int MaxMakeAGapCount { get; set; }
-    public float MeleeAttackRange { get; set; }
-    public float PreferedCombatDist { get; set; } // 5, 10, 15 Also found in entity
-    public bool RestorationOnReturn { get; set; }
+    public bool AlertToAttack { get; set; } = true;
+    public float AlertSafeTargetRememberTime { get; set; } = 15f;
+    public bool AlwaysTeleportOnReturn { get; set; } // true only for elect Npcs
+    public int MaxMakeAGapCount { get; set; } = 100; // give the archers a chance to run off as often as possible
+    public float MeleeAttackRange { get; set; } = 4f;
+    public float PreferedCombatDist { get; set; } = 30f; // 5, 10, 15 Also found in entity
+    public bool RestorationOnReturn { get; set; } = true; // false only for elect Npcs
 
     // TODO: Msgs
     public static AiParams CreateByType(AiParamType type, string aiParamsString)

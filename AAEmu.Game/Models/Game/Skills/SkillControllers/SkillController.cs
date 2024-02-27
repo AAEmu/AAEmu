@@ -29,13 +29,13 @@ public class SkillController
     public virtual void Execute()
     {
         State = SCState.Running;
-        Logger.Debug($"SkillController: Npc {Owner.Name}:{Owner.ObjId} entering execute state={State}");
+        Logger.Trace($"SkillController: Npc {Owner.Name}:{Owner.ObjId} entering execute state={State}");
     }
 
     public virtual void End()
     {
         State = SCState.Ended;
-        Logger.Debug($"SkillController: Npc {Owner.Name}:{Owner.ObjId} entering end state={State}");
+        Logger.Trace($"SkillController: Npc {Owner.Name}:{Owner.ObjId} entering end state={State}");
     }
 
     public static SkillController CreateSkillController(SkillControllerTemplate template, BaseUnit owner, BaseUnit target)
@@ -48,17 +48,17 @@ public class SkillController
         switch ((SkillControllerKind)template.KindId)
         {
             case SkillControllerKind.Floating:
-                Logger.Debug($"SkillController: create FloatingSkillController");
+                Logger.Trace($"SkillController: create FloatingSkillController");
                 return null; // TODO: Add Floating (telekinesis, bubble ?)
             case SkillControllerKind.Wandering:
-                Logger.Debug($"SkillController: create WanderingSkillController");
+                Logger.Trace($"SkillController: create WanderingSkillController");
                 return null;// TODO: Add Wandering (Fear ?)
             case SkillControllerKind.Leap:
-                Logger.Debug($"SkillController: create LeapSkillController");
+                Logger.Trace($"SkillController: create LeapSkillController");
                 var ctrl = new LeapSkillController(template, owner, target) { State = SCState.Created };
                 return ctrl;
             default:
-                Logger.Debug($"SkillController: create defaultSkillController");
+                Logger.Trace($"SkillController: create defaultSkillController");
                 return null;
         }
     }

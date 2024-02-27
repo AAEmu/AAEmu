@@ -18,6 +18,7 @@ public class HoldPositionBehavior : Behavior
     {
         var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
         PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, targetDist);
+        CheckAggression();
     }
 
     public override void Exit()

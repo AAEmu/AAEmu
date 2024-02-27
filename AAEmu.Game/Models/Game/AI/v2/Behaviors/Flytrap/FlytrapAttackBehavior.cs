@@ -28,6 +28,8 @@ public class FlytrapAttackBehavior : Behavior
 
     public override void Tick(TimeSpan delta)
     {
+        Ai.Param ??= new FlytrapAiParams("");
+
         if (Ai.Param is not FlytrapAiParams aiParams)
             return;
 

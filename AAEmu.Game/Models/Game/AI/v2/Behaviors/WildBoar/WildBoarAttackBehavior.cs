@@ -24,10 +24,7 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
 
     public override void Enter()
     {
-        //_aiParams = Ai.Param as WildBoarAiParams;
-        _aiParams = Ai.Owner.Template.AiParams as WildBoarAiParams;
-        if (_aiParams == null)
-            return;
+        Ai.Param = Ai.Owner.Template.AiParams;
 
         if (!UpdateTarget() || ShouldReturn)
         {
@@ -56,6 +53,13 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
 
     public override void Tick(TimeSpan delta)
     {
+        Ai.Param ??= new WildBoarAiParams("");
+
+        if (Ai.Param is not WildBoarAiParams aiParams)
+            return;
+
+        _aiParams = aiParams;
+
         if (_aiParams == null)
             return;
 
@@ -98,7 +102,7 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
                 var skill = new Skill(skillTemplate);
                 if (targetDist >= skill.Template.MinRange && targetDist <= skill.Template.MaxRange)
                 {
-                    SetMaxWeaponRange(skill, Ai.Owner.CurrentTarget); // установим максимальную дистанцию для атаки скиллом
+                    SetMaxWeaponRange(skill, Ai.Owner.CurrentTarget); // set the maximum distance to attack with the skill
                     var result = UseSkill(skill, Ai.Owner.CurrentTarget);
                     if (result == SkillResult.CooldownTime)
                     {

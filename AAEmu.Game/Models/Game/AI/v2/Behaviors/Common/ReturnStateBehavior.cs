@@ -28,10 +28,10 @@ public class ReturnStateBehavior : Behavior
 
         //var needRestorationOnReturn = true; // TODO: Use params & alertness values
         //if (needRestorationOnReturn)
+        // StartSkill RETURN SKILL TYPE
+        Ai.Owner.Buffs.AddBuff((uint)BuffConstants.NpcReturn, Ai.Owner);
         if (Ai.Param == null || Ai.Param.RestorationOnReturn)
         {
-            // StartSkill RETURN SKILL TYPE
-            Ai.Owner.Buffs.AddBuff((uint)BuffConstants.NpcReturn, Ai.Owner);
             Ai.Owner.PostUpdateCurrentHp(Ai.Owner, Ai.Owner.Hp, Ai.Owner.MaxHp, KillReason.Unknown);
             Ai.Owner.Hp = Ai.Owner.MaxHp;
             Ai.Owner.Mp = Ai.Owner.MaxMp;

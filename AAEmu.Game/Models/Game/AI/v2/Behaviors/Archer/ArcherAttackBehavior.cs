@@ -43,6 +43,8 @@ public class ArcherAttackBehavior : BaseCombatBehavior
 
     public override void Tick(TimeSpan delta)
     {
+        Ai.Param ??= new ArcherAiParams("");
+
         if (Ai.Param is not ArcherAiParams aiParams)
             return;
 
