@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -12,7 +11,6 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
 using NLog;
@@ -683,12 +681,14 @@ public class QuestNoneState : QuestState
 
         return true;
     }
+
     public override bool Update()
     {
         Logger.Info($"[QuestNoneState][Update] Quest: {Quest.TemplateId}. Ничего не делаем.");
         Logger.Info($"[QuestNoneState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
         return true;
     }
+
     public override bool Complete(int selected = 0, EventArgs eventArgs = null)
     {
         Logger.Info($"[QuestNoneState][Complete] Quest: {Quest.TemplateId}. Шаг успешно завершен!");
@@ -696,11 +696,13 @@ public class QuestNoneState : QuestState
         Quest.GoToNextStep(selected); // переход к следующему шагу // go to next step
         return true;
     }
+
     public override void Fail()
     {
         Logger.Info($"[QuestNoneState][Fail] Quest: {Quest.TemplateId} не может завершиться неудачей, пока не начался!");
         Logger.Info($"[QuestNoneState][Fail] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
     }
+
     public override void Drop()
     {
         Logger.Info($"[QuestNoneState][Drop] Квест {Quest.TemplateId} сброшен");
@@ -817,6 +819,7 @@ public class QuestStartState : QuestState
 
         return true;
     }
+
     public override bool Update()
     {
         Logger.Info($"[QuestStartState][Update] Quest: {Quest.TemplateId}. Ничего не делаем.");
@@ -824,6 +827,7 @@ public class QuestStartState : QuestState
 
         return true;
     }
+
     public override bool Complete(int selected = 0, EventArgs eventArgs = null)
     {
         //Quest.Step = QuestComponentKind.Start;
@@ -832,17 +836,20 @@ public class QuestStartState : QuestState
 
         return true;
     }
+
     public override void Fail()
     {
         Logger.Info($"[QuestStartState][Fail] Quest: {Quest.TemplateId} не может завершиться неудачей, пока не начался!");
         Logger.Info($"[QuestStartState][Fail] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
     }
+
     public override void Drop()
     {
         Logger.Info($"[QuestStartState][Drop] Quest: {Quest.TemplateId} сброшен");
         Logger.Info($"[QuestStartState][Drop] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
     }
 }
+
 public class QuestSupplyState : QuestState
 {
     public override bool Start(bool forcibly = false, int selected = 0)

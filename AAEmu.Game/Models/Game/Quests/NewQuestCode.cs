@@ -20,6 +20,7 @@ namespace AAEmu.Game.Models.Game.Quests;
 public partial class Quest : PacketMarshaler
 {
     private object _lock = new();
+    public Dictionary<QuestComponentKind, QuestContext> QuestSteps { get; set; }
     public QuestContext QuestNoneState { get; set; }
     public QuestContext QuestStartState { get; set; }
     public QuestContext QuestSupplyState { get; set; }
@@ -169,6 +170,7 @@ public partial class Quest : PacketMarshaler
             }
         }
     }
+
     public void CompleteActiveStep(int selected = 0, EventArgs eventArgs = null)
     {
         while (true)
@@ -435,6 +437,10 @@ public partial class Quest : PacketMarshaler
         return context == null;
     }
 
+    /// <summary>
+    /// Sets status to Progress and sends update quest context to the Quest Owner
+    /// </summary>
+    /// <param name="str">Title header for us in server logs</param>
     private void BadChoice(string str)
     {
         // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
@@ -447,6 +453,10 @@ public partial class Quest : PacketMarshaler
         UpdateActiveStep();
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="str"></param>
     private void AltChoice(string str)
     {
         if ((EarlyCompletion || ExtraCompletion) && !ReadyToReportNpc)
@@ -472,7 +482,6 @@ public partial class Quest : PacketMarshaler
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
         UpdateActiveStep();
     }
-
 
     /// <summary>
     /// CheckResults - проверка компонентов и актов
@@ -839,6 +848,7 @@ public partial class Quest : PacketMarshaler
 
         AltChoice("OnInteractionHandler");
     }
+
     public void OnMonsterHuntHandler(object sender, EventArgs eventArgs)
     {
         // Quest: 250, 1573, 4289
@@ -887,6 +897,7 @@ public partial class Quest : PacketMarshaler
 
         AltChoice("OnMonsterHuntHandler");
     }
+
     public void OnMonsterGroupHuntHandler(object sender, EventArgs eventArgs)
     {
         // Quest: 266, 1233, 4295
@@ -935,6 +946,7 @@ public partial class Quest : PacketMarshaler
 
         AltChoice("OnMonsterGroupHuntHandler");
     }
+
     public void OnItemUseHandler(object sender, EventArgs eventArgs)
     {
         // Quest: 252, 1222
@@ -983,6 +995,7 @@ public partial class Quest : PacketMarshaler
 
         AltChoice("OnItemUseHandler");
     }
+
     public void OnItemGroupUseHandler(object sender, EventArgs eventArgs)
     {
         // Quest: 
@@ -1031,6 +1044,7 @@ public partial class Quest : PacketMarshaler
 
         AltChoice("OnItemGroupUseHandler");
     }
+
     public void OnItemGatherHandler(object sender, EventArgs eventArgs)
     {
         // Quest: 251, 324, 953, 1215, 1216, 1233, 2300
@@ -1082,6 +1096,7 @@ public partial class Quest : PacketMarshaler
 
         AltChoice("OnItemGatherHandler");
     }
+
     public void OnItemGroupGatherHandler(object sender, EventArgs eventArgs)
     {
         // Quest: 
@@ -1131,6 +1146,7 @@ public partial class Quest : PacketMarshaler
 
         AltChoice("OnItemGroupGatherHandler");
     }
+
     public void OnAggroHandler(object sender, EventArgs eventArgs)
     {
         // Quest: 
@@ -1182,6 +1198,7 @@ public partial class Quest : PacketMarshaler
 
         BadChoice("OnAggroHandler");
     }
+
     public void OnExpressFireHandler(object sender, EventArgs eventArgs)
     {
         // Quest:
@@ -1234,6 +1251,7 @@ public partial class Quest : PacketMarshaler
 
         BadChoice("OnExpressFireHandler");
     }
+
     public void OnAbilityLevelUpHandler(object sender, EventArgs eventArgs)
     {
         // Quest: 5967
@@ -1286,6 +1304,7 @@ public partial class Quest : PacketMarshaler
 
         BadChoice("OnAbilityLevelUpHandler");
     }
+
     public void OnLevelUpHandler(object sender, EventArgs eventArgs)
     {
         // Quest: 
@@ -1338,6 +1357,7 @@ public partial class Quest : PacketMarshaler
 
         BadChoice("OnLevelUpHandler");
     }
+
     public void OnCraftHandler(object sender, EventArgs eventArgs)
     {
         // Quest: 6024, 4666, 4667, 4668, 4669
@@ -1390,6 +1410,7 @@ public partial class Quest : PacketMarshaler
 
         BadChoice("OnCraftHandler");
     }
+
     public void OnEnterSphereHandler(object sender, EventArgs eventArgs)
     {
         // Quest: 2762 AcceptNpc & ObjSphere
@@ -1442,6 +1463,7 @@ public partial class Quest : PacketMarshaler
 
         BadChoice("OnEnterSphereHandler");
     }
+
     public void OnZoneKillHandler(object sender, EventArgs eventArgs)
     {
         // Quest: 2819 AcceptSphere & ZoneKill
@@ -1493,6 +1515,7 @@ public partial class Quest : PacketMarshaler
 
         BadChoice("OnZoneKillHandler");
     }
+
     public void OnZoneMonsterHuntHandler(object sender, EventArgs eventArgs)
     {
         // Quest: 2819 AcceptSphere & ZoneKill
@@ -1614,6 +1637,7 @@ public partial class Quest : PacketMarshaler
 
         BadChoice("OnTalkMadeHandler");
     }
+
     /// <summary>
     /// OnTalkNpcGroupMadeHandler - для этого события будет известен QuestId, выполняется на шаге Progress
     /// </summary>
@@ -1752,6 +1776,7 @@ public partial class Quest : PacketMarshaler
 
         BadChoice("OnReportNpcHandler");
     }
+
     /// <summary>
     /// OnReportDoodadHandler - для этого события будет известен QuestId, выполняется на шаге Ready
     /// </summary>
