@@ -8,6 +8,8 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
 public class AttackBehavior : BaseCombatBehavior
 {
+    private bool _enter;
+
     public override void Enter()
     {
         Ai.Owner.InterruptSkills();
@@ -15,12 +17,16 @@ public class AttackBehavior : BaseCombatBehavior
         Ai.Owner.IsInBattle = true;
         if (Ai.Owner is { } npc)
         {
-            npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc});
+            npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
         }
+        _enter = true;
     }
 
     public override void Tick(TimeSpan delta)
     {
+        if (!_enter)
+            return; // not initialized yet Enter()
+
         if (!UpdateTarget() || ShouldReturn)
         {
             Ai.GoToReturn();
@@ -42,5 +48,6 @@ public class AttackBehavior : BaseCombatBehavior
 
     public override void Exit()
     {
+        _enter = false;
     }
 }

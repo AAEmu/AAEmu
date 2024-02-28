@@ -15,6 +15,7 @@ public class RoamingBehavior : Behavior
 {
     private Vector3 _targetRoamPosition = Vector3.Zero;
     private DateTime _nextRoaming;
+    private bool _enter;
 
     public override void Enter()
     {
@@ -22,10 +23,14 @@ public class RoamingBehavior : Behavior
         Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, BaseUnitType.Npc, ModelPostureType.ActorModelState, 2), false); // fixed animated
         //UpdateRoaming();
         Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
+        _enter = true;
     }
 
     public override void Tick(TimeSpan delta)
     {
+        if (!_enter)
+            return; // not initialized yet Enter()
+
         CheckAggression();
 
         if (_targetRoamPosition.Equals(Vector3.Zero) && DateTime.UtcNow > _nextRoaming)
@@ -46,6 +51,7 @@ public class RoamingBehavior : Behavior
 
     public override void Exit()
     {
+        _enter = false;
     }
 
     private void UpdateRoaming()

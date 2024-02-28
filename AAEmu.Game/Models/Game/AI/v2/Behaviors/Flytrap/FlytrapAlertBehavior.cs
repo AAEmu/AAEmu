@@ -8,6 +8,8 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Flytrap;
 
 public class FlytrapAlertBehavior : Behavior
 {
+    private bool _enter;
+
     public override void Enter()
     {
         Ai.Owner.InterruptSkills();
@@ -16,14 +18,19 @@ public class FlytrapAlertBehavior : Behavior
         {
             npc.Events.InAlert(this, new InAlertArgs { Npc = npc });
         }
+        _enter = true;
     }
 
     public override void Tick(TimeSpan delta)
     {
+        if (!_enter)
+            return; // not initialized yet Enter()
+
         CheckAggression();
     }
 
     public override void Exit()
     {
+        _enter = false;
     }
 }

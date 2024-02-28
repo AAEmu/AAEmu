@@ -880,7 +880,26 @@ public class Npc : Unit
         }
 
         if (AggroTable.Count != lastAggroCount)
-            CheckIfEmptyAggroToReturn();
+            CheckIfEmptyAggroToReturn(unit);
+    }
+
+    private static void CheckIfEmptyAggroToReturn(IBaseUnit unit)
+    {
+        if (unit is not Npc npc)
+            return;
+
+        // If aggro table is empty, and too far from spawn, trigger a return to spawn effect.
+        if (!npc.AggroTable.IsEmpty)
+            return;
+
+        if (npc.Ai != null)
+        {
+            var distanceToIdle = MathUtil.CalculateDistance(npc.Ai.IdlePosition.Local.Position, npc.Transform.World.Position, true);
+            if (distanceToIdle > 4)
+                npc.Ai.GoToReturn();
+        }
+
+        npc.IsInBattle = false;
     }
 
     private void CheckIfEmptyAggroToReturn()

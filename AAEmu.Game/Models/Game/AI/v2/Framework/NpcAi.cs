@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using AAEmu.Game.Models.Game.AI.AStar;
+using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
@@ -77,7 +78,7 @@ public abstract class NpcAi
 
     private void SetCurrentBehavior(Behavior behavior)
     {
-        Logger.Debug($"Npc {Owner.TemplateId}:{Owner.ObjId} leaving behavior {_currentBehavior?.GetType().Name ?? "none"}, Entering behavior {behavior?.GetType().Name ?? "none"}");
+        Logger.Trace($"Npc {Owner.TemplateId}:{Owner.ObjId} leaving behavior {_currentBehavior?.GetType().Name ?? "none"}, Entering behavior {behavior?.GetType().Name ?? "none"}");
         _currentBehavior?.Exit();
         _currentBehavior = behavior;
         _currentBehavior?.Enter();
@@ -87,11 +88,11 @@ public abstract class NpcAi
     {
         if (!_behaviors.ContainsKey(kind))
         {
-            Logger.Debug($"Trying to set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior, but it is not valid. Missing behavior: {kind}");
+            Logger.Trace($"Trying to set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior, but it is not valid. Missing behavior: {kind}");
             return;
         }
 
-        Logger.Debug($"Set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior: {kind}");
+        Logger.Trace($"Set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior: {kind}");
         SetCurrentBehavior(_behaviors[kind]);
     }
 
@@ -114,6 +115,9 @@ public abstract class NpcAi
             // If aggro table is populated, check if current aggro targets need to be cleared
             if (Owner?.AggroTable.Count <= 0)
             {
+                if (Owner.IsDead || GetCurrentBehavior() is DeadBehavior)
+                    return;
+
                 OnNoAggroTarget();
                 return;
             }

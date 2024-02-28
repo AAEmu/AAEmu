@@ -219,6 +219,9 @@ public abstract class Behavior
 
         foreach (var unit in nearbyUnits)
         {
+            if (unit.IsDead || unit.Hp <= 0)
+                continue; // not counting dead Npc
+
             // Need to check for stealth detection here
             if (Ai.Owner.Template.SightFovScale >= 2.0f || MathUtil.IsFront(Ai.Owner, unit))
             {
@@ -245,7 +248,7 @@ public abstract class Behavior
 
     public void UpdateAggroHelp(Unit abuser, int radius = 20)
     {
-        var npcs = WorldManager.GetAround<Npc>(Ai.Owner, radius);
+        var npcs = WorldManager.GetAround<Npc>(Ai.Owner, CheckSightRangeScale(radius));
         if (npcs == null)
             return;
 
@@ -253,6 +256,9 @@ public abstract class Behavior
                      .Where(npc => npc.Template.Aggression && !npc.IsInBattle && npc.Template.AcceptAggroLink)
                      .Where(npc => npc.GetDistanceTo(npc.Ai.Owner) <= npc.Template.AggroLinkHelpDist))
         {
+            if (Ai.Owner.IsInBattle)
+                return; // already in battle, let's not change the target
+
             npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, abuser, 1);
             npc.Ai.GoToCombat();
         }

@@ -18,6 +18,7 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
     private AlmightyNpcAiParams _aiParams;
     private Queue<AiSkill> _skillQueue;
     private DateTime _combatStartTime;
+    private bool _enter;
 
     public override void Enter()
     {
@@ -39,10 +40,14 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
         }
         Ai.Param = Ai.Owner.Template.AiParams;
+        _enter = true;
     }
 
     public override void Tick(TimeSpan delta)
     {
+        if (!_enter)
+            return; // not initialized yet Enter()
+
         if (Ai.Param is not AlmightyNpcAiParams aiParams)
             return;
 
@@ -95,6 +100,7 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
 
     public override void Exit()
     {
+        _enter = false;
     }
 
     private bool RefreshSkillQueue(float trgDist)

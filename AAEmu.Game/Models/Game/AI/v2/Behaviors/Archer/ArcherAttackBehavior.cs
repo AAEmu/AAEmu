@@ -16,6 +16,7 @@ public class ArcherAttackBehavior : BaseCombatBehavior
 {
     public string Phase { get; set; }
     public int MakeAGapCount { get; set; }
+    private bool _enter;
 
     public override void Enter()
     {
@@ -39,10 +40,14 @@ public class ArcherAttackBehavior : BaseCombatBehavior
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
         }
         Ai.Param = Ai.Owner.Template.AiParams;
+        _enter = true;
     }
 
     public override void Tick(TimeSpan delta)
     {
+        if (!_enter)
+            return; // not initialized yet Enter()
+
         Ai.Param ??= new ArcherAiParams("");
 
         if (Ai.Param is not ArcherAiParams aiParams)
@@ -100,6 +105,7 @@ public class ArcherAttackBehavior : BaseCombatBehavior
 
     public override void Exit()
     {
+        _enter = false;
     }
 
     private void OnUseSkillDone()

@@ -4,7 +4,6 @@ using System.Linq;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.AI.v2.Params.BigMonster;
 using AAEmu.Game.Models.Game.AI.V2.Params.BigMonster;
 using AAEmu.Game.Models.Game.Models;
@@ -16,6 +15,8 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster;
 
 public class BigMonsterAttackBehavior : BaseCombatBehavior
 {
+    private bool _enter;
+
     public override void Enter()
     {
         Ai.Owner.InterruptSkills();
@@ -26,10 +27,14 @@ public class BigMonsterAttackBehavior : BaseCombatBehavior
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
         }
         Ai.Param = Ai.Owner.Template.AiParams;
+        _enter = true;
     }
 
     public override void Tick(TimeSpan delta)
     {
+        if (!_enter)
+            return; // not initialized yet Enter()
+
         Ai.Param ??= new BigMonsterAiParams("");
 
         if (Ai.Param is not BigMonsterAiParams aiParams)
@@ -74,6 +79,7 @@ public class BigMonsterAttackBehavior : BaseCombatBehavior
     public override void Exit()
     {
         // Clear combat state here
+        _enter = false;
     }
 
     private List<BigMonsterCombatSkill> RequestAvailableSkills(BigMonsterAiParams aiParams, float trgDist)

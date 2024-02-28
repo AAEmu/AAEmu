@@ -21,6 +21,7 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
     //private float _prevHealth;
     private float _currHealth;
     //private float _healthPercentage;
+    private bool _enter;
 
     public override void Enter()
     {
@@ -47,12 +48,16 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
         if (Ai.Owner is { } npc)
         {
-            npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc});
+            npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
         }
+        _enter = true;
     }
 
     public override void Tick(TimeSpan delta)
     {
+        if (!_enter)
+            return; // not initialized yet Enter()
+
         Ai.Param ??= new WildBoarAiParams("");
 
         if (Ai.Param is not WildBoarAiParams aiParams)
@@ -119,5 +124,6 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
 
     public override void Exit()
     {
+        _enter = false;
     }
 }

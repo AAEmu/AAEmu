@@ -11,7 +11,6 @@ public class AlmightyNpcAiParams : AiParams
 {
     public List<string> Msgs { get; set; }
     public string IdleAi { get; set; } = "hold_position";
-    public bool AlertToAttack { get; set; }
     public int CanChangeAiUnitAttr { get; set; }
     public int AiPhaseChangeType { get; set; } // Should be an enum
     public List<int> AiPhase { get; set; } // this might be enum 

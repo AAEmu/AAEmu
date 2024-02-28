@@ -15,6 +15,8 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Flytrap;
 public class FlytrapAttackBehavior : Behavior
 {
     private FlytrapAiParams _aiParams;
+    private bool _enter;
+
     public override void Enter()
     {
         Ai.Owner.InterruptSkills();
@@ -24,10 +26,14 @@ public class FlytrapAttackBehavior : Behavior
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
         }
         Ai.Param = Ai.Owner.Template.AiParams;
+        _enter = true;
     }
 
     public override void Tick(TimeSpan delta)
     {
+        if (!_enter)
+            return; // not initialized yet Enter()
+
         Ai.Param ??= new FlytrapAiParams("");
 
         if (Ai.Param is not FlytrapAiParams aiParams)
@@ -56,6 +62,7 @@ public class FlytrapAttackBehavior : Behavior
 
     public override void Exit()
     {
+        _enter = false;
     }
 
     #region Gimmick
