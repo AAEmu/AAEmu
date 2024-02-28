@@ -1,7 +1,10 @@
 ﻿using System.Linq;
-
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Quests.Static;
+using Discord;
 
 namespace AAEmu.Game.Utils;
 
@@ -31,7 +34,7 @@ public class QuestCommandUtil
                 foreach (var quest in character.Quests.ActiveQuests.Values)
                 {
                     var objectives = quest.GetObjectives(quest.Step).Select(t => t.ToString()).ToList();
-                    character.SendMessage($"Quest {quest.Template.Id}: Step({quest.Step}), Objectives({string.Join(", ", objectives)})");
+                    character.SendMessage($"Quest {quest.Template.Id}: Step({quest.Step}), Objectives({string.Join(", ", objectives)}) - @QUEST_NAME({quest.Template.Id})");
                 }
                 break;
             case "reward":
@@ -143,6 +146,29 @@ public class QuestCommandUtil
                 break;
             case "resetdaily":
                 character.Quests.ResetDailyQuests(true);
+                break;
+            case "debugupdate":
+                if (args.Length >= 6)
+                {
+                    if (!uint.TryParse(args[1], out var questVal))
+                        break;
+                    if (!character.Quests.ActiveQuests.TryGetValue(questVal, out var activeQuest))
+                    {
+                        character.SendMessage(ChatType.System, $"[Quest] No active quest Id {questVal}", Color.Red);
+                        break;
+                    }
+                    if (!uint.TryParse(args[2], out var componentId))
+                        break;
+                    if (!int.TryParse(args[3], out var para1))
+                        break;
+                    if (!int.TryParse(args[4], out var para2))
+                        break;
+                    if (!int.TryParse(args[5], out var para3))
+                        break;
+                    if (!int.TryParse(args[6], out var para4))
+                        break;
+                    character.SendPacket(new SCQuestContextUpdatedPacket(activeQuest, componentId, para1, para2, para3, para4));
+                }
                 break;
             default:
                 character.SendMessage("[Quest] /quest <add/remove/list/prog/reward/resetdaily>\nBefore that, target the Npc you need for the quest");

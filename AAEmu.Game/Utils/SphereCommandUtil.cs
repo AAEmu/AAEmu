@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-
+using System.Numerics;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
@@ -196,7 +196,9 @@ public class SphereCommandUtil
                 continue;
             if ((questId > 0) && (questTrigger.Quest.Id != questId))
                 continue;
-            character.SendMessage($"[Sphere] Quest {questTrigger.Quest.TemplateId} - Component: {questTrigger.Sphere.ComponentId} - TriggerSphere  x:{questTrigger.Sphere.X} , y:{questTrigger.Sphere.Y} , z:{questTrigger.Sphere.Z} , radius:{questTrigger.Sphere.Radius}");
+            var currentDistance = MathUtil.CalculateDistance(character.Transform.World.Position,
+                new Vector3(questTrigger.Sphere.X, questTrigger.Sphere.Y, questTrigger.Sphere.Z), true);
+            character.SendMessage($"[Sphere] Quest {questTrigger.Quest.TemplateId} - Component: {questTrigger.Sphere.ComponentId} - TriggerSphere  x:{questTrigger.Sphere.X} , y:{questTrigger.Sphere.Y} , z:{questTrigger.Sphere.Z} , radius:{questTrigger.Sphere.Radius}m, at {currentDistance:F1}m away");
             count++;
         }
         if (count <= 0)
