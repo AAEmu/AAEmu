@@ -18,8 +18,6 @@ public class QuestActObjItemGather : QuestActTemplate, IQuestActGenericItem // �
     public bool Cleanup { get; set; }
     public bool DropWhenDestroy { get; set; }
     public bool DestroyWhenDrop { get; set; }
-
-    private int Objective { get; set; }
     //public static int GatherStatus { get; private set; } = 0;
 
     public override bool Use(ICharacter character, Quest quest, int objective)
@@ -69,29 +67,5 @@ public class QuestActObjItemGather : QuestActTemplate, IQuestActGenericItem // �
             quest.QuestCleanupItemsPool.Add(new ItemCreationDefinition(ItemId, Math.Min(maxCleanup, objective)));
 
         return res;
-    }
-
-    public override void Update()
-    {
-        Objective++;
-    }
-
-    public override bool IsCompleted()
-    {
-        return Objective >= Count;
-    }
-
-    public override int GetCount()
-    {
-        Logger.Info("Получим, информацию на сколько выполнено задание.");
-
-        return Objective;
-    }
-
-    public override void ClearStatus()
-    {
-        //GatherStatus = 0;
-        Objective = 0;
-        Logger.Info("Сбросили статус в ноль.");
     }
 }

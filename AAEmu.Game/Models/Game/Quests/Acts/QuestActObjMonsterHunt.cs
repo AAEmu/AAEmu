@@ -11,9 +11,7 @@ public class QuestActObjMonsterHunt : QuestActTemplate
     public uint QuestActObjAliasId { get; set; }
     public uint HighlightDoodadId { get; set; }
     public int HighlightDoodadPhase { get; set; }
-
     //public static int HuntStatus { get; private set; } = 0;
-    private int Objective { get; set; }
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
@@ -56,25 +54,5 @@ public class QuestActObjMonsterHunt : QuestActTemplate
         Update();
 
         return objective >= Count;
-    }
-    public override void Update()
-    {
-        Objective++;
-    }
-    public override bool IsCompleted()
-    {
-        return Objective >= Count;
-    }
-    public override int GetCount()
-    {
-        Logger.Info("Получим, информацию на сколько выполнено задание.");
-
-        return Objective;
-    }
-    public override void ClearStatus()
-    {
-        //HuntStatus = 0;
-        Objective = 0;
-        Logger.Info("Сбросили статус в ноль.");
     }
 }

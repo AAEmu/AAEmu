@@ -16,8 +16,6 @@ internal class QuestActObjItemUse : QuestActTemplate
 
     //public static int ItemUseStatus { get; private set; } = 0;
 
-    private int Objective { get; set; }
-
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
         Logger.Warn("QuestActObjItemUse");
@@ -54,26 +52,5 @@ internal class QuestActObjItemUse : QuestActTemplate
         Update();
 
         return objective >= Count;
-    }
-
-    public override void Update()
-    {
-        Objective++;
-    }
-    public override bool IsCompleted()
-    {
-        return Objective >= Count;
-    }
-    public override int GetCount()
-    {
-        Logger.Info("Получим, информацию на сколько выполнено задание.");
-
-        return Objective;
-    }
-    public override void ClearStatus()
-    {
-        //ItemUseStatus = 0;
-        Objective = 0;
-        Logger.Info("Сбросили статус в ноль.");
     }
 }
