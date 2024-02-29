@@ -7,7 +7,7 @@ using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
-using AAEmu.Game.Models.Game.AI.Params;
+using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.AI.Utils;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;

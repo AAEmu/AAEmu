@@ -21,13 +21,11 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
     //private float _prevHealth;
     private float _currHealth;
     //private float _healthPercentage;
+    private bool _enter;
 
     public override void Enter()
     {
-        //_aiParams = Ai.Param as WildBoarAiParams;
-        _aiParams = Ai.Owner.Template.AiParams as WildBoarAiParams;
-        if (_aiParams == null)
-            return;
+        Ai.Param = Ai.Owner.Template.AiParams;
 
         if (!UpdateTarget() || ShouldReturn)
         {
@@ -50,12 +48,23 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
         if (Ai.Owner is { } npc)
         {
-            npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc});
+            npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
         }
+        _enter = true;
     }
 
     public override void Tick(TimeSpan delta)
     {
+        if (!_enter)
+            return; // not initialized yet Enter()
+
+        Ai.Param ??= new WildBoarAiParams("");
+
+        if (Ai.Param is not WildBoarAiParams aiParams)
+            return;
+
+        _aiParams = aiParams;
+
         if (_aiParams == null)
             return;
 
@@ -98,7 +107,7 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
                 var skill = new Skill(skillTemplate);
                 if (targetDist >= skill.Template.MinRange && targetDist <= skill.Template.MaxRange)
                 {
-                    SetMaxWeaponRange(skill, Ai.Owner.CurrentTarget); // установим максимальную дистанцию для атаки скиллом
+                    SetMaxWeaponRange(skill, Ai.Owner.CurrentTarget); // set the maximum distance to attack with the skill
                     var result = UseSkill(skill, Ai.Owner.CurrentTarget);
                     if (result == SkillResult.CooldownTime)
                     {
@@ -115,5 +124,6 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
 
     public override void Exit()
     {
+        _enter = false;
     }
 }

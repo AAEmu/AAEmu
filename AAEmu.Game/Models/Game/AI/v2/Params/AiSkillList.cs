@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using AAEmu.Game.Models.Game.AI.v2.Params;
+
 using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.V2.Params;
@@ -13,8 +15,8 @@ public class AiSkillList
     public int Dice { get; set; }
     public int HealthRangeMin { get; set; }
     public int HealthRangeMax { get; set; }
-    public int TimeRangeStart { get; set; }
-    public int TimeRangeEnd { get; set; }
+    public float TimeRangeStart { get; set; }
+    public float TimeRangeEnd { get; set; }
     public List<AiSkill> Skills { get; set; }
     public bool Restoration { get; set; }
     public bool GoReturn { get; set; }
@@ -34,8 +36,8 @@ public class AiSkillList
 
         if (table["timeRange"] is LuaTable timeRange)
         {
-            TimeRangeStart = Convert.ToInt32(timeRange[1]);
-            TimeRangeEnd = Convert.ToInt32(timeRange[2]);
+            TimeRangeStart = Convert.ToSingle(timeRange[1]);
+            TimeRangeEnd = Convert.ToSingle(timeRange[2]);
         }
 
         if (table["options"] is LuaTable options)
@@ -45,7 +47,6 @@ public class AiSkillList
         }
 
         Skills = new List<AiSkill>();
-
         if (table["startAiSkill"] is LuaTable startAiSkill)
         {
             var aiSkill = new AiSkill();
@@ -60,40 +61,40 @@ public class AiSkillList
         {
             foreach (var skillList in skillLists.Values)
             {
-                if (skillList is LuaTable skillListTable)
+                if (skillList is not LuaTable skillListTable)
+                    continue;
+
+                UseType = Convert.ToUInt32(skillListTable["useType"]);
+                Dice = Convert.ToInt32(skillListTable["dice"]);
+
+                if (skillListTable["healthRange"] is LuaTable healthRange2)
                 {
-                    UseType = Convert.ToUInt32(skillListTable["useType"]);
-                    Dice = Convert.ToInt32(skillListTable["dice"]);
+                    HealthRangeMin = Convert.ToInt32(healthRange2[1]);
+                    HealthRangeMax = Convert.ToInt32(healthRange2[2]);
+                }
+                if (skillListTable["skills"] is LuaTable skills)
+                {
+                    foreach (var skill in skills.Values)
+                    {
+                        if (skill is not LuaTable skillTable)
+                            continue;
 
-                    if (skillListTable["healthRange"] is LuaTable healthRange2)
-                    {
-                        HealthRangeMin = Convert.ToInt32(healthRange2[1]);
-                        HealthRangeMax = Convert.ToInt32(healthRange2[2]);
-                    }
-                    if (skillListTable["skills"] is LuaTable skills)
-                    {
-                        foreach (var skill in skills.Values)
-                        {
-                            if (skill is LuaTable skillTable)
-                            {
-                                var aiSkill = new AiSkill();
-                                aiSkill.SkillId = Convert.ToUInt32(skillTable["skillType"]);
-                                aiSkill.Delay = Convert.ToSingle(skillTable["delay"]);
-                                aiSkill.Strafe = Convert.ToBoolean(skillTable["strafe"]);
-
-                                Skills.Add(aiSkill);
-                            }
-                        }
-                    }
-                    else
-                    {
                         var aiSkill = new AiSkill();
-                        aiSkill.SkillId = Convert.ToUInt32(table["skillType"]);
-                        aiSkill.Delay = Convert.ToSingle(table["delay"]);
-                        aiSkill.Strafe = Convert.ToBoolean(table["strafe"]);
+                        aiSkill.SkillId = Convert.ToUInt32(skillTable["skillType"]);
+                        aiSkill.Delay = Convert.ToSingle(skillTable["delay"]);
+                        aiSkill.Strafe = Convert.ToBoolean(skillTable["strafe"]);
 
                         Skills.Add(aiSkill);
                     }
+                }
+                else
+                {
+                    var aiSkill = new AiSkill();
+                    aiSkill.SkillId = Convert.ToUInt32(table["skillType"]);
+                    aiSkill.Delay = Convert.ToSingle(table["delay"]);
+                    aiSkill.Strafe = Convert.ToBoolean(table["strafe"]);
+
+                    Skills.Add(aiSkill);
                 }
             }
         }
@@ -101,15 +102,15 @@ public class AiSkillList
         {
             foreach (var skill in skills.Values)
             {
-                if (skill is LuaTable skillTable)
-                {
-                    var aiSkill = new AiSkill();
-                    aiSkill.SkillId = Convert.ToUInt32(skillTable["skillType"]);
-                    aiSkill.Delay = Convert.ToSingle(skillTable["delay"]);
-                    aiSkill.Strafe = Convert.ToBoolean(skillTable["strafe"]);
+                if (skill is not LuaTable skillTable)
+                    continue;
 
-                    Skills.Add(aiSkill);
-                }
+                var aiSkill = new AiSkill();
+                aiSkill.SkillId = Convert.ToUInt32(skillTable["skillType"]);
+                aiSkill.Delay = Convert.ToSingle(skillTable["delay"]);
+                aiSkill.Strafe = Convert.ToBoolean(skillTable["strafe"]);
+
+                Skills.Add(aiSkill);
             }
         }
         else
@@ -122,11 +123,4 @@ public class AiSkillList
             Skills.Add(aiSkill);
         }
     }
-}
-
-public class AiSkill
-{
-    public uint SkillId { get; set; }
-    public float Delay { get; set; }
-    public bool Strafe { get; set; }
 }

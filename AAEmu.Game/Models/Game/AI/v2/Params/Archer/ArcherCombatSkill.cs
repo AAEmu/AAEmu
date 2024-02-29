@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.V2.Params.Archer;

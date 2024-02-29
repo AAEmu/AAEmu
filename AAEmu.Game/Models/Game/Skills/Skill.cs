@@ -196,6 +196,7 @@ public class Skill
         {
             SkillTlIdManager.ReleaseId(TlId);
             TlId = 0;
+            Logger.Info($"TooCloseRange targetDist={targetDist}, minRangeCheck={minRangeCheck}, SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
             return SkillResult.TooCloseRange;
         }
 
@@ -205,6 +206,7 @@ public class Skill
         {
             SkillTlIdManager.ReleaseId(TlId);
             TlId = 0;
+            Logger.Info($"TooFarRange targetDist={targetDist}, maxRangeCheck={maxRangeCheck}, SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
             return SkillResult.TooFarRange;
         }
 
@@ -502,11 +504,11 @@ public class Skill
             var effectDelay2 = new Dictionary<int, short> { { 0, 0 }, { 1, 0 } };
             var fireAnimId2 = new Dictionary<int, int> { { 0, 1 }, { 1, 2 } };
 
-            var targetUnit = (Unit)target;
-            var dist = MathUtil.CalculateDistance(caster.Transform.World.Position, targetUnit.Transform.World.Position, true);
+            //var targetUnit = (Unit)target; // unnecessary type cast
+            var dist = MathUtil.CalculateDistance(caster.Transform.World.Position, target.Transform.World.Position, true);
             if (dist >= SkillManager.Instance.GetSkillTemplate(Id).MinRange && dist <= SkillManager.Instance.GetSkillTemplate(Id).MaxRange)
             {
-                var sc = SkillController.CreateSkillController(scTemplate, caster, targetUnit);
+                var sc = SkillController.CreateSkillController(scTemplate, caster, target);
 #pragma warning disable CA1508 // Avoid dead conditional code
                 if (sc != null)
                 {
@@ -697,7 +699,6 @@ public class Skill
             totalDelay += (int)(unit.GetDistanceTo(target) / Template.EffectSpeed * 1000.0f);
         if (Template.FireAnim != null && Template.UseAnimTime)
             totalDelay += (int)(Template.FireAnim.CombatSyncTime * (unit.GlobalCooldownMul / 100));
-
 
         caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
         {

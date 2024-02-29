@@ -43,7 +43,7 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
         _aiCommands = new Dictionary<uint, List<AiCommands>>();
         _aiCommandSets = new Dictionary<uint, AiCommandSets>();
 
-        var fileTypeToId = new Dictionary<uint, AiParams.AiParamType>();
+        var fileTypeToId = new Dictionary<uint, AiParamType>();
 
         using (var command = connection.CreateCommand())
         {
@@ -55,7 +55,7 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
                 while (reader.Read())
                 {
                     var npcId = reader.GetUInt32("id");
-                    var type = (AiParams.AiParamType)reader.GetUInt32("ai_file_id");
+                    var type = (AiParamType)reader.GetUInt32("ai_file_id");
                     var id = reader.GetUInt32("npc_ai_param_id");
                     fileTypeToId.TryAdd(id, type);
                 }

@@ -354,7 +354,6 @@ public class DamageEffect : EffectTemplate
             caster.BroadcastPacket(new SCUnitPointsPacket(caster.ObjId, ((Unit)caster).Hp, ((Unit)caster).Mp), true);
         }
 
-
         if (Bonuses != null)
         {
             ((Unit)caster).Bonuses[uint.MaxValue] = new List<Bonus>();

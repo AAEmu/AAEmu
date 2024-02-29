@@ -842,6 +842,46 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             _mates.TryAdd(mate.ObjId, mate);
     }
 
+    public bool RemoveObject(uint ObjId)
+    {
+        if (ObjId == 0)
+            return false;
+
+        var res = false;
+
+        if (_objects.TryRemove(ObjId, out _))
+        {
+            Logger.Debug($"WorldManager: object {ObjId} removed from _objects");
+            res = true;
+        }
+
+        if (_baseUnits.TryRemove(ObjId, out _))
+        {
+            Logger.Debug($"WorldManager: object {ObjId} removed from _baseUnits");
+            res = true;
+        }
+
+        if (_units.TryRemove(ObjId, out _))
+        {
+            Logger.Debug($"WorldManager: object {ObjId} removed from _units");
+            res = true;
+        }
+
+        if (_npcs.TryRemove(ObjId, out _))
+        {
+            Logger.Debug($"WorldManager: object {ObjId} removed from _npcs");
+            res = true;
+        }
+
+        //_doodads.TryRemove(ObjId, out _);
+        //_characters.TryRemove(ObjId, out _);
+        //_transfers.TryRemove(ObjId, out _);
+        //_gimmicks.TryRemove(ObjId, out _);
+        //_slaves.TryRemove(ObjId, out _);
+        //_mates.TryRemove(mate.ObjId, out _);
+
+        return res;
+    }
     public void RemoveObject(GameObject obj)
     {
         if (obj == null)

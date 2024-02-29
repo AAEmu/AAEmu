@@ -28,7 +28,6 @@ public class LeapSkillController : SkillController
     }
     public LeapDirection Direction { get; set; }
 
-
     public LeapSkillController(SkillControllerTemplate template, BaseUnit owner, BaseUnit target)
     {
         Template = template;
@@ -74,45 +73,73 @@ public class LeapSkillController : SkillController
 
     public void MoveTowards(float distance, byte flags = 4)
     {
-        var targetDist = MathUtil.CalculateDistance(Owner.Transform.World.Position, _endPosition);
-        if (targetDist <= 1.0f)
+        distance *= Owner.MoveSpeedMul; // Apply speed modifier
+        if (distance < 0.01f)
         {
             //TODO End Skill Controller
             End();
             return;
         }
 
-        var oldPosition = Owner.Transform.World.ClonePosition();
+        if (Owner.Buffs.HasEffectsMatchingCondition(e =>
+                e.Template.Stun
+                || e.Template.Sleep
+                || e.Template.Root
+                || e.Template.Knockdown
+                || e.Template.Fastened)
+            || Owner.IsDead)
+        {
+            //Logger.Debug($"{ObjId} @NPC_NAME({TemplateId}); is stuck in place");
+            return;
+        }
+
+        if (Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle)) ||
+            Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare)))
+        {
+            return;
+        }
+
+        var oldPosition = Owner.Transform.Local.ClonePosition();
+        var targetDist = MathUtil.CalculateDistance(Owner.Transform.Local.Position, _endPosition, true);
+        if (targetDist <= 1f)
+        {
+            //TODO End Skill Controller
+            End();
+            return;
+        }
 
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
         var travelDist = Math.Min(targetDist, distance);
-        var angle = (float)MathUtil.CalculateAngleFrom(Owner.Transform.World.Position, _endPosition);
-        //var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
-        var (newX, newY) = MathUtil.AddDistanceToFront(travelDist, Owner.Transform.World.Position.X, Owner.Transform.World.Position.Y, angle);
-        var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, angle);
-        var newZ = WorldManager.Instance.GetHeight(Owner.Transform.ZoneId, Owner.Transform.World.Position.X, Owner.Transform.World.Position.Z);
-        if (newZ == 0)
+
+        // TODO: Implement proper use for Transform.World.AddDistanceToFront
+        var (newX, newY, newZ) = World.Transform.PositionAndRotation.AddDistanceToFront(travelDist, targetDist, Owner.Transform.Local.Position, _endPosition);
+        Owner.Transform.Local.SetPosition(newX, newY, newZ);
+
+        // TODO: Implement Transform.World to do proper movement
+        // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
+        var updZ = WorldManager.Instance.GetHeight(Owner.Transform.ZoneId, newX, newY);
+        if (Math.Abs(newZ - updZ) < 1f)
         {
-            newZ = Owner.Transform.World.Position.Z;
+            Owner.Transform.Local.SetHeight(updZ);
         }
 
-        // TODO: Implement Transform.World
-        Owner.Transform.World.SetPosition(newX, newY, newZ);
-        Owner.Transform.World.SetRotationDegree(0f, 0f, angle - 90);
+        var angle = MathUtil.CalculateAngleFrom(Owner.Transform.Local.Position, _endPosition);
+        var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, (float)angle.DegToRad());
+        Owner.Transform.Local.SetRotationDegree(0f, 0f, (float)angle - 90);
+        var (rx, ry, rz) = Owner.Transform.Local.ToRollPitchYawSBytesMovement();
 
         moveType.X = Owner.Transform.Local.Position.X;
         moveType.Y = Owner.Transform.Local.Position.Y;
         moveType.Z = Owner.Transform.Local.Position.Z;
         moveType.VelX = (short)velX;
         moveType.VelY = (short)velY;
-        var rpy = Owner.Transform.Local.ToRollPitchYawSBytesMovement();
-        moveType.RotationX = 0; //rpy.Item1;
-        moveType.RotationY = 0; //rpy.Item2;
-        moveType.RotationZ = rpy.Item3;
-        moveType.ActorFlags = flags; // 5-walk, 4-run, 3-stand still
-        moveType.Flags = 0x14;       //SC move flag
-        moveType.ScType = Template.Id;
+        //moveType.VelZ = (short)velZ;
+        moveType.RotationX = rx;
+        moveType.RotationY = ry;
+        moveType.RotationZ = rz;
+        moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
+        moveType.Flags = 4;
 
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;
@@ -123,7 +150,7 @@ public class LeapSkillController : SkillController
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
         Owner.CheckMovedPosition(oldPosition);
-        //Owner.SetPosition(Owner.Position);
+        //SetPosition(Position);
         Owner.BroadcastPacket(new SCOneUnitMovementPacket(Owner.ObjId, moveType), false);
     }
 }

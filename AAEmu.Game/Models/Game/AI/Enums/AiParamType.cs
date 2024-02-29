@@ -1,4 +1,4 @@
-﻿namespace AAEmu.Game.Models.Game.AI.Params;
+﻿namespace AAEmu.Game.Models.Game.AI.Enums;
 
 public enum AiParamType
 {

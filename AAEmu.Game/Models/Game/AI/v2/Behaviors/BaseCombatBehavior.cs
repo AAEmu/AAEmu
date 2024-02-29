@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Skills;
@@ -24,11 +25,12 @@ public abstract class BaseCombatBehavior : Behavior
             return;
 
         if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e =>
-                e.Template.Stun ||
-                e.Template.Sleep ||
-                e.Template.Root ||
-                e.Template.Knockdown ||
-                e.Template.Fastened))
+                e.Template.Stun
+                || e.Template.Sleep
+                || e.Template.Root
+                || e.Template.Knockdown
+                || e.Template.Fastened)
+            || Ai.Owner.IsDead)
         {
             return;
         }
@@ -47,7 +49,13 @@ public abstract class BaseCombatBehavior : Behavior
         var range = Ai.Owner.Template.AttackStartRangeScale;
         if (Ai.Owner.Template.UseRangeMod)
         {
-            range *= _maxWeaponRange;
+            if (_maxWeaponRange != 0)
+                range *= _maxWeaponRange;
+        }
+
+        if (Ai.Owner.Template.BaseSkillId == 2 && Ai.Owner.Template.Skills.Count == 0 && range == 4)
+        {
+            range -= 1f; // Fix that ID=7927, Plateau Earth Elemental can hit with a melee attack
         }
         var speed = Ai.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f);
         var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
@@ -214,6 +222,11 @@ public abstract class BaseCombatBehavior : Behavior
             {
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
+                    // check that such an Npc is in the database, there are cases that it is in the game, but not in the database
+                    var currentTarget = abuser.ObjId > 0 ? WorldManager.Instance.GetUnit(abuser.ObjId) : null;
+                    if (currentTarget == null)
+                        continue;
+
                     Ai.Owner.CurrentAggroTarget = abuser.ObjId;
                     Ai.Owner.SetTarget(abuser);
                     UpdateAggroHelp(abuser);

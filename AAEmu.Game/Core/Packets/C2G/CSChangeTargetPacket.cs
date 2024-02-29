@@ -35,6 +35,7 @@ public class CSChangeTargetPacket : GamePacket
         if (Connection.ActiveChar.CurrentTarget == null)
         {
             Connection.ActiveChar.SendMessage($"ObjId: {targetId}, TemplateId: not found in Db");
+            WorldManager.Instance.RemoveObject(targetId); // trying to delete the missing object
             return;
         }
         if (Connection.ActiveChar.CurrentTarget is Portal portal)

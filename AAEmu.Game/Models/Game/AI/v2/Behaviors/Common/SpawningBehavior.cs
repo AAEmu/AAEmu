@@ -13,6 +13,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 public class SpawningBehavior : Behavior
 {
     private bool _usedSpawnSkills = false;
+    private bool _enter;
 
     public override void Enter()
     {
@@ -28,10 +29,14 @@ public class SpawningBehavior : Behavior
         {
             CheckAggression();
         }
+        _enter = true;
     }
 
     public override void Tick(TimeSpan delta)
     {
+        if (!_enter)
+            return; // not initialized yet Enter()
+
         // TODO: Figure out how to do this on spawn
         if (Ai.Owner.Template.Skills.ContainsKey(SkillUseConditionKind.OnSpawn) && !_usedSpawnSkills)
         {
@@ -58,5 +63,6 @@ public class SpawningBehavior : Behavior
 
     public override void Exit()
     {
+        _enter = false;
     }
 }

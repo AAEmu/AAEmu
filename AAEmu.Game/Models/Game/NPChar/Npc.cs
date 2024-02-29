@@ -801,7 +801,7 @@ public class Npc : Unit
     {
         //var player = unit as Character; // TODO player.Region становится равным null | player.Region becomes null
         Character player = null;
-        if (unit is not Npc)
+        if (unit is not Npc and not Units.Mate)
         {
             player = (Character)unit;
         }
@@ -880,7 +880,26 @@ public class Npc : Unit
         }
 
         if (AggroTable.Count != lastAggroCount)
-            CheckIfEmptyAggroToReturn();
+            CheckIfEmptyAggroToReturn(unit);
+    }
+
+    private static void CheckIfEmptyAggroToReturn(IBaseUnit unit)
+    {
+        if (unit is not Npc npc)
+            return;
+
+        // If aggro table is empty, and too far from spawn, trigger a return to spawn effect.
+        if (!npc.AggroTable.IsEmpty)
+            return;
+
+        if (npc.Ai != null)
+        {
+            var distanceToIdle = MathUtil.CalculateDistance(npc.Ai.IdlePosition.Local.Position, npc.Transform.World.Position, true);
+            if (distanceToIdle > 4)
+                npc.Ai.GoToReturn();
+        }
+
+        npc.IsInBattle = false;
     }
 
     private void CheckIfEmptyAggroToReturn()
@@ -963,11 +982,12 @@ public class Npc : Unit
             return;
 
         if (Buffs.HasEffectsMatchingCondition(e =>
-                e.Template.Stun ||
-                e.Template.Sleep ||
-                e.Template.Root ||
-                e.Template.Knockdown ||
-                e.Template.Fastened))
+                e.Template.Stun
+                || e.Template.Sleep
+                || e.Template.Root
+                || e.Template.Knockdown
+                || e.Template.Fastened)
+            || Ai.Owner.IsDead)
         {
             //Logger.Debug($"{ObjId} @NPC_NAME({TemplateId}); is stuck in place");
             return;
@@ -985,7 +1005,7 @@ public class Npc : Unit
         var oldPosition = Transform.Local.ClonePosition();
 
         var targetDist = MathUtil.CalculateDistance(Transform.Local.Position, other, true);
-        if (targetDist <= 0.5f)
+        if (targetDist <= 1f)
             return;
 
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
