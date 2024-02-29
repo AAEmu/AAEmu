@@ -51,10 +51,4 @@ public class QuestActSupplyItem : QuestActTemplate, IQuestActGenericItem
 
         return acquireSuccessful;
     }
-    public override int GetCount()
-    {
-        Logger.Debug("Получим, сколько уже имеем предметов по заданию.");
-
-        return Objective;
-    }
 }

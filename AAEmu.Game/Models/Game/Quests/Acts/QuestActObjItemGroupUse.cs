@@ -14,9 +14,7 @@ public class QuestActObjItemGroupUse : QuestActTemplate
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
     public bool DropWhenDestroy { get; set; }
-
     //public static int ItemGroupUseStatus { get; private set; } = 0;
-    private int Objective { get; set; }
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
@@ -54,25 +52,5 @@ public class QuestActObjItemGroupUse : QuestActTemplate
         Update();
 
         return objective >= Count;
-    }
-    public override void Update()
-    {
-        Objective++;
-    }
-    public override bool IsCompleted()
-    {
-        return Objective >= Count;
-    }
-    public override int GetCount()
-    {
-        Logger.Info("Получим, информацию на сколько выполнено задание.");
-
-        return Objective;
-    }
-    public override void ClearStatus()
-    {
-        //ItemGroupUseStatus = 0;
-        Objective = 0;
-        Logger.Info("Сбросили статус в ноль.");
     }
 }

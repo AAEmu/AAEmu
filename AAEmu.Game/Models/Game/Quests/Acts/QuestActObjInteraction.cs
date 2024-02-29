@@ -15,9 +15,7 @@ public class QuestActObjInteraction : QuestActTemplate
     public int HighlightDoodadPhase { get; set; }
     public uint QuestActObjAliasId { get; set; }
     public uint Phase { get; set; }
-
     //public static int InteractionStatus { get; private set; } = 0;
-    private int Objective { get; set; }
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
@@ -57,25 +55,5 @@ public class QuestActObjInteraction : QuestActTemplate
         Update();
 
         return objective >= Count;
-    }
-    public override void Update()
-    {
-        Objective++;
-    }
-    public override bool IsCompleted()
-    {
-        return Objective >= Count;
-    }
-    public override int GetCount()
-    {
-        Logger.Info("Получим, информацию на сколько выполнено задание.");
-
-        return Objective;
-    }
-    public override void ClearStatus()
-    {
-        //InteractionStatus = 0;
-        Objective = 0;
-        Logger.Info("Сбросили статус в ноль.");
     }
 }
