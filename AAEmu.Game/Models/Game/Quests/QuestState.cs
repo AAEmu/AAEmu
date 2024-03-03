@@ -493,7 +493,7 @@ public abstract class QuestState
                     }
             }
 
-            return act.Use(Quest.Owner, Quest, Quest.Objectives[idx]); // return the result of the check
+            return act.Use(Quest.Owner, Quest, act.GetObjective(Quest)); // return the result of the check
         }
     }
 
@@ -938,7 +938,7 @@ public class QuestProgressState : QuestState
                             if (res)
                             {
                                 Logger.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}, QuestActObjItemGather already has the required items.'");
-                                Quest.Objectives[componentIndex] = (act.Template as QuestActObjItemGather)?.Count ?? 0;
+                                act.SetObjective(Quest, (act.Template as QuestActObjItemGather)?.Count ?? 0);
                                 results2.Add(true); // уже выполнили задание, выход
                                 break;
                             }
@@ -1310,12 +1310,14 @@ public class QuestReadyState : QuestState
         //Quest.Owner.SendPacket(new SCQuestContextUpdatedPacket(Quest, Quest.ComponentId));
         return false;
     }
+
     public override bool Update()
     {
         Logger.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId} уже в процессе выполнения.");
         Logger.Info($"[QuestReadyState][Update] Quest: {Quest.TemplateId}, Character {Quest.Owner.Name}, ComponentId {Quest.ComponentId}, Step {Quest.Step}, Status {Quest.Status}, Condition {Quest.Condition}");
         return true;
     }
+
     public override bool Complete(int selected = 0, EventArgs eventArgs = null)
     {
         Logger.Info($"[QuestReadyState][Complete] Quest: {Quest.TemplateId}. Шаг успешно завершен!");
@@ -1323,6 +1325,7 @@ public class QuestReadyState : QuestState
         Quest.GoToNextStep(selected); // переход к следующему шагу // go to next step
         return true;
     }
+
     public override void Fail()
     {
         Logger.Info($"[QuestReadyState][Fail] Квест {Quest.TemplateId} провален");

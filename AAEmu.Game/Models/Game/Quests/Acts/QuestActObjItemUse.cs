@@ -13,7 +13,7 @@ internal class QuestActObjItemUse : QuestActTemplate
     public uint QuestActObjAliasId { get; set; }
     public bool DropWhenDestroy { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         Logger.Debug("QuestActObjItemUse");
         if (ParentQuestTemplate.Score > 0) // Check if the quest use Template.Score or Count
@@ -30,7 +30,7 @@ internal class QuestActObjItemUse : QuestActTemplate
                     quest.ExtraCompletion = true;
             }
 
-            Update();
+            Update(quest, questAct);
 
             return quest.OverCompletionPercent >= ParentQuestTemplate.Score;
         }
@@ -46,7 +46,7 @@ internal class QuestActObjItemUse : QuestActTemplate
                 quest.ExtraCompletion = true;
         }
 
-        Update();
+        Update(quest, questAct);
 
         return objective >= Count;
     }

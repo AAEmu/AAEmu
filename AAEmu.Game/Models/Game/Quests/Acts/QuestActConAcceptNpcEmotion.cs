@@ -10,7 +10,7 @@ public class QuestActConAcceptNpcEmotion : QuestActTemplate
     public uint NpcId { get; set; }
     public string Emotion { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         Logger.Debug($"QuestActConAcceptNpcEmotion: NpcId {NpcId}, Emotion {Emotion}");
 

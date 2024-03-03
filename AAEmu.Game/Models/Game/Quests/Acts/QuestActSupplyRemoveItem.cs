@@ -11,7 +11,7 @@ public class QuestActSupplyRemoveItem : QuestActTemplate
 {
     public uint ItemId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         Logger.Debug($"QuestActSupplyRemoveItem, ItemId: {ItemId}, Count: {Count}");
 

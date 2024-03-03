@@ -11,9 +11,13 @@ public interface IQuestAct
     public QuestComponent QuestComponent { get; }
     uint Id { get; set; }
     uint DetailId { get; }
+    byte ThisComponentObjectiveIndex { get; set; }
+    void SetObjective(Quest quest, int value);
+    int GetObjective(Quest quest);
 
     int CompareTo(QuestAct other);
     QuestActTemplate GetTemplate();
     T GetTemplate<T>() where T : QuestActTemplate;
     bool Use(ICharacter character, Quest quest, int objective);
+    int AddObjective(Quest quest, int amount);
 }

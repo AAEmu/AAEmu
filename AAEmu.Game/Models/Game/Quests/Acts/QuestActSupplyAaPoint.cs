@@ -7,7 +7,7 @@ public class QuestActSupplyAaPoint : QuestActTemplate
 {
     public int Point { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         // TODO: Implement AAPoints
         Logger.Warn($"QuestActSupplyAaPoint, Point: {Point}");

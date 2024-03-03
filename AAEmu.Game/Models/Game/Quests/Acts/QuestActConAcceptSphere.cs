@@ -8,7 +8,7 @@ public class QuestActConAcceptSphere : QuestActTemplate
 {
     public uint SphereId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         Logger.Debug($"QuestActConAcceptSphere: SphereId {SphereId}");
 

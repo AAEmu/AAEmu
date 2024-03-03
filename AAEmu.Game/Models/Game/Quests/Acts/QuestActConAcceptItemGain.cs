@@ -7,7 +7,7 @@ public class QuestActConAcceptItemGain : QuestActTemplate
 {
     public uint ItemId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         Logger.Debug($"QuestActConAcceptItemGain: ItemId {ItemId}, Count {Count}");
         return objective >= Count;

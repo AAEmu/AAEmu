@@ -8,7 +8,7 @@ public class QuestActSupplyLivingPoint : QuestActTemplate
 {
     public int Point { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         Logger.Debug($"QuestActSupplyLivingPoint, Point: {Point}");
         character.ChangeGamePoints(GamePointKind.Vocation, Point);

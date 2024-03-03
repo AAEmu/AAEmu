@@ -15,7 +15,7 @@ public class QuestActObjInteraction : QuestActTemplate
     public uint QuestActObjAliasId { get; set; }
     public uint Phase { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         // TODO: Validate Phase when needed
         Logger.Debug("QuestActObjInteraction");
@@ -34,7 +34,7 @@ public class QuestActObjInteraction : QuestActTemplate
             }
             Logger.Debug($"QuestActObjInteraction: DoodadId {DoodadId}, Count {Count}, InteractionStatus {quest.InteractionStatus}, OverCompletionPercent {quest.OverCompletionPercent}, quest {ParentQuestTemplate.Id}, objective {objective}");
 
-            Update();
+            Update(quest, questAct);
 
             return quest.OverCompletionPercent >= ParentQuestTemplate.Score;
         }
@@ -51,7 +51,7 @@ public class QuestActObjInteraction : QuestActTemplate
         }
         Logger.Debug($"QuestActObjInteraction: DoodadId {DoodadId}, Count {Count}, quest {ParentQuestTemplate.Id}, objective {objective}");
 
-        Update();
+        Update(quest, questAct);
 
         return objective >= Count;
     }

@@ -7,7 +7,7 @@ public class QuestActConFail : QuestActTemplate
 {
     public bool ForceChangeComponent { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         // TODO: Implement ForceChangeComponent
         Logger.Debug("QuestActConFail");

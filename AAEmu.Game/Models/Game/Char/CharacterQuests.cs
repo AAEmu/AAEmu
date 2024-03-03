@@ -139,13 +139,12 @@ public partial class CharacterQuests
     /// <param name="supply"></param>
     public void Complete(uint questId, int selected, bool supply = true)
     {
-        if (!ActiveQuests.ContainsKey(questId))
+        if (!ActiveQuests.TryGetValue(questId, out var quest))
         {
             Logger.Warn($"Complete, quest does not exist {questId}");
             return;
         }
 
-        var quest = ActiveQuests[questId];
         quest.QuestRewardItemsPool.Clear();
         quest.QuestRewardCoinsPool = 0;
         quest.QuestRewardExpPool = 0;
@@ -211,12 +210,12 @@ public partial class CharacterQuests
         quest.Owner.SendMessage($"[Quest] for player: {Owner.Name}, quest: {questId} removed.");
         Logger.Warn($"[Quest] for player: {Owner.Name}, quest: {questId} removed.");
 
-        if (QuestManager.Instance.QuestTimeoutTask.ContainsKey(quest.Owner.Id))
+        if (QuestManager.Instance.QuestTimeoutTask.TryGetValue(quest.Owner.Id, out var questTimeoutTasks))
         {
-            if (QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].ContainsKey(questId))
+            if (questTimeoutTasks.TryGetValue(questId, out var questTimeoutTask))
             {
-                _ = QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id][questId].CancelAsync();
-                _ = QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].Remove(questId);
+                _ = questTimeoutTask.CancelAsync();
+                _ = questTimeoutTasks.Remove(questId);
             }
         }
 
@@ -228,20 +227,17 @@ public partial class CharacterQuests
         if (step > 8)
             return false;
 
-        if (!ActiveQuests.ContainsKey(questContextId))
+        if (!ActiveQuests.TryGetValue(questContextId, out var quest))
             return false;
 
-        var quest = ActiveQuests[questContextId];
         quest.Step = (QuestComponentKind)step;
         return true;
     }
 
     public void OnReportToNpc(uint objId, uint questId, int selected)
     {
-        if (!ActiveQuests.ContainsKey(questId))
+        if (!ActiveQuests.TryGetValue(questId, out var quest))
             return;
-
-        var quest = ActiveQuests[questId];
 
         var npc = WorldManager.Instance.GetNpc(objId);
         if (npc == null)
@@ -279,10 +275,8 @@ public partial class CharacterQuests
         if (npc.GetDistanceTo(Owner) > 8.0f)
             return;
 
-        if (!ActiveQuests.ContainsKey(questContextId))
+        if (!ActiveQuests.TryGetValue(questContextId, out var quest))
             return;
-
-        var quest = ActiveQuests[questContextId];
 
         quest.OnTalkMade(npc);
     }
@@ -458,7 +452,6 @@ public partial class CharacterQuests
 
     public void OnCraft(Craft craft)
     {
-        // TODO added for quest Id=6024
         foreach (var quest in ActiveQuests.Values.ToList())
             quest.OnCraft(craft);
     }
@@ -593,13 +586,13 @@ public partial class CharacterQuests
                     quest.Id = reader.GetUInt32("id");
                     quest.TemplateId = reader.GetUInt32("template_id");
                     quest.Status = (QuestStatus)reader.GetByte("status");
-                    quest.ReadData((byte[])reader.GetValue("data"));
                     quest.Owner = Owner;
                     quest.Template = QuestManager.Instance.GetTemplate(quest.TemplateId);
                     var oldStatus = quest.Status;
+                    quest.CreateContextInstance();
+                    quest.ReadData((byte[])reader.GetValue("data"));
                     var oldStep = quest.Step;
                     quest.RecalcObjectives(false);
-                    quest.CreateContextInstance();
                     // quest.RecallEvents();
                     quest.Step = oldStep;
                     quest.Status = oldStatus;

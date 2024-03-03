@@ -28,17 +28,17 @@ namespace AAEmu.Game.Core.Managers;
 public class QuestManager : Singleton<QuestManager>, IQuestManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private bool _loaded = false;
-    protected Dictionary<uint, QuestTemplate> _templates = new();
-    protected Dictionary<byte, QuestSupplies> _supplies = new();
-    protected Dictionary<uint, List<IQuestAct>> _acts = new();
-    private Dictionary<string, List<IQuestAct>> _actsByType = new();
-    private Dictionary<uint, QuestAct> _actsDic = new();
-    protected Dictionary<string, Dictionary<uint, QuestActTemplate>> _actTemplates = new();
-    private Dictionary<uint, List<uint>> _groupItems = new();
-    private Dictionary<uint, List<uint>> _groupNpcs = new();
-    private Dictionary<uint, QuestComponent> _templateComponents = new();
-    public Dictionary<uint, Dictionary<uint, QuestTimeoutTask>> QuestTimeoutTask = new();
+    private bool _loaded;
+    private readonly Dictionary<uint, QuestTemplate> _templates = new();
+    private readonly Dictionary<byte, QuestSupplies> _supplies = new();
+    private readonly Dictionary<uint, List<IQuestAct>> _acts = new();
+    private readonly Dictionary<string, List<IQuestAct>> _actsByType = new();
+    private readonly Dictionary<uint, QuestAct> _actsDic = new();
+    private readonly Dictionary<string, Dictionary<uint, QuestActTemplate>> _actTemplates = new();
+    private readonly Dictionary<uint, List<uint>> _groupItems = new();
+    private readonly Dictionary<uint, List<uint>> _groupNpcs = new();
+    private readonly Dictionary<uint, QuestComponent> _templateComponents = new();
+    public Dictionary<uint, Dictionary<uint, QuestTimeoutTask>> QuestTimeoutTask { get; } = new();
 
     public QuestTemplate GetTemplate(uint id)
     {
@@ -111,21 +111,34 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     {
         foreach (var questTemplate in _templates.Values)
         {
+            byte actIndex = 0;
+            QuestComponentKind lastKey = QuestComponentKind.None;
             foreach (var (questComponentKey, questComponentValue) in questTemplate.Components)
             {
+                if (questComponentValue.KindId != lastKey)
+                {
+                    actIndex = 0;
+                    lastKey = questComponentValue.KindId;
+                }
+
                 if (!_acts.TryGetValue(questComponentKey, out var questActs))
                     continue;
 
                 // Assign references to parents
                 foreach (var questAct in questActs)
                 {
+                    questAct.ThisComponentObjectiveIndex = actIndex;
                     questAct.Template.ParentQuestTemplate = questTemplate;
                     if (questAct.Template == null)
                     {
                         Logger.Error($"Missing QuestActTemplate for Quest: {questTemplate.Id}, ComponentId: {questComponentKey} ActId: {questAct.Id}. Please notify the developer.");
-                        continue;
                     }
-                    questAct.Template.ParentComponent = questComponentValue;
+                    else
+                    {
+                        questAct.Template.ParentComponent = questComponentValue;
+                    }
+
+                    actIndex++;
                 }
 
                 // Actually add them
@@ -272,7 +285,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     private void LoadQuestActs(SqliteConnection connection)
     {
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM quest_acts ORDER BY quest_component_id ASC, id ASC";
+        command.CommandText = "SELECT * FROM quest_acts ORDER BY quest_component_id, id";
         command.Prepare();
         using var reader = new SQLiteWrapperReader(command.ExecuteReader());
         while (reader.Read())
@@ -310,7 +323,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
 
     private void LoadQuestSupplies(SqliteConnection connection)
     {
-        Logger.Info("Loaded {0} quests", _templates.Count);
+        Logger.Info($"Loaded {_templates.Count} quests");
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT * FROM quest_supplies";
         command.Prepare();
@@ -329,7 +342,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     private void LoadQuestComponents(SqliteConnection connection)
     {
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM quest_components ORDER BY quest_context_id ASC, component_kind_id ASC, id ASC";
+        command.CommandText = "SELECT * FROM quest_components ORDER BY quest_context_id, component_kind_id, id";
         command.Prepare();
         using var reader = new SQLiteWrapperReader(command.ExecuteReader());
         while (reader.Read())
@@ -362,7 +375,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     private void LoadQuestContexts(SqliteConnection connection)
     {
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM quest_contexts ORDER BY id ASC";
+        command.CommandText = "SELECT * FROM quest_contexts ORDER BY id";
         command.Prepare();
         using var reader = new SQLiteWrapperReader(command.ExecuteReader());
         while (reader.Read())

@@ -9,7 +9,7 @@ public class QuestActConAcceptNpcKill : QuestActTemplate
 {
     public uint NpcId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         Logger.Debug($"QuestActConAcceptNpcKill: NpcId {NpcId}");
 

@@ -21,7 +21,7 @@ public class QuestActCheckTimer : QuestActTemplate
     public uint TimerNpcId { get; set; }
     public bool IsSkillPlayer { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         Logger.Debug("QuestActCheckTimer");
         // TODO: Add what to do with timer

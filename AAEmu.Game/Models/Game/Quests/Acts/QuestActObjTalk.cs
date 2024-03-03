@@ -15,7 +15,7 @@ public class QuestActObjTalk : QuestActTemplate
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         // TODO: Implement ItemId? There seems to be only one valid Act that uses this. Quest: Feigned Formalities ( 3526 )
         Logger.Debug("QuestActObjTalk");

@@ -11,7 +11,7 @@ public class QuestActObjMonsterHunt : QuestActTemplate
     public uint HighlightDoodadId { get; set; }
     public int HighlightDoodadPhase { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         Logger.Debug($"QuestActObjMonsterHunt: NpcId {NpcId}, Count {Count}, UseAlias {UseAlias}, QuestActObjAliasId {QuestActObjAliasId}, HighlightDoodadId {HighlightDoodadId}, HighlightDoodadPhase {HighlightDoodadPhase}, quest {ParentQuestTemplate.Id}, objective {objective}");
 
@@ -31,7 +31,7 @@ public class QuestActObjMonsterHunt : QuestActTemplate
 
             Logger.Debug($"QuestActObjMonsterHunt: NpcId {NpcId}, Count {Count}, HuntStatus {quest.HuntStatus}, OverCompletionPercent {quest.OverCompletionPercent}, quest {ParentQuestTemplate.Id}, objective {objective}");
 
-            Update();
+            Update(quest, questAct);
 
             return quest.OverCompletionPercent >= ParentQuestTemplate.Score;
         }
@@ -48,7 +48,7 @@ public class QuestActObjMonsterHunt : QuestActTemplate
         }
         Logger.Debug($"QuestActObjMonsterHunt: NpcId {NpcId}, Count {Count}, quest {ParentQuestTemplate.Id}, objective {objective}");
 
-        Update();
+        Update(quest, questAct);
 
         return objective >= Count;
     }

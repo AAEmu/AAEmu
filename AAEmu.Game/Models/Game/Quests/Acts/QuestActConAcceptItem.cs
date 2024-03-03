@@ -11,7 +11,7 @@ public class QuestActConAcceptItem : QuestActTemplate, IQuestActGenericItem
     public bool DropWhenDestroy { get; set; }
     public bool DestroyWhenDrop { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective) // triggered by using things
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective) // triggered by using things
     {
         Logger.Debug($"QuestActConAcceptItem: ItemId {ItemId}");
 

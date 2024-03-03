@@ -9,7 +9,7 @@ public class QuestActEtcItemObtain : QuestActTemplate
     public uint HighlightDoodadId { get; set; }
     public bool Cleanup { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         Logger.Debug("QuestActEtcItemObtain");
 
