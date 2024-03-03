@@ -161,10 +161,11 @@ public partial class CharacterQuests
                         // Добавим|убавим за перевыполнение|недовыполнение плана, если позволено квестом
                         // Add [reduce] for overfulfilling [underperformance] of the plan, if allowed by the quest
                         // TODO: Verify if the bonus only applies to the level-based XP/Gold, or if it also applies to the rewards parts in quest_act_supply_xxx
-                        quest.QuestRewardExpPool += levelBasedRewards.Exp * quest.OverCompletionPercent / 100;
-                        quest.QuestRewardCoinsPool += levelBasedRewards.Copper * quest.OverCompletionPercent / 100;
+                        var completeRate = quest.GetQuestObjectivePercent();
+                        quest.QuestRewardExpPool += (int)(levelBasedRewards.Exp * completeRate);
+                        quest.QuestRewardCoinsPool += (int)(levelBasedRewards.Copper * completeRate);
 
-                        if (!quest.ExtraCompletion)
+                        if (quest.GetQuestObjectiveStatus() < QuestObjectiveStatus.ExtraProgress)
                         {
                             // посылаем пакет, так как он был пропущен в методе Update()
                             // send a packet because it was skipped in the Update() method
