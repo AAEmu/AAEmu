@@ -54,9 +54,6 @@ public partial class Quest : PacketMarshaler
     public ICharacter Owner { get; set; }
     private int LeftTime => Time > DateTime.UtcNow ? (int)(Time - DateTime.UtcNow).TotalMilliseconds : -1;
     private int SupplyItem { get; set; }
-    public bool EarlyCompletion { get; set; }
-    public bool ExtraCompletion { get; set; }
-    public int OverCompletionPercent { get; set; }
     public long DoodadId { get; set; }
     private long ObjId { get; set; }
     public uint ComponentId { get; set; } // нужно для пакета SCQuestContext...
@@ -88,8 +85,6 @@ public partial class Quest : PacketMarshaler
 
         Objectives = new int[ObjectiveCount];
         SupplyItem = 0;
-        EarlyCompletion = false;
-        ExtraCompletion = false;
         ObjId = 0;
         QuestRewardItemsPool = new List<ItemCreationDefinition>();
         QuestCleanupItemsPool = new List<ItemCreationDefinition>();
@@ -394,8 +389,6 @@ EndLoop:
             {
                 completes.Add(false);
             }
-            EarlyCompletion = false;
-            ExtraCompletion = false;
             var selectiveList = new List<bool>();
             var selective = false;
             var complete = false;
@@ -708,9 +701,11 @@ EndLoop:
                 }
             }
 
-            if (complete && (EarlyCompletion || ExtraCompletion))
+            var stepResult = GetQuestObjectiveStatus();
+            if (complete && !(stepResult >= QuestObjectiveStatus.Overachieved || (Template.LetItDone && stepResult >= QuestObjectiveStatus.QuestComplete)))
             {
-                break; // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест (the quest can be passed, but we do not let it end when it reaches 100% until we come to the Npc to pass the quest)
+                break; // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
+                       // (the quest can be passed, but we do not let it end when it reaches 100% until we come to the Npc to pass the quest)
             }
             if (!complete)
             {

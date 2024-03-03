@@ -14,7 +14,6 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
-using Discord.Rest;
 
 namespace AAEmu.Game.Models.Game.Quests;
 
@@ -30,14 +29,6 @@ public partial class Quest : PacketMarshaler
     public QuestContext QuestRewardState { get; set; }
 
     // перенес сюда переменные из QuestAcObj... для подсчета статуса квеста
-    public int GroupGatherStatus { get; set; } = 0;
-    public int GatherStatus { get; set; } = 0;
-    public int HuntStatus { get; set; } = 0;
-    public int GroupHuntStatus { get; set; } = 0;
-    public int InteractionStatus { get; set; } = 0;
-    public int ItemGroupUseStatus { get; set; } = 0;
-    public int ItemUseStatus { get; set; } = 0;
-    public int ItemObtainStatus { get; set; } = 0;
 
     #region Framework
 
@@ -470,7 +461,8 @@ public partial class Quest : PacketMarshaler
     /// <param name="str"></param>
     private void AltChoice(string str)
     {
-        if ((EarlyCompletion || ExtraCompletion) && !ReadyToReportNpc)
+        var stepResult = GetQuestObjectiveStatus();
+        if (stepResult >= QuestObjectiveStatus.CanEarlyComplete && !ReadyToReportNpc)
         {
             Logger.Info($"{str} Подписываемся на событие.");
             Logger.Info($"{str} Quest: {TemplateId}, Event: 'OnReportNpc', Handler: 'OnReportNpcHandler'");
@@ -483,12 +475,27 @@ public partial class Quest : PacketMarshaler
 
         // проверка результатов на валидность, 266, 1125, 1135 - GroupHunt & ItemGather
         ComponentId = 0;
-        Status = OverCompletionPercent >= 100
-            ? QuestStatus.Ready // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
-            : QuestStatus.Progress; // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
-        Condition = QuestConditionObj.Progress;
-        Logger.Info($"{str} Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-        Logger.Info($"GroupGatherStatus: {GroupGatherStatus}, GatherStatus={GatherStatus}, HuntStatus={HuntStatus}, GroupHuntStatus={GroupHuntStatus}, InteractionStatus={InteractionStatus}, ItemGroupUseStatus={ItemGroupUseStatus}, ItemUseStatus={ItemUseStatus}, ItemObtainStatus={ItemObtainStatus}");
+        switch (stepResult)
+        {
+            case QuestObjectiveStatus.NotReady:
+            case QuestObjectiveStatus.CanEarlyComplete:
+            case QuestObjectiveStatus.ExtraProgress:
+                Status = QuestStatus.Progress;
+                Condition = QuestConditionObj.Progress;
+                break;
+            case QuestObjectiveStatus.QuestComplete:
+                Status = Template.LetItDone ? QuestStatus.Progress : QuestStatus.Ready;
+                Condition = Template.LetItDone ? QuestConditionObj.Progress : QuestConditionObj.Ready;
+                break;
+            case QuestObjectiveStatus.Overachieved:
+                Status = QuestStatus.Ready;
+                Condition = QuestConditionObj.Ready;
+                break;
+            default:
+                break;
+        }
+
+        Logger.Info($"{str} Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}, StepResult={stepResult}");
 
         Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
         UpdateActiveStep();
@@ -804,10 +811,10 @@ public partial class Quest : PacketMarshaler
 
     #region Progress step
 
-    // Внимание!!!
-    // выполняются на шаге Progress
-    // для этих событий не будет известен QuestId и будет перебор всех активных квестов
-    // что-бы по два раза не вызывались надо перед подпиской на событие отписываться!!!
+    // NOTE: Attention!!!
+    // executed at the Progress step
+    // for these events the QuestId will not be known and all active quests will be searched
+    // so that they are not called twice, you must unsubscribe before subscribing to the event!!!
     public void OnInteractionHandler(object sender, EventArgs eventArgs)
     {
         // Quest: 3353, 1213, 1218
@@ -827,9 +834,6 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        EarlyCompletion = false;
-        ExtraCompletion = false;
-
         Logger.Info($"[OnInteractionHandler] Quest: {TemplateId}, event triggered");
 
         var res = CheckResults<QuestActObjInteraction>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
@@ -841,13 +845,15 @@ public partial class Quest : PacketMarshaler
         }
         var results = res == 1;
 
+        var stepResult = GetQuestObjectiveStatus();
         // для завершения у всех objective компонентов должно быть выполнено или selective == true
-        if (results && !(EarlyCompletion || ExtraCompletion))
+        // To complete, all objective components must be satisfied or selective == true
+        if (results && (stepResult >= QuestObjectiveStatus.Overachieved || (!Template.LetItDone && stepResult >= QuestObjectiveStatus.QuestComplete)))
         {
-            Logger.Info($"[OnInteractionHandler] Отписываемся от события.");
+            Logger.Info($"[OnInteractionHandler] Unsubscribe from the event.");
             Logger.Info($"[OnInteractionHandler] Quest: {TemplateId}, Event: 'OnInteraction', Handler: 'OnInteractionHandler'");
-            Owner.Events.OnInteraction -= Owner.Quests.OnInteractionHandler; // отписываемся
-            Owner.Events.OnInteraction += Owner.Quests.OnInteractionHandler; // снова подписываемся
+            Owner.Events.OnInteraction -= Owner.Quests.OnInteractionHandler; // unsubscribe
+            Owner.Events.OnInteraction += Owner.Quests.OnInteractionHandler; // subscribe again
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnInteractionHandler] Quest {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
             //ContextProcessing(0, eventArgs);
@@ -876,9 +882,6 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        EarlyCompletion = false;
-        ExtraCompletion = false;
-
         Logger.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, event triggered");
 
         var res = CheckResults<QuestActObjMonsterHunt>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
@@ -890,8 +893,9 @@ public partial class Quest : PacketMarshaler
         }
         var results = res == 1;
 
+        var stepResult = GetQuestObjectiveStatus();
         // для завершения у всех objective компонентов должно быть выполнено или selective == true
-        if (results && !(EarlyCompletion || ExtraCompletion))
+        if (results && (stepResult >= QuestObjectiveStatus.Overachieved || (!Template.LetItDone && stepResult >= QuestObjectiveStatus.QuestComplete)))
         {
             Logger.Info($"[OnMonsterHuntHandler] Отписываемся от события.");
             Logger.Info($"[OnMonsterHuntHandler] Quest: {TemplateId}, Event: 'OnMonsterHunt', Handler: 'OnMonsterHuntHandler'");
@@ -925,9 +929,6 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        EarlyCompletion = false;
-        ExtraCompletion = false;
-
         Logger.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, event triggered");
 
         var res = CheckResults<QuestActObjMonsterGroupHunt>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
@@ -939,8 +940,9 @@ public partial class Quest : PacketMarshaler
         }
         var results = res == 1;
 
+        var stepResult = GetQuestObjectiveStatus();
         // для завершения у всех objective компонентов должно быть выполнено или selective == true
-        if (results && !(EarlyCompletion || ExtraCompletion))
+        if (results && (stepResult >= QuestObjectiveStatus.Overachieved || (!Template.LetItDone && stepResult >= QuestObjectiveStatus.QuestComplete)))
         {
             Logger.Info($"[OnMonsterGroupHuntHandler] Отписываемся от события.");
             Logger.Info($"[OnMonsterGroupHuntHandler] Quest: {TemplateId}, Event: 'OnMonsterGroupHunt', Handler: 'OnMonsterGroupHuntHandler'");
@@ -974,9 +976,6 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        EarlyCompletion = false;
-        ExtraCompletion = false;
-
         Logger.Info($"[OnItemUseHandler] Quest: {TemplateId}, event triggered");
 
         var res = CheckResults<QuestActObjItemUse>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
@@ -988,8 +987,9 @@ public partial class Quest : PacketMarshaler
         }
         var results = res == 1;
 
+        var stepResult = GetQuestObjectiveStatus();
         // для завершения у всех objective компонентов должно быть выполнено или selective == true
-        if (results && !(EarlyCompletion || ExtraCompletion))
+        if (results && (stepResult >= QuestObjectiveStatus.Overachieved || (!Template.LetItDone && stepResult >= QuestObjectiveStatus.QuestComplete)))
         {
             Logger.Info($"[OnItemUseHandler] Unsubscribe from the event.");
             Logger.Info($"[OnItemUseHandler] Quest: {TemplateId}, Event: 'OnItemUse', Handler: 'OnItemUseHandler'");
@@ -1023,9 +1023,6 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        EarlyCompletion = false;
-        ExtraCompletion = false;
-
         Logger.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, event triggered");
 
         var res = CheckResults<QuestActObjItemGroupUse>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
@@ -1037,8 +1034,9 @@ public partial class Quest : PacketMarshaler
         }
         var results = res == 1;
 
+        var stepResult = GetQuestObjectiveStatus();
         // для завершения у всех objective компонентов должно быть выполнено или selective == true
-        if (results && !(EarlyCompletion || ExtraCompletion))
+        if (results && (stepResult >= QuestObjectiveStatus.Overachieved || (!Template.LetItDone && stepResult >= QuestObjectiveStatus.QuestComplete)))
         {
             Logger.Info($"[OnItemGroupUseHandler] Отписываемся от события.");
             Logger.Info($"[OnItemGroupUseHandler] Quest: {TemplateId}, Event: 'OnItemGroupUse', Handler: 'OnItemGroupUseHandler'");
@@ -1072,9 +1070,6 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        EarlyCompletion = false;
-        ExtraCompletion = false;
-
         Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, event triggered");
 
         var res = CheckResults<QuestActObjItemGather>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
@@ -1086,8 +1081,9 @@ public partial class Quest : PacketMarshaler
         }
         var results = res == 1;
 
+        var stepResult = GetQuestObjectiveStatus();
         // для завершения у всех objective компонентов должно быть выполнено или selective == true
-        if (results && !(EarlyCompletion || ExtraCompletion))
+        if (results && (stepResult >= QuestObjectiveStatus.Overachieved || (!Template.LetItDone && stepResult >= QuestObjectiveStatus.QuestComplete)))
         {
             Logger.Info($"[OnItemGatherHandler] Отписываемся от события.");
             Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Event: 'OnItemGather', Handler: 'OnItemGatherHandler'");
@@ -1124,9 +1120,6 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        EarlyCompletion = false;
-        ExtraCompletion = false;
-
         Logger.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, event triggered");
 
         var res = CheckResults<QuestActObjItemGroupGather>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
@@ -1138,8 +1131,9 @@ public partial class Quest : PacketMarshaler
         }
         var results = res == 1;
 
+        var stepResult = GetQuestObjectiveStatus();
         // для завершения у всех objective компонентов должно быть выполнено или selective == true
-        if (results && !(EarlyCompletion || ExtraCompletion))
+        if (results && (stepResult >= QuestObjectiveStatus.Overachieved || (!Template.LetItDone && stepResult >= QuestObjectiveStatus.QuestComplete)))
         {
             Logger.Info($"[OnItemGroupGatherHandler] Отписываемся от события.");
             Logger.Info($"[OnItemGroupGatherHandler] Quest: {TemplateId}, Event: 'OnItemGroupGather', Handler: 'OnItemGroupGatherHandler'");
@@ -1173,9 +1167,6 @@ public partial class Quest : PacketMarshaler
             //BadChoice("OnAggroHandler");
             return;
         }
-
-        EarlyCompletion = false;
-        ExtraCompletion = false;
 
         Logger.Info($"[OnAggroHandler] Quest: {TemplateId}, event triggered");
 
@@ -1225,9 +1216,6 @@ public partial class Quest : PacketMarshaler
             //BadChoice("OnExpressFireHandler");
             return;
         }
-
-        EarlyCompletion = false;
-        ExtraCompletion = false;
 
         Logger.Info($"[OnExpressFireHandler] Quest: {TemplateId}, event triggered");
 
@@ -1279,9 +1267,6 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        EarlyCompletion = false;
-        ExtraCompletion = false;
-
         Logger.Info($"[OnAbilityLevelUpHandler] Quest: {TemplateId}, event triggered");
 
         var res = CheckResults<QuestActObjAbilityLevel>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
@@ -1316,7 +1301,7 @@ public partial class Quest : PacketMarshaler
 
     public void OnLevelUpHandler(object sender, EventArgs eventArgs)
     {
-        // Quest: 
+        // Quest:
         var args = eventArgs as OnLevelUpArgs;
         if (args == null)
         {
@@ -1331,9 +1316,6 @@ public partial class Quest : PacketMarshaler
             //BadChoice("OnLevelUpHandler");
             return;
         }
-
-        EarlyCompletion = false;
-        ExtraCompletion = false;
 
         Logger.Info($"[OnLevelUpHandler] Quest: {TemplateId}, event triggered");
 
@@ -1385,9 +1367,6 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        EarlyCompletion = false;
-        ExtraCompletion = false;
-
         Logger.Info($"[OnCraftHandler] Quest: {TemplateId}, event triggered");
 
         var res = CheckResults<QuestActObjCraft>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
@@ -1437,9 +1416,6 @@ public partial class Quest : PacketMarshaler
             //BadChoice("OnEnterSphereHandler");
             return;
         }
-
-        EarlyCompletion = false;
-        ExtraCompletion = false;
 
         Logger.Info($"[OnEnterSphereHandler] Quest: {TemplateId}, event triggered");
 
@@ -1491,9 +1467,6 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        EarlyCompletion = false;
-        ExtraCompletion = false;
-
         Logger.Info($"[OnZoneKillHandler] Quest: {TemplateId}, event triggered");
 
         var res = CheckResults<QuestActObjZoneKill>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
@@ -1543,9 +1516,6 @@ public partial class Quest : PacketMarshaler
             //BadChoice("OnZoneMonsterHuntHandler");
             return;
         }
-
-        EarlyCompletion = false;
-        ExtraCompletion = false;
 
         Logger.Info($"[OnZoneMonsterHuntHandler] Quest: {TemplateId}, event triggered");
 
@@ -1613,9 +1583,6 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        EarlyCompletion = false;
-        ExtraCompletion = false;
-
         Logger.Info($"[OnTalkMadeHandler] Quest: {TemplateId}, event triggered");
 
         var res = CheckResults<QuestActObjTalk>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
@@ -1680,9 +1647,6 @@ public partial class Quest : PacketMarshaler
             //BadChoice("OnTalkNpcGroupMadeHandler");
             return;
         }
-
-        EarlyCompletion = false;
-        ExtraCompletion = false;
 
         Logger.Info($"[OnTalkNpcGroupMadeHandler] Quest: {TemplateId}, event triggered");
 
@@ -1752,9 +1716,6 @@ public partial class Quest : PacketMarshaler
             return;
         }
 
-        EarlyCompletion = false;
-        ExtraCompletion = false;
-
         Logger.Info($"[OnReportNpcHandler] Quest: {TemplateId}, event triggered");
 
         // TODO По идее, если клиент инициировал событие, то это должен быть нужный Npc и проверки не нужны, а надо сразу завершать квест
@@ -1818,9 +1779,6 @@ public partial class Quest : PacketMarshaler
             //BadChoice("OnReportDoodadHandler");
             return;
         }
-
-        EarlyCompletion = false;
-        ExtraCompletion = false;
 
         Logger.Info($"[OnReportDoodadHandler] Quest: {TemplateId}, event triggered");
 
@@ -1896,7 +1854,7 @@ public partial class Quest : PacketMarshaler
                 return QuestObjectiveStatus.ExtraProgress;
             if (score >= Template.Score)
                 return QuestObjectiveStatus.QuestComplete;
-            if (Template.LetItDone && (score >= Template.Score * 3 / 5))
+            if (Template.LetItDone && (score >= Template.Score * 1 / 2))
                 return QuestObjectiveStatus.ExtraProgress;
 
             return QuestObjectiveStatus.NotReady;
@@ -1912,10 +1870,51 @@ public partial class Quest : PacketMarshaler
                 return QuestObjectiveStatus.ExtraProgress;
             if (Objectives[questComponentAct.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count)
                 return QuestObjectiveStatus.QuestComplete;
-            if (Template.LetItDone && (Objectives[questComponentAct.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 3 / 5))
+            if (Template.LetItDone && (Objectives[questComponentAct.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 1 / 2))
                 return QuestObjectiveStatus.ExtraProgress;
         }
 
         return QuestObjectiveStatus.NotReady;
     }
+
+    /// <summary>
+    /// Returns the objective score in percent (1f = 100%)
+    /// </summary>
+    /// <returns></returns>
+    public float GetQuestObjectivePercent()
+    {
+        var questComponents = Template.GetComponents(Step);
+        if (Template.Score > 0)
+        {
+            // Use Score Handler
+            var score = 0;
+            // Loop through all components and acts to calculate their score
+            foreach (var questComponent in questComponents)
+            foreach (var questComponentAct in questComponent.Acts)
+                score += questComponentAct.Template.Count * Objectives[questComponentAct.ThisComponentObjectiveIndex];
+
+            // Check the score cap results
+            if (Template.LetItDone && score >= Template.Score * 7 / 5)
+                return Template.Score * 7f / 5f;
+
+            return 1f / Template.Score * score;
+        }
+
+        // Check individual act counts if it's not score based
+        var highest = 0f;
+        foreach (var questComponent in questComponents)
+        foreach (var questComponentAct in questComponent.Acts)
+        {
+            if (Template.LetItDone && Objectives[questComponentAct.ThisComponentObjectiveIndex] >=
+                questComponentAct.Template.Count * 7 / 5)
+            {
+                highest = Math.Max(highest, questComponentAct.Template.Count * 7f / 5f);
+                continue;
+            }
+            highest = Math.Max(highest, 1f / questComponentAct.Template.Count * Objectives[questComponentAct.ThisComponentObjectiveIndex]);
+        }
+
+        return highest;
+    }
+
 }
