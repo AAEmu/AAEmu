@@ -10,7 +10,7 @@ public class QuestActConAcceptSphere : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActConAcceptSphere: SphereId {0}", SphereId);
+        Logger.Debug($"QuestActConAcceptSphere: SphereId {SphereId}");
 
         quest.QuestAcceptorType = QuestAcceptorType.Sphere;
         quest.AcceptorType = SphereId;

@@ -9,8 +9,7 @@ public class QuestActSupplyAppellation : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Debug("QuestActSupplyAppellation");
-
+        Logger.Debug($"QuestActSupplyAppellation, AppellationId: {AppellationId}");
         character.Appellations.Add(AppellationId);
         return true;
     }

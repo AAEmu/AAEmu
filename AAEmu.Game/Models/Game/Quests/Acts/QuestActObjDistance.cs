@@ -14,7 +14,8 @@ public class QuestActObjDistance : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActObjDistance");
+        // TODO: Actually check the distance?
+        Logger.Debug("QuestActObjDistance");
         return false;
     }
 }

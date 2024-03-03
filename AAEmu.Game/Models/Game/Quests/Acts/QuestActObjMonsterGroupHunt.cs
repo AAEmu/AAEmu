@@ -6,7 +6,6 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 public class QuestActObjMonsterGroupHunt : QuestActTemplate
 {
     public uint QuestMonsterGroupId { get; set; }
-    public int Count { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
     public uint HighlightDoodadId { get; set; }
@@ -15,32 +14,31 @@ public class QuestActObjMonsterGroupHunt : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, UseAlias {2}, QuestActObjAliasId {3}, HighlightDoodadId {4}, HighlightDoodadPhase {5}, quest {6}, objective {7}, Score {8}",
-            QuestMonsterGroupId, Count, UseAlias, QuestActObjAliasId, HighlightDoodadId, HighlightDoodadPhase, quest.TemplateId, objective, quest.Template.Score);
+        Logger.Debug($"QuestActObjMonsterGroupHunt: QuestMonsterGroupId {QuestMonsterGroupId}, Count {Count}, UseAlias {UseAlias}, QuestActObjAliasId {QuestActObjAliasId}, HighlightDoodadId {HighlightDoodadId}, HighlightDoodadPhase {HighlightDoodadPhase}, quest {ParentQuestTemplate.Id}, objective {objective}, Score {ParentQuestTemplate.Score}");
 
 
-        if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
+        if (ParentQuestTemplate.Score > 0) // Check if the quest use Template.Score or Count
         {
             quest.GroupHuntStatus = objective * Count; // Count в данном случае % за единицу
             quest.OverCompletionPercent = quest.GroupHuntStatus + quest.HuntStatus + quest.GatherStatus + quest.InteractionStatus;
 
-            if (quest.Template.LetItDone)
+            if (ParentQuestTemplate.LetItDone)
             {
-                if (quest.OverCompletionPercent >= quest.Template.Score * 1 / 2)
+                if (quest.OverCompletionPercent >= ParentQuestTemplate.Score * 1 / 2)
                     quest.EarlyCompletion = true;
 
-                if (quest.OverCompletionPercent > quest.Template.Score)
+                if (quest.OverCompletionPercent > ParentQuestTemplate.Score)
                     quest.ExtraCompletion = true;
             }
 
-            Logger.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, GroupHuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}", QuestMonsterGroupId, Count, quest.GroupHuntStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
+            Logger.Debug($"QuestActObjMonsterGroupHunt: QuestMonsterGroupId {QuestMonsterGroupId}, Count {Count}, GroupHuntStatus {quest.GroupHuntStatus}, OverCompletionPercent {quest.OverCompletionPercent}, quest {ParentQuestTemplate.Id}, objective {objective}");
 
             Update();
 
-            return quest.OverCompletionPercent >= quest.Template.Score;
+            return quest.OverCompletionPercent >= ParentQuestTemplate.Score;
         }
 
-        if (quest.Template.LetItDone)
+        if (ParentQuestTemplate.LetItDone)
         {
             quest.OverCompletionPercent = objective * 100 / Count;
 
@@ -50,7 +48,7 @@ public class QuestActObjMonsterGroupHunt : QuestActTemplate
             if (quest.OverCompletionPercent > 100)
                 quest.ExtraCompletion = true;
         }
-        Logger.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, quest {2}, objective {3}", QuestMonsterGroupId, Count, quest.TemplateId, objective);
+        Logger.Debug($"QuestActObjMonsterGroupHunt: QuestMonsterGroupId {QuestMonsterGroupId}, Count {Count}, quest {ParentQuestTemplate.Id}, objective {objective}");
 
         Update();
 

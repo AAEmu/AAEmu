@@ -6,19 +6,16 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 public class QuestActObjZoneMonsterHunt : QuestActTemplate
 {
     public uint ZoneId { get; set; }
-    public int Count { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActObjZoneMonsterHunt");
+        Logger.Debug("QuestActObjZoneMonsterHunt");
 
         if (character.Transform.ZoneId != ZoneId)
-        {
             return false;
-        }
 
-        return quest.Template.Score > 0 ? objective * Count >= quest.Template.Score : objective >= Count;
+        return ParentQuestTemplate.Score > 0 ? objective * Count >= ParentQuestTemplate.Score : objective >= Count;
     }
 }

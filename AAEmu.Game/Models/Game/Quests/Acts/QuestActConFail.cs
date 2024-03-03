@@ -9,7 +9,8 @@ public class QuestActConFail : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActConFail");
+        // TODO: Implement ForceChangeComponent
+        Logger.Debug("QuestActConFail");
         return false;
     }
 }

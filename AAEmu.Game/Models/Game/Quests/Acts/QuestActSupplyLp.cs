@@ -9,8 +9,7 @@ public class QuestActSupplyLp : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Debug("QuestActSupplyLp");
-
+        Logger.Debug($"QuestActSupplyLp, LaborPower: {LaborPower}");
         character.ChangeLabor((short)LaborPower, 0);
         return true;
     }

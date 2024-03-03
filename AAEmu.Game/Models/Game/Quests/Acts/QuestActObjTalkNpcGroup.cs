@@ -11,7 +11,7 @@ public class QuestActObjTalkNpcGroup : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActObjTalkNpcGroup");
+        Logger.Debug("QuestActObjTalkNpcGroup");
         return false;
     }
 }

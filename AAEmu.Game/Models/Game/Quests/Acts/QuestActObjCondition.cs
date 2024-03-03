@@ -12,7 +12,7 @@ public class QuestActObjCondition : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActObjCondition");
+        Logger.Debug("QuestActObjCondition");
         return false;
     }
 }

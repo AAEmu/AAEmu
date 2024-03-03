@@ -9,7 +9,7 @@ public class QuestActSupplyCopper : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Debug("QuestActSupplyCopper");
+        Logger.Debug($"QuestActSupplyCopper, Amount: {Amount}");
         quest.QuestRewardCoinsPool += Amount;
         return true;
     }

@@ -10,9 +10,10 @@ public class QuestActObjMateLevel : QuestActTemplate
     public bool Cleanup { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
+
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActObjMateLevel");
+        Logger.Debug("QuestActObjMateLevel");
         return character.Mates.GetMateInfo(ItemId).Level >= Level;
     }
 }

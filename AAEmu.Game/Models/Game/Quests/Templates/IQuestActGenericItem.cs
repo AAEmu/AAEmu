@@ -1,4 +1,4 @@
-﻿namespace AAEmu.Game.Models.Game.Quests.ActsInterface;
+﻿namespace AAEmu.Game.Models.Game.Quests.Templates;
 
 /// <summary>
 /// Helper interface to help simplify generic item related Quest Acts

@@ -17,7 +17,7 @@ public class QuestActObjSendMail : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActObjSendMail");
+        Logger.Debug("QuestActObjSendMail");
         return false;
     }
 }

@@ -8,6 +8,10 @@ namespace AAEmu.Game.Models.Game.Quests.Templates;
 public class QuestActTemplate
 {
     protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
+    public QuestTemplate ParentQuestTemplate { get; set; }
+    public QuestComponent ParentComponent { get; set; }
+
     /// <summary>
     /// quest_act_xxx Id
     /// </summary>
@@ -16,19 +20,19 @@ public class QuestActTemplate
     /// <summary>
     /// Current Objective Count for this Act
     /// </summary>
-    public uint Objective { get; set; }
+    public int Objective { get; set; }
     /// <summary>
-    /// Total Objective Count needed to mark this Act as completed
+    /// Total Objective Count needed to mark this Act as completed, also used for giving item count, as this is technically also a goal.
     /// </summary>
-    public uint ObjectiveCount { get; set; } = 0;
+    public int Count { get; set; } = 0;
     /// <summary>
     /// Minimum Objective Count to be considered early completable
     /// </summary>
-    public uint ObjectiveEarlyCompleteCount { get; set; } = 0;
+    public int ObjectiveEarlyCompleteCount { get; set; } = 0;
     /// <summary>
     /// Maximum Objective Count required for the a full overachieve
     /// </summary>
-    public uint ObjectiveOverAchieveCount { get; set; } = 0;
+    public int ObjectiveOverAchieveCount { get; set; } = 0;
 
     protected string QuestActTemplateName
     {
@@ -60,7 +64,7 @@ public class QuestActTemplate
     /// <returns></returns>
     public virtual bool IsCompleted()
     {
-        return Objective >= ObjectiveCount;
+        return Objective >= Count;
     }
 
     /// <summary>
@@ -69,7 +73,7 @@ public class QuestActTemplate
     /// <returns>Only returns true, if ObjectiveEarlyCompleteCount is set, and ObjectiveEarlyCompleteCount &lt;= Objective &lt; ObjectiveCount</returns>
     public virtual bool IsEarlyCompletable()
     {
-        return (ObjectiveEarlyCompleteCount > 0) && (Objective >= ObjectiveEarlyCompleteCount) && (Objective < ObjectiveCount);
+        return (ObjectiveEarlyCompleteCount > 0) && (Objective >= ObjectiveEarlyCompleteCount) && (Objective < Count);
     }
 
     /// <summary>
@@ -78,7 +82,7 @@ public class QuestActTemplate
     /// <returns>Only returns true if ObjectiveOverachieveCount is set, and ObjectiveCount &lt; Objective &lt; ObjectiveOverachieveCount</returns>
     public virtual bool IsExtraProgress()
     {
-        return (ObjectiveOverAchieveCount > 0) && (Objective > ObjectiveCount) && (Objective < ObjectiveOverAchieveCount);
+        return (ObjectiveOverAchieveCount > 0) && (Objective > Count) && (Objective < ObjectiveOverAchieveCount);
     }
 
     /// <summary>
@@ -95,21 +99,9 @@ public class QuestActTemplate
     /// </summary>
     public virtual void Update(int updateAmount = 1)
     {
-        if (updateAmount > 0)
-        {
-            Objective += (uint)updateAmount;
-        }
-        else
-        {
-            if (updateAmount + Objective >= 0)
-            {
-                Objective = (uint)(Objective + updateAmount);
-            }
-            else
-            {
-                Objective = 0;
-            }
-        }
+        if (updateAmount == 0)
+            return;
+        Objective += updateAmount;
         Logger.Info($"{QuestActTemplateName} - QuestAct {Id} has been updated by {updateAmount} for a total of {Objective}.");
     }
 

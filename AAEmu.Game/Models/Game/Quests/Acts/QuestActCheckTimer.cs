@@ -23,12 +23,14 @@ public class QuestActCheckTimer : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActCheckTimer");
-        // TODO add what to do with timer
-        // TODO настройка и старт таймера ограничения времени на квест
+        Logger.Debug("QuestActCheckTimer");
+        // TODO: Add what to do with timer
+
+        // Setting up and starting the time limit timer for the quest
+        // настройка и старт таймера ограничения времени на квест
         var task = new Dictionary<uint, QuestTimeoutTask>
         {
-            { quest.TemplateId, new QuestTimeoutTask(character, quest.TemplateId) }
+            { ParentQuestTemplate.Id, new QuestTimeoutTask(character, quest.TemplateId) }
         };
 
         if (!QuestManager.Instance.QuestTimeoutTask.ContainsKey(quest.Owner.Id))
@@ -37,23 +39,16 @@ public class QuestActCheckTimer : QuestActTemplate
         }
         else
         {
-            if (!QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].ContainsKey(quest.TemplateId))
-                QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].Add(quest.TemplateId, new QuestTimeoutTask(character, quest.TemplateId));
+            if (!QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].ContainsKey(ParentQuestTemplate.Id))
+                QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].Add(ParentQuestTemplate.Id, new QuestTimeoutTask(character, ParentQuestTemplate.Id));
             else
-                QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id][quest.TemplateId] = new QuestTimeoutTask(character, quest.TemplateId);
+                QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id][ParentQuestTemplate.Id] = new QuestTimeoutTask(character, ParentQuestTemplate.Id);
         }
 
 
-        TaskManager.Instance.Schedule(QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id][quest.TemplateId], TimeSpan.FromMilliseconds(LimitTime));
-        character.SendMessage($"[Quest] {character.Name}, quest {quest.TemplateId} will end in {LimitTime / 60000} minutes.");
+        TaskManager.Instance.Schedule(QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id][ParentQuestTemplate.Id], TimeSpan.FromMilliseconds(LimitTime));
+        character.SendMessage($"[Quest] {character.Name}, quest {ParentQuestTemplate.Id} will end in {LimitTime / 60000} minutes.");
         quest.Time = DateTime.UtcNow.AddMilliseconds(LimitTime);
-
-        //if (SustainBuff)
-        //{
-        //    // BUFF: Overburdened - Carrying heavy objects reduces movement speed and prevents teleporting or gliding.
-        //    var buffId = (uint)BuffConstants.Overburdened;
-        //    character.Buffs.AddBuff(new Buff(character, character, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow));
-        //}
 
         return true;
     }

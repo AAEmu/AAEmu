@@ -13,7 +13,8 @@ public class QuestActObjDoodadPhaseCheck : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActObjDoodadPhaseCheck");
+        // TODO: Check the actual phase of the doodad
+        Logger.Debug("QuestActObjDoodadPhaseCheck");
         return false;
     }
 }

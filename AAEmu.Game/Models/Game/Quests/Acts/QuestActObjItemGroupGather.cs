@@ -10,7 +10,6 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 public class QuestActObjItemGroupGather : QuestActTemplate
 {
     public uint ItemGroupId { get; set; }
-    public int Count { get; set; }
     public bool Cleanup { get; set; }
     public uint HighlightDoodadId { get; set; }
     public int HighlightDoodadPhase { get; set; }
@@ -18,36 +17,34 @@ public class QuestActObjItemGroupGather : QuestActTemplate
     public uint QuestActObjAliasId { get; set; }
     public bool DropWhenDestroy { get; set; }
     public bool DestroyWhenDrop { get; set; }
-    //public static int GroupGatherStatus { get; private set; } = 0;
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Debug("QuestActObjItemGroupGather: ItemGroupId {0}, Count {1}, UseAlias {2}, QuestActObjAliasId {3}, HighlightDoodadId {4}, HighlightDoodadPhase {5}, quest {6}, objective {7}, Score {8}",
-            ItemGroupId, Count, UseAlias, QuestActObjAliasId, HighlightDoodadId, HighlightDoodadPhase, quest.TemplateId, objective, quest.Template.Score);
+        Logger.Debug($"QuestActObjItemGroupGather: ItemGroupId {ItemGroupId}, Count {Count}, UseAlias {UseAlias}, QuestActObjAliasId {QuestActObjAliasId}, HighlightDoodadId {HighlightDoodadId}, HighlightDoodadPhase {HighlightDoodadPhase}, quest {ParentQuestTemplate.Id}, objective {objective}, Score {ParentQuestTemplate.Score}");
 
         var res = false;
-        var maxCleanup = quest.Template.LetItDone ? Count * 7 / 5 : Count;
-        if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
+        var maxCleanup = ParentQuestTemplate.LetItDone ? Count * 7 / 5 : Count;
+        if (ParentQuestTemplate.Score > 0) // Check if the quest use Template.Score or Count
         {
             quest.GroupGatherStatus = objective * Count; // Count в данном случае % за единицу
             quest.OverCompletionPercent = quest.GroupGatherStatus + quest.HuntStatus + quest.GroupHuntStatus + quest.InteractionStatus;
 
-            if (quest.Template.LetItDone)
+            if (ParentQuestTemplate.LetItDone)
             {
-                if (quest.OverCompletionPercent >= quest.Template.Score * 1 / 2)
+                if (quest.OverCompletionPercent >= ParentQuestTemplate.Score * 1 / 2)
                     quest.EarlyCompletion = true;
 
-                if (quest.OverCompletionPercent > quest.Template.Score)
+                if (quest.OverCompletionPercent > ParentQuestTemplate.Score)
                     quest.ExtraCompletion = true;
             }
 
             Update();
 
-            res = quest.OverCompletionPercent >= quest.Template.Score;
+            res = quest.OverCompletionPercent >= ParentQuestTemplate.Score;
         }
         else
         {
-            if (quest.Template.LetItDone)
+            if (ParentQuestTemplate.LetItDone)
             {
                 quest.OverCompletionPercent = objective * 100 / Count;
 
