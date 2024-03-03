@@ -123,6 +123,10 @@ public abstract class QuestState
                 Quest.ProgressStepResults[componentIndex] = complete;
 
                 Logger.Info($"Quest: {Quest.TemplateId}, Step={Quest.Step}, checking the act {act.DetailType} gave the result {complete}.");
+
+                var stepResult = Quest.GetQuestObjectiveStatus();
+
+                // TODO: Simplify this result handling
                 // check the results for validity
                 if (successive)
                 {
@@ -158,7 +162,7 @@ public abstract class QuestState
                     results = true;
                     Logger.Info($"Quest: {Quest.TemplateId}, Step={Quest.Step}, last {componentIndex} stage completed with result {results}.");
                 }
-                else if (Quest.OverCompletionPercent >= score && score != 0 && !letItDone)
+                else if (stepResult >= QuestObjectiveStatus.Overachieved && score != 0 && !letItDone)
                 {
                     // выполнен один компонент из нескольких
                     results = true;
