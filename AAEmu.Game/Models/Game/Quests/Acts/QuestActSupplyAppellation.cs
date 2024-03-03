@@ -7,7 +7,7 @@ public class QuestActSupplyAppellation : QuestActTemplate
 {
     public uint AppellationId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         Logger.Debug($"QuestActSupplyAppellation, AppellationId: {AppellationId}");
         character.Appellations.Add(AppellationId);

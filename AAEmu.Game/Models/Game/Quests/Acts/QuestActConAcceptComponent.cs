@@ -7,7 +7,7 @@ public class QuestActConAcceptComponent : QuestActTemplate
 {
     public uint QuestContextId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         Logger.Debug($"QuestActConAcceptComponent: QuestContextId {QuestContextId}");
         return false;

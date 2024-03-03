@@ -7,7 +7,7 @@ public class QuestActSupplySkill : QuestActTemplate
 {
     public uint SkillId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         // TODO: Save the new skill somewhere maybe? There is no active quest that seems to be using this.
         Logger.Warn($"QuestActSupplySkill, SkillId: {SkillId}");

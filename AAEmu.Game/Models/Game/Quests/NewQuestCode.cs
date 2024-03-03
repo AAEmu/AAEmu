@@ -14,13 +14,14 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
+using Discord.Rest;
 
 namespace AAEmu.Game.Models.Game.Quests;
 
 public partial class Quest : PacketMarshaler
 {
     private object _lock = new();
-    public Dictionary<QuestComponentKind, QuestContext> QuestSteps { get; set; }
+    public Dictionary<QuestComponentKind, QuestContext> QuestSteps { get; set; } = new();
     public QuestContext QuestNoneState { get; set; }
     public QuestContext QuestStartState { get; set; }
     public QuestContext QuestSupplyState { get; set; }
@@ -41,7 +42,7 @@ public partial class Quest : PacketMarshaler
     #region Framework
 
     /// <summary>
-    /// инициализируем все шаги нужные квесту
+    /// Initialize all the steps needed for the quest
     /// </summary>
     public void CreateContextInstance()
     {
@@ -51,6 +52,16 @@ public partial class Quest : PacketMarshaler
         QuestProgressState = new QuestContext(this, new QuestProgressState(), QuestComponentKind.Progress);
         QuestReadyState = new QuestContext(this, new QuestReadyState(), QuestComponentKind.Ready);
         QuestRewardState = new QuestContext(this, new QuestRewardState(), QuestComponentKind.Reward);
+
+        // Add to steps handler for new system
+        QuestSteps.Add(QuestComponentKind.None, QuestNoneState);
+        QuestSteps.Add(QuestComponentKind.Start, QuestStartState);
+        QuestSteps.Add(QuestComponentKind.Supply, QuestSupplyState);
+        QuestSteps.Add(QuestComponentKind.Progress, QuestProgressState);
+        // QuestSteps.Add(QuestComponentKind.Fail, QuestFailState);
+        QuestSteps.Add(QuestComponentKind.Ready, QuestReadyState);
+        //QuestSteps.Add(QuestComponentKind.Drop, QuestDropState);
+        QuestSteps.Add(QuestComponentKind.Reward, QuestRewardState);
     }
 
     /// <summary>
@@ -106,7 +117,7 @@ public partial class Quest : PacketMarshaler
 
     public void GoToNextStep(int selected = 0)
     {
-        Step++;
+        Step += 1;
         while (true)
         {
             Logger.Info($"TRY NEXT STEP: Quest {TemplateId} going to step {Step}");
@@ -130,7 +141,7 @@ public partial class Quest : PacketMarshaler
                 case QuestComponentKind.Fail:
                 case QuestComponentKind.Drop:
                 default:
-                    Step++;
+                    Step += 1;
                     break;
                 case QuestComponentKind.Reward + 1:
                     return;
@@ -615,9 +626,7 @@ public partial class Quest : PacketMarshaler
                             return false;
                         }
 
-                        var objective = Owner.Inventory.GetItemsCount(template.ItemId);
-                        Objectives[idx] = objective > 0 ? objective - 1 : 0; // we will show one less item, since there will be an increment later
-
+                        act.SetObjective(this, Owner.Inventory.GetItemsCount(template.ItemId));
                         break;
                     }
                 case "QuestActObjItemGroupGather":
@@ -631,9 +640,7 @@ public partial class Quest : PacketMarshaler
                             return false;
                         }
 
-                        var objective = Owner.Inventory.GetItemsCount(args.ItemId);
-                        Objectives[idx] = objective > 0 ? objective - 1 : 0; // we will show one less item, since there will be an increment later
-
+                        act.SetObjective(this, Owner.Inventory.GetItemsCount(args.ItemId));
                         break;
                     }
                 case "QuestActObjZoneKill":
@@ -727,10 +734,10 @@ public partial class Quest : PacketMarshaler
                     }
                 case "QuestActObjAbilityLevel":
                     {
-                        //if (eventArgs is not OnAbilityLevelUpArgs args) { return false; }
-                        //var template = act.GetTemplate<QuestActObjAbilityLevel>(); // для доступа к переменным требуется привидение к нужному типу
-                        //// сначала проверим, может быть не то, что надо по квесту
-                        //if (template.Level >= Owner.Level) { return false; }
+                        // if (eventArgs is not OnAbilityLevelUpArgs args) { return false; }
+                        // var template = act.GetTemplate<QuestActObjAbilityLevel>(); // для доступа к переменным требуется привидение к нужному типу
+                        // сначала проверим, может быть не то, что надо по квесту
+                        // if (template.Level >= Owner.Level) { return false; }
                         break;
                     }
                 case "QuestActObjExpressFire":
@@ -782,10 +789,12 @@ public partial class Quest : PacketMarshaler
                         if (template?.DoodadId != args.DoodadId) { return false; }
                         break;
                     }
+                default:
+                    Logger.Warn($"CheckAct no hanlder for {act.DetailType}");
+                    break;
             }
 
-            Objectives[idx]++; // increase objective
-            return act.Use(Owner, this, Objectives[idx]); // return the result of the check
+            return act.Use(Owner, this, act.GetObjective(this)); // return the result of the check
         }
     }
 
@@ -1846,4 +1855,67 @@ public partial class Quest : PacketMarshaler
     #endregion Ready step
 
     #endregion Events
+
+    private void SetStep(QuestComponentKind value)
+    {
+        if (value == _step)
+            return;
+        _step = value;
+
+        // Reset Objectives
+        for (var i = 0; i < Objectives.Length; i++)
+            Objectives[i] = 0;
+
+        // Initialize Acts for this Step (if any)
+        if (!QuestSteps.TryGetValue(value, out var questSteps))
+            return;
+        foreach (var act in questSteps.State.CurrentActs)
+            act.Template.Initialize(this, act);
+    }
+
+    /// <summary>
+    /// Checks is this specific QuestAct is completed (checks objectives)
+    /// </summary>
+    /// <returns></returns>
+    public QuestObjectiveStatus GetQuestObjectiveStatus()
+    {
+        var questComponents = Template.GetComponents(Step);
+        if (Template.Score > 0)
+        {
+            // Use Score Handler
+            var score = 0;
+            // Loop through all components and acts to calculate their score
+            foreach (var questComponent in questComponents)
+            foreach (var questComponentAct in questComponent.Acts)
+                score += questComponentAct.Template.Count * Objectives[questComponentAct.ThisComponentObjectiveIndex];
+
+            // Check the score results
+            if (Template.LetItDone && score >= Template.Score * 7 / 5)
+                return QuestObjectiveStatus.Overachieved;
+            if (Template.LetItDone && score > Template.Score)
+                return QuestObjectiveStatus.ExtraProgress;
+            if (score >= Template.Score)
+                return QuestObjectiveStatus.QuestComplete;
+            if (Template.LetItDone && (score >= Template.Score * 3 / 5))
+                return QuestObjectiveStatus.ExtraProgress;
+
+            return QuestObjectiveStatus.NotReady;
+        }
+
+        // Check individual act counts if it's not score based
+        foreach (var questComponent in questComponents)
+        foreach (var questComponentAct in questComponent.Acts)
+        {
+            if (Template.LetItDone && Objectives[questComponentAct.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 7 / 5)
+                return QuestObjectiveStatus.Overachieved;
+            if (Template.LetItDone && Objectives[questComponentAct.ThisComponentObjectiveIndex] > questComponentAct.Template.Count)
+                return QuestObjectiveStatus.ExtraProgress;
+            if (Objectives[questComponentAct.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count)
+                return QuestObjectiveStatus.QuestComplete;
+            if (Template.LetItDone && (Objectives[questComponentAct.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 3 / 5))
+                return QuestObjectiveStatus.ExtraProgress;
+        }
+
+        return QuestObjectiveStatus.NotReady;
+    }
 }

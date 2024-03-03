@@ -15,7 +15,7 @@ public class QuestActSupplyItem : QuestActTemplate, IQuestActGenericItem
     public bool DropWhenDestroy { get; set; }
     public bool DestroyWhenDrop { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         Logger.Debug("QuestActSupplyItem");
 
@@ -35,7 +35,7 @@ public class QuestActSupplyItem : QuestActTemplate, IQuestActGenericItem
             }
         }
 
-        Objective = Count;
+        questAct.SetObjective(quest, Count);
 
         return acquireSuccessful;
     }

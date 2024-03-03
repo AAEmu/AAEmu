@@ -7,7 +7,7 @@ public class QuestActSupplyJuryPoint : QuestActTemplate
 {
     public int Point { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         // TODO: Implement Trial and Jury System
         Logger.Warn($"QuestActSupplyJuryPoint, Point: {Point}");

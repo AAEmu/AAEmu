@@ -17,7 +17,7 @@ public class QuestActObjItemGather : QuestActTemplate, IQuestActGenericItem // Ð
     public bool DropWhenDestroy { get; set; }
     public bool DestroyWhenDrop { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
         Logger.Debug($"QuestActObjItemGather: ItemId {ItemId}, Count {Count}, UseAlias {UseAlias}, QuestActObjAliasId {QuestActObjAliasId}, HighlightDoodadId {HighlightDoodadId}, HighlightDoodadPhase {HighlightDoodadPhase}, quest {ParentQuestTemplate.Id}, objective {objective}, Score {ParentQuestTemplate.Score}");
 
@@ -37,7 +37,7 @@ public class QuestActObjItemGather : QuestActTemplate, IQuestActGenericItem // Ð
                     quest.ExtraCompletion = true;
             }
 
-            Update();
+            Update(quest, questAct);
 
             res = quest.OverCompletionPercent >= ParentQuestTemplate.Score;
         }
@@ -54,7 +54,7 @@ public class QuestActObjItemGather : QuestActTemplate, IQuestActGenericItem // Ð
                     quest.ExtraCompletion = true;
             }
 
-            Update();
+            Update(quest, questAct);
 
             res = objective >= Count;
         }
@@ -63,5 +63,12 @@ public class QuestActObjItemGather : QuestActTemplate, IQuestActGenericItem // Ð
             quest.QuestCleanupItemsPool.Add(new ItemCreationDefinition(ItemId, Math.Min(maxCleanup, objective)));
 
         return res;
+    }
+
+    public override void Update(Quest quest, IQuestAct questAct, int updateAmount = 1)
+    {
+        // base.Update(quest, questAct, updateAmount);
+        // Objective count is already set by CheckAct
+        Logger.Info($"{QuestActTemplateName} - QuestActItemGather {Id} was updated by {updateAmount} for a total of {questAct.GetObjective(quest)}.");
     }
 }
