@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Quests.ActsInterface;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
@@ -14,7 +13,7 @@ public class QuestActConAcceptItem : QuestActTemplate, IQuestActGenericItem
 
     public override bool Use(ICharacter character, Quest quest, int objective) // triggered by using things
     {
-        Logger.Debug("QuestActConAcceptItem: ItemId {0}", ItemId);
+        Logger.Debug($"QuestActConAcceptItem: ItemId {ItemId}");
 
         quest.QuestAcceptorType = QuestAcceptorType.Item;
         quest.AcceptorType = ItemId;

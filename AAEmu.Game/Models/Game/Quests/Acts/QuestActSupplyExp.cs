@@ -9,7 +9,7 @@ public class QuestActSupplyExp : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Debug("QuestActSupplyExp");
+        Logger.Debug($"QuestActSupplyExp, Exp: {Exp}");
         quest.QuestRewardExpPool += Exp;
         return true;
     }

@@ -14,7 +14,7 @@ public class QuestActConReportNpc : QuestActTemplate
     {
         Logger.Debug("QuestActConReportNpc");
 
-        if (!(character.CurrentTarget is Npc npc))
+        if (character.CurrentTarget is not Npc npc)
             return false;
 
         return npc.TemplateId == NpcId;

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
@@ -9,26 +10,25 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActObjAbilityLevel : QuestActTemplate
 {
-    public byte AbilityId { get; set; }
+    public AbilityType AbilityId { get; set; }
     public byte Level { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActObjAbilityLevel");
+        Logger.Debug($"QuestActObjAbilityLevel, AbilityId: {AbilityId}, Level: {Level}");
 
         var completes = new List<bool>();
-        for (var i = 1; i < 11; i++)
+        for (var i = AbilityType.General+1; i < AbilityType.None; i++)
         {
-            completes.Add(false);
-        }
+            // If AbilityId is set, only check that one, otherwise, check all skill trees
+            if ((AbilityId > 0) && (AbilityId != i))
+                continue;
 
-        for (var i = 0; i < 10; i++)
-        {
-            var ability = character.Abilities.Abilities[(AbilityType)i + 1];
+            var ability = character.Abilities.Abilities[i];
             int abLevel = ExperienceManager.Instance.GetLevelFromExp(ability.Exp);
-            completes[i] = abLevel >= Level;
+            completes.Add(abLevel >= Level);
         }
 
         return completes.All(a => a == true);

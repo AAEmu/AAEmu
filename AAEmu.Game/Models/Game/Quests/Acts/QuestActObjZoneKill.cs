@@ -1,5 +1,6 @@
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -26,7 +27,7 @@ public class QuestActObjZoneKill : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActObjZoneKill");
+        Logger.Debug("QuestActObjZoneKill");
 
         if (character.Transform.ZoneId != ZoneId)
         {

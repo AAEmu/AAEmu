@@ -10,7 +10,7 @@ public class QuestActSupplyHonorPoint : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActSupplyHonorPoint");
+        Logger.Debug($"QuestActSupplyHonorPoint, Point: {Point}");
         character.ChangeGamePoints(GamePointKind.Honor, Point);
         return true;
     }

@@ -14,9 +14,8 @@ public class QuestActObjSphere : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActObjSphere Quest={0}, ComponentId={1}, Act={2}", quest.TemplateId, quest.ComponentId, Id);
+        Logger.Debug($"QuestActObjSphere Quest={ParentQuestTemplate.Id}, ComponentId={ParentComponent.Id}, Act={Id}");
         //character.SendMessage("[AAEmu] Your quest was completed automatically because that's how quest spheres are implemented...");
-        //character.SendMessage("Quest={0}, ComponentId={1}, Act={2}", quest.TemplateId, quest.ComponentId, Id);
 
         return true;
     }

@@ -8,14 +8,18 @@ public class QuestActObjTalk : QuestActTemplate
 {
     public uint NpcId { get; set; }
     public bool TeamShare { get; set; }
+    /// <summary>
+    /// Not sure how ItemId is supposed to work here
+    /// </summary>
     public uint ItemId { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActObjTalk");
-        if (!(character.CurrentInteractionObject is Npc npc))
+        // TODO: Implement ItemId? There seems to be only one valid Act that uses this. Quest: Feigned Formalities ( 3526 )
+        Logger.Debug("QuestActObjTalk");
+        if (character.CurrentInteractionObject is not Npc npc)
             return false;
 
         return npc.TemplateId == NpcId;

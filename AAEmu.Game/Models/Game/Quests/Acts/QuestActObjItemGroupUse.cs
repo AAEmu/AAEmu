@@ -8,37 +8,35 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 public class QuestActObjItemGroupUse : QuestActTemplate
 {
     public uint ItemGroupId { get; set; }
-    public int Count { get; set; }
     public uint HighlightDoodadId { get; set; }
     public int HighlightDoodadPhase { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
     public bool DropWhenDestroy { get; set; }
-    //public static int ItemGroupUseStatus { get; private set; } = 0;
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActObjItemGroupUse");
-        if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
+        Logger.Debug("QuestActObjItemGroupUse");
+        if (ParentQuestTemplate.Score > 0) // Check if the quest use Template.Score or Count
         {
             quest.ItemGroupUseStatus = objective * Count; // Count в данном случае % за единицу
             quest.OverCompletionPercent = quest.ItemGroupUseStatus + quest.HuntStatus + quest.GroupHuntStatus + quest.InteractionStatus;
 
-            if (quest.Template.LetItDone)
+            if (ParentQuestTemplate.LetItDone)
             {
-                if (quest.OverCompletionPercent >= quest.Template.Score * 1 / 2)
+                if (quest.OverCompletionPercent >= ParentQuestTemplate.Score * 1 / 2)
                     quest.EarlyCompletion = true;
 
-                if (quest.OverCompletionPercent > quest.Template.Score)
+                if (quest.OverCompletionPercent > ParentQuestTemplate.Score)
                     quest.ExtraCompletion = true;
             }
 
             Update();
 
-            return quest.OverCompletionPercent >= quest.Template.Score;
+            return quest.OverCompletionPercent >= ParentQuestTemplate.Score;
         }
 
-        if (quest.Template.LetItDone)
+        if (ParentQuestTemplate.LetItDone)
         {
             quest.OverCompletionPercent = objective * 100 / Count;
 

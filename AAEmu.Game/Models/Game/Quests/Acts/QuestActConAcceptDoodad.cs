@@ -10,7 +10,7 @@ public class QuestActConAcceptDoodad : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActConAcceptDoodad: DoodadId {0}", DoodadId);
+        Logger.Debug($"QuestActConAcceptDoodad: DoodadId {DoodadId}");
 
         quest.QuestAcceptorType = QuestAcceptorType.Doodad;
         quest.AcceptorType = DoodadId;

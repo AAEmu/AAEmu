@@ -20,7 +20,8 @@ public class QuestActObjAggro : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActObjAggro");
+        // TODO: Implement Aggro ranking system to pick rewards
+        Logger.Debug("QuestActObjAggro");
         return true;
     }
 }

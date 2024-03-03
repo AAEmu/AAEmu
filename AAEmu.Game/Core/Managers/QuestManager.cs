@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Quests;
@@ -110,13 +111,21 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     {
         foreach (var questTemplate in _templates.Values)
         {
-            foreach (var questComponent in questTemplate.Components)
+            foreach (var (questComponentKey, questComponentValue) in questTemplate.Components)
             {
-                if (_acts.TryGetValue(questComponent.Key, out var questActs))
+                if (!_acts.TryGetValue(questComponentKey, out var questActs))
+                    continue;
+
+                // Assign references to parents
+                foreach (var questAct in questActs)
                 {
-                    questComponent.Value.ActTemplates.AddRange(questActs.Select(a => a.Template));
-                    questComponent.Value.Acts.AddRange(questActs);
+                    questAct.Template.ParentComponent = questComponentValue;
+                    questAct.Template.ParentQuestTemplate = questTemplate;
                 }
+
+                // Actually add them
+                questComponentValue.ActTemplates.AddRange(questActs.Select(a => a.Template));
+                questComponentValue.Acts.AddRange(questActs);
             }
         }
     }
@@ -750,7 +759,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
                     template.Id = reader.GetUInt32("id");
                     template.ItemId = reader.GetUInt32("item_id");
                     template.Count = reader.GetInt32("count");
-                    template.HighlightDooadId = reader.GetUInt32("highlight_doodad_id", 0);
+                    template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
                     template.Cleanup = reader.GetBoolean("cleanup", true);
                     AddActTemplate(template);
                 }
@@ -766,7 +775,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
                 {
                     var template = new QuestActObjAbilityLevel();
                     template.Id = reader.GetUInt32("id");
-                    template.AbilityId = reader.GetByte("ability_id");
+                    template.AbilityId = (AbilityType)reader.GetByte("ability_id");
                     template.Level = reader.GetByte("level");
                     template.UseAlias = reader.GetBoolean("use_alias", true);
                     template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);

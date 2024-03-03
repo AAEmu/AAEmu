@@ -7,17 +7,14 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 public class QuestActSupplySelectiveItem : QuestActTemplate
 {
     public uint ItemId { get; set; }
-    public int Count { get; set; }
     public byte GradeId { get; set; }
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActSupplySelectiveItem");
+        Logger.Debug($"QuestActSupplySelectiveItem, ItemId: {ItemId}, Count: {Count}, GradeId: {GradeId}");
 
         quest.QuestRewardItemsPool.Add(new ItemCreationDefinition(ItemId, Count, GradeId));
-        // предмет будет добавлен в методе DistributeRewards()
         // the item will be added in the DistributeRewards() method
-        //character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId, 0);
 
         return true;
     }

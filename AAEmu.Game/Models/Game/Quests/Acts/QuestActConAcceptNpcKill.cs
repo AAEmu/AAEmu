@@ -11,14 +11,14 @@ public class QuestActConAcceptNpcKill : QuestActTemplate
 
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
-        Logger.Warn("QuestActConAcceptNpcKill: NpcId {0}", NpcId);
+        Logger.Debug($"QuestActConAcceptNpcKill: NpcId {NpcId}");
 
-        if (!(character.CurrentTarget is Npc))
+        if (!(character.CurrentTarget is Npc npc))
             return false;
 
         quest.QuestAcceptorType = QuestAcceptorType.Npc;
         quest.AcceptorType = NpcId;
 
-        return ((Npc)character.CurrentTarget).TemplateId == NpcId;
+        return npc.TemplateId == NpcId;
     }
 }
