@@ -119,8 +119,13 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
                 // Assign references to parents
                 foreach (var questAct in questActs)
                 {
-                    questAct.Template.ParentComponent = questComponentValue;
                     questAct.Template.ParentQuestTemplate = questTemplate;
+                    if (questAct.Template == null)
+                    {
+                        Logger.Error($"Missing QuestActTemplate for Quest: {questTemplate.Id}, ComponentId: {questComponentKey} ActId: {questAct.Id}. Please notify the developer.");
+                        continue;
+                    }
+                    questAct.Template.ParentComponent = questComponentValue;
                 }
 
                 // Actually add them
@@ -806,6 +811,24 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
                     template.Rank3Item = reader.GetBoolean("rank3_item", true);
                     template.UseAlias = reader.GetBoolean("use_alias", true);
                     template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id");
+                    AddActTemplate(template);
+                }
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_obj_cinemas";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var template = new QuestActObjCinema();
+                    template.Id = reader.GetUInt32("id");
+                    template.CinemaId = reader.GetUInt32("cinema_id");
+                    template.UseAlias = reader.GetBoolean("use_alias", true);
+                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
                     AddActTemplate(template);
                 }
             }
