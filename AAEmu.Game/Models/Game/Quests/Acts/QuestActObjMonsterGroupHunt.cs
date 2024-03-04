@@ -21,4 +21,11 @@ public class QuestActObjMonsterGroupHunt : QuestActTemplate
 
         return quest.GetQuestObjectiveStatus() >= QuestObjectiveStatus.CanEarlyComplete;
     }
+
+    public override void Update(Quest quest, IQuestAct questAct, int updateAmount = 1)
+    {
+        // base.Update(quest, questAct, updateAmount);
+        // Objective count is already set by CheckAct
+        Logger.Info($"{QuestActTemplateName} - QuestActObjMonsterGroupHunt {Id} was updated by {updateAmount} for a total of {questAct.GetObjective(quest)}.");
+    }
 }

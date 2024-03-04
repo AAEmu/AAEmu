@@ -23,7 +23,7 @@ public class QuestActObjItemGather : QuestActTemplate, IQuestActGenericItem // Ð
         Logger.Debug($"QuestActObjItemGather: ItemId {ItemId}, Count {Count}, UseAlias {UseAlias}, QuestActObjAliasId {QuestActObjAliasId}, HighlightDoodadId {HighlightDoodadId}, HighlightDoodadPhase {HighlightDoodadPhase}, quest {ParentQuestTemplate.Id}, objective {objective}, Score {ParentQuestTemplate.Score}");
 
         var res = quest.GetQuestObjectiveStatus() >= QuestObjectiveStatus.CanEarlyComplete;;
-        var maxCleanup = ParentQuestTemplate.LetItDone ? Count * 7 / 5 : Count;
+        var maxCleanup = ParentQuestTemplate.LetItDone ? Count * 3 / 2 : Count;
 
         Update(quest, questAct);
 
