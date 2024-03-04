@@ -1,10 +1,8 @@
 ﻿using System;
 
-using AAEmu.Game.Models.Game.AI.v2.Framework;
-
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
-public class RunCommandSetBehavior : Behavior
+public class RunCommandSetBehavior : BaseCombatBehavior
 {
     public override void Enter()
     {

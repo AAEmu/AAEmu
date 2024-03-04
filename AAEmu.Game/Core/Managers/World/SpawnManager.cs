@@ -309,7 +309,7 @@ public class SpawnManager : Singleton<SpawnManager>
                         foreach (var spawner in spawners)
                         {
                             entry++;
-                            if (spawner.UnitId !=0 && !GimmickManager.Instance.Exist(spawner.UnitId))
+                            if (spawner.UnitId != 0 && !GimmickManager.Instance.Exist(spawner.UnitId))
                             {
                                 Logger.Warn($"Gimmick Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
                                 continue; // TODO ... so mb warn here?

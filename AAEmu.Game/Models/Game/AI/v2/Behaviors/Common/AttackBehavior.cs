@@ -1,5 +1,6 @@
 ﻿using System;
 
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
@@ -42,8 +43,17 @@ public class AttackBehavior : BaseCombatBehavior
         if (!CanUseSkill)
             return;
 
-        var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
-        PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget, targetDist);
+        var delay = 150;
+        // Will delay for 150 Milliseconds to eliminate the hanging of the skill
+        if (!Ai.Owner.CheckInterval(delay))
+        {
+            Logger.Trace($"Skill: CooldownTime [{delay}]!");
+        }
+        else
+        {
+            var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+            PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, targetDist);
+        }
     }
 
     public override void Exit()

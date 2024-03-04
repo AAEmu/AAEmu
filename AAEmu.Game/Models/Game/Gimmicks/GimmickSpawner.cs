@@ -93,6 +93,8 @@ public class GimmickSpawner : Spawner<Gimmick>
         switch (OffsetCoordiateId)
         {
             case OffsetCoordiateType.Unk0:
+                var (newX0, newY0, newZ0) = PositionAndRotation.AddDistanceToFront(1, 1, gimmick.Transform.World.Position, gimmick.Transform.World.Position);
+                gimmick.Transform.World.Position = new Vector3(newX0, newY0, newZ0);
                 break;
             case OffsetCoordiateType.Unk1:
                 break;

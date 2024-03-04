@@ -19,6 +19,7 @@ public class AiParams
     public float MeleeAttackRange { get; set; } = 4f;
     public float PreferedCombatDist { get; set; } = 0f; // 5, 10, 15 Also found in entity
     public bool RestorationOnReturn { get; set; } = true; // false only for elect Npcs
+    public bool GoReturnState { get; set; } = true; // allows returning to the spawn point or not
 
     // TODO: Msgs
     public static AiParams CreateByType(AiParamType type, string aiParamsString)

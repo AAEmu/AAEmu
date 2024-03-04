@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Threading;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;

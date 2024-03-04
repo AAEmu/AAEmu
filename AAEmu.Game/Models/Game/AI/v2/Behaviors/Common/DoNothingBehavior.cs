@@ -1,11 +1,10 @@
 ﻿using System;
 
-using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Models;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
-public class DoNothingBehavior : Behavior
+public class DoNothingBehavior : BaseCombatBehavior
 
 {
     public override void Enter()

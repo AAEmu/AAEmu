@@ -1,7 +1,6 @@
 ﻿using System;
 
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -9,7 +8,7 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
-public class ReturnStateBehavior : Behavior
+public class ReturnStateBehavior : BaseCombatBehavior
 {
     private DateTime _timeoutTime;
     private bool _enter;
@@ -47,8 +46,9 @@ public class ReturnStateBehavior : Behavior
             return;
         }
 
-        var goReturnState = true; // TODO: get from params
-        if (!goReturnState)
+        //var goReturnState = true; // TODO: get from params
+        //if (!goReturnState)
+        if (Ai.Param is { GoReturnState: false })
         {
             OnCompletedReturnNoTeleport();
         }

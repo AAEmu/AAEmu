@@ -549,7 +549,6 @@ public class HousingManager : Singleton<HousingManager>
             return;
         }
 
-
         var zoneId = WorldManager.Instance.GetZoneId(connection.ActiveChar.Transform.WorldId, posX, posY);
 
         var houseTemplate = _housingTemplates[designId];
@@ -606,7 +605,6 @@ public class HousingManager : Singleton<HousingManager>
             }
             connection.ActiveChar.SubtractMoney(SlotType.Inventory, totalTaxAmountDue, Models.Game.Items.Actions.ItemTaskType.HouseCreation);
         }
-
 
         if (connection.ActiveChar.Inventory.Bag.ConsumeItem(Models.Game.Items.Actions.ItemTaskType.HouseBuilding, sourceDesignItem.TemplateId, 1, sourceDesignItem) <= 0)
         {
@@ -1576,7 +1574,6 @@ public class HousingManager : Singleton<HousingManager>
         }
 
         var itemUcc = UccManager.Instance.GetUccFromItem(item);
-
 
         // Create decoration doodad
         var decorationDesign = GetDecorationDesignFromId(designId);

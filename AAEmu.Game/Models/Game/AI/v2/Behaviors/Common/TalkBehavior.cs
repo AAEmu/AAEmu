@@ -1,10 +1,8 @@
 ﻿using System;
 
-using AAEmu.Game.Models.Game.AI.v2.Framework;
-
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
-public class TalkBehavior : Behavior
+public class TalkBehavior : BaseCombatBehavior
 {
     public override void Enter()
     {

@@ -1,7 +1,6 @@
 ﻿using System;
 
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
@@ -10,13 +9,21 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
-public class SpawningBehavior : Behavior
+public class SpawningBehavior : BaseCombatBehavior
 {
     private bool _usedSpawnSkills = false;
     private bool _enter;
 
     public override void Enter()
     {
+        if (Ai.Owner.CanFly)
+        {
+            // BUFF: Fly
+            var buffId = 6582u;
+            Ai.Owner.Buffs.RemoveBuff(6586);
+            Ai.Owner.Buffs.AddBuff(new Buff(Ai.Owner, Ai.Owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow));
+        }
+
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
         if (Ai.Owner is { } npc)
         {

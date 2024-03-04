@@ -1,14 +1,15 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
-using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.CashShop;
 using AAEmu.Game.Models.StaticValues;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -238,7 +239,7 @@ public class CashShopManager : Singleton<CashShopManager>
         }
 
         // If something didn't load, force close the shop
-        if ((MenuItems.Count <= 0) ||  (ShopItems.Count <= 0) || (SKUs.Count <= 0))
+        if ((MenuItems.Count <= 0) || (ShopItems.Count <= 0) || (SKUs.Count <= 0))
             DisableShop();
     }
 
