@@ -475,25 +475,10 @@ public partial class Quest : PacketMarshaler
 
         // проверка результатов на валидность, 266, 1125, 1135 - GroupHunt & ItemGather
         ComponentId = 0;
-        switch (stepResult)
-        {
-            case QuestObjectiveStatus.NotReady:
-            case QuestObjectiveStatus.CanEarlyComplete:
-            case QuestObjectiveStatus.ExtraProgress:
-                Status = QuestStatus.Progress;
-                Condition = QuestConditionObj.Progress;
-                break;
-            case QuestObjectiveStatus.QuestComplete:
-                Status = Template.LetItDone ? QuestStatus.Progress : QuestStatus.Ready;
-                Condition = Template.LetItDone ? QuestConditionObj.Progress : QuestConditionObj.Ready;
-                break;
-            case QuestObjectiveStatus.Overachieved:
-                Status = QuestStatus.Ready;
-                Condition = QuestConditionObj.Ready;
-                break;
-            default:
-                break;
-        }
+        Status = stepResult >= QuestObjectiveStatus.QuestComplete
+            ? QuestStatus.Ready // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
+            : QuestStatus.Progress; // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
+        Condition = QuestConditionObj.Progress;
 
         Logger.Info($"{str} Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}, StepResult={stepResult}");
 
@@ -588,6 +573,8 @@ public partial class Quest : PacketMarshaler
                         var template = act.GetTemplate<QuestActObjInteraction>(); // для доступа к переменным требуется привидение к нужному типу
                         // сначала проверим, что этотот Npc, может быть не тот, что надо по квесту
                         if (template?.DoodadId != args.DoodadId) { return false; }
+
+                        act.AddObjective(this, 1);
                         break;
                     }
                 case "QuestActObjMonsterHunt":
@@ -596,6 +583,8 @@ public partial class Quest : PacketMarshaler
                         var template = act.GetTemplate<QuestActObjMonsterHunt>(); // для доступа к переменным требуется привидение к нужному типу
                         // сначала проверим, что убили того Npc, может быть не тот, что надо по квесту
                         if (template?.NpcId != args.NpcId) { return false; }
+
+                        act.AddObjective(this, 1);
                         break;
                     }
                 case "QuestActObjMonsterGroupHunt":
@@ -604,6 +593,8 @@ public partial class Quest : PacketMarshaler
                         var template = act.GetTemplate<QuestActObjMonsterGroupHunt>(); // для доступа к переменным требуется привидение к нужному типу
                         // сначала проверим, что убили того Npc, может быть не тот, что надо по квесту
                         if (!_questManager.CheckGroupNpc(template.QuestMonsterGroupId, args.NpcId)) { return false; }
+
+                        act.AddObjective(this, 1);
                         break;
                     }
                 case "QuestActObjItemUse":
@@ -1075,7 +1066,7 @@ public partial class Quest : PacketMarshaler
         var res = CheckResults<QuestActObjItemGather>(context, Template.Successive, Template.Selective, context.State.CurrentComponents.Count, Template.LetItDone, Template.Score, eventArgs);
         if (res == -1)
         {
-            Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, это событие не для этого квеста, выход...");
+            Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, this event is not for this quest, exit...");
             //BadChoice("OnItemGatherHandler");
             return;
         }
@@ -1087,14 +1078,13 @@ public partial class Quest : PacketMarshaler
         {
             Logger.Info($"[OnItemGatherHandler] Отписываемся от события.");
             Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Event: 'OnItemGather', Handler: 'OnItemGatherHandler'");
-            Owner.Events.OnItemGather -= Owner.Quests.OnItemGatherHandler; // отписываемся
+            Owner.Events.OnItemGather -= Owner.Quests.OnItemGatherHandler; // unsubscribe
             if (args.QuestId == 0)
             {
-                Owner.Events.OnItemGather += Owner.Quests.OnItemGatherHandler; // снова подписываемся
+                Owner.Events.OnItemGather += Owner.Quests.OnItemGatherHandler; // subscribe again
             }
             Condition = QuestConditionObj.Ready;
             Logger.Info($"[OnItemGatherHandler] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            //ContextProcessing(0, eventArgs);
             CompleteActiveStep(0, eventArgs);
             return;
         }
@@ -1820,9 +1810,11 @@ public partial class Quest : PacketMarshaler
             return;
         _step = value;
 
+        /*
         // Reset Objectives
         for (var i = 0; i < Objectives.Length; i++)
             Objectives[i] = 0;
+        */
 
         // Initialize Acts for this Step (if any)
         if (!QuestSteps.TryGetValue(value, out var questSteps))
@@ -1848,14 +1840,14 @@ public partial class Quest : PacketMarshaler
                 score += questComponentAct.Template.Count * Objectives[questComponentAct.ThisComponentObjectiveIndex];
 
             // Check the score results
-            if (Template.LetItDone && score >= Template.Score * 7 / 5)
+            if (Template.LetItDone && score >= Template.Score * 3 / 2)
                 return QuestObjectiveStatus.Overachieved;
             if (Template.LetItDone && score > Template.Score)
                 return QuestObjectiveStatus.ExtraProgress;
             if (score >= Template.Score)
                 return QuestObjectiveStatus.QuestComplete;
             if (Template.LetItDone && (score >= Template.Score * 1 / 2))
-                return QuestObjectiveStatus.ExtraProgress;
+                return QuestObjectiveStatus.CanEarlyComplete;
 
             return QuestObjectiveStatus.NotReady;
         }
@@ -1864,14 +1856,14 @@ public partial class Quest : PacketMarshaler
         foreach (var questComponent in questComponents)
         foreach (var questComponentAct in questComponent.Acts)
         {
-            if (Template.LetItDone && Objectives[questComponentAct.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 7 / 5)
+            if (Template.LetItDone && Objectives[questComponentAct.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 3 / 2)
                 return QuestObjectiveStatus.Overachieved;
             if (Template.LetItDone && Objectives[questComponentAct.ThisComponentObjectiveIndex] > questComponentAct.Template.Count)
                 return QuestObjectiveStatus.ExtraProgress;
             if (Objectives[questComponentAct.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count)
                 return QuestObjectiveStatus.QuestComplete;
             if (Template.LetItDone && (Objectives[questComponentAct.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 1 / 2))
-                return QuestObjectiveStatus.ExtraProgress;
+                return QuestObjectiveStatus.CanEarlyComplete;
         }
 
         return QuestObjectiveStatus.NotReady;
@@ -1894,8 +1886,8 @@ public partial class Quest : PacketMarshaler
                 score += questComponentAct.Template.Count * Objectives[questComponentAct.ThisComponentObjectiveIndex];
 
             // Check the score cap results
-            if (Template.LetItDone && score >= Template.Score * 7 / 5)
-                return Template.Score * 7f / 5f;
+            if (Template.LetItDone && score >= Template.Score * 3 / 2)
+                return Template.Score * 3f / 2f;
 
             return 1f / Template.Score * score;
         }
@@ -1906,9 +1898,9 @@ public partial class Quest : PacketMarshaler
         foreach (var questComponentAct in questComponent.Acts)
         {
             if (Template.LetItDone && Objectives[questComponentAct.ThisComponentObjectiveIndex] >=
-                questComponentAct.Template.Count * 7 / 5)
+                questComponentAct.Template.Count * 3 / 2)
             {
-                highest = Math.Max(highest, questComponentAct.Template.Count * 7f / 5f);
+                highest = Math.Max(highest, questComponentAct.Template.Count * 3f / 2f);
                 continue;
             }
             highest = Math.Max(highest, 1f / questComponentAct.Template.Count * Objectives[questComponentAct.ThisComponentObjectiveIndex]);

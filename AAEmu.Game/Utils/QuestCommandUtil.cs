@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -34,7 +35,7 @@ public class QuestCommandUtil
                 foreach (var quest in character.Quests.ActiveQuests.Values)
                 {
                     var objectives = quest.GetObjectives(quest.Step).Select(t => t.ToString()).ToList();
-                    character.SendMessage($"Quest {quest.Template.Id}: Step({quest.Step}), Objectives({string.Join(", ", objectives)}) - @QUEST_NAME({quest.Template.Id})");
+                    character.SendMessage($"Quest {quest.Template.Id}: Step({quest.Step}), Status({quest.Status}), ComponentId({quest.ComponentId}), Objectives({string.Join(", ", objectives)}) - @QUEST_NAME({quest.Template.Id})");
                 }
                 break;
             case "reward":
@@ -147,8 +148,8 @@ public class QuestCommandUtil
             case "resetdaily":
                 character.Quests.ResetDailyQuests(true);
                 break;
-            case "debugupdate":
-                if (args.Length >= 6)
+            case "debug":
+                if (args.Length >= 8)
                 {
                     if (!uint.TryParse(args[1], out var questVal))
                         break;
@@ -157,17 +158,32 @@ public class QuestCommandUtil
                         character.SendMessage(ChatType.System, $"[Quest] No active quest Id {questVal}", Color.Red);
                         break;
                     }
-                    if (!uint.TryParse(args[2], out var componentId))
+                    if (!int.TryParse(args[2], out var para1))
                         break;
-                    if (!int.TryParse(args[3], out var para1))
+                    if (!int.TryParse(args[3], out var para2))
                         break;
-                    if (!int.TryParse(args[4], out var para2))
+                    if (!int.TryParse(args[4], out var para3))
                         break;
-                    if (!int.TryParse(args[5], out var para3))
+                    if (!int.TryParse(args[5], out var para4))
                         break;
-                    if (!int.TryParse(args[6], out var para4))
+                    if (!int.TryParse(args[6], out var para5))
                         break;
-                    character.SendPacket(new SCQuestContextUpdatedPacket(activeQuest, componentId, para1, para2, para3, para4));
+                    if (!Enum.TryParse<QuestStatus>(args[7], out var status))
+                        break;
+                    if (!uint.TryParse(args[8], out var comp))
+                        break;
+                    activeQuest.Objectives[0] = para1;
+                    activeQuest.Objectives[1] = para2;
+                    activeQuest.Objectives[2] = para3;
+                    activeQuest.Objectives[3] = para4;
+                    activeQuest.Objectives[4] = para5;
+                    activeQuest.Status = status;
+                    activeQuest.ComponentId = comp;
+                    character.SendPacket(new SCQuestContextUpdatedPacket(activeQuest,  activeQuest.ComponentId));
+                }
+                else
+                {
+                    character.SendMessage("[Quest] /quest debug <questId> <stuff>");
                 }
                 break;
             default:

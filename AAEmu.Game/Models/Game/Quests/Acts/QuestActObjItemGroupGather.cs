@@ -24,7 +24,7 @@ public class QuestActObjItemGroupGather : QuestActTemplate
         Logger.Debug($"QuestActObjItemGroupGather: ItemGroupId {ItemGroupId}, Count {Count}, UseAlias {UseAlias}, QuestActObjAliasId {QuestActObjAliasId}, HighlightDoodadId {HighlightDoodadId}, HighlightDoodadPhase {HighlightDoodadPhase}, quest {ParentQuestTemplate.Id}, objective {objective}, Score {ParentQuestTemplate.Score}");
 
         var res = quest.GetQuestObjectiveStatus() >= QuestObjectiveStatus.CanEarlyComplete;;
-        var maxCleanup = ParentQuestTemplate.LetItDone ? Count * 7 / 5 : Count;
+        var maxCleanup = ParentQuestTemplate.LetItDone ? Count * 3 / 2 : Count;
         Update(quest, questAct);
 
         if (res && Cleanup)
