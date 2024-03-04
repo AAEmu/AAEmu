@@ -137,7 +137,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
                         slave.Transform.Local.ApplyFromQuaternion(rot.X, rot.Z, rot.Y, rot.W);
 
                         // if (_tickCount % 6 == 0)
-                            _physWorld.CollisionSystem.Detect(true);
+                        _physWorld.CollisionSystem.Detect(true);
                         BoatPhysicsTick(slave, slaveRigidBody);
                         // Logger.Debug($"{_thread.Name}, slave: {slave.Name} collision check tick");
                     }

@@ -606,4 +606,9 @@ public class NpcSpawner : Spawner<Npc>
     {
         return _spawnCount < Template.MaxPopulation;
     }
+
+    public Unit GetLastSpawn()
+    {
+        return _lastSpawn;
+    }
 }

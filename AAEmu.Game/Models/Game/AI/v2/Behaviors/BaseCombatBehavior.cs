@@ -4,10 +4,13 @@ using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
+using AAEmu.Game.Models.Game.AI.v2.Params;
+using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
@@ -18,6 +21,11 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors;
 public abstract class BaseCombatBehavior : Behavior
 {
     protected bool _strafeDuringDelay;
+    protected string _pipeName;
+    protected uint _phaseType;
+    protected DateTime _combatStartTime;
+    protected Queue<AiSkill> _skillQueue;
+    private bool _startingSkillAlreadyUsed;
 
     public void MoveInRange(BaseUnit target, TimeSpan delta)
     {
@@ -238,5 +246,182 @@ public abstract class BaseCombatBehavior : Behavior
 
         Ai.Owner.SetTarget(null);
         return false;
+    }
+
+    protected void CheckPipeName()
+    {
+        if (_pipeName == "phase_dragon_ground" || _phaseType == 1) // "PHASE_DRAGON_GROUND = 1;"
+        {
+            // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
+            var updZ = WorldManager.Instance.GetHeight(Ai.Owner.Transform.ZoneId, Ai.Owner.Transform.Local.Position.X, Ai.Owner.Transform.Local.Position.Y);
+            Ai.Owner.Transform.Local.SetHeight(updZ);
+        }
+        else if (_pipeName == "phase_dragon_fly_hovering" || _phaseType == 2) // "PHASE_DRAGON_HOVERING = 2;"
+        {
+            Ai.Owner.Transform.Local.SetHeight(Ai.Owner.Transform.Local.Position.Z + 15f);
+            Ai.Owner.StopMovement();
+        }
+        else if (_pipeName == "phase_dragon_fly_path")
+        {
+            Ai.GoToFollowPath();
+        }
+    }
+
+    protected bool RefreshSkillQueue(List<AiSkillList> skillLists, AiParams aiParams)
+    {
+        var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+        var aiSkillLists = RequestAvailableAiSkillList(skillLists);
+        if (aiSkillLists.Count > 0)
+        {
+            // select a set of skills by dice
+            var selectedSkillList = aiSkillLists.RandomElementByWeight(s => s.Dice);
+            if (selectedSkillList != null)
+            {
+                _pipeName = selectedSkillList.PipeName;
+                _phaseType = selectedSkillList.PhaseType;
+                aiParams.RestorationOnReturn = selectedSkillList.Restoration;
+                aiParams.GoReturnState = selectedSkillList.GoReturn;
+
+                Logger.Info($"RefreshSkillQueue: Dice Check: Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, healthRange=[{selectedSkillList.HealthRangeMin}.{selectedSkillList.HealthRangeMax}], timeElapsed={(DateTime.UtcNow - _combatStartTime).TotalSeconds}, timeRange=[{selectedSkillList.TimeRangeStart}.{selectedSkillList.TimeRangeEnd}], skills Count={selectedSkillList.SkillLists.Count}, Dice={selectedSkillList.Dice}");
+
+                // add startAiSkill first to the queue if it is available
+                if (selectedSkillList.StartAiSkills.Count > 0 && !_startingSkillAlreadyUsed)
+                {
+                    foreach (var skill in selectedSkillList.StartAiSkills)
+                    {
+                        if (Ai.Owner.Cooldowns.CheckCooldown(skill.SkillId))
+                        {
+                            continue;
+                        }
+                        Logger.Info($"RefreshSkillQueue: Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, StartAiSkill={skill.SkillId}");
+                        _skillQueue.Enqueue(skill);
+                        _startingSkillAlreadyUsed = true;
+                    }
+                }
+
+                var availableSkillList = RequestAvailableSkillList(selectedSkillList.SkillLists);
+
+                // then add from skillLists
+                var skillList = availableSkillList.RandomElementByWeight(s => s.Dice);
+                if (skillList == null)
+                    return _skillQueue.Count > 0;
+                Logger.Info($"RefreshSkillQueue: Dice Check: Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, healthRange=[{skillList.HealthRangeMin}.{skillList.HealthRangeMax}], timeElapsed={(DateTime.UtcNow - _combatStartTime).TotalSeconds}, timeRange=[{skillList.TimeRangeStart}.{skillList.TimeRangeEnd}], skills Count={skillList.Skills.Count}, Dice={skillList.Dice}");
+
+                foreach (var skill in skillList.Skills)
+                {
+                    if (Ai.Owner.Cooldowns.CheckCooldown(skill.SkillId))
+                    {
+                        continue;
+                    }
+                    var template = SkillManager.Instance.GetSkillTemplate(skill.SkillId);
+                    if (template == null) { continue; }
+                    if (targetDist >= template.MinRange && targetDist <= template.MaxRange || template.TargetType == SkillTargetType.Self)
+                    {
+                        Logger.Info($"RefreshSkillQueue: Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, trgDist={targetDist}, rangeDist=[{template.MinRange}.{template.MaxRange}], skill={skill.SkillId}");
+                        _skillQueue.Enqueue(skill);
+                    }
+                    Logger.Info($"RefreshSkillQueue: Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, skill={skill.SkillId}");
+                }
+            }
+
+            return _skillQueue.Count > 0;
+        }
+
+        if (Ai.Owner.Template.BaseSkillId == 0) { return false; }
+
+        var item = new AiSkill();
+        item.SkillId = (uint)Ai.Owner.Template.BaseSkillId;
+        item.Strafe = Ai.Owner.Template.BaseSkillStrafe;
+        item.Delay = Ai.Owner.Template.BaseSkillDelay;
+        Logger.Info($"RefreshSkillQueue: Use BaseSkill: Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, skill={item.SkillId}");
+        _skillQueue.Enqueue(item);
+
+        return true;
+    }
+
+    private List<AiSkillList> RequestAvailableAiSkillList(List<AiSkillList> aiSkillLists)
+    {
+        var healthRatio = (int)((float)Ai.Owner.Hp / Ai.Owner.MaxHp * 100);
+
+        var baseList = aiSkillLists.AsEnumerable();
+        var timeElapsed = (DateTime.UtcNow - _combatStartTime).TotalSeconds;
+
+        var availableSkillLists = new List<AiSkillList>();
+        foreach (var s in baseList)
+        {
+            // first, let's select the allowed skills based on life value
+            if ((s.HealthRangeMin == 0 && s.HealthRangeMax == 0) || (s.HealthRangeMin < healthRatio && healthRatio <= s.HealthRangeMax))
+            {
+                Logger.Info($"RequestAvailableSkillList: HealthCheck passed successfully for Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, health={healthRatio}, healthRange=[{s.HealthRangeMin}.{s.HealthRangeMax}], timeElapsed={timeElapsed}, timeRange=[{s.TimeRangeStart}.{s.TimeRangeEnd}], SkillLists Count={s.SkillLists.Count}, Dice={s.Dice}");
+
+                // then, select the allowed skills by time
+                if ((s.TimeRangeStart >= 0 && s.TimeRangeEnd > 0) || (s.TimeRangeStart > 0 && s.TimeRangeEnd >= 0))
+                {
+                    if (s.TimeRangeStart <= timeElapsed && s.TimeRangeEnd == 0)
+                    {
+                        Logger.Info($"RequestAvailableSkillList: TimeCheck passed successfully for Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, health={healthRatio}, healthRange=[{s.HealthRangeMin}.{s.HealthRangeMax}], timeElapsed={timeElapsed}, timeRange=[{s.TimeRangeStart}.{s.TimeRangeEnd}], SkillLists Count={s.SkillLists.Count}, Dice= {s.Dice}");
+
+                        availableSkillLists.Add(s);
+                    }
+                    else if (s.TimeRangeStart <= timeElapsed && timeElapsed <= s.TimeRangeEnd)
+                    {
+                        Logger.Info($"RequestAvailableSkillList: TimeCheck passed successfully for Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, health={healthRatio}, healthRange=[{s.HealthRangeMin}.{s.HealthRangeMax}], timeElapsed={timeElapsed}, timeRange=[{s.TimeRangeStart}.{s.TimeRangeEnd}], SkillLists Count={s.SkillLists.Count}, Dice= {s.Dice}");
+
+                        availableSkillLists.Add(s);
+                    }
+                }
+                else if (s.TimeRangeStart == 0 && s.TimeRangeEnd == 0)
+                {
+                    Logger.Info($"RequestAvailableSkillList: TimeCheck passed successfully for Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, health={healthRatio}, healthRange=[{s.HealthRangeMin}.{s.HealthRangeMax}], timeElapsed={timeElapsed}, timeRange=[{s.TimeRangeStart}.{s.TimeRangeEnd}], SkillLists Count={s.SkillLists.Count}, Dice= {s.Dice}");
+
+                    availableSkillLists.Add(s);
+                }
+            }
+        }
+
+        return availableSkillLists;
+    }
+
+    private List<SkillList> RequestAvailableSkillList(List<SkillList> skillLists)
+    {
+        var healthRatio = (int)((float)Ai.Owner.Hp / Ai.Owner.MaxHp * 100);
+
+        var baseList = skillLists.AsEnumerable();
+        var timeElapsed = (DateTime.UtcNow - _combatStartTime).TotalSeconds;
+
+        var availableSkillLists = new List<SkillList>();
+        foreach (var s in baseList)
+        {
+            // first, let's select the allowed skills based on life value
+            if ((s.HealthRangeMin == 0 && s.HealthRangeMax == 0) || (s.HealthRangeMin < healthRatio && healthRatio <= s.HealthRangeMax))
+            {
+                Logger.Info($"RequestAvailableSkillList: HealthCheck passed successfully for Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, health={healthRatio}, healthRange=[{s.HealthRangeMin}.{s.HealthRangeMax}], timeElapsed={timeElapsed}, timeRange=[{s.TimeRangeStart}.{s.TimeRangeEnd}], skills Count={s.Skills.Count}, Dice={s.Dice}");
+
+                // then, select the allowed skills by time
+                if ((s.TimeRangeStart >= 0 && s.TimeRangeEnd > 0) || (s.TimeRangeStart > 0 && s.TimeRangeEnd >= 0))
+                {
+                    if (s.TimeRangeStart <= timeElapsed && s.TimeRangeEnd == 0)
+                    {
+                        Logger.Info($"RequestAvailableSkillList: TimeCheck passed successfully for Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, health={healthRatio}, healthRange=[{s.HealthRangeMin}.{s.HealthRangeMax}], timeElapsed={timeElapsed}, timeRange=[{s.TimeRangeStart}.{s.TimeRangeEnd}], skills Count={s.Skills.Count}, Dice= {s.Dice}");
+
+                        availableSkillLists.Add(s);
+                    }
+                    else if (s.TimeRangeStart <= timeElapsed && timeElapsed <= s.TimeRangeEnd)
+                    {
+                        Logger.Info($"RequestAvailableSkillList: TimeCheck passed successfully for Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, health={healthRatio}, healthRange=[{s.HealthRangeMin}.{s.HealthRangeMax}], timeElapsed={timeElapsed}, timeRange=[{s.TimeRangeStart}.{s.TimeRangeEnd}], skills Count={s.Skills.Count}, Dice= {s.Dice}");
+
+                        availableSkillLists.Add(s);
+                    }
+                }
+                else if (s.TimeRangeStart == 0 && s.TimeRangeEnd == 0)
+                {
+                    Logger.Info($"RequestAvailableSkillList: TimeCheck passed successfully for Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, health={healthRatio}, healthRange=[{s.HealthRangeMin}.{s.HealthRangeMax}], timeElapsed={timeElapsed}, timeRange=[{s.TimeRangeStart}.{s.TimeRangeEnd}], skills Count={s.Skills.Count}, Dice= {s.Dice}");
+
+                    availableSkillLists.Add(s);
+                }
+            }
+        }
+
+        return availableSkillLists;
     }
 }

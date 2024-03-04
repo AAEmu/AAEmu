@@ -23,25 +23,25 @@ namespace AAEmu.Game.Models.Game.AI.v2.Params.Flytrap
             aiParams.DoString($"data = {{\n{data}\n}}");
 
             // general
-            if (aiParams.GetObjectFromPath("data.alertDuration") !=null)
+            if (aiParams.GetObjectFromPath("data.alertDuration") != null)
                 AlertDuration = (float)aiParams.GetNumber("data.alertDuration");
-            if (aiParams.GetObjectFromPath("data.alertToAttack") !=null)
+            if (aiParams.GetObjectFromPath("data.alertToAttack") != null)
                 AlertToAttack = Convert.ToBoolean(aiParams.GetObjectFromPath("data.alertToAttack"));
-            if (aiParams.GetObjectFromPath("data.alertSafeTargetRememberTime") !=null)
+            if (aiParams.GetObjectFromPath("data.alertSafeTargetRememberTime") != null)
                 AlertSafeTargetRememberTime = (float)aiParams.GetNumber("data.alertSafeTargetRememberTime");
-            if (aiParams.GetObjectFromPath("data.alwaysTeleportOnReturn") !=null)
+            if (aiParams.GetObjectFromPath("data.alwaysTeleportOnReturn") != null)
                 AlwaysTeleportOnReturn = Convert.ToBoolean(aiParams.GetObjectFromPath("data.alwaysTeleportOnReturn"));
-            if (aiParams.GetObjectFromPath("data.maxMakeAGapCount") !=null)
+            if (aiParams.GetObjectFromPath("data.maxMakeAGapCount") != null)
                 MaxMakeAGapCount = aiParams.GetInteger("data.maxMakeAGapCount");
-            if (aiParams.GetObjectFromPath("data.meleeAttackRange") !=null)
+            if (aiParams.GetObjectFromPath("data.meleeAttackRange") != null)
                 MeleeAttackRange = (float)aiParams.GetNumber("data.meleeAttackRange");
-            if (aiParams.GetObjectFromPath("data.preferedCombatDist") !=null)
+            if (aiParams.GetObjectFromPath("data.preferedCombatDist") != null)
                 PreferedCombatDist = (float)aiParams.GetNumber("data.preferedCombatDist");
-            if (aiParams.GetObjectFromPath("data.restorationOnReturn") !=null)
+            if (aiParams.GetObjectFromPath("data.restorationOnReturn") != null)
                 RestorationOnReturn = Convert.ToBoolean(aiParams.GetObjectFromPath("data.restorationOnReturn"));
 
             // individually
-            if (aiParams.GetObjectFromPath("data.attackEndDistance") !=null)
+            if (aiParams.GetObjectFromPath("data.attackEndDistance") != null)
                 AttackEndDistance = (float)aiParams.GetNumber("data.attackEndDistance");
 
             CombatSkills = new FlytrapCombatSkill();

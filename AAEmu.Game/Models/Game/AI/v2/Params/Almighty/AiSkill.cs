@@ -1,4 +1,4 @@
-﻿namespace AAEmu.Game.Models.Game.AI.v2.Params;
+﻿namespace AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 
 public class AiSkill
 {

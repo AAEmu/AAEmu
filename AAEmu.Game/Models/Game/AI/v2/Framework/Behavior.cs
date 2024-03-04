@@ -147,6 +147,17 @@ public abstract class Behavior
             return SkillResult.CooldownTime;
         }
 
+        var targetDist = Ai.Owner.GetDistanceTo(target);
+        if (targetDist < skill.Template.MinRange)
+        {
+            return SkillResult.TooCloseRange;
+        }
+
+        if (targetDist > skill.Template.MaxRange)
+        {
+            return SkillResult.TooFarRange;
+        }
+
         _nextTimeToDelay = delay;
         var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);
         skillCaster.ObjId = Ai.Owner.ObjId;

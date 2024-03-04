@@ -4,14 +4,13 @@ using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.Utils;
-using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
-public class RoamingBehavior : Behavior
+public class RoamingBehavior : BaseCombatBehavior
 {
     private Vector3 _targetRoamPosition = Vector3.Zero;
     private DateTime _nextRoaming;

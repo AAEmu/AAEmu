@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Net;
+
 using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.Proxy;
 using AAEmu.Game.Models;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Network.Game;

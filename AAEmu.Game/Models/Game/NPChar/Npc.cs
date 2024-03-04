@@ -832,7 +832,7 @@ public class Npc : Unit
         else
         {
             aggro = new Aggro(unit);
-            aggro.AddAggro(AggroKind.Heal, amount);
+            aggro.AddAggro(kind, amount);
             if (AggroTable.TryAdd(unit.ObjId, aggro))
             {
                 unit.Events.OnHealed += OnAbuserHealed;
@@ -1130,6 +1130,7 @@ public class Npc : Unit
         BroadcastPacket(new SCTargetChangedPacket(ObjId, other?.ObjId ?? 0), true);
         Ai.AlreadyTargetted = other != null;
     }
+
     public void FindPath(Unit abuser)
     {
         Ai.PathNode.pos1 = new Point(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);

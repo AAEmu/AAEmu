@@ -1,18 +1,19 @@
 ﻿using System;
 
-using AAEmu.Game.Models.Game.AI.v2.Framework;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
-public class IdleBehavior : Behavior
+public class IdleBehavior : BaseCombatBehavior
 {
     private bool _enter;
 
     public override void Enter()
     {
+        // BUFF: Fly
         Ai.Owner.InterruptSkills();
         Ai.Owner.StopMovement();
         Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
@@ -28,9 +29,20 @@ public class IdleBehavior : Behavior
         if (!_enter)
             return; // not initialized yet Enter()
 
-        var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
-        PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, targetDist);
+        var delay = 150;
+        // Will delay for 150 Milliseconds to eliminate the hanging of the skill
+        if (!Ai.Owner.CheckInterval(delay))
+        {
+            Logger.Trace($"Skill: CooldownTime [{delay}]!");
+        }
+        else
+        {
+            var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+            PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, targetDist);
+        }
+
         CheckAggression();
+        Ai.GoToFollowPath();
     }
 
     public override void Exit()

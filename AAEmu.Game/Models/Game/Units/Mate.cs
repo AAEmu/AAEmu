@@ -628,7 +628,7 @@ public sealed class Mate : Unit
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
-        PostUpdateCurrentHp(this,oldHp, Hp, KillReason.Unknown);
+        PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
 
     public void StartUpdateXp(Character Owner)

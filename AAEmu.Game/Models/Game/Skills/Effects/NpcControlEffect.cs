@@ -46,10 +46,16 @@ public class NpcControlEffect : EffectTemplate
                 case NpcControlCategory.FollowPath:
                     {
                         if (npc.IsInPatrol) { break; }
+
                         npc.IsInPatrol = true;
                         npc.Simulation.RunningMode = false;
                         npc.Simulation.MoveToPathEnabled = false;
                         npc.Simulation.MoveFileName = ParamString;
+                        if (ParamInt == 3)
+                        {
+                            npc.Simulation.Cycle = true;
+                            npc.Simulation.RunningMode = false;
+                        }
                         npc.Simulation.GoToPath(npc, true);
                         break;
                     }

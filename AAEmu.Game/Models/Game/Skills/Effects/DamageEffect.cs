@@ -221,10 +221,10 @@ public class DamageEffect : EffectTemplate
 
         var damageMultiplier = DamageType switch
         {
-            DamageType.Melee  => ((Unit)caster).MeleeDamageMul,
-            DamageType.Magic  => ((Unit)caster).SpellDamageMul,
+            DamageType.Melee => ((Unit)caster).MeleeDamageMul,
+            DamageType.Magic => ((Unit)caster).SpellDamageMul,
             DamageType.Ranged => ((Unit)caster).RangedDamageMul,
-            DamageType.Siege  => 1.0f, // TODO
+            DamageType.Siege => 1.0f, // TODO
             _ => 1f
         };
 

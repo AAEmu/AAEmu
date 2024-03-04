@@ -39,8 +39,8 @@ public class SpawnGimmickEffect : EffectTemplate
         if (npc?.CurrentTarget == null)
             return;
 
-        if (npc.Gimmick != null)
-            return; // don't spawn another Gimmick until the current one disappears
+        //if (npc.Gimmick != null)
+        //    return; // don't spawn another Gimmick until the current one disappears
 
         Logger.Info($"SpawnGimmickEffect GimmickId={GimmickId}, scale={Scale}");
 
@@ -49,7 +49,7 @@ public class SpawnGimmickEffect : EffectTemplate
         if (npc.Gimmick == null)
             return;
 
-        if ((Character)npc.CurrentTarget is { } character)
+        if (npc is { CurrentTarget: Character character })
         {
             npc.Gimmick.CurrentTarget = character;
             return;

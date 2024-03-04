@@ -206,7 +206,6 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
         return new List<CombatBuffTemplate>();
     }
 
-
     public List<SkillReagent> GetSkillReagentsBySkillId(uint id)
     {
         List<SkillReagent> reagents = new List<SkillReagent>();
@@ -1781,7 +1780,6 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                 OnSkillsLoaded?.Invoke(this, new EventArgs());
             }
         }
-
 
         foreach (var skillTemplate in _skills.Values.Where(x => x.AutoLearn))
         {
