@@ -52,7 +52,7 @@ public class AttackBehavior : BaseCombatBehavior
         else
         {
             var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
-            PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, targetDist);
+            PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget, targetDist);
         }
     }
 
