@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
@@ -24,7 +25,9 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Item;
 using AAEmu.Game.Utils.DB;
+
 using MySql.Data.MySqlClient;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -678,7 +681,6 @@ public class ItemManager : Singleton<ItemManager>
                 }
             }
 
-
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM item_grades";
@@ -870,7 +872,6 @@ public class ItemManager : Singleton<ItemManager>
                     }
                 }
             }
-
 
             using (var command = connection.CreateCommand())
             {
@@ -1248,7 +1249,6 @@ public class ItemManager : Singleton<ItemManager>
                 }
             }
 
-
             // Load main item templates
 
             /*
@@ -1488,14 +1488,11 @@ public class ItemManager : Singleton<ItemManager>
             }
 
             Logger.Info($"Loaded {_templates.Count} item templates (with {invalidItemCount} unused) ...");
-
-
         }
 
         OnItemsLoaded?.Invoke(this, new EventArgs());
         _loaded = true;
     }
-
 
     public Item GetItemByItemId(ulong itemId)
     {
@@ -1554,9 +1551,9 @@ public class ItemManager : Singleton<ItemManager>
                         continue;
 
                     command.CommandText = "REPLACE INTO item_containers (" +
-                                          "`container_id`,`container_type`,`slot_type`,`container_size`,`owner_id`" +
+                                          "`container_id`,`container_type`,`slot_type`,`container_size`,`owner_id`,`mate_id`" +
                                           ") VALUES ( " +
-                                          "@container_id, @container_type, @slot_type, @container_size, @owner_id" +
+                                          "@container_id, @container_type, @slot_type, @container_size, @owner_id, @mate_id" +
                                           ")";
 
                     command.Parameters.Clear();
@@ -1565,6 +1562,7 @@ public class ItemManager : Singleton<ItemManager>
                     command.Parameters.AddWithValue("@slot_type", c.ContainerType.ToString());
                     command.Parameters.AddWithValue("@container_size", c.ContainerSize);
                     command.Parameters.AddWithValue("@owner_id", c.OwnerId);
+                    command.Parameters.AddWithValue("@mate_id", c.MateId);
                     try
                     {
                         var res = command.ExecuteNonQuery();
@@ -1658,20 +1656,28 @@ public class ItemManager : Singleton<ItemManager>
         return (updateCount, deleteCount, containerUpdateCount);
     }
 
-    public ItemContainer GetItemContainerForCharacter(uint characterId, SlotType slotType)
+    public ItemContainer GetItemContainerForCharacter(uint characterId, SlotType slotType, uint mateId = 0)
     {
         foreach (var c in _allPersistantContainers)
         {
-            if ((c.Value.OwnerId == characterId) && (c.Value.ContainerType == slotType))
+            if (c.Value.OwnerId == characterId && c.Value.ContainerType == slotType && c.Value.MateId == mateId)
                 return c.Value;
         }
 
         var newContainerType = "ItemContainer";
+
         if (slotType == SlotType.Equipment)
             newContainerType = "EquipmentContainer";
+        else if (slotType == SlotType.EquipmentMate)
+            newContainerType = "MateEquipmentContainer";
+
         var newContainer = ItemContainer.CreateByTypeName(newContainerType, characterId, slotType, slotType != SlotType.None);
+
         if (slotType != SlotType.None)
             _allPersistantContainers.Add(newContainer.ContainerId, newContainer);
+
+        if (mateId > 0)
+            newContainer.MateId = mateId;
 
         return newContainer;
     }
@@ -1757,9 +1763,11 @@ public class ItemManager : Singleton<ItemManager>
                     var slotType = (SlotType)Enum.Parse(typeof(SlotType), reader.GetString("slot_type"), true);
                     var containerSize = reader.GetInt32("container_size");
                     var containerOwnerId = reader.GetUInt32("owner_id");
+                    var containerMateId = reader.GetUInt32("mate_id");
                     var container = ItemContainer.CreateByTypeName(containerType, containerOwnerId, slotType, false);
                     container.ContainerId = containerId;
                     container.ContainerSize = containerSize;
+                    container.MateId = containerMateId;
 
                     _allPersistantContainers.Add(container.ContainerId, container);
                     container.IsDirty = false;
@@ -1928,7 +1936,6 @@ public class ItemManager : Singleton<ItemManager>
         // This should be the only place where ItemId ReleaseId should be called directly
         ItemIdManager.Instance.ReleaseId((uint)itemId);
     }
-
 
     [Obsolete("You can now use directly linked item containers, and no longer need to load them into the character object")]
     public List<Item> LoadPlayerInventory(ICharacter character)

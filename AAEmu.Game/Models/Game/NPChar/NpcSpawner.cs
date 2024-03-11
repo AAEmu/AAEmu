@@ -524,7 +524,7 @@ public class NpcSpawner : Spawner<Npc>
         var n = new List<Npc>();
         foreach (var nsn in template.Npcs)
         {
-            if (nsn.MemberId != UnitId)
+            if (nsn == null || nsn.MemberId != UnitId)
                 continue;
 
             n = nsn.Spawn(this, template.MaxPopulation);

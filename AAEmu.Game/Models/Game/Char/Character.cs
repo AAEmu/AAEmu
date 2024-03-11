@@ -1375,7 +1375,6 @@ public partial class Character : Unit, ICharacter
         return ChangeMoney(SlotType.None, moneyLocation, -amount, itemTaskType);
     }
 
-
     public void ChangeLabor(short change, int actabilityId)
     {
         var actabilityChange = 0;

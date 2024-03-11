@@ -29,7 +29,7 @@ public class UnitCooldowns
 
         var timeLeft = endTime - DateTime.UtcNow;
 
-        Logger.Debug($"CheckCooldown: timeLeft={timeLeft}");
+        //Logger.Debug($"CheckCooldown: timeLeft={timeLeft}");
 
         if (timeLeft > TimeSpan.FromMilliseconds(250))
             return true;

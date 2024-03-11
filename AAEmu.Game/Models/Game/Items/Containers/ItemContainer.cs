@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Exceptions;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -10,6 +11,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Items.Containers;
@@ -65,6 +67,8 @@ public class ItemContainer
         }
     }
 
+    public uint MateId { get; set; }
+
     public SlotType ContainerType
     {
         get => _containerType;
@@ -106,6 +110,7 @@ public class ItemContainer
                 SlotType.Trade => true,
                 SlotType.Mail => false,
                 SlotType.System => false,
+                SlotType.EquipmentMate => false,
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
@@ -804,6 +809,9 @@ public class ItemContainer
     /// <returns></returns>
     public static ItemContainer CreateByTypeName(string containerTypeName, uint ownerId, SlotType slotType, bool createWithNewId)
     {
+        if (containerTypeName.EndsWith("MateEquipmentContainer"))
+            return new MateEquipmentContainer(ownerId, slotType, createWithNewId);
+
         if (containerTypeName.EndsWith("EquipmentContainer"))
             return new EquipmentContainer(ownerId, slotType, createWithNewId);
 
