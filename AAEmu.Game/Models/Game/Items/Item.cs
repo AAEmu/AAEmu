@@ -6,7 +6,6 @@ using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Items;
 
-
 public class Item : PacketMarshaler, IComparable<Item>
 {
     private byte _worldId;
@@ -195,7 +194,7 @@ public class Item : PacketMarshaler, IComparable<Item>
         switch (DetailType)
         {
             case ItemDetailType.Equipment: // 1
-                mDetailLength = 56; // есть расшифровка в items/Equipment
+                mDetailLength = 56; // есть расшифровка в items/EquipItem
                 break;
             case ItemDetailType.Slave: // 2
                 mDetailLength = 30;
