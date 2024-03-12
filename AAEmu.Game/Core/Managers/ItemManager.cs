@@ -1664,12 +1664,12 @@ public class ItemManager : Singleton<ItemManager>
                 return c.Value;
         }
 
-        var newContainerType = "ItemContainer";
-
-        if (slotType == SlotType.Equipment)
-            newContainerType = "EquipmentContainer";
-        else if (slotType == SlotType.EquipmentMate)
-            newContainerType = "MateEquipmentContainer";
+        var newContainerType = slotType switch
+        {
+            SlotType.Equipment => "EquipmentContainer",
+            SlotType.EquipmentMate => "MateEquipmentContainer",
+            _ => "ItemContainer"
+        };
 
         var newContainer = ItemContainer.CreateByTypeName(newContainerType, characterId, slotType, slotType != SlotType.None);
 

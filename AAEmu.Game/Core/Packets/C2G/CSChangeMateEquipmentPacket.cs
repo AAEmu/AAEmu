@@ -33,47 +33,56 @@ namespace AAEmu.Game.Core.Packets.C2G
                 return;
             }
 
+            if (num == 0)
+                return;
+
+            //                  SlotType, Slot, Item
+            var invItems = new (SlotType, byte, Item)[num];
+            var equipItems = new (SlotType, byte, Item)[num];
+            var character = Connection.ActiveChar;
+
             for (var i = 0; i < num; i++)
             {
-                var invItem = new EquipItem();
-                invItem.Read(stream);
+                invItems[i].Item3 = new EquipItem();
+                invItems[i].Item3.Read(stream);
 
-                var equipItem = new EquipItem();
-                equipItem.Read(stream);
+                equipItems[i].Item3 = new EquipItem();
+                equipItems[i].Item3.Read(stream);
 
-                var invItemSlotType = (SlotType)stream.ReadByte();
-                var invItemSlot = stream.ReadByte();
+                invItems[i].Item1 = (SlotType)stream.ReadByte();
+                invItems[i].Item2 = stream.ReadByte();
 
-                var equipSlotType = (SlotType)stream.ReadByte();
-                var equipSlot = stream.ReadByte();
+                equipItems[i].Item1 = (SlotType)stream.ReadByte();
+                equipItems[i].Item2 = stream.ReadByte();
 
-                var isEquip = invItem.TemplateId != 0;
+                var isEquip = invItems[i].Item3.TemplateId != 0;
 
-                invItem = (EquipItem)Connection.ActiveChar.Inventory.Bag.GetItemBySlot(invItemSlot);
-                equipItem = (EquipItem)mate.Equipment.GetItemBySlot(equipSlot);
+                invItems[i].Item3 = (EquipItem)character.Inventory.Bag.GetItemBySlot(invItems[i].Item2);
+                equipItems[i].Item3 = (EquipItem)mate.Equipment.GetItemBySlot(equipItems[i].Item2);
 
-                Logger.Debug($"FROM: ({invItemSlotType}:{invItemSlot}) TO ({equipSlotType}:{equipSlot}) ITEMS: {invItem?.Id}, {equipItem?.Id}, EQUIP: {isEquip}");
+                Logger.Debug($"FROM: ({invItems[i].Item1}:{invItems[i].Item2}) TO ({equipItems[i].Item1}:{equipItems[i].Item2}) ITEMS: {invItems[i].Item3?.Id}, {equipItems[i].Item3?.Id}, EQUIP: {isEquip}");
 
                 if (isEquip)
                 {
-                    if (invItem != null)
+                    if (invItems[i].Item3 != null)
                     {
                         var itemTasks = new List<ItemTask>();
-                        itemTasks.Add(new ItemRemove(invItem));
-                        if (Connection.ActiveChar.Inventory.SplitOrMoveItemEx(ItemTaskType.Invalid, Connection.ActiveChar.Inventory.Bag, mate.Equipment, invItem.Id, invItemSlotType, invItemSlot, 0, equipSlotType, equipSlot))
+                        itemTasks.Add(new ItemRemove(invItems[i].Item3));
+
+                        if (character.Inventory.SplitOrMoveItemEx(ItemTaskType.Invalid, character.Inventory.Bag, mate.Equipment, invItems[i].Item3.Id, invItems[i].Item1, invItems[i].Item2, 0, equipItems[i].Item1, equipItems[i].Item2))
                         {
-                            Connection.SendPacket(new SCMateEquipmentChangedPacket((invItemSlotType, invItemSlot, invItem), (equipSlotType, equipSlot, equipItem), tl, characterId, passengerId, bts, num));
+                            Connection.SendPacket(new SCMateEquipmentChangedPacket(invItems[i], equipItems[i], tl, characterId, passengerId, bts));
                             Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, itemTasks, new List<ulong>()));
                         }
                     }
                 }
                 else
                 {
-                    if (equipItem != null /* && Connection.ActiveChar.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Invalid, equipItem)*/)
+                    if (equipItems[i].Item3 != null)
                     {
-                        if (Connection.ActiveChar.Inventory.SplitOrMoveItemEx(ItemTaskType.Invalid, mate.Equipment, Connection.ActiveChar.Inventory.Bag, equipItem.Id, equipSlotType, equipSlot, 0, invItemSlotType, invItemSlot))
+                        if (character.Inventory.SplitOrMoveItemEx(ItemTaskType.Invalid, mate.Equipment, character.Inventory.Bag, equipItems[i].Item3.Id, equipItems[i].Item1, equipItems[i].Item2, 0, invItems[i].Item1, invItems[i].Item2))
                         {
-                            Connection.SendPacket(new SCMateEquipmentChangedPacket((invItemSlotType, invItemSlot, invItem), (equipSlotType, equipSlot, equipItem), tl, characterId, passengerId, bts, num));
+                            Connection.SendPacket(new SCMateEquipmentChangedPacket(invItems[i], equipItems[i], tl, characterId, passengerId, bts));
                         }
                     }
                 }
