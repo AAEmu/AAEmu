@@ -645,6 +645,10 @@ public class ItemContainer
         {
             var addAmount = Math.Min(amountToAdd, template.MaxCount);
             var newItem = ItemManager.Instance.Create(templateId, addAmount, (byte)gradeToAdd);
+            if (newItem == null)
+            {
+                Logger.Error($"Failed to add item with ID {templateId}, possible duplicate entries!");
+            }
             // Add name if marked as crafter (single stack items only)
             if ((crafterId > 0) && (newItem.Template.MaxCount == 1))
             {

@@ -254,7 +254,7 @@ public class ItemManager : Singleton<ItemManager>
         {
             return items;
         }
-        var itemId = ((ulong)templateId << 32) + 65536;
+
         foreach (var lootPackConvertFish in lootPackConvertFishes)
         {
             var lootPacks = LootGameData.Instance.GetPack(lootPackConvertFish.LootPackId);
@@ -271,9 +271,8 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     var item = new Item();
                     item.TemplateId = lootPacks.Loots[uii].ItemId;
-                    item.WorldId = 1;
                     item.CreateTime = DateTime.UtcNow;
-                    item.Id = ++itemId;
+                    item.Id = Instance.GetNewId();
                     item.MadeUnitId = templateId;
                     item.Count = Rand.Next(lootPacks.Loots[uii].MinAmount, lootPacks.Loots[uii].MaxAmount);
                     items.Add(item);
@@ -285,6 +284,7 @@ public class ItemManager : Singleton<ItemManager>
                     dropRateItemId += lootPacks.Loots[uii].DropRate;
                 }
             }
+            break; // TODO use only the first item
         }
 
         return items;
@@ -531,7 +531,7 @@ public class ItemManager : Singleton<ItemManager>
 
     public Item Create(uint templateId, int count, byte grade, bool generateId = true)
     {
-        var id = generateId ? ItemManager.Instance.GetNewId() : 0u;
+        var id = generateId ? Instance.GetNewId() : 0u;
         var template = GetTemplate(templateId);
         if (template == null)
             return null;
@@ -548,6 +548,9 @@ public class ItemManager : Singleton<ItemManager>
             item = new Item(id, template, count);
         }
 
+        if (item == null)
+            return null;
+
         item.Grade = grade;
 
         if (item.Template.BindType == ItemBindType.BindOnPickup) // Bind on pickup.
@@ -557,7 +560,14 @@ public class ItemManager : Singleton<ItemManager>
             item.Grade = (byte)item.Template.FixedGrade;
         item.CreateTime = DateTime.UtcNow;
         if (generateId)
-            _allItems.Add(item.Id, item);
+        {
+            if (!_allItems.TryAdd(item.Id, item))
+            {
+                Logger.Error("Failed to load item with ID {0}, possible duplicate entries!", item.Id);
+                return null;
+            }
+        }
+
         return item;
     }
 
@@ -568,12 +578,11 @@ public class ItemManager : Singleton<ItemManager>
             throw new ArgumentNullException(nameof(item));
         }
 
-        if (_allItems.ContainsKey(item.Id))
+        if (!_allItems.TryAdd(item.Id, item))
         {
+            Logger.Error("Failed to load item with ID {0}, possible duplicate entries!", item.Id);
             return false;
         }
-
-        _allItems.Add(item.Id, item);
         return true;
     }
 

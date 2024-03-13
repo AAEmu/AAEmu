@@ -24,7 +24,7 @@ public class DoodadFuncConvertFish : DoodadFuncTemplate
             }
 
             // TODO receiving trophy and removing the back pack
-            character.Inventory.SystemContainer.RemoveItem(ItemTaskType.Fishing, backpack, true);
+            character.Equipment.RemoveItem(ItemTaskType.Fishing, backpack, true);
 
             var trophys = ItemManager.Instance.GetLootConvertFish(backpack.TemplateId);
             if (trophys == null) { return; }
@@ -33,7 +33,7 @@ public class DoodadFuncConvertFish : DoodadFuncTemplate
                 var fish = FishDetailsGameData.Instance.Create(trophy);
                 character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Fishing, fish);
 
-                break;
+                break; // TODO use only the first item
             }
         }
     }
