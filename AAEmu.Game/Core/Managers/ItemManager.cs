@@ -59,6 +59,7 @@ public class ItemManager : Singleton<ItemManager>
 
     // Loot related
     private Dictionary<uint, List<LootPackDroppingNpc>> _lootPackDroppingNpc;
+    private Dictionary<uint, List<LootPackConvertFish>> _lootPackConvertFish;
     private Dictionary<int, GradeDistributions> _itemGradeDistributions;
     private Dictionary<uint, List<Item>> _lootDropItems;
 
@@ -125,6 +126,16 @@ public class ItemManager : Singleton<ItemManager>
     public List<LootPackDroppingNpc> GetLootPackIdByNpcId(uint npcId)
     {
         return _lootPackDroppingNpc.TryGetValue(npcId, out var value) ? value : new List<LootPackDroppingNpc>();
+    }
+
+    /// <summary>
+    /// GetLootPackIdByItemId - designed to transform fish into trophies
+    /// </summary>
+    /// <param name="ItemId"></param>
+    /// <returns></returns>
+    public List<LootPackConvertFish> GetLootPackIdByItemId(uint ItemId)
+    {
+        return _lootPackConvertFish.TryGetValue(ItemId, out var value) ? value : new List<LootPackConvertFish>();
     }
 
     public List<Item> GetLootDropItems(uint npcId)
@@ -237,16 +248,16 @@ public class ItemManager : Singleton<ItemManager>
     public List<Item> GetLootConvertFish(uint templateId)
     {
         var items = new List<Item>();
-        var lootPackDroppingNpcs = GetLootPackIdByNpcId(templateId);
+        var lootPackConvertFishes = GetLootPackIdByItemId(templateId);
 
-        if (lootPackDroppingNpcs.Count <= 0)
+        if (lootPackConvertFishes.Count <= 0)
         {
             return items;
         }
         var itemId = ((ulong)templateId << 32) + 65536;
-        foreach (var lootPackDroppingNpc in lootPackDroppingNpcs)
+        foreach (var lootPackConvertFish in lootPackConvertFishes)
         {
-            var lootPacks = LootGameData.Instance.GetPack(lootPackDroppingNpc.LootPackId);
+            var lootPacks = LootGameData.Instance.GetPack(lootPackConvertFish.LootPackId);
             var dropRateMax = (uint)0;
             for (var ui = 0; ui < lootPacks.Loots?.Count; ui++)
             {
@@ -256,7 +267,7 @@ public class ItemManager : Singleton<ItemManager>
             var dropRateItemId = 0u;
             for (var uii = 0; uii < (lootPacks.Loots?.Count ?? 0); uii++)
             {
-                if (lootPacks.Loots[uii].DropRate + dropRateItemId >= dropRateItem)
+                if (lootPacks.Loots?[uii].DropRate + dropRateItemId >= dropRateItem)
                 {
                     var item = new Item();
                     item.TemplateId = lootPacks.Loots[uii].ItemId;
@@ -269,7 +280,10 @@ public class ItemManager : Singleton<ItemManager>
                     break;
                 }
 
-                dropRateItemId += lootPacks.Loots[uii].DropRate;
+                if (lootPacks.Loots != null)
+                {
+                    dropRateItemId += lootPacks.Loots[uii].DropRate;
+                }
             }
         }
 
@@ -584,6 +598,7 @@ public class ItemManager : Singleton<ItemManager>
         _holdableItemLookConverts = new Dictionary<uint, uint>();
         _wearableItemLookConverts = new Dictionary<uint, uint>();
         _lootPackDroppingNpc = new Dictionary<uint, List<LootPackDroppingNpc>>();
+        _lootPackConvertFish = new Dictionary<uint, List<LootPackConvertFish>>();
         _itemGradeDistributions = new Dictionary<int, GradeDistributions>();
         /*
         _lootPacks = new Dictionary<uint, List<Loot>>();
@@ -1369,7 +1384,6 @@ public class ItemManager : Singleton<ItemManager>
                 }
             }
 
-            /*
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_convert_fish_items";
@@ -1378,24 +1392,24 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new LootPackDroppingNpc();
+                        var template = new LootPackConvertFish();
                         template.Id = reader.GetUInt32("id");
-                        template.NpcId = reader.GetUInt32("item_id");
+                        template.ItemId = reader.GetUInt32("item_id");
                         template.LootPackId = reader.GetUInt32("loot_pack_id");
-                        List<LootPackDroppingNpc> lootPackDroppingNpc;
-                        if (_lootPackDroppingNpc.TryGetValue(template.NpcId, out var value))
-                            lootPackDroppingNpc = value;
+                        template.DoodadFuncConvertFishId = reader.GetUInt32("doodad_func_convert_fish_id");
+                        List<LootPackConvertFish> lootPackConvertFish;
+                        if (_lootPackConvertFish.TryGetValue(template.ItemId, out var value))
+                            lootPackConvertFish = value;
                         else
                         {
-                            lootPackDroppingNpc = new List<LootPackDroppingNpc>();
-                            _lootPackDroppingNpc.Add(template.NpcId, lootPackDroppingNpc);
+                            lootPackConvertFish = new List<LootPackConvertFish>();
+                            _lootPackConvertFish.Add(template.ItemId, lootPackConvertFish);
                         }
 
-                        lootPackDroppingNpc.Add(template);
+                        lootPackConvertFish.Add(template);
                     }
                 }
             }
-            */
 
             using (var command = connection.CreateCommand())
             {
