@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
@@ -12,7 +13,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects;
  * Original Authors: nikes, AAGene, Hexlulz
  * Modified by: ZeromusXYZ
  */
-
 
 public class GainLootPackItemEffect : EffectTemplate
 {
@@ -32,12 +32,21 @@ public class GainLootPackItemEffect : EffectTemplate
         if (caster is not Character character)
             return;
 
-        if (casterObj is not SkillItem skillItem)
-            return;
-
         // Get Pack data
         var pack = LootGameData.Instance.GetPack(LootPackId);
-        if ((pack == null) || (pack.Loots.Count <= 0))
+        if (pack == null || pack.Loots.Count <= 0)
+            return;
+
+        if (!ConsumeSourceItem && ConsumeCount == 0)
+        {
+            // the tractor collects water
+            character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, ConsumeItemId, ConsumeCount, null);
+            pack.GiveLootPack(character, ItemTaskType.SkillEffectGainItem);
+            Logger.Debug($"GainLootPackItemEffect {LootPackId}");
+            return;
+        }
+
+        if (casterObj is not SkillItem skillItem)
             return;
 
         var sourceItem = character.Inventory.Bag.GetItemByItemId(skillItem.ItemId);
@@ -59,6 +68,6 @@ public class GainLootPackItemEffect : EffectTemplate
         // Give the results
         pack.GiveLootPack(character, ItemTaskType.SkillEffectGainItem);
 
-        Logger.Debug("GainLootPackItemEffect {0}", LootPackId);
+        Logger.Debug($"GainLootPackItemEffect {LootPackId}");
     }
 }
