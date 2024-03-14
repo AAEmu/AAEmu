@@ -14,8 +14,8 @@ public class CSSellBackpackGoodsPacket : GamePacket
     {
         var objId = stream.ReadBc();
 
-        SpecialtyManager.Instance.SellSpecialty(Connection.ActiveChar, objId);
+        var basePrice = SpecialtyManager.Instance.SellSpecialty(Connection.ActiveChar, objId);
 
-        Logger.Warn("CSSellBackpackGoods, ObjId: {0}. BasePrice: {1}", objId);
+        Logger.Warn($"CSSellBackpackGoods, ObjId: {objId}. BasePrice: {basePrice}");
     }
 }

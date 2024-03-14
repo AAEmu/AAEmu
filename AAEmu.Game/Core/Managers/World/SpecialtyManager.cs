@@ -171,7 +171,13 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
             return 0;
         }
 
-        var bundleIdAtNPC = _specialtyNpc[npc.TemplateId].SpecialtyBundleId;
+        if (!_specialtyNpc.TryGetValue(npc.TemplateId, out var specialtyNpc))
+        {
+            player.SendErrorMessage(ErrorMessageType.StoreCantSellSameZone);
+            return 1;
+        }
+
+        var bundleIdAtNPC = specialtyNpc.SpecialtyBundleId;
 
         if (!_specialtyBundleItemsMapped.ContainsKey(backpack.TemplateId))
         {
@@ -179,13 +185,13 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
             return 0;
         }
 
-        if (!_specialtyBundleItemsMapped[backpack.TemplateId].ContainsKey(bundleIdAtNPC))
+        if (!_specialtyBundleItemsMapped[backpack.TemplateId].TryGetValue(bundleIdAtNPC, out var value))
         {
             player.SendErrorMessage(ErrorMessageType.Invalid);
             return 0;
         }
 
-        var bundleItem = _specialtyBundleItemsMapped[backpack.TemplateId][bundleIdAtNPC];
+        var bundleItem = value;
         if (bundleItem == null)
         {
             player.SendErrorMessage(ErrorMessageType.Invalid);
@@ -195,18 +201,18 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
         return (int)(Math.Floor(bundleItem.Profit * (bundleItem.Ratio / 1000f)) + bundleItem.Item.Refund);
     }
 
-    public void SellSpecialty(Character player, uint npcObjId)
+    public int SellSpecialty(Character player, uint npcObjId)
     {
         if (player.LaborPower < 60)
         {
             player.SendErrorMessage(ErrorMessageType.NotEnoughLaborPower);
-            return;
+            return 0;
         }
 
         var basePrice = GetBasePriceForSpecialty(player, npcObjId);
 
         if (basePrice == 0) // We had an error, no need to keep going
-            return;
+            return basePrice;
 
         var priceRatio = GetRatioForSpecialty(player);
 
@@ -214,12 +220,13 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
         if (backpack == null)
         {
             player.SendErrorMessage(ErrorMessageType.StoreBackpackNogoods);
-            return;
+            return basePrice;
         }
 
         var npc = WorldManager.Instance.GetNpc(npcObjId);
         if (npc == null)
-            return;
+            return basePrice;
+
         // Our backpack isn't null, we have the NPC, time to calculate the profits
 
         // TODO: Get crafter ID of tradepack
@@ -232,7 +239,6 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
         var interest = (finalPriceNoInterest * (interestRate / 100f));
         var amountBonus = 0; // TODO: negotiation bonus
         var finalPrice = finalPriceNoInterest + interest + amountBonus;
-
 
         var itemTypeToDeliver = npc.Template.SpecialtyCoinId;
         var amountOfItemsTotalPayout = (int)Math.Round(finalPrice);
@@ -270,7 +276,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
             if (!sellerMail.Send())
             {
                 player.SendErrorMessage(ErrorMessageType.MailUnknownFailure);
-                return;
+                return basePrice;
             }
         }
 
@@ -291,7 +297,6 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
         // TODO: Calculate proper labor by skill level
         player.ChangeLabor(-60, (int)ActabilityType.Commerce);
 
-
         // Add one pack sold in this zone during this tick
         if (!_soldPackAmountInTick.ContainsKey(backpack.TemplateId))
             _soldPackAmountInTick.Add(backpack.TemplateId, new Dictionary<uint, int>());
@@ -300,6 +305,8 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
             _soldPackAmountInTick[backpack.TemplateId].Add(player.Transform.ZoneId, 0);
 
         _soldPackAmountInTick[backpack.TemplateId][player.Transform.ZoneId] += 1;
+    
+        return basePrice;
     }
 
     public void ConsumeRatio()
