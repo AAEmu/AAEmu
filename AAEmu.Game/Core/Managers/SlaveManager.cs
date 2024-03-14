@@ -1238,4 +1238,15 @@ public class SlaveManager : Singleton<SlaveManager>
             }
         }
     }
+
+    public void RemoveAndDespawnAllActiveOwnedSlaves(Character owner)
+    {
+        var activeSlaveInfo = GetActiveSlaveByOwnerObjId(owner.ObjId);
+        if (activeSlaveInfo != null)
+        {
+            activeSlaveInfo.Save();
+            Delete(owner, activeSlaveInfo.ObjId);
+        }
+
+    }
 }

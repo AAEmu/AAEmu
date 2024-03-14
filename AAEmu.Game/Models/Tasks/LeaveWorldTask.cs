@@ -27,8 +27,9 @@ public class LeaveWorldTask : Task
             _connection.ActiveChar.IsOnline = false;
             _connection.ActiveChar.LeaveTime = DateTime.UtcNow;
 
-            // Despawn and unmount everybody from owned Mates
+            // Despawn and unmount everybody from owned Mates & Slaves
             MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(_connection.ActiveChar);
+            SlaveManager.Instance.RemoveAndDespawnAllActiveOwnedSlaves(_connection.ActiveChar);
 
             // Check if still mounted on somebody else's mount and dismount that if needed
             _connection.ActiveChar.ForceDismount(AttachUnitReason.PrefabChanged); // Dismounting a mount because of unsummoning sends "10" for this
