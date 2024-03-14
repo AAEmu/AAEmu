@@ -67,13 +67,13 @@ public class ItemAddSubCommand : SubCommandBase
 
         if (ItemManager.Instance.IsAutoEquipTradePack(itemTemplate.Id))// .Category_Id == 133) || (itemTemplate.Category_Id == 122)) // Speciality Packs or Tradepacks
         {
-            var currentBackpack = addTarget.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack);
+            var currentBackpack = addTarget.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack);
             if (currentBackpack != null)
             {
                 SendColorMessage(messageOutput, Color.Red, "No room on the backpack slot to place a tradepack!");
                 return;
             }
-            if (!addTarget.Inventory.Equipment.AcquireDefaultItem(ItemTaskType.Gm, templateId, itemAmount, itemGrade))
+            if (!addTarget.Equipment.AcquireDefaultItem(ItemTaskType.Gm, templateId, itemAmount, itemGrade))
             {
                 SendColorMessage(messageOutput, Color.Red, "Tradepack could not be created!");
                 return;

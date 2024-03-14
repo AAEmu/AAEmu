@@ -30,7 +30,7 @@ public class DoodadFuncBuyFish : DoodadFuncTemplate
             var total = backpack.Template.Refund;
             character.Money += total;
 
-            character.Inventory.SystemContainer.RemoveItem(ItemTaskType.SkillEffectConsumption, backpack, true);
+            character.Equipment.RemoveItem(ItemTaskType.SkillEffectConsumption, backpack, true);
             character.AddMoney(SlotType.Inventory, total);
         }
     }
