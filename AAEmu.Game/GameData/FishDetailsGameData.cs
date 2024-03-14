@@ -73,12 +73,12 @@ public class FishDetailsGameData : Singleton<FishDetailsGameData>, IGameDataLoad
         fish.CreateTime = DateTime.UtcNow;
         (fish.Length, fish.Weight) = GetFishSize(item.MadeUnitId);
 
-        //var byteArray = new byte[16];
-        //Buffer.BlockCopy(BitConverter.GetBytes(fish.Weight), 0, byteArray, 0, 4);
-        //Buffer.BlockCopy(BitConverter.GetBytes(fish.Length), 0, byteArray, 4, 4);
-        //Buffer.BlockCopy(BitConverter.GetBytes(Helpers.UnixTime(fish.CreateTime)), 0, byteArray, 8, 8);
+        var byteArray = new byte[16];
+        Buffer.BlockCopy(BitConverter.GetBytes(fish.Weight), 0, byteArray, 0, 4);
+        Buffer.BlockCopy(BitConverter.GetBytes(fish.Length), 0, byteArray, 4, 4);
+        Buffer.BlockCopy(BitConverter.GetBytes(Helpers.UnixTime(fish.CreateTime)), 0, byteArray, 8, 8);
 
-        //fish.Detail = byteArray;
+        fish.Detail = byteArray;
 
         ItemManager.Instance.AddItem(fish);
 
