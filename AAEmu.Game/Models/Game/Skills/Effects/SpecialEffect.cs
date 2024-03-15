@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -22,9 +23,7 @@ public class SpecialEffect : EffectTemplate
     {
         if (source == null) return;
 
-        Logger.ConditionalTrace("SpecialEffect, Special: {0}, Value1: {1}, Value2: {2}, Value3: {3}, Value4: {4}",
-            SpecialEffectTypeId, Value1, Value2, Value3, Value4
-        );
+        Logger.ConditionalTrace("SpecialEffect, Special: {0}, Value1: {1}, Value2: {2}, Value3: {3}, Value4: {4}", SpecialEffectTypeId, Value1, Value2, Value3, Value4);
 
         var classType = Type.GetType("AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects." + SpecialEffectTypeId);
         if (classType == null)
@@ -34,6 +33,17 @@ public class SpecialEffect : EffectTemplate
         }
 
         var action = (SpecialEffectAction)Activator.CreateInstance(classType);
-        action?.Execute(caster, casterObj, target, targetObj, castObj, source.Skill, skillObject, time, Value1, Value2, Value3, Value4);
+        if (source.Skill?.Template.EffectRepeatCount > 1)
+        {
+            for (var i = 0; i < source.Skill.Template.EffectRepeatCount; i++)
+            {
+                action?.Execute(caster, casterObj, target, targetObj, castObj, source.Skill, skillObject, time, Value1, Value2, Value3, Value4);
+                Thread.Sleep(TimeSpan.FromMilliseconds(source.Skill.Template.EffectRepeatTick));
+            }
+        }
+        else
+        {
+            action?.Execute(caster, casterObj, target, targetObj, castObj, source.Skill, skillObject, time, Value1, Value2, Value3, Value4);
+        }
     }
 }
