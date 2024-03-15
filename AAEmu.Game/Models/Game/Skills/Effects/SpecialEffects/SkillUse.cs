@@ -38,7 +38,7 @@ public class SkillUse : SpecialEffectAction
             ((Unit)caster).ConditionChance = true;
         }
 
-        target = ((Unit)caster).CurrentTarget;
+        //target = ((Unit)caster).CurrentTarget;
         var useSkill = new Skill(SkillManager.Instance.GetSkillTemplate((uint)skillId));
         targetObj = new SkillCastUnitTarget(target?.ObjId ?? 0);
         caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.UseSkill);//Not sure if it belongs here.
