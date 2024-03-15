@@ -408,7 +408,7 @@ public class Skill
                 {
                     var positionTarget = (SkillCastPositionTarget)targetCaster;
                     var positionUnit = new BaseUnit();
-                    positionUnit.ObjId = uint.MaxValue;
+                    positionUnit.ObjId = ObjectIdManager.Instance.GetNextId();
                     positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
                     positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
                     positionUnit.Region = WorldManager.Instance.GetRegion(positionUnit);
@@ -423,7 +423,7 @@ public class Skill
                 {
                     var positionTarget = (SkillCastPositionTarget)targetCaster;
                     var positionUnit = new BaseUnit();
-                    positionUnit.ObjId = uint.MaxValue;
+                    positionUnit.ObjId = ObjectIdManager.Instance.GetNextId();
                     positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
                     positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
                     positionUnit.Region = WorldManager.Instance.GetRegion(positionUnit);
@@ -450,11 +450,28 @@ public class Skill
                 break;
             case SkillTargetType.ArtilleryPos:
                 {
-                    var positionTarget = (SkillCastPositionTarget)targetCaster;
                     var positionUnit = new BaseUnit();
-                    positionUnit.ObjId = uint.MaxValue;
+                    positionUnit.ObjId = ObjectIdManager.Instance.GetNextId();
                     positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
-                    positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                    switch (targetCaster)
+                    {
+                        case SkillCastPositionTarget positionTarget:
+                            {
+                                positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                                break;
+                            }
+                        case SkillCastPosition2Target position2Target:
+                            {
+                                positionUnit.Transform.Local.SetPosition(position2Target.PosX, position2Target.PosY, position2Target.PosZ);
+                                break;
+                            }
+                        case SkillCastPosition3Target position3Target:
+                            {
+                                positionUnit.Transform.Local.SetPosition(position3Target.PosX, position3Target.PosY, position3Target.PosZ);
+                                break;
+                            }
+                    }
+
                     positionUnit.Region = WorldManager.Instance.GetRegion(positionUnit);
                     target = positionUnit;
                     if (caster.ObjId == target.ObjId)
