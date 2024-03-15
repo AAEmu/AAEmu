@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Login;
@@ -12,6 +13,7 @@ using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Team;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
@@ -135,6 +137,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
 
             // Despawn and unmount everybody from owned Mates
             MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(connection.ActiveChar);
+            SlaveManager.Instance.RemoveAndDespawnAllActiveOwnedSlaves(connection.ActiveChar);
 
             // Check if still mounted on somebody else's mount and dismount that if needed
             connection.ActiveChar.ForceDismount(AttachUnitReason.PrefabChanged); // Dismounting a mount because of unsummoning sends "10" for this

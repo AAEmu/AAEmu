@@ -82,7 +82,27 @@ public class GameConnection
         foreach (var subscriber in Subscribers)
             subscriber.Dispose();
 
+        ActiveChar.ForceDismount();
+
+        CancelTokenSource = new CancellationTokenSource();
+        var token = CancelTokenSource.Token;
+        LeaveTask = new Task(() =>
+        {
+            Thread.Sleep(TimeSpan.FromMilliseconds(1000 * 60 * 10));
+            if (token.IsCancellationRequested)
+                return;
+            RemoveAndDespawnActiveOwnedMatesSlaves();
+        }, token);
+        LeaveTask.Start();
+
         SaveAndRemoveFromWorld();
+    }
+
+    private void RemoveAndDespawnActiveOwnedMatesSlaves()
+    {
+        // Despawn and unmount everybody from owned Mates
+        MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(ActiveChar);
+        SlaveManager.Instance.RemoveAndDespawnAllActiveOwnedSlaves(ActiveChar);
     }
 
     public void Shutdown()
