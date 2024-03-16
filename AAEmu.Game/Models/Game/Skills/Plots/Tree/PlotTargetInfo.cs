@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
@@ -98,7 +99,7 @@ public class PlotTargetInfo
     private BaseUnit UpdateAreaTarget(PlotTargetAreaParams args, PlotState state, PlotEventTemplate plotEvent)
     {
         var posUnit = new BaseUnit();
-        posUnit.ObjId = uint.MaxValue;
+        posUnit.ObjId = ObjectIdManager.Instance.GetNextId();
         posUnit.Region = PreviousTarget.Region;
         posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
         var degrees = (float)(args.Angle);
@@ -171,7 +172,7 @@ public class PlotTargetInfo
     private BaseUnit UpdateRandomAreaTarget(PlotTargetRandomAreaParams args, PlotState state, PlotEventTemplate plotEvent)
     {
         var posUnit = new BaseUnit();
-        posUnit.ObjId = uint.MaxValue;
+        posUnit.ObjId = ObjectIdManager.Instance.GetNextId();
         posUnit.Region = PreviousTarget.Region;
         posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
         posUnit.Transform.ZoneId = PreviousTarget.Transform.ZoneId;
