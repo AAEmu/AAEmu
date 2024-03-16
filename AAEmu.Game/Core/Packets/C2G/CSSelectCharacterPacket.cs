@@ -36,7 +36,7 @@ public class CSSelectCharacterPacket : GamePacket
             MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(character);
 
             Connection.ActiveChar = character;
-            if (Character.UsedCharacterObjIds.TryGetValue(character.Id, out uint oldObjId))
+            if (Character.UsedCharacterObjIds.TryGetValue(character.Id, out var oldObjId))
             {
                 Connection.ActiveChar.ObjId = oldObjId;
             }
@@ -44,6 +44,13 @@ public class CSSelectCharacterPacket : GamePacket
             {
                 Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
                 Character.UsedCharacterObjIds.TryAdd(character.Id, character.ObjId);
+            }
+
+            var mySlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
+            if (mySlave != null)
+            {
+                Logger.Warn($"{Connection.ActiveChar.Name}: Прерываем задачу отключения транспорта");
+                mySlave.CancelTokenSource.Cancel();
             }
 
             Connection.ActiveChar.Simulation = new Simulation(character);
