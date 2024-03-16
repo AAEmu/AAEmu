@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
+using System.Threading;
+using System.Threading.Tasks;
 
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
@@ -1825,6 +1827,36 @@ public partial class Character : Unit, ICharacter
         // Unbind from any parent
         Transform.DetachAll();
         return res;
+    }
+
+    public bool ForceDismountAndDespawn(AttachUnitReason reason = AttachUnitReason.PrefabChanged)
+    {
+        var res = ForceDismount();
+
+        var mySlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
+        if (mySlave != null)
+        {
+            // run the task to turn off the transport after 10 minutes
+            mySlave.CancelTokenSource = new CancellationTokenSource();
+            var token = mySlave.CancelTokenSource.Token;
+            mySlave.LeaveTask = new Task(() =>
+            {
+                Thread.Sleep(TimeSpan.FromMilliseconds(1000 * 60 * 10)); // 10 minutes
+                if (token.IsCancellationRequested)
+                    return;
+                RemoveAndDespawnActiveOwnedMatesSlaves();
+            }, token);
+            mySlave.LeaveTask.Start();
+        }
+
+        return res;
+    }
+
+    private void RemoveAndDespawnActiveOwnedMatesSlaves()
+    {
+        // Despawn and unmount everybody from owned Mates
+        MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(this);
+        SlaveManager.Instance.RemoveAndDespawnAllActiveOwnedSlaves(this);
     }
 
     #region Database

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading;
+using System.Threading.Tasks;
 
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
@@ -52,6 +54,8 @@ public class Slave : Unit
     public uint OwnerObjId { get; set; }
     public RigidBody RigidBody { get; set; }
     public SlaveSpawner Spawner { get; set; }
+    public Task LeaveTask { get; set; }
+    public CancellationTokenSource CancelTokenSource { get; set; }
 
     public Slave()
     {
