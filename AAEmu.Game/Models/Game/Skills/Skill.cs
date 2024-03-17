@@ -451,7 +451,7 @@ public class Skill
     private static BaseUnit SetInitialTarget(BaseUnit caster, SkillCastTarget targetCaster)
     {
         var positionUnit = new BaseUnit();
-        positionUnit.ObjId = ObjectIdManager.Instance.GetNextId();
+        positionUnit.ObjId = uint.MaxValue;
         positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
         switch (targetCaster)
         {
