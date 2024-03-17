@@ -801,7 +801,7 @@ public class Npc : Unit
     {
         //var player = unit as Character; // TODO player.Region становится равным null | player.Region becomes null
         Character player = null;
-        if (unit is not Npc and not Units.Mate)
+        if (unit is not Npc and not Units.Mate and not Slave)
         {
             player = (Character)unit;
         }
