@@ -18,38 +18,19 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
     // },
 
     private WildBoarAiParams _aiParams;
-    //private float _prevHealth;
     private float _currHealth;
-    //private float _healthPercentage;
     private bool _enter;
+    private bool _combatStartSkill;
 
     public override void Enter()
     {
         Ai.Param = Ai.Owner.Template.AiParams;
-
-        if (!UpdateTarget() || ShouldReturn)
-        {
-            Ai.GoToReturn();
-            return;
-        }
-
-        // On Combat Start Skill
-        var startCombatSkillId = _aiParams.OnCombatStartSkills.FirstOrDefault();
-        Ai.Owner.IsInBattle = true;
-        if (startCombatSkillId == 0)
-            return;
-
-        Ai.Owner.StopMovement();
-        var skillTemplate = SkillManager.Instance.GetSkillTemplate(startCombatSkillId);
-        var skill = new Skill(skillTemplate);
-        UseSkill(skill, Ai.Owner.CurrentTarget);
-
-        //_healthPercentage = Ai.Owner.Hp / (float)Ai.Owner.MaxHp * 100;
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
         if (Ai.Owner is { } npc)
         {
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
         }
+        Ai.Owner.IsInBattle = true;
         _enter = true;
     }
 
@@ -68,13 +49,11 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
         if (_aiParams == null)
             return;
 
-        //_prevHealth = _healthPercentage;
         _currHealth = Ai.Owner.Hp / (float)Ai.Owner.MaxHp * 100;
-        //_healthPercentage = _currHealth;
 
         if (!UpdateTarget() || ShouldReturn)
         {
-            Ai.GoToReturn();
+            Ai.OnNoAggroTarget();
             return;
         }
 
@@ -83,6 +62,20 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
 
         if (!CanUseSkill)
             return;
+
+        if (!_combatStartSkill)
+        {
+            // On Combat Start Skill. Execute once
+            var startCombatSkillId = _aiParams.OnCombatStartSkills.FirstOrDefault();
+            if (startCombatSkillId != 0)
+            {
+                Ai.Owner.StopMovement();
+                var skillTemplate = SkillManager.Instance.GetSkillTemplate(startCombatSkillId);
+                var skill = new Skill(skillTemplate);
+                UseSkill(skill, Ai.Owner.CurrentTarget);
+                _combatStartSkill = true;
+            }
+        }
 
         // Spurt or base?
         var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
