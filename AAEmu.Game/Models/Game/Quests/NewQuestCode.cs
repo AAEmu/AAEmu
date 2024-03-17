@@ -377,41 +377,40 @@ public partial class Quest : PacketMarshaler
     public bool AddQuestSphereTriggers(QuestComponent progressContext)
     {
         var spheres = SphereQuestManager.Instance.GetQuestSpheres(progressContext.Id);
-        if (spheres != null)
+        if (spheres == null)
+            return false;
+
+        foreach (var sphere in spheres)
         {
-            foreach (var sphere in spheres)
+            var sphereQuestTrigger = new SphereQuestTrigger();
+            sphereQuestTrigger.Sphere = sphere;
+
+            if (sphereQuestTrigger.Sphere == null)
             {
-                var sphereQuestTrigger = new SphereQuestTrigger();
-                sphereQuestTrigger.Sphere = sphere;
-
-                if (sphereQuestTrigger.Sphere == null)
-                {
-                    Logger.Info($"[QuestStartState][Start] QuestActObjSphere: Sphere not found with for cquest {progressContext.Id} !");
-                    break;
-                }
-
-                sphereQuestTrigger.Owner = Owner;
-                sphereQuestTrigger.Quest = this;
-                sphereQuestTrigger.TickRate = 500;
-
-                SphereQuestManager.Instance.AddSphereQuestTrigger(sphereQuestTrigger);
+                Logger.Info($"[QuestStartState][Start] QuestActObjSphere: Sphere not found with for cquest {progressContext.Id} !");
+                break;
             }
 
-            const int Duration = 500;
-            // TODO : Add a proper delay in here
-            Task.Run(async () =>
-            {
-                await Task.Delay(Duration);
-            });
+            sphereQuestTrigger.Owner = Owner;
+            sphereQuestTrigger.Quest = this;
+            sphereQuestTrigger.TickRate = 500;
 
-            // one subscription for everyone
-            Owner.Events.OnEnterSphere -= Owner.Quests.OnEnterSphereHandler;
-            Owner.Events.OnEnterSphere += Owner.Quests.OnEnterSphereHandler;
-
-            return true;
+            SphereQuestManager.Instance.AddSphereQuestTrigger(sphereQuestTrigger);
         }
 
-        return false;
+        const int Duration = 500;
+        // TODO : Add a proper delay in here
+        Task.Run(async () =>
+        {
+            await Task.Delay(Duration);
+        });
+
+        // one subscription for everyone
+        Owner.Events.OnEnterSphere -= Owner.Quests.OnEnterSphereHandler;
+        Owner.Events.OnEnterSphere += Owner.Quests.OnEnterSphereHandler;
+
+        return true;
+
     }
 
     private bool GetQuestContext(out QuestContext context)

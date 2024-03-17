@@ -82,7 +82,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
                             }
                         }
 
-                        if (addNew)
+                        // if (addNew)
                             _sphereQuestTriggers.Add(addQuestSphereTrigger);
                     }
                 }
@@ -153,7 +153,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
 
     public List<SphereQuest> GetQuestSpheres(uint componentId)
     {
-        return _sphereQuests.TryGetValue(componentId, out var sphereQuests) ? sphereQuests : null;
+        return _sphereQuests.GetValueOrDefault(componentId);
     }
 
     public List<SphereQuestTrigger> GetSphereQuestTriggers()
