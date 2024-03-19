@@ -1024,9 +1024,9 @@ public class Skill
 
         if (caster is Character character)
         {
-            if (Template.ConsumeLaborPower > 0 && !Cancelled)
+            if (Template.ConsumeLaborPower > 0 && !Cancelled && character.LaborPower >= Template.ConsumeLaborPower)
             {
-                // Consume labor
+                // Consume labor only if there is enough of it
                 character.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);
             }
 
