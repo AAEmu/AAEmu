@@ -28,6 +28,9 @@ public class SpecialEffect : EffectTemplate
         var classType = Type.GetType("AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects." + SpecialEffectTypeId);
         if (classType == null)
         {
+            // We don't need to log every missing effect as some are client-sided
+            if (SpecialEffectTypeId == SpecialType.Projectile)
+                return;
             Logger.Warn("Unknown special effect: {0}", SpecialEffectTypeId);
             return;
         }
