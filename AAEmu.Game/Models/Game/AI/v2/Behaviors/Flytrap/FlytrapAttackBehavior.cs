@@ -43,7 +43,7 @@ public class FlytrapAttackBehavior : Behavior
 
         if (!UpdateTarget())
         {
-            Ai.GoToReturn();
+            Ai.OnNoAggroTarget();
             return;
         }
 
@@ -195,7 +195,7 @@ public class FlytrapAttackBehavior : Behavior
         {
             // NpcTeleportTo(entity.AI.idlePos);
             Ai.Owner.ClearAggroOfUnit(abuser);
-            Ai.GoToReturn();
+            Ai.OnNoAggroTarget();
             return;
         }
 
@@ -204,7 +204,7 @@ public class FlytrapAttackBehavior : Behavior
         {
             // entity.unit:NpcRemoveAggroOutOfRange(entity.AI.param.attackEndDistance);
             Ai.Owner.ClearAggroOfUnit(abuser);
-            Ai.GoToReturn();
+            Ai.OnNoAggroTarget();
         }
     }
 }

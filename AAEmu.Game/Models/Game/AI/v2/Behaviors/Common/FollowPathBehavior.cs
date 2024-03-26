@@ -18,11 +18,6 @@ public class FollowPathBehavior : BaseCombatBehavior
 
     public override void Enter()
     {
-        // BUFF: Fly
-        var buffId = 6582u;
-        Ai.Owner.Buffs.RemoveBuff(6586);
-        Ai.Owner.Buffs.AddBuff(new Buff(Ai.Owner, Ai.Owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow));
-
         Ai.Owner.InterruptSkills();
         _skillQueue = new Queue<AiSkill>();
         Ai.Owner.CurrentGameStance = GameStanceType.Fly;

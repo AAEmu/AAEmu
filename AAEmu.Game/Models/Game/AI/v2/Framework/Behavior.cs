@@ -271,7 +271,7 @@ public abstract class Behavior
                 return; // already in battle, let's not change the target
 
             npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, abuser, 1);
-            npc.Ai.GoToCombat();
+            npc.Ai.OnAggroTargetChanged();
         }
     }
 

@@ -16,15 +16,7 @@ public class SpawningBehavior : BaseCombatBehavior
 
     public override void Enter()
     {
-        if (Ai.Owner.CanFly)
-        {
-            // BUFF: Fly
-            var buffId = 6582u;
-            Ai.Owner.Buffs.RemoveBuff(6586);
-            Ai.Owner.Buffs.AddBuff(new Buff(Ai.Owner, Ai.Owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow));
-        }
-
-        Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
         if (Ai.Owner is { } npc)
         {
             npc.Events.OnSpawn(this, new OnSpawnArgs { Npc = npc });

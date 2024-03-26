@@ -43,7 +43,7 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
 
         if (!UpdateTarget() || ShouldReturn)
         {
-            Ai.GoToReturn();
+            Ai.OnNoAggroTarget();
             return;
         }
 
