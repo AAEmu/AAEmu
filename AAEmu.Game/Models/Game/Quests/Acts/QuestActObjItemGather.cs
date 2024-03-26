@@ -22,10 +22,10 @@ public class QuestActObjItemGather : QuestActTemplate, IQuestActGenericItem // Ð
     {
         Logger.Debug($"QuestActObjItemGather: ItemId {ItemId}, Count {Count}, UseAlias {UseAlias}, QuestActObjAliasId {QuestActObjAliasId}, HighlightDoodadId {HighlightDoodadId}, HighlightDoodadPhase {HighlightDoodadPhase}, quest {ParentQuestTemplate.Id}, objective {objective}, Score {ParentQuestTemplate.Score}");
 
-        var res = quest.GetQuestObjectiveStatus() >= QuestObjectiveStatus.CanEarlyComplete;;
+        var res = quest.GetQuestObjectiveStatus() >= QuestObjectiveStatus.CanEarlyComplete;
         var maxCleanup = ParentQuestTemplate.LetItDone ? Count * 3 / 2 : Count;
 
-        Update(quest, questAct);
+        Update(quest, questAct, objective);
 
         if (res && Cleanup)
             quest.QuestCleanupItemsPool.Add(new ItemCreationDefinition(ItemId, Math.Min(maxCleanup, objective)));
@@ -35,8 +35,14 @@ public class QuestActObjItemGather : QuestActTemplate, IQuestActGenericItem // Ð
 
     public override void Update(Quest quest, IQuestAct questAct, int updateAmount = 1)
     {
-        // base.Update(quest, questAct, updateAmount);
+        base.Update(quest, questAct, updateAmount);
         // Objective count is already set by CheckAct
         Logger.Info($"{QuestActTemplateName} - QuestActItemGather {Id} was updated by {updateAmount} for a total of {questAct.GetObjective(quest)}.");
+    }
+
+    public override void Initialize(Quest quest, IQuestAct questAct)
+    {
+        base.Initialize(quest, questAct);
+        questAct.SetObjective(quest, quest.Owner.Inventory.GetItemsCount(ItemId));
     }
 }

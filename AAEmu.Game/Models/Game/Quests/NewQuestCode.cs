@@ -353,8 +353,11 @@ public partial class Quest : PacketMarshaler
         {
             case QuestComponentKind.Progress when QuestProgressState?.State?.CurrentQuestComponent != null:
                 QuestProgressState.State.Start();
-                //Step = QuestComponentKind.Progress; // обновим
-                Status = QuestStatus.Progress;
+                // Step = QuestComponentKind.Progress; // обновим
+                // Status = QuestStatus.Progress;
+                Status = GetQuestObjectiveStatus() >= QuestObjectiveStatus.QuestComplete
+                    ? QuestStatus.Ready
+                    : QuestStatus.Progress;
                 Condition = QuestConditionObj.Progress;
                 Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
                 for (var i = 0; i < QuestProgressState.State.CurrentComponents.Count; i++)
@@ -1809,8 +1812,8 @@ public partial class Quest : PacketMarshaler
             return;
         _step = value;
 
-        /*
         // Reset Objectives
+        /*
         for (var i = 0; i < Objectives.Length; i++)
             Objectives[i] = 0;
         */
