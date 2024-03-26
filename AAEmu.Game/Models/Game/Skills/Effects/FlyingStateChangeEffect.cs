@@ -1,6 +1,7 @@
 ﻿using System;
 
 using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -16,6 +17,13 @@ public class FlyingStateChangeEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        Logger.Trace("FlyingStateChangeEffect");
+        Logger.Info($"FlyingStateChangeEffect: npc={caster.TemplateId}:{caster.ObjId}, FlyingState={FlyingState}");
+
+        var packet = new SCUnitFlyingStateChangedPacket(caster.ObjId, FlyingState);
+        if (packetBuilder != null)
+            packetBuilder.AddPacket(packet);
+        else
+            caster.BroadcastPacket(packet, true);
+
     }
 }
