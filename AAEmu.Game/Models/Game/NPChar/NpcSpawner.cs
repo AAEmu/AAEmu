@@ -562,7 +562,7 @@ public class NpcSpawner : Spawner<Npc>
                     }
 
                     npc.Ai.OnAggroTargetChanged();
-                    npc.Ai.GoToCombat();
+                    //npc.Ai.GoToCombat();
                 }
 
                 if (effect.LifeTime > 0)

@@ -62,7 +62,7 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
 
                             n.Ai.Owner.AddUnitAggro(AggroKind.Damage, npc, 1);
                         }
-                        npc.Ai.GoToCombat();
+                        //npc.Ai.GoToCombat();
                     }
                     else
                     {
@@ -77,7 +77,7 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
                         }
 
                         npc.Ai.OnAggroTargetChanged();
-                        npc.Ai.GoToCombat();
+                        //npc.Ai.GoToCombat();
                     }
                 }
 
