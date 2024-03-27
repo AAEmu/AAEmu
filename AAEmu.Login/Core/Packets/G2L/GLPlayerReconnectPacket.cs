@@ -13,7 +13,7 @@ public class GLPlayerReconnectPacket : InternalPacket
     public override void Read(PacketStream stream)
     {
         var gsId = stream.ReadByte();
-        var accountId = stream.ReadUInt32();
+        var accountId = stream.ReadUInt64();
         var token = stream.ReadUInt32();
 
         LoginController.Instance.AddReconnectionToken(Connection, gsId, accountId, token);

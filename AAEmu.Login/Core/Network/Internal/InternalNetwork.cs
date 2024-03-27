@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Net;
+
 using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
 using AAEmu.Login.Core.Packets.G2L;
 using AAEmu.Login.Models;
+
 using NLog;
 
 namespace AAEmu.Login.Core.Network.Internal;
@@ -22,7 +24,7 @@ public class InternalNetwork : Singleton<InternalNetwork>
         RegisterPacket(GLOffsets.GLRegisterGameServerPacket, typeof(GLRegisterGameServerPacket));
         RegisterPacket(GLOffsets.GLPlayerEnterPacket, typeof(GLPlayerEnterPacket));
         RegisterPacket(GLOffsets.GLPlayerReconnectPacket, typeof(GLPlayerReconnectPacket));
-        RegisterPacket(GLOffsets.LGRequestInfoPacket, typeof(LGRequestInfoPacket));
+        RegisterPacket(GLOffsets.GLRequestInfoPacket, typeof(GLRequestInfoPacket));
     }
 
     public void Start()

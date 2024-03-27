@@ -16,7 +16,7 @@ public class CAChallengeResponsePacket : LoginPacket
         for (var i = 0; i < 4; i++)
             stream.ReadUInt32(); // responses
         var password = stream.ReadBytes(); // TODO or bytes? length 32
-        var bytes = Convert.FromBase64String("jZae727K08KaOmKSgOaGzww/XVqGr/PKEgIMkjrcbJI=");
+        var bytes = Convert.FromBase64String("30e133556f8945028cc1e0b6018cbdbc");
         Connection.SendPacket(new ACLoginDeniedPacket(3));
     }
 }

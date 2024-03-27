@@ -6,9 +6,9 @@ using AAEmu.Login.Core.Network.Internal;
 
 namespace AAEmu.Login.Core.Packets.G2L;
 
-public class LGRequestInfoPacket : InternalPacket
+public class GLRequestInfoPacket : InternalPacket
 {
-    public LGRequestInfoPacket() : base(GLOffsets.LGRequestInfoPacket)
+    public GLRequestInfoPacket() : base(GLOffsets.GLRequestInfoPacket)
     {
     }
 

@@ -18,8 +18,8 @@ public class CARequestAuthTrionPacket : LoginPacket
         var pTo = stream.ReadUInt32();
         var dev = stream.ReadBoolean();
         var mac = stream.ReadBytes();
-        var ticket = stream.ReadString();
-        var signature = stream.ReadString();
+        var ticket = stream.ReadString();    // param
+        var signature = stream.ReadString(); // si
         var isLast = stream.ReadBoolean();
 
         var xmlDoc = XDocument.Parse(ticket);

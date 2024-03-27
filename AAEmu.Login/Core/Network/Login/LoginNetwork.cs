@@ -19,9 +19,10 @@ public class LoginNetwork : Singleton<LoginNetwork>
     {
         _handler = new LoginProtocolHandler();
 
-        RegisterPacket(CLOffsets.CARequestAuthPacket, typeof(CARequestAuthPacket));
-        RegisterPacket(CLOffsets.CARequestAuthTencentPacket, typeof(CARequestAuthTencentPacket));
-        RegisterPacket(CLOffsets.CARequestAuthGameOnPacket, typeof(CARequestAuthGameOnPacket));
+        RegisterPacket(CLOffsets.CARequestAuthPacket_0x001, typeof(CARequestAuthPacket_0x001));
+        RegisterPacket(CLOffsets.CARequestAuthPacket_0x002, typeof(CARequestAuthPacket_0x002));
+        RegisterPacket(CLOffsets.CARequestAuthPacket_0x003, typeof(CARequestAuthPacket_0x003));
+        RegisterPacket(CLOffsets.CARequestAuthPacket_0x004, typeof(CARequestAuthPacket_0x004));
         RegisterPacket(CLOffsets.CARequestAuthTrionPacket, typeof(CARequestAuthTrionPacket));
         RegisterPacket(CLOffsets.CARequestAuthMailRuPacket, typeof(CARequestAuthMailRuPacket));
         RegisterPacket(CLOffsets.CAChallengeResponsePacket, typeof(CAChallengeResponsePacket));

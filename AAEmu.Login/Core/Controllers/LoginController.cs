@@ -14,13 +14,14 @@ namespace AAEmu.Login.Core.Controllers;
 
 public class LoginController : Singleton<LoginController>
 {
-    private Dictionary<byte, Dictionary<uint, uint>> _tokens; // gsId, [token, accountId]
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
+    private Dictionary<byte, Dictionary<uint, ulong>> _tokens; // gsId, [token, accountId]
     private static bool _autoAccount = AppConfiguration.Instance.AutoAccount;
 
     protected LoginController()
     {
-        _tokens = new Dictionary<byte, Dictionary<uint, uint>>();
+        _tokens = new Dictionary<byte, Dictionary<uint, ulong>>();
     }
 
     /// <summary>
@@ -47,13 +48,13 @@ public class LoginController : Singleton<LoginController>
 
                     // TODO ... validation password
 
-                    connection.AccountId = reader.GetUInt32("id");
+                    connection.AccountId = reader.GetUInt64("id");
                     connection.AccountName = username;
                     connection.LastLogin = DateTime.UtcNow;
                     connection.LastIp = connection.Ip;
 
-                    connection.SendPacket(new ACJoinResponsePacket(0, 6));
-                    connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 6));
+                    connection.SendPacket(new ACJoinResponsePacket(1, 0x480306, 0));
+                    connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
                 }
             }
         }
@@ -98,14 +99,14 @@ public class LoginController : Singleton<LoginController>
                         return;
                     }
 
-                    connection.AccountId = reader.GetUInt32("id");
+                    connection.AccountId = reader.GetUInt64("id");
                     connection.AccountName = username;
                     connection.LastLogin = DateTime.UtcNow;
                     connection.LastIp = connection.Ip;
 
                     Logger.Info("{0} connected.", connection.AccountName);
-                    connection.SendPacket(new ACJoinResponsePacket(0, 6));
-                    connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 6));
+                    connection.SendPacket(new ACJoinResponsePacket(1, 0x480306, 0));
+                    connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
                 }
             }
         }
@@ -134,16 +135,16 @@ public class LoginController : Singleton<LoginController>
         }
     }
 
-    public void AddReconnectionToken(InternalConnection connection, byte gsId, uint accountId, uint token)
+    public void AddReconnectionToken(InternalConnection connection, byte gsId, ulong accountId, uint token)
     {
         if (!_tokens.ContainsKey(gsId))
-            _tokens.Add(gsId, new Dictionary<uint, uint>());
+            _tokens.Add(gsId, new Dictionary<uint, ulong>());
 
         _tokens[gsId].Add(token, accountId);
         connection.SendPacket(new LGPlayerReconnectPacket(token));
     }
 
-    public void Reconnect(LoginConnection connection, byte gsId, uint accountId, uint token)
+    public void Reconnect(LoginConnection connection, byte gsId, ulong accountId, uint token)
     {
         if (!_tokens.ContainsKey(gsId))
         {
@@ -166,8 +167,8 @@ public class LoginController : Singleton<LoginController>
         if (_tokens[gsId][token] == accountId)
         {
             connection.AccountId = accountId;
-            connection.SendPacket(new ACJoinResponsePacket(0, 6));
-            connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 6));
+            connection.SendPacket(new ACJoinResponsePacket(1, 0x480306, 0));
+            connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
         }
         else
         {
