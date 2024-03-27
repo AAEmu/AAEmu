@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjMonsterHunt : QuestActTemplate
+public class QuestActObjMonsterHunt(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint NpcId { get; set; }
     public bool UseAlias { get; set; }

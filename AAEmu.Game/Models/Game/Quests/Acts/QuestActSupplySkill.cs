@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActSupplySkill : QuestActTemplate
+public class QuestActSupplySkill(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint SkillId { get; set; }
 

@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjAggro : QuestActTemplate
+public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public int Range { get; set; }
     public int Rank1 { get; set; }

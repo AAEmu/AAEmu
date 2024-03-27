@@ -948,8 +948,8 @@ public class QuestProgressState : QuestState
                             }
 
                             // подписка одна на всех
-                            Quest.Owner.Events.OnItemGather -= Quest.Owner.Quests.OnItemGatherHandler;
-                            Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
+                            //Quest.Owner.Events.OnItemGather -= Quest.Owner.Quests.OnItemGatherHandler;
+                            //Quest.Owner.Events.OnItemGather += Quest.Owner.Quests.OnItemGatherHandler;
 
                             Logger.Info($"[QuestProgressState][Start] Quest: {Quest.TemplateId}, Event: 'OnItemGather', Handler: 'OnItemGatherHandler'");
                             results2.Add(false); // будем ждать события

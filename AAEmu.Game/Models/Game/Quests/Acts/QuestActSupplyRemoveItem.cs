@@ -7,7 +7,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActSupplyRemoveItem : QuestActTemplate
+public class QuestActSupplyRemoveItem(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint ItemId { get; set; }
 

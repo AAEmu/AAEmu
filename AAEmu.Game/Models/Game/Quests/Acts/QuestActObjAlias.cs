@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// <summary>
 /// This Template does not seem to be used for server mechanics
 /// </summary>
-public class QuestActObjAlias : QuestActTemplate
+public class QuestActObjAlias(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public string Name { get; set; }
 

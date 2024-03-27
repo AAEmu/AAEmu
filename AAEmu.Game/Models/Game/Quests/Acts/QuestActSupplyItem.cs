@@ -6,7 +6,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActSupplyItem : QuestActTemplate, IQuestActGenericItem
+public class QuestActSupplyItem(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent), IQuestActGenericItem
 {
     public uint ItemId { get; set; }
     public byte GradeId { get; set; }

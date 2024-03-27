@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjCondition : QuestActTemplate
+public class QuestActObjCondition(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint ConditionId { get; set; }
     public uint QuestContextId { get; set; }

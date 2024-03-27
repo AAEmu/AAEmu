@@ -16,8 +16,7 @@ public class QuestComponent : IQuestComponent
 {
     public uint Id { get; set; }
     public QuestComponentKind KindId { get; set; }
-    public QuestTemplate QuestTemplate { get; }
-    public List<QuestActTemplate> ActTemplates { get; set; } = new();
+    public QuestStep Parent { get; set; }
     public List<IQuestAct> Acts { get; set; } = new();
     public uint NextComponent { get; set; }
     public QuestNpcAiName NpcAiId { get; set; }
@@ -53,9 +52,9 @@ public class QuestComponent : IQuestComponent
         }
         return reults;
     }
-    public QuestComponent(QuestTemplate parent)
+    public QuestComponent(QuestStep parent)
     {
-        QuestTemplate = parent;
+        Parent = parent;
     }
 }
 
@@ -122,53 +121,6 @@ public class CurrentQuestComponent : IQuestComponent
         }
 
         return reults;
-    }
-
-    // TODO наверное убрать надо
-    public void Subscribe(Quest quest)
-    {
-        foreach (var component in subQuestComponents)
-        {
-            var acts = QuestManager.Instance.GetActs(component.Id);
-            foreach (var act in acts)
-            {
-                switch (act.DetailType)
-                {
-                    case "QuestActObjMonsterHunt":
-                        var questActObjMonsterHunt = (QuestActObjMonsterHunt)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActObjMonsterHunt");
-                        if (questActObjMonsterHunt != null)
-                        {
-                            quest.Owner.Events.OnMonsterHunt += quest.Owner.Quests.OnMonsterHuntHandler;
-                        }
-                        break;
-                    case "QuestActObjItemGather":
-                        var questActObjItemGather = (QuestActObjItemGather)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActObjItemGather");
-                        if (questActObjItemGather != null)
-                        {
-                            quest.Owner.Events.OnItemGather += quest.Owner.Quests.OnItemGatherHandler;
-                        }
-                        break;
-                }
-                //var questActTemplate = QuestManager.Instance.GetActTemplate(act.DetailId, act.DetailType);
-
-            }
-        }
-    }
-
-    public void UnSubscribe(Quest quest)
-    {
-        foreach (var act in subQuestComponents.Select(component => QuestManager.Instance.GetActs(component.Id)).SelectMany(acts => acts))
-        {
-            switch (act.DetailType)
-            {
-                case "QuestActObjMonsterHunt":
-                    quest.Owner.Events.OnMonsterHunt -= quest.Owner.Quests.OnMonsterHuntHandler;
-                    break;
-                case "QuestActObjItemGather":
-                    quest.Owner.Events.OnItemGather -= quest.Owner.Quests.OnItemGatherHandler;
-                    break;
-            }
-        }
     }
 }
 

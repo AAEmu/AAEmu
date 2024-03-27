@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjTalkNpcGroup : QuestActTemplate
+public class QuestActObjTalkNpcGroup(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint NpcGroupId { get; set; }
     public bool UseAlias { get; set; }

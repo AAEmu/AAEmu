@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActSupplyInteraction : QuestActTemplate
+public class QuestActSupplyInteraction(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public WorldInteractionType WorldInteractionId { get; set; }
 

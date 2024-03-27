@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjCinema : QuestActTemplate
+public class QuestActObjCinema(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint CinemaId { get; set; }
     public bool UseAlias { get; set; }

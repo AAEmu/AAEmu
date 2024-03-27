@@ -31,13 +31,17 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     private bool _loaded;
     private readonly Dictionary<uint, QuestTemplate> _templates = new();
     private readonly Dictionary<byte, QuestSupplies> _supplies = new();
-    private readonly Dictionary<uint, List<IQuestAct>> _acts = new();
-    private readonly Dictionary<string, List<IQuestAct>> _actsByType = new();
-    private readonly Dictionary<uint, QuestAct> _actsDic = new();
+    /// <summary>
+    /// ComponentId, Template
+    /// </summary>
+    private readonly Dictionary<uint, List<QuestActTemplate>> _actsByComponent = new();
+    /// <summary>
+    /// DetailType, DetailId, Template
+    /// </summary>
     private readonly Dictionary<string, Dictionary<uint, QuestActTemplate>> _actTemplates = new();
     private readonly Dictionary<uint, List<uint>> _groupItems = new();
     private readonly Dictionary<uint, List<uint>> _groupNpcs = new();
-    private readonly Dictionary<uint, QuestComponent> _templateComponents = new();
+    private readonly Dictionary<uint, QuestComponentTemplate> _templateComponents = new();
     public Dictionary<uint, Dictionary<uint, QuestTimeoutTask>> QuestTimeoutTask { get; } = new();
 
     public QuestTemplate GetTemplate(uint id)
@@ -58,9 +62,14 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         return _supplies.TryGetValue(level, out var supply) ? supply : null;
     }
 
-    public IQuestAct[] GetActs(uint id)
+    /// <summary>
+    /// Get Acts in Component
+    /// </summary>
+    /// <param name="id">ComponentId</param>
+    /// <returns>Array of Acts</returns>
+    public List<QuestActTemplate> GetActs(uint id)
     {
-        var res = (_acts.TryGetValue(id, out var act) ? act : new List<IQuestAct>()).ToArray();
+        var res = (_actsByComponent.TryGetValue(id, out var act) ? act : []);
         //Array.Sort(res); // На некоторых данных вызывает System.InvalidOperationException: Failed to compare two elements in the array. System.InvalidOperationException: Failed to compare two elements in the array.
         // 
         return res;
@@ -112,7 +121,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         foreach (var questTemplate in _templates.Values)
         {
             byte actIndex = 0;
-            QuestComponentKind lastKey = QuestComponentKind.None;
+            var lastKey = QuestComponentKind.None;
             foreach (var (questComponentKey, questComponentValue) in questTemplate.Components)
             {
                 if (questComponentValue.KindId != lastKey)
@@ -121,29 +130,22 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
                     lastKey = questComponentValue.KindId;
                 }
 
-                if (!_acts.TryGetValue(questComponentKey, out var questActs))
+                if (!_actsByComponent.TryGetValue(questComponentKey, out var questActs))
                     continue;
 
                 // Assign references to parents
                 foreach (var questAct in questActs)
                 {
                     questAct.ThisComponentObjectiveIndex = actIndex;
-                    questAct.Template.ParentQuestTemplate = questTemplate;
-                    if (questAct.Template == null)
-                    {
-                        Logger.Error($"Missing QuestActTemplate for Quest: {questTemplate.Id}, ComponentId: {questComponentKey} ActId: {questAct.Id}. Please notify the developer.");
-                    }
-                    else
-                    {
-                        questAct.Template.ParentComponent = questComponentValue;
-                    }
+                    questAct.ParentComponent = questComponentValue;
+                    questAct.ParentQuestTemplate = questTemplate;
 
                     actIndex++;
                 }
 
                 // Actually add them
-                questComponentValue.ActTemplates.AddRange(questActs.Select(a => a.Template));
-                questComponentValue.Acts.AddRange(questActs);
+                foreach (var questAct in questActs)
+                    questComponentValue.ActTemplates.Add(questAct);
             }
         }
     }
@@ -195,7 +197,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
                 continue;
 
             // find quest_acts data
-            foreach (var actList in _acts.Values)
+            foreach (var actList in _actsByComponent.Values)
             {
                 foreach (var questAct in actList)
                 {
@@ -204,7 +206,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
                         // Use component Id to check if it's a starter, and return contextId (QuestId)
                         foreach (var (questId, questContext) in _templates)
                         {
-                            if ((questContext.Components.TryGetValue(questAct.ComponentId, out var questComponent)) &&
+                            if ((questContext.Components.TryGetValue(questAct.ParentComponent.Id, out var questComponent)) &&
                                 (questComponent.KindId == QuestComponentKind.Start))
                                 return questId;
                         }
@@ -225,14 +227,12 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     {
         foreach (var foundActs in _actTemplates["QuestActConAcceptItem"].Values.Where(qAcceptItem => qAcceptItem is QuestActConAcceptItem qai && qai.ItemId == itemItemTemplateId))
         {
-            var matchingAct = _actsByType["QuestActConAcceptItem"]
+            var matchingAct = _actTemplates["QuestActConAcceptItem"].Values
                 .FirstOrDefault(act =>
-                    act.QuestComponent?.KindId == QuestComponentKind.Start && act.DetailId == foundActs.Id);
+                    act.ParentComponent?.KindId == QuestComponentKind.Start && act.DetailId == foundActs.Id);
 
             if (matchingAct != null)
-            {
-                return matchingAct.QuestComponent.QuestTemplate.Id;
-            }
+                return matchingAct.ParentComponent?.ParentQuestTemplate?.Id ?? 0;
         }
         return 0;
     }
@@ -291,33 +291,19 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         while (reader.Read())
         {
             var componentId = reader.GetUInt32("quest_component_id");
-            _templateComponents.TryGetValue(componentId, out var questComponent);
-            var template = new QuestAct(questComponent);
+            _templateComponents.TryGetValue(componentId, out var questComponentTemplate);
+            var template = new QuestActTemplate(questComponentTemplate);
 
             template.Id = reader.GetUInt32("id");
-            template.ComponentId = componentId;
             template.DetailId = reader.GetUInt32("act_detail_id");
             template.DetailType = reader.GetString("act_detail_type");
-            List<IQuestAct> list;
-            if (!_actsByType.ContainsKey(template.DetailType))
-            {
-                list = new List<IQuestAct> { template };
-                _actsByType.Add(template.DetailType, list);
-            }
-            else
-                _actsByType[template.DetailType].Add(template);
 
-            _actsByType[template.DetailType].Add(template);
-            if (_acts.TryGetValue(template.ComponentId, out var act))
-                list = act;
-            else
+            if (!_actsByComponent.TryGetValue(template.ParentComponent.Id, out var actInComponentList))
             {
-                list = new List<IQuestAct>();
-                _acts.Add(template.ComponentId, list);
+                actInComponentList = new List<QuestActTemplate>();
+                _actsByComponent.Add(template.ParentComponent.Id, actInComponentList);
             }
-
-            list.Add(template);
-            _actsDic.Add(template.Id, template);
+            actInComponentList.Add(template);
         }
     }
 
@@ -351,7 +337,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             if (!_templates.ContainsKey(questId))
                 continue;
 
-            var template = new QuestComponent(_templates[questId]);
+            var template = new QuestComponentTemplate(_templates[questId]);
             template.Id = reader.GetUInt32("id");
             template.KindId = (QuestComponentKind)reader.GetByte("component_kind_id");
             template.NextComponent = reader.GetUInt32("next_component", 0);
@@ -407,12 +393,6 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     {
         var detailType = template.GetType().Name;
         _actTemplates[detailType].Add(template.Id, template);
-        foreach (var questAct in _actsDic.Values.Where(qa =>
-                qa.DetailId == template.Id &&
-                qa.DetailType == detailType))
-        {
-            questAct.Template = template;
-        }
     }
 
     private void LoadQuestActTemplates(SqliteConnection connection)

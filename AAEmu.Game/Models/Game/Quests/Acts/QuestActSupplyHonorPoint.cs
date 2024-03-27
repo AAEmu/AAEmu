@@ -4,7 +4,7 @@ using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActSupplyHonorPoint : QuestActTemplate
+public class QuestActSupplyHonorPoint(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public int Point { get; set; }
 

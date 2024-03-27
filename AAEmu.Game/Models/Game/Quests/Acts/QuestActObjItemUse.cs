@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-internal class QuestActObjItemUse : QuestActTemplate
+internal class QuestActObjItemUse(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint ItemId { get; set; }
     public uint HighlightDoodadId { get; set; }

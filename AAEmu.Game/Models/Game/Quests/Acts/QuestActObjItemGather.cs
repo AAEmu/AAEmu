@@ -7,7 +7,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjItemGather : QuestActTemplate, IQuestActGenericItem // Сбор предметов
+public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent), IQuestActGenericItem // Сбор предметов
 {
     public uint ItemId { get; set; }
     public uint HighlightDoodadId { get; set; }
@@ -44,5 +44,17 @@ public class QuestActObjItemGather : QuestActTemplate, IQuestActGenericItem // �
     {
         base.Initialize(quest, questAct);
         questAct.SetObjective(quest, quest.Owner.Inventory.GetItemsCount(ItemId));
+
+        // Register Handler if not at max yet
+        if (questAct.GetObjective(quest) < MaxObjective())
+            quest.Owner.Events.OnItemGather += quest.Owner.Quests.OnItemGatherHandler;
+    }
+
+    public override void Completed(Quest quest, IQuestAct questAct)
+    {
+        base.Completed(quest, questAct);
+
+        // Un-register event handler
+        quest.Owner.Events.OnItemGather -= quest.Owner.Quests.OnItemGatherHandler;
     }
 }

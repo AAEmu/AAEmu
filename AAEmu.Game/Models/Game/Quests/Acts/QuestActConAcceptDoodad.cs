@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActConAcceptDoodad : QuestActTemplate
+public class QuestActConAcceptDoodad(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint DoodadId { get; set; }
 

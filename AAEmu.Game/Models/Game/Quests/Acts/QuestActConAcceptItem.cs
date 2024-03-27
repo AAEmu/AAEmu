@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActConAcceptItem : QuestActTemplate, IQuestActGenericItem
+public class QuestActConAcceptItem(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent), IQuestActGenericItem
 {
     public uint ItemId { get; set; }
     public bool Cleanup { get; set; }

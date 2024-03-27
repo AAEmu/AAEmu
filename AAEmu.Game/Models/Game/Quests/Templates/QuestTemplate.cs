@@ -24,28 +24,28 @@ public class QuestTemplate : IQuestTemplate
     public bool UseAcceptMessage { get; set; }
     public bool UseCompleteMessage { get; set; }
     public uint GradeId { get; set; }
-    public IDictionary<uint, QuestComponent> Components { get; set; }
+    public IDictionary<uint, QuestComponentTemplate> Components { get; set; }
 
     public QuestTemplate()
     {
-        Components = new Dictionary<uint, QuestComponent>();
+        Components = new Dictionary<uint, QuestComponentTemplate>();
     }
 
-    public QuestComponent GetFirstComponent(QuestComponentKind step)
+    public QuestComponentTemplate GetFirstComponent(QuestComponentKind step)
     {
         return Components.Values
                 .FirstOrDefault(cp => cp.KindId == step);
     }
-    public QuestComponent[] GetComponents(QuestComponentKind step)
+    public QuestComponentTemplate[] GetComponents(QuestComponentKind step)
     {
         return Components.Values
                 .Where(cp => cp.KindId == step)
                 .ToArray();
     }
-    public QuestComponent[] GetComponents(uint compinentId)
+    public QuestComponentTemplate[] GetComponents(uint componentId)
     {
         return Components.Values
-                .Where(cp => cp.Id == compinentId)
+                .Where(cp => cp.Id == componentId)
                 .ToArray();
     }
 }

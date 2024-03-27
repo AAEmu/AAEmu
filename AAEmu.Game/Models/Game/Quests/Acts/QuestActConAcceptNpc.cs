@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActConAcceptNpc : QuestActTemplate
+public class QuestActConAcceptNpc(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint NpcId { get; set; }
 

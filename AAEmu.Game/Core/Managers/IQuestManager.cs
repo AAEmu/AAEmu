@@ -10,7 +10,7 @@ public interface IQuestManager
     void CancelQuest(ICharacter owner, uint questId);
     bool CheckGroupItem(uint groupId, uint itemId);
     bool CheckGroupNpc(uint groupId, uint npcId);
-    IQuestAct[] GetActs(uint id);
+    List<QuestActTemplate> GetActs(uint id);
     QuestActTemplate GetActTemplate(uint id, string type);
     T GetActTemplate<T>(uint id, string type) where T : QuestActTemplate;
     List<uint> GetGroupItems(uint groupId);

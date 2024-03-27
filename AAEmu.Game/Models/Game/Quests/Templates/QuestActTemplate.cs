@@ -5,17 +5,19 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.Quests.Templates;
 
-public class QuestActTemplate
+public class QuestActTemplate(QuestComponentTemplate parentComponent)
 {
     protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public QuestTemplate ParentQuestTemplate { get; set; }
-    public QuestComponent ParentComponent { get; set; }
+    public QuestTemplate ParentQuestTemplate { get; set; } = parentComponent.ParentQuestTemplate;
+    public QuestComponentTemplate ParentComponent { get; set; } = parentComponent;
 
     /// <summary>
     /// quest_act_xxx Id
     /// </summary>
     public uint Id { get; set; }
+    public uint DetailId { get; set; }
+    public string DetailType { get; set; }
 
     /// <summary>
     /// Total Objective Count needed to mark this Act as completed, also used for giving item count, as this is technically also a goal.
@@ -38,6 +40,8 @@ public class QuestActTemplate
         }
     }
 
+    public byte ThisComponentObjectiveIndex { get; set; }
+
     /// <summary>
     /// Called for every QuestAct in a component when the component is activated
     /// </summary>
@@ -47,7 +51,7 @@ public class QuestActTemplate
     }
 
     /// <summary>
-    /// Called for every QuestAct in a component when the component is fully completed
+    /// Called for every QuestAct in a component when the component is fully completed or cancelled
     /// </summary>
     public virtual void Completed(Quest quest, IQuestAct questAct)
     {
@@ -78,5 +82,10 @@ public class QuestActTemplate
     {
         Logger.Info($"{QuestActTemplateName} - Use QuestAct {Id}, Character: {character.Name}, Objective {objective}.");
         return false;
+    }
+
+    public virtual int MaxObjective()
+    {
+        return ParentQuestTemplate.LetItDone ? Count * 3 / 2 : Count;
     }
 }

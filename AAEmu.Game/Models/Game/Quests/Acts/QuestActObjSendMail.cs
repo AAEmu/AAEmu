@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjSendMail : QuestActTemplate
+public class QuestActObjSendMail(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint ItemId1 { get; set; }
     public int Count1 { get; set; }

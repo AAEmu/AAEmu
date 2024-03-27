@@ -8,7 +8,7 @@ using AAEmu.Game.Models.Tasks.Quests;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActCheckTimer : QuestActTemplate
+public class QuestActCheckTimer(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public int LimitTime { get; set; }
     public bool ForceChangeComponent { get; set; }

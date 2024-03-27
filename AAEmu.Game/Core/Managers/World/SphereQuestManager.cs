@@ -71,19 +71,14 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
                 {
                     foreach (var addQuestSphereTrigger in _addQueue)
                     {
-                        var addNew = true;
                         foreach (var sphereQuestTrigger in _sphereQuestTriggers)
                         {
                             if ((addQuestSphereTrigger.Owner.Id == sphereQuestTrigger.Owner.Id) &&
                                 (addQuestSphereTrigger.Quest.TemplateId == sphereQuestTrigger.Quest.TemplateId))
-                            {
-                                addNew = false;
                                 break;
-                            }
                         }
 
-                        // if (addNew)
-                            _sphereQuestTriggers.Add(addQuestSphereTrigger);
+                        _sphereQuestTriggers.Add(addQuestSphereTrigger);
                     }
                 }
                 // Erase the list again for next tick

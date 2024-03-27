@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjDoodadPhaseCheck : QuestActTemplate
+public class QuestActObjDoodadPhaseCheck(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint DoodadId { get; set; }
     public uint Phase1 { get; set; }

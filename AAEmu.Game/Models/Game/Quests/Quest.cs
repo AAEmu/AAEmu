@@ -133,8 +133,7 @@ public partial class Quest : PacketMarshaler
 
         if (nextComponent.KindId != QuestComponentKind.Supply)
         {
-            var acts = nextComponent.ActTemplates;
-            if (acts.Count == 0)
+            if (nextComponent.Acts.Count == 0)
             {
                 return QuestStatus.Ready;
             }
@@ -151,14 +150,14 @@ public partial class Quest : PacketMarshaler
         // Component following Supply
         var componentAfterSupply = questComponents.ElementAt(currentComponentIndex + 2);
 
-        if (componentAfterSupply.KindId == QuestComponentKind.Progress && componentAfterSupply.ActTemplates.OfType<QuestActSupplyItem>().Any())
+        if (componentAfterSupply.KindId == QuestComponentKind.Progress && componentAfterSupply.Acts.Any(x => x.Template is QuestActSupplyItem))
         {
             // The specific quest 5458 fall in this category but the item supplied is different
-            var componentAfterSupplySupplyItens = componentAfterSupply.ActTemplates.OfType<QuestActSupplyItem>().Select(i => i.ItemId).ToArray();
-            var supplyComponentSupplyItens = supplyComponent.ActTemplates.OfType<QuestActSupplyItem>().Select(i => i.ItemId).ToArray();
+            var componentAfterSupplySupplyItems = componentAfterSupply.Acts.Where(a => a.Template is QuestActSupplyItem).Select(x => x.Template as QuestActSupplyItem).Select(i => i?.ItemId ?? 0).ToArray();
+            var supplyComponentSupplyItems = supplyComponent.Acts.Where(a => a.Template is QuestActSupplyItem).Select(x => x.Template as QuestActSupplyItem).Select(i => i?.ItemId ?? 0).ToArray();
 
-            // Checks if the Itens provided in the Supply component act is the same for Progress component act
-            if (!componentAfterSupplySupplyItens.Except(supplyComponentSupplyItens).Any())
+            // Checks if the Items provided in the Supply component act is the same for Progress component act
+            if (!componentAfterSupplySupplyItems.Except(supplyComponentSupplyItems).Any())
             {
                 return QuestStatus.Ready;
             }

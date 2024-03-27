@@ -6,7 +6,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// <summary>
 /// This Act does not seem to be used
 /// </summary>
-public class QuestActObjEffectFire : QuestActTemplate
+public class QuestActObjEffectFire(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint EffectId { get; set; }
     public bool UseAlias { get; set; }

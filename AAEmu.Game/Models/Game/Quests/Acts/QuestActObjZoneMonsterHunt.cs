@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjZoneMonsterHunt : QuestActTemplate
+public class QuestActObjZoneMonsterHunt(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint ZoneId { get; set; }
     public bool UseAlias { get; set; }

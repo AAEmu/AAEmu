@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActCheckDistance : QuestActTemplate
+public class QuestActCheckDistance(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public bool WithIn { get; set; }
     public uint NpcId { get; set; }

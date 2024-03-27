@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActSupplyCopper : QuestActTemplate
+public class QuestActSupplyCopper(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public int Amount { get; set; }
 

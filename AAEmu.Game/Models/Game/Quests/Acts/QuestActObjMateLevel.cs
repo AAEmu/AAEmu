@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjMateLevel : QuestActTemplate
+public class QuestActObjMateLevel(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint ItemId { get; set; }
     public byte Level { get; set; }

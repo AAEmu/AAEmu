@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActSupplyAaPoint : QuestActTemplate
+public class QuestActSupplyAaPoint(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public int Point { get; set; }
 

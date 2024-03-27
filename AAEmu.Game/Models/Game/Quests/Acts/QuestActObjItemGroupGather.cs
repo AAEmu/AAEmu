@@ -8,7 +8,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjItemGroupGather : QuestActTemplate
+public class QuestActObjItemGroupGather(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint ItemGroupId { get; set; }
     public bool Cleanup { get; set; }

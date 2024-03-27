@@ -8,7 +8,6 @@ namespace AAEmu.Game.Models.Game.Quests;
 public interface IQuestComponent
 {
     public uint Id { get; set; }
-    public List<QuestActTemplate> ActTemplates { get; set; }
 
     public void Add(QuestComponent component);
     public void Remove(QuestComponent component);

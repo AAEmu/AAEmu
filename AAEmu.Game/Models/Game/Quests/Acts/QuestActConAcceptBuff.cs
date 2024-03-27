@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActConAcceptBuff : QuestActTemplate
+public class QuestActConAcceptBuff(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint BuffId { get; set; }
 

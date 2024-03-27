@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActConReportJournal : QuestActTemplate
+public class QuestActConReportJournal(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective) // take reward
     {

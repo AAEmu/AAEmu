@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActCheckCompleteComponent : QuestActTemplate
+public class QuestActCheckCompleteComponent(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint CompleteComponent { get; set; }
 

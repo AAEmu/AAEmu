@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjCraft : QuestActTemplate
+public class QuestActObjCraft(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint CraftId { get; set; }
     public bool UseAlias { get; set; }

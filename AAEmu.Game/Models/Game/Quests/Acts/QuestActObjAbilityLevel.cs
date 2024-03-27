@@ -8,7 +8,7 @@ using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjAbilityLevel : QuestActTemplate
+public class QuestActObjAbilityLevel(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public AbilityType AbilityId { get; set; }
     public byte Level { get; set; }

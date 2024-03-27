@@ -4,7 +4,7 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjZoneKill : QuestActTemplate
+public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public int CountPlayerKill { get; set; }
     public int CountNpc { get; set; }

@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActSupplyLp : QuestActTemplate
+public class QuestActSupplyLp(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public int LaborPower { get; set; }
 

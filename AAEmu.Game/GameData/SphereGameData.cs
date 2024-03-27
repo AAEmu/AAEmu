@@ -318,15 +318,15 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
                 var component = components[componentIndex];
                 var acts = QuestManager.Instance.GetActs(component.Id);
 
-                if (acts.Length > 0)
+                if (acts.Count > 0)
                 {
                     for (var actIndex = 0; actIndex < components.Length; actIndex++)
                     {
                         var act = acts[actIndex];
                         if (act.DetailType == "QuestActObjSphere")
                         {
-                            var actTemplate = acts[actIndex].GetTemplate<QuestActObjSphere>();
-                            sphereIds.Add(actTemplate.SphereId.ToString());
+                            if (acts[actIndex] is QuestActObjSphere actTemplate)
+                                sphereIds.Add(actTemplate.SphereId.ToString());
                         }
                     }
                 }

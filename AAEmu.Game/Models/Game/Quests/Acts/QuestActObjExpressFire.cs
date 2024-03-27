@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjExpressFire : QuestActTemplate
+public class QuestActObjExpressFire(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint ExpressKeyId { get; set; }
     public uint NpcGroupId { get; set; }
