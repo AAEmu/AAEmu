@@ -10,7 +10,7 @@ public class AuditIcsSale
     /// <summary>
     /// Account ID of the person buying this item
     /// </summary>
-    public uint BuyerAccount { get; set; }
+    public ulong BuyerAccount { get; set; }
 
     /// <summary>
     /// Character that was logged in when buying
@@ -20,7 +20,7 @@ public class AuditIcsSale
     /// <summary>
     /// Account of the person receiving the goods
     /// </summary>
-    public uint TargetAccount { get; set; }
+    public ulong TargetAccount { get; set; }
 
     /// <summary>
     /// Character that received the goods

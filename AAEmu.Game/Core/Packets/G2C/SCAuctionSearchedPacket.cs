@@ -15,7 +15,7 @@ public class SCAuctionSearchedPacket : GamePacket
     //private ushort _errorMessage;
     //private ulong  _serverTIme;
 
-    public SCAuctionSearchedPacket(List<AuctionItem> auctionItems, uint page) : base(SCOffsets.SCAuctionSearchedPacket, 1)
+    public SCAuctionSearchedPacket(List<AuctionItem> auctionItems, uint page) : base(SCOffsets.SCAuctionSearchedPacket, 5)
     {
         _auctionItems = auctionItems;
         _count = (uint)_auctionItems.Count;
@@ -32,10 +32,10 @@ public class SCAuctionSearchedPacket : GamePacket
         {
             foreach (var item in _auctionItems)
             {
-                stream.Write(item.ID);
+                stream.Write(item.Id);
                 stream.Write(item.Duration);
-                stream.Write(item.ItemID);
-                stream.Write(item.ObjectID);
+                stream.Write(item.ItemId);
+                stream.Write(item.ObjectId);
                 stream.Write(item.Grade);
                 stream.Write((byte)item.Flags);
                 stream.Write(item.StackSize);
@@ -53,7 +53,7 @@ public class SCAuctionSearchedPacket : GamePacket
                 stream.Write(item.DirectMoney);
                 var offset = (ulong)random.Next(0, 10); //Adds offset to timeleft to prevent client from guessing it. 
                 stream.Write(item.TimeLeft + offset);
-                stream.Write(item.BidWorldID);
+                stream.Write(item.BidWorldId);
                 stream.Write(item.BidderId);
                 stream.Write(item.BidderName);
                 stream.Write(item.BidMoney);

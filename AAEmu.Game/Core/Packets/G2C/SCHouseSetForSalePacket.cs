@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -11,7 +11,7 @@ public class SCHouseSetForSalePacket : GamePacket
     private readonly string _sellToName;
     private readonly string _houseName;
 
-    public SCHouseSetForSalePacket(ushort tl, uint moneyAmount, uint sellToPlayerId, string sellToName, string houseName) : base(SCOffsets.SCHouseSetForSalePacket, 1)
+    public SCHouseSetForSalePacket(ushort tl, uint moneyAmount, uint sellToPlayerId, string sellToName, string houseName) : base(SCOffsets.SCHouseSetForSalePacket, 5)
     {
         _tl = tl;
         _moneyAmount = moneyAmount;

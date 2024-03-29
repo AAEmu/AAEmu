@@ -7,7 +7,7 @@ public class SCUnderWaterPacket : GamePacket
 {
     private readonly bool _start;
 
-    public SCUnderWaterPacket(bool start) : base(SCOffsets.SCUnderWaterPacket, 1)
+    public SCUnderWaterPacket(bool start) : base(SCOffsets.SCUnderWaterPacket, 5)
     {
         _start = start;
     }

@@ -251,4 +251,20 @@ public static class Helpers
 
         return dir;
     }
+
+    public static string ByteArrayToString(byte[] data)
+    {
+        var lookup = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+        int i = 0, p = 0, l = data.Length;
+        var c = new char[l * 2 + 2];
+        byte d;
+        //int p = 2; c[0] = '0'; c[1] = 'x'; //если хотим 0x
+        while (i < l)
+        {
+            d = data[i++];
+            c[p++] = lookup[d / 0x10];
+            c[p++] = lookup[d % 0x10];
+        }
+        return new string(c, 0, c.Length);
+    }
 }

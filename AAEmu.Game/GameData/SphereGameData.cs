@@ -63,9 +63,9 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
                         CategoryId = reader.GetUInt32("category_id"),
                         OrUnitReqs = reader.GetBoolean("or_unit_reqs"),
                         IsPersonalMsg = reader.GetBoolean("is_personal_msg"),
-                        MilestoneId = reader.GetUInt32("milestone_id"),
-                        NameTr = reader.GetBoolean("name_tr"),
-                        TeamMsgTr = reader.GetBoolean("team_msg_tr")
+                        //template.MilestoneId = reader.GetUInt32("milestone_id"); // there is no such field in the database for version 3.0.3.0
+                        //template.NameTr = reader.GetBoolean("name_tr"); // there is no such field in the database for version 3.0.3.0
+                        //template.TeamMsgTr = reader.GetBoolean("team_msg_tr"); // there is no such field in the database for version 3.0.3.0
                     };
 
                     if (!_spheres.ContainsKey(template.Id))

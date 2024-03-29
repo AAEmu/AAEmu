@@ -8,7 +8,7 @@ public class SCLevelChangedPacket : GamePacket
     private readonly uint _objId;
     private readonly byte _level;
 
-    public SCLevelChangedPacket(uint objId, byte level) : base(SCOffsets.SCLevelChangedPacket, 1)
+    public SCLevelChangedPacket(uint objId, byte level) : base(SCOffsets.SCLevelChangedPacket, 5)
     {
         _objId = objId;
         _level = level;

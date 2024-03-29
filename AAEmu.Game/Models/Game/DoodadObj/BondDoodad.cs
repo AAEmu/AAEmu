@@ -10,24 +10,27 @@ public class BondDoodad : PacketMarshaler
     private readonly byte _kind;
     private readonly int _space;
     private readonly int _spot;
+    private readonly uint _animActionId;
 
     public uint ObjId => _owner?.ObjId ?? 0;
 
-    public BondDoodad(AttachPointKind attachPoint, BondKind kind, int space, int spot)
+    public BondDoodad(AttachPointKind attachPoint, BondKind kind, int space, int spot, uint animActionId)
     {
         _attachPoint = (byte)attachPoint;
         _kind = (byte)kind;
         _space = space;
         _spot = spot;
+        _animActionId = animActionId;
     }
 
-    public BondDoodad(Doodad owner, AttachPointKind attachPoint, BondKind kind, int space, int spot)
+    public BondDoodad(Doodad owner, AttachPointKind attachPoint, BondKind kind, int space, int spot, uint animActionId)
     {
         SetOwner(owner);
         _attachPoint = (byte)attachPoint;
         _kind = (byte)kind;
         _space = space;
         _spot = spot;
+        _animActionId = animActionId;
     }
 
     public void SetOwner(Doodad owner)
@@ -43,10 +46,15 @@ public class BondDoodad : PacketMarshaler
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(_attachPoint);
+        if ((sbyte)_attachPoint == -1)
+        {
+            return stream;
+        }
         stream.WriteBc(_owner.ObjId);
-        stream.Write(_kind);
+        //stream.Write(_kind);       // remove in 3+
         stream.Write(_space);
         stream.Write(_spot);
+        stream.Write(_animActionId); // added 3+
         return stream;
     }
 }

@@ -7,7 +7,7 @@ services:
         command: --default_authentication_plugin=mysql_native_password
         volumes:
             - db-data:/var/lib/mysql
-            - ./SQL/aaemu_login.sql:/docker-entrypoint-initdb.d/aaemu_login.sql
+            - ./SQL/aaemuLoggerin.sql:/docker-entrypoint-initdb.d/aaemuLoggerin.sql
             - ./SQL/aaemu_game.sql:/docker-entrypoint-initdb.d/aaemu_game.sql
             - ./SQL/examples/example-server.sql:/docker-entrypoint-initdb.d/example-server.sql
             - ./SQL/examples/test-user.sql:/docker-entrypoint-initdb.d/test-user.sql

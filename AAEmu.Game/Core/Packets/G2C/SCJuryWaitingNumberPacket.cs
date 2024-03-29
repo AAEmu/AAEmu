@@ -7,7 +7,7 @@ public class SCJuryWaitingNumberPacket : GamePacket
 {
     private readonly int _waitingNumber;
 
-    public SCJuryWaitingNumberPacket(int waitingNumber) : base(SCOffsets.SCJuryWaitingNumberPacket, 1)
+    public SCJuryWaitingNumberPacket(int waitingNumber) : base(SCOffsets.SCJuryWaitingNumberPacket, 5)
     {
         _waitingNumber = waitingNumber;
     }

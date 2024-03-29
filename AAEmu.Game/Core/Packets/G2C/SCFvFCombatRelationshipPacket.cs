@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -8,7 +8,7 @@ public class SCFvFCombatRelationshipPacket : GamePacket
     private readonly (long x, byte unitRelationshipCode, byte unitRelationshipReason)[] _relationships;
 
     public SCFvFCombatRelationshipPacket((long x, byte unitRelationshipCode, byte unitRelationshipReason)[] relationships)
-        : base(SCOffsets.SCFvFCombatRelationshipPacket, 1)
+        : base(SCOffsets.SCFvFCombatRelationshipPacket, 5)
     {
         _relationships = relationships;
     }

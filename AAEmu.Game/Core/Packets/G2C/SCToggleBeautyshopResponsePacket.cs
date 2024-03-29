@@ -7,7 +7,7 @@ public class SCToggleBeautyshopResponsePacket : GamePacket
 {
     private readonly byte _state;
 
-    public SCToggleBeautyshopResponsePacket(byte state) : base(SCOffsets.SCToggleBeautyshopResponsePacket, 1)
+    public SCToggleBeautyshopResponsePacket(byte state) : base(SCOffsets.SCToggleBeautyShopResponsePacket, 5)
     {
         _state = state;
     }

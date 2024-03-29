@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 
@@ -10,7 +10,7 @@ public class SCCharBriefPacket : GamePacket
     private readonly string _name;
     private readonly Race _race;
 
-    public SCCharBriefPacket(uint charId, string name, Race race) : base(SCOffsets.SCCharBriefPacket, 1)
+    public SCCharBriefPacket(uint charId, string name, Race race) : base(SCOffsets.SCCharBriefPacket, 5)
     {
         _charId = charId;
         _name = name;

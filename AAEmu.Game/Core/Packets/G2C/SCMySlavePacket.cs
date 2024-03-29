@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 
@@ -17,7 +17,7 @@ public class SCMySlavePacket : GamePacket
     private readonly float _z;
 
     public SCMySlavePacket(uint unitId, ushort tl, string slaveName, uint templateId, int hp, int maxHp, float x, float y, float z)
-        : base(SCOffsets.SCMySlavePacket, 1)
+        : base(SCOffsets.SCMySlavePacket, 5)
     {
         _unitId = unitId;
         _tl = tl;

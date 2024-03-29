@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.CashShop;
 
@@ -10,7 +10,7 @@ public class SCICSGoodDetailPacket : GamePacket
     // private readonly CashShopItemDetail _itemDetail;
     private readonly IcsSku _sku;
 
-    public SCICSGoodDetailPacket(bool pageEnd, IcsSku itemDetail) : base(SCOffsets.SCICSGoodDetailPacket, 1)
+    public SCICSGoodDetailPacket(bool pageEnd, IcsSku itemDetail) : base(SCOffsets.SCICSGoodDetailPacket, 5)
     {
         _pageEnd = pageEnd;
         _sku = itemDetail;

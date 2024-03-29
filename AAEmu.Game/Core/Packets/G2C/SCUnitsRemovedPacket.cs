@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 
@@ -9,7 +9,7 @@ public class SCUnitsRemovedPacket : GamePacket
     private readonly uint[] _ids;
     public const int MaxCountPerPacket = 500; // Suggested Maximum Size (originally 300)
 
-    public SCUnitsRemovedPacket(uint[] ids) : base(SCOffsets.SCUnitsRemovedPacket, 1)
+    public SCUnitsRemovedPacket(uint[] ids) : base(SCOffsets.SCUnitsRemovedPacket, 5)
     {
         _ids = ids;
     }

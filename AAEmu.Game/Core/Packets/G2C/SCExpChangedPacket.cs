@@ -9,7 +9,7 @@ public class SCExpChangedPacket : GamePacket
     private readonly int _exp;
     private readonly bool _shouldAddAbilityExp;
 
-    public SCExpChangedPacket(uint objId, int exp, bool shouldAddAbilityExp) : base(SCOffsets.SCExpChangedPacket, 1)
+    public SCExpChangedPacket(uint objId, int exp, bool shouldAddAbilityExp) : base(SCOffsets.SCExpChangedPacket, 5)
     {
         _objId = objId;
         _exp = exp;

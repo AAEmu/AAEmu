@@ -4,28 +4,28 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Utils.Scripts;
 
-namespace AAEmu.Game.Scripts.Commands
+namespace AAEmu.Game.Scripts.Commands;
+
+public class InGameCashShop : ICommand
 {
-    public class InGameCashShop : ICommand
+    public void OnLoad()
     {
-        public void OnLoad()
-        {
             string[] name = { "ingamecashshop", "ics" };
             CommandManager.Instance.Register(name, this);
         }
 
-        public string GetCommandLineHelp()
-        {
+    public string GetCommandLineHelp()
+    {
             return "<on||off||reload>";
         }
 
-        public string GetCommandHelpText()
-        {
+    public string GetCommandHelpText()
+    {
             return "Enables or disables the InGameCashShop as well as allows to reloading of the data";
         }
 
-        public void Execute(Character character, string[] args, IMessageOutput messageOutput)
-        {
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
+    {
             var doCommand = "list";
             if (args.Length > 0)
                 doCommand = args[0].ToLower();
@@ -59,5 +59,4 @@ namespace AAEmu.Game.Scripts.Commands
                     break;
             }
         }
-    }
 }

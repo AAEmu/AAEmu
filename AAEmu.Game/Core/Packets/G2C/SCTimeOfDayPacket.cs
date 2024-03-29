@@ -7,7 +7,7 @@ public class SCTimeOfDayPacket : GamePacket
 {
     private readonly float _time;
 
-    public SCTimeOfDayPacket(float time) : base(SCOffsets.SCTimeOfDayPacket, 1)
+    public SCTimeOfDayPacket(float time) : base(SCOffsets.SCTimeOfDayPacket, 5)
     {
         _time = time;
     }

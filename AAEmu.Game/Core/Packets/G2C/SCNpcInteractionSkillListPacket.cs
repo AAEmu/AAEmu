@@ -13,7 +13,7 @@ public class SCNpcInteractionSkillListPacket : GamePacket
     private readonly int _modifierKeys;
     private readonly uint[] _skillList;
 
-    public SCNpcInteractionSkillListPacket(uint npcObjId, uint objId, int extraInfo, int pickId, byte mouseButton, int modifierKeys, uint[] skillList) : base(SCOffsets.SCNpcInteractionSkillListPacket, 1)
+    public SCNpcInteractionSkillListPacket(uint npcObjId, uint objId, int extraInfo, int pickId, byte mouseButton, int modifierKeys, uint[] skillList) : base(SCOffsets.SCNpcInteractionSkillListPacket, 5)
     {
         _npcObjId = npcObjId;
         _objId = objId;
@@ -24,7 +24,7 @@ public class SCNpcInteractionSkillListPacket : GamePacket
         _skillList = skillList;
     }
 
-    public SCNpcInteractionSkillListPacket(uint npcObjId, uint objId, int extraInfo, int pickId, byte mouseButton, int modifierKeys, uint skillId) : base(SCOffsets.SCNpcInteractionSkillListPacket, 1)
+    public SCNpcInteractionSkillListPacket(uint npcObjId, uint objId, int extraInfo, int pickId, byte mouseButton, int modifierKeys, uint skillId) : base(SCOffsets.SCNpcInteractionSkillListPacket, 5)
     {
         _npcObjId = npcObjId;
         _objId = objId;
@@ -48,7 +48,7 @@ public class SCNpcInteractionSkillListPacket : GamePacket
             stream.Write(skillId);
         }
         stream.Write((byte)1); // interactable, doesn't seem to matter what we set here
-        stream.Write(_modifierKeys);
+        stream.Write(_modifierKeys); // mkeys
 
         return stream;
     }

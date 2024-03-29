@@ -9,7 +9,7 @@ public class SCEmotionExpressedPacket : GamePacket
     private readonly uint _objId2;
     private readonly uint _emotionId;
 
-    public SCEmotionExpressedPacket(uint objId, uint objId2, uint emotionId) : base(SCOffsets.SCEmotionExpressedPacket, 1)
+    public SCEmotionExpressedPacket(uint objId, uint objId2, uint emotionId) : base(SCOffsets.SCEmotionExpressedPacket, 5)
     {
         _objId = objId;
         _objId2 = objId2;

@@ -8,7 +8,7 @@ public class CSTryQuestCompleteAsLetItDonePacket : GamePacket
     private uint id;
     private uint objId;
     private int selected;
-    public CSTryQuestCompleteAsLetItDonePacket() : base(CSOffsets.CSTryQuestCompleteAsLetItDonePacket, 1)
+    public CSTryQuestCompleteAsLetItDonePacket() : base(CSOffsets.CSTryQuestCompleteAsLetItDonePacket, 5)
     {
     }
 

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 
@@ -10,7 +10,7 @@ public class SCNaviTeleportPacket : GamePacket
     private float _y;
     private float _z;
 
-    public SCNaviTeleportPacket(float x, float y, float z) : base(SCOffsets.SCNaviTeleportPacket, 1)
+    public SCNaviTeleportPacket(float x, float y, float z) : base(SCOffsets.SCNaviTeleportPacket, 5)
     {
         _x = x;
         _y = y;

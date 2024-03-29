@@ -1,5 +1,5 @@
 ﻿using System;
-
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -13,16 +13,18 @@ public class SpawnEffect : EffectTemplate
     public uint OwnerTypeId { get; set; }
     public uint SubType { get; set; }
     public uint PosDirId { get; set; }
-    public float PosAngle { get; set; }
-    public float PosDistance { get; set; }
+    //public float PosAngle { get; set; } // there is no such field in the database for version 3.0.3.0
+    public float PosAngleMax { get; set; }
+    public float PosAngleMin { get; set; }
+    public float PosDistanceMax { get; set; }
+    public float PosDistanceMin { get; set; }
     public uint OriDirId { get; set; }
     public float OriAngle { get; set; }
     public bool UseSummonerFaction { get; set; }
     public float LifeTime { get; set; }
     public bool DespawnOnCreatorDeath { get; set; }
-
     public bool UseSummonerAggroTarget { get; set; }
-    // TODO 1.2 // public uint MateStateId { get; set; }
+    public uint MateStateId { get; set; }
 
     public override bool OnActionTime => false;
 
@@ -40,7 +42,9 @@ public class SpawnEffect : EffectTemplate
                 Logger.Info($"SpawnEffect: SubType={SubType} not found in spawners.");
                 return;
             }
-            var (xx, yy) = MathUtil.AddDistanceToFrontDeg(PosDistance, target.Transform.World.Position.X, target.Transform.World.Position.Y, PosAngle);
+            var posAngle = Rand.Next(PosAngleMin, PosAngleMax);
+            var posDistance = Rand.Next(PosDistanceMin, PosDistanceMax);
+            var (xx, yy) = MathUtil.AddDistanceToFrontDeg(posDistance, target.Transform.World.Position.X, target.Transform.World.Position.Y, posAngle);
             var zz = WorldManager.Instance.GetHeight(target.Transform.ZoneId, xx, yy);
             if (zz == 0)
             {
@@ -49,7 +53,7 @@ public class SpawnEffect : EffectTemplate
             spawner.Position.X = xx;
             spawner.Position.Y = yy;
             spawner.Position.Z = zz;
-            spawner.Position.Yaw = PosAngle;
+            spawner.Position.Yaw = posAngle;
 
             spawner.RespawnTime = 0; // don't respawn
 

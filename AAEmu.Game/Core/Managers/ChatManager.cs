@@ -208,7 +208,6 @@ public class ChatManager : Singleton<ChatManager>
         return _guildChannels.TryAdd(guild.Id, channel);
     }
 
-
     public ChatChannel GetGuildChat(Expedition guild)
     {
         // create it if it's not there

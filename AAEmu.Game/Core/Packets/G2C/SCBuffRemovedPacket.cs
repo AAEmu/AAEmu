@@ -10,7 +10,7 @@ public class SCBuffRemovedPacket : GamePacket
     private uint _objId;
     private uint _index;
 
-    public SCBuffRemovedPacket(uint objId, uint index) : base(SCOffsets.SCBuffRemovedPacket, 1)
+    public SCBuffRemovedPacket(uint objId, uint index) : base(SCOffsets.SCBuffRemovedPacket, 5)
     {
         _objId = objId;
         _index = index;

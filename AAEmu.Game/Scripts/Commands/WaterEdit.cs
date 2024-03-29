@@ -11,6 +11,7 @@ using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
@@ -324,7 +325,7 @@ public class WaterEdit : ICommand
             var pos = SelectedWater.GetCenter(true);
             character.ForceDismount();
             character.DisabledSetPosition = true;
-            character.SendPacket(new SCTeleportUnitPacket(0, 0, pos.X + 1f, pos.Y + 1f, pos.Z + 3f, 0));
+            character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Portal, ErrorMessageType.NoErrorMessage, pos.X + 1f, pos.Y + 1f, pos.Z + 3f, 0));
         }
         else if (subCommand is "clear" or "c")
         {

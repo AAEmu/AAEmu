@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -7,7 +7,7 @@ public class SCTeamBecameRaidTeamPacket : GamePacket
 {
     private readonly uint _teamId;
 
-    public SCTeamBecameRaidTeamPacket(uint teamId) : base(SCOffsets.SCTeamBecameRaidTeamPacket, 1)
+    public SCTeamBecameRaidTeamPacket(uint teamId) : base(SCOffsets.SCTeamBecameRaidTeamPacket, 5)
     {
         _teamId = teamId;
     }

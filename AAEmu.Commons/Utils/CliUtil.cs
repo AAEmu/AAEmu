@@ -12,7 +12,7 @@ namespace AAEmu.Commons.Utils
     public static class CliUtil
     {
         private const string TitlePrefix = "ARCHEAGE SERVER : ";
-        private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         private static readonly string[] Logo = new string[]
         {
@@ -117,10 +117,10 @@ namespace AAEmu.Commons.Utils
         {
             if (wait)
             {
-                _log.Info("Press Enter to exit.");
+                Logger.Info("Press Enter to exit.");
                 Console.ReadLine();
             }
-            _log.Info("Exiting...");
+            Logger.Info("Exiting...");
             Environment.Exit(exitCode);
         }
 

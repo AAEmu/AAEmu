@@ -8,14 +8,14 @@ public class MoneyChange : ItemTask
 
     public MoneyChange(int amount)
     {
-        _type = ItemAction.ChangeMoneyAmount;
+        _type = ItemAction.ChangeMoneyAmount; // 1
         _amount = amount;
     }
 
     public override PacketStream Write(PacketStream stream)
     {
         base.Write(stream);
-        stream.Write(_amount);
+        stream.Write(_amount); // amount
         return stream;
     }
 }

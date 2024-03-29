@@ -24,7 +24,7 @@ public class CharacterAppellations
 
     private void addBuff(uint titleId)
     {
-        var buffId = CharacterManager.Instance.GetAppellationsTemplate(titleId)? .BuffId ?? 0;
+        var buffId = CharacterManager.Instance.GetAppellationsTemplate(titleId)?.BuffId ?? 0;
         if (buffId != 0) Owner.Buffs.AddBuff(buffId, Owner);
 
         Logger.Info($"title: {titleId} giving buff {buffId}");
@@ -32,8 +32,8 @@ public class CharacterAppellations
     private void removeCurrentBuff()
     {
         if (ActiveAppellation != 0) //i.e. you have no title to begin with, so this is skipped
-        { 
-            var buffId = CharacterManager.Instance.GetAppellationsTemplate(ActiveAppellation)? .BuffId ?? 0;
+        {
+            var buffId = CharacterManager.Instance.GetAppellationsTemplate(ActiveAppellation)?.BuffId ?? 0;
             if (buffId != 0) Owner.Buffs.RemoveBuff(buffId); //i.e. checking if title actually has a buff
 
             Logger.Info($"removing current buff: {buffId}");

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSRequestMusicNotesPacket : GamePacket
 {
-    public CSRequestMusicNotesPacket() : base(CSOffsets.CSRequestMusicNotesPacket, 1)
+    public CSRequestMusicNotesPacket() : base(CSOffsets.CSRequestMusicNotesPacket, 5)
     {
     }
 

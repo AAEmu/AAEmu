@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -11,7 +11,7 @@ public class SCUnitDeathPacket : GamePacket
     private readonly KillReason _killReason;
     private readonly Unit _killer;
 
-    public SCUnitDeathPacket(uint objId, KillReason killReason, Unit killer = null) : base(SCOffsets.SCUnitDeathPacket, 1)
+    public SCUnitDeathPacket(uint objId, KillReason killReason, Unit killer = null) : base(SCOffsets.SCUnitDeathPacket, 5)
     {
         _objId = objId;
         _killReason = killReason;

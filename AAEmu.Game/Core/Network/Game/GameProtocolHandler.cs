@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Text;
+using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
@@ -19,8 +20,12 @@ public class GameProtocolHandler : BaseProtocolHandler
     public GameProtocolHandler()
     {
         _packets = new ConcurrentDictionary<byte, ConcurrentDictionary<uint, Type>>();
-        _packets.TryAdd(1, new ConcurrentDictionary<uint, Type>());
-        _packets.TryAdd(2, new ConcurrentDictionary<uint, Type>());
+        _packets.TryAdd(1, new ConcurrentDictionary<uint, Type>()); // ordinary
+        _packets.TryAdd(2, new ConcurrentDictionary<uint, Type>()); // proxy
+        _packets.TryAdd(3, new ConcurrentDictionary<uint, Type>()); // deflate
+        _packets.TryAdd(4, new ConcurrentDictionary<uint, Type>()); // deflate
+        _packets.TryAdd(5, new ConcurrentDictionary<uint, Type>()); // encrypt
+        _packets.TryAdd(6, new ConcurrentDictionary<uint, Type>()); // encrypt
     }
 
     public override void OnConnect(Session session)
@@ -82,6 +87,7 @@ public class GameProtocolHandler : BaseProtocolHandler
         }
     }
 
+    // receiving packets from the client
     public void OnReceive(GameConnection connection, byte[] buf, int bytes)
     {
         try
@@ -132,6 +138,23 @@ public class GameProtocolHandler : BaseProtocolHandler
                     {
                         crc = stream2.ReadByte(); // TODO 1.2 crc
                         counter = stream2.ReadByte(); // TODO 1.2 counter
+                    }
+                    if (level == 5)
+                    {
+                        // packet from the client, decrypt
+                        //------------------------------
+                        var input = new byte[stream2.Count - 2];
+                        Buffer.BlockCopy(stream2, 2, input, 0, stream2.Count - 2);
+                        var output = EncryptionManager.Instance.Decode(input, connection.Id, connection.AccountId);
+                        var OutBytes = new byte[output.Length + 5];
+                        Buffer.BlockCopy(stream2, 0, OutBytes, 0, 5);
+                        // create a complete decrypted packet
+                        Buffer.BlockCopy(output, 1, OutBytes, 5, output.Length - 1);
+                        // replace encrypted data with decrypted ones
+                        var strm = new PacketStream();
+                        strm.Write(OutBytes);
+                        stream2.Replace(strm, 0, OutBytes.Length);
+                        stream2.ReadUInt16();
                     }
 
                     var type = stream2.ReadUInt16();

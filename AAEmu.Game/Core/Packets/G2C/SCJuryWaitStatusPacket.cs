@@ -8,7 +8,7 @@ public class SCJuryWaitStatusPacket : GamePacket
     private readonly int _count;
     private readonly int _total;
     private readonly uint _sentnce;
-    public SCJuryWaitStatusPacket(int count, int total, uint sentence) : base(SCOffsets.SCJuryWaitStatusPacket, 1)
+    public SCJuryWaitStatusPacket(int count, int total, uint sentence) : base(SCOffsets.SCJuryWaitStatusPacket, 5)
     {
         _count = count;
         _total = total;

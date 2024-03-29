@@ -7,7 +7,9 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Json;
 
 using Newtonsoft.Json;
@@ -104,7 +106,6 @@ public class SphereCommandUtil
                 break;
         }
     }
-
 
     private static void GetQuestSpheres(Character character, uint questId)
     {
@@ -324,7 +325,7 @@ public class SphereCommandUtil
                         if (sphere.Id == jsonId)
                         {
                             found = true;
-                            character.SendPacket(new SCTeleportUnitPacket(0, 0, sphere.Position.X, sphere.Position.Y, sphere.Position.Z, 0));
+                            character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Portal, ErrorMessageType.NoErrorMessage, sphere.Position.X, sphere.Position.Y, sphere.Position.Z, 0));
                             break;
                         }
                     }

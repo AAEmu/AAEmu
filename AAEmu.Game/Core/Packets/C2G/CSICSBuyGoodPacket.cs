@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -8,17 +8,13 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.CashShop;
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Mails;
-using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.CashShop;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSICSBuyGoodPacket : GamePacket
 {
-    public CSICSBuyGoodPacket() : base(CSOffsets.CSICSBuyGoodPacket, 1)
+    public CSICSBuyGoodPacket() : base(CSOffsets.CSICSBuyGoodRequestPacket, 5)
     {
     }
 

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -13,7 +13,7 @@ public class SCSlaveCreatedPacket : GamePacket
     private readonly string _creatorName;
 
     public SCSlaveCreatedPacket(uint ownerObjId, ushort tlId, uint slaveObjId, bool hideSpawnEffect, long unkId, string creatorName)
-        : base(SCOffsets.SCSlaveCreatedPacket, 1)
+        : base(SCOffsets.SCSlaveCreatedPacket, 5)
     {
         _ownerObjId = ownerObjId;
         _tlId = tlId;

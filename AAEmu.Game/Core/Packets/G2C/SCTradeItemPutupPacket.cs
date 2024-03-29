@@ -10,7 +10,7 @@ public class SCTradeItemPutupPacket : GamePacket
     private readonly byte _slot;
     private readonly int _amount;
 
-    public SCTradeItemPutupPacket(SlotType slotType, byte slot, int amount) : base(SCOffsets.SCTradeItemPutupPacket, 1)
+    public SCTradeItemPutupPacket(SlotType slotType, byte slot, int amount) : base(SCOffsets.SCTradeItemPutupPacket, 5)
     {
         _slotType = slotType;
         _slot = slot;

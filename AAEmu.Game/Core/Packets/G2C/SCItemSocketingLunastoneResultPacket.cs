@@ -9,7 +9,7 @@ public class SCItemSocketingLunastoneResultPacket : GamePacket
     private readonly ulong _itemId;
     private readonly uint _type;
 
-    public SCItemSocketingLunastoneResultPacket(bool result, ulong itemId, uint type) : base(SCOffsets.SCItemSocketingLunastoneResultPacket, 1)
+    public SCItemSocketingLunastoneResultPacket(bool result, ulong itemId, uint type) : base(SCOffsets.SCItemSocketingLunastoneResultPacket, 5)
     {
         _result = result;
         _itemId = itemId;

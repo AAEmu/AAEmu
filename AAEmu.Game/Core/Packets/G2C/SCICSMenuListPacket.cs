@@ -1,9 +1,8 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.CashShop;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
@@ -14,7 +13,7 @@ public class SCICSMenuListPacket : GamePacket
     private readonly bool _enabled;
     private Dictionary<byte, Dictionary<byte, bool>> _tabsEnabled;
 
-    public SCICSMenuListPacket(bool enabled) : base(SCOffsets.SCICSMenuListPacket, 1)
+    public SCICSMenuListPacket(bool enabled) : base(SCOffsets.SCICSMenuListPacket, 5)
     {
         _enabled = enabled;
 

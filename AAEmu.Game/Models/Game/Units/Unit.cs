@@ -58,7 +58,7 @@ public class Unit : BaseUnit, IUnit
     public byte Level { get; set; }
 
     public int Hp { get; set; }
-
+    public int HighAbilityRsc { get; set; }
     public DateTime LastCombatActivity { get; set; }
 
     protected bool _isUnderWater;
@@ -328,7 +328,7 @@ public class Unit : BaseUnit, IUnit
 
         Hp = Math.Max(Hp - value, 0);
 
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
+        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0, HighAbilityRsc), true);
 
         PostUpdateCurrentHp(attacker, oldHp, Hp, killReason);
     }
@@ -418,7 +418,7 @@ public class Unit : BaseUnit, IUnit
 
         //else
         //StartRegen();
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
+        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc), true);
     }
 
     public virtual void DoDie(BaseUnit killer, KillReason killReason)
@@ -917,25 +917,14 @@ public class Unit : BaseUnit, IUnit
             }
         }
         else // other
-        {
             stream.Write((byte)modelPostureType);
-        }
 
         stream.Write(false); // isLooted
 
         switch (modelPostureType)
         {
             case ModelPostureType.HouseState: // build
-                for (var i = 0; i < 2; i++)
-                {
-                    stream.Write(true); // door
-                }
-
-                for (var i = 0; i < 6; i++)
-                {
-                    stream.Write(true); // window
-                }
-
+                stream.Write((byte)0xF); // flags Byte (2 - door, 6 - window)
                 break;
             case ModelPostureType.ActorModelState: // npc
                 var npc = (Npc)unit;
@@ -952,15 +941,19 @@ public class Unit : BaseUnit, IUnit
                 stream.Write(true); // activate
                 break;
             case ModelPostureType.FarmfieldState:
-                stream.Write(0u); // type(id)
-                stream.Write(0f); // growRate
-                stream.Write(0); // randomSeed
-                stream.Write(false); // isWithered
-                stream.Write(false); // isHarvested
+                stream.Write(0u);    // type(id)
+                stream.Write(0f);    // growRate
+                stream.Write(0);     // randomSeed
+                stream.Write(false); // flags Byte
                 break;
             case ModelPostureType.TurretState: // slave
                 stream.Write(0f); // pitch
                 stream.Write(0f); // yaw
+                break;
+            case ModelPostureType.Unk2:
+            case ModelPostureType.Unk3:
+            case ModelPostureType.Unk5:
+            case ModelPostureType.Unk6:
                 break;
         }
     }

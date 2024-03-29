@@ -10,7 +10,7 @@ public class SCNpcChatMessagePacket : GamePacket
     private readonly short _subType;
     private readonly uint _factionId;
 
-    public SCNpcChatMessagePacket(ChatType type, short subType, uint factionId) : base(SCOffsets.SCNpcChatMessagePacket, 1)
+    public SCNpcChatMessagePacket(ChatType type, short subType, uint factionId) : base(SCOffsets.SCNpcChatMessagePacket, 5)
     {
         _type = type;
         _subType = subType;

@@ -5,15 +5,15 @@ using AAEmu.Game.Models.Game.DoodadObj;
 
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
-namespace AAEmu.Game.Models.Game.Indun.Actions
-{
-    internal class IndunActionChangeDoodadPhases : IndunAction
-    {
-        public uint DoodadAlmightyId { get; set; }
-        public uint DoodadFuncGroupId { get; set; }
+namespace AAEmu.Game.Models.Game.Indun.Actions;
 
-        public override void Execute(InstanceWorld world)
-        {
+internal class IndunActionChangeDoodadPhases : IndunAction
+{
+    public uint DoodadAlmightyId { get; set; }
+    public uint DoodadFuncGroupId { get; set; }
+
+    public override void Execute(InstanceWorld world)
+    {
             foreach (var doodad in GetDoodads(world))
             {
                 doodad.DoChangePhase(null, (int)DoodadFuncGroupId);
@@ -21,8 +21,8 @@ namespace AAEmu.Game.Models.Game.Indun.Actions
             Logger.Warn("IndunActionChangeDoodadPhases: Doodad " +DoodadAlmightyId + " change phase to " + DoodadFuncGroupId);
         }
 
-        private List<Doodad> GetDoodads(InstanceWorld world)
-        {
+    private List<Doodad> GetDoodads(InstanceWorld world)
+    {
 
             var doodadList = new List<Doodad>();
 
@@ -39,5 +39,4 @@ namespace AAEmu.Game.Models.Game.Indun.Actions
             Logger.Warn(DoodadAlmightyId + " is not found!");
             return doodadList;
         }
-    }
 }

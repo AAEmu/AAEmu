@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 
@@ -8,7 +8,7 @@ public class SCCreateCharacterResponsePacket : GamePacket
 {
     private readonly Character _character;
 
-    public SCCreateCharacterResponsePacket(Character character) : base(SCOffsets.SCCreateCharacterResponsePacket, 1)
+    public SCCreateCharacterResponsePacket(Character character) : base(SCOffsets.SCCreateCharacterResponsePacket, 5)
     {
         _character = character;
     }

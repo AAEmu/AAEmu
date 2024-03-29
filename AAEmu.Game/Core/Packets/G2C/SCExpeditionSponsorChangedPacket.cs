@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Faction;
 
@@ -9,7 +9,7 @@ public class SCExpeditionSponsorChangedPacket : GamePacket
     private readonly SystemFaction _faction;
     private readonly bool _success;
 
-    public SCExpeditionSponsorChangedPacket(SystemFaction faction, bool success) : base(SCOffsets.SCExpeditionSponsorChangedPacket, 1)
+    public SCExpeditionSponsorChangedPacket(SystemFaction faction, bool success) : base(SCOffsets.SCExpeditionSponsorChangedPacket, 5)
     {
         _faction = faction;
         _success = success;

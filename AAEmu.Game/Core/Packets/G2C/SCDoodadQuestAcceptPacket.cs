@@ -8,7 +8,7 @@ public class SCDoodadQuestAcceptPacket : GamePacket
     private readonly uint _doodadObjId;
     private readonly uint _questContextId;
 
-    public SCDoodadQuestAcceptPacket(uint doodadObjId, uint questContextId) : base(SCOffsets.SCDoodadQuestAcceptPacket, 1)
+    public SCDoodadQuestAcceptPacket(uint doodadObjId, uint questContextId) : base(SCOffsets.SCDoodadAcceptQuestPacket, 5)
     {
         _doodadObjId = doodadObjId;
         _questContextId = questContextId;

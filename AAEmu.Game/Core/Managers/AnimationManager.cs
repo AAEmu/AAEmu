@@ -136,9 +136,18 @@ public class AnimationManager : Singleton<AnimationManager>
                             RelaxedUB = reader.GetString("relaxed_ub"),
                             SwimMoveUB = reader.GetString("swim_move_ub")
                         };
+                        if (_animationsByName.ContainsKey(template.Name))
+                        {
+                            continue;
+                        }
 
                         _animations.Add(template.Id, template);
-                        _animationsByName.Add(template.Name, template);
+                        _animationsByName.Add(template.Name, template); // в наличии дубль Nam
+                        /*
+                         *  id                                                              Name
+                         *  835     4   wyvern_ac_coin_launch	0	wyvern_ac_coin_launch	wyvern_ac_coin_launch		wyvern_ac_coin_launch	wyvern_ac_coin_launch	wyvern_ac_coin_launch
+                         *  8000021	4   wyvern_ac_coin_launch	0	wyvern_ac_coin_launch	wyvern_ac_coin_launch		wyvern_ac_coin_launch	wyvern_ac_coin_launch	wyvern_ac_coin_launch
+                         */
                     }
                 }
             }

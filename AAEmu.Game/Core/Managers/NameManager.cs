@@ -14,7 +14,7 @@ public class NameManager : Singleton<NameManager>
 
     private Regex _characterNameRegex;
     private Dictionary<uint, string> _characterNames;
-    private Dictionary<uint, uint> _characterAccounts;
+    private Dictionary<uint, ulong> _characterAccounts;
 
     public string GetCharacterName(uint characterId)
     {
@@ -29,7 +29,7 @@ public class NameManager : Singleton<NameManager>
         return res;
     }
 
-    public uint GetCharaterAccount(uint characterId)
+    public ulong GetCharaterAccount(uint characterId)
     {
         if (_characterAccounts.TryGetValue(characterId, out var accountId))
             return accountId;
@@ -39,7 +39,7 @@ public class NameManager : Singleton<NameManager>
     public NameManager()
     {
         _characterNames = new Dictionary<uint, string>();
-        _characterAccounts = new Dictionary<uint, uint>();
+        _characterAccounts = new Dictionary<uint, ulong>();
     }
 
     public void Load()
@@ -57,7 +57,7 @@ public class NameManager : Singleton<NameManager>
                     {
                         var id = reader.GetUInt32("id");
                         var name = reader.GetString("name").ToLower();
-                        var account = reader.GetUInt32("account_id");
+                        var account = reader.GetUInt64("account_id");
                         _characterNames.Add(id, name);
                         _characterAccounts.Add(id, account);
                     }
@@ -77,7 +77,7 @@ public class NameManager : Singleton<NameManager>
         return 0;
     }
 
-    public void AddCharacterName(uint characterId, string name, uint accountId)
+    public void AddCharacterName(uint characterId, string name, ulong accountId)
     {
         _characterNames.Add(characterId, name);
         _characterAccounts.Add(characterId, accountId);

@@ -592,7 +592,7 @@ public class Slave : Unit
     public override void AddVisibleObject(Character character)
     {
         character.SendPacket(new SCUnitStatePacket(this));
-        character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+        character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc));
         character.SendPacket(new SCSlaveStatePacket(ObjId, TlId, Summoner?.Name ?? string.Empty, Summoner?.ObjId ?? 0, Id));
 
         base.AddVisibleObject(character);
@@ -854,7 +854,7 @@ public class Slave : Unit
 
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
+        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc), false);
         PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
 

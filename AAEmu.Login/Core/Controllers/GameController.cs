@@ -27,7 +27,6 @@ public class GameController : Singleton<GameController>
         return null;
     }
 
-
     protected GameController()
     {
         _gameServers = new Dictionary<byte, GameServer>();

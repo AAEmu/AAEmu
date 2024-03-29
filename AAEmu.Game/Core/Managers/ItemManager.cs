@@ -317,12 +317,12 @@ public class ItemManager : Singleton<ItemManager>
                 isDone &= TookLootDropItem(character, lootDropItems, lootDropItems[i], lootDropItems[i].Count);
             }
             if (lootDropItems.Count > 0)
-                character.SendPacket(new SCLootBagDataPacket(lootDropItems, lootAll));
+                character.SendPacket(new SCLootingBagPacket(lootDropItems, lootAll));
         }
         else
         {
             isDone = lootDropItems.Count <= 0;
-            character.SendPacket(new SCLootBagDataPacket(lootDropItems, lootAll));
+            character.SendPacket(new SCLootingBagPacket(lootDropItems, lootAll));
         }
         return isDone;
     }
@@ -726,15 +726,15 @@ public class ItemManager : Singleton<ItemManager>
                         template.UpgradeRatio = reader.GetInt32("upgrade_ratio");
                         template.StatMultiplier = reader.GetInt32("stat_multiplier");
                         template.RefundMultiplier = reader.GetInt32("refund_multiplier");
-                        template.EnchantSuccessRatio = reader.GetInt32("grade_enchant_success_ratio");
-                        template.EnchantGreatSuccessRatio = reader.GetInt32("grade_enchant_great_success_ratio");
-                        template.EnchantBreakRatio = reader.GetInt32("grade_enchant_break_ratio");
-                        template.EnchantDowngradeRatio = reader.GetInt32("grade_enchant_downgrade_ratio");
-                        template.EnchantCost = reader.GetInt32("grade_enchant_cost");
-                        template.HoldableHealDps = reader.GetFloat("var_holdable_heal_dps");
-                        template.EnchantDowngradeMin = reader.GetInt32("grade_enchant_downgrade_min");
-                        template.EnchantDowngradeMax = reader.GetInt32("grade_enchant_downgrade_max");
-                        template.CurrencyId = reader.GetInt32("currency_id");
+                        //template.EnchantSuccessRatio = reader.GetInt32("grade_enchant_success_ratio"); // there is no such field in the database for version 3.0.3.0
+                        //template.EnchantGreatSuccessRatio = reader.GetInt32("grade_enchant_great_success_ratio"); // there is no such field in the database for version 3.0.3.0
+                        //template.EnchantBreakRatio = reader.GetInt32("grade_enchant_break_ratio"); // there is no such field in the database for version 3.0.3.0
+                        //template.EnchantDowngradeRatio = reader.GetInt32("grade_enchant_downgrade_ratio"); // there is no such field in the database for version 3.0.3.0
+                        //template.EnchantCost = reader.GetInt32("grade_enchant_cost"); // there is no such field in the database for version 3.0.3.0
+                        //template.HoldableHealDps = reader.GetFloat("var_holdable_heal_dps"); // there is no such field in the database for version 3.0.3.0
+                        //template.EnchantDowngradeMin = reader.GetInt32("grade_enchant_downgrade_min"); // there is no such field in the database for version 3.0.3.0
+                        //template.EnchantDowngradeMax = reader.GetInt32("grade_enchant_downgrade_max"); // there is no such field in the database for version 3.0.3.0
+                        //template.CurrencyId = reader.GetInt32("currency_id"); // there is no such field in the database for version 3.0.3.0
                         _grades.Add(template.Grade, template);
                         _gradesOrdered.Add(template.GradeOrder, template);
                     }
@@ -751,30 +751,28 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new Holdable
-                        {
-                            Id = reader.GetUInt32("id"),
-                            KindId = reader.GetUInt32("kind_id"),
-                            Speed = reader.GetInt32("speed"),
-                            ExtraDamagePierceFactor = reader.GetInt32("extra_damage_pierce_factor"),
-                            ExtraDamageSlashFactor = reader.GetInt32("extra_damage_slash_factor"),
-                            ExtraDamageBluntFactor = reader.GetInt32("extra_damage_blunt_factor"),
-                            MaxRange = reader.GetInt32("max_range"),
-                            Angle = reader.GetInt32("angle"),
-                            EnchantedDps1000 = reader.GetInt32("enchanted_dps1000"),
-                            SlotTypeId = reader.GetUInt32("slot_type_id"),
-                            DamageScale = reader.GetInt32("damage_scale"),
-                            FormulaDps = new Formula(reader.GetString("formula_dps")),
-                            FormulaMDps = new Formula(reader.GetString("formula_mdps")),
-                            FormulaArmor = new Formula(reader.GetString("formula_armor")),
-                            MinRange = reader.GetInt32("min_range"),
-                            SheathePriority = reader.GetInt32("sheathe_priority"),
-                            DurabilityRatio = reader.GetFloat("durability_ratio"),
-                            RenewCategory = reader.GetInt32("renew_category"),
-                            ItemProcId = reader.GetInt32("item_proc_id"),
-                            StatMultiplier = reader.GetInt32("stat_multiplier"),
-                            FormulaHDps = new Formula(reader.GetString("formula_hdps"))
-                        };
+                        var template = new Holdable();
+                        template.Id = reader.GetUInt32("id");
+                        //KindId = reader.GetUInt32("kind_id"); // there is no such field in the database for version 3.0.3.0
+                        template.Speed = reader.GetInt32("speed");
+                        template.ExtraDamagePierceFactor = reader.GetInt32("extra_damage_pierce_factor");
+                        template.ExtraDamageSlashFactor = reader.GetInt32("extra_damage_slash_factor");
+                        template.ExtraDamageBluntFactor = reader.GetInt32("extra_damage_blunt_factor");
+                        template.MaxRange = reader.GetInt32("max_range");
+                        template.Angle = reader.GetInt32("angle");
+                        template.EnchantedDps1000 = reader.GetInt32("enchanted_dps1000");
+                        template.SlotTypeId = reader.GetUInt32("slot_type_id");
+                        template.DamageScale = reader.GetInt32("damage_scale");
+                        template.FormulaDps = new Formula(reader.GetString("formula_dps"));
+                        template.FormulaMDps = new Formula(reader.GetString("formula_mdps"));
+                        template.FormulaArmor = new Formula(reader.GetString("formula_armor"));
+                        template.MinRange = reader.GetInt32("min_range");
+                        template.SheathePriority = reader.GetInt32("sheathe_priority");
+                        template.DurabilityRatio = reader.GetFloat("durability_ratio");
+                        template.RenewCategory = reader.GetInt32("renew_category");
+                        template.ItemProcId = reader.GetInt32("item_proc_id");
+                        template.StatMultiplier = reader.GetInt32("stat_multiplier");
+                        template.FormulaHDps = new Formula(reader.GetString("formula_hdps"));
 
                         _holdables.Add(template.Id, template);
                     }
@@ -791,13 +789,11 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new Wearable
-                        {
-                            TypeId = reader.GetUInt32("armor_type_id"),
-                            SlotTypeId = reader.GetUInt32("slot_type_id"),
-                            ArmorBp = reader.GetInt32("armor_bp"),
-                            MagicResistanceBp = reader.GetInt32("magic_resistance_bp")
-                        };
+                        var template = new Wearable();
+                        template.TypeId = reader.GetUInt32("armor_type_id");
+                        template.SlotTypeId = reader.GetUInt32("slot_type_id");
+                        template.ArmorBp = reader.GetInt32("armor_bp");
+                        //MagicResistanceBp = reader.GetInt32("magic_resistance_bp") // there is no such field in the database for version 3.0.3.0
                         _wearables.Add(template.TypeId * 128 + template.SlotTypeId, template);
                     }
                 }
@@ -812,18 +808,16 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new WearableKind
-                        {
-                            TypeId = reader.GetUInt32("armor_type_id"),
-                            ArmorRatio = reader.GetInt32("armor_ratio"),
-                            MagicResistanceRatio = reader.GetInt32("magic_resistance_ratio"),
-                            FullBufId = reader.GetUInt32("full_buff_id"),
-                            HalfBufId = reader.GetUInt32("half_buff_id"),
-                            ExtraDamagePierce = reader.GetInt32("extra_damage_pierce"),
-                            ExtraDamageSlash = reader.GetInt32("extra_damage_slash"),
-                            ExtraDamageBlunt = reader.GetInt32("extra_damage_blunt"),
-                            DurabilityRatio = reader.GetFloat("durability_ratio")
-                        };
+                        var template = new WearableKind();
+                        template.TypeId = reader.GetUInt32("armor_type_id");
+                        //template.ArmorRatio = reader.GetInt32("armor_ratio"); // there is no such field in the database for version 3.0.3.0
+                        //template.MagicResistanceRatio = reader.GetInt32("magic_resistance_ratio"); // there is no such field in the database for version 3.0.3.0
+                        template.FullBufId = reader.GetUInt32("full_buff_id");
+                        template.HalfBufId = reader.GetUInt32("half_buff_id");
+                        template.ExtraDamagePierce = reader.GetInt32("extra_damage_pierce");
+                        template.ExtraDamageSlash = reader.GetInt32("extra_damage_slash");
+                        template.ExtraDamageBlunt = reader.GetInt32("extra_damage_blunt");
+                        template.DurabilityRatio = reader.GetFloat("durability_ratio");
                         _wearableKinds.Add(template.TypeId, template);
                     }
                 }
@@ -947,7 +941,7 @@ public class ItemManager : Singleton<ItemManager>
                             BaseEquipment = reader.GetBoolean("base_equipment", true),
                             RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
                             ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
-                            ChargeCount = reader.GetInt32("charge_count", 0),
+                            ChargeCount = reader.GetInt16("charge_count"),
                             ItemLookConvert = GetWearableItemLookConvert(slotTypeId),
                             EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                         };
@@ -977,7 +971,7 @@ public class ItemManager : Singleton<ItemManager>
                             BaseEquipment = reader.GetBoolean("base_equipment", true),
                             RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
                             ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
-                            ChargeCount = reader.GetInt32("charge_count", 0),
+                            ChargeCount = reader.GetInt16("charge_count"),
                             ItemLookConvert = GetHoldableItemLookConvert(holdableId),
                             EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                         };
@@ -1009,7 +1003,7 @@ public class ItemManager : Singleton<ItemManager>
                             DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
                             RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
                             ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
-                            ChargeCount = reader.GetInt32("charge_count", 0),
+                            ChargeCount = reader.GetInt16("charge_count"),
                             EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                         };
                         _templates.Add(template.Id, template);
@@ -1073,7 +1067,7 @@ public class ItemManager : Singleton<ItemManager>
                             ModelId = reader.GetUInt32("model_id"),
                             NpcOnly = reader.GetBoolean("npc_only", true),
                             SlotTypeId = reader.GetUInt32("slot_type_id"),
-                            BeautyShopOnly = reader.GetBoolean("beautyshop_only", true)
+                            //BeautyShopOnly = reader.GetBoolean("beautyshop_only", true) // there is no in the database for version 3.0.3.0
                         };
                         _templates.Add(template.Id, template);
                     }
@@ -1168,7 +1162,8 @@ public class ItemManager : Singleton<ItemManager>
                         template.HonorPrice = reader.GetInt32("honor_price");
                         template.ExpAbsLifetime = reader.GetInt32("exp_abs_lifetime");
                         template.ExpOnlineLifetime = reader.GetInt32("exp_online_lifetime");
-                        template.ExpDate = !reader.IsDBNull("exp_date") ? reader.GetDateTime("exp_date") : DateTime.MinValue;
+                        //template.ExpDate = !reader.IsDBNull("exp_date") ? reader.GetDateTime("exp_date") : DateTime.MinValue;
+                        template.ExpDate = reader.IsDBNull("exp_date") ? reader.GetInt32("exp_date") : 0;
                         template.LevelRequirement = reader.GetInt32("level_requirement");
                         template.AuctionCategoryA = reader.IsDBNull("auction_a_category_id") ? 0 : reader.GetInt32("auction_a_category_id");
                         template.AuctionCategoryB = reader.IsDBNull("auction_b_category_id") ? 0 : reader.GetInt32("auction_b_category_id");
@@ -1195,7 +1190,7 @@ public class ItemManager : Singleton<ItemManager>
                     while (reader.Read())
                     {
                         var template = new EquipSlotEnchantingCost();
-                        template.Id = reader.GetUInt32("id");
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
                         template.SlotTypeId = reader.GetUInt32("slot_type_id");
                         template.Cost = reader.GetInt32("cost");
                         if (!_enchantingCosts.ContainsKey(template.SlotTypeId))
@@ -1214,7 +1209,7 @@ public class ItemManager : Singleton<ItemManager>
                     while (reader.Read())
                     {
                         var template = new ItemGradeEnchantingSupport();
-                        template.Id = reader.GetUInt32("id");
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
                         template.ItemId = reader.GetUInt32("item_id");
                         template.RequireGradeMin = reader.GetInt32("require_grade_min");
                         template.RequireGradeMax = reader.GetInt32("require_grade_max");
@@ -1243,8 +1238,8 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var numSockets = reader.GetUInt32("num_sockets");
-                        var chance = reader.GetUInt32("success_ratio");
+                        var numSockets = reader.GetUInt32("id"); // num_sockets
+                        var chance = reader.GetUInt32("cost_ratio"); // success_ratio
 
                         if (!_socketChance.ContainsKey(numSockets))
                             _socketChance.Add(numSockets, chance);
@@ -1262,7 +1257,7 @@ public class ItemManager : Singleton<ItemManager>
                     while (reader.Read())
                     {
                         var template = new ItemCapScale();
-                        template.Id = reader.GetUInt32("id");
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
                         template.SkillId = reader.GetUInt32("skill_id");
                         template.ScaleMin = reader.GetInt32("scale_min");
                         template.ScaleMax = reader.GetInt32("scale_max");
@@ -1348,7 +1343,7 @@ public class ItemManager : Singleton<ItemManager>
                     {
                         var template = new GradeDistributions();
                         template.Id = reader.GetInt32("id");
-                        template.Name = reader.GetString("name");
+                        //template.Name = reader.GetString("name"); // there is no such field in the database for version 3.0.3.0
                         template.Weight0 = reader.GetInt32("weight_0");
                         template.Weight1 = reader.GetInt32("weight_1");
                         template.Weight2 = reader.GetInt32("weight_2");
@@ -1869,7 +1864,7 @@ public class ItemManager : Singleton<ItemManager>
                     item.ExpirationTime = reader.IsDBNull("expire_time") ? DateTime.MinValue : reader.GetDateTime("expire_time");
                     item.ExpirationOnlineMinutesLeft = reader.GetDouble("expire_online_minutes");
                     item.ChargeStartTime = reader.IsDBNull("charge_time") ? DateTime.MinValue : reader.GetDateTime("charge_time");
-                    item.ChargeCount = reader.GetInt32("charge_count");
+                    item.ChargeCount = reader.GetInt16("charge_count");
 
                     // Add it to the global pool
                     if (!_allItems.TryAdd(item.Id, item))

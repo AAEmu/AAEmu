@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -9,7 +9,7 @@ public class SCQuestContextResetPacket : GamePacket
     private readonly byte[] _body;
     private readonly uint _componentId;
 
-    public SCQuestContextResetPacket(uint questId, byte[] body, uint componentId) : base(SCOffsets.SCQuestContextResetPacket, 1)
+    public SCQuestContextResetPacket(uint questId, byte[] body, uint componentId) : base(SCOffsets.SCQuestContextResetPacket, 5)
     {
         _questId = questId;
         _body = body;

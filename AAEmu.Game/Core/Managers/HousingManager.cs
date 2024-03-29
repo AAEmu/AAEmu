@@ -56,7 +56,7 @@ public class HousingManager : Singleton<HousingManager>
     /// <param name="values"></param>
     /// <param name="accountId"></param>
     /// <returns></returns>
-    public int GetByAccountId(Dictionary<uint, House> values, uint accountId)
+    public int GetByAccountId(Dictionary<uint, House> values, ulong accountId)
     {
         foreach (var (id, house) in _houses)
             if (house.AccountId == accountId)
@@ -129,7 +129,7 @@ public class HousingManager : Singleton<HousingManager>
                     while (reader.Read())
                     {
                         var template = new HousingItemHousings();
-                        template.Id = reader.GetUInt32("id");
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
                         template.Item_Id = reader.GetUInt32("item_id");
                         template.Design_Id = reader.GetUInt32("design_id");
                         _housingItemHousings.Add(template);
@@ -192,8 +192,8 @@ public class HousingManager : Singleton<HousingManager>
                         var templateBindings = binding.Find(x => x.TemplateId.Contains(template.Id));
                         using (var command2 = connection.CreateCommand())
                         {
-                            command2.CommandText = "SELECT * FROM housing_binding_doodads WHERE owner_id=@owner_id AND owner_type='Housing'";
-                            command2.Parameters.AddWithValue("owner_id", template.Id);
+                            command2.CommandText = "SELECT * FROM housing_binding_doodads WHERE housing_id=@housing_id";
+                            command2.Parameters.AddWithValue("housing_id", template.Id);
                             command2.Prepare();
                             using (var reader2 = new SQLiteWrapperReader(command2.ExecuteReader()))
                             {
@@ -201,7 +201,7 @@ public class HousingManager : Singleton<HousingManager>
                                 while (reader2.Read())
                                 {
                                     var bindingDoodad = new HousingBindingDoodad();
-                                    bindingDoodad.AttachPointId = (AttachPointKind)reader2.GetInt16("attach_point_id");
+                                    bindingDoodad.AttachPointId = (AttachPointKind)reader2.GetUInt32("attach_point_id");
                                     bindingDoodad.DoodadId = reader2.GetUInt32("doodad_id");
 
                                     if (templateBindings != null && templateBindings.AttachPointId.TryGetValue(bindingDoodad.AttachPointId, out var pos))
@@ -258,7 +258,7 @@ public class HousingManager : Singleton<HousingManager>
                     {
                         var template = new HousingDecoration();
                         template.Id = reader.GetUInt32("id");
-                        template.Name = reader.GetString("name");
+                        //template.Name = reader.GetString("name"); // there is no such field in the database for version 3.0.3.0
                         template.AllowOnFloor = reader.GetBoolean("allow_on_floor", true);
                         template.AllowOnWall = reader.GetBoolean("allow_on_wall", true);
                         template.AllowOnCeiling = reader.GetBoolean("allow_on_ceiling", true);
@@ -283,7 +283,7 @@ public class HousingManager : Singleton<HousingManager>
                     while (reader.Read())
                     {
                         var template = new ItemHousingDecoration();
-                        template.Id = reader.GetUInt32("id");
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
                         template.ItemId = reader.GetUInt32("item_id");
                         template.DesignId = reader.GetUInt32("design_id");
                         template.Restore = reader.GetBoolean("restore", true);
@@ -309,7 +309,7 @@ public class HousingManager : Singleton<HousingManager>
                         var factionId = reader.GetUInt32("faction_id");
                         var house = Create(templateId, factionId);
                         house.Id = reader.GetUInt32("id");
-                        house.AccountId = reader.GetUInt32("account_id");
+                        house.AccountId = reader.GetUInt64("account_id");
                         house.OwnerId = reader.GetUInt32("owner");
                         house.CoOwnerId = reader.GetUInt32("co_owner");
                         house.Name = reader.GetString("name");
@@ -640,7 +640,7 @@ public class HousingManager : Singleton<HousingManager>
         house.ProtectionEndDate = DateTime.UtcNow.AddDays(7);
         _houses.Add(house.Id, house);
         _housesTl.Add(house.TlId, house);
-        connection.ActiveChar.SendPacket(new SCMyHousePacket(house));
+        connection.ActiveChar.SendPacket(new SCHousePacket(house));
         house.Spawn();
         UpdateTaxInfo(house);
     }
@@ -743,7 +743,7 @@ public class HousingManager : Singleton<HousingManager>
             house.Permission = HousingPermission.Public;
             house.BroadcastPacket(new SCHouseDemolishedPacket(house.TlId), false);
 
-            ownerChar?.SendPacket(new SCMyHouseRemovedPacket(house.TlId));
+            ownerChar?.SendPacket(new SCHouseRemovedPacket(house.TlId));
             // Make killable
             UpdateHouseFaction(house, FactionsEnum.Monstrosity);
 
@@ -789,7 +789,7 @@ public class HousingManager : Singleton<HousingManager>
     /// <param name="hostileTaxRate"></param>
     /// <param name="oneWeekTaxCount"></param>
     /// <returns></returns>
-    public bool CalculateBuildingTaxInfo(uint AccountId, HousingTemplate newHouseTemplate, bool buildingNewHouse, out int totalTaxToPay, out int heavyHouseCount, out int normalHouseCount, out int hostileTaxRate, out int oneWeekTaxCount)
+    public bool CalculateBuildingTaxInfo(ulong AccountId, HousingTemplate newHouseTemplate, bool buildingNewHouse, out int totalTaxToPay, out int heavyHouseCount, out int normalHouseCount, out int hostileTaxRate, out int oneWeekTaxCount)
     {
         totalTaxToPay = 0;
         heavyHouseCount = 0;
@@ -1480,10 +1480,10 @@ public class HousingManager : Singleton<HousingManager>
 
         SetForSaleMarkers(house, false);
 
-        character.SendPacket(new SCMyHousePacket(house));
+        character.SendPacket(new SCHousePacket(house));
         var oldOwner = WorldManager.Instance.GetCharacterById(previousOwner);
         if ((oldOwner != null) && (oldOwner.IsOnline))
-            oldOwner.SendPacket(new SCMyHouseRemovedPacket(house.TlId));
+            oldOwner.SendPacket(new SCHouseRemovedPacket(house.TlId));
 
         UpdateFurnitureOwner(house, character.Id);
 

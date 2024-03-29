@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Network.Game;
+﻿using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// </summary>
 public class SCICSCheckTimePacket : GamePacket
 {
-    public SCICSCheckTimePacket() : base(SCOffsets.SCICSCheckTimePacket, 1)
+    public SCICSCheckTimePacket() : base(SCOffsets.SCICSCheckTimePacket, 5)
     {
     }
 }

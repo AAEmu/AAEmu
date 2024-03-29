@@ -66,6 +66,6 @@ public class RestoreManaEffect : EffectTemplate
         trg.BroadcastPacket(new SCUnitHealedPacket(castObj, casterObj, trg.ObjId, HealType.Mana, HealHitType.HealHit, value), true);
         trg.Mp += value;
         trg.Mp = Math.Min(trg.Mp, trg.MaxMp);
-        trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);
+        trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp, trg.HighAbilityRsc), true);
     }
 }

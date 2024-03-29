@@ -9,7 +9,7 @@ public class SCPlotChannelingStoppedPacket : GamePacket
     private readonly uint _duration;
     private readonly byte _lastEvent;
 
-    public SCPlotChannelingStoppedPacket(ushort tl, uint duration, byte lastEvent) : base(SCOffsets.SCPlotChannelingStoppedPacket, 1)
+    public SCPlotChannelingStoppedPacket(ushort tl, uint duration, byte lastEvent) : base(SCOffsets.SCPlotChannelingStoppedPacket, 5)
     {
         _tl = tl;
         _duration = duration;

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -14,7 +14,7 @@ public class SCUnitExpeditionChangedPacket : GamePacket
     private readonly bool _expel;
 
     public SCUnitExpeditionChangedPacket(uint unitId, uint characterId, string kicker, string unitName, uint id, uint expeditionId, bool expel)
-        : base(SCOffsets.SCUnitExpeditionChangedPacket, 1)
+        : base(SCOffsets.SCUnitExpeditionChangedPacket, 5)
     {
         _unitId = unitId;
         _characterId = characterId;

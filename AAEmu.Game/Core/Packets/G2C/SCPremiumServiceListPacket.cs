@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.CashShop;
 
@@ -11,7 +11,7 @@ public class SCPremiumServiceListPacket : GamePacket
     private readonly PremiumDetail _detail;
     private readonly int _exchangeRatio;
 
-    public SCPremiumServiceListPacket(bool isEnd, byte size, PremiumDetail detail, int exchangeRatio) : base(SCOffsets.SCPremiumServiceListPacket, 1)
+    public SCPremiumServiceListPacket(bool isEnd, byte size, PremiumDetail detail, int exchangeRatio) : base(SCOffsets.SCPremiumServiceListPacket, 5)
     {
         _isEnd = isEnd;
         _size = size;

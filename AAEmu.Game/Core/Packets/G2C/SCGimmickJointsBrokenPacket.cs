@@ -10,7 +10,7 @@ public class SCGimmickJointsBrokenPacket : GamePacket
     private readonly int _jointId;
     private readonly int _epicentr;
 
-    public SCGimmickJointsBrokenPacket(Gimmick[] gimmick) : base(SCOffsets.SCGimmickJointsBrokenPacket, 1)
+    public SCGimmickJointsBrokenPacket(Gimmick[] gimmick) : base(SCOffsets.SCGimmickJointsBrokenPacket, 5)
     {
         _gimmick = gimmick;
         _jointId = 0;

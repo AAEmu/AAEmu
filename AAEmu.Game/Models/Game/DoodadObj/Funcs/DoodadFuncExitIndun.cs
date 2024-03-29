@@ -3,15 +3,15 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
-{
-    public class DoodadFuncExitIndun : DoodadFuncTemplate
-    {
-        // doodad_funcs
-        public uint ReturnPointId { get; set; }
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
 
-        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
-        {
+public class DoodadFuncExitIndun : DoodadFuncTemplate
+{
+    // doodad_funcs
+    public uint ReturnPointId { get; set; }
+
+    public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
+    {
             Logger.Info("DoodadFuncExitIndun, ReturnPointId: {0}", ReturnPointId);
 
             if (caster is Character character)
@@ -32,5 +32,4 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 }
             }
         }
-    }
 }

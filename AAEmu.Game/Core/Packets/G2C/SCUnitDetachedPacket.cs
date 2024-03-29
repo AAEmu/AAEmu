@@ -9,7 +9,7 @@ public class SCUnitDetachedPacket : GamePacket
     private readonly uint _childUnitId;
     private readonly AttachUnitReason _reason;
 
-    public SCUnitDetachedPacket(uint objId, AttachUnitReason reason) : base(SCOffsets.SCUnitDetachedPacket, 1)
+    public SCUnitDetachedPacket(uint objId, AttachUnitReason reason) : base(SCOffsets.SCUnitDetachedPacket, 5)
     {
         _childUnitId = objId;
         _reason = reason;

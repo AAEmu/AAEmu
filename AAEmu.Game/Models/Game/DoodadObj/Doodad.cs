@@ -73,7 +73,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj;
 public class Doodad : BaseUnit
 {
     private float _scale;
-
+    public byte Flag { get; set; }
     private int _data;
     private uint _funcGroupId;
 
@@ -570,11 +570,16 @@ public class Doodad : BaseUnit
     public PacketStream Write(PacketStream stream)
     {
         stream.WriteBc(ObjId); //The object # in the list
-        stream.Write(TemplateId); //The template id needed for that object, the client then uses the template configurations, not the server
+        // TemplateId - The template id needed for that object, the client then uses the template configurations, not the server
+        // CurrentPhaseId / FuncGroupId - doodad_func_group_id
+        // QuestGlow - When this is higher than 0 it shows a blue orb over the doodad
+        stream.WritePisc(TemplateId, FuncGroupId, 0, QuestGlow);
+
+        stream.Write(Flag);
         stream.WriteBc(OwnerObjId); //The creator of the object
         stream.WriteBc(ParentObjId); //Things like boats or cars,
         stream.Write((byte)AttachPoint); // attachPoint, relative to the parentObj (Door or window on a house, seats on carriage, etc.)
-        if ((AttachPoint > 0) || (ParentObjId > 0))
+        if (AttachPoint > 0 || ParentObjId > 0)
         {
             stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y, Transform.Local.Position.Z);
             var (roll, pitch, yaw) = Transform.Local.ToRollPitchYawShorts();
@@ -592,17 +597,13 @@ public class Doodad : BaseUnit
         }
 
         stream.Write(Scale); //The size of the object
-        stream.Write(false); // hasLootItem
-        stream.Write(FuncGroupId); // doodad_func_group_id
-        stream.Write(OwnerId); // characterId (Database relative)
-        stream.Write(UccId);
-        stream.Write(ItemTemplateId);
-        stream.Write(Type2); //??type2
-        stream.Write(TimeLeft); // growing
-        stream.Write(PlantTime); //Time stamp of when it was planted
-        stream.Write(QuestGlow); //When this is higher than 0 it shows a blue orb over the doodad
-        stream.Write(0); // family TODO
-        stream.Write(PuzzleGroup); // puzzleGroup /for instances maybe?
+        stream.Write(OwnerId);         // characterId
+        stream.Write(UccId);           // type(id)
+        stream.Write(ItemTemplateId);  // type(id)
+        stream.Write(TimeLeft);        // growing
+        stream.Write(PlantTime);       // plantTime
+        stream.Write(0);               // family
+        stream.Write(PuzzleGroup);     // puzzleGroup
         stream.Write((byte)OwnerType); // ownerType
         stream.Write(OwnerDbId); // dbHouseId
         stream.Write(Data); // data

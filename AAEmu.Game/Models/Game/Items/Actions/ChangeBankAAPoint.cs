@@ -15,7 +15,7 @@ public class ChangeBankAAPoint : ItemTask
     public override PacketStream Write(PacketStream stream)
     {
         base.Write(stream);
-        stream.Write(_amount);
+        stream.Write(_amount); // amount
         return stream;
     }
 }

@@ -362,7 +362,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             template.RestartOnFail = reader.GetBoolean("restart_on_fail", true);
             template.ChapterIdx = reader.GetUInt32("chapter_idx", 0);
             template.QuestIdx = reader.GetUInt32("quest_idx", 0);
-            template.MilestoneId = reader.GetUInt32("milestone_id", 0);
+            //template.MilestoneId = reader.GetUInt32("milestone_id", 0); // there is no such field in the database for version 3.0.3.0
             template.LetItDone = reader.GetBoolean("let_it_done", true);
             template.DetailId = (QuestDetail)reader.GetUInt32("detail_id");
             template.ZoneId = reader.GetUInt32("zone_id");

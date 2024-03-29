@@ -11,7 +11,7 @@ public class SCTelescopeUnitsPacket : GamePacket
     private readonly bool _last;
     private readonly Slave[] _slaves;
 
-    public SCTelescopeUnitsPacket(bool last, Slave[] slaves) : base(SCOffsets.SCTelescopeUnitsPacket, 1)
+    public SCTelescopeUnitsPacket(bool last, Slave[] slaves) : base(SCOffsets.SCTelescopeUnitsPacket, 5)
     {
         _last = last;
         _slaves = slaves;

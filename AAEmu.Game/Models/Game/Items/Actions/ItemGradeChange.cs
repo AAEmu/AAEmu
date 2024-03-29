@@ -17,10 +17,10 @@ public class ItemGradeChange : ItemTask
     public override PacketStream Write(PacketStream stream)
     {
         base.Write(stream);
-        stream.Write((byte)_item.SlotType);
-        stream.Write((byte)_item.Slot);
-        stream.Write(_item.Id);
-        stream.Write(_grade);
+        stream.Write((byte)_item.SlotType); // type
+        stream.Write((byte)_item.Slot);     // index
+        stream.Write(_item.Id);             // itemId
+        stream.Write(_grade);               // grade
         return stream;
     }
 }

@@ -8,7 +8,7 @@ public class SCUnitNameChangedPacket : GamePacket
     private readonly uint _objId;
     private readonly string _name;
 
-    public SCUnitNameChangedPacket(uint objId, string name) : base(SCOffsets.SCUnitNameChangedPacket, 1)
+    public SCUnitNameChangedPacket(uint objId, string name) : base(SCOffsets.SCUnitNameChangedPacket, 5)
     {
         _objId = objId;
         _name = name;

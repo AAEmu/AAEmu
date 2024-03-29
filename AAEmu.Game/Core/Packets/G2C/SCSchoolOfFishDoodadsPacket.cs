@@ -11,7 +11,7 @@ public class SCSchoolOfFishDoodadsPacket : GamePacket
     private readonly bool _last;
     private readonly Doodad[] _transfers;
 
-    public SCSchoolOfFishDoodadsPacket(bool last, Doodad[] transfers) : base(SCOffsets.SCSchoolOfFishDoodadsPacket, 1)
+    public SCSchoolOfFishDoodadsPacket(bool last, Doodad[] transfers) : base(SCOffsets.SCSchoolOfFishDoodadsPacket, 5)
     {
         _last = last;
         _transfers = transfers;

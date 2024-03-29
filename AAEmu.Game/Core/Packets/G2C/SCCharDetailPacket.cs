@@ -11,7 +11,7 @@ public class SCCharDetailPacket : GamePacket
     private readonly Character _character;
     private readonly bool _success;
 
-    public SCCharDetailPacket(Character character, bool success) : base(SCOffsets.SCCharDetailPacket, 1)
+    public SCCharDetailPacket(Character character, bool success) : base(SCOffsets.SCCharDetailPacket, 5)
     {
         _character = character;
         _success = success;
@@ -33,14 +33,7 @@ public class SCCharDetailPacket : GamePacket
         stream.Write(_character.Transform.ZoneId);
         stream.Write(DateTime.UtcNow); // TODO: lastWorldLeaveTime
 
-        var items = _character.Inventory.Equipment.GetSlottedItemsList();
-        foreach (var item in items)
-        {
-            if (item == null)
-                stream.Write(0);
-            else
-                stream.Write(item);
-        }
+        _character.Inventory.WriteInventoryEquip(stream, _character);
 
         stream.Write(_success);
         return stream;

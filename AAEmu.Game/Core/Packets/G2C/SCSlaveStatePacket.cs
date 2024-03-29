@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -14,7 +14,7 @@ public class SCSlaveStatePacket : GamePacket
     private readonly uint _dbId;
 
     public SCSlaveStatePacket(uint objId, ushort tlId, string creatorName, uint ownerId, uint dbId) :
-        base(SCOffsets.SCSlaveStatePacket, 1)
+        base(SCOffsets.SCSlaveStatusPacket, 5)
     {
         _objId = objId;
         _tlId = tlId;

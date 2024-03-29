@@ -8,7 +8,7 @@ public class SCAggroTargetChangedPacket : GamePacket
     private readonly uint _npcId;
     private readonly uint _targetId;
 
-    public SCAggroTargetChangedPacket(uint npcId, uint targetId) : base(SCOffsets.SCAggroTargetChanged, 1)
+    public SCAggroTargetChangedPacket(uint npcId, uint targetId) : base(SCOffsets.SCAggroTargetChangedPacket, 5)
     {
         _npcId = npcId;
         _targetId = targetId;

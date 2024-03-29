@@ -8,7 +8,7 @@ public class SCFriendStatusChangedPacket : GamePacket
 {
     private readonly Friend _friend;
 
-    public SCFriendStatusChangedPacket(Friend friend) : base(SCOffsets.SCFriendStatusChangedPacket, 1)
+    public SCFriendStatusChangedPacket(Friend friend) : base(SCOffsets.SCFriendStatusChangedPacket, 5)
     {
         _friend = friend;
     }

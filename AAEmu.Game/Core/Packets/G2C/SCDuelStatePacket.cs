@@ -8,7 +8,7 @@ public class SCDuelStatePacket : GamePacket
     private readonly uint _challengerObjId;
     private readonly uint _flagObjId;
 
-    public SCDuelStatePacket(uint challengerObjId, uint flagObjId) : base(SCOffsets.SCDuelStatePacket, 1)
+    public SCDuelStatePacket(uint challengerObjId, uint flagObjId) : base(SCOffsets.SCDuelStatePacket, 5)
     {
         _challengerObjId = challengerObjId;
         _flagObjId = flagObjId;

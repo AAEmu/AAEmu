@@ -10,7 +10,8 @@ public abstract class ItemTask : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((byte)_type);
+        stream.Write((byte)_type);  // tasks
+        stream.Write((byte)_type); // tLogt
         return stream;
     }
 
@@ -45,5 +46,6 @@ public abstract class ItemTask : PacketMarshaler
         stream.Write(item.WorldId);      // worldId
         stream.Write(item.UnsecureTime); // unsecureDateTime
         stream.Write(item.UnpackTime);   // unpackDateTime
+        stream.Write(item.ChargeUseSkillTime); // chargeUseSkillTime add in 3+
     }
 }

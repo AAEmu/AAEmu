@@ -7,7 +7,7 @@ public class SCSetBreathPacket : GamePacket
 {
     private uint _timeLeft;
 
-    public SCSetBreathPacket(uint timeLeft) : base(SCOffsets.SCSetBreathPacket, 1)
+    public SCSetBreathPacket(uint timeLeft) : base(SCOffsets.SCSetBreathPacket, 5)
     {
         _timeLeft = timeLeft;
     }

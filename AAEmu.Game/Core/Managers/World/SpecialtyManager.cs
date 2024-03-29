@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
@@ -11,6 +12,7 @@ using AAEmu.Game.Models.Game.Trading;
 using AAEmu.Game.Models.Tasks.Specialty;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
@@ -99,12 +101,16 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
                     while (reader.Read())
                     {
                         var template = new SpecialtyNpc();
-                        template.Id = reader.GetUInt32("id");
-                        template.Name = reader.GetString("name");
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                        //template.Name = reader.GetString("name"); // there is no such field in the database for version 3.0.3.0
                         template.NpcId = reader.GetUInt32("npc_id");
                         template.SpecialtyBundleId = reader.GetUInt32("specialty_bundle_id");
 
-                        _specialtyNpc.Add(template.NpcId, template);
+                        // TODO есть повторы
+                        // NpcId    SpecialtyBundleId
+                        // 15086	25
+                        // 15086	8000009
+                        _specialtyNpc.TryAdd(template.NpcId, template);
                     }
                 }
             }
@@ -305,7 +311,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
             _soldPackAmountInTick[backpack.TemplateId].Add(player.Transform.ZoneId, 0);
 
         _soldPackAmountInTick[backpack.TemplateId][player.Transform.ZoneId] += 1;
-    
+
         return basePrice;
     }
 

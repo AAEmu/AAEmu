@@ -17,6 +17,11 @@ public class DoodadFuncFishSchool : DoodadPhaseFuncTemplate
         Logger.Debug($"DoodadFuncFishSchool NpcSpawnerId={NpcSpawnerId}");
 
         var npcSpawnerNpc = NpcGameData.Instance.GetNpcSpawnerNpc(NpcSpawnerId);
+        if (npcSpawnerNpc == null)
+        {
+            Logger.Warn($"DoodadFuncFishSchool: Npc for SpawnerId={NpcSpawnerId} doesn't exist");
+            return false;
+        }
         var unitId = npcSpawnerNpc.MemberId;
 
         var spawner = SpawnManager.Instance.GetNpcSpawner(NpcSpawnerId, (byte)caster.Transform.WorldId);

@@ -11,7 +11,7 @@ public class SCSlaveEquipmentChangedPacket : GamePacket
     private SlaveEquipment _slaveEquipment;
     private bool _success;
 
-    public SCSlaveEquipmentChangedPacket(SlaveEquipment slaveEquipment, bool success) : base(SCOffsets.SCSlaveEquipmentChangedPacket, 1)
+    public SCSlaveEquipmentChangedPacket(SlaveEquipment slaveEquipment, bool success) : base(SCOffsets.SCSlaveEquipmentChangedPacket, 5)
     {
         _slaveEquipment = slaveEquipment;
         _success = success;

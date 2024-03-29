@@ -12,7 +12,7 @@ public class SCGradeEnchantBroadcastPacket : GamePacket
     private readonly byte _type1;
     private readonly byte _type2;
 
-    public SCGradeEnchantBroadcastPacket(string charName, byte result, Item item, byte type1, byte type2) : base(SCOffsets.SCGradeEnchantBroadcastPacket, 1)
+    public SCGradeEnchantBroadcastPacket(string charName, byte result, Item item, byte type1, byte type2) : base(SCOffsets.SCGradeEnchantBroadcastPacket, 5)
     {
         _charName = charName;
         _result = result;

@@ -12,7 +12,7 @@ public class LGPlayerEnterPacket : LoginPacket
 
     public override void Read(PacketStream stream)
     {
-        var accountId = stream.ReadUInt32();
+        var accountId = stream.ReadUInt64();
         var connectionId = stream.ReadUInt32();
         EnterWorldManager.Instance.AddAccount(accountId, connectionId);
     }

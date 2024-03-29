@@ -205,7 +205,6 @@ public class ZoneManager : Singleton<ZoneManager>
         }
     }
 
-
     public static Vector2 GetZoneOriginCell(uint zoneId)
     {
         var world = WorldManager.Instance.GetWorldByZone(zoneId);

@@ -15,7 +15,7 @@ public class AAPointUpdate : ItemTask
     public override PacketStream Write(PacketStream stream)
     {
         base.Write(stream);
-        stream.Write(_amount);
+        stream.Write(_amount); // amount
         return stream;
     }
 }

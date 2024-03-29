@@ -8,7 +8,7 @@ public class SCCannotStartTradePacket : GamePacket
     private readonly uint _objId;
     private readonly int _reason;
 
-    public SCCannotStartTradePacket(uint objId, int reason) : base(SCOffsets.SCCannotStartTradePacket, 1)
+    public SCCannotStartTradePacket(uint objId, int reason) : base(SCOffsets.SCCannotStartTradePacket, 5)
     {
         _objId = objId;
         _reason = reason;

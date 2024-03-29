@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using AAEmu.Commons.IO;
+using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Models;
 using AAEmu.Game.Services;
@@ -37,8 +38,10 @@ public static class Program
 
     public static async Task<int> Main(string[] args)
     {
-        _launchArgs = args;
+        CliUtil.WriteHeader("Game & Stream", ConsoleColor.DarkGreen);
+        CliUtil.LoadingTitle();
         Initialization();
+        _launchArgs = args;
 
         if (args.Length > 0 && args[0] == "compiler-check")
         {

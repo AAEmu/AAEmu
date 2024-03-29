@@ -220,13 +220,12 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncAttachment
-                        {
-                            Id = reader.GetUInt32("id"),
-                            AttachPointId = (AttachPointKind)reader.GetByte("attach_point_id"),
-                            Space = reader.GetInt32("space"),
-                            BondKindId = (BondKind)reader.GetByte("bond_kind_id")
-                        };
+                        var func = new DoodadFuncAttachment();
+                        func.Id = reader.GetUInt32("id");
+                        func.AttachPointId = (AttachPointKind)reader.GetByte("attach_point_id");
+                        func.Space = reader.GetInt32("space");
+                        func.BondKindId = (BondKind)reader.GetByte("bond_kind_id");
+                        func.AnimActionId = reader.GetUInt32("anim_action_id"); // (используется в пакете SCBondDoodadPacket) поле добавлено в версии 3+
                         _funcTemplates["DoodadFuncAttachment"].Add(func.Id, func);
                     }
                 }
@@ -341,11 +340,9 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncBuyFishModel
-                        {
-                            Id = reader.GetUInt32("id"),
-                            Name = reader.GetString("name")
-                        };
+                        var func = new DoodadFuncBuyFishModel();
+                        func.Id = reader.GetUInt32("id");
+                        //func.Name = reader.GetString("name"); // there is no such field in the database for version 3.0.3.0
                         _phaseFuncTemplates["DoodadFuncBuyFishModel"].Add(func.Id, func);
                     }
                 }
@@ -406,7 +403,7 @@ public class DoodadManager : Singleton<DoodadManager>
                 }
             }
 
-            // doodad_func_cleanupLoggeric_links
+            // doodad_func_cleanup_logic_links
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_cleanup_logic_links";
@@ -620,11 +617,9 @@ public class DoodadManager : Singleton<DoodadManager>
                 {
                     while (reader.Read())
                     {
-                        var func = new DoodadFuncConsumeChangerModel
-                        {
-                            Id = reader.GetUInt32("id"),
-                            Name = reader.GetString("name")
-                        };
+                        var func = new DoodadFuncConsumeChangerModel();
+                        func.Id = reader.GetUInt32("id");
+                        //func.Name = reader.GetString("name"); // there is no such field in the database for version 3.0.3.0
                         _phaseFuncTemplates["DoodadFuncConsumeChangerModel"].Add(func.Id, func);
                     }
                 }
@@ -1386,7 +1381,7 @@ public class DoodadManager : Singleton<DoodadManager>
                 }
             }
 
-            // doodad_func_logics
+            // doodad_func_Logics
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_logics";
@@ -2611,7 +2606,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         template.ModelKindId = reader.GetUInt32("model_kind_id");
                         template.UseCreatorFaction = reader.GetBoolean("use_creator_faction", true);
                         template.ForceTodTopPriority = reader.GetBoolean("force_tod_top_priority", true);
-                        template.MilestoneId = reader.GetUInt32("milestone_id", 0);
+                        //template.MilestoneId = reader.GetUInt32("milestone_id", 0); // there is no such field in the database for version 3.0.3.0
                         template.GroupId = reader.GetUInt32("group_id");
                         template.UseTargetDecal = reader.GetBoolean("use_target_decal", true);
                         template.UseTargetSilhouette = reader.GetBoolean("use_target_silhouette", true);
@@ -2819,7 +2814,6 @@ public class DoodadManager : Singleton<DoodadManager>
         var funcs = _phaseFuncTemplates[funcType];
         return funcs.TryGetValue(funcId, out var template) ? template : null;
     }
-
 
     /// <summary>
     /// GetDoodadFuncGroups - Get a group of functions for a given TemplateId

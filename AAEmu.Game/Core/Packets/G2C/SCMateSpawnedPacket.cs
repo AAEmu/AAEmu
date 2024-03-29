@@ -8,7 +8,7 @@ public class SCMateSpawnedPacket : GamePacket
 {
     private readonly Mate _mate;
 
-    public SCMateSpawnedPacket(Mate mate) : base(SCOffsets.SCMateSpawnedPacket, 1)
+    public SCMateSpawnedPacket(Mate mate) : base(SCOffsets.SCMateSpawnedPacket, 5)
     {
         _mate = mate;
     }

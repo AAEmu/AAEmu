@@ -1,29 +1,29 @@
-﻿using System.Collections.Generic;
-using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.Items;
+﻿//using System.Collections.Generic;
+//using AAEmu.Commons.Network;
+//using AAEmu.Game.Core.Network.Game;
+//using AAEmu.Game.Models.Game.Items;
 
-namespace AAEmu.Game.Core.Packets.G2C;
+//namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCLootBagDataPacket : GamePacket
-{
-    private readonly List<Item> _items;
-    private readonly bool _lootAll;
+//public class SCLootBagDataPacket : GamePacket
+//{
+//    private readonly List<Item> _items;
+//    private readonly bool _lootAll;
 
-    public SCLootBagDataPacket(List<Item> items, bool lootAll) : base(SCOffsets.SCLootBagDataPacket, 1)
-    {
-        _items = items;
-        _lootAll = lootAll;
-    }
+//    public SCLootBagDataPacket(List<Item> items, bool lootAll) : base(SCOffsets.SCLootBagDataPacket, 5)
+//    {
+//        _items = items;
+//        _lootAll = lootAll;
+//    }
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write((byte)_items.Count);
+//    public override PacketStream Write(PacketStream stream)
+//    {
+//        stream.Write((byte)_items.Count);
 
-        foreach (var item in _items)
-            item.Write(stream);
+//        foreach (var item in _items)
+//            item.Write(stream);
 
-        stream.Write(_lootAll);
-        return stream;
-    }
-}
+//        stream.Write(_lootAll);
+//        return stream;
+//    }
+//}

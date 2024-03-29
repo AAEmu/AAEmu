@@ -13,7 +13,7 @@ public class SCDuelEndedPacket : GamePacket
     private readonly DuelDetType _det;
 
     public SCDuelEndedPacket(uint challengerId, uint challengedId, uint challengerObjId, uint challengedObjId, DuelDetType det)
-        : base(SCOffsets.SCDuelEndedPacket, 1)
+        : base(SCOffsets.SCDuelEndedPacket, 5)
     {
         _challengerId = challengerId;
         _challengedId = challengedId;

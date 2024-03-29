@@ -7,7 +7,7 @@ public class SCAppellationsPacket : GamePacket
 {
     private readonly (uint id, bool active)[] _appellations;
 
-    public SCAppellationsPacket((uint id, bool active)[] appellations) : base(SCOffsets.SCAppellationsPacket, 1)
+    public SCAppellationsPacket((uint id, bool active)[] appellations) : base(SCOffsets.SCAppellationsPacket, 5)
     {
         _appellations = appellations;
     }

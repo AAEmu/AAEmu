@@ -8,7 +8,7 @@ public class SCLootDiceNotifyPacket : GamePacket
     private readonly string _charName;
     private readonly sbyte _dice;
 
-    public SCLootDiceNotifyPacket(string charName, sbyte dice) : base(SCOffsets.SCLootDiceNotifyPacket, 1)
+    public SCLootDiceNotifyPacket(string charName, sbyte dice) : base(SCOffsets.SCLootDiceNotifyPacket, 5)
     {
         _charName = charName;
         _dice = dice;

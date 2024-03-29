@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 
@@ -12,7 +12,7 @@ public class SCEscapeSlavePacket : GamePacket
     private readonly float _z;
     private readonly float _rot;
 
-    public SCEscapeSlavePacket(uint unitId, float x, float y, float z, float rot) : base(SCOffsets.SCEscapeSlavePacket, 1)
+    public SCEscapeSlavePacket(uint unitId, float x, float y, float z, float rot) : base(SCOffsets.SCEscapeSlavePacket, 5)
     {
         _unitId = unitId;
         _x = x;

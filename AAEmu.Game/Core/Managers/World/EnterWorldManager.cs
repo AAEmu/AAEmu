@@ -22,14 +22,14 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private Dictionary<uint, uint> _accounts;
+    private Dictionary<uint, ulong> _accounts;
 
     protected EnterWorldManager()
     {
-        _accounts = new Dictionary<uint, uint>();
+        _accounts = new Dictionary<uint, ulong>();
     }
 
-    public void AddAccount(uint accountId, uint connectionId)
+    public void AddAccount(ulong accountId, uint connectionId)
     {
         var connection = LoginNetwork.Instance.GetConnection();
         var gsId = AppConfiguration.Instance.Id;
@@ -43,7 +43,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
         }
     }
 
-    public void Login(GameConnection connection, uint accountId, uint token)
+    public void Login(GameConnection connection, ulong accountId, uint token)
     {
         if (_accounts.ContainsKey(token))
         {
@@ -59,7 +59,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
 
                 var port = AppConfiguration.Instance.StreamNetwork.Port;
                 var gm = connection.GetAttribute("gmFlag") != null;
-                connection.SendPacket(new X2EnterWorldResponsePacket(0, gm, connection.Id, port));
+                connection.SendPacket(new X2EnterWorldResponsePacket(0, gm, connection.Id, port, connection));
                 connection.SendPacket(new ChangeStatePacket(0));
             }
             else

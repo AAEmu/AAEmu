@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Packets.G2C;
 using System.Collections.Generic;
+using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
@@ -569,7 +570,7 @@ public class Teleport : ICommand
                         character.SendMessage("Teleporting to |cFFFFFFFFX:" + character.LocalPingPosition.X + " Y:" + character.LocalPingPosition.Y + " Z:" + height + "|r");
                         character.ForceDismount();
                         character.DisabledSetPosition = true;
-                        character.SendPacket(new SCTeleportUnitPacket(0, 0, character.LocalPingPosition.X, character.LocalPingPosition.Y, height, 0));
+                        character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Portal, ErrorMessageType.NoErrorMessage, character.LocalPingPosition.X, character.LocalPingPosition.Y, height, 0));
                     }
                 }
             }
@@ -603,7 +604,7 @@ public class Teleport : ICommand
                         character.SendMessage("Teleporting to |cFFFFFFFF" + item.Info + "|r");
                         character.ForceDismount();
                         character.DisabledSetPosition = true;
-                        character.SendPacket(new SCTeleportUnitPacket(0, 0, item.X, item.Y, item.Z, 0));
+                        character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Portal, ErrorMessageType.NoErrorMessage, item.X, item.Y, item.Z, 0));
 
                         break;
                     }

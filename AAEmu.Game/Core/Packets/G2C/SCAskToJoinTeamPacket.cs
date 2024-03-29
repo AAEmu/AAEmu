@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -10,7 +10,7 @@ public class SCAskToJoinTeamPacket : GamePacket
     private readonly string _senderName;
     private readonly bool _isParty;
 
-    public SCAskToJoinTeamPacket(uint teamId, uint senderId, string senderName, bool isParty) : base(SCOffsets.SCAskToJoinTeamPacket, 1)
+    public SCAskToJoinTeamPacket(uint teamId, uint senderId, string senderName, bool isParty) : base(SCOffsets.SCAskToJoinTeamPacket, 5)
     {
         _teamId = teamId;
         _senderId = senderId;

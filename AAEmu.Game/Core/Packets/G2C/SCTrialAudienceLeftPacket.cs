@@ -8,7 +8,7 @@ public class SCTrialAudienceLeftPacket : GamePacket
     private readonly byte _bc;
     private readonly string _audienceName;
 
-    public SCTrialAudienceLeftPacket(byte bc, string audiencename) : base(SCOffsets.SCTrialAudienceLeftPacket, 1)
+    public SCTrialAudienceLeftPacket(byte bc, string audiencename) : base(SCOffsets.SCTrialAudienceLeftPacket, 5)
     {
         _bc = bc;
         _audienceName = audiencename;

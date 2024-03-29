@@ -8,7 +8,7 @@ public class SCAuctionLowestPricePacket : GamePacket
 {
     private readonly AuctionItem _auctionItem;
 
-    public SCAuctionLowestPricePacket(AuctionItem auctionItem) : base(SCOffsets.SCAuctionLowestPricePacket, 1)
+    public SCAuctionLowestPricePacket(AuctionItem auctionItem) : base(SCOffsets.SCAuctionLowestPricePacket, 5)
     {
         _auctionItem = auctionItem;
     }

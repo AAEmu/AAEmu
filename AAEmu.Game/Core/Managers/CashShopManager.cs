@@ -18,7 +18,7 @@ public class CashShopManager : Singleton<CashShopManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private readonly Dictionary<uint, object> _locks = new();
+    private readonly Dictionary<ulong, object> _locks = new();
     public bool Enabled { get; private set; }
 
     public Dictionary<uint, IcsSku> SKUs { get; set; } = new();
@@ -36,7 +36,7 @@ public class CashShopManager : Singleton<CashShopManager>
         }
     }
 
-    public int GetAccountCredits(uint accountId)
+    public int GetAccountCredits(ulong accountId)
     {
         object accLock;
         lock (_locks)
@@ -84,7 +84,7 @@ public class CashShopManager : Singleton<CashShopManager>
         }
     }
 
-    public bool AddCredits(uint accountId, int creditsAmt)
+    public bool AddCredits(ulong accountId, int creditsAmt)
     {
         object accLock;
         lock (_locks)
@@ -116,7 +116,7 @@ public class CashShopManager : Singleton<CashShopManager>
         }
     }
 
-    public bool RemoveCredits(uint accountId, int credits) => AddCredits(accountId, -credits);
+    public bool RemoveCredits(ulong accountId, int credits) => AddCredits(accountId, -credits);
 
     public void Load()
     {
@@ -302,7 +302,7 @@ public class CashShopManager : Singleton<CashShopManager>
     /// <param name="characterId"></param>
     /// <param name="shopItemId"></param>
     /// <returns>Resulting list of sales</returns>
-    public List<AuditIcsSale> GetSalesForShopItem(uint accountId, uint characterId, uint shopItemId)
+    public List<AuditIcsSale> GetSalesForShopItem(ulong accountId, uint characterId, uint shopItemId)
     {
         var res = new List<AuditIcsSale>();
 
@@ -331,9 +331,9 @@ public class CashShopManager : Singleton<CashShopManager>
             {
                 var entry = new AuditIcsSale();
 
-                entry.BuyerAccount = reader.GetUInt32("buyer_account");
+                entry.BuyerAccount = reader.GetUInt64("buyer_account");
                 entry.BuyerChar = reader.GetUInt32("buyer_char");
-                entry.TargetAccount = reader.GetUInt32("target_account");
+                entry.TargetAccount = reader.GetUInt64("target_account");
                 entry.TargetChar = reader.GetUInt32("target_char");
                 entry.SaleDate = reader.IsDBNull(reader.GetOrdinal("sale_date")) ? DateTime.MinValue : reader.GetDateTime("sale_date");
                 entry.ShopItemId = reader.GetUInt32("shop_item_id");
@@ -348,8 +348,8 @@ public class CashShopManager : Singleton<CashShopManager>
         return res;
     }
 
-    public bool LogSale(uint buyerAccount, uint buyerChar,
-        uint targetAccount, uint targetChar,
+    public bool LogSale(ulong buyerAccount, uint buyerChar,
+        ulong targetAccount, uint targetChar,
         DateTime saleDate,
         uint shopItemId, uint sku,
         uint saleCost, CashShopCurrencyType saleCurrency,

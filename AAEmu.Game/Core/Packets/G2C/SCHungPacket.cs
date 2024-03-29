@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -8,7 +8,7 @@ public class SCHungPacket : GamePacket
     private readonly uint _unitObjId;
     private readonly uint _targetObjId;
 
-    public SCHungPacket(uint unitObjId, uint targetObjId) : base(SCOffsets.SCHungPacket, 1)
+    public SCHungPacket(uint unitObjId, uint targetObjId) : base(SCOffsets.SCHungPacket, 5)
     {
         _unitObjId = unitObjId;
         _targetObjId = targetObjId;

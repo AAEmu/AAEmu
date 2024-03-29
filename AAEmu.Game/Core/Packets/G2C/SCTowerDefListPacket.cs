@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.TowerDefs;
@@ -9,7 +9,7 @@ public class SCTowerDefListPacket : GamePacket
 {
     private List<TowerDefInfo> _towerDefInfoList;
 
-    public SCTowerDefListPacket(List<TowerDefInfo> towerDefInfos) : base(SCOffsets.SCTowerDefListPacket, 1)
+    public SCTowerDefListPacket(List<TowerDefInfo> towerDefInfos) : base(SCOffsets.SCTowerDefListPacket, 5)
     {
         _towerDefInfoList = towerDefInfos;
     }

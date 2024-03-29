@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSChangeDoodadDataPacket : GamePacket
 {
-    public CSChangeDoodadDataPacket() : base(CSOffsets.CSChangeDoodadDataPacket, 1)
+    public CSChangeDoodadDataPacket() : base(CSOffsets.CSChangeDoodadDataPacket, 5)
     {
     }
 

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Units.Movements;
 
@@ -21,6 +21,7 @@ public class SCUnitMovementsPacket : GamePacket // TODO ... SCOneUnitMovementPac
         foreach (var (id, type) in _movements)
         {
             stream.WriteBc(id);
+            stream.Write((byte)type.Type);
             stream.Write(type);
         }
 

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSRepairSingleEquipmentPacket : GamePacket
 {
-    public CSRepairSingleEquipmentPacket() : base(CSOffsets.CSRepairSingleEquipmentPacket, 1)
+    public CSRepairSingleEquipmentPacket() : base(CSOffsets.CSRepairSingleEquipmentPacket, 5)
     {
     }
 

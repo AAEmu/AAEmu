@@ -10,7 +10,7 @@ public class SCUserNotesLoadedPacket : GamePacket
     private readonly uint _songId;
     private readonly SongData _song;
 
-    public SCUserNotesLoadedPacket(uint songId) : base(SCOffsets.SCUserNoteLoadedPacket, 1)
+    public SCUserNotesLoadedPacket(uint songId) : base(SCOffsets.SCUserNotesLoadedPacket, 5)
     {
         _songId = songId;
         _song = MusicManager.Instance.GetSongById(_songId);

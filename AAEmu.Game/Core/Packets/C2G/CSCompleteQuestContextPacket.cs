@@ -11,7 +11,7 @@ public class CSCompleteQuestContextPacket : GamePacket
     private uint _doodadObjId;
     private int _selected;
 
-    public CSCompleteQuestContextPacket() : base(CSOffsets.CSCompleteQuestContextPacket, 1)
+    public CSCompleteQuestContextPacket() : base(CSOffsets.CSCompleteQuestContextPacket, 5)
     {
     }
 

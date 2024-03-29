@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.TowerDefs;
 
@@ -10,7 +10,7 @@ public class SCTowerDefWaveStartPacket : GamePacket
     private uint _eventZoneId;
     private uint _step;
 
-    public SCTowerDefWaveStartPacket(TowerDefKey key, uint eventZoneId, uint step) : base(SCOffsets.SCTowerDefWaveStartPacket, 1)
+    public SCTowerDefWaveStartPacket(TowerDefKey key, uint eventZoneId, uint step) : base(SCOffsets.SCTowerDefWaveStartPacket, 5)
     {
         _key = key;
         _eventZoneId = eventZoneId;

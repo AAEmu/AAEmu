@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -9,7 +9,7 @@ public class SCCharacterRenamedPacket : GamePacket
     private readonly string _oldName;
     private readonly string _newName;
 
-    public SCCharacterRenamedPacket(uint characterId, string oldName, string newName) : base(SCOffsets.SCCharacterRenamedPacket, 1)
+    public SCCharacterRenamedPacket(uint characterId, string oldName, string newName) : base(SCOffsets.SCCharacterRenamedPacket, 5)
     {
         _characterId = characterId;
         _oldName = oldName;

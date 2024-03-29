@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -10,7 +10,7 @@ public class SCICSBuyResultPacket : GamePacket
     private readonly string _receiverName;
     private readonly int _chargeAaPoint;
 
-    public SCICSBuyResultPacket(bool success, byte buyMode, string receiverName, int chargeAaPoint) : base(SCOffsets.SCICSBuyResultPacket, 1)
+    public SCICSBuyResultPacket(bool success, byte buyMode, string receiverName, int chargeAaPoint) : base(SCOffsets.SCICSBuyResultPacket, 5)
     {
         _success = success;
         _buyMode = buyMode;

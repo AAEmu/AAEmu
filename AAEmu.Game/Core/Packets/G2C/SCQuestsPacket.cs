@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Quests;
 
@@ -8,7 +8,7 @@ public class SCQuestsPacket : GamePacket
 {
     private readonly Quest[] _quests;
 
-    public SCQuestsPacket(Quest[] quests) : base(SCOffsets.SCQuestsPacket, 1)
+    public SCQuestsPacket(Quest[] quests) : base(SCOffsets.SCQuestsPacket, 5)
     {
         _quests = quests;
     }

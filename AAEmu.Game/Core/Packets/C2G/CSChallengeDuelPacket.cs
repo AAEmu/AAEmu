@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSChallengeDuelPacket : GamePacket
 {
-    public CSChallengeDuelPacket() : base(CSOffsets.CSChallengeDuelPacket, 1)
+    public CSChallengeDuelPacket() : base(CSOffsets.CSChallengeDuelPacket, 5)
     {
     }
 

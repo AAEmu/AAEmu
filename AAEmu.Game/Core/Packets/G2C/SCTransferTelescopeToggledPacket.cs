@@ -8,7 +8,7 @@ public class SCTransferTelescopeToggledPacket : GamePacket
     private readonly bool _on;
     private readonly float _range;
 
-    public SCTransferTelescopeToggledPacket(bool on, float range) : base(SCOffsets.SCTransferTelescopeToggledPacket, 1)
+    public SCTransferTelescopeToggledPacket(bool on, float range) : base(SCOffsets.SCTransferTelescopeToggledPacket, 5)
     {
         _on = on;
         _range = range;

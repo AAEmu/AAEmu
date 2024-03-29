@@ -7,7 +7,7 @@ public class SCTrialCancledPacket : GamePacket
 {
     private readonly uint _trialId;
 
-    public SCTrialCancledPacket(uint trialId) : base(SCOffsets.SCTrialCancledPacket, 1)
+    public SCTrialCancledPacket(uint trialId) : base(SCOffsets.SCTrialCancledPacket, 5)
     {
         _trialId = trialId;
     }

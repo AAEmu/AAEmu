@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
 
@@ -12,7 +12,7 @@ public class SCTeamAckRiskyActionPacket : GamePacket
     private readonly int _w;
     private readonly short _errorMessage;
 
-    public SCTeamAckRiskyActionPacket(uint teamId, uint id, RiskyAction ra, int w, short errorMessage) : base(SCOffsets.SCTeamAckRiskyActionPacket, 1)
+    public SCTeamAckRiskyActionPacket(uint teamId, uint id, RiskyAction ra, int w, short errorMessage) : base(SCOffsets.SCTeamAckRiskyActionPacket, 5)
     {
         _teamId = teamId;
         _id = id;

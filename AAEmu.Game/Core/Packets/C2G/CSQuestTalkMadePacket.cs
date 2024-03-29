@@ -11,7 +11,7 @@ public class CSQuestTalkMadePacket : GamePacket
     private uint _questCompId;
     private uint _questActId;
 
-    public CSQuestTalkMadePacket() : base(CSOffsets.CSQuestTalkMadePacket, 1)
+    public CSQuestTalkMadePacket() : base(CSOffsets.CSQuestTalkMadePacket, 5)
     {
     }
 

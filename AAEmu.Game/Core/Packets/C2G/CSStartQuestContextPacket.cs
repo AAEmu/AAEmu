@@ -11,7 +11,7 @@ public class CSStartQuestContextPacket : GamePacket
     private uint _npcObjId;
     private uint _doodadObjId;
     private uint _sphereId;
-    public CSStartQuestContextPacket() : base(CSOffsets.CSStartQuestContextPacket, 1)
+    public CSStartQuestContextPacket() : base(CSOffsets.CSStartQuestContextPacket, 5)
     {
     }
 

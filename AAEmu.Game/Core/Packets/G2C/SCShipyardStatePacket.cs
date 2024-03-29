@@ -9,7 +9,7 @@ public class SCShipyardStatePacket : GamePacket
     private readonly ShipyardData _shipyardData;
     private readonly int _step;
 
-    public SCShipyardStatePacket(ShipyardData shipyardData) : base(SCOffsets.SCShipyardStatePacket, 1)
+    public SCShipyardStatePacket(ShipyardData shipyardData) : base(SCOffsets.SCShipyardStatePacket, 5)
     {
         _shipyardData = shipyardData;
         _step = shipyardData.Step;

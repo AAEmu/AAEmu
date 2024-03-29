@@ -10,7 +10,7 @@ public class SCDeleteFriendPacket : GamePacket
     private readonly string _friendName;
     private readonly short _errorMessage;
 
-    public SCDeleteFriendPacket(uint characterId, bool success, string friendName, short errorMessage) : base(SCOffsets.SCDeleteFriendPacket, 1)
+    public SCDeleteFriendPacket(uint characterId, bool success, string friendName, short errorMessage) : base(SCOffsets.SCDeleteFriendPacket, 5)
     {
         _characterId = characterId;
         _success = success;

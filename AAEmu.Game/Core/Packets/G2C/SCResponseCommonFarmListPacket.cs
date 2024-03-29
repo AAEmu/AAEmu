@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -7,7 +7,7 @@ public class SCResponseCommonFarmListPacket : GamePacket
 {
     private readonly int _maxCount;
 
-    public SCResponseCommonFarmListPacket(int maxCount) : base(SCOffsets.SCResponseCommonFarmListPacket, 1)
+    public SCResponseCommonFarmListPacket(int maxCount) : base(SCOffsets.SCResponseCommonFarmListPacket, 5)
     {
         _maxCount = maxCount;
     }

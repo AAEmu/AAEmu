@@ -13,7 +13,7 @@ public class SkillTemplate
     public byte AbilityId { get; set; }
     public int ManaCost { get; set; }
     public int TimingId { get; set; }
-    public int CooldownTime { get; set; }
+    public uint CooldownTime { get; set; }
     public int CastingTime { get; set; }
     public bool IgnoreGlobalCooldown { get; set; }
     public int EffectDelay { get; set; }

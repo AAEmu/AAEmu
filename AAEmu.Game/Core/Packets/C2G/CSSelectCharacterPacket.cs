@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSSelectCharacterPacket : GamePacket
 {
-    public CSSelectCharacterPacket() : base(CSOffsets.CSSelectCharacterPacket, 1)
+    public CSSelectCharacterPacket() : base(CSOffsets.CSSelectCharacterPacket, 5)
     {
     }
 
@@ -26,10 +26,10 @@ public class CSSelectCharacterPacket : GamePacket
         var gm = stream.ReadBoolean();
         stream.ReadByte();
 
-        if (Connection.Characters.TryGetValue(characterId, out var connectionCharacter))
+        if (Connection.Characters.TryGetValue(characterId, out var character))
         {
             // Despawn any old pets this character might have even before loading it
-            var character = Connection.Characters[characterId];
+            //var character = Connection.Characters[characterId];
             character.Load();
             character.Connection = Connection;
             var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id);
@@ -49,7 +49,7 @@ public class CSSelectCharacterPacket : GamePacket
             var mySlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
             if (mySlave != null)
             {
-                Logger.Warn($"{Connection.ActiveChar.Name}: Прерываем задачу отключения транспорта");
+                Logger.Warn($"{Connection.ActiveChar.Name}: Interrupting the transport shutdown task");
                 mySlave.CancelTokenSource.Cancel();
             }
 
@@ -73,7 +73,7 @@ public class CSSelectCharacterPacket : GamePacket
 
             foreach (var house in houses)
             {
-                Connection.SendPacket(new SCMyHousePacket(house));
+                Connection.SendPacket(new SCHousePacket(house));
             }
 
             foreach (var conflict in ZoneManager.Instance.GetConflicts())

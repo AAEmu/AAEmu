@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Faction;
 
@@ -13,7 +13,7 @@ public class SCFactionRelationListPacket : GamePacket
         _relations = System.Array.Empty<FactionRelation>();
     }
 
-    public SCFactionRelationListPacket(FactionRelation[] relations) : base(SCOffsets.SCFactionRelationListPacket, 1)
+    public SCFactionRelationListPacket(FactionRelation[] relations) : base(SCOffsets.SCFactionRelationListPacket, 5)
     {
         _relations = relations;
     }

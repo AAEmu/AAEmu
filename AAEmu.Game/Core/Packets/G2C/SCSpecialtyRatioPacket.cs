@@ -7,7 +7,7 @@ public class SCSpecialtyRatioPacket : GamePacket
 {
     private readonly int _ratio;
 
-    public SCSpecialtyRatioPacket(int ratio) : base(SCOffsets.SCSpecialtyRatioPacket, 1)
+    public SCSpecialtyRatioPacket(int ratio) : base(SCOffsets.SCSpecialtyRatioPacket, 5)
     {
         _ratio = ratio;
     }

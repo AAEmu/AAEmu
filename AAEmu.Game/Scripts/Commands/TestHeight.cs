@@ -6,6 +6,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using System;
+using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
@@ -44,7 +45,7 @@ public class TestHeight : ICommand
         if ((args.Length > firstarg) && (args[firstarg] == "testpos"))
         {
             targetPlayer.DisabledSetPosition = true;
-            targetPlayer.SendPacket(new SCTeleportUnitPacket(0, 0, TargetX, TargetY, TargetZ, 0f));
+            targetPlayer.SendPacket(new SCTeleportUnitPacket(TeleportReason.Portal, ErrorMessageType.NoErrorMessage, TargetX, TargetY, TargetZ, 0f));
             targetPlayer.SendMessage($"[Move] |cFFFFFFFF{targetPlayer.Name}|r moved to X: {TargetX}, Y: {TargetY}, Z: {TargetZ}");
         }
         else

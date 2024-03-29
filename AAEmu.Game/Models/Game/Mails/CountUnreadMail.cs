@@ -4,41 +4,57 @@ namespace AAEmu.Game.Models.Game.Mails;
 
 public class CountUnreadMail : PacketMarshaler
 {
-    public int Sent { get; set; }
-    public int Received { get; protected set; }
-    public int MiaReceived { get; protected set; }
-    public int CommercialReceived { get; protected set; }
+    public int TotalSent { get; set; }
+    public int TotalReceived { get; set; }
+    public int TotalMiaReceived { get; set; }
+    public int TotalCommercialReceived { get; set; }
+    public int UnreadSent { get; set; }
+    public int UnreadReceived { get; set; }
+    public int UnreadMiaReceived { get; set; }
+    public int UnreadCommercialReceived { get; set; }
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(Sent);
-        stream.Write(Received);
-        stream.Write(MiaReceived);
-        stream.Write(CommercialReceived);
+        stream.Write(TotalSent);
+        stream.Write(TotalReceived);
+        stream.Write(TotalMiaReceived);
+        stream.Write(TotalCommercialReceived);
+        stream.Write(UnreadSent);
+        stream.Write(UnreadReceived);
+        stream.Write(UnreadMiaReceived);
+        stream.Write(UnreadCommercialReceived);
+
         return stream;
     }
 
     public void ResetReceived()
     {
-        Received = 0;
-        MiaReceived = 0;
-        CommercialReceived = 0;
+        TotalReceived = 0;
+        TotalMiaReceived = 0;
+        TotalCommercialReceived = 0;
+        UnreadReceived = 0;
+        UnreadMiaReceived = 0;
+        UnreadCommercialReceived = 0;
     }
 
     public void UpdateReceived(MailType mailType, int amount)
     {
-        if ((mailType == MailType.Charged) || (mailType == MailType.Promotion))
+        if (mailType == MailType.Charged || mailType == MailType.Promotion)
         {
-            CommercialReceived += amount;
+            TotalCommercialReceived += amount;
+            UnreadCommercialReceived += amount;
         }
         else
         if (mailType == MailType.MiaRecv)
         {
-            MiaReceived += amount;
+            TotalMiaReceived += amount;
+            UnreadMiaReceived += amount;
         }
         else
         {
-            Received += amount;
+            TotalReceived += amount;
+            UnreadReceived += amount;
         }
     }
+
 }

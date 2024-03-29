@@ -8,7 +8,7 @@ public class SCSchoolOfFishFinderToggledPacket : GamePacket
     private readonly bool _on;
     private readonly float _range;
 
-    public SCSchoolOfFishFinderToggledPacket(bool on, float range) : base(SCOffsets.SCSchoolOfFishFinderToggledPacket, 1)
+    public SCSchoolOfFishFinderToggledPacket(bool on, float range) : base(SCOffsets.SCSchoolOfFishFinderToggledPacket, 5)
     {
         _on = on;
         _range = range;

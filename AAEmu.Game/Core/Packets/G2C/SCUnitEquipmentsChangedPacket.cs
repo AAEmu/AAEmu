@@ -9,13 +9,13 @@ public class SCUnitEquipmentsChangedPacket : GamePacket
     private readonly uint _objectId;
     private readonly (byte slot, Item item)[] _items;
 
-    public SCUnitEquipmentsChangedPacket(uint objectId, (byte slot, Item item)[] items) : base(SCOffsets.SCUnitEquipmentsChangedPacket, 1)
+    public SCUnitEquipmentsChangedPacket(uint objectId, (byte slot, Item item)[] items) : base(SCOffsets.SCUnitEquipmentsChangedPacket, 5)
     {
         _objectId = objectId;
         _items = items;
     }
 
-    public SCUnitEquipmentsChangedPacket(uint objectId, byte slot, Item item) : base(SCOffsets.SCUnitEquipmentsChangedPacket, 1)
+    public SCUnitEquipmentsChangedPacket(uint objectId, byte slot, Item item) : base(SCOffsets.SCUnitEquipmentsChangedPacket, 5)
     {
         _objectId = objectId;
         _items = new[] { (slot, item) };

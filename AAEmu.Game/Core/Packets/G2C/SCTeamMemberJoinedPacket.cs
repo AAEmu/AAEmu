@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
 
@@ -10,7 +10,7 @@ public class SCTeamMemberJoinedPacket : GamePacket
     private readonly TeamMember _member;
     private readonly int _party;
 
-    public SCTeamMemberJoinedPacket(uint teamId, TeamMember member, int party) : base(SCOffsets.SCTeamMemberJoinedPacket, 1)
+    public SCTeamMemberJoinedPacket(uint teamId, TeamMember member, int party) : base(SCOffsets.SCTeamMemberJoinedPacket, 5)
     {
         _teamId = teamId;
         _member = member;

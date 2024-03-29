@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
 
@@ -8,7 +8,7 @@ public class SCNotifyResurrectionPacket : GamePacket
 {
     private readonly SkillCaster _skillCaster;
 
-    public SCNotifyResurrectionPacket(SkillCaster skillCaster) : base(SCOffsets.SCNotifyResurrectionPacket, 1)
+    public SCNotifyResurrectionPacket(SkillCaster skillCaster) : base(SCOffsets.SCNotifyResurrectionPacket, 5)
     {
         _skillCaster = skillCaster;
     }

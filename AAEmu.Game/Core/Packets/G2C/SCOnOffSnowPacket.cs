@@ -7,7 +7,7 @@ public class SCOnOffSnowPacket : GamePacket
 {
     private readonly bool _on;
 
-    public SCOnOffSnowPacket(bool @on) : base(SCOffsets.SCOnOffSnowPacket, 1)
+    public SCOnOffSnowPacket(bool @on) : base(SCOffsets.SCSnowingEverywherePacket, 5)
     {
         _on = @on;
     }

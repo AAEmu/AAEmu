@@ -1,5 +1,6 @@
 ﻿using System;
 
+using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Connections;
 
@@ -20,72 +21,72 @@ public abstract class GamePacket : PacketBase<GameConnection>
     /// </summary>
     public virtual void Execute() { }
 
+    // send encrypted packets from the server
     public override PacketStream Encode()
     {
-        var ps = new PacketStream();
-        try
+        lock (Connection.WriteLock)
         {
-            var packet = new PacketStream()
-                .Write((byte)0xdd)
-                .Write(Level);
-
-            var body = new PacketStream()
-                .Write(TypeId)
-                .Write(this);
-
-            if (Level == 1)
+            byte count = 0;
+            var ps = new PacketStream();
+            try
             {
-                packet
-                    .Write((byte)0) // hash
-                    .Write((byte)0); // count
+                var packet = new PacketStream()
+                    .Write((byte)0xdd)
+                    .Write(Level);
+
+                switch (Level)
+                {
+                    case 1:
+                        {
+                            packet
+                                .Write((byte)0) // hash
+                                .Write((byte)0) // count
+                                .Write(TypeId)
+                                .Write(this);
+                            break;
+                        }
+                    case 2:
+                        {
+                            packet
+                                .Write(TypeId)
+                                .Write(this);
+                            break;
+                        }
+                    case 3:
+                    case 4:
+                    case 6:
+                        break;
+                    case 5:
+                        {
+                            // We encrypt the packet from the DD05 server using XOR & AES
+                            var bodyCrc = new PacketStream();
+                            count = EncryptionManager.Instance.GetSCMessageCount(Connection.Id, Connection.AccountId);
+                            bodyCrc.Write(count)
+                                .Write(TypeId)
+                                .Write(this);
+                            EncryptionManager.Instance.IncSCMsgCount(Connection.Id, Connection.AccountId);
+                            var crc8 = EncryptionManager.Instance.Crc8(bodyCrc); //посчитали CRC пакета
+                            var data = new PacketStream();
+                            data
+                                .Write(crc8) // CRC
+                                .Write(bodyCrc, false); // data
+                            var encrypt = EncryptionManager.Instance.StoCEncrypt(data);
+                            var body = new PacketStream()
+                                .Write(encrypt, false); // encrypted packet body
+                            packet
+                                .Write(body, false);
+                            break;
+                        }
+                }
+                ps.Write(packet); // отправляем весь пакет
+            }
+            catch (Exception ex)
+            {
+                Logger.Fatal(ex);
+                throw;
             }
 
-            packet.Write(body, false);
-
-            ps.Write(packet);
-        }
-        catch (Exception ex)
-        {
-            Logger.Fatal(ex);
-            throw;
-        }
-
-        var logString = $"GamePacket: S->C type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
-        switch (LogLevel)
-        {
-            case PacketLogLevel.Trace:
-                Logger.Trace(logString);
-                break;
-            case PacketLogLevel.Debug:
-                Logger.Debug(logString);
-                break;
-            case PacketLogLevel.Info:
-                Logger.Info(logString);
-                break;
-            case PacketLogLevel.Warning:
-                Logger.Warn(logString);
-                break;
-            case PacketLogLevel.Error:
-                Logger.Error(logString);
-                break;
-            case PacketLogLevel.Fatal:
-                Logger.Fatal(logString);
-                break;
-            case PacketLogLevel.Off:
-            default:
-                break;
-        }
-
-        return ps;
-    }
-
-    public override PacketBase<GameConnection> Decode(PacketStream ps)
-    {
-        try
-        {
-            Read(ps);
-
-            var logString = $"GamePacket: C->S type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
+            var logString = $"GamePacket: S->C type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
             switch (LogLevel)
             {
                 case PacketLogLevel.Trace:
@@ -111,15 +112,54 @@ public abstract class GamePacket : PacketBase<GameConnection>
                     break;
             }
 
-            Execute();
+            return ps;
         }
-        catch (Exception ex)
-        {
-            Logger.Error("GamePacket: C->S type {0:X3} {1}", TypeId, ToString()?.Substring(23));
-            Logger.Fatal(ex);
-            throw;
-        }
+    }
 
-        return this;
+    public override PacketBase<GameConnection> Decode(PacketStream ps)
+    {
+        lock (Connection.ReadLock)
+        {
+            try
+            {
+                Read(ps);
+
+                var logString = $"GamePacket: C->S type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
+                switch (LogLevel)
+                {
+                    case PacketLogLevel.Trace:
+                        Logger.Trace(logString);
+                        break;
+                    case PacketLogLevel.Debug:
+                        Logger.Debug(logString);
+                        break;
+                    case PacketLogLevel.Info:
+                        Logger.Info(logString);
+                        break;
+                    case PacketLogLevel.Warning:
+                        Logger.Warn(logString);
+                        break;
+                    case PacketLogLevel.Error:
+                        Logger.Error(logString);
+                        break;
+                    case PacketLogLevel.Fatal:
+                        Logger.Fatal(logString);
+                        break;
+                    case PacketLogLevel.Off:
+                    default:
+                        break;
+                }
+
+                Execute();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("GamePacket: C->S type {0:X3} {1}", TypeId, ToString()?.Substring(23));
+                Logger.Fatal(ex);
+                throw;
+            }
+
+            return this;
+        }
     }
 }

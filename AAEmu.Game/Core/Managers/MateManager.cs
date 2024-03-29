@@ -333,13 +333,11 @@ public class MateManager : Singleton<MateManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new NpcMountSkills()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            NpcId = reader.GetUInt32("npc_id"),
-                            MountSkillId = reader.GetUInt32("mount_skill_id")
-                        };
-                        _npcMountSkills.Add(template.Id, template);
+                        var template = new NpcMountSkills();
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                        template.NpcId = reader.GetUInt32("npc_id");
+                        template.MountSkillId = reader.GetUInt32("mount_skill_id");
+                        _npcMountSkills.TryAdd(template.Id, template);
                     }
                 }
             }
@@ -357,9 +355,9 @@ public class MateManager : Singleton<MateManager>
                     {
                         var template = new MountSkills();
                         template.Id = reader.GetUInt32("id");
-                        template.Name = reader.GetString("name", "");
+                        //template.Name = reader.GetString("name", ""); // there is no such field in the database for version 3.0.3.0
                         template.SkillId = reader.GetUInt32("skill_id");
-                        _mountSkills.Add(template.Id, template);
+                        _mountSkills.TryAdd(template.Id, template);
                     }
                 }
             }
@@ -380,7 +378,7 @@ public class MateManager : Singleton<MateManager>
                         template.MountSkillId = reader.GetUInt32("mount_skill_id");
                         template.AttachPointId = (AttachPointKind)reader.GetUInt32("attach_point_id");
                         template.SkillId = reader.GetUInt32("skill_id");
-                        _mountAttachedSkills.Add(template.Id, template);
+                        _mountAttachedSkills.TryAdd(template.Id, template);
                     }
                 }
             }

@@ -223,6 +223,8 @@ public class CharacterManager : Singleton<CharacterManager>
                                         template.Items.UndershirtsGrade = reader2.GetByte("undershirt_grade_id");
                                         template.Items.Underpants = reader2.GetUInt32("underpants_id");
                                         template.Items.UnderpantsGrade = reader2.GetByte("underpants_grade_id");
+                                        template.Items.Stabilizer = reader2.GetUInt32("stabilizer_id");
+                                        template.Items.StabilizerGrade = reader2.GetByte("stabilizer_grade_id");
                                     }
                                 }
                             }
@@ -349,7 +351,7 @@ public class CharacterManager : Singleton<CharacterManager>
                     while (reader.Read())
                     {
                         var template = new ExpandExpertLimit();
-                        template.Id = reader.GetUInt32("id");
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
                         template.ExpandCount = reader.GetByte("expand_count");
                         template.LifePoint = reader.GetInt32("life_point");
                         template.ItemId = reader.GetUInt32("item_id", 0);
@@ -407,7 +409,7 @@ public class CharacterManager : Singleton<CharacterManager>
 
     }
 
-    public void Create(GameConnection connection, string name, byte race, byte gender, uint[] body, UnitCustomModelParams customModel, byte ability1)
+    public void Create(GameConnection connection, string name, byte race, byte gender, uint[] body, UnitCustomModelParams customModel, byte ability1, byte ability2, byte ability3, byte level)
     {
         var nameValidationCode = NameManager.Instance.ValidationCharacterName(name);
         if (nameValidationCode == 0)
@@ -436,8 +438,8 @@ public class CharacterManager : Singleton<CharacterManager>
             character.Created = DateTime.UtcNow;
             character.Updated = DateTime.UtcNow;
             character.Ability1 = (AbilityType)ability1;
-            character.Ability2 = AbilityType.None;
-            character.Ability3 = AbilityType.None;
+            character.Ability2 = (AbilityType)ability2;
+            character.Ability3 = (AbilityType)ability3;
             character.ReturnDistrictId = template.ReturnDistrictId;
             character.ResurrectionDistrictId = template.ResurrectionDistrictId;
             character.Slots = new ActionSlot[Character.MaxActionSlots];
@@ -461,6 +463,7 @@ public class CharacterManager : Singleton<CharacterManager>
             SetEquipItemTemplate(character.Inventory, items.Items.Ranged, EquipmentItemSlot.Ranged, items.Items.RangedGrade);
             SetEquipItemTemplate(character.Inventory, items.Items.Musical, EquipmentItemSlot.Musical, items.Items.MusicalGrade);
             SetEquipItemTemplate(character.Inventory, items.Items.Cosplay, EquipmentItemSlot.Cosplay, items.Items.CosplayGrade);
+            SetEquipItemTemplate(character.Inventory, items.Items.Stabilizer, EquipmentItemSlot.Stabilizer, items.Items.StabilizerGrade);
             for (var i = 0; i < 7; i++)
             {
                 if (body[i] == 0 && template.Items[i] > 0)
@@ -636,7 +639,7 @@ public class CharacterManager : Singleton<CharacterManager>
                     {
                         gameConnection.SendPacket(new SCCharacterDeletedPacket(character.Id, character.Name));
                         // Not sure if this is the way it should be send or not, but it seems to work with status 1
-                        gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 1, character.DeleteRequestTime, character.DeleteTime));
+                        gameConnection.SendPacket(new SCCharacterDeleteResponsePacket(character.Id, 1, character.DeleteRequestTime, character.DeleteTime));
                     }
                 }
                 return res > 0;
@@ -746,7 +749,7 @@ public class CharacterManager : Singleton<CharacterManager>
                     command.Prepare();
                     if (command.ExecuteNonQuery() == 1)
                     {
-                        gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 2, character.DeleteRequestTime, character.DeleteTime));
+                        gameConnection.SendPacket(new SCCharacterDeleteResponsePacket(character.Id, 2, character.DeleteRequestTime, character.DeleteTime));
                     }
                     else
                     {
@@ -759,7 +762,7 @@ public class CharacterManager : Singleton<CharacterManager>
         }
         else
         {
-            gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(characterId, 0));
+            gameConnection.SendPacket(new SCCharacterDeleteResponsePacket(characterId, 0));
         }
         // Trigger our task queueing
         CheckForDeletedCharacters();
@@ -771,7 +774,7 @@ public class CharacterManager : Singleton<CharacterManager>
         {
             character.DeleteRequestTime = DateTime.MinValue;
             character.DeleteTime = DateTime.MinValue;
-            gameConnection.SendPacket(new SCCancelCharacterDeleteResponsePacket(character.Id, 3));
+            gameConnection.SendPacket(new SCCharacterDeleteCanceledPacket(character.Id, 3));
 
             using (var connection = MySQL.CreateConnection())
             {
@@ -788,10 +791,10 @@ public class CharacterManager : Singleton<CharacterManager>
         }
         else
         {
-            gameConnection.SendPacket(new SCCancelCharacterDeleteResponsePacket(characterId, 4));
+            gameConnection.SendPacket(new SCCharacterDeleteCanceledPacket(characterId, 4));
         }
     }
-    public static List<LoginCharacterInfo> LoadCharacters(uint accountId)
+    public static List<LoginCharacterInfo> LoadCharacters(ulong accountId)
     {
         var result = new List<LoginCharacterInfo>();
         using (var connection = MySQL.CreateConnection())

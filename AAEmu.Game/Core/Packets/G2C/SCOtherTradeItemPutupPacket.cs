@@ -8,7 +8,7 @@ public class SCOtherTradeItemPutupPacket : GamePacket
 {
     private readonly Item _item;
 
-    public SCOtherTradeItemPutupPacket(Item item) : base(SCOffsets.SCOtherTradeItemPutupPacket, 1)
+    public SCOtherTradeItemPutupPacket(Item item) : base(SCOffsets.SCOtherTradeItemPutupPacket, 5)
     {
         _item = item;
     }

@@ -12,7 +12,7 @@ public class CTJoinPacket : StreamPacket
 
     public override void Read(PacketStream stream)
     {
-        var accountId = stream.ReadUInt32();
+        var accountId = stream.ReadUInt64();
         var cookie = stream.ReadUInt32();
 
         StreamManager.Instance.Login(Connection, accountId, cookie);

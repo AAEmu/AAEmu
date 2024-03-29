@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
 
@@ -12,7 +12,7 @@ public class SCCharacterInvenContentsPacket : GamePacket
     private readonly Item[] _items;
 
     public SCCharacterInvenContentsPacket(SlotType type, byte numChunks, byte startChunkIdx, Item[] items)
-        : base(SCOffsets.SCCharacterInvenContentsPacket, 1)
+        : base(SCOffsets.SCCharacterInvenContentsPacket, 5)
     {
         _type = type;
         _numChunks = numChunks;

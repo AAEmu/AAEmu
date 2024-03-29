@@ -17,6 +17,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Tasks.World;
@@ -430,7 +431,7 @@ public class PortalManager : Singleton<PortalManager>
         // TODO - UnitPortalUsed
         // TODO - Maybe need unitState?
         // TODO - Reason, ErrorMessage
-        character.SendPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.World.Position.X,
+        character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Portal, ErrorMessageType.NoErrorMessage, portalInfo.TeleportPosition.World.Position.X,
             portalInfo.TeleportPosition.World.Position.Y, portalInfo.TeleportPosition.World.Position.Z,
             portalInfo.TeleportPosition.World.Rotation.Z.DegToRad()));
     }

@@ -14,25 +14,25 @@ using NLog;
 
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
-namespace AAEmu.Game.Core.Managers
+namespace AAEmu.Game.Core.Managers;
+
+public class IndunManager : Singleton<IndunManager>
 {
-    public class IndunManager : Singleton<IndunManager>
+    private static Logger Logger = LogManager.GetCurrentClassLogger();
+
+    private Dictionary<Team, List<Dungeon>> _teamDungeons;
+    private Dictionary<uint, Dungeon> _soloDungeons;
+    private Dictionary<uint, Dungeon> _sysDungeons;
+    private Dictionary<uint, Dictionary<uint, int>> _attempts; // <ownerId, <zoneGroupId, attempts>> - использовано попыток прохождения данжона
+    private const int FreeAttempts = 3;  // свободных попыток
+    private const int ExtraAttempts = 2; // дополнительных попыток
+    private Dictionary<uint, Dictionary<uint, bool>> _waitingDungeonAccessAttemptsCleared; // <ownerId, <zoneGroupId, waiting>>, откат 4 часа, + еще 4 часа, если израсходовали дополнительные попытки
+
+    private object _lock = new();
+    private static object _lockInfo = new();
+
+    public void Initialize()
     {
-        private static Logger Logger = LogManager.GetCurrentClassLogger();
-
-        private Dictionary<Team, List<Dungeon>> _teamDungeons;
-        private Dictionary<uint, Dungeon> _soloDungeons;
-        private Dictionary<uint, Dungeon> _sysDungeons;
-        private Dictionary<uint, Dictionary<uint, int>> _attempts; // <ownerId, <zoneGroupId, attempts>> - использовано попыток прохождения данжона
-        private const int FreeAttempts = 3;  // свободных попыток
-        private const int ExtraAttempts = 2; // дополнительных попыток
-        private Dictionary<uint, Dictionary<uint, bool>> _waitingDungeonAccessAttemptsCleared; // <ownerId, <zoneGroupId, waiting>>, откат 4 часа, + еще 4 часа, если израсходовали дополнительные попытки
-
-        private object _lock = new();
-        private static object _lockInfo = new();
-
-        public void Initialize()
-        {
             _teamDungeons = new Dictionary<Team, List<Dungeon>>();
             _soloDungeons = new Dictionary<uint, Dungeon>();
             _sysDungeons = new Dictionary<uint, Dungeon>();
@@ -41,8 +41,8 @@ namespace AAEmu.Game.Core.Managers
             _waitingDungeonAccessAttemptsCleared ??= new Dictionary<uint, Dictionary<uint, bool>>();
         }
 
-        private void IndunInfoTick(TimeSpan delta)
-        {
+    private void IndunInfoTick(TimeSpan delta)
+    {
             if (_teamDungeons is { Count: 0 })
             {
                 Logger.Info($"Team dungeons: 0");
@@ -75,14 +75,14 @@ namespace AAEmu.Game.Core.Managers
             InfoAttempt();
         }
 
-        /// <summary>
-        /// Requests an instance for the character's team or for the player.
-        /// </summary>
-        /// <param name="character"></param>
-        /// <param name="zoneId"></param>
-        /// <returns></returns>
-        public bool RequestSysInstance(Character character, uint zoneId)
-        {
+    /// <summary>
+    /// Requests an instance for the character's team or for the player.
+    /// </summary>
+    /// <param name="character"></param>
+    /// <param name="zoneId"></param>
+    /// <returns></returns>
+    public bool RequestSysInstance(Character character, uint zoneId)
+    {
             // TODO ZoneId=183 - Arche mall
             if (character == null)
             {
@@ -101,14 +101,14 @@ namespace AAEmu.Game.Core.Managers
             return true;
         }
 
-        /// <summary>
-        /// Requests an instance for the character's team or for the player.
-        /// </summary>
-        /// <param name="character"></param>
-        /// <param name="zoneId"></param>
-        /// <returns></returns>
-        public bool RequestInstance(Character character, uint zoneId)
-        {
+    /// <summary>
+    /// Requests an instance for the character's team or for the player.
+    /// </summary>
+    /// <param name="character"></param>
+    /// <param name="zoneId"></param>
+    /// <returns></returns>
+    public bool RequestInstance(Character character, uint zoneId)
+    {
             if (character == null)
             {
                 Logger.Info("[IndunManager] Player offline.");
@@ -227,8 +227,8 @@ namespace AAEmu.Game.Core.Managers
             return true;
         }
 
-        private bool CreateTeamInstance(Team team, Character character, uint zoneId)
-        {
+    private bool CreateTeamInstance(Team team, Character character, uint zoneId)
+    {
             Logger.Info($"[IndunManager] Requesting party instance, teamId: {team.Id}");
             Logger.Info($"[IndunManager] Total dungeons created... Party: {_teamDungeons.Count}... Solo: {_soloDungeons.Count}...");
 
@@ -288,8 +288,8 @@ namespace AAEmu.Game.Core.Managers
             return true;
         }
 
-        private bool CreateSoloInstance(Character character, uint zoneId)
-        {
+    private bool CreateSoloInstance(Character character, uint zoneId)
+    {
             Logger.Info($"[IndunManager] Requesting solo instance, characterId: {character.Id}");
             Logger.Info($"[IndunManager] Total dungeons created... Party: {_teamDungeons.Count}... Solo: {_soloDungeons.Count}...");
 
@@ -360,8 +360,8 @@ namespace AAEmu.Game.Core.Managers
             return true;
         }
 
-        private Dungeon CreateSysInstance(Character character, uint zoneId)
-        {
+    private Dungeon CreateSysInstance(Character character, uint zoneId)
+    {
             Logger.Info($"[IndunManager] Requesting system instance, characterId: {character.Id}");
             Logger.Info($"[IndunManager] Total dungeons created: Party={_teamDungeons.Count}, Solo={_soloDungeons.Count}, Sys={_sysDungeons.Count}");
 
@@ -396,8 +396,8 @@ namespace AAEmu.Game.Core.Managers
             return dungeon;
         }
 
-        public bool RequestDeletion(Character character, Dungeon dungeon)
-        {
+    public bool RequestDeletion(Character character, Dungeon dungeon)
+    {
             if (character == null) { return false; }
             if (dungeon == null)
             {
@@ -412,8 +412,8 @@ namespace AAEmu.Game.Core.Managers
             return true;
         }
 
-        public bool RequestLeave(Character character)
-        {
+    public bool RequestLeave(Character character)
+    {
             if (character == null)
                 return false;
 
@@ -457,8 +457,8 @@ namespace AAEmu.Game.Core.Managers
             return true;
         }
 
-        public bool RequestSysLeave(Character character)
-        {
+    public bool RequestSysLeave(Character character)
+    {
             if (character == null) { return false; }
 
             foreach (var dungeon in _sysDungeons.Values.Where(dungeon => dungeon.IsPlayerInDungeon(character.Id)))
@@ -470,8 +470,8 @@ namespace AAEmu.Game.Core.Managers
             return false;
         }
 
-        public bool SoloToParty(Character character, Team team, Dungeon dungeon)
-        {
+    public bool SoloToParty(Character character, Team team, Dungeon dungeon)
+    {
             if (!_soloDungeons.ContainsKey(character.Id)) { return false; }
             _soloDungeons.Remove(character.Id);
             var dungeonList = new List<Dungeon> { dungeon };
@@ -480,8 +480,8 @@ namespace AAEmu.Game.Core.Managers
             return true;
         }
 
-        public static void DoIndunActions(uint startActionId, InstanceWorld world)
-        {
+    public static void DoIndunActions(uint startActionId, InstanceWorld world)
+    {
             while (true)
             {
                 var action = IndunGameData.Instance.GetIndunActionById(startActionId);
@@ -497,8 +497,8 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        internal Dungeon GetDungeonByWorldId(uint worldId)
-        {
+    internal Dungeon GetDungeonByWorldId(uint worldId)
+    {
             foreach (var dungeons in _teamDungeons.Values)
             {
                 foreach (var dungeon in dungeons.Where(dungeon => dungeon.GetDungeonWorldId() == worldId))
@@ -510,19 +510,19 @@ namespace AAEmu.Game.Core.Managers
             return _soloDungeons.Values.FirstOrDefault(dungeon => dungeon.GetDungeonWorldId() == worldId);
         }
 
-        public void RemoveDungeon(Team team)
-        {
+    public void RemoveDungeon(Team team)
+    {
             _teamDungeons.Remove(team);
         }
 
-        public void SetRoomCleared(uint indunRoomId, InstanceWorld world)
-        {
+    public void SetRoomCleared(uint indunRoomId, InstanceWorld world)
+    {
             var dungeon = GetDungeonByWorldId(world.Id);
             dungeon.SetRoomCleared(indunRoomId);
         }
 
-        public void ClearAttemts(Dungeon dungeon)
-        {
+    public void ClearAttemts(Dungeon dungeon)
+    {
             lock (_lock)
             {
                 var characterId = dungeon.IsTeamOwned ? dungeon.GetTeamOwner.OwnerId : dungeon.GetCharacterOwner?.Id ?? 0;
@@ -534,8 +534,8 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        internal bool GetWaitingDungeonAccess(Dungeon dungeon)
-        {
+    internal bool GetWaitingDungeonAccess(Dungeon dungeon)
+    {
             lock (_lock)
             {
                 var characterId = dungeon.IsTeamOwned ? dungeon.GetTeamOwner.OwnerId : dungeon.GetCharacterOwner?.Id ?? 0;
@@ -552,8 +552,8 @@ namespace AAEmu.Game.Core.Managers
 
             return false;
         }
-        internal bool GetWaitingDungeonAccess(uint characterId, uint zoneGroupId)
-        {
+    internal bool GetWaitingDungeonAccess(uint characterId, uint zoneGroupId)
+    {
             lock (_lock)
             {
                 if (_waitingDungeonAccessAttemptsCleared.TryGetValue(characterId, out var waitingDungeonAccess))
@@ -568,8 +568,8 @@ namespace AAEmu.Game.Core.Managers
             return false;
         }
 
-        internal void SetWaitingDungeonAccess(uint characterId, uint zoneGroupId, bool value)
-        {
+    internal void SetWaitingDungeonAccess(uint characterId, uint zoneGroupId, bool value)
+    {
             lock (_lock)
             {
                 if (_waitingDungeonAccessAttemptsCleared.TryGetValue(characterId, out var waitingDungeonAccess))
@@ -587,8 +587,8 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
         }
-        internal void SetWaitingDungeonAccess(Dungeon dungeon, bool value)
-        {
+    internal void SetWaitingDungeonAccess(Dungeon dungeon, bool value)
+    {
             lock (_lock)
             {
                 var characterId = dungeon.IsTeamOwned ? dungeon.GetTeamOwner.OwnerId : dungeon.GetCharacterOwner?.Id ?? 0;
@@ -610,8 +610,8 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        private bool CheckingAttempt(Dungeon dungeon)
-        {
+    private bool CheckingAttempt(Dungeon dungeon)
+    {
             lock (_lock)
             {
                 var res = false;
@@ -661,8 +661,8 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        private void InfoAttempt()
-        {
+    private void InfoAttempt()
+    {
             lock (_lock)
             {
                 if (_attempts is { Count: 0 })
@@ -686,11 +686,10 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public Dungeon GetSoloDungeon(uint characterId)
-        {
+    public Dungeon GetSoloDungeon(uint characterId)
+    {
             _soloDungeons.TryGetValue(characterId, out var dungeon);
 
             return dungeon;
         }
-    }
 }

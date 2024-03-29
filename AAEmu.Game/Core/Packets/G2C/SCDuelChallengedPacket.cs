@@ -7,7 +7,7 @@ public class SCDuelChallengedPacket : GamePacket
 {
     private readonly uint _challengedId;
 
-    public SCDuelChallengedPacket(uint challengedId) : base(SCOffsets.SCDuelChallengedPacket, 1)
+    public SCDuelChallengedPacket(uint challengedId) : base(SCOffsets.SCDuelChallengedPacket, 5)
     {
         _challengedId = challengedId;
     }

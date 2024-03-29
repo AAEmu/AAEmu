@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -7,7 +7,7 @@ public class SCICSExchangeRatioPacket : GamePacket
 {
     private readonly int _exchangeRatio;
 
-    public SCICSExchangeRatioPacket(int exchangeRatio) : base(SCOffsets.SCICSExchangeRatioPacket, 1)
+    public SCICSExchangeRatioPacket(int exchangeRatio) : base(SCOffsets.SCICSExchangeRatioPacket, 5)
     {
         _exchangeRatio = exchangeRatio;
     }

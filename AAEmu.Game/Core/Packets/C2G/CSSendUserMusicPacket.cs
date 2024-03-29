@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSSendUserMusicPacket : GamePacket
 {
-    public CSSendUserMusicPacket() : base(CSOffsets.CSSendUserMusicPacket, 1)
+    public CSSendUserMusicPacket() : base(CSOffsets.CSSendUserMusicPacket, 5)
     {
     }
 

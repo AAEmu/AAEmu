@@ -15,11 +15,9 @@ public class ItemAddNew : ItemTask
     public override PacketStream Write(PacketStream stream)
     {
         base.Write(stream);
-
-        stream.Write((byte)_item.SlotType);
-        stream.Write((byte)_item.Slot);
+        stream.Write((byte)_item.SlotType); // type
+        stream.Write((byte)_item.Slot);     // index
         WriteDetails(stream, _item);
-
         return stream;
     }
 }

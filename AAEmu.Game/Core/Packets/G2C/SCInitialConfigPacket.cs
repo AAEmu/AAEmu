@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCInitialConfigPacket : GamePacket
 {
-    public SCInitialConfigPacket() : base(SCOffsets.SCInitialConfigPacket, 1)
+    public SCInitialConfigPacket() : base(SCOffsets.SCInitialConfigPacket, 5)
     {
     }
 
@@ -38,7 +38,7 @@ public class SCInitialConfigPacket : GamePacket
         // houseTaxPrepay -> (uint)fset[8] & 0x100000 == 0x100000
 
         // 0x11, 0x37, 0x0F, 0x0F, 0x79, 0x69, 0xb3, 0x8d, 0x32, 0x0c, 0x1a
-        // stream.Write(new byte[] {0x11, 0x37, 0x0F, 0x0F, 0x79, 0x69, 0xb3, 0x8d, 0x32, 0x0c, 0x1a}, true); // fset
+        //stream.Write(new byte[] { 0x7F, 0x37, 0x34, 0x0F, 0x79, 0x08, 0x7D, 0xCB, 0x37, 0x65, 0x03, 0xDE, 0xAE, 0x86, 0x3C, 0x0E, 0x02, 0xE6, 0x6F, 0xC7, 0xBB, 0x9B, 0x5D, 0x01, 0x00, 0x01 }, true); // fset
         FeaturesManager.Fsets.Write(stream);
 
         /*
@@ -69,15 +69,14 @@ public class SCInitialConfigPacket : GamePacket
          */
 
         // TODO 0x3E, 0x32, 0x0F, 0x0F, 0x79, 0x00, 0x33
-        // TODO 0x7F, 0x37, 0x34, 0x0F, 0x79, 0x08, 0x7D, 0xCB, 0x37, 0x65, 0x03, 0xDE, 0xAE, 0x86, 0x3C, 0x0E, 0x02, 0xE6, 0x6F, 0xC7, 0xBB, 0x9B, 0x5D, 0x01, 0x00, 0x01
 
         stream.Write(0); // count // candidatelist.lua
         /*
          * local retrieveCount = X2:GetCandidateOnceRetrieveCount()
          * x2ui\baselib
-        */
+         */
 
-        stream.Write(50); // initLp
+        stream.Write(0); // initLp
         stream.Write(true); // canPlaceHouse
         stream.Write(true); // canPayTax
         stream.Write(true); // canUseAuction
@@ -86,7 +85,7 @@ public class SCInitialConfigPacket : GamePacket
         stream.Write(true); // canUseBank
         stream.Write(true); // canUseCopper
 
-        stream.Write((byte)2); // secondPriceType
+        //stream.Write((byte)2); // secondPriceType
         /*
          * 0 - kr aapoint
          * 1 - ru aapoint
@@ -94,7 +93,15 @@ public class SCInitialConfigPacket : GamePacket
          */
         stream.Write((byte)0); // secondPasswordMaxFailCount
 
-        stream.Write((ushort)0); // idleKickTime
+        stream.Write(0); // idleKickTime
+
+        stream.Write(false); // enable
+        stream.Write((byte)0); // pcbang
+        stream.Write((byte)0); // premium
+        stream.Write((byte)0); // maxch
+        stream.Write((ushort)400); // honorPointDuringWarPercent
+        stream.Write((byte)5); // uccver
+        stream.Write((byte)1); // memberType
 
         return stream;
     }

@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSStartSkillPacket : GamePacket
 {
-    public CSStartSkillPacket() : base(CSOffsets.CSStartSkillPacket, 1)
+    public CSStartSkillPacket() : base(CSOffsets.CSStartSkillPacket, 5)
     {
     }
 
@@ -40,11 +40,11 @@ public class CSStartSkillPacket : GamePacket
 
         var skillId = stream.ReadUInt32();
 
-        var skillCasterType = stream.ReadByte();
+        var skillCasterType = stream.ReadByte(); // кто применяет
         var skillCaster = SkillCaster.GetByType((SkillCasterType)skillCasterType);
         skillCaster.Read(stream);
 
-        var skillCastTargetType = stream.ReadByte();
+        var skillCastTargetType = stream.ReadByte(); // на кого применяют
         var skillCastTarget = SkillCastTarget.GetByType((SkillCastTargetType)skillCastTargetType);
         skillCastTarget.Read(stream);
 

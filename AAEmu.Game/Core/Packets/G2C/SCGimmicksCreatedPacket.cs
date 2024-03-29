@@ -8,7 +8,7 @@ public class SCGimmicksCreatedPacket : GamePacket
 {
     private readonly Gimmick[] _gimmick;
 
-    public SCGimmicksCreatedPacket(Gimmick[] gimmick) : base(SCOffsets.SCGimmicksCreatedPacket, 1)
+    public SCGimmicksCreatedPacket(Gimmick[] gimmick) : base(SCOffsets.SCGimmicksCreatedPacket, 5)
     {
         _gimmick = gimmick;
     }

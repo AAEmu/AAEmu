@@ -9,7 +9,7 @@ public class SCCharacterListPacket : GamePacket
     private readonly bool _last;
     private readonly Character[] _characters;
 
-    public SCCharacterListPacket(bool last, Character[] characters) : base(SCOffsets.SCCharacterListPacket, 1)
+    public SCCharacterListPacket(bool last, Character[] characters) : base(SCOffsets.SCCharacterListPacket, 5)
     {
         _last = last;
         _characters = characters;

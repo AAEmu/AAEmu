@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -9,7 +9,7 @@ public class SCMailReceiverOpenedPacket : GamePacket
     private readonly long _mainId;
     private readonly DateTime _openDate;
 
-    public SCMailReceiverOpenedPacket(long mainId, DateTime openDate) : base(SCOffsets.SCMailReceiverOpenedPacket, 1)
+    public SCMailReceiverOpenedPacket(long mainId, DateTime openDate) : base(SCOffsets.SCMailReceiverOpenedPacket, 5)
     {
         _mainId = mainId;
         _openDate = openDate;

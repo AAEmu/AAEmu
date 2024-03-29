@@ -15,7 +15,7 @@ public class ItemRemoveCrafting : ItemTask
     public override PacketStream Write(PacketStream stream)
     {
         base.Write(stream);
-        stream.Write(_id);
+        stream.Write(_id); // id
         return stream;
     }
 }

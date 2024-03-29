@@ -7,7 +7,7 @@ public class SCPauseUserMusicPacket : GamePacket
 {
     private readonly uint _playerObjId;
 
-    public SCPauseUserMusicPacket(uint playerObjId) : base(SCOffsets.SCPauseUserMusicPacket, 1)
+    public SCPauseUserMusicPacket(uint playerObjId) : base(SCOffsets.SCPauseUserMusicPacket, 5)
     {
         _playerObjId = playerObjId;
     }

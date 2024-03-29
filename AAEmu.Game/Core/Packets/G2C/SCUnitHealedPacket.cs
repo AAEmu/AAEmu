@@ -15,7 +15,7 @@ public class SCUnitHealedPacket : GamePacket
     private readonly int _value;
 
     public SCUnitHealedPacket(CastAction castAction, SkillCaster skillCaster, uint targetId, HealType healType, HealHitType healHitType, int value)
-        : base(SCOffsets.SCUnitHealedPacket, 1)
+        : base(SCOffsets.SCUnitHealedPacket, 5)
     {
         _castAction = castAction;
         _skillCaster = skillCaster;

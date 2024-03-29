@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
-
+using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units;
 using MySql.Data.MySqlClient;
 
 using NLog;
@@ -1009,4 +1012,136 @@ public class Inventory
         return SplitOrMoveItemEx(ItemTaskType.SplitCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot,
             toItemId, toSlotType, toSlot, count);
     }
+
+    #region CharacterInfo_3EB0
+
+    public void WriteInventoryEquip(PacketStream stream, Unit unit)
+    {
+        List<Item> items;
+
+        switch (unit)
+        {
+            case Character character:
+                {
+                    items = character.Inventory.Equipment.GetSlottedItemsList();
+                    WriteEquip(stream, items);
+                    var itemFlags = CalculateItemFlags(items);
+                    stream.Write(itemFlags); // ItemFlags flags for 3.0.3.0
+                    break;
+                }
+            case House house:
+                {
+                    items = house.Equipment.GetSlottedItemsList();
+                    WriteEquip(stream, items);
+                    break;
+                }
+            case Units.Mate mate:
+                {
+                    items = mate.Equipment.GetSlottedItemsList();
+                    WriteEquip(stream, items);
+                    break;
+                }
+            case Slave slave:
+                {
+                    items = slave.Equipment.GetSlottedItemsList();
+                    WriteEquip(stream, items);
+                    break;
+                }
+            case Npc npc:
+                {
+                    items = npc.Equipment.GetSlottedItemsList();
+                    var validFlags = CalculateValidFlags(items);
+                    stream.Write((uint)validFlags);
+
+                    if (validFlags <= 0)
+                    {
+                        unit.ModelParams.SetType(UnitCustomModelType.Skin); // additional check that the NPC does not have a body or face
+                        return;
+                    }
+
+                    for (var i = 0; i < items.Count; i++)
+                    {
+                        var item = npc.Equipment.GetItemBySlot(i);
+
+                        if (item is BodyPart)
+                        {
+                            stream.Write(item.TemplateId);
+                        }
+                        else if (item != null)
+                        {
+                            if (i == 27) // Cosplay
+                            {
+                                stream.Write(item);
+                            }
+                            else
+                            {
+                                stream.Write(item.TemplateId);
+                                stream.Write(0L);
+                                stream.Write((byte)0);
+                            }
+                        }
+                    }
+                    break;
+                }
+            // for transfer and Shipyard
+            default:
+                {
+                    stream.Write(0u); // validFlags for 3.0.3.0
+                    break;
+                }
+        }
+    }
+
+    private static void WriteEquip(PacketStream stream, List<Item> items)
+    {
+        var validFlags = CalculateValidFlags(items);
+        stream.Write((uint)validFlags); // validFlags for 3.0.3.0
+        WriteItems(stream, items);
+    }
+
+    private static void WriteItems(PacketStream stream, List<Item> items)
+    {
+        foreach (var item in items)
+        {
+            if (item != null)
+            {
+                stream.Write(item);
+            }
+        }
+    }
+
+    private static int CalculateValidFlags(List<Item> items)
+    {
+        var validFlags = 0;
+        var index = 0;
+        foreach (var item in items)
+        {
+            if (item != null)
+            {
+                validFlags |= 1 << index;
+            }
+
+            index++;
+        }
+
+        return validFlags;
+    }
+
+    private static int CalculateItemFlags(List<Item> items)
+    {
+        var itemFlags = 0;
+        var index = 0;
+
+        foreach (var tmp in items
+                     .Where(item => item != null)
+                     .Select(item => (int)item.ItemFlags << index))
+        {
+            ++index;
+            itemFlags |= tmp;
+        }
+
+        return itemFlags;
+    }
+
+    #endregion CharacterInfo_3EB0
 }

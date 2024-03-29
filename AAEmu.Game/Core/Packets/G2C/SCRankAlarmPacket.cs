@@ -8,7 +8,7 @@ public class SCRankAlarmPacket : GamePacket
     private readonly uint _type;
     private readonly byte _rankAlarmKind;
 
-    public SCRankAlarmPacket(uint type, byte rankAlarmKind) : base(SCOffsets.SCRankAlarmPacket, 1)
+    public SCRankAlarmPacket(uint type, byte rankAlarmKind) : base(SCOffsets.SCRankAlarmPacket, 5)
     {
         _type = type;
         _rankAlarmKind = rankAlarmKind;

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
 
@@ -10,7 +10,7 @@ public class SCTeamLootingRuleChangedPacket : GamePacket
     private readonly LootingRule _lootingRule;
     private readonly byte _changeFlags;
 
-    public SCTeamLootingRuleChangedPacket(uint teamId, LootingRule lootingRule, byte changeFlags) : base(SCOffsets.SCTeamLootingRuleChangedPacket, 1)
+    public SCTeamLootingRuleChangedPacket(uint teamId, LootingRule lootingRule, byte changeFlags) : base(SCOffsets.SCTeamLootingRuleChangedPacket, 5)
     {
         _teamId = teamId;
         _lootingRule = lootingRule;

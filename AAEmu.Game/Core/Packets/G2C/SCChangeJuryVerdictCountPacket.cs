@@ -8,7 +8,7 @@ public class SCChangeJuryVerdictCountPacket : GamePacket
 {
     private readonly int _count;
     private readonly int _total;
-    public SCChangeJuryVerdictCountPacket(int count, int total) : base(SCOffsets.SCChangeJuryVerdictCountPacket, 1)
+    public SCChangeJuryVerdictCountPacket(int count, int total) : base(SCOffsets.SCChangeJuryVerdictCountPacket, 5)
     {
         _count = count;
         _total = total;

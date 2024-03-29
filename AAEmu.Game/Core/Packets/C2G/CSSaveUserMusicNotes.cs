@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSSaveUserMusicNotesPacket : GamePacket
 {
-    public CSSaveUserMusicNotesPacket() : base(CSOffsets.CSSaveUserMusicNotesPacket, 1)
+    public CSSaveUserMusicNotesPacket() : base(CSOffsets.CSSaveUserMusicNotesPacket, 5)
     {
     }
 

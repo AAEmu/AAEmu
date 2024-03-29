@@ -1,4 +1,6 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -19,7 +21,7 @@ public class FinishStatePacket : GamePacket
         {
             case 0:
                 Connection.SendPacket(new ChangeStatePacket(1));
-                // Connection.SendPacket(new SCHackGuardRetAddrsRequestPacket(false, false)); // HG_REQ? // TODO - config files
+                Connection.SendPacket(new SCHackGuardRetAddrsRequestPacket(false, false)); // HG_REQ? // TODO - config files
                 var levelname = string.Empty;
                 if (Connection.ActiveChar != null)
                 {
@@ -52,10 +54,15 @@ public class FinishStatePacket : GamePacket
                         Connection.Payment.StartTime,
                         Connection.Payment.EndTime)
                 );
-                Connection.SendPacket(new SCChatSpamDelayPacket());
-                Connection.SendPacket(new SCAccountAttributeConfigPacket(new[] { false, true })); // TODO
-                Connection.SendPacket(new SCLevelRestrictionConfigPacket(10, 10, 10, 10, 10,
-                    new byte[] { 0, 15, 15, 15, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 15 })); // TODO - config files
+                Connection.SendPacket(new SCChatSpamConfigPacket());
+                Connection.SendPacket(new SCAccountAttributeConfigPacket(new[] { false, true, false }));
+                Connection.SendPacket(new SCLevelRestrictionConfigPacket(10, 10, 10, 10, 10, new byte[] { 0, 15, 15, 15, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 15, 0, 0 })); // TODO - config files
+
+                Connection.SendPacket(new SCTaxItemConfigPacket(0));
+                Connection.SendPacket(new SCInGameShopConfigPacket(1, 2, 0));
+                Connection.SendPacket(new SCGameRuleConfigPacket(0, 0));
+                Connection.SendPacket(new SCProtectFactionPacket(1, DateTime.UtcNow));
+                Connection.SendPacket(new SCTaxItemConfig2Packet(0));
                 break;
             case 1:
                 Connection.SendPacket(new ChangeStatePacket(2));

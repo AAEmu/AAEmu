@@ -1,34 +1,24 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSTakeAttachmentItemPacket : GamePacket
 {
-    public CSTakeAttachmentItemPacket() : base(CSOffsets.CSTakeAttachmentItemPacket, 1)
+    public CSTakeAttachmentItemPacket() : base(CSOffsets.CSTakeAttachmentItemPacket, 5)
     {
     }
 
     public override void Read(PacketStream stream)
     {
         var mailId = stream.ReadInt64();
-        var itemId = stream.ReadUInt32();
-        var id = stream.ReadUInt64();
-        var grade = stream.ReadByte();
-        var flags = stream.ReadByte();
-        var count = stream.ReadUInt32();
-        var detailType = stream.ReadByte();
-
-        var creationTime = stream.ReadDateTime();
-        var lifespanMins = stream.ReadUInt32();
-        var type2 = stream.ReadUInt32(); // type(id)
-        var worldId = stream.ReadByte();
-        var unsecureDateTime = stream.ReadDateTime();
-        var unpackDateTime = stream.ReadDateTime();
+        var item = new Item();
+        item.Read(stream);
 
         var slotType = stream.ReadByte();
         var slot = stream.ReadByte();
 
-        Connection.ActiveChar.Mails.GetAttached(mailId, false, true, false, id);
+        Connection.ActiveChar.Mails.GetAttached(mailId, false, true, false, item.Id);
     }
 }

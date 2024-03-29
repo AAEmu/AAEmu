@@ -9,7 +9,7 @@ public class SCSendUserMusicPacket : GamePacket
     private readonly string _author; // not sure yet it this is the actual author or the person playing the music
     private readonly byte[] _midiData;
 
-    public SCSendUserMusicPacket(uint playerObjId, string author, byte[] midiData) : base(SCOffsets.SCSendUserMusicPacket, 1)
+    public SCSendUserMusicPacket(uint playerObjId, string author, byte[] midiData) : base(SCOffsets.SCSendUserMusicPacket, 5)
     {
         _playerObjId = playerObjId;
         _author = author;

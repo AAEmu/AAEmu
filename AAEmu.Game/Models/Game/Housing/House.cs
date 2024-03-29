@@ -23,7 +23,7 @@ public sealed class House : Unit
     private int _currentStep;
     private int _allAction;
     private uint _id;
-    private uint _accountId;
+    private ulong _accountId;
     private uint _coOwnerId;
     private uint _templateId;
     private int _baseAction;
@@ -42,7 +42,7 @@ public sealed class House : Unit
     /// </summary>
     public bool IsDirty { get => _isDirty; set => _isDirty = value; }
     public new uint Id { get => _id; set { _id = value; _isDirty = true; } }
-    public uint AccountId { get => _accountId; set { _accountId = value; _isDirty = true; } }
+    public ulong AccountId { get => _accountId; set { _accountId = value; _isDirty = true; } }
     public uint CoOwnerId { get => _coOwnerId; set { _coOwnerId = value; _isDirty = true; } }
     //public ushort TlId { get; set; }
     public new uint TemplateId { get => _templateId; set { _templateId = value; _isDirty = true; } }
@@ -115,7 +115,6 @@ public sealed class House : Unit
     public uint SellToPlayerId { get => _sellToPlayerId; set { _sellToPlayerId = value; _isDirty = true; } }
     public uint SellPrice { get => _sellPrice; set { _sellPrice = value; _isDirty = true; } }
     public bool AllowRecover { get => _allowRecover; set { _allowRecover = value; _isDirty = true; } }
-
 
     public House()
     {

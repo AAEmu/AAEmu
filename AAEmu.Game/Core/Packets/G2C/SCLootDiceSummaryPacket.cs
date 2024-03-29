@@ -10,7 +10,7 @@ public class SCLootDiceSummaryPacket : GamePacket
     private readonly uint _id;
     private readonly sbyte _diceValue;
 
-    public SCLootDiceSummaryPacket(ulong iId, int count, uint id, sbyte diceValue) : base(SCOffsets.SCLootDiceSummaryPacket, 1)
+    public SCLootDiceSummaryPacket(ulong iId, int count, uint id, sbyte diceValue) : base(SCOffsets.SCLootDiceSummaryPacket, 5)
     {
         _iId = iId;
         _count = count;

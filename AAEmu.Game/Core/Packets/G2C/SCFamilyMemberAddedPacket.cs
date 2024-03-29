@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
 
@@ -9,7 +9,7 @@ public class SCFamilyMemberAddedPacket : GamePacket
     private readonly Family _family;
     private readonly int _addedIndex;
 
-    public SCFamilyMemberAddedPacket(Family family, int addedIndex) : base(SCOffsets.SCFamilyMemberAddedPacket, 1)
+    public SCFamilyMemberAddedPacket(Family family, int addedIndex) : base(SCOffsets.SCFamilyMemberAddedPacket, 5)
     {
         _family = family;
         _addedIndex = addedIndex;

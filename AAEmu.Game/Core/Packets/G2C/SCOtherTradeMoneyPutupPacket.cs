@@ -7,7 +7,7 @@ public class SCOtherTradeMoneyPutupPacket : GamePacket
 {
     private readonly int _moneyAmount;
 
-    public SCOtherTradeMoneyPutupPacket(int moneyAmount) : base(SCOffsets.SCOtherTradeMoneyPutupPacket, 1)
+    public SCOtherTradeMoneyPutupPacket(int moneyAmount) : base(SCOffsets.SCOtherTradeMoneyPutupPacket, 5)
     {
         _moneyAmount = moneyAmount;
     }

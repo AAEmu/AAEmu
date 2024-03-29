@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.World.Transform;
 
@@ -10,7 +10,7 @@ public class SCTeamPingPosPacket : GamePacket
     private readonly WorldSpawnPosition _position;
     private readonly uint _insId;
 
-    public SCTeamPingPosPacket(bool hasPing, WorldSpawnPosition position, uint insId) : base(SCOffsets.SCTeamPingPosPacket, 1)
+    public SCTeamPingPosPacket(bool hasPing, WorldSpawnPosition position, uint insId) : base(SCOffsets.SCTeamPingPosPacket, 5)
     {
         _hasPing = hasPing;
         _position = position;

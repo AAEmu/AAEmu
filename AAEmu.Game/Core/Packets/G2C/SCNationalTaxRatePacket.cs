@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -11,7 +11,7 @@ public class SCNationalTaxRatePacket : GamePacket
     private readonly int _prevTaxRate;
     private readonly DateTime _changedTime;
 
-    public SCNationalTaxRatePacket(ushort id, int taxRate, int prevTaxRate, DateTime changedTime) : base(SCOffsets.SCNationalTaxRatePacket, 1)
+    public SCNationalTaxRatePacket(ushort id, int taxRate, int prevTaxRate, DateTime changedTime) : base(SCOffsets.SCNationalTaxRatePacket, 5)
     {
         _id = id;
         _taxRate = taxRate;

@@ -11,7 +11,7 @@ public class SCUnitAttachedPacket : GamePacket
     private readonly uint _id;
     private readonly byte _reason;
 
-    public SCUnitAttachedPacket(uint childUnitObjId, AttachPointKind point, AttachUnitReason reason, uint id) : base(SCOffsets.SCUnitAttachedPacket, 1)
+    public SCUnitAttachedPacket(uint childUnitObjId, AttachPointKind point, AttachUnitReason reason, uint id) : base(SCOffsets.SCUnitAttachedPacket, 5)
     {
         _childUnitObjId = childUnitObjId;
         _point = (byte)point;

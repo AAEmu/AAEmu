@@ -7,22 +7,22 @@ using AAEmu.Game.Models.Game.World;
 
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
-namespace AAEmu.Game.Models.Game.Indun.Events
-{
-    internal class IndunEventNoAliveChInRooms : IndunEvent
-    {
-        public uint RoomId { get; set; }
-        private Dictionary<uint, uint> _playerRoomCount;
-        private Dictionary<uint, Doodad> _doodads;
+namespace AAEmu.Game.Models.Game.Indun.Events;
 
-        public IndunEventNoAliveChInRooms()
-        {
+internal class IndunEventNoAliveChInRooms : IndunEvent
+{
+    public uint RoomId { get; set; }
+    private Dictionary<uint, uint> _playerRoomCount;
+    private Dictionary<uint, Doodad> _doodads;
+
+    public IndunEventNoAliveChInRooms()
+    {
             _playerRoomCount = new Dictionary<uint, uint>();
             _doodads = new Dictionary<uint, Doodad>();
         }
 
-        public override void Subscribe(InstanceWorld world)
-        {
+    public override void Subscribe(InstanceWorld world)
+    {
             var doodadList = new List<Doodad>();
             var indunRoom = IndunGameData.Instance.GetRoom(RoomId);
             foreach (var region in world.Regions)
@@ -55,28 +55,28 @@ namespace AAEmu.Game.Models.Game.Indun.Events
             }
         }
 
-        public override void UnSubscribe(InstanceWorld world)
-        {
+    public override void UnSubscribe(InstanceWorld world)
+    {
             _doodads.Remove(world.Id);
             _playerRoomCount.Remove(world.Id);
             world.Events.OnAreaClear -= OnAreaClear;
         }
 
-        public uint GetRoomPlayerCount(uint instanceId)
-        {
+    public uint GetRoomPlayerCount(uint instanceId)
+    {
             if (_playerRoomCount.TryGetValue(instanceId, out var value))
                 return value;
 
             throw new KeyNotFoundException("Key not found for RoomPlayerCount.");
         }
 
-        public void SetRoomPlayerCount(uint instanceId, uint count)
-        {
+    public void SetRoomPlayerCount(uint instanceId, uint count)
+    {
             _playerRoomCount[instanceId] = count;
         }
 
-        public Doodad GetRoomDoodad(uint worldId)
-        {
+    public Doodad GetRoomDoodad(uint worldId)
+    {
             Logger.Warn($"GetRoomDoodad, world {worldId}");
             if (_doodads.TryGetValue(worldId, out var value))
             {
@@ -88,13 +88,12 @@ namespace AAEmu.Game.Models.Game.Indun.Events
             return null;
         }
 
-        private void OnAreaClear(object sender, OnAreaClearArgs args)
-        {
+    private void OnAreaClear(object sender, OnAreaClearArgs args)
+    {
             if (sender is InstanceWorld world)
             {
                 Logger.Warn($"OnAreaClear, world {world.Id}");
                 
             }
         }
-    }
 }

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
 
@@ -8,7 +8,7 @@ public class SCTeamRemoteMembersExPacket : GamePacket
 {
     private readonly TeamMember[] _members;
 
-    public SCTeamRemoteMembersExPacket(TeamMember[] members) : base(SCOffsets.SCTeamRemoteMembersExPacket, 1)
+    public SCTeamRemoteMembersExPacket(TeamMember[] members) : base(SCOffsets.SCTeamRemoteMembersExPacket, 5)
     {
         _members = members;
     }

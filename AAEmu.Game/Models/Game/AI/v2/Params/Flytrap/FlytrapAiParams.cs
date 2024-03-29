@@ -5,20 +5,20 @@ using AAEmu.Game.Models.Game.AI.V2.Params.Flytrap;
 
 using NLua;
 
-namespace AAEmu.Game.Models.Game.AI.v2.Params.Flytrap
-{
-    public class FlytrapAiParams : AiParams
-    {
-        public float AttackEndDistance { get; set; } = 50; // This is found in the entity?
-        public FlytrapCombatSkill CombatSkills { get; set; }
+namespace AAEmu.Game.Models.Game.AI.v2.Params.Flytrap;
 
-        public FlytrapAiParams(string aiPramsString)
-        {
+public class FlytrapAiParams : AiParams
+{
+    public float AttackEndDistance { get; set; } = 50; // This is found in the entity?
+    public FlytrapCombatSkill CombatSkills { get; set; }
+
+    public FlytrapAiParams(string aiPramsString)
+    {
             Parse(aiPramsString);
         }
 
-        private void Parse(string data)
-        {
+    private void Parse(string data)
+    {
             using var aiParams = new AiLua();
             aiParams.DoString($"data = {{\n{data}\n}}");
 
@@ -50,5 +50,4 @@ namespace AAEmu.Game.Models.Game.AI.v2.Params.Flytrap
                 CombatSkills.ParseLua(table);
             }
         }
-    }
 }

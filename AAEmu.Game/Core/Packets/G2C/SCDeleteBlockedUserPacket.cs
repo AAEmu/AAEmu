@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -10,7 +10,7 @@ public class SCDeleteBlockedUserPacket : GamePacket
     private readonly string _blockedName;
     private readonly short _errorMessage;
 
-    public SCDeleteBlockedUserPacket(uint characterId, bool success, string blockedName, short errorMessage) : base(SCOffsets.SCDeleteBlockedUserPacket, 1)
+    public SCDeleteBlockedUserPacket(uint characterId, bool success, string blockedName, short errorMessage) : base(SCOffsets.SCDeleteBlockedUserPacket, 5)
     {
         _characterId = characterId;
         _success = success;

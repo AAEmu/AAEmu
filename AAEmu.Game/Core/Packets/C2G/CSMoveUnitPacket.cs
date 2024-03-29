@@ -19,17 +19,18 @@ public class CSMoveUnitPacket : GamePacket
     private uint _objId;
     private MoveType _moveType;
 
-    public CSMoveUnitPacket() : base(CSOffsets.CSMoveUnitPacket, 1)
+    public CSMoveUnitPacket() : base(CSOffsets.CSMoveUnitPacket, 5)
     {
     }
 
     public override void Read(PacketStream stream)
     {
         _objId = stream.ReadBc();
-
+        var myObjId = Connection.ActiveChar.ObjId;
         var type = (MoveTypeEnum)stream.ReadByte();
         _moveType = MoveType.GetType(type);
-        stream.Read(_moveType);
+        stream.Read(_moveType); // Read UnitMovement
+        var extraFlag = stream.ReadByte(); // add in 3.0.3.0
     }
 
     public override void Execute()

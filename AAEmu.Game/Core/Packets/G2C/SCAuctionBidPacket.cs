@@ -7,20 +7,20 @@ namespace AAEmu.Game.Core.Packets.G2C;
 public class SCAuctionBidPacket : GamePacket
 {
     private readonly AuctionItem _auctionItem;
-    public SCAuctionBidPacket(AuctionItem auctionItem) : base(SCOffsets.SCAuctionBidPacket, 1)
+    public SCAuctionBidPacket(AuctionItem auctionItem) : base(SCOffsets.SCAuctionBidPacket, 5)
     {
         _auctionItem = auctionItem;
     }
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_auctionItem.ID);
-        stream.Write(_auctionItem.BidWorldID);
+        stream.Write(_auctionItem.Id);
+        stream.Write(_auctionItem.BidWorldId);
         stream.Write(_auctionItem.DetailType);
         stream.Write(_auctionItem.BidderName);
         stream.Write(_auctionItem.BidMoney);
         stream.Write(_auctionItem.Duration);
-        stream.Write(_auctionItem.ItemID);
+        stream.Write(_auctionItem.ItemId);
         return stream;
     }
 }

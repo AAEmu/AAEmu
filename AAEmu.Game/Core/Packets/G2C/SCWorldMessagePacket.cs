@@ -9,7 +9,7 @@ public class SCWorldMessagePacket : GamePacket
     private readonly byte _messageType;
     private readonly string _msg;
 
-    public SCWorldMessagePacket(byte source, byte messageType, string msg) : base(SCOffsets.SCWorldMessagePacket, 1)
+    public SCWorldMessagePacket(byte source, byte messageType, string msg) : base(SCOffsets.SCWorldMessagePacket, 5)
     {
         // SEENS RELATED TO PATRON TIME TO EXPIRE
         _source = source;

@@ -7,7 +7,7 @@ public class SCTradeMoneyPutupPacket : GamePacket
 {
     private readonly int _moneyAmount;
 
-    public SCTradeMoneyPutupPacket(int moneyAmount) : base(SCOffsets.SCTradeMoneyPutupPacket, 1)
+    public SCTradeMoneyPutupPacket(int moneyAmount) : base(SCOffsets.SCTradeMoneyPutupPacket, 5)
     {
         _moneyAmount = moneyAmount;
     }

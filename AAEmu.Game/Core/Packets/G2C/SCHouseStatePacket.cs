@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Housing;
 
@@ -8,7 +8,7 @@ public class SCHouseStatePacket : GamePacket
 {
     private readonly House _house;
 
-    public SCHouseStatePacket(House house) : base(SCOffsets.SCHouseStatePacket, 1)
+    public SCHouseStatePacket(House house) : base(SCOffsets.SCHouseStatePacket, 5)
     {
         _house = house;
     }

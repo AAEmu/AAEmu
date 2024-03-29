@@ -6,14 +6,14 @@ using AAEmu.Game.Models.Game.NPChar;
 
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
-namespace AAEmu.Game.Models.Game.Indun.Actions
-{
-    internal class IndunActionRemoveTaggedNpcs : IndunAction
-    {
-        public uint TagId { get; set; }
+namespace AAEmu.Game.Models.Game.Indun.Actions;
 
-        public override void Execute(InstanceWorld world)
-        {
+internal class IndunActionRemoveTaggedNpcs : IndunAction
+{
+    public uint TagId { get; set; }
+
+    public override void Execute(InstanceWorld world)
+    {
             foreach (var npc in GetTaggedNpcs(world))
             {
                 npc.Delete();
@@ -22,8 +22,8 @@ namespace AAEmu.Game.Models.Game.Indun.Actions
             Logger.Warn($"IndunActionRemoveTaggedNpcs: {TagId}");
         }
 
-        private List<Npc> GetTaggedNpcs(InstanceWorld world)
-        {
+    private List<Npc> GetTaggedNpcs(InstanceWorld world)
+    {
             var npcList = new List<Npc>();
 
             foreach (var region in world.Regions)
@@ -34,5 +34,4 @@ namespace AAEmu.Game.Models.Game.Indun.Actions
             var taggedNpcIds = TagsGameData.Instance.GetIdsByTagId(TagsGameData.TagType.Npcs, TagId);
             return npcList.Where(npc => taggedNpcIds.Contains(npc.TemplateId)).ToList();
         }
-    }
 }

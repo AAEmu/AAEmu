@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -12,7 +12,7 @@ public class SCCharacterResurrectedPacket : GamePacket
     private readonly float _zRot;
 
     public SCCharacterResurrectedPacket(uint unitId, float x, float y, float z, float zRot)
-        : base(SCOffsets.SCCharacterResurrectedPacket, 1)
+        : base(SCOffsets.SCCharacterResurrectedPacket, 5)
     {
         _unitId = unitId;
         _x = x;

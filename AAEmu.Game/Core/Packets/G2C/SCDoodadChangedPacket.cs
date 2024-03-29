@@ -8,7 +8,7 @@ public class SCDoodadChangedPacket : GamePacket
     private readonly uint _id;
     private readonly int _data;
 
-    public SCDoodadChangedPacket(uint id, int data) : base(SCOffsets.SCDoodadChangedPacket, 1)
+    public SCDoodadChangedPacket(uint id, int data) : base(SCOffsets.SCDoodadChangedPacket, 5)
     {
         _id = id;
         _data = data;

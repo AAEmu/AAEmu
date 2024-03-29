@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -8,7 +8,7 @@ public class SCDominionTaxRatePacket : GamePacket
     private readonly ushort _id;
     private readonly int _taxRate;
 
-    public SCDominionTaxRatePacket(ushort id, int taxRate) : base(SCOffsets.SCDominionTaxRatePacket, 1)
+    public SCDominionTaxRatePacket(ushort id, int taxRate) : base(SCOffsets.SCDominionTaxRatePacket, 5)
     {
         _id = id;
         _taxRate = taxRate;

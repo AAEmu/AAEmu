@@ -9,7 +9,7 @@ public class SCDoodadsCreatedPacket : GamePacket
     private readonly Doodad[] _doodads;
     public const int MaxCountPerPacket = 30; // Suggested Maximum Size
 
-    public SCDoodadsCreatedPacket(Doodad[] doodads) : base(SCOffsets.SCDoodadsCreatedPacket, 1)
+    public SCDoodadsCreatedPacket(Doodad[] doodads) : base(SCOffsets.SCDoodadsCreatedPacket, 5)
     {
         _doodads = doodads;
     }

@@ -550,8 +550,8 @@ public sealed class Mate : Unit
         base.AddVisibleObject(character);
 
         character.SendPacket(new SCUnitStatePacket(this));
-        character.SendPacket(new SCMateStatePacket(ObjId));
-        character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+        character.SendPacket(new SCMateStatusPacket(ObjId));
+        character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc));
         // TODO: Maybe let base handle this ?
         foreach (var ati in Passengers)
         {
@@ -630,7 +630,7 @@ public sealed class Mate : Unit
 
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
+        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc), false);
         PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
 

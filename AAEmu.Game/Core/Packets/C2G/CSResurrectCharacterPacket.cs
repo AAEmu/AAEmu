@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSResurrectCharacterPacket : GamePacket
 {
-    public CSResurrectCharacterPacket() : base(CSOffsets.CSResurrectCharacterPacket, 1)
+    public CSResurrectCharacterPacket() : base(CSOffsets.CSResurrectCharacterPacket, 5)
     {
     }
 
@@ -43,7 +43,6 @@ public class CSResurrectCharacterPacket : GamePacket
         {
             portal = PortalManager.Instance.GetClosestReturnPortal(Connection.ActiveChar);
         }
-
 
         if (inPlace)
         {
@@ -91,7 +90,8 @@ public class CSResurrectCharacterPacket : GamePacket
             new SCUnitPointsPacket(
                 Connection.ActiveChar.ObjId,
                 Connection.ActiveChar.Hp,
-                Connection.ActiveChar.Mp
+                Connection.ActiveChar.Mp,
+                Connection.ActiveChar.HighAbilityRsc
             ),
             true
         );

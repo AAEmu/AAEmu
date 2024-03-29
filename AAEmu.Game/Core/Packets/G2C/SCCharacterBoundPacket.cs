@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -20,7 +20,7 @@ public class SCCharacterBoundPacket : GamePacket
 
     public SCCharacterBoundPacket(uint unitObjId, uint returnDistrict, uint resurrectionDistrict,
         bool returnDistrictChanged, uint id, string name, uint zoneKey, Vector3 pos, float zRot, bool isFavorite) :
-        base(SCOffsets.SCCharacterBoundPacket, 1)
+        base(SCOffsets.SCCharacterBoundPacket, 5)
     {
         _unitObjId = unitObjId;
         _returnDistrict = returnDistrict;

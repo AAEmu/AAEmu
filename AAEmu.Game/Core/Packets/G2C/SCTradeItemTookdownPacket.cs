@@ -9,7 +9,7 @@ public class SCTradeItemTookdownPacket : GamePacket
     private readonly SlotType _slotType;
     private readonly byte _slot;
 
-    public SCTradeItemTookdownPacket(SlotType slotType, byte slot) : base(SCOffsets.SCTradeItemTookdownPacket, 1)
+    public SCTradeItemTookdownPacket(SlotType slotType, byte slot) : base(SCOffsets.SCTradeItemTookdownPacket, 5)
     {
         _slotType = slotType;
         _slot = slot;

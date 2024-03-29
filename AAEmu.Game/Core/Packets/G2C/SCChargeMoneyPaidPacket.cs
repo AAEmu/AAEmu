@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -7,7 +7,7 @@ public class SCChargeMoneyPaidPacket : GamePacket
 {
     private readonly long _mailId;
 
-    public SCChargeMoneyPaidPacket(long mailId) : base(SCOffsets.SCChargeMoneyPaidPacket, 1)
+    public SCChargeMoneyPaidPacket(long mailId) : base(SCOffsets.SCChargeMoneyPaidPacket, 5)
     {
         _mailId = mailId;
     }

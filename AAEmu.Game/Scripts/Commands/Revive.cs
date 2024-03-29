@@ -36,7 +36,7 @@ public class Revive : ICommand
                 targetPlayer.Hp = targetPlayer.MaxHp;
                 targetPlayer.Mp = targetPlayer.MaxMp;
                 targetPlayer.BroadcastPacket(new SCCharacterResurrectedPacket(targetPlayer.ObjId, targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y, targetPlayer.Transform.World.Position.Z, targetPlayer.Transform.World.Rotation.Z), true);
-                targetPlayer.BroadcastPacket(new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp), true);
+                targetPlayer.BroadcastPacket(new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp, targetPlayer.HighAbilityRsc), true);
                 targetPlayer.PostUpdateCurrentHp(targetPlayer, 0, targetPlayer.Hp, KillReason.Unknown);
             }
             else

@@ -117,7 +117,7 @@ public partial class Character
                         var newEffect =
                             new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.UtcNow)
                             {
-                                AbLevel = itemLevels[setCount.Key]
+                                AbLevel = (ushort)itemLevels[setCount.Key]
                             };
                         Buffs.AddBuff(newEffect);
                         appliedBuffs.Add(bonus.BuffId);
@@ -244,7 +244,7 @@ public partial class Character
             var newEffect =
                 new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
                 {
-                    AbLevel = (uint)gradeBuffAbLevel
+                    AbLevel = (ushort)gradeBuffAbLevel
                 };
 
             Buffs.AddBuff(newEffect);
@@ -285,7 +285,7 @@ public partial class Character
                 var newEffect =
                     new Buff(this, this, new SkillCasterUnit(), itemAddedBuff, null, DateTime.UtcNow)
                     {
-                        AbLevel = (uint)itemAdded.Template.Level
+                        AbLevel = (ushort)itemAdded.Template.Level
                     };
 
                 Buffs.AddBuff(newEffect);
@@ -319,7 +319,7 @@ public partial class Character
                     var newEffect =
                         new Buff(this, this, new SkillCasterUnit(), itemAddedChargedBuff, null, DateTime.UtcNow)
                         {
-                            AbLevel = (uint)itemAdded.Template.Level
+                            AbLevel = (ushort)itemAdded.Template.Level
                         };
                     Buffs.AddBuff(newEffect);
                 }
@@ -340,7 +340,7 @@ public partial class Character
                     var newEffect =
                         new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
                         {
-                            AbLevel = (uint)item.Template.Level
+                            AbLevel = (ushort)item.Template.Level
                         };
 
                     Buffs.AddBuff(newEffect);
@@ -374,7 +374,7 @@ public partial class Character
                         var newEffect =
                             new Buff(this, this, new SkillCasterUnit(), itemAddedChargedBuff, null, DateTime.UtcNow)
                             {
-                                AbLevel = (uint)item.Template.Level
+                                AbLevel = (ushort)item.Template.Level
                             };
                         Buffs.AddBuff(newEffect);
                     }

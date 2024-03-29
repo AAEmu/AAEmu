@@ -27,7 +27,7 @@ public class GameConnection
     private Session _session;
 
     public uint Id => _session.SessionId;
-    public uint AccountId { get; set; }
+    public ulong AccountId { get; set; }
     public IPAddress Ip => _session.Ip;
     public PacketStream LastPacket { get; set; }
     public AccountPayment Payment { get; set; }
@@ -37,6 +37,9 @@ public class GameConnection
     public Character ActiveChar { get; set; }
     public Dictionary<uint, Character> Characters;
     public Dictionary<uint, House> Houses;
+    public object WriteLock { get; set; }
+    public object ReadLock { get; set; }
+    public byte LastCount { get; set; }
     public Task LeaveTask { get; set; }
     public CancellationTokenSource CancelTokenSource { get; set; }
     public DateTime LastPing { get; set; }
@@ -49,6 +52,8 @@ public class GameConnection
         Characters = new Dictionary<uint, Character>();
         Houses = new Dictionary<uint, House>();
         Payment = new AccountPayment(this);
+        WriteLock = new object();
+        ReadLock = new object();
         // AddAttribute("gmFlag", true);
     }
 

@@ -41,7 +41,7 @@ public class Buff
     public DateTime EndTime { get; set; }
     public int Charge { get; set; }
     public bool Passive { get; set; }
-    public uint AbLevel { get; set; }
+    public ushort AbLevel { get; set; } // int in 1.2, ushort in 3+
     public BuffEvents Events { get; }
     public BuffTriggersHandler Triggers { get; }
     public Dictionary<uint, uint> saveFactions { get; set; }

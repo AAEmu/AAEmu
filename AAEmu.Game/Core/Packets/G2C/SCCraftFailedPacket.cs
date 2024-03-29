@@ -10,7 +10,7 @@ public class SCCraftFailedPacket : GamePacket
     private readonly int _count;
 
     // TODO needs fixing
-    public SCCraftFailedPacket(uint id, uint craftId, int count) : base(SCOffsets.SCCraftFailedPacket, 1)
+    public SCCraftFailedPacket(uint id, uint craftId, int count) : base(SCOffsets.SCCraftFailedPacket, 5)
     {
         _id = id;
         _craftId = craftId;

@@ -8,7 +8,7 @@ public class SCActionSlotsPacket : GamePacket
 {
     private readonly ActionSlot[] _slots;
 
-    public SCActionSlotsPacket(ActionSlot[] slots) : base(SCOffsets.SCActionSlotsPacket, 1)
+    public SCActionSlotsPacket(ActionSlot[] slots) : base(SCOffsets.SCActionSlotsPacket, 5)
     {
         _slots = slots;
     }
@@ -28,6 +28,7 @@ public class SCActionSlotsPacket : GamePacket
                 case ActionSlotType.ItemType:
                 case ActionSlotType.Spell:
                 case ActionSlotType.RidePetSpell:
+                case ActionSlotType.BattlePetSpell:
                     {
                         stream.Write((uint)s.ActionId);
                         break;

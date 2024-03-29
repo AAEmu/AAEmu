@@ -56,17 +56,19 @@ public class SystemFaction : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(Id);
-        stream.Write(AggroLink);
-        stream.Write(MotherId);
-        stream.Write(Name);
-        stream.Write(OwnerId);
-        stream.Write(OwnerName);
-        stream.Write(UnitOwnerType);
-        stream.Write(PoliticalSystem);
-        stream.Write(Created);
-        stream.Write(DiplomacyTarget);
-        stream.Write(AllowChangeName);
+        stream.Write(Id);                // type
+        stream.Write(MotherId);          // type
+        stream.Write(Name);              // name
+        stream.Write(OwnerId);           // ownerId Int32
+        stream.Write(OwnerName);         // ownerName
+        stream.Write(UnitOwnerType);     // UnitOwnerType Byte
+        stream.Write(PoliticalSystem);   // PoliticalSystem Byte
+        stream.Write(Created);           // createdTime
+        stream.Write(AggroLink);         // aggroLink
+        stream.Write(true);              // dTarget
+        //stream.Write(DiplomacyTarget); // нет в 3.0.3.0.
+        stream.Write(AllowChangeName);   // allowChangeName
+        stream.Write(0L);                // renameTime
         return stream;
     }
 }

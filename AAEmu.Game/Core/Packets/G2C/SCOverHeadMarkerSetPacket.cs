@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
 
@@ -11,7 +11,7 @@ public class SCOverHeadMarkerSetPacket : GamePacket
     private readonly bool _isObjId;
     private readonly uint _id;
 
-    public SCOverHeadMarkerSetPacket(uint teamId, OverHeadMark index, bool isObjId, uint id) : base(SCOffsets.SCOverHeadMarkerSetPacket, 1)
+    public SCOverHeadMarkerSetPacket(uint teamId, OverHeadMark index, bool isObjId, uint id) : base(SCOffsets.SCOverHeadMarkerSetPacket, 5)
     {
         _teamId = teamId;
         _index = index;

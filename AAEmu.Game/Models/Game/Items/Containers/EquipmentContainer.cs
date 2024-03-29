@@ -101,9 +101,9 @@ public class EquipmentContainer : ItemContainer
             case EquipmentItemSlotType.Glasses:
                 allowedSlots.Add(EquipmentItemSlot.Glasses);
                 break;
-            case EquipmentItemSlotType.Reserved:
+            case EquipmentItemSlotType.Horns:
                 // maybe for Warborn horns or other race specifics ? I dunno
-                allowedSlots.Add(EquipmentItemSlot.Reserved);
+                allowedSlots.Add(EquipmentItemSlot.Horns);
                 break;
             case EquipmentItemSlotType.Tail:
                 // Firran and Warborn tails ?

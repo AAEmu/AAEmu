@@ -11,7 +11,7 @@ public class SCConflictZoneStatePacket : GamePacket
     private readonly ZoneConflictType _hpws;
     private readonly DateTime _endTime;
 
-    public SCConflictZoneStatePacket(ushort zoneId, ZoneConflictType hpws, DateTime endTime) : base(SCOffsets.SCConflictZoneStatePacket, 1)
+    public SCConflictZoneStatePacket(ushort zoneId, ZoneConflictType hpws, DateTime endTime) : base(SCOffsets.SCConflictZoneStatePacket, 5)
     {
         _zoneId = zoneId;
         _hpws = hpws;

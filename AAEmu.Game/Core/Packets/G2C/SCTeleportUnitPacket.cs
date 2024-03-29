@@ -1,5 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Teleport;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -13,11 +14,11 @@ public class SCTeleportUnitPacket : GamePacket
     private readonly float _z;
     private readonly float _z2;
 
-    public SCTeleportUnitPacket(TeleportReason reason, short errorMessage, float x, float y, float z, float z2)
-        : base(SCOffsets.SCTeleportUnitPacket, 1)
+    public SCTeleportUnitPacket(TeleportReason reason, ErrorMessageType errorMessage, float x, float y, float z, float z2)
+        : base(SCOffsets.SCUnitTeleportPacket, 5)
     {
         _reason = (byte)reason;
-        _errorMessage = errorMessage;
+        _errorMessage = (short)errorMessage;
         _x = x;
         _y = y;
         _z = z;

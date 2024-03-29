@@ -13,7 +13,7 @@ public class SCMailBodyPacket : GamePacket
     private readonly CountUnreadMail _count;
     //private readonly ulong _mailID;
 
-    public SCMailBodyPacket(bool isPrepare, bool isSent, MailBody body, bool isOpenDateModified, CountUnreadMail count) : base(SCOffsets.SCMailBodyPacket, 1)
+    public SCMailBodyPacket(bool isPrepare, bool isSent, MailBody body, bool isOpenDateModified, CountUnreadMail count) : base(SCOffsets.SCMailBodyPacket, 5)
     {
         _isPrepare = isPrepare;
         _isSent = isSent;

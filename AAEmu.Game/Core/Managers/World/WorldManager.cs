@@ -296,7 +296,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                         {
                             ZoneGroupId = reader.GetUInt32("zone_group_id"),
                             Name = reader.GetString("name"),
-                            Comment = reader.GetString("comment"),
+                            //Comment = reader.GetString("comment"), // there is no such field in the database for version 3.0.3.0
                             LevelMin = reader.GetUInt32("level_min"),
                             LevelMax = reader.GetUInt32("level_max"),
                             MaxPlayers = reader.GetUInt32("max_players"),
@@ -1152,6 +1152,43 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         if (character.Family > 0)
         {
             FamilyManager.Instance.OnCharacterLogin(character);
+        }
+
+        StartingFirstJourney(character);
+    }
+
+    private void StartingFirstJourney(Character character)
+    {
+        var questId = 0u;
+        switch (character.Race)
+        {
+            case Race.Nuian: // Nuian
+                questId = 6839;
+                break;
+            case Race.Dwarf: // Dwarf
+                questId = 5811;
+                break;
+            case Race.Elf: // Elf
+                questId = 6840;
+                break;
+            case Race.Hariharan: // Hariharan
+                questId = 6842;
+                break;
+            case Race.Ferre: // Ferre
+                questId = 6841;
+                break;
+            case Race.Warborn: // Warborn
+                questId = 8228;
+                break;
+            case Race.Fairy:
+                break;
+            case Race.Returned:
+                break;
+        }
+        // showing it once
+        if (character.Updated - character.Created < TimeSpan.FromMinutes(1))
+        {
+            character.Quests.Add(questId);
         }
     }
 

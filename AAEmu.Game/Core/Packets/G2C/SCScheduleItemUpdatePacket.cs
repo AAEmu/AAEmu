@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
@@ -9,7 +9,7 @@ public class SCScheduleItemUpdatePacket : GamePacket
 {
     private readonly List<ScheduleItem> _scheduleItems;
 
-    public SCScheduleItemUpdatePacket(List<ScheduleItem> scheduleItems) : base(SCOffsets.SCScheduleItemUpdatePacket, 1)
+    public SCScheduleItemUpdatePacket(List<ScheduleItem> scheduleItems) : base(SCOffsets.SCScheduleItemUpdatePacket, 5)
     {
         _scheduleItems = scheduleItems;
     }

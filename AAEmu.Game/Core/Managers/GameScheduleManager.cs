@@ -550,7 +550,8 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
                 }
                 if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth > 0 && value.StDay > 0)
                 {
-                    cronExpression = $"0 {stMinute} {stHour} {edDay} {edMonth} {dayOfWeek} *"; // not verified
+                    //cronExpression = $"0 {stMinute} {stHour} {stDay} {stMonth} {dayOfWeek} *"; // not verified
+                    cronExpression = $"0 {stMinute} {stHour} {stDay} {stMonth} ? *"; // verified
                 }
                 //cronExpression = $"0 {stMinute} {stHour} {stDay} {stMonth} {dayOfWeek}";
             }

@@ -7,7 +7,7 @@ public class SCGimmicksRemovedPacket : GamePacket
 {
     private readonly uint[] _ids;
 
-    public SCGimmicksRemovedPacket(uint[] ids) : base(SCOffsets.SCGimmicksRemovedPacket, 1)
+    public SCGimmicksRemovedPacket(uint[] ids) : base(SCOffsets.SCGimmicksRemovedPacket, 5)
     {
         _ids = ids;
     }

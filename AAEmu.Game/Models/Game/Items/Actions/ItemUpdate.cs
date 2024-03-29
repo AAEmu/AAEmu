@@ -8,7 +8,7 @@ public class ItemUpdate : ItemTask
 
     public ItemUpdate(Item item)
     {
-        _type = ItemAction.UpdateDetail;
+        _type = ItemAction.UpdateDetail; // 9
         _item = item;
     }
 
@@ -16,11 +16,10 @@ public class ItemUpdate : ItemTask
     {
         base.Write(stream);
 
-        stream.Write((byte)_item.SlotType);
-        stream.Write((byte)_item.Slot);
-
-        stream.Write(_item.Id);
-        var details = new PacketStream();
+        stream.Write((byte)_item.SlotType); // type
+        stream.Write((byte)_item.Slot);     // index
+        stream.Write(_item.Id);             // item
+        var details = new PacketStream();   // detail
         details.Write((byte)_item.DetailType);
         _item.WriteDetails(details);
         stream.Write((short)128);

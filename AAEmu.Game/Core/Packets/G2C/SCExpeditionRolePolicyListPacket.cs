@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Expeditions;
@@ -9,7 +9,7 @@ public class SCExpeditionRolePolicyListPacket : GamePacket
 {
     private readonly List<ExpeditionRolePolicy> _rolePolicies;
 
-    public SCExpeditionRolePolicyListPacket(List<ExpeditionRolePolicy> rolePolicies) : base(SCOffsets.SCExpeditionRolePolicyListPacket, 1)
+    public SCExpeditionRolePolicyListPacket(List<ExpeditionRolePolicy> rolePolicies) : base(SCOffsets.SCExpeditionRolePolicyListPacket, 5)
     {
         _rolePolicies = rolePolicies;
     }

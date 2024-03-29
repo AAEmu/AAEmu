@@ -7,7 +7,7 @@ public class SCGetSlotCountPacket : GamePacket
 {
     private readonly byte _sc;
 
-    public SCGetSlotCountPacket(byte sc) : base(SCOffsets.SCGetSlotCountPacket, 1)
+    public SCGetSlotCountPacket(byte sc) : base(SCOffsets.SCGetSlotCountPacket, 5)
     {
         _sc = sc;
     }

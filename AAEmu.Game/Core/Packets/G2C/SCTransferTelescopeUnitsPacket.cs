@@ -11,7 +11,7 @@ public class SCTransferTelescopeUnitsPacket : GamePacket
     private readonly bool _last;
     private readonly Transfer[] _transfers;
 
-    public SCTransferTelescopeUnitsPacket(bool last, Transfer[] transfers) : base(SCOffsets.SCTransferTelescopeUnitsPacket, 1)
+    public SCTransferTelescopeUnitsPacket(bool last, Transfer[] transfers) : base(SCOffsets.SCTransferTelescopeUnitsPacket, 5)
     {
         _last = last;
         _transfers = transfers;

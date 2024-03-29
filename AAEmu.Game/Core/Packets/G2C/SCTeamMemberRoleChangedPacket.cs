@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
 
@@ -10,7 +10,7 @@ public class SCTeamMemberRoleChangedPacket : GamePacket
     private readonly uint _memberId;
     private readonly MemberRole _role;
 
-    public SCTeamMemberRoleChangedPacket(uint teamId, uint memberId, MemberRole role) : base(SCOffsets.SCTeamMemberRoleChangedPacket, 1)
+    public SCTeamMemberRoleChangedPacket(uint teamId, uint memberId, MemberRole role) : base(SCOffsets.SCTeamMemberRoleChangedPacket, 5)
     {
         _teamId = teamId;
         _memberId = memberId;

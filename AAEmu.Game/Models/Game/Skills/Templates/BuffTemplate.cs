@@ -179,7 +179,7 @@ public class BuffTemplate
             return; //TODO send error?
         if (target.Buffs.CheckBuffImmune(Id))
             return; //TODO  error of immune?
-        uint abLevel = 1;
+        ushort abLevel = 1;
         if (caster is Character character)
         {
             if (source.Skill != null)
@@ -187,12 +187,12 @@ public class BuffTemplate
                 var template = source.Skill.Template;
                 var abilityLevel = character.GetAbLevel((AbilityType)source.Skill.Template.AbilityId);
                 if (template.LevelStep != 0)
-                    abLevel = (uint)((abilityLevel / template.LevelStep) * template.LevelStep);
+                    abLevel = (ushort)((abilityLevel / template.LevelStep) * template.LevelStep);
                 else
-                    abLevel = (uint)template.AbilityLevel;
+                    abLevel = (ushort)template.AbilityLevel;
 
                 //Dont allow lower than minimum ablevel for skill or infinite debuffs can happen
-                abLevel = (uint)Math.Max(template.AbilityLevel, (int)abLevel);
+                abLevel = (ushort)Math.Max(template.AbilityLevel, abLevel);
             }
             else if (source.Buff != null)
             {
@@ -203,7 +203,7 @@ public class BuffTemplate
         {
             if (source.Skill != null)
             {
-                abLevel = (uint)source.Skill.Template.AbilityLevel;
+                abLevel = (ushort)source.Skill.Template.AbilityLevel;
             }
         }
         target.Buffs.AddBuff(new Buff(target, caster, casterObj, this, source?.Skill, time) { AbLevel = abLevel });

@@ -7,7 +7,7 @@ public class SCCombatEngagedPacket : GamePacket
 {
     private readonly uint _objId;
 
-    public SCCombatEngagedPacket(uint objId) : base(SCOffsets.SCCombatEngagedPacket, 1)
+    public SCCombatEngagedPacket(uint objId) : base(SCOffsets.SCCombatEngagedPacket, 5)
     {
         _objId = objId;
     }

@@ -13,7 +13,7 @@ public class ItemMove : ItemTask
 
     public ItemMove(SlotType fromSlotType, byte fromSlot, ulong fromItemId, SlotType toSlotType, byte toSlot, ulong toItemId)
     {
-        _type = ItemAction.SwapSlot;
+        _type = ItemAction.SwapSlot; // 8
         _fromSlotType = fromSlotType;
         _fromSlot = fromSlot;
         _fromItemId = fromItemId;
@@ -25,17 +25,13 @@ public class ItemMove : ItemTask
     public override PacketStream Write(PacketStream stream)
     {
         base.Write(stream);
-
-        stream.Write((byte)_fromSlotType);
-        stream.Write(_fromSlot);
-
-        stream.Write((byte)_toSlotType);
-        stream.Write(_toSlot);
-
-        stream.Write(_fromItemId);
-        stream.Write(_toItemId); // i2
-
-        stream.Write(0); //flags
+        stream.Write((byte)_fromSlotType); // type
+        stream.Write(_fromSlot);           // index
+        stream.Write((byte)_toSlotType);   // type
+        stream.Write(_toSlot);             // index
+        stream.Write(_fromItemId); // i1
+        stream.Write(_toItemId);   // i2
+        stream.Write(0);           //flags
         return stream;
     }
 }

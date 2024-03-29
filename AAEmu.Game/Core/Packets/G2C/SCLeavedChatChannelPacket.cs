@@ -10,7 +10,7 @@ public class SCLeavedChatChannelPacket : GamePacket
     private readonly short _subType;
     private readonly uint _factionId;
 
-    public SCLeavedChatChannelPacket(ChatType type, short subType, uint factionId) : base(SCOffsets.SCLeavedChatChannelPacket, 1)
+    public SCLeavedChatChannelPacket(ChatType type, short subType, uint factionId) : base(SCOffsets.SCLeavedChatChannelPacket, 5)
     {
         _type = type;
         _subType = subType;

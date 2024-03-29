@@ -14,7 +14,7 @@ public class SCICSGoodListPacket : GamePacket
     private readonly byte _mainTab;
     private readonly byte _subTab;
 
-    public SCICSGoodListPacket(bool pageEnd, ushort totalPage, byte mainTab, byte subTab, IcsItem item) : base(SCOffsets.SCICSGoodListPacket, 1)
+    public SCICSGoodListPacket(bool pageEnd, ushort totalPage, byte mainTab, byte subTab, IcsItem item) : base(SCOffsets.SCICSGoodListPacket, 5)
     {
         _pageEnd = pageEnd;
         _totalPage = totalPage;

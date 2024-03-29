@@ -303,14 +303,12 @@ public class TransferManager : Singleton<TransferManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new TransferBindings
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            AttachPointId = (AttachPointKind)reader.GetInt16("attach_point_id"),
-                            TransferId = reader.GetUInt32("transfer_id")
-                        };
+                        var template = new TransferBindings();
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                        template.OwnerId = reader.GetUInt32("owner_id");
+                        template.OwnerType = reader.GetString("owner_type");
+                        template.AttachPointId = (AttachPointKind)reader.GetInt16("attach_point_id");
+                        template.TransferId = reader.GetUInt32("transfer_id");
                         if (_templates.ContainsKey(template.OwnerId))
                         {
                             _templates[template.OwnerId].TransferBindings.Add(template);
@@ -328,14 +326,12 @@ public class TransferManager : Singleton<TransferManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new TransferBindingDoodads
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id"),
-                            DoodadId = reader.GetUInt32("doodad_id"),
-                        };
+                        var template = new TransferBindingDoodads();
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                        template.OwnerId = reader.GetUInt32("owner_id");
+                        template.OwnerType = reader.GetString("owner_type");
+                        template.AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id");
+                        template.DoodadId = reader.GetUInt32("doodad_id");
                         if (_templates.ContainsKey(template.OwnerId))
                         {
                             _templates[template.OwnerId].TransferBindingDoodads.Add(template);
@@ -353,15 +349,13 @@ public class TransferManager : Singleton<TransferManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new TransferPaths
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            PathName = reader.GetString("path_name"),
-                            WaitTimeStart = reader.GetDouble("wait_time_start"),
-                            WaitTimeEnd = reader.GetDouble("wait_time_end")
-                        };
+                        var template = new TransferPaths();
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                        template.OwnerId = reader.GetUInt32("owner_id");
+                        template.OwnerType = reader.GetString("owner_type");
+                        template.PathName = reader.GetString("path_name");
+                        template.WaitTimeStart = reader.GetDouble("wait_time_start");
+                        template.WaitTimeEnd = reader.GetDouble("wait_time_end");
                         if (_templates.ContainsKey(template.OwnerId))
                         {
                             _templates[template.OwnerId].TransferAllPaths.Add(template);

@@ -10,7 +10,7 @@ public class SCDetailedTimeOfDayPacket : GamePacket
     private readonly float _start;
     private readonly float _end;
 
-    public SCDetailedTimeOfDayPacket(float time) : base(SCOffsets.SCDetailedTimeOfDayPacket, 1)
+    public SCDetailedTimeOfDayPacket(float time) : base(SCOffsets.SCDetailedTimeOfDayPacket, 5)
     {
         _time = time;
         _speed = 0.0016666f;

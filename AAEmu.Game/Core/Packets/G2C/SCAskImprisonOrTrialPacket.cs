@@ -7,7 +7,7 @@ public class SCAskImprisonOrTrialPacket : GamePacket
     private readonly uint _crimeValue;
     private readonly uint _jailMinutes;
     public SCAskImprisonOrTrialPacket(uint crimeValue, uint jailMinutes) :
-        base(SCOffsets.SCAskImprisonOrTrialPacket, 1)
+        base(SCOffsets.SCAskImprisonOrTrialPacket, 5)
     {
         _crimeValue = crimeValue;
         _jailMinutes = jailMinutes;

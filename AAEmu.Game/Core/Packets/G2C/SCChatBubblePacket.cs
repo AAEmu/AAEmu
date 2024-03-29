@@ -11,7 +11,7 @@ public class SCChatBubblePacket : GamePacket
     private readonly uint _type;
     private readonly string _text;
 
-    public SCChatBubblePacket(uint bc, byte kind1, byte kind2, uint type, string text) : base(SCOffsets.SCChatBubblePacket, 1)
+    public SCChatBubblePacket(uint bc, byte kind1, byte kind2, uint type, string text) : base(SCOffsets.SCChatBubblePacket, 5)
     {
         _bc = bc;
         _kind1 = kind1;

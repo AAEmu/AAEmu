@@ -8,7 +8,7 @@ public class SCPortalDeletedPacket : GamePacket
     private readonly byte _portalType;
     private readonly int _portalId;
 
-    public SCPortalDeletedPacket(byte portalType, int portalId) : base(SCOffsets.SCPortalDeletedPacket, 1)
+    public SCPortalDeletedPacket(byte portalType, int portalId) : base(SCOffsets.SCPortalDeletedPacket, 5)
     {
         _portalType = portalType;
         _portalId = portalId;

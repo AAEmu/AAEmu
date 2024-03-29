@@ -16,35 +16,35 @@ public class FeaturesManager : Singleton<FeaturesManager>
         Logger.Info("Initializing Features ...");
         Fsets = new FeatureSet();
 
-        Fsets.PlayerLevelLimit = 55;
-        Fsets.MateLevelLimit = 50;
+//        Fsets.PlayerLevelLimit = 55;
+//        Fsets.MateLevelLimit = 50;
 
         // Allow House sales
-        Fsets.Set(Feature.houseSale, true);
+//        Fsets.Set(Feature.houseSale, true);
 
         // Disables Auction Button
         // Fsets.Set(Feature.hudAuctionButton, false);
 
         // Enable the Nations UI menu
-        Fsets.Set(Feature.nations, true);
+//        Fsets.Set(Feature.nations, true);
 
         // Enables family invites
-        Fsets.Set(Feature.allowFamilyChanges, true);
+//        Fsets.Set(Feature.allowFamilyChanges, true);
 
         // Disables Dwarf/Warborn character creation (0.5 only)
-        Fsets.Set(Feature.dwarfWarborn, false);
+        Fsets.Set(Feature.dwarfWarborn, true);
 
         // Debug convenience flags, disables most of the sensitive operation stuff to do easier testing
-        Fsets.Set(Feature.sensitiveOpeartion, false);
-        Fsets.Set(Feature.secondpass, false);
-        Fsets.Set(Feature.ingameshopSecondpass, false);
-        Fsets.Set(Feature.itemSecure, false);
+//        Fsets.Set(Feature.sensitiveOpeartion, false);
+//        Fsets.Set(Feature.secondpass, false);
+//        Fsets.Set(Feature.ingameshopSecondpass, false);
+//        Fsets.Set(Feature.itemSecure, false);
 
         // Use gold instead of tax certificates to pay house tax
         // Fsets.Set(Feature.taxItem, false); 
 
         // Enable the Custom UI (Addons) button and menu
-        Fsets.Set(Feature.customUiButton, true);
+//        Fsets.Set(Feature.customUiButton, true);
 
         // The following flags are set in our default, but have unknown behaviour. Disabling them seems to have no impact on gameplay
         /*
@@ -64,7 +64,6 @@ public class FeaturesManager : Singleton<FeaturesManager>
 
         Fsets.Set(Feature.flag_6_1, false);
         */
-
 
         var featsOn = string.Empty;
         foreach (var fObj in Enum.GetValues(typeof(Feature)))

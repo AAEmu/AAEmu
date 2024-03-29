@@ -261,7 +261,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             new SCFactionCreatedPacket(expedition, owner.ObjId, new[] { (owner.ObjId, owner.Id, owner.Name) })
         );
 
-        WorldManager.Instance.BroadcastPacketToServer(new SCFactionListPacket(expedition));
+        WorldManager.Instance.BroadcastPacketToServer(new SCSystemFactionListPacket(expedition));
         owner.BroadcastPacket(
             new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, expedition.Id, false),
             true
@@ -537,7 +537,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             {
                 var temp = new SystemFaction[expeditions.Length - i <= 20 ? expeditions.Length - i : 20];
                 Array.Copy(expeditions, i, temp, 0, temp.Length);
-                character.SendPacket(new SCFactionListPacket(temp));
+                character.SendPacket(new SCSystemFactionListPacket(temp));
             }
         }
 

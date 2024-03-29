@@ -8,7 +8,7 @@ public class SCCharacterPortalsPacket : GamePacket
 {
     private readonly Portal[] _portals;
 
-    public SCCharacterPortalsPacket(Portal[] portals) : base(SCOffsets.SCCharacterPortalsPacket, 1)
+    public SCCharacterPortalsPacket(Portal[] portals) : base(SCOffsets.SCCharacterPortalsPacket, 5)
     {
         _portals = portals;
     }

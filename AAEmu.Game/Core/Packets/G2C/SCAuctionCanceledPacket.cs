@@ -8,17 +8,17 @@ namespace AAEmu.Game.Core.Packets.G2C;
 public class SCAuctionCanceledPacket : GamePacket
 {
     private readonly AuctionItem item;
-    public SCAuctionCanceledPacket(AuctionItem auctionItem) : base(SCOffsets.SCAuctionCanceledPacket, 1)
+    public SCAuctionCanceledPacket(AuctionItem auctionItem) : base(SCOffsets.SCAuctionCanceledPacket, 5)
     {
         item = auctionItem;
     }
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(item.ID);
+        stream.Write(item.Id);
         stream.Write(item.Duration);
-        stream.Write(item.ItemID);
-        stream.Write(item.ObjectID);
+        stream.Write(item.ItemId);
+        stream.Write(item.ObjectId);
         stream.Write(item.Grade);
         stream.Write((byte)item.Flags);
         stream.Write(item.StackSize);
@@ -35,7 +35,7 @@ public class SCAuctionCanceledPacket : GamePacket
         stream.Write(item.StartMoney);
         stream.Write(item.DirectMoney);
         stream.Write(item.TimeLeft);
-        stream.Write(item.BidWorldID);
+        stream.Write(item.BidWorldId);
         stream.Write(item.BidderId);
         stream.Write(item.BidderName);
         stream.Write(item.BidMoney);

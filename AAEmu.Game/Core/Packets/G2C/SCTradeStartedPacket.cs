@@ -7,7 +7,7 @@ public class SCTradeStartedPacket : GamePacket
 {
     private readonly uint _objId;
 
-    public SCTradeStartedPacket(uint objId) : base(SCOffsets.SCTradeStartedPacket, 1)
+    public SCTradeStartedPacket(uint objId) : base(SCOffsets.SCTradeStartedPacket, 5)
     {
         _objId = objId;
     }

@@ -55,6 +55,12 @@ public class SpawnManager : Singleton<SpawnManager>
         if (npcSpawner.NpcSpawnerIds.Count == 0)
         {
             var npcSpawnerIds = NpcGameData.Instance.GetSpawnerIds(npcSpawner.UnitId);
+            if (npcSpawnerIds == null)
+            {
+                Logger.Warn($"SpawnerIds for Npc={npcSpawner.UnitId} doesn't exist");
+                return;
+            }
+
             // TODO добавил список спавнеров // added a list of spawners
             var spawners = new List<NpcSpawner>();
             foreach (var id in npcSpawnerIds)

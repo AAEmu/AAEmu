@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
+using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Commons.Utils.Updater;
 using AAEmu.Game.Core.Managers;
@@ -157,6 +158,7 @@ public sealed class GameService : IHostedService, IDisposable
         UccManager.Instance.Load();
         MusicManager.Instance.Load();
         AiGeoDataManager.Instance.Load();
+        EncryptionManager.Instance.Load();
 
         if (AppConfiguration.Instance.Scripts.LoadStrategy == ScriptsConfig.LoadStrategyType.Compilation)
         {

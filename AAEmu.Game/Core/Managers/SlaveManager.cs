@@ -857,12 +857,10 @@ public class SlaveManager : Singleton<SlaveManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new SlaveInitialBuffs
-                        {
-                            Id = reader.GetUInt32("id"),
-                            SlaveId = reader.GetUInt32("slave_id"),
-                            BuffId = reader.GetUInt32("buff_id")
-                        };
+                        var template = new SlaveInitialBuffs();
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                        template.SlaveId = reader.GetUInt32("slave_id");
+                        template.BuffId = reader.GetUInt32("buff_id");
                         if (_slaveTemplates.ContainsKey(template.SlaveId))
                         {
                             _slaveTemplates[template.SlaveId].InitialBuffs.Add(template);
@@ -880,13 +878,11 @@ public class SlaveManager : Singleton<SlaveManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new SlavePassiveBuffs
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            PassiveBuffId = reader.GetUInt32("passive_buff_id")
-                        };
+                        var template = new SlavePassiveBuffs();
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                        template.OwnerId = reader.GetUInt32("owner_id");
+                        template.OwnerType = reader.GetString("owner_type");
+                        template.PassiveBuffId = reader.GetUInt32("passive_buff_id");
                         if (_slaveTemplates.ContainsKey(template.OwnerId))
                         {
                             _slaveTemplates[template.OwnerId].PassiveBuffs.Add(template);
@@ -904,16 +900,14 @@ public class SlaveManager : Singleton<SlaveManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new SlaveDoodadBindings
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id"),
-                            DoodadId = reader.GetUInt32("doodad_id"),
-                            Persist = reader.GetBoolean("persist", true),
-                            Scale = reader.GetFloat("scale")
-                        };
+                        var template = new SlaveDoodadBindings();
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                        template.OwnerId = reader.GetUInt32("owner_id");
+                        template.OwnerType = reader.GetString("owner_type");
+                        template.AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id");
+                        template.DoodadId = reader.GetUInt32("doodad_id");
+                        template.Persist = reader.GetBoolean("persist", true);
+                        template.Scale = reader.GetFloat("scale");
                         if (_slaveTemplates.ContainsKey(template.OwnerId))
                         {
                             _slaveTemplates[template.OwnerId].DoodadBindings.Add(template);
@@ -931,16 +925,14 @@ public class SlaveManager : Singleton<SlaveManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new SlaveDoodadBindings
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id"),
-                            DoodadId = reader.GetUInt32("doodad_id"),
-                            Persist = false,
-                            Scale = 1f
-                        };
+                        var template = new SlaveDoodadBindings();
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                        template.OwnerId = reader.GetUInt32("owner_id");
+                        template.OwnerType = reader.GetString("owner_type");
+                        template.AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id");
+                        template.DoodadId = reader.GetUInt32("doodad_id");
+                        template.Persist = false;
+                        template.Scale = 1f;
                         if (_slaveTemplates.ContainsKey(template.OwnerId))
                         {
                             _slaveTemplates[template.OwnerId].HealingPointDoodads.Add(template);
@@ -958,14 +950,12 @@ public class SlaveManager : Singleton<SlaveManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new SlaveBindings()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            AttachPointId = (AttachPointKind)reader.GetUInt32("attach_point_id"),
-                            SlaveId = reader.GetUInt32("slave_id")
-                        };
+                        var template = new SlaveBindings();
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                        template.OwnerId = reader.GetUInt32("owner_id");
+                        template.OwnerType = reader.GetString("owner_type");
+                        template.AttachPointId = (AttachPointKind)reader.GetUInt32("attach_point_id");
+                        template.SlaveId = reader.GetUInt32("slave_id");
 
                         if (_slaveTemplates.ContainsKey(template.OwnerId))
                         {
@@ -984,16 +974,14 @@ public class SlaveManager : Singleton<SlaveManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new SlaveDropDoodad()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            DoodadId = reader.GetUInt32("doodad_id"),
-                            Count = reader.GetUInt32("count"),
-                            Radius = reader.GetFloat("radius"),
-                            OnWater = reader.GetBoolean("on_water", true),
-                        };
+                        var template = new SlaveDropDoodad();
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                        template.OwnerId = reader.GetUInt32("owner_id");
+                        template.OwnerType = reader.GetString("owner_type");
+                        template.DoodadId = reader.GetUInt32("doodad_id");
+                        template.Count = reader.GetUInt32("count");
+                        template.Radius = reader.GetFloat("radius");
+                        template.OnWater = reader.GetBoolean("on_water", true);
 
                         if (template.OwnerType != "Slave")
                         {
@@ -1017,12 +1005,10 @@ public class SlaveManager : Singleton<SlaveManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new SlaveMountSkills()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            SlaveId = reader.GetUInt32("slave_id"),
-                            MountSkillId = reader.GetUInt32("mount_skill_id")
-                        };
+                        var template = new SlaveMountSkills();
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                        template.SlaveId = reader.GetUInt32("slave_id");
+                        template.MountSkillId = reader.GetUInt32("mount_skill_id");
 
                         if (!_slaveMountSkills.TryAdd(template.Id, template))
                             Logger.Warn($"Duplicate entry for slave_mount_skills");

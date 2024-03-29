@@ -537,7 +537,7 @@ public class Skill
         unit.SkillTask = null;
 
         ConsumeMana(caster);
-        unit.Cooldowns.AddCooldown(Template.Id, (uint)Template.CooldownTime);
+        unit.Cooldowns.AddCooldown(Template.Id, Template.CooldownTime);
 
         // if (Id == 2 || Id == 3 || Id == 4)
         // {

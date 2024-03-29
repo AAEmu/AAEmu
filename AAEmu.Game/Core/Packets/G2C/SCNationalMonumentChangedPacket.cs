@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 
@@ -12,7 +12,7 @@ public class SCNationalMonumentChangedPacket : GamePacket
     private readonly float _y;
     private readonly float _z;
 
-    public SCNationalMonumentChangedPacket(ushort id, long type, float x, float y, float z) : base(SCOffsets.SCNationalMonumentChangedPacket, 1)
+    public SCNationalMonumentChangedPacket(ushort id, long type, float x, float y, float z) : base(SCOffsets.SCNationalMonumentChangedPacket, 5)
     {
         _id = id;
         _type = type;

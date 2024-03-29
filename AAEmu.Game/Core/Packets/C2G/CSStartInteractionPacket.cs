@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSStartInteractionPacket : GamePacket
 {
-    public CSStartInteractionPacket() : base(CSOffsets.CSStartInteractionPacket, 1)
+    public CSStartInteractionPacket() : base(CSOffsets.CSStartInteractionPacket, 5)
     {
     }
 
@@ -60,8 +60,7 @@ public class CSStartInteractionPacket : GamePacket
             else if (npc.Template.Blacksmith)
                 option = SkillsEnum.ItemFusion; // Open Item Fuse dialog ?
 
-            Connection.ActiveChar.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo,
-                pickId, mouseButton, modifierKeys, new uint[] { option }));
+            Connection.ActiveChar.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo, pickId, mouseButton, modifierKeys, new uint[] { option }));
         }
 
         var slave = WorldManager.Instance.GetUnit(npcObjId);

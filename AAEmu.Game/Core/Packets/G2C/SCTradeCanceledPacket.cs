@@ -8,7 +8,7 @@ public class SCTradeCanceledPacket : GamePacket
     private readonly int _reason;
     private readonly bool _causedByMe;
 
-    public SCTradeCanceledPacket(int reason, bool causedByMe) : base(SCOffsets.SCTradeCanceledPacket, 1)
+    public SCTradeCanceledPacket(int reason, bool causedByMe) : base(SCOffsets.SCTradeCanceledPacket, 5)
     {
         _reason = reason;
         _causedByMe = causedByMe;

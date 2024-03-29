@@ -3,15 +3,15 @@ using System.Collections.Generic;
 
 using NLua;
 
-namespace AAEmu.Game.Models.Game.AI.V2.Params.Flytrap
-{
-    public class FlytrapCombatSkill
-    {
-        public List<uint> Melee { get; set; }
-        public List<uint> Ranged { get; set; }
+namespace AAEmu.Game.Models.Game.AI.V2.Params.Flytrap;
 
-        public void ParseLua(LuaTable table)
-        {
+public class FlytrapCombatSkill
+{
+    public List<uint> Melee { get; set; }
+    public List<uint> Ranged { get; set; }
+
+    public void ParseLua(LuaTable table)
+    {
             Melee = new List<uint>();
             if (table["melee"] is LuaTable meleeSkills)
             {
@@ -30,5 +30,4 @@ namespace AAEmu.Game.Models.Game.AI.V2.Params.Flytrap
                 }
             }
         }
-    }
 }

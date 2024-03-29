@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
 
@@ -10,7 +10,7 @@ public class SCDominionDataPacket : GamePacket
     private readonly bool _newlyDeclared;
     private readonly bool _finalDataByRequest;
 
-    public SCDominionDataPacket(DominionData dominionData, bool newlyDeclared, bool finalDataByRequest) : base(SCOffsets.SCDominionDataPacket, 1)
+    public SCDominionDataPacket(DominionData dominionData, bool newlyDeclared, bool finalDataByRequest) : base(SCOffsets.SCDominionDataPacket, 5)
     {
         _dominionData = dominionData;
         _newlyDeclared = newlyDeclared;
