@@ -11,7 +11,8 @@ public class CSListMailContinuePacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        // Empty struct
-        Logger.Debug("ListMailContinue");
+        var mailBoxListKind = stream.ReadByte();
+
+        Logger.Debug($"ListMailContinue: mailBoxListKind {mailBoxListKind}");
     }
 }

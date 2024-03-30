@@ -23,6 +23,8 @@ public class CSUpdateActionSlotPacket : GamePacket
             case ActionSlotType.ItemType:
             case ActionSlotType.Spell:
             case ActionSlotType.RidePetSpell:
+            case ActionSlotType.BattlePetSpell:
+            case ActionSlotType.Macro:
                 var actionId = stream.ReadUInt32();
                 Connection.ActiveChar.SetAction(slot, type, actionId);
                 break;

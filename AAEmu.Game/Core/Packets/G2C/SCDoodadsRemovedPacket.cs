@@ -17,13 +17,28 @@ public class SCDoodadsRemovedPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((ushort)_ids.Length);
+        var index = 0;
+        var doodadsToRemove = _ids.Length;
+        stream.Write((ushort)doodadsToRemove);
         stream.Write(_last);
-        foreach (var id in _ids)
+        do
         {
-            stream.WriteBc(id);
-            stream.Write(false); // e  if false then the doodad will be deleted
+            var es = 0;
+            var jndex = 0;
+            var doodadsToRemoveNow = doodadsToRemove >= 8 ? 8 : doodadsToRemove;
+            do
+            {
+                stream.WriteBc(_ids[index]);
+                index++;
+
+                es |= 1 << jndex;
+                jndex++;
+            }
+            while (jndex < doodadsToRemoveNow);
+            stream.Write((byte)es); // es - BitFlags of doodads that have been set for removal in this block
+            doodadsToRemove -= doodadsToRemoveNow;
         }
+        while (doodadsToRemove > 0);
 
         return stream;
     }

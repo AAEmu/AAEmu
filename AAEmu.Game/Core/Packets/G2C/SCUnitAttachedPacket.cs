@@ -8,26 +8,25 @@ public class SCUnitAttachedPacket : GamePacket
 {
     private readonly uint _childUnitObjId;
     private readonly byte _point;
-    private readonly uint _id;
+    private readonly uint _objId;
     private readonly byte _reason;
 
-    public SCUnitAttachedPacket(uint childUnitObjId, AttachPointKind point, AttachUnitReason reason, uint id) : base(SCOffsets.SCUnitAttachedPacket, 5)
+    public SCUnitAttachedPacket(uint childUnitObjId, AttachPointKind point, AttachUnitReason reason, uint objId)
+        : base(SCOffsets.SCUnitAttachedPacket, 5)
     {
         _childUnitObjId = childUnitObjId;
         _point = (byte)point;
         _reason = (byte)reason;
-        _id = id;
+        _objId = objId;
     }
 
     public override PacketStream Write(PacketStream stream)
     {
         stream.WriteBc(_childUnitObjId);
-
         stream.Write(_point);
-        // if (_point != -1) - byte can't be negative anyways
-        stream.WriteBc(_id);
-
+        stream.WriteBc(_objId);
         stream.Write(_reason);
+
         return stream;
     }
 }
