@@ -7,7 +7,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests;
 
-public class QuestAct : IComparable<QuestAct>, IQuestAct
+public class QuestAct(QuestComponent parentComponent, QuestActTemplate template) : IComparable<QuestAct>, IQuestAct
 {
     public uint Id { get; set; }
     public uint ComponentId { get; set; }
@@ -16,13 +16,8 @@ public class QuestAct : IComparable<QuestAct>, IQuestAct
 
     public byte ThisComponentObjectiveIndex { get; set; }
 
-    public QuestComponent QuestComponent { get; }
-    public QuestActTemplate Template { get; set; }
-
-    public QuestAct(QuestComponent parentComponent)
-    {
-        QuestComponent = parentComponent;
-    }
+    public QuestComponent QuestComponent { get; } = parentComponent;
+    public QuestActTemplate Template { get; set; } = template;
 
     public QuestActTemplate GetTemplate()
     {

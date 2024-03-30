@@ -20,123 +20,111 @@ namespace AAEmu.Game.Models.Game.Quests;
 public partial class Quest : PacketMarshaler
 {
     private object _lock = new();
-    public Dictionary<QuestComponentKind, QuestContext> QuestSteps { get; set; } = new();
-    public QuestContext QuestNoneState { get; set; }
-    public QuestContext QuestStartState { get; set; }
-    public QuestContext QuestSupplyState { get; set; }
-    public QuestContext QuestProgressState { get; set; }
-    public QuestContext QuestReadyState { get; set; }
-    public QuestContext QuestRewardState { get; set; }
-
-    // перенес сюда переменные из QuestAcObj... для подсчета статуса квеста
+    public Dictionary<QuestComponentKind, QuestStep> QuestSteps { get; set; } = new();
 
     #region Framework
 
     /// <summary>
-    /// Initialize all the steps needed for the quest
+    /// Initialize all the steps needed for the quest by grabbing the templates and creating live variants of them
     /// </summary>
-    public void CreateContextInstance()
+    public void CreateQuestSteps()
     {
-        QuestNoneState = new QuestContext(this, new QuestNoneState(), QuestComponentKind.None);
-        QuestStartState = new QuestContext(this, new QuestStartState(), QuestComponentKind.Start);
-        QuestSupplyState = new QuestContext(this, new QuestSupplyState(), QuestComponentKind.Supply);
-        QuestProgressState = new QuestContext(this, new QuestProgressState(), QuestComponentKind.Progress);
-        QuestReadyState = new QuestContext(this, new QuestReadyState(), QuestComponentKind.Ready);
-        QuestRewardState = new QuestContext(this, new QuestRewardState(), QuestComponentKind.Reward);
+        QuestSteps.Clear(); // Clear it just to be sure
+        // Add Components to Steps (and create them)
+        foreach (var (componentId, componentTemplate) in Template.Components)
+        {
+            if (!QuestSteps.TryGetValue(componentTemplate.KindId, out var step))
+            {
+                step = new QuestStep(componentTemplate.KindId, this);
+                QuestSteps.Add(componentTemplate.KindId, step);
+            }
 
-        // Add to steps handler for new system
-        QuestSteps.Add(QuestComponentKind.None, QuestNoneState);
-        QuestSteps.Add(QuestComponentKind.Start, QuestStartState);
-        QuestSteps.Add(QuestComponentKind.Supply, QuestSupplyState);
-        QuestSteps.Add(QuestComponentKind.Progress, QuestProgressState);
-        // QuestSteps.Add(QuestComponentKind.Fail, QuestFailState);
-        QuestSteps.Add(QuestComponentKind.Ready, QuestReadyState);
-        //QuestSteps.Add(QuestComponentKind.Drop, QuestDropState);
-        QuestSteps.Add(QuestComponentKind.Reward, QuestRewardState);
+            var newComponent = new QuestComponent(step, componentTemplate);
+            step.Components.Add(componentId, newComponent);
+
+            // Add Acts (if any)
+            foreach (var questActTemplate in newComponent.Template.ActTemplates)
+            {
+                var newAct = new QuestAct(newComponent, questActTemplate);
+                newComponent.Acts.Add(newAct);
+            }
+        }
+
+        if (QuestSteps.Count <= 0)
+            Logger.Warn($"Quest {TemplateId} does not seem to have any components!");
     }
 
     /// <summary>
-    /// Запуск начального шага квеста
+    /// Starting the initial step of the quest
     /// </summary>
-    /// <returns></returns>
-    public bool StartQuest(bool forcibly = false)
+    /// <returns>False if this quest does not have a start section</returns>
+    public bool StartQuest()
     {
-        // шаг None или Start
-        if (QuestNoneState?.State?.CurrentQuestComponent != null)
+        if (!QuestSteps.TryGetValue(QuestComponentKind.Start, out var stepStart))
         {
-            if (Status == QuestStatus.Invalid)
-            {
-                if (!QuestNoneState.State.Start(forcibly)) { return false; } // сбросим принятый квест
-            }
-            else
-            {
-                return false;
-            }
-
-            Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
-
-            return true; // принимаем квест
-        }
-        if (QuestStartState?.State?.CurrentQuestComponent != null)
-        {
-            Step = QuestComponentKind.Start;
-            if (Status == QuestStatus.Invalid)
-            {
-                if (!QuestStartState.State.Start(forcibly)) { return false; } // сбросим принятый квест
-            }
-            else
-            {
-                return false;
-            }
-
-            Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
-
-            if (QuestProgressState?.State?.CurrentQuestComponent != null)
-            {
-                for (var i = 0; i < QuestProgressState.State.CurrentComponents.Count; i++)
-                {
-                    ProgressStepResults.Add(false);
-                }
-            }
-
-            return true; // принимаем квест
+            Logger.Warn($"Tried to start a quest without a starter component Quest: {TemplateId}");
+            return false;
         }
 
-        Logger.Info($"Quest Start: шага 'None' или'Start' нет в квесте {Id}");
-        return false; // не принимаем квест
+        Step = QuestComponentKind.Start;
+        // Send the first components, or the one that's used to start this ?
+        ComponentId = stepStart.Components.Values.FirstOrDefault()?.Template.Id ?? 0;
+        Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
+        Logger.Debug($"StartQuest, Quest:{TemplateId}, Player {Owner.Name} ({Owner.Id})");
+        return true;
     }
 
-    public void GoToNextStep(int selected = 0)
+    /// <summary>
+    /// Move the Step to the next logical Step
+    /// </summary>
+    public void GoToNextStep()
     {
-        Step += 1;
+        // Loop through the flow of steps until we get a valid one
+        var lastStep = Step;
+        var loopLockCheck = 0;
         while (true)
         {
-            Logger.Info($"TRY NEXT STEP: Quest {TemplateId} going to step {Step}");
-
+            // Shouldn't happen, but check for a infinite loop
+            if (loopLockCheck > 20)
+            {
+                Logger.Error($"GoToNextStep got stuck in a infinite loop for Quest:{TemplateId}, Step:{lastStep} -> {Step}, Player {Owner.Name} ({Owner.Id}");
+                break;
+            }
+            loopLockCheck++;
             switch (Step)
             {
-                case QuestComponentKind.Supply when QuestSupplyState?.State is { CurrentQuestComponent: not null }:
-                    QuestSupplyState.State.Start(false, selected);
-                    return;
-                case QuestComponentKind.Progress when QuestProgressState?.State is { CurrentQuestComponent: not null }:
-                    QuestProgressState.State.Start(false, selected);
-                    return;
-                case QuestComponentKind.Ready when QuestReadyState?.State is { CurrentQuestComponent: not null }:
-                    QuestReadyState.State.Start(false, selected);
-                    return;
-                case QuestComponentKind.Reward when QuestRewardState?.State is { CurrentQuestComponent: not null }:
-                    QuestRewardState.State.Complete(selected);
-                    return;
-                case QuestComponentKind.None:
-                case QuestComponentKind.Start:
-                case QuestComponentKind.Fail:
-                case QuestComponentKind.Drop:
-                default:
-                    Step += 1;
+                case QuestComponentKind.None: // This step is only used in legacy task boards, but we go through it anyway
+                    Step = QuestComponentKind.Supply; // Next we assume Supply
                     break;
-                case QuestComponentKind.Reward + 1:
+                case QuestComponentKind.Start:
+                    Step = QuestComponentKind.None; // Actually go past None first before going to Supply
+                    break;
+                case QuestComponentKind.Supply:
+                    Step = QuestComponentKind.Progress; // After giving the Supply Items, go to Progress
+                    break;
+                case QuestComponentKind.Progress:
+                    Step = QuestComponentKind.Ready; // When Objectives completed, go to Ready
+                    break;
+                case QuestComponentKind.Fail:
+                    // Fail state does not have a next step, player needs to manually dro/restart the quest
+                    return;
+                case QuestComponentKind.Ready:
+                    Step = QuestComponentKind.Reward; // Go to Reward when turning in the quest 
+                    break;
+                case QuestComponentKind.Drop:
+                    // This quest is being dropped, there is no next step
+                    return;
+                case QuestComponentKind.Reward:
+                    // Reward is the last possible step
+                    return;
+                default:
+                    Logger.Warn($"Quest GoToNextStep failed for Step:{Step}, Quest:{TemplateId}, Player:{Owner.Name} ({Owner.Id}");
                     return;
             }
+
+            // If the new current step is valid for this quest template, exit the loop
+            if (QuestSteps.ContainsKey(Step))
+                break;
         }
     }
 
@@ -1813,27 +1801,25 @@ public partial class Quest : PacketMarshaler
 
     #endregion Events
 
+    /// <summary>
+    /// Changes the current Step of the quest, and takes care of the event handlers
+    /// </summary>
+    /// <param name="value"></param>
     private void SetStep(QuestComponentKind value)
     {
         if (value == _step)
             return;
 
         // Finalize old Step (if any)
-        if (QuestSteps.TryGetValue(value, out var oldQuestSteps))
-        {
-            foreach (var act in oldQuestSteps.State.CurrentActs)
-                act.Template.Completed(this, act);
-        }
+        if (QuestSteps.TryGetValue(_step, out var oldQuestSteps))
+            oldQuestSteps.DeInitialize();
 
         // Set new Value
         _step = value;
 
         // Initialize Acts for this Step (if any)
         if (QuestSteps.TryGetValue(value, out var questSteps))
-        {
-            foreach (var act in questSteps.State.CurrentActs)
-                act.Template.Initialize(this, act);
-        }
+            questSteps.Initialize();
     }
 
     /// <summary>
@@ -1842,7 +1828,10 @@ public partial class Quest : PacketMarshaler
     /// <returns></returns>
     public QuestObjectiveStatus GetQuestObjectiveStatus()
     {
-        var questComponents = Template.GetComponents(Step);
+        if (!QuestSteps.TryGetValue(Step, out var currentStep))
+            return QuestObjectiveStatus.NotReady;
+
+        var questComponents = currentStep.Components.Values ;
         if (Template.Score > 0)
         {
             // Use Score Handler
@@ -1850,7 +1839,7 @@ public partial class Quest : PacketMarshaler
             // Loop through all components and acts to calculate their score
             foreach (var questComponent in questComponents)
             foreach (var questComponentAct in questComponent.Acts)
-                score += questComponentAct.Template.Count * Objectives[questComponentAct.ThisComponentObjectiveIndex];
+                score += questComponentAct.Template.Count * Objectives[questComponentAct.Template.ThisComponentObjectiveIndex];
 
             // Check the score results
             if (Template.LetItDone && score >= Template.Score * 3 / 2)
@@ -1869,13 +1858,13 @@ public partial class Quest : PacketMarshaler
         foreach (var questComponent in questComponents)
         foreach (var questComponentAct in questComponent.Acts)
         {
-            if (Template.LetItDone && Objectives[questComponentAct.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 3 / 2)
+            if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 3 / 2)
                 return QuestObjectiveStatus.Overachieved;
-            if (Template.LetItDone && Objectives[questComponentAct.ThisComponentObjectiveIndex] > questComponentAct.Template.Count)
+            if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] > questComponentAct.Template.Count)
                 return QuestObjectiveStatus.ExtraProgress;
-            if (Objectives[questComponentAct.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count)
+            if (Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count)
                 return QuestObjectiveStatus.QuestComplete;
-            if (Template.LetItDone && (Objectives[questComponentAct.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 1 / 2))
+            if (Template.LetItDone && (Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 1 / 2))
                 return QuestObjectiveStatus.CanEarlyComplete;
         }
 
@@ -1888,7 +1877,10 @@ public partial class Quest : PacketMarshaler
     /// <returns></returns>
     public float GetQuestObjectivePercent()
     {
-        var questComponents = Template.GetComponents(Step);
+        if (!QuestSteps.TryGetValue(Step, out var currentStep))
+            return 0f;
+
+        var questComponents = currentStep.Components.Values;
         if (Template.Score > 0)
         {
             // Use Score Handler
@@ -1896,7 +1888,7 @@ public partial class Quest : PacketMarshaler
             // Loop through all components and acts to calculate their score
             foreach (var questComponent in questComponents)
             foreach (var questComponentAct in questComponent.Acts)
-                score += questComponentAct.Template.Count * Objectives[questComponentAct.ThisComponentObjectiveIndex];
+                score += questComponentAct.Template.Count * Objectives[questComponentAct.Template.ThisComponentObjectiveIndex];
 
             // Check the score cap results
             if (Template.LetItDone && score >= Template.Score * 3 / 2)
@@ -1910,13 +1902,13 @@ public partial class Quest : PacketMarshaler
         foreach (var questComponent in questComponents)
         foreach (var questComponentAct in questComponent.Acts)
         {
-            if (Template.LetItDone && Objectives[questComponentAct.ThisComponentObjectiveIndex] >=
+            if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >=
                 questComponentAct.Template.Count * 3 / 2)
             {
                 highest = Math.Max(highest, questComponentAct.Template.Count * 3f / 2f);
                 continue;
             }
-            highest = Math.Max(highest, 1f / questComponentAct.Template.Count * Objectives[questComponentAct.ThisComponentObjectiveIndex]);
+            highest = Math.Max(highest, 1f / questComponentAct.Template.Count * Objectives[questComponentAct.Template.ThisComponentObjectiveIndex]);
         }
 
         return highest;

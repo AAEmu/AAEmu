@@ -53,7 +53,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <summary>
     /// Called for every QuestAct in a component when the component is fully completed or cancelled
     /// </summary>
-    public virtual void Completed(Quest quest, IQuestAct questAct)
+    public virtual void DeInitialize(Quest quest, IQuestAct questAct)
     {
         Logger.Info($"{QuestActTemplateName} - QuestAct completed {Id}.");
     }

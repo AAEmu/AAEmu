@@ -35,36 +35,140 @@ public partial class Quest : PacketMarshaler
     private readonly IExpressTextManager _expressTextManager;
     private readonly IWorldManager _worldManager;
     private QuestComponentKind _step;
+
+    /// <summary>
+    /// DB ID
+    /// </summary>
     public long Id { get; set; }
-    public uint TemplateId { get; set; } // QuestId
+
+    /// <summary>
+    /// Quest Template Id
+    /// </summary>
+    public uint TemplateId { get; set; }
+
+    /// <summary>
+    /// Quest Template
+    /// </summary>
     public IQuestTemplate Template { get; set; }
+
+    /// <summary>
+    /// Objective counters for the Progress step
+    /// </summary>
     internal int[] Objectives { get; set; }
-    public List<bool> ProgressStepResults { get; set; } = new(); // нужно для проверки шага Progress
+
+    /// <summary>
+    /// Used to check Progress step
+    /// </summary>
+    public List<bool> ProgressStepResults { get; set; } = new();
+
+    /// <summary>
+    /// Current Quest Status
+    /// </summary>
     public QuestStatus Status { get; set; }
 
+    /// <summary>
+    /// Current Quest Step
+    /// </summary>
     public QuestComponentKind Step
     {
         get => _step;
         set => SetStep(value);
     }
 
+    /// <summary>
+    /// Objective Condition
+    /// </summary>
     public QuestConditionObj Condition { get; set; }
+
+    /// <summary>
+    /// Is this quest ready to be turned in at a NPC
+    /// </summary>
     public bool ReadyToReportNpc { get; set; }
+
+    /// <summary>
+    /// End time for timed quests
+    /// </summary>
     public DateTime Time { get; set; }
+
+    /// <summary>
+    /// Owning character of this Quest Object
+    /// </summary>
     public ICharacter Owner { get; set; }
+
+    /// <summary>
+    /// Remaining time for this quest in milliseconds
+    /// </summary>
     private int LeftTime => Time > DateTime.UtcNow ? (int)(Time - DateTime.UtcNow).TotalMilliseconds : -1;
     private int SupplyItem { get; set; }
+
+    /// <summary>
+    /// DoodadId used in the Quest Packet
+    /// </summary>
     public long DoodadId { get; set; }
+
+    /// <summary>
+    /// ObjId used in the Quest Packet (3 instances)
+    /// </summary>
     private long ObjId { get; set; }
-    public uint ComponentId { get; set; } // нужно для пакета SCQuestContext...
-    public uint CurrentComponentId { get; set; } // отслеживаем текущий номер компонента с которым работаем
-    public QuestAcceptorType QuestAcceptorType { get; set; } // нужно для пакета SCQuestContext...
-    public uint AcceptorType { get; set; } // нужно для пакета SCQuestContext...
+
+    // TODO: Check how this is actually supposed to behave in the packets
+    /// <summary>
+    /// ComponentId used in the SCQuestContext Packet
+    /// </summary>
+    public uint ComponentId { get; set; }
+
+    /// <summary>
+    /// Helper var for tracking the component we're working with
+    /// </summary>
+    public uint CurrentComponentId { get; set; }
+
+    /// <summary>
+    /// AcceptorType used for SCQuestContext
+    /// </summary>
+    public QuestAcceptorType QuestAcceptorType { get; set; }
+
+    /// <summary>
+    /// Acceptor Template Id of the QuestAcceptorType source where we got this quest from, used by SCQuestContext
+    /// </summary>
+    public uint AcceptorType { get; set; }
+
+    /// <summary>
+    /// Task that handles completion
+    /// </summary>
     private QuestCompleteTask QuestTask { get; set; }
+
+    /// <summary>
+    /// Item pool of rewards
+    /// </summary>
     public List<ItemCreationDefinition> QuestRewardItemsPool { get; set; }
+
+    /// <summary>
+    /// Item pool of items that are included in the cleanup process of this quest
+    /// </summary>
     public List<ItemCreationDefinition> QuestCleanupItemsPool { get; set; }
+
+    /// <summary>
+    /// Money reward for this quest
+    /// </summary>
     public int QuestRewardCoinsPool { get; set; }
+
+    /// <summary>
+    /// Exp reward for this quest
+    /// </summary>
     public int QuestRewardExpPool { get; set; }
+
+    /// <summary>
+    /// List of Steps available for this quest
+    /// </summary>
+    public Dictionary<QuestComponentKind, QuestStep> Steps { get; set; } = new();
+
+    /// <summary>
+    /// Current QuestStep, or null if the current step is invalid
+    /// </summary>
+    public QuestStep CurrentStep
+    {
+        get => Steps.GetValueOrDefault(Step);
+    }
 
     public Quest(IQuestTemplate questTemplate, IQuestManager questManager, ISphereQuestManager sphereQuestManager,
         ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager,
@@ -81,7 +185,21 @@ public partial class Quest : PacketMarshaler
         {
             TemplateId = questTemplate.Id;
             Template = questTemplate;
+
+            // Construct Active Components in Steps
+            foreach (var (componentId, component) in Template.Components.OrderBy(x => x.Value.KindId).ThenBy(x => x.Value.Id))
+            {
+                if (!Steps.TryGetValue(component.KindId, out var questStep))
+                {
+                    questStep = new QuestStep();
+                    Steps.Add(component.KindId, questStep);
+                }
+                var comp = new QuestComponent(questStep);
+                comp.Template = component;
+                questStep.Components.Add(componentId, comp);
+            }
         }
+        _step = QuestComponentKind.None;
 
         Objectives = new int[ObjectiveCount];
         SupplyItem = 0;
@@ -111,11 +229,6 @@ public partial class Quest : PacketMarshaler
         ExpressTextManager.Instance,
         WorldManager.Instance)
     {
-    }
-
-    public uint GetActiveComponentId()
-    {
-        return Template.GetFirstComponent(Step).Id;
     }
 
     private QuestStatus CalculateQuestStatus(QuestComponent currentComponent)

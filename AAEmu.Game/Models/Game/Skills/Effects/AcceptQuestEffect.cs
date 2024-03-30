@@ -21,8 +21,8 @@ public class AcceptQuestEffect : EffectTemplate
     {
         Logger.Trace("AcceptQuestEffect");
 
-        var character = target as Character;
-        if (character == null)
+        // Only allow Characters to start quests
+        if (target is not Character character)
         {
             Logger.Debug($"No target character given");
             return;
@@ -40,14 +40,12 @@ public class AcceptQuestEffect : EffectTemplate
                 var itemQuestId = QuestManager.Instance.GetQuestIdFromStarterItemNew(skillItem.ItemTemplateId);
                 if (itemQuestId > 0)
                 {
-                    // Add alternative quest Id
+                    // Add alternative quest by Id
                     if (!character.Quests.Add(itemQuestId))
+                    {
+                        Logger.Debug($"Failed to add Quest:{itemQuestId} from Item:{item.TemplateId}, for Player: {character.Name} ({character.Id})");
                         return;
-                    // Immediately add the source using a OnItemGather event
-                    //character.Quests.OnItemGather(item, item.Count);
-                    // инициируем событие
-                    //Task.Run(() => QuestManager.Instance.DoAcquiredEvents(character, item.TemplateId, item.Count));
-                    QuestManager.Instance.DoAcquiredEvents(character, item.TemplateId, item.Count);
+                    }
 
                     Logger.Debug($"Replaced quest from starter item {item.Id} (template:{item.Template.Id}) to use QuestId {itemQuestId} instead of {QuestId} for player {character.Name}");
                     return;

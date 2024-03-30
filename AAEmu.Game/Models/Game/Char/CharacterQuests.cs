@@ -114,7 +114,7 @@ public partial class CharacterQuests
         }
 
         // TODO new quests
-        quest.CreateContextInstance();     // установим начальный контекст
+        quest.CreateQuestSteps();     // установим начальный контекст
         var res = quest.StartQuest(forcibly); // начало квеста
         //var res = quest.Start();
         if (!res)
@@ -590,7 +590,7 @@ public partial class CharacterQuests
                     quest.Owner = Owner;
                     quest.Template = QuestManager.Instance.GetTemplate(quest.TemplateId);
                     var oldStatus = quest.Status;
-                    quest.CreateContextInstance();
+                    quest.CreateQuestSteps();
                     quest.ReadData((byte[])reader.GetValue("data"));
                     var oldStep = quest.Step;
                     quest.RecalcObjectives(false);

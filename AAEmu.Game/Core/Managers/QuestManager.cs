@@ -1558,18 +1558,26 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         }
     }
 
+    /// <summary>
+    /// Event to trigger the quest turn in to a NPC or Doodad
+    /// </summary>
+    /// <param name="owner">Player</param>
+    /// <param name="questContextId">QuestId</param>
+    /// <param name="npcObjId"></param>
+    /// <param name="doodadObjId"></param>
+    /// <param name="selected">Selected reward (if any)</param>
     public void DoReportEvents(ICharacter owner, uint questContextId, uint npcObjId, uint doodadObjId, int selected)
     {
         if (npcObjId > 0)
         {
+            // Turning in at a NPC?
             var npc = WorldManager.Instance.GetNpc(npcObjId);
+            // Is it a valid NPC?
             if (npc == null)
-            {
                 return;
-            }
 
             //Connection.ActiveChar.Quests.OnReportToNpc(_npcObjId, _questContextId, _selected);
-            // инициируем событие доклада Npc о выполнении задания
+            // Initiate the event of Npc report on task completion
             owner.Events?.OnReportNpc(this, new OnReportNpcArgs
             {
                 QuestId = questContextId,
@@ -1580,14 +1588,14 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         }
         else if (doodadObjId > 0)
         {
+            // Turning in at a Doodad?
             var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+            // Does the Doodad exist?
             if (doodad == null)
-            {
                 return;
-            }
 
             //Connection.ActiveChar.Quests.OnReportToDoodad(_doodadObjId, _questContextId, _selected);
-            // инициируем событие
+            // Trigger the Report to Doodad event
             owner.Events?.OnReportDoodad(this, new OnReportDoodadArgs
             {
                 QuestId = questContextId,
@@ -1598,61 +1606,90 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         }
         else
         {
+            // Doesn't have a NPC or Doodad to turn in at, just auto-complete it
             owner.Quests.Complete(questContextId, selected, true);
         }
     }
 
+    /// <summary>
+    /// Trigger the quest events for handling the consumption of items
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="templateId"></param>
+    /// <param name="count"></param>
     public void DoConsumedEvents(ICharacter owner, uint templateId, int count)
     {
-        //Owner?.Quests?.OnItemUse(item);
-        // инициируем событие
+        // Trigger the item use event
         owner?.Events?.OnItemUse(this, new OnItemUseArgs
         {
             ItemId = templateId,
             Count = count
         });
-        owner?.Events?.OnItemGroupUse(this, new OnItemGroupUseArgs
+
+        // Trigger the item group use event
+        // Check what groups this item belongs to
+        // TODO: Optimize this to be added after item and quest loading
+        var itemGroupsForThisItem = _groupItems.Where(x => x.Value.Contains(templateId)).Select(x => x.Key);
+        foreach (var itemGroup in itemGroupsForThisItem)
         {
-            ItemGroupId = templateId,
-            Count = count
-        });
+            owner?.Events?.OnItemGroupUse(this, new OnItemGroupUseArgs { ItemGroupId = templateId, Count = count });
+        }
     }
 
+    /// <summary>
+    /// Trigger the quest events for acquiring items
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="templateId"></param>
+    /// <param name="count"></param>
     public void DoAcquiredEvents(ICharacter owner, uint templateId, int count)
     {
-        //Owner?.Quests?.OnItemGather(item, count);
-        // инициируем событие
+        // Trigger the item acquire event
         owner?.Events?.OnItemGather(this, new OnItemGatherArgs
         {
             ItemId = templateId,
             Count = count
         });
-        owner?.Events?.OnItemGroupGather(this, new OnItemGroupGatherArgs
+
+        // Trigger the item group acquire event
+        // Check what groups this item belongs to
+        // TODO: Optimize this to be added after item and quest loading
+        var itemGroupsForThisItem = _groupItems.Where(x => x.Value.Contains(templateId)).Select(x => x.Key);
+        foreach (var itemGroup in itemGroupsForThisItem)
         {
-            ItemId = templateId,
-            Count = count
-        });
+            owner?.Events?.OnItemGroupGather(this, new OnItemGroupGatherArgs { ItemId = templateId, Count = count });
+        }
     }
 
-    public void DoInteractionEvents(ICharacter owner, uint templateId)
+    /// <summary>
+    /// Trigger the quest events to interacting with a Doodad
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="templateId"></param>
+    public void DoDoodadInteractionEvents(ICharacter owner, uint templateId)
     {
-        //character.Quests.OnInteraction(WorldInteraction, target);
-        // инициируем событие
+        // Trigger the interaction event
         owner?.Events?.OnInteraction(this, new OnInteractionArgs
         {
             DoodadId = templateId
         });
     }
 
+    /// <summary>
+    /// Triggers the events for talking to a NPC
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="npcObjId"></param>
+    /// <param name="questContextId"></param>
+    /// <param name="questComponentId"></param>
+    /// <param name="questActId"></param>
     public void DoTalkMadeEvents(ICharacter owner, uint npcObjId, uint questContextId, uint questComponentId, uint questActId)
     {
-        if (npcObjId <= 0) { return; }
-
         var npc = WorldManager.Instance.GetNpc(npcObjId);
-        if (npc == null) { return; }
+        if (npc == null)
+            return;
 
-        //Connection.ActiveChar.Quests.OnTalkMade(_npcObjId, _questContextId, _questCompId, _questActId);
-        // инициируем событие доклада Npc о выполнении задания
+        // Trigger talk to NPC event
         owner.Events?.OnTalkMade(this, new OnTalkMadeArgs
         {
             QuestId = questContextId,
@@ -1661,64 +1698,79 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             QuestActId = questActId,
             Transform = npc.Transform
         });
-        owner.Events?.OnTalkNpcGroupMade(this, new OnTalkNpcGroupMadeArgs
+
+        // Trigger Talk to NPC group event
+        var npcGroupsForThisNpc = _groupNpcs.Where(x => x.Value.Contains(npc.TemplateId)).Select(x => x.Key);
+        foreach (var npcGroup in npcGroupsForThisNpc)
         {
-            QuestId = questContextId,
-            NpcGroupId = npc.TemplateId,
-            QuestComponentId = questComponentId,
-            QuestActId = questActId,
-            Transform = npc.Transform
-        });
+            owner.Events?.OnTalkNpcGroupMade(this,
+                new OnTalkNpcGroupMadeArgs
+                {
+                    QuestId = questContextId,
+                    NpcGroupId = npc.TemplateId,
+                    QuestComponentId = questComponentId,
+                    QuestActId = questActId,
+                    Transform = npc.Transform
+                });
+        }
     }
 
+    /// <summary>
+    /// Triggers the various events for killing a NPC
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="npc"></param>
     public void DoOnMonsterHuntEvents(ICharacter owner, Npc npc)
     {
         if (npc == null) { return; }
 
         var npcZoneGroupId = ZoneManager.Instance.GetZoneByKey(npc.Transform.ZoneId)?.GroupId ?? 0;
 
-        //character.Quests.OnKill(this);
+        // Individual monster kill
         owner.Events?.OnMonsterHunt(this, new OnMonsterHuntArgs
         {
             NpcId = npc.TemplateId,
             Count = 1,
             Transform = npc.Transform
         });
-        owner.Events?.OnMonsterGroupHunt(this, new OnMonsterGroupHuntArgs
+
+        // Trigger NPC Group kills
+        var npcGroupsForThisNpc = _groupNpcs.Where(x => x.Value.Contains(npc.TemplateId)).Select(x => x.Key);
+        foreach (var npcGroup in npcGroupsForThisNpc)
         {
-            NpcId = npc.TemplateId,
-            Count = 1,
-            Position = npc.Transform
-        });
+            owner.Events?.OnMonsterGroupHunt(this, new OnMonsterGroupHuntArgs
+            {
+                NpcId = npcGroup,
+                Count = 1,
+                Position = npc.Transform
+            });
+        }
+
+        // Trigger zone kills with specific Victim and Killer
         owner.Events?.OnZoneKill(this, new OnZoneKillArgs
         {
             ZoneGroupId = npcZoneGroupId,
             Killer = owner,
             Victim = npc
         });
+
+        // Trigger any zone kills
         owner.Events?.OnZoneMonsterHunt(this, new OnZoneMonsterHuntArgs
         {
             ZoneGroupId = npcZoneGroupId
         });
     }
-    //public void DoOnMonsterGroupHuntEvents(Character owner, Npc npc)
-    //{
-    //    if (npc == null) { return; }
 
-    //    //character.Quests.OnKill(this);
-    //    owner.Events?.OnMonsterGroupHunt(this, new OnMonsterGroupHuntArgs
-    //    {
-    //        NpcId = npc.TemplateId,
-    //        Count = 1,
-    //        Position = npc.Transform
-    //    });
-    //}
-
+    /// <summary>
+    /// Trigger Initial Aggro related quest events
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="npc"></param>
     public void DoOnAggroEvents(ICharacter owner, Npc npc)
     {
-        if (npc == null) { return; }
+        if (npc == null)
+            return;
 
-        //player?.Quests.OnAggro(this);
         owner.Events?.OnAggro(this, new OnAggroArgs
         {
             NpcId = npc.TemplateId,
@@ -1726,14 +1778,24 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         });
     }
 
+    /// <summary>
+    /// Triggers emote related quest events
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="emotionId"></param>
+    /// <param name="characterObjId">User</param>
+    /// <param name="npcObjId">Target</param>
     public void DoOnExpressFireEvents(ICharacter owner, uint emotionId, uint characterObjId, uint npcObjId)
     {
-        if (npcObjId <= 0) { return; }
-
+        if (owner.ObjId != characterObjId)
+        {
+            Logger.Warn($"DoOnExpressFireEvents seems to have a invalid characterObjId referenced, Got:{characterObjId}, Expected:{owner.ObjId} ({owner.Name})");
+            return;
+        }
         var npc = WorldManager.Instance.GetNpc(npcObjId);
-        if (npc == null) { return; }
+        if (npc == null)
+            return;
 
-        //Connection?.ActiveChar?.Quests?.OnExpressFire(emotionId, objId, obj2Id);
         owner.Events?.OnExpressFire(this, new OnExpressFireArgs
         {
             NpcId = npc.TemplateId,
@@ -1741,23 +1803,37 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         });
     }
 
+    /// <summary>
+    /// Triggers a quest related check for levels
+    /// </summary>
+    /// <param name="owner"></param>
     public void DoOnLevelUpEvents(ICharacter owner)
     {
-        //Quests.OnLevelUp(); // TODO added for quest Id=5967
+        // Added for quest Id=5967
         owner.Events?.OnLevelUp(this, new OnLevelUpArgs());
 
         owner.Events?.OnAbilityLevelUp(this, new OnAbilityLevelUpArgs());
     }
 
+    /// <summary>
+    /// Triggers quest related events when a craft was successful
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="craftId"></param>
     public void DoOnCraftEvents(ICharacter owner, uint craftId)
     {
-        //Owner.Quests.OnCraft(_craft); // TODO added for quest Id=6024
+        // Added for quest Id=6024
         owner.Events?.OnCraft(this, new OnCraftArgs
         {
             CraftId = craftId
         });
     }
 
+    /// <summary>
+    /// Trigger quest events related to entering a QuestSphere
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="sphereQuest"></param>
     public void DoOnEnterSphereEvents(ICharacter owner, SphereQuest sphereQuest)
     {
         //trigger.Owner.Quests.OnEnterSphere(trigger.Sphere);

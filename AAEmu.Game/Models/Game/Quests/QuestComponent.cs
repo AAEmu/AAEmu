@@ -16,9 +16,9 @@ public class QuestComponent : IQuestComponent
 {
     public uint Id { get; set; }
     public QuestComponentKind KindId { get; set; }
+    public QuestComponentTemplate Template { get; set; }
     public QuestStep Parent { get; set; }
     public List<IQuestAct> Acts { get; set; } = new();
-    public uint NextComponent { get; set; }
     public QuestNpcAiName NpcAiId { get; set; }
     public uint NpcId { get; set; }
     public uint SkillId { get; set; }
@@ -41,6 +41,19 @@ public class QuestComponent : IQuestComponent
     {
         throw new NotImplementedException();
     }
+
+    public void Initialize()
+    {
+        foreach (var act in Acts)
+            act.Template.Initialize(Parent.Parent, act);
+    }
+
+    public void DeInitialize()
+    {
+        foreach (var act in Acts)
+            act.Template.DeInitialize(Parent.Parent, act);
+    }
+
     public List<bool> Execute(ICharacter character, Quest quest, int objective)
     {
         var reults = new List<bool>();
@@ -52,9 +65,11 @@ public class QuestComponent : IQuestComponent
         }
         return reults;
     }
-    public QuestComponent(QuestStep parent)
+
+    public QuestComponent(QuestStep parent, QuestComponentTemplate template)
     {
         Parent = parent;
+        Template = template;
     }
 }
 

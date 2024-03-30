@@ -23,9 +23,6 @@ public class DoodadFuncQuest : DoodadFuncTemplate
             }
             else
             {
-                //character.Quests.OnReportToDoodad(owner.ObjId, QuestId, 0);
-                // инициируем событие
-                //Task.Run(() => QuestManager.Instance.DoReportEvents(character, QuestId, 0, owner.TemplateId, 0));
                 QuestManager.Instance.DoReportEvents(character, QuestId, 0, owner.ObjId, 0);
             }
         }

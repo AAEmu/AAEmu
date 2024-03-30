@@ -50,9 +50,9 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
             quest.Owner.Events.OnItemGather += quest.Owner.Quests.OnItemGatherHandler;
     }
 
-    public override void Completed(Quest quest, IQuestAct questAct)
+    public override void DeInitialize(Quest quest, IQuestAct questAct)
     {
-        base.Completed(quest, questAct);
+        base.DeInitialize(quest, questAct);
 
         // Un-register event handler
         quest.Owner.Events.OnItemGather -= quest.Owner.Quests.OnItemGatherHandler;
