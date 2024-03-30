@@ -38,7 +38,7 @@ public class GameConnection
     public Dictionary<uint, Character> Characters;
     public Dictionary<uint, House> Houses;
     public object WriteLock { get; set; }
-    public object ReadLock { get; set; }
+    //public object ReadLock { get; set; }
     public byte LastCount { get; set; }
     public Task LeaveTask { get; set; }
     public CancellationTokenSource CancelTokenSource { get; set; }
@@ -53,7 +53,7 @@ public class GameConnection
         Houses = new Dictionary<uint, House>();
         Payment = new AccountPayment(this);
         WriteLock = new object();
-        ReadLock = new object();
+        //ReadLock = new object();
         // AddAttribute("gmFlag", true);
     }
 
