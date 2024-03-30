@@ -187,7 +187,7 @@ public static class MySqlDatabaseUpdater
     /// Scans and runs updates from the SQL\Updates folder
     /// </summary>
     /// <param name="connection">A valid MySqlConnection</param>
-    /// <param name="moduleNamePrefix">either aaemuLoggerin or aaemu_game</param>
+    /// <param name="moduleNamePrefix">either aaemu_login or aaemu_game</param>
     /// <param name="databaseSchemaName">actual database name for this configuration</param>
     /// <returns></returns>
     public static bool Run(MySqlConnection connection, string moduleNamePrefix, string databaseSchemaName)
