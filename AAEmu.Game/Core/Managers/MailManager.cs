@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -14,11 +15,12 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Tasks.Mails;
+
 using MySql.Data.MySqlClient;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
-
 
 public class MailManager : Singleton<MailManager>
 {
@@ -280,16 +282,16 @@ public class MailManager : Singleton<MailManager>
     public Dictionary<long, BaseMail> GetCurrentMailList(Character character)
     {
         var tempMails = _allPlayerMails.Where(x => x.Value.Body.RecvDate <= DateTime.UtcNow && (x.Value.Header.ReceiverId == character.Id || x.Value.Header.SenderId == character.Id)).ToDictionary(x => x.Key, x => x.Value);
-        character.Mails.unreadMailCount.ResetReceived();
+        character.Mails.UnreadMailCount.ResetReceived();
         foreach (var mail in tempMails)
         {
             //if ((mail.Value.Header.Status != MailStatus.Read) && (mail.Value.Header.SenderId != character.Id))
             if (mail.Value.Header.Status != MailStatus.Read)
             {
-                character.Mails.unreadMailCount.UpdateReceived(mail.Value.MailType, 1);
+                character.Mails.UnreadMailCount.UpdateReceived(mail.Value.MailType, 1);
                 var addBody = (mail.Value.MailType == MailType.Charged);
 
-                character.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.unreadMailCount, false, addBody ? mail.Value.Body : null));
+                character.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.UnreadMailCount, false, addBody ? mail.Value.Body : null));
                 mail.Value.IsDelivered = true;
             }
         }
@@ -307,9 +309,9 @@ public class MailManager : Singleton<MailManager>
             {
                 // TODO: Mia mail stuff
                 var addBody = (m.MailType == MailType.Charged);
-                player.Mails.unreadMailCount.UpdateReceived(m.MailType, 1);
+                player.Mails.UnreadMailCount.UpdateReceived(m.MailType, 1);
 
-                player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.unreadMailCount, false, addBody ? m.Body : null));
+                player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.UnreadMailCount, false, addBody ? m.Body : null));
                 m.IsDelivered = true;
                 return true;
             }
@@ -324,8 +326,8 @@ public class MailManager : Singleton<MailManager>
         if (player != null)
         {
             if (m.Header.Status != MailStatus.Read)
-                player.Mails.unreadMailCount.UpdateReceived(m.MailType, -1);
-            player.SendPacket(new SCMailDeletedPacket(false, m.Id, true, player.Mails.unreadMailCount));
+                player.Mails.UnreadMailCount.UpdateReceived(m.MailType, -1);
+            player.SendPacket(new SCMailDeletedPacket(false, m.Id, true, player.Mails.UnreadMailCount));
             return true;
         }
         return false;
@@ -436,11 +438,11 @@ public class MailManager : Singleton<MailManager>
             if (mail.Header.Status != MailStatus.Read)
             {
                 mail.Header.Status = MailStatus.Read;
-                character.Mails.unreadMailCount.UpdateReceived(mail.MailType, -1);
+                character.Mails.UnreadMailCount.UpdateReceived(mail.MailType, -1);
             }
 
             character.SendPacket(new SCChargeMoneyPaidPacket(mail.Id));
-            character.SendPacket(new SCMailDeletedPacket(false, mail.Id, false, character.Mails.unreadMailCount));
+            character.SendPacket(new SCMailDeletedPacket(false, mail.Id, false, character.Mails.UnreadMailCount));
             DeleteMail(mail);
             character.Mails.SendUnreadMailCount();
         }
@@ -453,7 +455,6 @@ public class MailManager : Singleton<MailManager>
         houseId = (uint)(extra & 0xFFFFFFFF); // Extract house DB Id from Extra
         zoneGroupId = (ushort)((extra >> 48) & 0xFFFF); // Extract zone group Id from Extra
     }
-
 
     public void DeleteHouseMails(uint houseId)
     {

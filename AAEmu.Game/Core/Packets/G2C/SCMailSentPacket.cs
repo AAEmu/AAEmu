@@ -21,8 +21,8 @@ public class SCMailSentPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_mail);
-        stream.Write(_count);
+        _mail.Write(stream);
+        _count.Write(stream);
         foreach (var (slotType, slot) in _items) // TODO 10 items
         {
             stream.Write((byte)slotType); // type

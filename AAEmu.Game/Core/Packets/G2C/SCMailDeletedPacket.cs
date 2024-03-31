@@ -25,7 +25,7 @@ public class SCMailDeletedPacket : GamePacket
         stream.Write(_isSent);
         stream.Write(_mailId);
         stream.Write(_isUnreadMailCountModified);
-        stream.Write(_count);
+        _count.Write(stream);
         return stream;
     }
 }

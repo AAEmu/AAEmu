@@ -75,7 +75,7 @@ public class TestMails : ICommand
                     return;
                 case "check":
                     character.Mails.SendUnreadMailCount();
-                    character.SendMessage($"[TestMail] {character.Mails.unreadMailCount.TotalReceived} unread mails");
+                    character.SendMessage($"[TestMail] {character.Mails.UnreadMailCount.TotalReceived} unread mails");
                     return;
                 default:
                     if (Enum.TryParse(args[0], out MailType mTypeByName))

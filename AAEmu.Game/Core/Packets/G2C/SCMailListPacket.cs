@@ -24,7 +24,7 @@ public class SCMailListPacket : GamePacket
     {
         stream.Write(_isSent);
         stream.Write(_total);
-        stream.Write(_mails);
+        _mails.Write(stream);
         stream.Write(_mailBoxListKind);
 
         return stream;
