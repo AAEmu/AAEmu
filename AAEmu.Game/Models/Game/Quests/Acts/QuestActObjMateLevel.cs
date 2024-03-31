@@ -13,6 +13,6 @@ public class QuestActObjMateLevel : QuestActTemplate
     public override bool Use(ICharacter character, Quest quest, int objective)
     {
         Logger.Warn("QuestActObjMateLevel");
-        return character.Mates.GetMateInfo(ItemId).Level >= Level;
+        return character.Mates.GetMateDbInfo(ItemId).Level >= Level;
     }
 }

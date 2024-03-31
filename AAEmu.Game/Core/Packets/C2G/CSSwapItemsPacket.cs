@@ -15,10 +15,10 @@ public class CSSwapItemsPacket : GamePacket
         var fromItemId = stream.ReadUInt64(); // i1
         var toItemId = stream.ReadUInt64();   // i2
 
-        var fromSlotType = (SlotType) stream.ReadByte(); // type
+        var fromSlotType = (SlotType)stream.ReadByte(); // type
         var fromSlot = stream.ReadByte();           // index
 
-        var toSlotType = (SlotType) stream.ReadByte();  // type
+        var toSlotType = (SlotType)stream.ReadByte();  // type
         var toSlot = stream.ReadByte();            // index
 
         Connection.ActiveChar.Inventory.SplitOrMoveItem(Models.Game.Items.Actions.ItemTaskType.SwapItems, fromItemId, fromSlotType, fromSlot, toItemId, toSlotType, toSlot);

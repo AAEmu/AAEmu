@@ -25,17 +25,14 @@ public class CSChangeMateEquipmentPacket : GamePacket
 
         Logger.Debug($"ChangeMateEquipment, TlId: {tl}, Id: {characterId}, Id2: {passengerId}, BTS: {bts}, num: {num}");
 
-        var mate = MateManager.Instance.GetActiveMateByTlId(tl);
-
+        var mate = MateManager.Instance.GetActiveMateByTlId(Connection.ActiveChar.ObjId, tl);
         if (mate == null)
         {
             Logger.Warn($"ChangeMateEquipment, Unable to find mate with tlId {tl}!");
             return;
         }
-
         if (num == 0)
             return;
-
         //                  SlotType, Slot, Item
         var invItems = new (SlotType, byte, Item)[num];
         var equipItems = new (SlotType, byte, Item)[num];

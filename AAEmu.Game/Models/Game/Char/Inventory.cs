@@ -613,24 +613,18 @@ public class Inventory
             itemInTargetSlot.OwnerId = targetContainer?.OwnerId ?? 0;
 
         // Handle Equipment Broadcasting
-        var mate = MateManager.Instance.GetActiveMate(Owner.ObjId);
+        var mates = MateManager.Instance.GetActiveMates(Owner.ObjId);
+        foreach (var mate in mates)
+        {
+            if (fromType == SlotType.Equipment)
+                Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
+            else if (mate != null && fromType == SlotType.EquipmentMate)
+                Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, fromSlot, Equipment.GetItemBySlot(toSlot)), true);
 
-        if (fromType == SlotType.Equipment)
-        {
-            Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
-        }
-        else if (mate != null && fromType == SlotType.EquipmentMate)
-        {
-            Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, fromSlot, Equipment.GetItemBySlot(toSlot)), true);
-        }
-
-        if (toType == SlotType.Equipment)
-        {
-            Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, toSlot, Equipment.GetItemBySlot(toSlot)), false);
-        }
-        else if (mate != null && toType == SlotType.EquipmentMate)
-        {
-            Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, toSlot, fromItem), true);
+            if (toType == SlotType.Equipment)
+                Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, toSlot, Equipment.GetItemBySlot(toSlot)), false);
+            else if (mate != null && toType == SlotType.EquipmentMate)
+                Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, toSlot, fromItem), true);
         }
 
         // Send ItemContainer events

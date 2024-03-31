@@ -466,9 +466,12 @@ public class Transform : IDisposable
                     attachedCharacter.Transform.StickyParent = transfer.Transform;
                     WorldManager.Instance.AddVisibleObject(attachedCharacter);
 
-                    var mate = MateManager.Instance.GetActiveMate(attachedCharacter.ObjId);
-                    if (mate != null)
-                        WorldManager.Instance.AddVisibleObject(mate);
+                    var mates = MateManager.Instance.GetActiveMates(attachedCharacter.ObjId);
+                    foreach (var mate in mates)
+                    {
+                        if (mate != null)
+                            WorldManager.Instance.AddVisibleObject(mate);
+                    }
                 }
             }
         }

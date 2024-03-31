@@ -42,7 +42,7 @@ public class PlayUserMusic : SpecialEffectAction
             {
                 // I'm sure we can get this relation info from the tables somewhere, but can't find it
                 // TODO: It might be that instrument doodads require special handling (not tested)
-                switch ((ItemCategory)instrument.Template.Category_Id)
+                switch ((ItemCategory)instrument.Template.CategoryId)
                 {
                     case ItemCategory.Lute:
                         target.Buffs.AddBuff((uint)BuffConstants.LutePlay, caster);

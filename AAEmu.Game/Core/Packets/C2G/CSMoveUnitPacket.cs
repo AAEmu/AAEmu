@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
@@ -139,7 +140,7 @@ public class CSMoveUnitPacket : GamePacket
 
                         foreach (var (_, passengerInfo) in mate.Passengers)
                         {
-                            var passenger = WorldManager.Instance.GetCharacterByObjId(passengerInfo._objId);
+                            var passenger = WorldManager.Instance.GetCharacterByObjId(passengerInfo.ObjId);
                             if (passenger != null)
                             {
                                 // passenger.Transform = mate.Transform.CloneDetached(passenger);
@@ -162,10 +163,14 @@ public class CSMoveUnitPacket : GamePacket
                             // If we are sitting on a pet and Parent = null, we force it on there to prevent client crashing
                             if (player.Transform.Parent == null)
                             {
-                                var mate2 = MateManager.Instance.GetActiveMate(character.ObjId);
-                                if (mate2 != null)
+                                var mates = MateManager.Instance.GetActiveMates(character.ObjId);
+                                if (mates != null)
                                 {
-                                    player.Transform.Parent = mate2.Transform;
+                                    foreach (var mate2 in mates)
+                                    {
+                                        if (mate2.MateType == MateType.Ride)
+                                            player.Transform.Parent = mate2.Transform;
+                                    }
                                 }
                             }
                             // We're riding a pet, we don't care about the rest of this function

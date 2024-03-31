@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
@@ -35,8 +36,12 @@ public class Blink : SpecialEffectAction
             //var endZ = character.Transform.World.Position.Z;
             if (character.IsRiding)
             {
-                var mate = MateManager.Instance.GetActiveMate(character.ObjId);
-                MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                var mates = MateManager.Instance.GetActiveMates(character.ObjId);
+                foreach (var mate in mates)
+                {
+                    if (mate != null && mate.MateType == MateType.Ride)
+                        MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                }
             }
             character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, value1, value2, newPos.Local.Position.X, newPos.Local.Position.Y, newPos.Local.Position.Z));
             //character.SendMessage("To: " + newPos.ToString());

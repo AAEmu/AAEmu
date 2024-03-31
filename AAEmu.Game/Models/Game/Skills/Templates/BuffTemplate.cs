@@ -244,25 +244,26 @@ public class BuffTemplate
             DoAreaTick(caster, owner, buff);
             return;
         }
-        var mate = MateManager.Instance.GetActiveMate(owner.ObjId);
+        var mates = MateManager.Instance.GetActiveMates(owner.ObjId);
         foreach (var tickEff in TickEffects)
         {
             if (caster is Character character && character.IsRiding)
             {
-                if (tickEff.TargetBuffTagId > 0 &&
-                    !mate.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
-                    return;
-                if (tickEff.TargetNoBuffTagId > 0 &&
-                    mate.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
-                    return;
+                foreach (var mate in mates)
+                {
+                    if (tickEff.TargetBuffTagId > 0 &&
+                        !mate.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
+                        return;
+                    if (tickEff.TargetNoBuffTagId > 0 &&
+                        mate.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
+                        return;
+                }
             }
             else
             {
-                if (tickEff.TargetBuffTagId > 0 &&
-                    !owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
+                if (tickEff.TargetBuffTagId > 0 && !owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
                     return;
-                if (tickEff.TargetNoBuffTagId > 0 &&
-                    owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
+                if (tickEff.TargetNoBuffTagId > 0 && owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
                     return;
             }
             var eff = SkillManager.Instance.GetEffectTemplate(tickEff.EffectId);

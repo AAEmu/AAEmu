@@ -766,9 +766,10 @@ public class Npc : Unit
         if (killer is Character character)
         {
             character.AddExp(KillExp, true);
-            var mate = MateManager.Instance.GetActiveMate(character.ObjId);
-            if (mate != null)
+            var mates = MateManager.Instance.GetActiveMates(character.ObjId);
+            foreach (var mate in mates)
             {
+                if (mate == null) continue;
                 mate.AddExp(KillExp);
                 character.SendMessage($"Pet gained {KillExp} XP");
             }

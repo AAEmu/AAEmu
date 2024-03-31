@@ -51,7 +51,7 @@ public class Team : PacketMarshaler
     {
         var count = 0;
         foreach (var member in Members)
-            if ((member?.Character != null) && (member.Character.IsOnline))
+            if (member?.Character is { IsOnline: true })
                 count++;
         return count;
     }
@@ -59,24 +59,33 @@ public class Team : PacketMarshaler
     public bool IsMember(uint id)
     {
         foreach (var member in Members)
-            if (member?.Character != null && member.Character.Id == id)
+            if (member?.Character?.Id == id)
                 return true;
         return false;
     }
 
     public bool IsObjMember(uint objId)
     {
-        var mate = MateManager.Instance.GetActiveMateByMateObjId(objId);
         foreach (var member in Members)
-            if (member?.Character != null && (member.Character.ObjId == objId || mate?.OwnerObjId == member.Character.ObjId))
+        {
+            if (member?.Character?.ObjId == objId)
                 return true;
+
+            var mates = MateManager.Instance.GetActiveMates(objId);
+            foreach (var mate in mates)
+            {
+                if (mate?.OwnerObjId == member?.Character?.ObjId)
+                    return true;
+            }
+        }
+
         return false;
     }
 
     public uint GetNewOwner()
     {
         foreach (var member in Members)
-            if (member?.Character != null && member.Character.IsOnline && member.Character.Id != OwnerId)
+            if (member?.Character?.IsOnline == true && member.Character.Id != OwnerId)
                 return member.Character.Id;
         return 0;
     }
@@ -85,7 +94,7 @@ public class Team : PacketMarshaler
     {
         foreach (var member in Members)
         {
-            if (member == null || member.Character?.Id != id)
+            if (member?.Character?.Id != id)
                 continue;
 
             if (member.Role == role)

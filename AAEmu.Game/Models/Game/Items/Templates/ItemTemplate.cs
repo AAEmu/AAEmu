@@ -12,7 +12,7 @@ public class ItemTemplate
     /// Original Korean name is stored here, use LocalizationManager to get the names for other langauges
     /// </summary>
     public string Name { get; set; }
-    public int Category_Id { get; set; }
+    public int CategoryId { get; set; }
     public int Level { get; set; }
     public int Price { get; set; }
     public int Refund { get; set; }

@@ -19,8 +19,8 @@ namespace AAEmu.Game.Models.Game.Units;
 
 public class MatePassengerInfo
 {
-    public uint _objId;
-    public AttachUnitReason _reason;
+    public uint ObjId;
+    public AttachUnitReason Reason;
 }
 
 public sealed class Mate : Unit
@@ -45,6 +45,7 @@ public sealed class Mate : Unit
     public List<uint> Skills { get; set; }
     public MateDb DbInfo { get; set; }
     public Task MateXpUpdateTask { get; set; }
+    public MateType MateType { get; set; }  // added in 3+
 
     #region Attributes
 
@@ -506,8 +507,8 @@ public sealed class Mate : Unit
 
         // TODO: Spawn this with the correct amount of seats depending on the template
         // 2 seats by default
-        Passengers.Add(AttachPointKind.Driver, new MatePassengerInfo() { _objId = 0, _reason = 0 });
-        Passengers.Add(AttachPointKind.Passenger0, new MatePassengerInfo() { _objId = 0, _reason = 0 });
+        Passengers.Add(AttachPointKind.Driver, new MatePassengerInfo() { ObjId = 0, Reason = 0 });
+        Passengers.Add(AttachPointKind.Passenger0, new MatePassengerInfo() { ObjId = 0, Reason = 0 });
     }
 
     public void AddExp(int exp)
@@ -555,11 +556,11 @@ public sealed class Mate : Unit
         // TODO: Maybe let base handle this ?
         foreach (var ati in Passengers)
         {
-            if (ati.Value._objId > 0)
+            if (ati.Value.ObjId > 0)
             {
-                var player = WorldManager.Instance.GetCharacterByObjId(ati.Value._objId);
+                var player = WorldManager.Instance.GetCharacterByObjId(ati.Value.ObjId);
                 if (player != null)
-                    character.SendPacket(new SCUnitAttachedPacket(player.ObjId, ati.Key, ati.Value._reason, ObjId));
+                    character.SendPacket(new SCUnitAttachedPacket(player.ObjId, ati.Key, ati.Value.Reason, ObjId));
             }
         }
     }
@@ -581,7 +582,7 @@ public sealed class Mate : Unit
             for (var i = riders.Count - 1; i >= 0; i--)
             {
                 var pos = riders[i].Key;
-                var rider = WorldManager.Instance.GetCharacterByObjId(riders[i].Value._objId);
+                var rider = WorldManager.Instance.GetCharacterByObjId(riders[i].Value.ObjId);
                 if (rider != null)
                 {
                     rider.DoFallDamage(fallVel);
@@ -606,7 +607,7 @@ public sealed class Mate : Unit
             for (var i = riders.Count - 1; i >= 0; i--)
             {
                 var pos = riders[i].Key;
-                var rider = WorldManager.Instance.GetCharacterByObjId(riders[i].Value._objId);
+                var rider = WorldManager.Instance.GetCharacterByObjId(riders[i].Value.ObjId);
                 if (rider != null)
                 {
                     MateManager.Instance.UnMountMate(rider, TlId, pos, AttachUnitReason.None);

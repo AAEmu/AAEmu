@@ -1144,7 +1144,7 @@ public class ItemManager : Singleton<ItemManager>
                         var template = _templates.TryGetValue(id, out var templateRes) ? templateRes : new ItemTemplate();
                         template.Id = id;
                         template.Name = reader.IsDBNull("name") ? "" : reader.GetString("name");
-                        template.Category_Id = reader.GetInt32("category_id");
+                        template.CategoryId = reader.GetInt32("category_id");
                         template.Level = reader.GetInt32("level");
                         template.Price = reader.GetInt32("price");
                         template.Refund = reader.GetInt32("refund");

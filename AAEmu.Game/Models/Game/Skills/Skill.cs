@@ -26,6 +26,7 @@ using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
@@ -146,8 +147,12 @@ public class Skill
         // Unmount character if skill asks for it
         if (character is { IsRiding: true } && Template.Unmount)
         {
-            var mate = MateManager.Instance.GetActiveMate(character.ObjId);
-            MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+            var mates = MateManager.Instance.GetActiveMates(character.ObjId);
+            foreach (var mate in mates)
+            {
+                if (mate != null && mate.MateType == MateType.Ride)
+                    MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+            }
         }
 
         // Check initial mana cost

@@ -3,12 +3,28 @@
         "Id": 1,
         "Name": "Nuian",
         "Pos": {
+            "WorldId": 1,
             "X": 15578.042,
             "Y": 15382.122,
             "Z": 126.484,
             "Roll": 0,
             "Pitch": 0,
-            "Yaw": 160
+            "Yaw": 125
+        },
+        "NumInventorySlot": 50,
+        "NumBankSlot": 50
+    },
+	{
+        "Id": 3,
+        "Name": "Dwarf",
+        "Pos": {
+            "WorldId": 1,
+            "X": 8535.91,
+            "Y": 13091.33,
+            "Z": 678.35,
+            "Roll": 0,
+            "Pitch": 0,
+            "Yaw": 18
         },
         "NumInventorySlot": 50,
         "NumBankSlot": 50
@@ -17,12 +33,13 @@
         "Id": 4,
         "Name": "Elf",
         "Pos": {
+            "WorldId": 1,
             "X": 10388.576,
             "Y": 15982.466,
             "Z": 367.606,
             "Roll": 0,
             "Pitch": 0,
-            "Yaw": 45
+            "Yaw": 34
         },
         "NumInventorySlot": 50,
         "NumBankSlot": 50
@@ -31,12 +48,13 @@
         "Id": 5,
         "Name": "Hariharan",
         "Pos": {
+            "WorldId": 1,
             "X": 19304.874,
             "Y": 7646.06,
             "Z": 212.704,
             "Roll": 0,
             "Pitch": 0,
-            "Yaw": 210
+            "Yaw": -115
         },
         "NumInventorySlot": 50,
         "NumBankSlot": 50
@@ -45,12 +63,28 @@
         "Id": 6,
         "Name": "Ferre",
         "Pos": {
+            "WorldId": 1,
             "X": 23881.218,
             "Y": 10495.782,
             "Z": 589.7838,
             "Roll": 0,
             "Pitch": 0,
-            "Yaw": 200
+            "Yaw": -124
+        },
+        "NumInventorySlot": 50,
+        "NumBankSlot": 50
+    },
+	{
+        "Id": 8,
+        "Name": "Warborn",
+        "Pos": {
+            "WorldId": 1,
+            "X": 19218.05,
+            "Y": 6787.052,
+            "Z": 285.72,
+            "Roll": 0,
+            "Pitch": 0,
+            "Yaw": -124
         },
         "NumInventorySlot": 50,
         "NumBankSlot": 50

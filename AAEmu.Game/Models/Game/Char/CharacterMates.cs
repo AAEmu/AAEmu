@@ -36,7 +36,7 @@ public class CharacterMates
         _removedMates = new List<uint>();
     }
 
-    public MateDb GetMateInfo(ulong itemId)
+    public MateDb GetMateDbInfo(ulong itemId)
     {
         return _mates.TryGetValue(itemId, out var mate) ? mate : null;
     }
@@ -65,14 +65,6 @@ public class CharacterMates
 
     public void SpawnMount(SkillItem skillData)
     {
-        // Check if we had already spawned something
-        var oldMate = MateManager.Instance.GetActiveMate(Owner.ObjId);
-        if (oldMate != null)
-        {
-            DespawnMate(oldMate.TlId);
-            return;
-        }
-
         var item = Owner.Inventory.GetItemById(skillData.ItemId);
         if (item == null) return;
 
@@ -81,30 +73,60 @@ public class CharacterMates
         var template = NpcManager.Instance.GetTemplate(npcId);
         var tlId = (ushort)TlIdManager.Instance.GetNextId();
         var objId = ObjectIdManager.Instance.GetNextId();
-        var mateDbInfo = GetMateInfo(skillData.ItemId) ?? CreateNewMate(skillData.ItemId, template);
 
-        var mount = new Units.Mate
+        // check if there already is such an object or if there is an object of this type
+        var oldMates = MateManager.Instance.GetActiveMates(Owner.ObjId);
+        if (oldMates != null)
         {
-            ObjId = objId,
-            TlId = tlId,
-            OwnerId = Owner.Id,
-            Name = mateDbInfo.Name,
-            TemplateId = template.Id,
-            Template = template,
-            ModelId = template.ModelId,
-            Faction = Owner.Faction,
-            Level = (byte)mateDbInfo.Level,
-            Hp = mateDbInfo.Hp > 0 ? mateDbInfo.Hp : 100,
-            Mp = mateDbInfo.Mp > 0 ? mateDbInfo.Mp : 100,
-            OwnerObjId = Owner.ObjId,
-            Id = mateDbInfo.Id,
-            ItemId = mateDbInfo.ItemId,
-            UserState = 1, // TODO
-            Experience = mateDbInfo.Xp,
-            Mileage = mateDbInfo.Mileage,
-            SpawnDelayTime = 0, // TODO
-            DbInfo = mateDbInfo
-        };
+            foreach (var oldMate in oldMates)
+            {
+                var mateDb = GetMateDbInfo(skillData.ItemId);
+                if (mateDb != null && oldMate.DbInfo.Id == mateDb.Id)
+                {
+                    DespawnMate(oldMate.TlId); // such an object already exists
+                    return;
+                }
+
+                if (oldMate.MateType == (MateType)(item.Template.CategoryId == 92 ? 1 : 2)) // 92 - Mount, 95 - Battle)
+                    DespawnMate(oldMate.TlId); // there is an object of this type
+            }
+        }
+
+        var mateDbInfo = GetMateDbInfo(skillData.ItemId) ?? CreateNewMate(skillData.ItemId, template);
+
+        var mount = new Units.Mate();
+        mount.ObjId = objId;
+        mount.TlId = tlId;
+        mount.OwnerId = Owner.Id;
+        mount.Name = mateDbInfo.Name;
+        mount.TemplateId = template.Id;
+        mount.Template = template;
+        mount.ModelId = template.ModelId;
+        mount.Faction = Owner.Faction;
+        mount.Level = (byte)mateDbInfo.Level;
+        mount.Hp = mateDbInfo.Hp > 0 ? mateDbInfo.Hp : 100;
+        mount.Mp = mateDbInfo.Mp > 0 ? mateDbInfo.Mp : 100;
+        mount.OwnerObjId = Owner.ObjId;
+        mount.Id = mateDbInfo.Id;
+        mount.ItemId = mateDbInfo.ItemId;
+        mount.UserState = 1; // TODO
+        mount.Experience = mateDbInfo.Xp;
+        mount.Mileage = mateDbInfo.Mileage;
+        mount.SpawnDelayTime = 0; // TODO
+        mount.DbInfo = mateDbInfo;
+        switch (item.Template.CategoryId)
+        {
+            case 92:
+            case 109:
+                mount.MateType = MateType.Ride;
+                break;
+            case 95:
+            case 191:
+            default:
+                mount.MateType = MateType.Battle;
+                //mount.MateType = MateType.None;
+                break;
+        }
 
         mount.Transform = Owner.Transform.CloneDetached(mount);
 
@@ -136,10 +158,10 @@ public class CharacterMates
 
     public void DespawnMate(uint tlId)
     {
-        var mateInfo = MateManager.Instance.GetActiveMateByTlId(tlId);
+        var mateInfo = MateManager.Instance.GetActiveMateByTlId(Owner.ObjId, tlId);
         if (mateInfo != null)
         {
-            var mateDbInfo = GetMateInfo(mateInfo.ItemId);
+            var mateDbInfo = GetMateDbInfo(mateInfo.ItemId);
             if (mateDbInfo != null)
             {
                 mateDbInfo.Hp = mateInfo.Hp;

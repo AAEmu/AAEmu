@@ -16,7 +16,7 @@ public class SCMateSpawnedPacket : GamePacket
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(_mate.TlId);
-
+        stream.Write((byte)_mate.MateType); // added in 3+
         stream.Write(_mate.Id);
         stream.Write(_mate.ItemId);
         stream.Write(_mate.UserState);

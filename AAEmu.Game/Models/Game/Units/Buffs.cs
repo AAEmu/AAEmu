@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Units;
@@ -330,8 +331,12 @@ public class Buffs : IBuffs
 
                 if (owner is Character character && character.IsRiding && (bufft.Stun || bufft.Sleep || bufft.Root))
                 {
-                    var mate = MateManager.Instance.GetActiveMate(character.ObjId);
-                    MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                    var mates = MateManager.Instance.GetActiveMates(character.ObjId);
+                    foreach (var mate in mates)
+                    {
+                        if (mate != null && mate.MateType == MateType.Ride)
+                            MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                    }
                 }
 
                 if (bufft.Stun || bufft.Silence || bufft.Sleep)

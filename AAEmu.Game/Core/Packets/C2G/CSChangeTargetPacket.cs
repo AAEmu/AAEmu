@@ -17,27 +17,27 @@ public class CSChangeTargetPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         var targetId = stream.ReadBc();
-        Connection
-                .ActiveChar
-                .CurrentTarget = targetId > 0 ? WorldManager.Instance.GetUnit(targetId) : null;
-
-        Connection
-            .ActiveChar
-            .BroadcastPacket(
-                new SCTargetChangedPacket(Connection.ActiveChar.ObjId,
-                    Connection.ActiveChar.CurrentTarget?.ObjId ?? 0), true);
-
         if (targetId == 0)
         {
             Connection.ActiveChar.SendMessage("Selected nothing");
             return;
         }
-        if (Connection.ActiveChar.CurrentTarget == null)
+        var target = WorldManager.Instance.GetUnit(targetId);
+        if (target == null)
         {
             Connection.ActiveChar.SendMessage($"ObjId: {targetId}, TemplateId: not found in Db");
-            WorldManager.Instance.RemoveObject(targetId); // trying to delete the missing object
             return;
         }
+
+        Connection
+                    .ActiveChar
+                    .CurrentTarget = target;
+
+        Connection
+            .ActiveChar
+            .BroadcastPacket(
+                new SCTargetChangedPacket(Connection.ActiveChar.ObjId, targetId), true);
+
         if (Connection.ActiveChar.CurrentTarget is Portal portal)
             Connection.ActiveChar.SendMessage($"ObjId: {targetId}, TemplateId: {portal.TemplateId}\nPos: {portal.Transform}");
         else if (Connection.ActiveChar.CurrentTarget is Npc npc)

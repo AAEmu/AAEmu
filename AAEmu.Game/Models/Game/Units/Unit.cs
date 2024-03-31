@@ -12,6 +12,7 @@ using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
@@ -492,8 +493,8 @@ public class Unit : BaseUnit, IUnit
         // if we died sitting on a horse
         if (character.Hp > 0) { return; }
 
-        var mate = MateManager.Instance.GetActiveMate(character.ObjId);
-        if (mate != null)
+        var mates = MateManager.Instance.GetActiveMates(character.ObjId);
+        foreach (var mate in mates)
         {
             character.Mates.DespawnMate(mate.TlId);
         }
