@@ -26,9 +26,9 @@ public class SCMailBodyPacket : GamePacket
     {
         stream.Write(_isPrepare);
         stream.Write(_isSent);
-        _body.Write(stream);
+        stream.Write(_body);
         stream.Write(_isOpenDateModified);
-        _count.Write(stream);
+        stream.Write(_count);
         return stream;
     }
 }

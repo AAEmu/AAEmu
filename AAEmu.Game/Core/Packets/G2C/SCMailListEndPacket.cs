@@ -18,7 +18,7 @@ public class SCMailListEndPacket : GamePacket
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(_mailBoxListKind); // mailBoxListKind
-        _countUnread.Write(stream);     // CountUnreadMail
+        stream.Write(_countUnread);     // CountUnreadMail
 
         return stream;
     }

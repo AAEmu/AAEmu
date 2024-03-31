@@ -20,8 +20,8 @@ public class SCMailReturnedPacket : GamePacket
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(_mailId);
-        _mail.Write(stream);
-        _count.Write(stream);
+        stream.Write(_mail);
+        stream.Write(_count);
         return stream;
     }
 }

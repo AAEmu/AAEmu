@@ -15,7 +15,7 @@ public class SCCountUnreadMailPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        _count.Write(stream);
+        stream.Write(_count);
         return stream;
     }
 }
