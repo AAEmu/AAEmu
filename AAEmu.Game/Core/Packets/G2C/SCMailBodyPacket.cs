@@ -11,9 +11,9 @@ public class SCMailBodyPacket : GamePacket
     private readonly MailBody _body;
     private readonly bool _isOpenDateModified;
     private readonly CountUnreadMail _count;
-    //private readonly ulong _mailID;
 
-    public SCMailBodyPacket(bool isPrepare, bool isSent, MailBody body, bool isOpenDateModified, CountUnreadMail count) : base(SCOffsets.SCMailBodyPacket, 5)
+    public SCMailBodyPacket(bool isPrepare, bool isSent, MailBody body, bool isOpenDateModified, CountUnreadMail count)
+        : base(SCOffsets.SCMailBodyPacket, 5)
     {
         _isPrepare = isPrepare;
         _isSent = isSent;
@@ -26,9 +26,9 @@ public class SCMailBodyPacket : GamePacket
     {
         stream.Write(_isPrepare);
         stream.Write(_isSent);
-        stream.Write(_body);
+        _body.Write(stream);
         stream.Write(_isOpenDateModified);
-        stream.Write(_count);
+        _count.Write(stream);
         return stream;
     }
 }

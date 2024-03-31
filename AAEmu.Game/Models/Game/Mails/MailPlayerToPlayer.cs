@@ -7,7 +7,6 @@ using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Models.Game.Mails;
 
-
 public class MailPlayerToPlayer : BaseMail
 {
     private ICharacter _sender;

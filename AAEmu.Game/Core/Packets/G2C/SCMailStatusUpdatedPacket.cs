@@ -8,20 +8,20 @@ public class SCMailStatusUpdatedPacket : GamePacket
 {
     private readonly bool _isSent;
     private readonly long _mailId;
-    private readonly MailStatus _status;
+    private readonly byte _status;
 
     public SCMailStatusUpdatedPacket(bool isSent, long mailId, MailStatus status) : base(SCOffsets.SCMailStatusUpdatedPacket, 5)
     {
         _isSent = isSent;
         _mailId = mailId;
-        _status = status;
+        _status = (byte)status;
     }
 
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(_isSent);
         stream.Write(_mailId);
-        stream.Write((byte)_status);
+        stream.Write(_status);
         return stream;
     }
 }

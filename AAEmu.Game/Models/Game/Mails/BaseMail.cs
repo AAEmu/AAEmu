@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -51,7 +52,7 @@ public class BaseMail
     /// <returns></returns>
     public bool CanReturnMail()
     {
-        return ((IsDelivered == false) && (Header.SenderId != Header.ReceiverId) && (Header.SenderId > 0) && ((MailType == MailType.Normal) || (MailType == MailType.Express)));
+        return IsDelivered == false && Header.SenderId != Header.ReceiverId && Header.SenderId > 0 && MailType is MailType.Normal or MailType.Express;
     }
 
     public bool ReturnToSender()
@@ -62,8 +63,8 @@ public class BaseMail
         var originalReceiver = WorldManager.Instance.GetCharacterById(Header.ReceiverId);
         var originalSender = WorldManager.Instance.GetCharacterById(Header.SenderId);
 
-        if ((originalReceiver != null) && (originalReceiver.IsOnline))
-            originalReceiver.SendPacket(new SCMailReturnedPacket(_id, _header));
+        if (originalReceiver is { IsOnline: true })
+            originalReceiver.SendPacket(new SCMailReturnedPacket(_id, _header, originalReceiver.Mails.UnreadMailCount));
 
         var originalReceiverId = Header.ReceiverId;
         var originalReceiverName = Header.ReceiverName;
@@ -74,7 +75,7 @@ public class BaseMail
 
         Send();
 
-        if ((originalSender != null) && (originalSender.IsOnline))
+        if (originalSender is { IsOnline: true })
             MailManager.NotifyNewMailByNameIfOnline(this, originalSender.Name);
 
         // TODO

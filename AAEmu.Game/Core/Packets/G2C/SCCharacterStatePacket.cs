@@ -36,13 +36,13 @@ public class SCCharacterStatePacket : GamePacket
             stream.Write((uint)0);               // abilityExp
         }
 
-        stream.Write(_character.Mails.unreadMailCount.TotalSent);                // totalSentMail
-        stream.Write(_character.Mails.unreadMailCount.TotalReceived);            // totalMail
-        stream.Write(_character.Mails.unreadMailCount.TotalMiaReceived);         // totalMiaMail
-        stream.Write(_character.Mails.unreadMailCount.TotalCommercialReceived);  // totalCommercialMail
-        stream.Write(_character.Mails.unreadMailCount.UnreadReceived);           // unreadMail
-        stream.Write(_character.Mails.unreadMailCount.UnreadMiaReceived);        // unreadMiaMail
-        stream.Write(_character.Mails.unreadMailCount.UnreadCommercialReceived); // unreadCommercialMail
+        stream.Write(_character.Mails.UnreadMailCount.TotalSent);                // totalSentMail
+        stream.Write(_character.Mails.UnreadMailCount.TotalReceived);            // totalMail
+        stream.Write(_character.Mails.UnreadMailCount.TotalMiaReceived);         // totalMiaMail
+        stream.Write(_character.Mails.UnreadMailCount.TotalCommercialReceived);  // totalCommercialMail
+        stream.Write(_character.Mails.UnreadMailCount.UnreadReceived);           // unreadMail
+        stream.Write(_character.Mails.UnreadMailCount.UnreadMiaReceived);        // unreadMiaMail
+        stream.Write(_character.Mails.UnreadMailCount.UnreadCommercialReceived); // unreadCommercialMail
         stream.Write(_character.NumInventorySlots); // numInvenSlots
         stream.Write(_character.NumBankSlots);      // numBankSlots
         stream.Write(_character.Money);  // moneyAmount - Inventory

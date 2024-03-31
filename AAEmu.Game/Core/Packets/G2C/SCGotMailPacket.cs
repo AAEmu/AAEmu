@@ -23,11 +23,11 @@ public class SCGotMailPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_mail);
-        stream.Write(_count);
+        _mail.Write(stream);
+        _count.Write(stream);
         stream.Write(_hasBody);
         if (_hasBody)
-            stream.Write(_body);
+            _body.Write(stream);
         stream.Write(_isCancel);
         return stream;
     }
