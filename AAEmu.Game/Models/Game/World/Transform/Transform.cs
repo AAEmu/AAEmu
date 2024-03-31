@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
@@ -467,11 +468,8 @@ public class Transform : IDisposable
                     WorldManager.Instance.AddVisibleObject(attachedCharacter);
 
                     var mates = MateManager.Instance.GetActiveMates(attachedCharacter.ObjId);
-                    foreach (var mate in mates)
-                    {
-                        if (mate != null)
-                            WorldManager.Instance.AddVisibleObject(mate);
-                    }
+                    foreach (var mate in mates.Where(mate => mate != null))
+                        WorldManager.Instance.AddVisibleObject(mate);
                 }
             }
         }

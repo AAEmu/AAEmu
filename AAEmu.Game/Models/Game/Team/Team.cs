@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Linq;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -72,11 +73,8 @@ public class Team : PacketMarshaler
                 return true;
 
             var mates = MateManager.Instance.GetActiveMates(objId);
-            foreach (var mate in mates)
-            {
-                if (mate?.OwnerObjId == member?.Character?.ObjId)
-                    return true;
-            }
+            if (mates.Any(mate => mate?.OwnerObjId == member?.Character?.ObjId))
+                return true;
         }
 
         return false;

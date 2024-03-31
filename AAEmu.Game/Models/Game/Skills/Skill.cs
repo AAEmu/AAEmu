@@ -148,10 +148,9 @@ public class Skill
         if (character is { IsRiding: true } && Template.Unmount)
         {
             var mates = MateManager.Instance.GetActiveMates(character.ObjId);
-            foreach (var mate in mates)
+            foreach (var mate in mates.Where(mate => mate is { MateType: MateType.Ride }))
             {
-                if (mate != null && mate.MateType == MateType.Ride)
-                    MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
             }
         }
 

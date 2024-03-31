@@ -495,9 +495,7 @@ public class Unit : BaseUnit, IUnit
 
         var mates = MateManager.Instance.GetActiveMates(character.ObjId);
         foreach (var mate in mates)
-        {
             character.Mates.DespawnMate(mate.TlId);
-        }
     }
 
     private static async void StopAutoSkill(Unit unit)

@@ -24,9 +24,16 @@ public static class SkillTargetingUtil
             case SkillTargetRelation.Raid:
                 var team = TeamManager.Instance.GetTeamByObjId(caster.ObjId);
                 var mates = MateManager.Instance.GetActiveMates(caster.ObjId);
-                foreach (var mate in mates)
+                if (team == null)
                 {
-                    units = team == null ? units.Where(o => o.ObjId == mate?.ObjId) : units.Where(o => team.IsObjMember(o.ObjId));
+                    foreach (var mate in mates)
+                    {
+                        units = units.Where(o => o.ObjId == mate?.ObjId);
+                    }
+                }
+                else
+                {
+                    units = units.Where(o => team.IsObjMember(o.ObjId));
                 }
                 return units.Append(caster);
             case SkillTargetRelation.Others:

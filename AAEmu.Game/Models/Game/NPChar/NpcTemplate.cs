@@ -100,6 +100,7 @@ public class NpcTemplate
     public NpcTemplate()
     {
         HairId = 0;
+        HornId = 0;
         Items = new EquipItemsTemplate();
         ModelParams = new UnitCustomModelParams();
         BodyItems = new (uint, bool)[7];

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -12,6 +13,7 @@ using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
+
 using MySql.Data.MySqlClient;
 
 using NLog;
@@ -614,17 +616,40 @@ public class Inventory
 
         // Handle Equipment Broadcasting
         var mates = MateManager.Instance.GetActiveMates(Owner.ObjId);
-        foreach (var mate in mates)
+        if (fromType == SlotType.Equipment)
         {
-            if (fromType == SlotType.Equipment)
-                Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
-            else if (mate != null && fromType == SlotType.EquipmentMate)
-                Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, fromSlot, Equipment.GetItemBySlot(toSlot)), true);
+            Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
+        }
+        else
+        {
+            if (mates != null)
+            {
+                foreach (var mate in mates)
+                {
+                    if (mate is not null && fromType == SlotType.EquipmentMate)
+                    {
+                        Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, fromSlot, Equipment.GetItemBySlot(toSlot)), true);
+                    }
+                }
+            }
+        }
 
-            if (toType == SlotType.Equipment)
-                Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, toSlot, Equipment.GetItemBySlot(toSlot)), false);
-            else if (mate != null && toType == SlotType.EquipmentMate)
-                Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, toSlot, fromItem), true);
+        if (toType == SlotType.Equipment)
+        {
+            Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, toSlot, Equipment.GetItemBySlot(toSlot)), false);
+        }
+        else
+        {
+            if (mates != null)
+            {
+                foreach (var mate in mates)
+                {
+                    if (mate is not null && toType == SlotType.EquipmentMate)
+                    {
+                        Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, toSlot, fromItem), true);
+                    }
+                }
+            }
         }
 
         // Send ItemContainer events

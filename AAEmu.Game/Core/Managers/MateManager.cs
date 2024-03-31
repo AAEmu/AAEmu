@@ -68,46 +68,45 @@ public class MateManager : Singleton<MateManager>
 
     public void ChangeStateMate(GameConnection connection, uint tlId, byte newState)
     {
-        var mateInfo = GetMateInfoByTlId(connection, tlId);
+        var (owner, mateInfo) = GetMateInfoByTlId(connection, tlId);
         if (mateInfo?.TlId != tlId) return;
 
         mateInfo.UserState = newState; // TODO - Maybe verify range
-        //mateInfo.BroadcastPacket(new SCMateStatePacket(), );
+        //owner.BroadcastPacket(new SCMateStatePacket(), );
     }
 
     public void ChangeTargetMate(GameConnection connection, uint tlId, uint objId)
     {
-        var mateInfo = GetMateInfoByTlId(connection, tlId);
+        var (owner, mateInfo) = GetMateInfoByTlId(connection, tlId);
         if (mateInfo == null) return;
         mateInfo.CurrentTarget = objId > 0 ? WorldManager.Instance.GetUnit(objId) : null;
-        mateInfo.BroadcastPacket(new SCTargetChangedPacket(mateInfo.ObjId, mateInfo.CurrentTarget?.ObjId ?? 0), true);
+        owner.BroadcastPacket(new SCTargetChangedPacket(mateInfo.ObjId, mateInfo.CurrentTarget?.ObjId ?? 0), true);
 
         Logger.Debug("ChangeTargetMate. tlId: {0}, objId: {1}, targetObjId: {2}", mateInfo.TlId, mateInfo.ObjId, objId);
     }
 
-    private Mate GetMateInfoByTlId(GameConnection connection, uint tlId)
+    private (Character, Mate) GetMateInfoByTlId(GameConnection connection, uint tlId)
     {
         var owner = connection.ActiveChar;
         var mateInfo = GetActiveMateByTlId(owner.ObjId, tlId);
-        return mateInfo;
+        return (owner, mateInfo);
     }
 
     public Mate RenameMount(GameConnection connection, uint tlId, string newName)
     {
-        var mateInfo = GetMateInfoByTlId(connection, tlId);
+        var (owner, mateInfo) = GetMateInfoByTlId(connection, tlId);
         if (string.IsNullOrWhiteSpace(newName) || newName.Length == 0 || !_nameRegex.IsMatch(newName)) return null;
         if (mateInfo?.TlId != tlId) return null;
         mateInfo.Name = newName.FirstCharToUpper();
-        mateInfo.BroadcastPacket(new SCUnitNameChangedPacket(mateInfo.ObjId, newName), true);
+        owner.BroadcastPacket(new SCUnitNameChangedPacket(mateInfo.ObjId, newName), true);
         return mateInfo;
     }
 
     public void MountMate(GameConnection connection, uint tlId, AttachPointKind attachPoint, AttachUnitReason reason)
     {
-        var mateInfo = GetMateInfoByTlId(connection, tlId);
+        var (owner, mateInfo) = GetMateInfoByTlId(connection, tlId);
         if (mateInfo == null) return;
 
-        var owner = connection.ActiveChar;
         // Request seat position
         if (mateInfo.Passengers.TryGetValue(attachPoint, out var seatInfo))
         {
@@ -143,9 +142,9 @@ public class MateManager : Singleton<MateManager>
         Logger.Debug("MountMate. mountTlId: {0}, attachPoint: {1}, reason: {2}, seats: {3}", mateInfo.TlId, attachPoint, reason, string.Join(", ", mateInfo.Passengers.Values.ToList()));
     }
 
-    public void UnMountMate(Character owner, uint tlId, AttachPointKind attachPoint, AttachUnitReason reason)
+    public void UnMountMate(Character character, uint tlId, AttachPointKind attachPoint, AttachUnitReason reason)
     {
-        var mateInfo = GetActiveMateByTlId(owner.ObjId, tlId);
+        var (owner, mateInfo) = GetMateInfoByTlId(character.Connection, tlId);
         if (mateInfo == null) return;
 
         mateInfo.StopUpdateXp();
@@ -180,6 +179,7 @@ public class MateManager : Singleton<MateManager>
         else
             Logger.Warn("UnMountMate. No valid seat entry, mountTlId: {0}, characterObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId, 0, attachPoint, reason);
     }
+    
     public void UnMountMate(Mate mateInfo, AttachPointKind attachPoint, MatePassengerInfo seatInfo)
     {
         if (mateInfo == null) return;

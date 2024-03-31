@@ -332,11 +332,8 @@ public class Buffs : IBuffs
                 if (owner is Character character && character.IsRiding && (bufft.Stun || bufft.Sleep || bufft.Root))
                 {
                     var mates = MateManager.Instance.GetActiveMates(character.ObjId);
-                    foreach (var mate in mates)
-                    {
-                        if (mate != null && mate.MateType == MateType.Ride)
-                            MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
-                    }
+                    foreach (var mate in mates.Where(mate => mate is { MateType: MateType.Ride }))
+                        MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
                 }
 
                 if (bufft.Stun || bufft.Silence || bufft.Sleep)

@@ -240,10 +240,10 @@ public class Item : PacketMarshaler, IComparable<Item>
                 mDetailLength = 56; // есть расшифровка в items/EquipItem
                 break;
             case ItemDetailType.Slave: // 2
-                mDetailLength = 30;
+                mDetailLength = 30; // есть расшифровка в items/SummonSlave
                 break;
             case ItemDetailType.Mate: // 3
-                mDetailLength = 7; // есть расшифровка в items/Summon
+                mDetailLength = 21; // in 1.2 - 7, in 3+ - 21 - есть расшифровка в items/SummonMate
                 break;
             case ItemDetailType.Ucc: // 4
                 mDetailLength = 10; // есть расшифровка в items/UccItem

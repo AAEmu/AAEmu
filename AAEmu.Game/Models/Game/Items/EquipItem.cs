@@ -98,8 +98,8 @@ public class EquipItem : Item
 
     public override void ReadDetails(PacketStream stream)
     {
-        //if (stream.LeftBytes < DetailBytesLength)
-        //    return;
+        if (stream.LeftBytes < DetailBytesLength)
+            return;
         Durability = stream.ReadByte();       // durability
         ChargeCount = stream.ReadInt16();     // chargeCount
         ChargeTime = stream.ReadDateTime();   // chargeTime

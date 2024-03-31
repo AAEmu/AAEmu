@@ -247,7 +247,7 @@ public class BuffTemplate
         var mates = MateManager.Instance.GetActiveMates(owner.ObjId);
         foreach (var tickEff in TickEffects)
         {
-            if (caster is Character character && character.IsRiding)
+            if (caster is Character { IsRiding: true })
             {
                 foreach (var mate in mates)
                 {
