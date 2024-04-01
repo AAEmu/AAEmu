@@ -26,7 +26,8 @@ public class MateManager : Singleton<MateManager>
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Regex _nameRegex;
 
-    private Dictionary<uint, NpcMountSkills> _npcMountSkills;
+    private Dictionary<uint, List<uint>> _npcMountSkills;
+    //private Dictionary<uint, NpcMountSkills> _npcMountSkills;
     private Dictionary<uint, MountSkills> _mountSkills;
     private Dictionary<uint, MountAttachedSkills> _mountAttachedSkills;
     private Dictionary<uint, List<Mate>> _activeMates; // ownerObjId, Mounts
@@ -179,7 +180,7 @@ public class MateManager : Singleton<MateManager>
         else
             Logger.Warn("UnMountMate. No valid seat entry, mountTlId: {0}, characterObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId, 0, attachPoint, reason);
     }
-    
+
     public void UnMountMate(Mate mateInfo, AttachPointKind attachPoint, MatePassengerInfo seatInfo)
     {
         if (mateInfo == null) return;
@@ -279,13 +280,11 @@ public class MateManager : Singleton<MateManager>
 
     public List<uint> GetMateSkills(uint id)
     {
-        var template = new List<uint>();
+        foreach (var skills in _npcMountSkills)
+            if (skills.Key == id)
+                return skills.Value;
 
-        foreach (var value in _npcMountSkills.Values)
-            if (value.NpcId == id && !template.Contains(value.MountSkillId))
-                template.Add(value.MountSkillId);
-
-        return template;
+        return null;
     }
 
     /// <summary>
@@ -339,7 +338,8 @@ public class MateManager : Singleton<MateManager>
     public void Load()
     {
         _nameRegex = new Regex(AppConfiguration.Instance.CharacterNameRegex, RegexOptions.Compiled);
-        _npcMountSkills = new Dictionary<uint, NpcMountSkills>();
+        //_npcMountSkills = new Dictionary<uint, NpcMountSkills>();
+        _npcMountSkills = new Dictionary<uint, List<uint>>();
         _mountSkills = new Dictionary<uint, MountSkills>();
         _mountAttachedSkills = new Dictionary<uint, MountAttachedSkills>();
         _activeMates = new Dictionary<uint, List<Mate>>();
@@ -360,7 +360,18 @@ public class MateManager : Singleton<MateManager>
                         //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
                         template.NpcId = reader.GetUInt32("npc_id");
                         template.MountSkillId = reader.GetUInt32("mount_skill_id");
-                        _npcMountSkills.TryAdd(template.Id, template);
+
+                        if (_npcMountSkills.TryGetValue(template.NpcId, out var value))
+                        {
+                            if (!value.Contains(template.MountSkillId))
+                            {
+                                value.Add(template.MountSkillId);
+                            }
+                        }
+                        else
+                        {
+                            _npcMountSkills.Add(template.NpcId, [template.MountSkillId]);
+                        }
                     }
                 }
             }

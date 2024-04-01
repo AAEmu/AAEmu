@@ -507,8 +507,8 @@ public sealed class Mate : Unit
 
         // TODO: Spawn this with the correct amount of seats depending on the template
         // 2 seats by default
-        Passengers.Add(AttachPointKind.Driver, new MatePassengerInfo() { ObjId = 0, Reason = 0 });
-        Passengers.Add(AttachPointKind.Passenger0, new MatePassengerInfo() { ObjId = 0, Reason = 0 });
+        Passengers.Add(AttachPointKind.Driver, new MatePassengerInfo { ObjId = 0, Reason = 0 });
+        Passengers.Add(AttachPointKind.Passenger0, new MatePassengerInfo { ObjId = 0, Reason = 0 });
     }
 
     public void AddExp(int exp)

@@ -130,8 +130,11 @@ public class CharacterMates
 
         mount.Transform = Owner.Transform.CloneDetached(mount);
 
-        foreach (var skill in MateManager.Instance.GetMateSkills(npcId))
-            mount.Skills.Add(skill);
+        //foreach (var skill in MateManager.Instance.GetMateSkills(npcId))
+        //    mount.Skills.Add(skill);
+        var mateSkills = MateManager.Instance.GetMateSkills(npcId);
+        if (mateSkills is { Count: > 0 })
+            mount.Skills.AddRange(mateSkills);
 
         foreach (var buffId in template.Buffs)
         {
