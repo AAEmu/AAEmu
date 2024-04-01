@@ -1,5 +1,5 @@
-CREATE DATABASE  IF NOT EXISTS `aaemuLoggerin` ;
-USE `aaemuLoggerin`;
+CREATE DATABASE  IF NOT EXISTS `aaemu_login` ;
+USE `aaemu_login`;
 -- ----------------------------------------------------------------------------------------------
 -- Make sure to remove the above two lines if you want use your own DB/Schema names during import
 -- ----------------------------------------------------------------------------------------------
