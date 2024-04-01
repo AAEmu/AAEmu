@@ -503,6 +503,7 @@ CREATE TABLE `ics_skus` (
     `discount_price` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Discounted price (this is used if set)',
     `bonus_item_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Bonus item included for this purchase',
     `bonus_item_count` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of bonus items included',
+    `pay_item_type` INT(10) UNSIGNED NOT NULL DEFAULT '0',
     PRIMARY KEY (`sku`) USING BTREE
 )
 COMMENT='Has the actual sales items for the details'
