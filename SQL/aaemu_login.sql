@@ -21,7 +21,7 @@ CREATE TABLE `users` (
   `username` varchar(32) NOT NULL,
   `password` text COMMENT 'Hashed password of the user',
   `email` varchar(128) NOT NULL,
-  `lastLoggerin` bigint unsigned NOT NULL DEFAULT '0',
+  `last_login` bigint unsigned NOT NULL DEFAULT '0',
   `last_ip` varchar(128) NOT NULL,
   `created_at` bigint unsigned NOT NULL DEFAULT '0',
   `updated_at` bigint unsigned NOT NULL DEFAULT '0',
