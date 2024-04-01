@@ -46,7 +46,8 @@ public class SlaveManager : Singleton<SlaveManager>
     private Dictionary<uint, Slave> _tlSlaves;
     public Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> _attachPoints;
     public Dictionary<uint, List<SlaveInitialItems>> _slaveInitialItems; // PackId and List<Slot/ItemData>
-    public Dictionary<uint, SlaveMountSkills> _slaveMountSkills;
+    //public Dictionary<uint, SlaveMountSkills> _slaveMountSkills;
+    public Dictionary<uint, List<uint>> _slaveMountSkills;
     public Dictionary<uint, uint> _repairableSlaves; // SlaveId, RepairEffectId
 
     private object _slaveListLock;
@@ -130,15 +131,15 @@ public class SlaveManager : Singleton<SlaveManager>
         return null;
     }*/
 
-    /// <summary>
-    /// Get mount skill associated with slaveMountSkillId
-    /// </summary>
-    /// <param name="slaveMountSkillId"></param>
-    /// <returns></returns>
-    public uint GetSlaveMountSkillFromId(uint slaveMountSkillId)
-    {
-        return _slaveMountSkills.TryGetValue(slaveMountSkillId, out var res) ? res.MountSkillId : 0;
-    }
+    ///// <summary>
+    ///// Get mount skill associated with slaveMountSkillId
+    ///// </summary>
+    ///// <param name="slaveMountSkillId"></param>
+    ///// <returns></returns>
+    //public uint GetSlaveMountSkillFromId(uint slaveMountSkillId)
+    //{
+    //    return _slaveMountSkills.TryGetValue(slaveMountSkillId, out var res) ? res.MountSkillId : 0;
+    //}
 
     /// <summary>
     /// Gets a list of all mount skills for a given slave type
@@ -147,10 +148,11 @@ public class SlaveManager : Singleton<SlaveManager>
     /// <returns></returns>
     public List<uint> GetSlaveMountSkillList(uint slaveTemplateId)
     {
-        var res = new List<uint>();
-        foreach (var q in _slaveMountSkills.Values.Where(q => q.SlaveId == slaveTemplateId))
-            res.Add(q.MountSkillId);
-        return res;
+        foreach (var skills in _slaveMountSkills)
+            if (skills.Key == slaveTemplateId)
+                return skills.Value;
+
+        return null;
     }
 
     public void UnbindSlave(Character character, uint tlId, AttachUnitReason reason)
@@ -489,6 +491,9 @@ public class SlaveManager : Singleton<SlaveManager>
             SpawnTime = DateTime.UtcNow,
             Spawner = useSpawner,
         };
+        var slaveSkills = MateManager.Instance.GetMateSkills(slaveTemplate.Id);
+        if (slaveSkills is { Count: > 0 })
+            summonedSlave.Skills.AddRange(slaveSkills);
 
         ApplySlaveBonuses(summonedSlave);
 
@@ -749,7 +754,8 @@ public class SlaveManager : Singleton<SlaveManager>
             _tlSlaves = new Dictionary<uint, Slave>();
         }
         _slaveInitialItems = new Dictionary<uint, List<SlaveInitialItems>>();
-        _slaveMountSkills = new Dictionary<uint, SlaveMountSkills>();
+        //_slaveMountSkills = new Dictionary<uint, SlaveMountSkills>();
+        _slaveMountSkills = new Dictionary<uint, List<uint>>();
         _repairableSlaves = new Dictionary<uint, uint>();
 
         #region SQLLite
@@ -778,7 +784,7 @@ public class SlaveManager : Singleton<SlaveManager>
                             Level = reader.GetUInt32("level"),
                             Cost = reader.GetInt32("cost"),
                             SlaveKind = (SlaveKind)reader.GetUInt32("slave_kind_id"),
-                            SpawnValidAreaRance = reader.GetUInt32("spawn_valid_area_range", 0),
+                            SpawnValidAreaRange = reader.GetUInt32("spawn_valid_area_range", 0),
                             SlaveInitialItemPackId = reader.GetUInt32("slave_initial_item_pack_id", 0),
                             SlaveCustomizingId = reader.GetUInt32("slave_customizing_id", 0),
                             Customizable = reader.GetBoolean("customizable", false),
@@ -1009,9 +1015,15 @@ public class SlaveManager : Singleton<SlaveManager>
                         //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
                         template.SlaveId = reader.GetUInt32("slave_id");
                         template.MountSkillId = reader.GetUInt32("mount_skill_id");
-
-                        if (!_slaveMountSkills.TryAdd(template.Id, template))
-                            Logger.Warn($"Duplicate entry for slave_mount_skills");
+                        if (_slaveMountSkills.TryGetValue(template.SlaveId, out var value))
+                        {
+                            if (!value.Contains(template.MountSkillId))
+                                value.Add(template.MountSkillId);
+                            else
+                                Logger.Warn($"Duplicate entry for slave_mount_skills");
+                        }
+                        else
+                            _slaveMountSkills.Add(template.SlaveId, [template.MountSkillId]);
                     }
                 }
             }

@@ -364,14 +364,12 @@ public class MateManager : Singleton<MateManager>
                         if (_npcMountSkills.TryGetValue(template.NpcId, out var value))
                         {
                             if (!value.Contains(template.MountSkillId))
-                            {
                                 value.Add(template.MountSkillId);
-                            }
+                            else
+                                Logger.Warn($"Duplicate entry for npc_mount_skills");
                         }
                         else
-                        {
                             _npcMountSkills.Add(template.NpcId, [template.MountSkillId]);
-                        }
                     }
                 }
             }

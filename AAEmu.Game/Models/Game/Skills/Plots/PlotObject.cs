@@ -46,9 +46,9 @@ public class PlotObject : PacketMarshaler
             case PlotObjectType.POSITION:
                 stream.WritePosition(Position.Local.Position);
                 var ypr = Position.Local.ToRollPitchYawSBytes();
-                stream.Write(ypr.Item1);
-                stream.Write(ypr.Item2);
-                stream.Write(ypr.Item3);
+                stream.Write(ypr.Item1); // rotx
+                stream.Write(ypr.Item2); // roty
+                stream.Write(ypr.Item3); // rotz
                 break;
         }
 

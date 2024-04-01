@@ -56,6 +56,7 @@ public class Slave : Unit
     public SlaveSpawner Spawner { get; set; }
     public Task LeaveTask { get; set; }
     public CancellationTokenSource CancelTokenSource { get; set; }
+    public List<uint> Skills { get; set; }
 
     public Slave()
     {

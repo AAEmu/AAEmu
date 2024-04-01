@@ -15,7 +15,7 @@ public class SlaveTemplate
     public uint Level { get; set; }
     public int Cost { get; set; }
     public SlaveKind SlaveKind { get; set; }
-    public uint SpawnValidAreaRance { get; set; }
+    public uint SpawnValidAreaRange { get; set; }
     public uint SlaveInitialItemPackId { get; set; }
     public uint SlaveCustomizingId { get; set; }
     public bool Customizable { get; set; }
