@@ -12,10 +12,11 @@ public class CSRequestHouseTaxPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        var tl = stream.ReadUInt16();
+        var tl = stream.ReadUInt16(); // houseId
+        var objId = stream.ReadBc();
 
-        Logger.Debug("RequestHouseTax, Tl: {0}", tl);
+        Logger.Debug($"RequestHouseTax, Tl: {tl}, objId: {objId}");
 
-        HousingManager.Instance.HouseTaxInfo(Connection, tl);
+        HousingManager.Instance.HouseTaxInfo(Connection, tl, objId);
     }
 }

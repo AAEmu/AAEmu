@@ -24,6 +24,7 @@ public sealed class House : Unit
     private int _allAction;
     private uint _id;
     private ulong _accountId;
+    private int _ht;
     private uint _coOwnerId;
     private uint _templateId;
     private int _baseAction;
@@ -35,6 +36,9 @@ public sealed class House : Unit
     private bool _allowRecover;
     private uint _sellToPlayerId;
     private uint _sellPrice;
+    private int _expandedDecoLimit;
+    private int _payMoneyAmount;
+    private bool _isPublic;
 
     /// <summary>
     /// IsDirty flag for Houses, not all properties are taken into account here as most of the data that needs to be updated will never change
@@ -43,8 +47,11 @@ public sealed class House : Unit
     public bool IsDirty { get => _isDirty; set => _isDirty = value; }
     public new uint Id { get => _id; set { _id = value; _isDirty = true; } }
     public ulong AccountId { get => _accountId; set { _accountId = value; _isDirty = true; } }
+    public int Ht { get => _ht; set { _ht = value; _isDirty = true; } }
     public uint CoOwnerId { get => _coOwnerId; set { _coOwnerId = value; _isDirty = true; } }
-    //public ushort TlId { get; set; }
+    public int ExpandedDecoLimit { get => _expandedDecoLimit; set { _expandedDecoLimit = value; _isDirty = true; } }
+    public int PayMoneyAmount { get => _payMoneyAmount; set { _payMoneyAmount = value; _isDirty = true; } }
+    public bool IsPublic { get => _isPublic; set { _isPublic = value; _isDirty = true; } }
     public new uint TemplateId { get => _templateId; set { _templateId = value; _isDirty = true; } }
     public HousingTemplate Template
     {
@@ -274,38 +281,31 @@ public sealed class House : Unit
         var ownerName = NameManager.Instance.GetCharacterName(OwnerId);
         var sellToPlayerName = NameManager.Instance.GetCharacterName(SellToPlayerId);
 
-        stream.Write(TlId);
-        stream.Write(Id); // dbId
-        stream.WriteBc(ObjId);
-        stream.Write(TemplateId);
-        stream.WritePisc(ModelId, 0);
-        //stream.Write(ModelId); // ht
-        stream.Write(CoOwnerId); // type(id)
-        stream.Write(OwnerId); // type(id)
-        stream.Write(ownerName ?? "");
-        stream.Write(AccountId);
-        stream.Write((byte)Permission);
+        stream.Write(TlId);             // tl
+        stream.Write(Id);               // dbId
+        stream.WriteBc(ObjId);          // bc
 
         if (CurrentStep == -1)
-        {
-            stream.Write(0);
-            stream.Write(0);
-        }
+            stream.WritePisc(TemplateId, 0, 0, 0);
         else
-        {
-            stream.Write(AllAction); // allstep
-            stream.Write(CurrentAction); // curstep
-        }
+            stream.WritePisc(TemplateId, AllAction, CurrentAction, PayMoneyAmount);
 
-        stream.Write(Template?.Taxation?.Tax ?? 0); // payMoneyAmount
+        stream.Write(Ht);                     // ht
+        stream.Write(CoOwnerId);              // type(id)
+        stream.Write(OwnerId);                // type(id)
+        stream.Write(ownerName ?? "");
+        stream.Write(AccountId);              // accountId
+        stream.Write((byte)Permission);       // permission
         stream.Write(Helpers.ConvertLongX(Transform.World.Position.X));
         stream.Write(Helpers.ConvertLongY(Transform.World.Position.Y));
         stream.Write(Transform.World.Position.Z);
-        stream.Write(Name); // house // TODO max length 128
-        stream.Write(AllowRecover); // allowRecover
-        stream.Write(SellPrice); // Sale moneyAmount
-        stream.Write(SellToPlayerId); // type(id)
+        stream.Write(Name);                   // house // TODO max length 128
+        stream.Write(AllowRecover);           // allowRecover
+        stream.Write(SellToPlayerId);         // type(id)
         stream.Write(sellToPlayerName ?? ""); // sellToName
+        stream.Write(ExpandedDecoLimit);      // expandedDecoLimit
+        stream.Write(Template.MainModelId);   // model_id (type) не точно!
+        stream.Write(IsPublic);               // isPublic
         return stream;
     }
 

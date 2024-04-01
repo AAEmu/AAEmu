@@ -16,7 +16,8 @@ public class CSSellHousePacket : GamePacket
         var tl = stream.ReadUInt16();
         var moneyAmount = stream.ReadUInt32();
         var sellTo = stream.ReadString();
-        Logger.Debug("SellHouse, Tl: {0}, MoneyAmount: {1}, SellTo: {2}", tl, moneyAmount, sellTo);
+        var isPublic = stream.ReadBoolean();
+        Logger.Debug($"SellHouse, Tl: {tl}, MoneyAmount: {moneyAmount}, SellTo: {sellTo}, isPublic: {isPublic}");
 
         // Get buyer Id
         var sellToId = 0u;

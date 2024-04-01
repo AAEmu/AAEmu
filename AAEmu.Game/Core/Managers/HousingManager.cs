@@ -476,7 +476,7 @@ public class HousingManager : Singleton<HousingManager>
     /// </summary>
     /// <param name="connection"></param>
     /// <param name="tlId"></param>
-    public void HouseTaxInfo(GameConnection connection, ushort tlId)
+    public void HouseTaxInfo(GameConnection connection, ushort tlId, uint objId)
     {
         if (!_housesTl.ContainsKey(tlId))
             return;
@@ -511,11 +511,13 @@ public class HousingManager : Singleton<HousingManager>
             new SCHouseTaxInfoPacket(
                 house.TlId,
                 0,  // TODO: implement when castles are added
+                0,
                 depositTax, // this is used in the help text on (?) when you hover your mouse over it to display deposit tax for this building
                 totalTaxAmountDue, // Amount Due
                 house.ProtectionEndDate,
                 requiresPayment,
                 weeksWithoutPay,  // TODO: do proper calculation ?
+                -1,
                 house.Template.HeavyTax
             )
         );
@@ -635,6 +637,7 @@ public class HousingManager : Singleton<HousingManager>
         house.OwnerId = connection.ActiveChar.Id;
         house.CoOwnerId = connection.ActiveChar.Id;
         house.AccountId = connection.AccountId;
+        house.Ht = ht;
         house.Permission = HousingPermission.Private;
         house.PlaceDate = DateTime.UtcNow;
         house.ProtectionEndDate = DateTime.UtcNow.AddDays(7);

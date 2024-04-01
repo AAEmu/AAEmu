@@ -17,7 +17,7 @@ public class SCLoginCharInfoHouse : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_id);
-        return _house.Write(stream);
+        stream.Write(_id);           // type
+        return _house.Write(stream); // House
     }
 }

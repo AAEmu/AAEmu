@@ -19,8 +19,6 @@ public class CSDecorateHousePacket : GamePacket
         var x = stream.ReadSingle();
         var y = stream.ReadSingle();
         var z = stream.ReadSingle();
-        // var rot = stream.ReadSingle();
-        // var ori = stream.ReadBytes(16);
         var quatX = stream.ReadSingle();
         var quatY = stream.ReadSingle();
         var quatZ = stream.ReadSingle();
