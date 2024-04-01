@@ -22,12 +22,15 @@ public class MateEquipmentContainer : EquipmentContainer
             return;
 
         var mates = MateManager.Instance.GetActiveMates(Owner.ObjId);
-        foreach (var mate in mates)
+        if (mates != null)
         {
-            if (mate == null) continue;
+            foreach (var mate in mates)
+            {
+                if (mate == null) continue;
 
-            //mate.UpdateGearBonuses(item, null);
-            //Owner?.MatesUpdateGearBonuses(item, null);
+                //mate.UpdateGearBonuses(item, null);
+                //Owner?.MatesUpdateGearBonuses(item, null);
+            }
         }
     }
 
@@ -41,11 +44,14 @@ public class MateEquipmentContainer : EquipmentContainer
             return;
 
         var mates = MateManager.Instance.GetActiveMates(Owner.ObjId);
-        foreach (var mate in mates)
+        if (mates != null)
         {
-            if (mate == null) continue;
+            foreach (var mate in mates)
+            {
+                if (mate == null) continue;
 
-            //mate.UpdateGearBonuses(null, item);
+                //mate.UpdateGearBonuses(null, item);
+            }
         }
     }
 }

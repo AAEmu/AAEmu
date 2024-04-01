@@ -494,8 +494,11 @@ public class Unit : BaseUnit, IUnit
         if (character.Hp > 0) { return; }
 
         var mates = MateManager.Instance.GetActiveMates(character.ObjId);
-        foreach (var mate in mates)
-            character.Mates.DespawnMate(mate.TlId);
+        if (mates != null)
+        {
+            foreach (var mate in mates)
+                character.Mates.DespawnMate(mate.TlId);
+        }
     }
 
     private static async void StopAutoSkill(Unit unit)

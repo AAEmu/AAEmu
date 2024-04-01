@@ -767,12 +767,16 @@ public class Npc : Unit
         {
             character.AddExp(KillExp, true);
             var mates = MateManager.Instance.GetActiveMates(character.ObjId);
-            foreach (var mate in mates)
+            if (mates != null)
             {
-                if (mate == null) continue;
-                mate.AddExp(KillExp);
-                character.SendMessage($"Pet gained {KillExp} XP");
+                foreach (var mate in mates)
+                {
+                    if (mate == null) continue;
+                    mate.AddExp(KillExp);
+                    character.SendMessage($"Pet gained {KillExp} XP");
+                }
             }
+
             //character.Quests.OnKill(this);
             // инициируем событие
             //Task.Run(() => QuestManager.Instance.DoOnMonsterHuntEvents(character, this));

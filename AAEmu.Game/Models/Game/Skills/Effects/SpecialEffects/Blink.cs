@@ -38,9 +38,13 @@ public class Blink : SpecialEffectAction
             if (character.IsRiding)
             {
                 var mates = MateManager.Instance.GetActiveMates(character.ObjId);
-                foreach (var mate in mates.Where(mate => mate is { MateType: MateType.Ride }))
+                if (mates != null)
                 {
-                    MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                    foreach (var mate in mates.Where(mate => mate is { MateType: MateType.Ride }))
+                    {
+                        MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver,
+                            AttachUnitReason.None);
+                    }
                 }
             }
             character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, value1, value2, newPos.Local.Position.X, newPos.Local.Position.Y, newPos.Local.Position.Z));

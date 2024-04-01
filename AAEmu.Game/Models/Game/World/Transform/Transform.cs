@@ -468,8 +468,11 @@ public class Transform : IDisposable
                     WorldManager.Instance.AddVisibleObject(attachedCharacter);
 
                     var mates = MateManager.Instance.GetActiveMates(attachedCharacter.ObjId);
-                    foreach (var mate in mates.Where(mate => mate != null))
-                        WorldManager.Instance.AddVisibleObject(mate);
+                    if (mates != null)
+                    {
+                        foreach (var mate in mates.Where(mate => mate != null))
+                            WorldManager.Instance.AddVisibleObject(mate);
+                    }
                 }
             }
         }

@@ -26,9 +26,12 @@ public static class SkillTargetingUtil
                 var mates = MateManager.Instance.GetActiveMates(caster.ObjId);
                 if (team == null)
                 {
-                    foreach (var mate in mates)
+                    if (mates != null)
                     {
-                        units = units.Where(o => o.ObjId == mate?.ObjId);
+                        foreach (var mate in mates)
+                        {
+                            units = units.Where(o => o.ObjId == mate?.ObjId);
+                        }
                     }
                 }
                 else

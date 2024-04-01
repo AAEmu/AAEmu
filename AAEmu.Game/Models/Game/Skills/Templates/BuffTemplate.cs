@@ -249,14 +249,17 @@ public class BuffTemplate
         {
             if (caster is Character { IsRiding: true })
             {
-                foreach (var mate in mates)
+                if (mates != null)
                 {
-                    if (tickEff.TargetBuffTagId > 0 &&
-                        !mate.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
-                        return;
-                    if (tickEff.TargetNoBuffTagId > 0 &&
-                        mate.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
-                        return;
+                    foreach (var mate in mates)
+                    {
+                        if (tickEff.TargetBuffTagId > 0 &&
+                            !mate.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
+                            return;
+                        if (tickEff.TargetNoBuffTagId > 0 &&
+                            mate.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
+                            return;
+                    }
                 }
             }
             else

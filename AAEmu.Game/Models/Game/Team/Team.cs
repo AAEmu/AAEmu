@@ -73,7 +73,7 @@ public class Team : PacketMarshaler
                 return true;
 
             var mates = MateManager.Instance.GetActiveMates(objId);
-            if (mates.Any(mate => mate?.OwnerObjId == member?.Character?.ObjId))
+            if (mates?.Any(mate => mate?.OwnerObjId == member?.Character?.ObjId) == true)
                 return true;
         }
 
