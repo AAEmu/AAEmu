@@ -20,10 +20,10 @@ public class SCICSBuyResultPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_success);
-        stream.Write(_buyMode);
-        stream.Write(_receiverName);
-        stream.Write(_chargeAaPoint);
+        stream.Write(_success);       // success
+        stream.Write(_buyMode);       // buyMode
+        stream.Write(_receiverName);  // receiverName
+        stream.Write(_chargeAaPoint); // chargeAAPoint
         return stream;
     }
 }

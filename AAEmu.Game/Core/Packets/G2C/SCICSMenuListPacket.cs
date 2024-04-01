@@ -33,7 +33,7 @@ public class SCICSMenuListPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_enabled);
+        stream.Write(_enabled); // result
 
         for (byte mainTab = 1; mainTab <= MainTabCount; mainTab++)
         {

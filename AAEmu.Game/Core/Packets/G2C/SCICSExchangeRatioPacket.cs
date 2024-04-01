@@ -14,7 +14,7 @@ public class SCICSExchangeRatioPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_exchangeRatio);
+        stream.Write(_exchangeRatio); // exchangeRatio
         return stream;
     }
 }

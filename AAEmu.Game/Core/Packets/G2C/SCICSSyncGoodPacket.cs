@@ -16,8 +16,8 @@ public class SCICSSyncGoodPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_cashShopId);
-        stream.Write(_remainCount);
+        stream.Write(_cashShopId);  // cashShopId
+        stream.Write(_remainCount); // remainCount
         return stream;
     }
 }

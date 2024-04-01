@@ -21,19 +21,20 @@ public class SCICSGoodDetailPacket : GamePacket
         stream.Write(_pageEnd);
 
         // stream.Write(_itemDetail); // replaced by new code
-        stream.Write(_sku.ShopId);
-        stream.Write(_sku.Sku);
-        stream.Write(_sku.ItemId);
-        stream.Write(_sku.ItemCount);
-        stream.Write(_sku.SelectType);
-        stream.Write(_sku.IsDefault);
-        stream.Write(_sku.EventType);
-        stream.Write(_sku.EventEndDate);
-        stream.Write((byte)_sku.Currency);
-        stream.Write(_sku.Price);
-        stream.Write(_sku.DiscountPrice);
-        stream.Write(_sku.BonusItemId);
-        stream.Write(_sku.BonusItemCount);
+        stream.Write(_sku.ShopId); // cashShopId
+        stream.Write(_sku.Sku);    // cashUniqId
+        stream.Write(_sku.ItemId); // ItemTemplateId
+        stream.Write(_sku.ItemCount);  // itemCount
+        stream.Write(_sku.SelectType); // selectType
+        stream.Write(_sku.IsDefault);  // defaultFlag
+        stream.Write(_sku.EventType);  // eventType
+        stream.Write(_sku.EventEndDate); // eventDate
+        stream.Write((byte)_sku.Currency); // priceType
+        stream.Write(_sku.Price);          // price
+        stream.Write(_sku.DiscountPrice);  // disPrice
+        stream.Write(_sku.BonusItemId);    // bonusType
+        stream.Write(_sku.BonusItemCount); // bonusCount
+        stream.Write(_sku.PayItemType);    // payItemType add in 3+
 
         return stream;
     }

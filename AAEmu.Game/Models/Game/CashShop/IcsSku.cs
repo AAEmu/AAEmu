@@ -78,4 +78,5 @@ public class IcsSku
     /// Number of bonus items with this purchase
     /// </summary>
     public uint BonusItemCount { get; set; }
+    public uint PayItemType { get; set; }
 }

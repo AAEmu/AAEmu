@@ -150,6 +150,7 @@ public class CashShopManager : Singleton<CashShopManager>
                 entry.DiscountPrice = reader.GetUInt32("discount_price");
                 entry.BonusItemId = reader.GetUInt32("bonus_item_id");
                 entry.BonusItemCount = reader.GetUInt32("bonus_item_count");
+                entry.BonusItemCount = reader.GetUInt32("pay_item_type");
 
                 if (!SKUs.TryAdd(entry.Sku, entry))
                     Logger.Error($"Duplicate SKU {entry.Sku}");
@@ -260,12 +261,12 @@ public class CashShopManager : Singleton<CashShopManager>
             character?.SendPacket(new SCICSCheckTimePacket());
     }
 
-    public void SendICSPage(GameConnection connection, byte mainTabId, byte subTabId, ushort page)
+    public void SendICSPage(GameConnection connection, byte mainTabId, byte subTabId, byte page)
     {
         var thisTabItems = MenuItems.Where(t => t.MainTab == mainTabId && t.SubTab == subTabId).ToList();
         var isLimitedTab = (mainTabId == 1) && (subTabId == 1);
         var itemsPerPage = isLimitedTab ? 4 : 8;
-        var numberOfPages = (ushort)Math.Ceiling((float)thisTabItems.Count() / itemsPerPage);
+        var numberOfPages = (byte)Math.Ceiling((float)thisTabItems.Count / itemsPerPage);
         var thisPageItems = thisTabItems.Skip(itemsPerPage * (page - 1)).Take(itemsPerPage).ToList();
 
         for (var i = 0; i < thisPageItems.Count; i++)
@@ -275,7 +276,7 @@ public class CashShopManager : Singleton<CashShopManager>
             if (shopItem == null)
                 continue;
 
-            connection.SendPacket(new SCICSGoodListPacket(isLast, numberOfPages, mainTabId, subTabId, shopItem));
+            connection.SendPacket(new SCICSGoodListPacket(isLast, page, numberOfPages, mainTabId, subTabId, shopItem));
         }
 
         for (var i = 0; i < thisPageItems.Count; i++)
