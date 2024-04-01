@@ -19,8 +19,8 @@ public class SCICSCashPointPacket : GamePacket
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(_point); // point
-        stream.Write(_point); // bpoint add in 3+
-        stream.Write(_point); // relaod add in 3+
+        stream.Write(_bpoint); // bpoint add in 3+
+        stream.Write(_relaod); // relaod add in 3+
         return stream;
     }
 }
