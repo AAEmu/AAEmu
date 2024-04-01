@@ -62,7 +62,7 @@ public class CharacterAbilities
 
     public void Swap(AbilityType oldAbilityId, AbilityType abilityId)
     {
-        Owner.Skills.Reset(oldAbilityId);
+        Owner.Skills.Reset(oldAbilityId, true);
         if (Owner.Ability1 == oldAbilityId)
         {
             Owner.Ability1 = abilityId;

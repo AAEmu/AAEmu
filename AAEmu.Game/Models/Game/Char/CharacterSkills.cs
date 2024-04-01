@@ -85,7 +85,7 @@ public class CharacterSkills
         buff.Apply(Owner);
     }
 
-    public void Reset(AbilityType abilityId) // TODO with price...
+    public void Reset(AbilityType abilityId, bool notify) // TODO with price...
     {
         foreach (var skill in new List<Skill>(Skills.Values))
         {
@@ -101,10 +101,12 @@ public class CharacterSkills
                 continue;
             buff.Remove(Owner);
             PassiveBuffs.Remove(buff.Id);
+            Owner.Buffs.RemoveBuff(buff.Id);
             _removed.Add(buff.Id);
         }
 
-        Owner.BroadcastPacket(new SCSkillsResetPacket(Owner.ObjId, abilityId), true);
+        if (notify)
+            Owner.SendPacket(new SCSkillsResetPacket(Owner.ObjId, abilityId));
     }
 
     public int GetUsedSkillPoints()

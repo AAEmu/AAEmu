@@ -19,9 +19,12 @@ public class SCAbilitySwappedPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.WriteBc(_objId);
-        stream.Write((byte)_oldAbilityId);
-        stream.Write((byte)_abilityId);
+        stream.WriteBc(_objId);                 // unitId
+        for (var i = 0; i < 3; i++)
+        {
+            stream.Write((byte)_oldAbilityId);  // old
+            stream.Write((byte)_abilityId);     // new
+        }
         return stream;
     }
 }

@@ -17,8 +17,8 @@ public class SCSkillsResetPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.WriteBc(_objId);
-        stream.Write((byte)_ability);
+        stream.WriteBc(_objId);        // unitId
+        stream.Write((byte)_ability); // ability
         return stream;
     }
 }
