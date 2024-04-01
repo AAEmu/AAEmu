@@ -150,7 +150,7 @@ public class CashShopManager : Singleton<CashShopManager>
                 entry.DiscountPrice = reader.GetUInt32("discount_price");
                 entry.BonusItemId = reader.GetUInt32("bonus_item_id");
                 entry.BonusItemCount = reader.GetUInt32("bonus_item_count");
-                entry.BonusItemCount = reader.GetUInt32("pay_item_type");
+                entry.PayItemType = reader.GetUInt32("pay_item_type");
 
                 if (!SKUs.TryAdd(entry.Sku, entry))
                     Logger.Error($"Duplicate SKU {entry.Sku}");
