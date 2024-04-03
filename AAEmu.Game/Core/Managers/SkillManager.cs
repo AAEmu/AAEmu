@@ -1806,11 +1806,9 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
 
         foreach (var skillTemplate in _skills.Values.Where(x => x.AutoLearn))
         {
-            if (!skillTemplate.NeedLearn && skillTemplate.AbilityId == 0 &&
-                !_defaultSkills.ContainsKey(skillTemplate.Id))
+            if (skillTemplate.AbilityId == 0 && !_defaultSkills.ContainsKey(skillTemplate.Id))
                 _commonSkills.Add(skillTemplate.Id);
-            if (!skillTemplate.NeedLearn || skillTemplate.AbilityId == 0 || skillTemplate.AbilityLevel > 1 ||
-                !skillTemplate.Show)
+            if (skillTemplate.AbilityId == 0 || skillTemplate.AbilityLevel > 1 || !skillTemplate.Show)
                 continue;
             var ability = (AbilityType)skillTemplate.AbilityId;
             if (!_startAbilitySkills.ContainsKey(ability))
