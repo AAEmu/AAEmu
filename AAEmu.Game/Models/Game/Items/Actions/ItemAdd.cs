@@ -17,7 +17,7 @@ public class ItemAdd : ItemTask
         base.Write(stream);
         stream.Write((byte)_item.SlotType); // type
         stream.Write((byte)_item.Slot);     // index
-        WriteDetails(stream, _item);
+        _item.Write(stream);
         return stream;
     }
 }
