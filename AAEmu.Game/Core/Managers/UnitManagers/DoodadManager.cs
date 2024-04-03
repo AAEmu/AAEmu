@@ -569,44 +569,44 @@ public class DoodadManager : Singleton<DoodadManager>
 
             // doodad_func_consume_changer_items
             // This is not actually a phase, but rather a collection of items that is available for doodad_func_consume_changers
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_consume_changer_items";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var entry = new DoodadFuncConsumeChangerItem
-                        {
-                            Id = reader.GetUInt32("id"),
-                            DoodadFuncConsumeChangerId = reader.GetUInt32("doodad_func_consume_changer_id"),
-                            ItemId = reader.GetUInt32("item_id")
-                        };
-                        _doodadFuncConsumeChangerItem.TryAdd(entry.Id, entry);
-                    }
-                }
-            }
+            //using (var command = connection.CreateCommand())
+            //{
+            //    command.CommandText = "SELECT * FROM doodad_func_consume_changer_items";
+            //    command.Prepare();
+            //    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            //    {
+            //        while (reader.Read())
+            //        {
+            //            var entry = new DoodadFuncConsumeChangerItem
+            //            {
+            //                Id = reader.GetUInt32("id"),
+            //                DoodadFuncConsumeChangerId = reader.GetUInt32("doodad_func_consume_changer_id"),
+            //                ItemId = reader.GetUInt32("item_id")
+            //            };
+            //            _doodadFuncConsumeChangerItem.TryAdd(entry.Id, entry);
+            //        }
+            //    }
+            //}
 
-            // doodad_func_consume_changer_model_items
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_consume_changer_model_items";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncConsumeChangerModelItem
-                        {
-                            Id = reader.GetUInt32("id"),
-                            DoodadFuncConsumeChangerModelId = reader.GetUInt32("doodad_func_consume_changer_model_id"),
-                            ItemId = reader.GetUInt32("item_id")
-                        };
-                        _phaseFuncTemplates["DoodadFuncConsumeChangerModelItem"].Add(func.Id, func);
-                    }
-                }
-            }
+            //// doodad_func_consume_changer_model_items
+            //using (var command = connection.CreateCommand())
+            //{
+            //    command.CommandText = "SELECT * FROM doodad_func_consume_changer_model_items";
+            //    command.Prepare();
+            //    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            //    {
+            //        while (reader.Read())
+            //        {
+            //            var func = new DoodadFuncConsumeChangerModelItem
+            //            {
+            //                Id = reader.GetUInt32("id"),
+            //                DoodadFuncConsumeChangerModelId = reader.GetUInt32("doodad_func_consume_changer_model_id"),
+            //                ItemId = reader.GetUInt32("item_id")
+            //            };
+            //            _phaseFuncTemplates["DoodadFuncConsumeChangerModelItem"].Add(func.Id, func);
+            //        }
+            //    }
+            //}
 
             // doodad_func_consume_changer_models
             using (var command = connection.CreateCommand())

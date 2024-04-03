@@ -5,23 +5,28 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCGamePointChangedPacket : GamePacket
 {
-    private readonly byte _kind;
-    private readonly int _amount;
+    private readonly int[,] _points;
 
     // TODO kind:
     // 0 - honor
     // 1 - vocation(living)
 
-    public SCGamePointChangedPacket(byte kind, int amount) : base(SCOffsets.SCGamePointChangedPacket, 5)
+    public SCGamePointChangedPacket(int[,] points) : base(SCOffsets.SCGamePointChangedPacket, 5)
     {
-        _kind = kind;
-        _amount = amount;
+        _points = points;
     }
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_kind);
-        stream.Write(_amount);
+        var rows = _points.GetUpperBound(0) + 1; // количество строк (number of rows)
+
+        stream.Write((byte)rows); // cnt
+        for (var i = 0; i < rows; i++)
+        {
+            stream.Write((byte)_points[i, 0]); // kind
+            stream.Write(_points[i, 1]);      // amount
+        }
+
         return stream;
     }
 }
