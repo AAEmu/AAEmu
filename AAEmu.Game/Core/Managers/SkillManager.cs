@@ -394,7 +394,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.StopCastingOnBigHit = reader.GetBoolean("stop_casting_on_big_hit", true);
                         template.StopChannelingOnBigHit = reader.GetBoolean("stop_channeling_on_big_hit", true);
                         template.AutoLearn = reader.GetBoolean("auto_learn", true);
-                        template.NeedLearn = reader.GetBoolean("need_learn", true);
+                        //template.NeedLearn = reader.GetBoolean("need_learn", true); // there is no such field in the database for version 3.0.3.0
                         template.MainhandToolId = reader.GetUInt32("mainhand_tool_id", 0);
                         template.OffhandToolId = reader.GetUInt32("offhand_tool_id", 0);
                         template.FrontAngle = reader.GetInt32("front_angle");

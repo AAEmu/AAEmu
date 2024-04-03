@@ -18,7 +18,7 @@ public class CSSellItemsPacket : GamePacket
     {
         var npcObjId = stream.ReadBc();
         var npc = WorldManager.Instance.GetNpc(npcObjId);
-        if (npc == null || !npc.Template.Merchant)
+        if (npc?.Template.Merchant != true)
             return;
 
         var unkObjId = stream.ReadBc();
@@ -32,16 +32,20 @@ public class CSSellItemsPacket : GamePacket
             var slot = stream.ReadByte();
 
             var itemId = stream.ReadUInt64();
-            var unkId = stream.ReadUInt32();
+            var stack = stream.ReadUInt32();
+            var removeReservationTime = stream.ReadDateTime();
+            var type1 = stream.ReadUInt32();
+            var dbSlaveId = stream.ReadUInt32();
+            var type2 = stream.ReadUInt32();
 
             Item item = null;
             if (slotType == SlotType.Equipment)
                 item = Connection.ActiveChar.Inventory.Equipment.GetItemBySlot(slot);
             else if (slotType == SlotType.Inventory)
                 item = Connection.ActiveChar.Inventory.Bag.GetItemBySlot(slot);
-            //                else if (slotType == SlotType.Bank)
-            //                    item = Connection.ActiveChar.Inventory.Bank[slot];
-            if (item != null && item.Id == itemId)
+            //else if (slotType == SlotType.Bank)
+            //    item = Connection.ActiveChar.Inventory.Bank[slot];
+            if (item?.Id == itemId)
                 items.Add(item);
         }
 
@@ -53,11 +57,9 @@ public class CSSellItemsPacket : GamePacket
                 continue;
 
             if (!Connection.ActiveChar.BuyBackItems.AddOrMoveExistingItem(ItemTaskType.StoreSell, item))
-            {
                 Logger.Warn(string.Format("Failed to move sold itemId {0} to BuyBack ItemContainer for {1}", item.Id, Connection.ActiveChar.Name));
-            }
-            money += (int)(item.Template.Refund * ItemManager.Instance.GetGradeTemplate(item.Grade).RefundMultiplier / 100f) *
-                     item.Count;
+
+            money += (int)(item.Template.Refund * ItemManager.Instance.GetGradeTemplate(item.Grade).RefundMultiplier / 100f) * item.Count;
         }
 
         Connection.ActiveChar.ChangeMoney(SlotType.Inventory, money);

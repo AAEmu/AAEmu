@@ -1422,7 +1422,9 @@ public partial class Character : Unit, ICharacter
                 Logger.Error($"ChangeGamePoints - Unknown Game Point Type {kind}");
                 return;
         }
-        SendPacket(new SCGamePointChangedPacket((byte)kind, change));
+        int[,] points = { { (int)kind, change } };
+
+        SendPacket(new SCGamePointChangedPacket(points));
     }
 
     public override int GetAbLevel(AbilityType type)

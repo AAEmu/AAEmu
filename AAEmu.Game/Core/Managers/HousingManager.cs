@@ -169,7 +169,7 @@ public class HousingManager : Singleton<HousingManager>
                         template.GateExists = reader.GetBoolean("gate_exists", true);
                         template.Hp = reader.GetInt32("hp");
                         template.RepairCost = reader.GetUInt32("repair_cost");
-                        template.GardenRadius = reader.GetFloat("garden_radius");
+                        //template.GardenRadius = reader.GetFloat("garden_radius"); // there is no such field in the database for version 3.0.3.0
                         template.Family = reader.GetString("family");
                         var taxationId = reader.GetUInt32("taxation_id");
                         template.Taxation = TaxationsManager.Instance.taxations.ContainsKey(taxationId) ? TaxationsManager.Instance.taxations[taxationId] : null;

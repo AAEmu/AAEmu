@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -22,39 +23,32 @@ public class CSBuyItemsPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
+        List<Merchants> pack = null;
+
         var npcObjId = stream.ReadBc();
         var npc = WorldManager.Instance.GetNpc(npcObjId);
+        // If a NPC was provided, check if it's valid
+        if (npc != null)
+        {
+            if (npcObjId != 0 && npc.Template.Merchant)
+            {
+                var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Transform.World.Position, npc.Transform.World.Position);
+                if (dist > 3f) // 3m should be enough for NPC shops
+                {
+                    Connection.ActiveChar.SendErrorMessage(ErrorMessageType.TooFarAway);
+                    return;
+                }
+
+                pack = NpcManager.Instance.GetMerchantGoods(npc.Template.Id);
+            }
+        }
 
         var doodadObjId = stream.ReadBc();
         var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
-
-        var unkId = stream.ReadUInt32(); // type(id)?
-
-        var nBuy = stream.ReadByte();
-        var nBuyBack = stream.ReadByte();
-
-        Logger.Debug("NPCObjId:{0} DoodadObjId:{1} unkId:{2} nBuy:{3} nBuyBack{4}", npcObjId, doodadObjId, unkId, nBuy, nBuyBack);
-
-        // If a NPC was provided, check if it's valid
-        if ((npcObjId != 0) && (npc == null || !npc.Template.Merchant || npc.Template.MerchantPackId == 0))
-            return;
-        MerchantGoods pack = null;
-        if (npc != null)
-        {
-            var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Transform.World.Position, npc.Transform.World.Position);
-            if (dist > 3f) // 3m should be enough for NPC shops
-            {
-                Connection.ActiveChar.SendErrorMessage(ErrorMessageType.TooFarAway);
-                return;
-            }
-            pack = NpcManager.Instance.GetGoods(npc.Template.MerchantPackId);
-        }
-
         // If a Doodad was provided, check if we're near it
         if (doodadObjId != 0)
         {
-            if (doodad == null)
-                return;
+            if (doodad == null) return;
             var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Transform.World.Position, doodad.Transform.World.Position);
             if (dist > 3f) // 3m should be enough for these
             {
@@ -62,6 +56,12 @@ public class CSBuyItemsPacket : GamePacket
                 return;
             }
         }
+
+        var unkId = stream.ReadUInt32(); // type(id)?
+        var nBuy = stream.ReadByte();
+        var nBuyBack = stream.ReadByte();
+
+        Logger.Debug($"NPCObjId:{npcObjId}, DoodadObjId:{doodadObjId}, unkId:{unkId}, nBuy:{nBuy}, nBuyBack{nBuyBack}");
 
         var money = 0;
         var honorPoints = 0;
@@ -77,7 +77,7 @@ public class CSBuyItemsPacket : GamePacket
             var currency = (ShopCurrencyType)stream.ReadByte();
 
             // If using a NPC shop, check if the NPC is selling the specified item
-            if ((npcObjId != 0) && ((pack == null) || (!pack.SellsItem(itemId))))
+            if (npcObjId != 0 && (pack == null || !Merchants.SellsItem(itemId, pack)))
                 continue;
 
             if (doodadObjId != 0)
@@ -96,9 +96,7 @@ public class CSBuyItemsPacket : GamePacket
             else if (currency == ShopCurrencyType.VocationBadges)
                 vocationBadges += template.LivingPointPrice * count;
             else
-            {
                 Logger.Error("Unknown currency type");
-            }
         }
 
         // Get a list of items to buy from the buyback window
@@ -107,24 +105,16 @@ public class CSBuyItemsPacket : GamePacket
         {
             var index = stream.ReadInt32();
             var item = Connection.ActiveChar.BuyBackItems.GetItemBySlot(index);
-            /*
-            if (index >= Connection.ActiveChar.BuyBack.Length)
-                continue;
-
-            var item = Connection.ActiveChar.BuyBack[index];
-            */
             if (item == null)
                 continue;
             itemsBuyBack.Add(item, index);
-            money += (int)(item.Template.Refund * ItemManager.Instance.GetGradeTemplate(item.Grade).RefundMultiplier / 100f) *
-                     item.Count;
+            money += (int)(item.Template.Refund * ItemManager.Instance.GetGradeTemplate(item.Grade).RefundMultiplier / 100f) * item.Count;
         }
 
         var useAAPoint = stream.ReadBoolean();
+        var openType = stream.ReadByte();
 
-        if (money > Connection.ActiveChar.Money &&
-            honorPoints > Connection.ActiveChar.HonorPoint &&
-            vocationBadges > Connection.ActiveChar.VocationPoint)
+        if (money > Connection.ActiveChar.Money && honorPoints > Connection.ActiveChar.HonorPoint && vocationBadges > Connection.ActiveChar.VocationPoint)
             return;
 
         var tasks = new List<ItemTask>();
@@ -139,36 +129,16 @@ public class CSBuyItemsPacket : GamePacket
         {
             Connection.ActiveChar.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.StoreBuy, item);
             tasks.Add(new ItemBuyback(item));
-            /*
-            var res = Connection.ActiveChar.Inventory.AddItem(ItemTaskType.StoreBuy, item);
-            if (res == null)
-            {
-                ItemManager.Instance.ReleaseId(item.Id);
-                return;
-            }
-
-            if (res.Id != item.Id)
-                tasks.Add(new ItemCountUpdate(res, item.Count));
-            else
-                tasks.Add(new ItemBuyback(item));
-            Connection.ActiveChar.BuyBack[index] = null;
-            */
         }
 
         if (honorPoints > 0)
-        {
             Connection.ActiveChar.ChangeGamePoints(GamePointKind.Honor, -honorPoints);
-        }
 
         if (vocationBadges > 0)
-        {
             Connection.ActiveChar.ChangeGamePoints(GamePointKind.Vocation, -vocationBadges);
-        }
 
         if (money > 0)
-        {
             Connection.ActiveChar.ChangeMoney(SlotType.Inventory, -money);
-        }
 
         Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.StoreBuy, tasks, new List<ulong>()));
     }

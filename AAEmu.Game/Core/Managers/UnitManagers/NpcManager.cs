@@ -30,7 +30,8 @@ public class NpcManager : Singleton<NpcManager>
     private bool _loaded = false;
 
     private Dictionary<uint, NpcTemplate> _templates;
-    private Dictionary<uint, MerchantGoods> _goods;
+    private Dictionary<uint, List<Merchants>> _merchantGoods; // npcId, list <MerchantGoods>
+    private Dictionary<uint, List<MerchantPacks>> _merchantPackGoods; // packId, list <MerchantPacks>
     private Dictionary<uint, TotalCharacterCustom> _totalCharacterCustoms;
     private Dictionary<uint, Dictionary<uint, List<BodyPartTemplate>>> _itemBodyParts;
     private Dictionary<uint, List<uint>> _tccLookup;
@@ -47,9 +48,7 @@ public class NpcManager : Singleton<NpcManager>
 
     public NpcTemplate GetTemplate(uint templateId)
     {
-        if (_templates.TryGetValue(templateId, out var template))
-            return template;
-        return null;
+        return _templates.TryGetValue(templateId, out var template) ? template : null;
     }
 
     public Dictionary<uint, NpcTemplate> GetAllTemplates()
@@ -57,11 +56,25 @@ public class NpcManager : Singleton<NpcManager>
         return _templates;
     }
 
-    public MerchantGoods GetGoods(uint id)
+    //public Merchants GetMerchantGoods(uint id)
+    //{
+    //    _merchantGoods.TryGetValue(id, out var goods);
+    //    if (goods == null) { return null; }
+    //    foreach (var g in goods)
+    //        if (g.ItemId == id)
+    //            return g;
+
+    //    return null;
+    //}
+
+    public List<Merchants> GetMerchantGoods(uint id)
     {
-        if (_goods.TryGetValue(id, out var goods))
-            return goods;
-        return null;
+        return _merchantGoods.TryGetValue(id, out var goods) ? goods : null;
+    }
+
+    public List<MerchantPacks> GetMerchantPacks(uint id)
+    {
+        return _merchantPackGoods.TryGetValue(id, out var goods) ? goods : null;
     }
 
     public Npc Create(uint objectId, uint id)
@@ -354,7 +367,8 @@ public class NpcManager : Singleton<NpcManager>
             return;
 
         _templates = new Dictionary<uint, NpcTemplate>();
-        _goods = new Dictionary<uint, MerchantGoods>();
+        _merchantGoods = new Dictionary<uint, List<Merchants>>();
+        _merchantPackGoods = new Dictionary<uint, List<MerchantPacks>>();
         _tccLookup = new Dictionary<uint, List<uint>>();
         _totalCharacterCustoms = new Dictionary<uint, TotalCharacterCustom>();
         _itemBodyParts = new Dictionary<uint, Dictionary<uint, List<BodyPartTemplate>>>();
@@ -428,11 +442,14 @@ public class NpcManager : Singleton<NpcManager>
                         // 3030 old
                         //reader.GetBytes("modifier", 0, custom.Modifier, 0, 128);
                         // 3030 new
-                        var blob = (string)reader.GetValue("modifier");
+                        //var blob = (string)reader.GetValue("modifier");
+                        //if (blob != null)
+                        //{
+                        //    custom.Modifier = Helpers.StringToByteArray(blob);
+                        //}
+                        var blob = reader.GetValue("modifier");
                         if (blob != null)
-                        {
-                            custom.Modifier = Helpers.StringToByteArray(blob);
-                        }
+                            custom.Modifier = (byte[])blob;
 
                         _totalCharacterCustoms.Add(custom.Id, custom);
                     }
@@ -508,6 +525,7 @@ public class NpcManager : Singleton<NpcManager>
                         template.NpcTemplateId = (NpcTemplateType)reader.GetByte("npc_template_id");
                         template.ModelId = reader.GetUInt32("model_id");
                         template.FactionId = reader.GetUInt32("faction_id");
+                        template.HeirLevel = reader.GetUInt32("heir_level");
                         template.SkillTrainer = reader.GetBoolean("skill_trainer", true);
                         template.AiFileId = reader.GetInt32("ai_file_id");
                         template.Merchant = reader.GetBoolean("merchant", true);
@@ -825,6 +843,8 @@ public class NpcManager : Singleton<NpcManager>
                 }
             }
 
+            Logger.Info("Loading merchant packs...");
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM merchants";
@@ -833,38 +853,45 @@ public class NpcManager : Singleton<NpcManager>
                 {
                     while (reader.Read())
                     {
-                        var id = reader.GetUInt32("npc_id");
-                        if (!_templates.ContainsKey(id))
-                            continue;
-                        var template = _templates[id];
-                        template.MerchantPackId = reader.GetUInt32("merchant_pack_id");
+                        var template = new Merchants();
+                        template.NpcId = reader.GetUInt32("npc_id");
+                        template.ItemId = reader.GetUInt32("item_id");
+                        template.GradeId = reader.GetByte("grade_id");
+                        template.KindId = reader.GetByte("kind_id");
+
+                        if (_merchantGoods.ContainsKey(template.NpcId))
+                            _merchantGoods[template.NpcId].Add(template);
+                        else
+                            _merchantGoods.TryAdd(template.NpcId, [template]);
                     }
                 }
             }
 
-            Logger.Info("Loaded {0} npc templates", _templates.Count);
-            Logger.Info("Loading merchant packs...");
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM merchant_goods";
+                command.CommandText = "SELECT * FROM merchant_packs";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
                     while (reader.Read())
                     {
-                        var id = reader.GetUInt32("merchant_pack_id");
-                        if (!_goods.ContainsKey(id))
-                            _goods.Add(id, new MerchantGoods(id));
+                        var id = reader.GetUInt32("pack_id");
+                        var template = new MerchantPacks(id);
+                        template.ItemId = reader.GetUInt32("item_id");
+                        template.GradeId = reader.GetByte("grade_id");
+                        template.KindId = reader.GetByte("kind_id");
 
-                        var itemId = reader.GetUInt32("item_id");
-                        var grade = reader.GetByte("grade_id");
-
-                        _goods[id].AddItemToStock(itemId, grade);
+                        if (_merchantPackGoods.ContainsKey(id))
+                            _merchantPackGoods[id].Add(template);
+                        else
+                            _merchantPackGoods.TryAdd(id, [template]);
                     }
                 }
             }
 
-            Logger.Info("Loaded {0} merchant packs", _goods.Count);
+            Logger.Info($"Loaded {_merchantGoods.Count} merchants");
+            Logger.Info($"Loaded {_merchantPackGoods.Count} merchant packs");
+            Logger.Info($"Loaded {_templates.Count} npc templates");
         }
 
         NpcGameData.Instance.LoadMemberAndSpawnerTemplateIds();
