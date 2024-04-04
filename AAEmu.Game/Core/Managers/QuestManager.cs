@@ -433,6 +433,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             template.LetItDone = reader.GetBoolean("let_it_done", true);
             template.DetailId = (QuestDetail)reader.GetUInt32("detail_id");
             template.ZoneId = reader.GetUInt32("zone_id");
+            template.CategoryId = reader.GetUInt32("category_id");
             template.Degree = reader.GetInt32("degree", 0);
             template.UseQuestCamera = reader.GetBoolean("use_quest_camera", true);
             template.Score = reader.GetInt32("score", 0);
@@ -2069,10 +2070,26 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     /// <param name="owner"></param>
     public void DoOnLevelUpEvents(ICharacter owner)
     {
-        // Added for quest Id=5967
         owner.Events?.OnLevelUp(this, new OnLevelUpArgs());
 
+        // Added for quest In the Footsteps of Gods and Heroes ( 5967 ), get all abilities (classes) to 50
         owner.Events?.OnAbilityLevelUp(this, new OnAbilityLevelUpArgs());
+
+        // Also handle Level-based (character main level) quest starters
+        // Un-started quests can't have a level event handler, so we need to do it this way for quest starters
+        var levelActs = _actTemplates.GetValueOrDefault("QuestActConAcceptLevelUp")?.Values;
+        if (levelActs != default)
+            foreach (var levelAct in levelActs)
+            {
+                if ((levelAct is QuestActConAcceptLevelUp actLevelUp) && // correct Template
+                    (owner.Level >= actLevelUp.Level) && // Minimum Level
+                    !owner.Quests.HasQuestCompleted(actLevelUp.ParentQuestTemplate.Id) && // NEver completed before
+                    !owner.Quests.HasQuest(actLevelUp.ParentQuestTemplate.Id)) // Not active
+                {
+                    // Start quest
+                    owner.Quests.AddQuest(actLevelUp.ParentQuestTemplate.Id);
+                }
+            }
     }
 
     /// <summary>

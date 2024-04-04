@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Crafts;
+using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
@@ -57,11 +58,10 @@ public partial class CharacterQuests
     /// </summary>
     /// <param name="questId"></param>
     /// <param name="forcibly"></param>
-    /// <param name="npcObjId"></param>
-    /// <param name="doodadObjId"></param>
-    /// <param name="sphereId"></param>
+    /// <param name="questAcceptorType"></param>
+    /// <param name="acceptorId"></param>
     /// <returns></returns>
-    public bool AddQuest(uint questId, bool forcibly = false, uint npcObjId = 0, uint doodadObjId = 0, uint sphereId = 0)
+    public bool AddQuest(uint questId, bool forcibly = false, QuestAcceptorType questAcceptorType = QuestAcceptorType.Unknown, uint acceptorId = 0)
     {
         if (ActiveQuests.ContainsKey(questId))
         {
@@ -82,6 +82,28 @@ public partial class CharacterQuests
         {
             Logger.Error($"Failed to start new Quest {questId}, invalid Id");
             return false;
+        }
+
+        // TODO: Check/validate if this is needed
+        // Verify if the quest zone is "friendly" towards the player before they can accept it.
+        var questZoneKeyCheck = template.ZoneId;
+        if ((template.ZoneId == 1) && (template.CategoryId != 9)) // zoneKey 1 = Gweonid Forest, Category 9 = Gweonid Forest
+        {
+            // Probably a generic non-zone specific quest
+            questZoneKeyCheck = 0;
+        }
+        if (questZoneKeyCheck > 0)
+        {
+            var zone = ZoneManager.Instance.GetZoneByKey(questZoneKeyCheck);
+            var zoneFaction = FactionManager.Instance.GetFaction(zone.FactionId);
+            var relation = zoneFaction.GetRelationState(Owner.Faction);
+            if (relation == RelationState.Hostile)
+            {
+                // Quest not allowed in hostile zones?
+                Logger.Warn($"AddQuest trying to add a quest from a hostile zone, Player: {Owner.Name} ({Owner.Id}) {Owner.Faction.Name} ({Owner.Faction.Id}) for quest {questId} with ZoneKey: {questZoneKeyCheck}, Faction: {zoneFaction.Name} ({zoneFaction.Id})");
+                Owner.SendMessage($"[AAEmu] AddQuest trying to add a quest from a hostile zone, Player: {Owner.Name} ({Owner.Id}) {Owner.Faction.Name} ({Owner.Faction.Id}) for quest {questId} with ZoneKey: {questZoneKeyCheck}, Faction: {zoneFaction.Name} ({zoneFaction.Id}), please report this to the admins with a screenshot attached");
+                return false;
+            }
         }
 
         if (HasQuestCompleted(questId))
@@ -105,20 +127,8 @@ public partial class CharacterQuests
         quest.Status = QuestStatus.Invalid;
         quest.Condition = QuestConditionObj.Progress;
         quest.Owner = Owner;
-
-        // Handle some things depending on the starter
-        if (npcObjId > 0)
-        {
-            quest.Owner.CurrentTarget = WorldManager.Instance.GetUnit(npcObjId);
-        }
-        else if (doodadObjId > 0)
-        {
-            // TODO
-        }
-        else if (sphereId > 0)
-        {
-            // TODO
-        }
+        quest.QuestAcceptorType = questAcceptorType;
+        quest.AcceptorId = acceptorId;
 
         // If there's still a timer running for this quest, remove it
         if (QuestManager.Instance.QuestTimeoutTask.Count != 0)
@@ -131,6 +141,7 @@ public partial class CharacterQuests
 
         // Create the step objects based on the Quest Templates
         quest.CreateQuestSteps();
+
         // Actually start the quest by setting step to Start and send the quest start packets
         var res = quest.StartQuest();
         if (!res)
@@ -148,6 +159,75 @@ public partial class CharacterQuests
         _ = quest.RunCurrentStep(); // We don't need the return value here
 
         return true;
+    }
+
+    /// <summary>
+    /// Starts a Quest given by a NPC
+    /// </summary>
+    /// <param name="questId"></param>
+    /// <param name="npcObjId">ObjectId of the NPC</param>
+    /// <returns></returns>
+    public bool AddQuestFromNpc(uint questId, uint npcObjId)
+    {
+        var npc = WorldManager.Instance.GetNpc(npcObjId);
+        Owner.CurrentTarget = npc;
+        return AddQuest(questId, false, QuestAcceptorType.Npc, npc.TemplateId);
+    }
+
+    /// <summary>
+    /// Starts a Quest given by a Doodad
+    /// </summary>
+    /// <param name="questId"></param>
+    /// <param name="doodadObjId">ObjectId of the Doodad</param>
+    /// <returns></returns>
+    public bool AddQuestFromDoodad(uint questId, uint doodadObjId)
+    {
+        var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+        return AddQuest(questId, false, QuestAcceptorType.Doodad, doodad.TemplateId);
+    }
+
+    /// <summary>
+    /// Starts a Quest by entering a Sphere
+    /// </summary>
+    /// <param name="questId"></param>
+    /// <param name="sphereId"></param>
+    /// <returns></returns>
+    public bool AddQuestFromSphere(uint questId, uint sphereId)
+    {
+        return AddQuest(questId, false, QuestAcceptorType.Sphere, sphereId);
+    }
+
+    /// <summary>
+    /// Starts a Quest from a given Item
+    /// </summary>
+    /// <param name="questId"></param>
+    /// <param name="itemTemplateId"></param>
+    /// <returns></returns>
+    public bool AddQuestFromItem(uint questId, uint itemTemplateId)
+    {
+        return AddQuest(questId, false, QuestAcceptorType.Item, itemTemplateId);
+    }
+
+    /// <summary>
+    /// Starts a Quest from executing a Skill
+    /// </summary>
+    /// <param name="questId"></param>
+    /// <param name="skillTemplateId"></param>
+    /// <returns></returns>
+    public bool AddQuestFromSkill(uint questId, uint skillTemplateId)
+    {
+        return AddQuest(questId, false, QuestAcceptorType.Skill, skillTemplateId);
+    }
+
+    /// <summary>
+    /// Starts a Quest from a Buff
+    /// </summary>
+    /// <param name="questId"></param>
+    /// <param name="buffTemplateId"></param>
+    /// <returns></returns>
+    public bool AddQuestFromBuff(uint questId, uint buffTemplateId)
+    {
+        return AddQuest(questId, false, QuestAcceptorType.Buff, buffTemplateId);
     }
 
     /// <summary>
@@ -221,23 +301,20 @@ public partial class CharacterQuests
         if (!ActiveQuests.ContainsKey(questId)) { return; }
 
         var quest = ActiveQuests[questId];
+        quest.Cleanup();
         quest.Drop(update);
         ActiveQuests.Remove(questId);
         _removed.Add(questId);
 
-        if (forcibly) { ResetCompletedQuest(questId); }
+        if (forcibly)
+        {
+            ResetCompletedQuest(questId);
+        }
 
         quest.Owner.SendMessage($"[Quest] for player: {Owner.Name}, quest: {questId} removed.");
         Logger.Warn($"[Quest] for player: {Owner.Name}, quest: {questId} removed.");
 
-        if (QuestManager.Instance.QuestTimeoutTask.TryGetValue(quest.Owner.Id, out var questTimeoutTasks))
-        {
-            if (questTimeoutTasks.TryGetValue(questId, out var questTimeoutTask))
-            {
-                _ = questTimeoutTask.CancelAsync();
-                _ = questTimeoutTasks.Remove(questId);
-            }
-        }
+        QuestManager.Instance.RemoveQuestTimer(Owner.Id, questId);
 
         QuestIdManager.Instance.ReleaseId((uint)quest.Id);
     }
@@ -454,6 +531,7 @@ public partial class CharacterQuests
 
     public void OnLevelUp()
     {
+        // LeveUp is kind of special in that it's trigger is mainly a quest starter
         foreach (var quest in ActiveQuests.Values)
             quest.OnLevelUp();
     }

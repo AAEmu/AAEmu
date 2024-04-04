@@ -41,7 +41,7 @@ public class AcceptQuestEffect : EffectTemplate
                 if (itemQuestId > 0)
                 {
                     // Add alternative quest by Id
-                    if (!character.Quests.AddQuest(itemQuestId))
+                    if (!character.Quests.AddQuestFromItem(itemQuestId, skillItem.ItemTemplateId))
                     {
                         Logger.Debug($"Failed to add Quest:{itemQuestId} from Item:{item.TemplateId}, for Player: {character.Name} ({character.Id})");
                         return;

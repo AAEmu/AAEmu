@@ -316,7 +316,7 @@ public class QuestTests
             if (npcAcceptActQuest is not null)
             {
                 Assert.Equal(QuestAcceptorType.Npc, quest.QuestAcceptorType);
-                Assert.Equal(npcAcceptActQuest.NpcId, quest.AcceptorType);
+                Assert.Equal(npcAcceptActQuest.NpcId, quest.AcceptorId);
 
                 if (npcComponentStart.SkillSelf)
                     mockCharacter.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(mockCharacter.Object)), Times.Once);
@@ -375,7 +375,7 @@ public class QuestTests
             if (npcAcceptActQuest is not null)
             {
                 Assert.Equal(QuestAcceptorType.Npc, quest.QuestAcceptorType);
-                Assert.Equal(npcAcceptActQuest.NpcId, quest.AcceptorType);
+                Assert.Equal(npcAcceptActQuest.NpcId, quest.AcceptorId);
 
                 if (npcComponentStart.SkillSelf)
                     mockCharacter.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(mockCharacter.Object)), Times.Once);

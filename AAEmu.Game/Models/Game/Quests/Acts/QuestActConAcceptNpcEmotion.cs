@@ -18,8 +18,20 @@ public class QuestActConAcceptNpcEmotion(QuestComponentTemplate parentComponent)
             return false;
 
         quest.QuestAcceptorType = QuestAcceptorType.Npc;
-        quest.AcceptorType = NpcId;
+        quest.AcceptorId = NpcId;
 
         return npc.TemplateId == NpcId;
+    }
+
+    /// <summary>
+    /// Verifies that the NPC from the quest starter is valid, does not check the emote
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    {
+        Logger.Warn($"QuestActConAcceptNpcEmotion({DetailId}).RunAct: Quest: {quest.TemplateId}, DetailId: {DetailId}, NpcId {NpcId}, Emotion {Emotion}");
+        return quest.QuestAcceptorType == QuestAcceptorType.Npc && quest.AcceptorId == NpcId;
     }
 }

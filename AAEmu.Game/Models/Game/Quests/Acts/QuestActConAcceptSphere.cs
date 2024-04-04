@@ -13,8 +13,20 @@ public class QuestActConAcceptSphere(QuestComponentTemplate parentComponent) : Q
         Logger.Debug($"QuestActConAcceptSphere: SphereId {SphereId}");
 
         quest.QuestAcceptorType = QuestAcceptorType.Sphere;
-        quest.AcceptorType = SphereId;
+        quest.AcceptorId = SphereId;
 
         return false;
+    }
+
+    /// <summary>
+    /// Checks if a Quest was started with the specified Sphere
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    {
+        Logger.Trace($"QuestActConAcceptSphere({DetailId}).RunAct: Quest: {quest.TemplateId}, SkillId {SphereId}");
+        return quest.QuestAcceptorType == QuestAcceptorType.Sphere && quest.AcceptorId == SphereId;
     }
 }

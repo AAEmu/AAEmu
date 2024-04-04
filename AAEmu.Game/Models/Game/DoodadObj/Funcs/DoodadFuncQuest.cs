@@ -13,13 +13,13 @@ public class DoodadFuncQuest : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        Logger.Trace("DoodadFuncQuest : skillId {0}, QuestKindId {1}, QuestId {2}", skillId, QuestKindId, QuestId);
+        Logger.Trace($"DoodadFuncQuest : skillId {skillId}, QuestKindId {QuestKindId}, QuestId {QuestId}");
 
         if (caster is Character character)
         {
             if (!character.Quests.HasQuest(QuestId))
             {
-                character.Quests.AddQuest(QuestId);
+                character.Quests.AddQuestFromDoodad(QuestId, owner.ObjId);
             }
             else
             {

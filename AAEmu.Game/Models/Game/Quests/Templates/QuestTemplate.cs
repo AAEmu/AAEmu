@@ -18,6 +18,7 @@ public class QuestTemplate : IQuestTemplate
     public bool LetItDone { get; set; }
     public QuestDetail DetailId { get; set; }
     public uint ZoneId { get; set; }
+    public uint CategoryId { get; set; }
     public int Degree { get; set; }
     public bool UseQuestCamera { get; set; }
     public int Score { get; set; }

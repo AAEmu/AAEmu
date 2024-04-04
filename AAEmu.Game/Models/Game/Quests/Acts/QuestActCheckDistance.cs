@@ -31,7 +31,7 @@ public class QuestActCheckDistance(QuestComponentTemplate parentComponent) : Que
     /// <returns></returns>
     public override bool RunAct(Quest quest, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActCheckDistance.RunAct: WithIn {WithIn}, NpcId {NpcId}, Distance {Distance}");
+        Logger.Trace($"QuestActCheckDistance({DetailId}).RunAct: Quest {quest.TemplateId}, WithIn {WithIn}, NpcId {NpcId}, Distance {Distance}");
         // There is actually no quest left that still uses this
         var player = quest.Owner as Character;
         var npcs = WorldManager.GetAround<Npc>(player, Distance);

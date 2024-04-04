@@ -13,12 +13,18 @@ public class QuestActConAcceptNpcKill(QuestComponentTemplate parentComponent) : 
     {
         Logger.Debug($"QuestActConAcceptNpcKill: NpcId {NpcId}");
 
-        if (!(character.CurrentTarget is Npc npc))
+        if (character.CurrentTarget is not Npc npc)
             return false;
 
         quest.QuestAcceptorType = QuestAcceptorType.Npc;
-        quest.AcceptorType = NpcId;
+        quest.AcceptorId = NpcId;
 
         return npc.TemplateId == NpcId;
+    }
+
+    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    {
+        Logger.Warn("QuestActConAcceptNpcKill({DetailId}).RunAct: Quest: {quest.TemplateId}, NpcId {NpcId}");
+        return quest.QuestAcceptorType == QuestAcceptorType.Npc && quest.AcceptorId == NpcId;
     }
 }

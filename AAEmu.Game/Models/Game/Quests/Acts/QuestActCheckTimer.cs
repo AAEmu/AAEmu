@@ -56,10 +56,10 @@ public class QuestActCheckTimer(QuestComponentTemplate parentComponent) : QuestA
     public override void Initialize(Quest quest, IQuestAct questAct)
     {
         base.Initialize(quest, questAct);
-        Logger.Debug($"QuestActCheckTimer.Initialize Quest: {quest.TemplateId}, Owner: {quest.Owner.Name} ({quest.Owner.Id})");
+        Logger.Debug($"QuestActCheckTimer.Initialize Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id})");
 
         if (!QuestManager.Instance.AddQuestTimer(quest.Owner, quest, LimitTime))
-            Logger.Warn($"QuestActCheckTimer.Initialize Timer Already running, Quest: {quest.TemplateId}, Owner: {quest.Owner.Name} ({quest.Owner.Id})");
+            Logger.Warn($"QuestActCheckTimer.Initialize Timer Already running, Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id})");
     }
 
     public override void DeInitialize(Quest quest, IQuestAct questAct)
@@ -71,6 +71,7 @@ public class QuestActCheckTimer(QuestComponentTemplate parentComponent) : QuestA
 
     public override bool RunAct(Quest quest, int currentObjectiveCount)
     {
+        Logger.Debug($"QuestActCheckTimer({DetailId}).RunAct.RunAct Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id})");
         return true;
     }
 }

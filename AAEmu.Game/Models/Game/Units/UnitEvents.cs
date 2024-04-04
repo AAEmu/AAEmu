@@ -78,6 +78,7 @@ public class QuestEventArgs : EventArgs
 {
     public Quest OwningQuest { get; set; }
 }
+
 public class OnMonsterHuntArgs : QuestEventArgs
 {
     public uint NpcId { get; set; }

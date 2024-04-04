@@ -39,6 +39,7 @@ public class QuestActCheckSphere(QuestComponentTemplate parentComponent) : Quest
     /// <returns></returns>
     public override bool RunAct(Quest quest, int currentObjectiveCount)
     {
+        Logger.Debug($"QuestActCheckSphere({DetailId}).RunAct: Quest {quest.TemplateId}, SphereId {SphereId}");
         return GetObjective(quest) > 0;
     }
 

@@ -40,7 +40,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     public byte ThisComponentObjectiveIndex { get; set; } = 0xFF;
 
     /// <summary>
-    /// Called for every QuestAct in a component when the component is activated
+    /// Called for every QuestAct in a component when the component is activated (Step changed)
     /// </summary>
     public virtual void Initialize(Quest quest, IQuestAct questAct)
     {
@@ -49,7 +49,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     }
 
     /// <summary>
-    /// Called for every QuestAct in a component when the component is fully completed or cancelled
+    /// Called for every QuestAct in a component when the component is fully completed or cancelled (Step changed)
     /// </summary>
     public virtual void DeInitialize(Quest quest, IQuestAct questAct)
     {
@@ -129,5 +129,23 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
             return 0;
         quest.Objectives[ThisComponentObjectiveIndex] += amount;
         return quest.Objectives[ThisComponentObjectiveIndex];
+    }
+
+    /// <summary>
+    /// Called when a quest ended or otherwise removed, use to clean up items and tasks
+    /// </summary>
+    /// <param name="quest"></param>
+    public virtual void QuestCleanup(Quest quest)
+    {
+        // Nothing by default
+    }
+
+    /// <summary>
+    /// Called when a quest got dropped by the player
+    /// </summary>
+    /// <param name="quest"></param>
+    public virtual void QuestDropped(Quest quest)
+    {
+        // Nothing by default
     }
 }

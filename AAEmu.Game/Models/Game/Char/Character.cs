@@ -1305,7 +1305,6 @@ public partial class Character : Unit, ICharacter
         if (change)
         {
             BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
-            //StartRegen();
         }
     }
 

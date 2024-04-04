@@ -3,17 +3,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-#pragma warning disable IDE0052 // Remove unread private members
-
-public class CSStartQuestContextPacket : GamePacket
+public class CSStartQuestContextPacket() : GamePacket(CSOffsets.CSStartQuestContextPacket, 1)
 {
     private uint _questContextId;
     private uint _npcObjId;
     private uint _doodadObjId;
     private uint _sphereId;
-    public CSStartQuestContextPacket() : base(CSOffsets.CSStartQuestContextPacket, 1)
-    {
-    }
 
     public override void Read(PacketStream stream)
     {
@@ -22,6 +17,13 @@ public class CSStartQuestContextPacket : GamePacket
         _doodadObjId = stream.ReadBc();        // doodadObjId
         _sphereId = stream.ReadUInt32();       // selected
 
-        Connection.ActiveChar.Quests.AddQuest(_questContextId, false, _npcObjId, _doodadObjId, _sphereId);
+        if (_npcObjId > 0)
+            Connection.ActiveChar.Quests.AddQuestFromNpc(_questContextId, _npcObjId);
+        else if (_doodadObjId > 0)
+            Connection.ActiveChar.Quests.AddQuestFromDoodad(_questContextId, _doodadObjId);
+        else if (_sphereId > 0)
+            Connection.ActiveChar.Quests.AddQuestFromSphere(_questContextId, _sphereId);
+        else
+            Connection.ActiveChar.Quests.AddQuest(_questContextId);
     }
 }

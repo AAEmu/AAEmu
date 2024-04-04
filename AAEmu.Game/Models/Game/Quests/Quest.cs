@@ -130,7 +130,7 @@ public partial class Quest : PacketMarshaler
     /// <summary>
     /// Acceptor Template Id of the QuestAcceptorType source where we got this quest from, used by SCQuestContext
     /// </summary>
-    public uint AcceptorType { get; set; }
+    public uint AcceptorId { get; set; }
 
     /// <summary>
     /// Task that handles completion
@@ -1087,7 +1087,10 @@ public partial class Quest : PacketMarshaler
         if (update)
             Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
 
-        //RemoveQuestBuffs(); // TODO добавить удаление примененных во время квеста бафов при cleanup == true
+        foreach (var questComponentTemplate in Template.Components.Values)
+            foreach (var actTemplate in questComponentTemplate.ActTemplates)
+                actTemplate.QuestDropped(this);
+
         RemoveQuestItems();
         ClearQuestStatus();
         ClearObjectives();
@@ -1751,7 +1754,7 @@ public partial class Quest : PacketMarshaler
         stream.Write(DoodadId);                // doodadId
         stream.Write(DateTime.UtcNow);         // acceptTime
         stream.Write((byte)QuestAcceptorType); // type QuestAcceptorType
-        stream.Write(AcceptorType);            // acceptorType npcId or doodadId
+        stream.Write(AcceptorId);            // acceptorType npcId or doodadId
         return stream;
     }
 
@@ -1773,7 +1776,7 @@ public partial class Quest : PacketMarshaler
 
         QuestAcceptorType = (QuestAcceptorType)stream.ReadByte();
         ComponentId = stream.ReadUInt32();
-        AcceptorType = stream.ReadUInt32();
+        AcceptorId = stream.ReadUInt32();
         Time = stream.ReadDateTime();
     }
 
@@ -1788,10 +1791,25 @@ public partial class Quest : PacketMarshaler
         stream.Write((byte)Step);
         stream.Write((byte)QuestAcceptorType);
         stream.Write(ComponentId);
-        stream.Write(AcceptorType);
+        stream.Write(AcceptorId);
         stream.Write(Time);
         return stream.GetBytes();
     }
 
     #endregion
+
+    /// <summary>
+    /// Runs the QuestCleanup code of all the quest's acts
+    /// </summary>
+    /// <exception cref="NotImplementedException"></exception>
+    public void Cleanup()
+    {
+        foreach (var questComponentTemplate in Template.Components.Values)
+        {
+            foreach (var actTemplate in questComponentTemplate.ActTemplates)
+            {
+                actTemplate.QuestCleanup(this);
+            }
+        }
+    }
 }

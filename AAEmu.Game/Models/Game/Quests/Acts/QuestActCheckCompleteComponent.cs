@@ -21,7 +21,7 @@ public class QuestActCheckCompleteComponent(QuestComponentTemplate parentCompone
     /// <returns></returns>
     public override bool RunAct(Quest quest, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActCheckCompleteComponent.RunAct: Complete Component {CompleteComponent}");
+        Logger.Debug($"QuestActCheckCompleteComponent({DetailId}).RunAct: Quest {quest.TemplateId}, Complete Component {CompleteComponent}");
         return true;
     }
 }
