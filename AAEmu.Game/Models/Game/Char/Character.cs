@@ -1705,7 +1705,7 @@ public partial class Character : Unit, ICharacter
     public void DoRepair(List<Item> items)
     {
         var tasks = new List<ItemTask>();
-        int repairCost = 0;
+        var repairCost = 0;
 
         foreach (var item in items)
         {
@@ -1714,30 +1714,30 @@ public partial class Character : Unit, ICharacter
 
             if (!Inventory.Bag.Items.Contains(item) && !Equipment.Items.Contains(item))
             {
-                Logger.Warn("Attempting to repair an item that isn't in your inventory or equipment, Item: {0}", item.Id);
+                Logger.Warn($"Attempting to repair an item that isn't in your inventory or equipment, Item={item.Id}");
                 continue;
             }
 
             if (!(item is EquipItem equipItem && item.Template is EquipItemTemplate))
             {
-                Logger.Warn("Attempting to repair a non-equipment item, Item: {0}", item.Id);
+                Logger.Warn($"Attempting to repair a non-equipment item, Item={item.Id}");
                 continue;
             }
 
             if (equipItem.Durability >= equipItem.MaxDurability)
             {
-                Logger.Warn("Attempting to repair an item that has max durability, Item: {0}", item.Id);
+                Logger.Warn($"Attempting to repair an item that has max durability, Item={item.Id}");
                 continue;
             }
 
 #pragma warning disable CA1508 // Avoid dead conditional code
-            if (CurrentInteractionObject is null || !(CurrentInteractionObject is Npc npc))
+            if (CurrentInteractionObject is not Npc npc)
                 continue;
 #pragma warning restore CA1508 // Avoid dead conditional code
 
             if (!npc.Template.Blacksmith)
             {
-                Logger.Warn("Attempting to repair an item while not at a blacksmith, Item: {0}, NPC: {1}", item.Id, npc);
+                Logger.Warn($"Attempting to repair an item while not at a blacksmith, Item={item.Id}, NPC={npc}");
                 continue;
             }
 
@@ -1749,11 +1749,11 @@ public partial class Character : Unit, ICharacter
                 continue;
             }
 
-            int currentRepairCost = equipItem.RepairCost;
+            var currentRepairCost = equipItem.RepairCost;
 
             if (Money < currentRepairCost)
             {
-                Logger.Warn("Not enough money to repair, Item: {0}, Money: {1}, RepairCost: {2}", item.Id, Money, currentRepairCost);
+                Logger.Warn($"Not enough money to repair, Item: {item.Id}, Money: {Money}, RepairCost: {currentRepairCost}");
                 continue;
             }
 
@@ -1766,10 +1766,11 @@ public partial class Character : Unit, ICharacter
 
         if (repairCost > 0)
         {
-            ChangeMoney(SlotType.Inventory, -repairCost);
+            //ChangeMoney(SlotType.Inventory, -repairCost);
+            tasks.Add(new MoneyChange(-repairCost));
         }
 
-        Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Repair, tasks, new List<ulong>()));
+        Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Repair, tasks, []));
     }
 
     public override void Regenerate()

@@ -10,7 +10,6 @@ using SBuffer = System.Buffer;
 
 namespace AAEmu.Commons.Network;
 
-
 /// <summary>
 /// Class to manage, merge, read and write packets. 
 /// Methods have equal names as BinaryReader and BinaryWriter.

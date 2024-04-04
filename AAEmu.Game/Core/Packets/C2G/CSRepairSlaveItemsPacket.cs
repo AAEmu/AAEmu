@@ -13,6 +13,6 @@ public class CSRepairSlaveItemsPacket : GamePacket
     {
         var npcId = stream.ReadBc();
 
-        Logger.Debug("RepairSlaveItems, NpcId: {0}", npcId);
+        Logger.Debug($"RepairSlaveItems, NpcId={npcId}");
     }
 }
