@@ -26,7 +26,7 @@ public class CSTryQuestCompleteAsLetItDonePacket : GamePacket
             && Connection.ActiveChar.CurrentTarget.ObjId != objId
            )
             return;
-        Connection.ActiveChar.Quests.Complete(id, selected);
+        Connection.ActiveChar.Quests.CompleteQuest(id, selected);
     }
 }
 

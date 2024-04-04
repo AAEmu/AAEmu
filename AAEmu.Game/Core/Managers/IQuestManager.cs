@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public interface IQuestManager
 {
-    void CancelQuest(ICharacter owner, uint questId);
+    void FailQuest(ICharacter owner, uint questId);
     bool CheckGroupItem(uint groupId, uint itemId);
     bool CheckGroupNpc(uint groupId, uint npcId);
     List<QuestActTemplate> GetActs(uint id);

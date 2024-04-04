@@ -1,6 +1,7 @@
 ﻿using System;
 
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 
@@ -53,6 +54,7 @@ public class UnitEvents
     public EventHandler<OnLevelUpArgs> OnLevelUp = delegate { };
     public EventHandler<OnAbilityLevelUpArgs> OnAbilityLevelUp = delegate { };
     public EventHandler<OnEnterSphereArgs> OnEnterSphere = delegate { };
+    public EventHandler<OnExitSphereArgs> OnExitSphere = delegate { };
     public EventHandler<OnCraftArgs> OnCraft = delegate { };
     public EventHandler<OnZoneKillArgs> OnZoneKill = delegate { };
     public EventHandler<OnZoneMonsterHuntArgs> OnZoneMonsterHunt = delegate { };
@@ -72,34 +74,38 @@ public class UnitEvents
     public EventHandler<OnDespawnArgs> OnDespawn = delegate { };
 }
 
-public class OnMonsterHuntArgs : EventArgs
+public class QuestEventArgs : EventArgs
+{
+    public Quest OwningQuest { get; set; }
+}
+public class OnMonsterHuntArgs : QuestEventArgs
 {
     public uint NpcId { get; set; }
     public uint Count { get; set; }
     public Transform Transform { get; set; }
 }
 
-public class OnMonsterGroupHuntArgs : EventArgs
+public class OnMonsterGroupHuntArgs : QuestEventArgs
 {
     public uint NpcId { get; set; }
     public uint Count { get; set; }
     public Transform Position { get; set; }
 }
 
-public class OnItemGatherArgs : EventArgs
+public class OnItemGatherArgs : QuestEventArgs
 {
     public uint QuestId { get; set; } // QuestContextId
     public uint ItemId { get; set; }
     public int Count { get; set; }
 }
 
-public class OnItemGroupGatherArgs : EventArgs
+public class OnItemGroupGatherArgs : QuestEventArgs
 {
     public uint ItemId { get; set; }
     public int Count { get; set; }
 }
 
-public class OnTalkMadeArgs : EventArgs
+public class OnTalkMadeArgs : QuestEventArgs
 {
     public uint QuestId { get; set; } // QuestContextId
     public uint NpcId { get; set; } // Npc.TemplateId
@@ -108,7 +114,7 @@ public class OnTalkMadeArgs : EventArgs
     public Transform Transform { get; set; }
 }
 
-public class OnTalkNpcGroupMadeArgs : EventArgs
+public class OnTalkNpcGroupMadeArgs : QuestEventArgs
 {
     public uint QuestId { get; set; } // QuestContextId
     public uint NpcGroupId { get; set; } // Npc.TemplateId
@@ -117,68 +123,73 @@ public class OnTalkNpcGroupMadeArgs : EventArgs
     public Transform Transform { get; set; }
 }
 
-public class OnAggroArgs : EventArgs
+public class OnAggroArgs : QuestEventArgs
 {
     public uint NpcId { get; set; }
     public Transform Transform { get; set; }
 }
 
-public class OnItemUseArgs : EventArgs
+public class OnItemUseArgs : QuestEventArgs
 {
     public uint ItemId { get; set; }
     public int Count { get; set; }
 }
 
-public class OnItemGroupUseArgs : EventArgs
+public class OnItemGroupUseArgs : QuestEventArgs
 {
     public uint ItemGroupId { get; set; }
     public int Count { get; set; }
 }
 
-public class OnInteractionArgs : EventArgs
+public class OnInteractionArgs : QuestEventArgs
 {
     public uint DoodadId { get; set; } // Doodad.TemplateId
 }
 
-public class OnCraftArgs : EventArgs
+public class OnCraftArgs : QuestEventArgs
 {
     public uint CraftId { get; set; }
 }
 
-public class OnExpressFireArgs : EventArgs
+public class OnExpressFireArgs : QuestEventArgs
 {
     public uint NpcId { get; set; } // Npc.TemplateId
     public uint EmotionId { get; set; }
 }
 
-public class OnLevelUpArgs : EventArgs
+public class OnLevelUpArgs : QuestEventArgs
 {
     // Empty
 }
 
-public class OnAbilityLevelUpArgs : EventArgs
+public class OnAbilityLevelUpArgs : QuestEventArgs
 {
     // Empty
 }
 
-public class OnEnterSphereArgs : EventArgs
+public class OnEnterSphereArgs : QuestEventArgs
 {
     public SphereQuest SphereQuest { get; set; }
 }
 
-public class OnZoneKillArgs : EventArgs
+public class OnExitSphereArgs : QuestEventArgs
+{
+    public SphereQuest SphereQuest { get; set; }
+}
+
+public class OnZoneKillArgs : QuestEventArgs
 {
     public uint ZoneGroupId { get; set; }
     public ICharacter Killer { get; set; }
     public Unit Victim { get; set; }
 }
 
-public class OnZoneMonsterHuntArgs : EventArgs
+public class OnZoneMonsterHuntArgs : QuestEventArgs
 {
     public uint ZoneGroupId { get; set; }
 }
 
-public class OnReportNpcArgs : EventArgs
+public class OnReportNpcArgs : QuestEventArgs
 {
     public uint QuestId { get; set; } // QuestContextId
     public uint NpcId { get; set; } // Npc.TemplateId
@@ -186,14 +197,14 @@ public class OnReportNpcArgs : EventArgs
     public Transform Transform { get; set; } // чтобы проверять расстояние до него
 }
 
-public class OnAcceptDoodadArgs : EventArgs
+public class OnAcceptDoodadArgs : QuestEventArgs
 {
     //public uint QuestId { get; set; } // QuestContextId
     public uint DoodadId { get; set; } // Doodad.TemplateId
     //public int Selected { get; set; }
 }
 
-public class OnReportDoodadArgs : EventArgs
+public class OnReportDoodadArgs : QuestEventArgs
 {
     public uint QuestId { get; set; } // QuestContextId
     public uint DoodadId { get; set; } // Doodad.TemplateId
@@ -201,152 +212,152 @@ public class OnReportDoodadArgs : EventArgs
     public Transform Transform { get; set; } // чтобы проверять расстояние до него
 }
 
-public class OnReportJournalArgs : EventArgs
+public class OnReportJournalArgs : QuestEventArgs
 {
     // Empty
 }
 
-public class OnQuestCompleteArgs : EventArgs
+public class OnQuestCompleteArgs : QuestEventArgs
 {
     public uint QuestId { get; set; }
     public int Selected { get; set; }
 }
 
-public class OnAttackArgs : EventArgs
+public class OnAttackArgs : QuestEventArgs
 {
     public Unit Attacker { get; set; }
 }
 
-public class OnAttackedArgs : EventArgs
+public class OnAttackedArgs : QuestEventArgs
 {
     // Empty
 }
 
-public class OnDamageArgs : EventArgs
+public class OnDamageArgs : QuestEventArgs
 {
     public Unit Attacker { get; set; }
     public int Amount { get; set; }
 }
 
-public class OnDamagedArgs : EventArgs
+public class OnDamagedArgs : QuestEventArgs
 {
     public Unit Attacker { get; set; }
     public int Amount { get; set; }
 }
 
-public class OnDamagedMeleeArgs : EventArgs
+public class OnDamagedMeleeArgs : QuestEventArgs
 {
     public Unit Attacker { get; set; }
     public int Amount { get; set; }
 }
 
-public class OnDamagedRangedArgs : EventArgs
+public class OnDamagedRangedArgs : QuestEventArgs
 {
     public Unit Attacker { get; set; }
     public int Amount { get; set; }
 }
 
-public class OnDamagedSpellArgs : EventArgs
+public class OnDamagedSpellArgs : QuestEventArgs
 {
     public Unit Attacker { get; set; }
     public int Amount { get; set; }
 }
 
-public class OnDamagedSiegeArgs : EventArgs
+public class OnDamagedSiegeArgs : QuestEventArgs
 {
     public Unit Attacker { get; set; }
     public int Amount { get; set; }
 }
 
-public class OnLandingArgs : EventArgs
+public class OnLandingArgs : QuestEventArgs
 {
     // Empty
 }
 
-public class OnMovementArgs : EventArgs
+public class OnMovementArgs : QuestEventArgs
 {
     // Empty
 }
 
-public class OnChannelingCancelArgs : EventArgs
+public class OnChannelingCancelArgs : QuestEventArgs
 {
     // Empty
 }
 
-public class OnRemoveOnDamagedArgs : EventArgs
+public class OnRemoveOnDamagedArgs : QuestEventArgs
 {
     // Empty
 }
 
-public class OnDeathArgs : EventArgs
+public class OnDeathArgs : QuestEventArgs
 {
     public Unit Killer { get; set; }
     public Unit Victim { get; set; }
 }
 
-public class OnUnmountArgs : EventArgs
+public class OnUnmountArgs : QuestEventArgs
 {
     // Empty
 }
 
-public class OnKillArgs : EventArgs
+public class OnKillArgs : QuestEventArgs
 {
     public Unit target { get; set; }
 }
 
-public class OnDamagedCollisionArgs : EventArgs
+public class OnDamagedCollisionArgs : QuestEventArgs
 {
     // Empty
 }
 
-public class OnImmortalityArgs : EventArgs
+public class OnImmortalityArgs : QuestEventArgs
 {
     // Empty
 }
 
-public class OnTimeArgs : EventArgs
+public class OnTimeArgs : QuestEventArgs
 {
     // Empty
 }
 
-public class OnKillAnyArgs : EventArgs
+public class OnKillAnyArgs : QuestEventArgs
 {
     // Empty
 }
 
-public class OnHealedArgs : EventArgs
+public class OnHealedArgs : QuestEventArgs
 {
     public Unit Healer { get; set; }
     public int HealAmount { get; set; }
 }
 
-public class OnCombatStartedArgs : EventArgs
+public class OnCombatStartedArgs : QuestEventArgs
 {
     public Unit Owner { get; set; }
     public Unit Target { get; set; }
 }
 
-public class InIdleArgs : EventArgs
+public class InIdleArgs : QuestEventArgs
 {
     public Unit Owner { get; set; }
 }
 
-public class InAlertArgs : EventArgs
+public class InAlertArgs : QuestEventArgs
 {
     public Unit Npc { get; set; }
 }
 
-public class InDeadArgs : EventArgs
+public class InDeadArgs : QuestEventArgs
 {
     public Unit Npc { get; set; }
 }
 
-public class OnSpawnArgs : EventArgs
+public class OnSpawnArgs : QuestEventArgs
 {
     public Unit Npc { get; set; }
 }
 
-public class OnDespawnArgs : EventArgs
+public class OnDespawnArgs : QuestEventArgs
 {
     public Unit Npc { get; set; }
 }

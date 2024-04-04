@@ -55,7 +55,7 @@ public partial class Quest : PacketMarshaler
     }
 
     /// <summary>
-    /// Starting the initial step of the quest
+    /// Starting the initial step of the quest, only call from CharacterQuests.AddQuest()
     /// </summary>
     /// <returns>False if this quest does not have a start section</returns>
     public bool StartQuest()
@@ -75,9 +75,26 @@ public partial class Quest : PacketMarshaler
     }
 
     /// <summary>
+    /// Checks or Executes all components in the current step and goes to the next one if completed
+    /// </summary>
+    /// <returns></returns>
+    public bool RunCurrentStep()
+    {
+        if (!Steps.TryGetValue(Step, out var questStep))
+            return false;
+
+        var res = questStep.RunComponents();
+
+        if (res)
+            GoToNextStep();
+
+        return res;
+    }
+
+    /// <summary>
     /// Move the Step to the next logical Step
     /// </summary>
-    public void GoToNextStep()
+    private void GoToNextStep()
     {
         // Loop through the flow of steps until we get a valid one
         var lastStep = Step;
@@ -194,137 +211,6 @@ public partial class Quest : PacketMarshaler
         }
     }
 
-    /// <summary>
-    /// Контекстная обработка квеста - перебираем существующие шаги и выполняем их
-    /// step - указывает на то, какий именно шаг в данный момент текущий
-    /// status - для квеста в игре: progress - 'in-prog.', ready - 'complete', complete - получение бонусов
-    /// status - какой метод будет выполняться    progress -         , progress -         , ready -           , complete -
-    /// plus                                               - update()           - update()        - complete()           - всё, получение бонусов
-    /// condition - какой метод будет выполняться progress -         , ready    -,          ready -           , complete -
-    /// </summary>
-    /// <summary>
-    /// Обработка контекста
-    /// </summary>
-    public void ContextProcessing(int selected = 0, EventArgs eventArgs = null)
-    {
-        Logger.Info($"[ContextProcessing] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-        var next = true;
-        while (next)
-        {
-            Logger.Info($"[ContextProcessing][while] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-            switch (Step)
-            {
-                case QuestComponentKind.Supply when QuestSupplyState?.State is { CurrentQuestComponent: not null }:
-                    switch (Condition)
-                    {
-                        case QuestConditionObj.Progress:
-                            Logger.Info($"[ContextProcessing][QuestSupplyState][Update] Quest: {TemplateId}.");
-                            QuestSupplyState.State.Update();
-                            Condition = QuestConditionObj.Ready;
-                            Logger.Info($"[ContextProcessing][QuestSupplyState][Update] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-                            break;
-                        case QuestConditionObj.Ready:
-                            Logger.Info($"[ContextProcessing][QuestSupplyState][Complete] Quest: {TemplateId}.");
-                            QuestSupplyState.State.Complete(selected);
-                            Condition = QuestConditionObj.Progress;
-                            Step++; // переход к следующему шагу // go to next step
-                            Logger.Info($"[ContextProcessing][QuestSupplyState][Complete] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-                            break;
-                    }
-
-                    break;
-                case QuestComponentKind.Progress when QuestProgressState?.State is { CurrentQuestComponent: not null }:
-                    switch (Condition)
-                    {
-                        case QuestConditionObj.Progress:
-                            Logger.Info($"[ContextProcessing][QuestProgressState][Update] Quest: {TemplateId}.");
-                            if (!QuestProgressState.State.Update())
-                            {
-                                next = false;
-                            } // подписка на события и прерываем цикл
-
-                            //Condition = QuestConditionObj.Ready;
-                            Logger.Info($"[ContextProcessing][QuestProgressState][Update] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-                            break;
-                        case QuestConditionObj.Ready:
-                            Logger.Info($"[ContextProcessing][QuestProgressState][Complete] Quest: {TemplateId}.");
-                            if (!QuestProgressState.State.Complete(selected, eventArgs))
-                            {
-                                next = false;
-                                Status = QuestStatus.Progress;
-                                Condition = QuestConditionObj.Ready;
-                                // ждем выполнение всех комронентов шага...
-                                // wait for all step components to complete...
-                            }
-                            else
-                            {
-                                Status = QuestStatus.Ready;
-                                Condition = QuestConditionObj.Progress;
-                                Step++; // переход к следующему шагу // go to next step
-                            }
-
-                            Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
-                            Logger.Info($"[ContextProcessing][QuestProgressState][Complete] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-                            break;
-                    }
-
-                    break;
-                case QuestComponentKind.Ready when QuestReadyState?.State is { CurrentQuestComponent: not null }:
-                    switch (Condition)
-                    {
-                        case QuestConditionObj.Progress:
-                            Logger.Info($"[ContextProcessing][QuestReadyState][Update] Quest: {TemplateId}.");
-                            if (!QuestReadyState.State.Update())
-                            {
-                                next = false;
-                                Condition = QuestConditionObj.Progress;
-                                Logger.Info($"[ContextProcessing][QuestReadyState][Update] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-                                break;
-                            } // подписка на события и прерываем цикл
-
-                            Condition = QuestConditionObj.Ready;
-                            Logger.Info($"[ContextProcessing][QuestReadyState][Update] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-                            break;
-                        case QuestConditionObj.Ready:
-                            Logger.Info($"[ContextProcessing][QuestReadyState][Complete] Quest: {TemplateId}.");
-                            QuestReadyState.State.Complete(selected);
-                            Condition = QuestConditionObj.Progress;
-                            Step++; // переход к следующему шагу // go to next step
-                            Logger.Info($"[ContextProcessing][QuestReadyState][Complete] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-                            break;
-                    }
-
-                    break;
-                case QuestComponentKind.Reward when QuestRewardState?.State is { CurrentQuestComponent: not null }:
-                    switch (Condition)
-                    {
-                        case QuestConditionObj.Progress:
-                            Logger.Info($"[ContextProcessing][QuestRewardState][Update] Quest: {TemplateId}.");
-                            QuestRewardState.State.Update();
-                            Condition = QuestConditionObj.Ready;
-                            Logger.Info($"[ContextProcessing][QuestRewardState][Update] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-                            break;
-                        case QuestConditionObj.Ready:
-                            Logger.Info($"[ContextProcessing][QuestRewardState][Complete] квест {TemplateId}.");
-                            QuestRewardState.State.Complete(selected);
-                            Condition = QuestConditionObj.Progress;
-                            next = false; // прерываем цикл
-                            Logger.Info($"[ContextProcessing][QuestRewardState][Complete] Quest: {TemplateId}, Character={Owner.Name}, ComponentId={ComponentId}, Step={Step}, Status={Status}, Condition={Condition}");
-                            break;
-                    }
-
-                    break;
-                case QuestComponentKind.None: // TODO вроде бы есть квесты с этим шагом
-                case QuestComponentKind.Start:
-                case QuestComponentKind.Fail:
-                case QuestComponentKind.Drop:
-                default:
-                    Step++; // переход к следующему шагу
-                    break;
-            }
-        }
-    }
-
     public void RecallEvents()
     {
         if (Step >= QuestComponentKind.Reward)
@@ -367,27 +253,12 @@ public partial class Quest : PacketMarshaler
 
     public bool AddQuestSphereTriggers(QuestComponent progressContext)
     {
-        var spheres = SphereQuestManager.Instance.GetQuestSpheres(progressContext.Id);
+        var spheres = SphereQuestManager.Instance.GetQuestSpheres(progressContext.Template.Id);
         if (spheres == null)
             return false;
 
         foreach (var sphere in spheres)
-        {
-            var sphereQuestTrigger = new SphereQuestTrigger();
-            sphereQuestTrigger.Sphere = sphere;
-
-            if (sphereQuestTrigger.Sphere == null)
-            {
-                Logger.Info($"[QuestStartState][Start] QuestActObjSphere: Sphere not found with for cquest {progressContext.Id} !");
-                break;
-            }
-
-            sphereQuestTrigger.Owner = Owner;
-            sphereQuestTrigger.Quest = this;
-            sphereQuestTrigger.TickRate = 500;
-
-            SphereQuestManager.Instance.AddSphereQuestTrigger(sphereQuestTrigger);
-        }
+            SphereQuestManager.Instance.AddSphereQuestTriggers(Owner, this, progressContext.Template.Id, 0);
 
         const int Duration = 500;
         // TODO : Add a proper delay in here
@@ -402,36 +273,6 @@ public partial class Quest : PacketMarshaler
 
         return true;
 
-    }
-
-    /// <summary>
-    /// Get the current Quest Context based on the current step
-    /// </summary>
-    /// <param name="context"></param>
-    /// <returns>False if no context was found</returns>
-    private bool TryGetQuestContext(out QuestContext context)
-    {
-        var step = Step;
-        context = new QuestContext(this, new QuestProgressState(), QuestComponentKind.Progress);
-        Step = step;
-
-        switch (Step)
-        {
-            case QuestComponentKind.Progress when QuestProgressState.State.CurrentQuestComponent != null:
-                context = QuestProgressState; // step Progress
-                break;
-            case QuestComponentKind.Ready when QuestReadyState.State.CurrentQuestComponent != null:
-                context = QuestReadyState; // step Ready
-                break;
-            case QuestComponentKind.Reward when QuestRewardState.State.CurrentQuestComponent != null:
-                context = QuestRewardState; // step Reward
-                break;
-            default:
-                context = null;
-                break;
-        }
-
-        return context != null;
     }
 
     /// <summary>

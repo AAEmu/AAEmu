@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Static;
 
 namespace AAEmu.Game.Models.Game.Quests;
@@ -43,5 +40,15 @@ public class QuestStep(QuestComponentKind step, Quest parent)
     {
         foreach (var questComponent in Components.Values)
             questComponent.DeInitialize();
+    }
+
+    public bool RunComponents()
+    {
+        var res = true;
+
+        foreach (var questComponent in Components.Values)
+            res &= questComponent.RunComponent();
+
+        return res;
     }
 }

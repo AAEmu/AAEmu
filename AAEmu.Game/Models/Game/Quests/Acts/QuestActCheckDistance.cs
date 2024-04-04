@@ -1,8 +1,16 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using System.Linq;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using Jace.Util;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
+/// <summary>
+/// Not used in any existing quests
+/// </summary>
+/// <param name="parentComponent"></param>
 public class QuestActCheckDistance(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public bool WithIn { get; set; }
@@ -13,5 +21,20 @@ public class QuestActCheckDistance(QuestComponentTemplate parentComponent) : Que
     {
         Logger.Debug($"QuestActCheckDistance: WithIn {WithIn}, NpcId {NpcId}, Distance {Distance}");
         return false;
+    }
+
+    /// <summary>
+    /// Checks if the player is within a given distance of a target NPC type
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    {
+        Logger.Debug($"QuestActCheckDistance.RunAct: WithIn {WithIn}, NpcId {NpcId}, Distance {Distance}");
+        // There is actually no quest left that still uses this
+        var player = quest.Owner as Character;
+        var npcs = WorldManager.GetAround<Npc>(player, Distance);
+        return npcs.Any(x => (x.TemplateId == NpcId) && (x.GetDistanceTo(player, true) <= Distance));
     }
 }

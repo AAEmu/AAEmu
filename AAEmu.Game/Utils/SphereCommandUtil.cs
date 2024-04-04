@@ -196,9 +196,8 @@ public class SphereCommandUtil
                 continue;
             if ((questId > 0) && (questTrigger.Quest.Id != questId))
                 continue;
-            var currentDistance = MathUtil.CalculateDistance(character.Transform.World.Position,
-                new Vector3(questTrigger.Sphere.X, questTrigger.Sphere.Y, questTrigger.Sphere.Z), true);
-            character.SendMessage($"[Sphere] Quest {questTrigger.Quest.TemplateId} - Component: {questTrigger.Sphere.ComponentId} - TriggerSphere  x:{questTrigger.Sphere.X} , y:{questTrigger.Sphere.Y} , z:{questTrigger.Sphere.Z} , radius:{questTrigger.Sphere.Radius}m, at {currentDistance:F1}m away");
+            var currentDistance = MathUtil.CalculateDistance(character.Transform.World.Position,questTrigger.Sphere.Xyz, true);
+            character.SendMessage($"[Sphere] Quest {questTrigger.Quest.TemplateId} - Component: {questTrigger.Sphere.ComponentId} - TriggerSphere  xyz:{questTrigger.Sphere.Xyz} , radius:{questTrigger.Sphere.Radius}m, at {currentDistance:F1}m away");
             count++;
         }
         if (count <= 0)

@@ -16,6 +16,6 @@ public class QuestTimeoutTask : Task
 
     public override void Execute()
     {
-        QuestManager.Instance.CancelQuest(_owner, _questId);
+        QuestManager.Instance.FailQuest(_owner, _questId);
     }
 }

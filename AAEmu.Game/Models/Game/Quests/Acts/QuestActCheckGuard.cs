@@ -12,4 +12,12 @@ public class QuestActCheckGuard(QuestComponentTemplate parentComponent) : QuestA
         Logger.Warn($"QuestActCheckGuard: NpcId {NpcId}");
         return false;
     }
+
+    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    {
+        Logger.Warn($"QuestActCheckGuard.RunAct: NpcId {NpcId}");
+        // TODO: This seems to be related to escort quests where you need to protect the NPC
+        // TODO: Implement fail mechanics if they die?
+        return true;
+    }
 }

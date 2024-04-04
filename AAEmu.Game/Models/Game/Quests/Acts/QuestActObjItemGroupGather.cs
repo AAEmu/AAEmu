@@ -37,6 +37,6 @@ public class QuestActObjItemGroupGather(QuestComponentTemplate parentComponent) 
     {
         // base.Update(quest, questAct, updateAmount);
         // Objective count is already set by CheckAct
-        Logger.Info($"{QuestActTemplateName} - QuestActItemGroupGather {Id} was updated by {updateAmount} for a total of {questAct.GetObjective(quest)}.");
+        Logger.Info($"{QuestActTemplateName} - QuestActItemGroupGather {DetailId} was updated by {updateAmount} for a total of {questAct.GetObjective(quest)}.");
     }
 }

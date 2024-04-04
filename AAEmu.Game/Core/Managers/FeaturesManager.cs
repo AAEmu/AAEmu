@@ -35,7 +35,7 @@ public class FeaturesManager : Singleton<FeaturesManager>
         Fsets.Set(Feature.dwarfWarborn, false);
 
         // Debug convenience flags, disables most of the sensitive operation stuff to do easier testing
-        Fsets.Set(Feature.sensitiveOpeartion, false);
+        Fsets.Set(Feature.sensitiveOperation, false);
         Fsets.Set(Feature.secondpass, false);
         Fsets.Set(Feature.ingameshopSecondpass, false);
         Fsets.Set(Feature.itemSecure, false);
@@ -70,9 +70,9 @@ public class FeaturesManager : Singleton<FeaturesManager>
         foreach (var fObj in Enum.GetValues(typeof(Feature)))
         {
             var f = (Feature)fObj;
-            if (FeaturesManager.Fsets.Check(f))
-                featsOn += f.ToString() + "  ";
+            if (Fsets.Check(f))
+                featsOn += f + "  ";
         }
-        Logger.Info("Enabled Features: {0}", featsOn);
+        Logger.Info($"Enabled Features: {featsOn}");
     }
 }

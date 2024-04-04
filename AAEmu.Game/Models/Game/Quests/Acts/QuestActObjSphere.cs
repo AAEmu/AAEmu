@@ -14,7 +14,7 @@ public class QuestActObjSphere(QuestComponentTemplate parentComponent) : QuestAc
 
     public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
     {
-        Logger.Debug($"QuestActObjSphere Quest={ParentQuestTemplate.Id}, ComponentId={ParentComponent.Id}, Act={Id}");
+        Logger.Debug($"QuestActObjSphere Quest={ParentQuestTemplate.Id}, ComponentId={ParentComponent.Id}, Act={DetailId}");
         //character.SendMessage("[AAEmu] Your quest was completed automatically because that's how quest spheres are implemented...");
 
         return true;

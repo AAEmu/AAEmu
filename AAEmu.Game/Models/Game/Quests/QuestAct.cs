@@ -67,6 +67,12 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
         return quest.Objectives[ThisComponentObjectiveIndex];
     }
 
+    public bool RunAct()
+    {
+        var count = (parentComponent.Template.KindId == QuestComponentKind.Progress) && (Template.ThisComponentObjectiveIndex < parentComponent.Parent.Parent.Objectives.Length) ? parentComponent.Parent.Parent.Objectives[Template.ThisComponentObjectiveIndex] : 0;
+        return Template.RunAct(parentComponent.Parent.Parent, count);
+    }
+
     /*
      * To sort an array
      */

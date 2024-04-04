@@ -19,4 +19,9 @@ public interface IQuestAct
     T GetTemplate<T>() where T : QuestActTemplate;
     bool Use(ICharacter character, Quest quest, int objective);
     int AddObjective(Quest quest, int amount);
+    /// <summary>
+    /// Execute a Act and return true if successful (early complete quests should return true if minimum is met)
+    /// </summary>
+    /// <returns></returns>
+    bool RunAct();
 }

@@ -25,6 +25,6 @@ public class QuestActObjMonsterHunt(QuestComponentTemplate parentComponent) : Qu
     {
         // base.Update(quest, questAct, updateAmount);
         // Objective count is already set by CheckAct
-        Logger.Info($"{QuestActTemplateName} - QuestActObjMonsterHunt {Id} was updated by {updateAmount} for a total of {questAct.GetObjective(quest)}.");
+        Logger.Info($"{QuestActTemplateName} - QuestActObjMonsterHunt {DetailId} was updated by {updateAmount} for a total of {questAct.GetObjective(quest)}.");
     }
 }

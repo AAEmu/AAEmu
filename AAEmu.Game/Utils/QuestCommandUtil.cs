@@ -22,7 +22,7 @@ public class QuestCommandUtil
                 {
                     if (uint.TryParse(args[1], out questId))
                     {
-                        character.Quests.Add(questId, true);
+                        character.Quests.AddQuest(questId, true);
                     }
                 }
                 else
@@ -45,11 +45,11 @@ public class QuestCommandUtil
                     {
                         if (args.Length >= 3 && int.TryParse(args[2], out var selectedId))
                         {
-                            character.Quests.Complete(questId, selectedId);
+                            character.Quests.CompleteQuest(questId, selectedId);
                         }
                         else
                         {
-                            character.Quests.Complete(questId, 0);
+                            character.Quests.CompleteQuest(questId, 0);
                         }
                     }
                 }
@@ -128,7 +128,7 @@ public class QuestCommandUtil
                     {
                         if (character.Quests.HasQuest(questId))
                         {
-                            character.Quests.Drop(questId, true, true); // удаляем и из CompletedQuests
+                            character.Quests.DropQuest(questId, true, true); // удаляем и из CompletedQuests
                         }
                         else
                         {

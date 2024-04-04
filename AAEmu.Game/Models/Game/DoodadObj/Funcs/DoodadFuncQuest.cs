@@ -19,7 +19,7 @@ public class DoodadFuncQuest : DoodadFuncTemplate
         {
             if (!character.Quests.HasQuest(QuestId))
             {
-                character.Quests.Add(QuestId);
+                character.Quests.AddQuest(QuestId);
             }
             else
             {

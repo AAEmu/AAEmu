@@ -52,31 +52,44 @@ public partial class CharacterQuests
         return CompletedQuests.TryGetValue(questBlockId, out var questBlock) && questBlock.Body.Get(questBlockIndex);
     }
 
-    public bool Add(uint questId, bool forcibly = false, uint npcObjId = 0, uint doodadObjId = 0, uint sphereId = 0)
+    /// <summary>
+    /// Starts a given quest from specific defined quest starter
+    /// </summary>
+    /// <param name="questId"></param>
+    /// <param name="forcibly"></param>
+    /// <param name="npcObjId"></param>
+    /// <param name="doodadObjId"></param>
+    /// <param name="sphereId"></param>
+    /// <returns></returns>
+    public bool AddQuest(uint questId, bool forcibly = false, uint npcObjId = 0, uint doodadObjId = 0, uint sphereId = 0)
     {
         if (ActiveQuests.ContainsKey(questId))
         {
             if (forcibly)
             {
-                Logger.Info("[GM] quest {0}, added!", questId);
-                Drop(questId, true);
+                Logger.Info($"[GM] quest {questId}, added!");
+                DropQuest(questId, true);
             }
             else
             {
-                Logger.Info("Duplicate quest {0}, not added!", questId);
+                Logger.Info($"Duplicate quest {questId}, not added!");
                 return false;
             }
         }
 
         var template = QuestManager.Instance.GetTemplate(questId);
-        if (template == null) { return false; }
+        if (template == null)
+        {
+            Logger.Error($"Failed to start new Quest {questId}, invalid Id");
+            return false;
+        }
 
         if (HasQuestCompleted(questId))
         {
             if (forcibly)
             {
-                Logger.Info("[GM] quest {0}, added!", questId);
-                Drop(questId, true);
+                Logger.Info($"[GM] quest {questId}, added!");
+                DropQuest(questId, true);
             }
             else if (template.Repeatable == false)
             {
@@ -86,12 +99,14 @@ public partial class CharacterQuests
             }
         }
 
+        // Create new Quest Object
         var quest = new Quest(template);
         quest.Id = QuestIdManager.Instance.GetNextId();
         quest.Status = QuestStatus.Invalid;
         quest.Condition = QuestConditionObj.Progress;
         quest.Owner = Owner;
 
+        // Handle some things depending on the starter
         if (npcObjId > 0)
         {
             quest.Owner.CurrentTarget = WorldManager.Instance.GetUnit(npcObjId);
@@ -105,6 +120,7 @@ public partial class CharacterQuests
             // TODO
         }
 
+        // If there's still a timer running for this quest, remove it
         if (QuestManager.Instance.QuestTimeoutTask.Count != 0)
         {
             if (QuestManager.Instance.QuestTimeoutTask.ContainsKey(quest.Owner.Id) && QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].ContainsKey(questId))
@@ -113,20 +129,23 @@ public partial class CharacterQuests
             }
         }
 
-        // TODO new quests
-        quest.CreateQuestSteps();     // установим начальный контекст
-        var res = quest.StartQuest(forcibly); // начало квеста
-        //var res = quest.Start();
+        // Create the step objects based on the Quest Templates
+        quest.CreateQuestSteps();
+        // Actually start the quest by setting step to Start and send the quest start packets
+        var res = quest.StartQuest();
         if (!res)
         {
-            Drop(questId, true);
+            // If it failed to start, drop the quest here
+            DropQuest(questId, true);
             return false;
         }
 
+        // Add it to the Active Quests
         ActiveQuests.Add(quest.TemplateId, quest);
         quest.Owner.SendMessage($"[Quest] {Owner.Name}, quest {questId} added.");
-        //quest.ContextProcessing();
-        quest.GoToNextStep();
+
+        // Execute the first Step
+        _ = quest.RunCurrentStep(); // We don't need the return value here
 
         return true;
     }
@@ -137,7 +156,7 @@ public partial class CharacterQuests
     /// <param name="questId"></param>
     /// <param name="selected"></param>
     /// <param name="supply"></param>
-    public void Complete(uint questId, int selected, bool supply = true)
+    public void CompleteQuest(uint questId, int selected, bool supply = true)
     {
         if (!ActiveQuests.TryGetValue(questId, out var quest))
         {
@@ -191,13 +210,13 @@ public partial class CharacterQuests
             complete.Body.Set((int)(quest.TemplateId % 64), true);
             var body = new byte[8];
             complete.Body.CopyTo(body, 0);
-            Drop(questId, false);
+            DropQuest(questId, false);
             //OnQuestComplete(questId);
             Owner.SendPacket(new SCQuestContextCompletedPacket(quest.TemplateId, body, res));
         }
     }
 
-    public void Drop(uint questId, bool update, bool forcibly = false)
+    public void DropQuest(uint questId, bool update, bool forcibly = false)
     {
         if (!ActiveQuests.ContainsKey(questId)) { return; }
 
@@ -341,9 +360,9 @@ public partial class CharacterQuests
                 foreach (var currentComponent in currentComponents)
                 {
                     // Check if the item is related
-                    foreach (var currentComponentActValue in currentComponent.Acts)
+                    foreach (var questActTemplate in currentComponent.ActTemplates)
                     {
-                        var currentComponentAct = currentComponentActValue.Template;
+                        var currentComponentAct = questActTemplate;
 
                         // QuestActConAcceptItem, QuestActObjItemGather, QuestActSupplyItem
                         if ((currentComponentAct is IQuestActGenericItem iQuestActGenericItem) && (iQuestActGenericItem.ItemId == item.TemplateId))
@@ -406,7 +425,7 @@ public partial class CharacterQuests
         }
 
         if (doDropQuest)
-            Owner.Quests.Drop(item.Template.LootQuestId, true);
+            Owner.Quests.DropQuest(item.Template.LootQuestId, true);
     }
 
     /// <summary>

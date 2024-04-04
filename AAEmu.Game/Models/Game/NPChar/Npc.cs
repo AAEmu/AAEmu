@@ -845,7 +845,7 @@ public class Npc : Unit
             if ((Template.EngageCombatGiveQuestId > 0) && player is not null)
             {
                 if (!player.Quests.IsQuestComplete(Template.EngageCombatGiveQuestId) && !player.Quests.HasQuest(Template.EngageCombatGiveQuestId))
-                    player.Quests.Add(Template.EngageCombatGiveQuestId);
+                    player.Quests.AddQuest(Template.EngageCombatGiveQuestId);
             }
         }
 

@@ -37,7 +37,7 @@ public class QuestTests
         var expectedIds = new List<uint>();
 
         mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>())).Returns<QuestComponentKind>(kind => new[] {
-            new QuestComponent(null) { Id = (uint)kind }
+            new QuestComponent(null) { KindId = kind }
         }).Callback<QuestComponentKind>(d => expectedIds.Add((uint)d));
 
         // Act

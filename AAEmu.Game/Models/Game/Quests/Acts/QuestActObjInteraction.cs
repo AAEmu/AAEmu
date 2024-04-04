@@ -30,6 +30,6 @@ public class QuestActObjInteraction(QuestComponentTemplate parentComponent) : Qu
     {
         // base.Update(quest, questAct, updateAmount);
         // Objective count is already set by CheckAct
-        Logger.Info($"{QuestActTemplateName} - QuestActItemGather {Id} was updated by {updateAmount} for a total of {questAct.GetObjective(quest)}.");
+        Logger.Info($"{QuestActTemplateName} - QuestActItemGather {DetailId} was updated by {updateAmount} for a total of {questAct.GetObjective(quest)}.");
     }
 }
