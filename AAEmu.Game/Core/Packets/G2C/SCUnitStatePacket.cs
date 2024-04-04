@@ -586,18 +586,42 @@ public class SCUnitStatePacket : GamePacket
             //stream.WritePisc(0, 0); // очки чести полученные в PvP, кол-во убийств в PvP
             stream.Write(flags.ToByteArray()); // flags(ushort)
             /*
-             * 0x01 - 8bit - режим боя
-             * 0x04 - 6bit - невидимость?
-             * 0x08 - 5bit - дуэль
-             * 0x40 - 2bit - gmmode, дополнительно 7 байт
-             * 0x80 - 1bit - дополнительно tl(ushort), tl(ushort), tl(ushort), tl(ushort)
+             * 0x0001 - 8bit - режим боя
+             * 0x0002 - 7bit - 
+             * 0x0004 - 6bit - невидимость?
+             * 0x0008 - 5bit - дуэль
+             * 0x0010 - 4bit - 
+             * 0x0040 - 2bit - gmmode, дополнительно 7 байт
+             * 0x0080 - 1bit - дополнительно tl(ushort), tl(ushort), tl(ushort), tl(ushort)
+             * 0x0020
+             * 0x0200
              * 0x0100 - 16bit - дополнительно 3 байт (bc), firstHitterTeamId(uint)
              * 0x0400 - 14bit - надпись "Отсутсвует" под именем
+             * 0x1000
+             * 0x0800
              */
         }
-        else if (_unit is Npc)
+        else if (_unit is Npc npc)
         {
-            stream.Write((ushort)8192); // flags
+            //var flags = new BitSet(16); // short
+
+            //if (npc.IsInBattle)
+            //{
+            //    flags.Set(1);
+            //}
+            //if (npc.Invisible)
+            //{
+            //    flags.Set(5);
+            //}
+
+            //stream.Write(flags.ToByteArray()); // flags(ushort)
+
+            //if (flags.Get(1)) // если Npc в бою, то шлем дополнительные байты
+            //{
+            //    stream.WriteBc(npc.CurrentAggroTarget);  // objId бойца
+            //    stream.WriteBc(0u); // TeamId команды, кто первая нанесла удар
+            //}
+            stream.Write((ushort)0); // flags
         }
         else
         {
@@ -683,20 +707,6 @@ public class SCUnitStatePacket : GamePacket
         #endregion NetUnit
 
         #region NetBuff
-
-        // TODO: Fix the patron and auction house license buff issue
-        //if (_unit is Character)
-        //{
-        //    if (!_unit.Buffs.CheckBuff(8000011)) //TODO Wrong place
-        //    {
-        //        _unit.Buffs.AddBuff(new Buff(_unit, _unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000011), null, System.DateTime.Now));
-        //    }
-
-        //    if (!_unit.Buffs.CheckBuff(8000012)) //TODO Wrong place
-        //    {
-        //        _unit.Buffs.AddBuff(new Buff(_unit, _unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000012), null, System.DateTime.Now));
-        //    }
-        //}
 
         var goodBuffs = new List<Buff>();
         var badBuffs = new List<Buff>();
@@ -1301,6 +1311,6 @@ public class SCUnitStatePacket : GamePacket
 
     public override string Verbose()
     {
-        return " - " + _baseUnitType.ToString() + " - " + _unit?.DebugName();
+        return " - " + _baseUnitType + " - " + _unit?.DebugName();
     }
 }
