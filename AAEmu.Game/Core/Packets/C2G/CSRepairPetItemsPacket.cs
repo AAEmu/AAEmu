@@ -13,6 +13,6 @@ public class CSRepairPetItemsPacket : GamePacket
     {
         var npcId = stream.ReadBc();
 
-        Logger.Warn("RepairPetItems, NpcId: {0}", npcId);
+        Logger.Warn($"RepairPetItems, NpcId={npcId}");
     }
 }

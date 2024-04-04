@@ -118,48 +118,48 @@ public abstract class GamePacket : PacketBase<GameConnection>
 
     public override PacketBase<GameConnection> Decode(PacketStream ps)
     {
-        //lock (Connection.ReadLock)
-        //{
-        try
+        lock (Connection.ReadLock)
         {
-            Read(ps);
-
-            var logString = $"GamePacket: C->S type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
-            switch (LogLevel)
+            try
             {
-                case PacketLogLevel.Trace:
-                    Logger.Trace(logString);
-                    break;
-                case PacketLogLevel.Debug:
-                    Logger.Debug(logString);
-                    break;
-                case PacketLogLevel.Info:
-                    Logger.Info(logString);
-                    break;
-                case PacketLogLevel.Warning:
-                    Logger.Warn(logString);
-                    break;
-                case PacketLogLevel.Error:
-                    Logger.Error(logString);
-                    break;
-                case PacketLogLevel.Fatal:
-                    Logger.Fatal(logString);
-                    break;
-                case PacketLogLevel.Off:
-                default:
-                    break;
+                Read(ps);
+
+                var logString = $"GamePacket: C->S type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
+                switch (LogLevel)
+                {
+                    case PacketLogLevel.Trace:
+                        Logger.Trace(logString);
+                        break;
+                    case PacketLogLevel.Debug:
+                        Logger.Debug(logString);
+                        break;
+                    case PacketLogLevel.Info:
+                        Logger.Info(logString);
+                        break;
+                    case PacketLogLevel.Warning:
+                        Logger.Warn(logString);
+                        break;
+                    case PacketLogLevel.Error:
+                        Logger.Error(logString);
+                        break;
+                    case PacketLogLevel.Fatal:
+                        Logger.Fatal(logString);
+                        break;
+                    case PacketLogLevel.Off:
+                    default:
+                        break;
+                }
+
+                Execute();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("GamePacket: C->S type {0:X3} {1}", TypeId, ToString()?.Substring(23));
+                Logger.Fatal(ex);
+                throw;
             }
 
-            Execute();
+            return this;
         }
-        catch (Exception ex)
-        {
-            Logger.Error("GamePacket: C->S type {0:X3} {1}", TypeId, ToString()?.Substring(23));
-            Logger.Fatal(ex);
-            throw;
-        }
-
-        return this;
-        //}
     }
 }

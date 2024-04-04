@@ -186,47 +186,47 @@ public class Item : PacketMarshaler, IComparable<Item>
     public override void Read(PacketStream stream)
     {
         TemplateId = stream.ReadUInt32();
-        if (TemplateId != 0)
-        {
-            Id = stream.ReadUInt64();
-            Grade = stream.ReadByte();
-            ItemFlags = (ItemFlag)stream.ReadByte();
-            Count = stream.ReadInt32();
+        if (TemplateId == 0)
+            return;
 
-            DetailType = (ItemDetailType)stream.ReadByte();
-            ReadDetails(stream);
+        Id = stream.ReadUInt64();
+        Grade = stream.ReadByte();
+        ItemFlags = (ItemFlag)stream.ReadByte();
+        Count = stream.ReadInt32();
 
-            CreateTime = stream.ReadDateTime();
-            LifespanMins = stream.ReadInt32();
-            MadeUnitId = stream.ReadUInt32();
-            WorldId = stream.ReadByte();
-            UnsecureTime = stream.ReadDateTime();
-            UnpackTime = stream.ReadDateTime();
-            ChargeUseSkillTime = stream.ReadDateTime(); // added in 1.7
-        }
+        DetailType = (ItemDetailType)stream.ReadByte();
+        ReadDetails(stream);
+
+        CreateTime = stream.ReadDateTime();
+        LifespanMins = stream.ReadInt32();
+        MadeUnitId = stream.ReadUInt32();
+        WorldId = stream.ReadByte();
+        UnsecureTime = stream.ReadDateTime();
+        UnpackTime = stream.ReadDateTime();
+        ChargeUseSkillTime = stream.ReadDateTime(); // added in 1.7
     }
 
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(TemplateId); // type
-        if (TemplateId != 0)
-        {
-            stream.Write(Id);    // id
-            stream.Write(Grade); // grade
-            stream.Write((byte)ItemFlags); // flags | bounded
-            stream.Write(Count); // stackSize
+        if (TemplateId == 0)
+            return stream;
 
-            stream.Write((byte)DetailType); // detailType
-            WriteDetails(stream);
+        stream.Write(Id);    // id
+        stream.Write(Grade); // grade
+        stream.Write((byte)ItemFlags); // flags | bounded
+        stream.Write(Count); // stackSize
 
-            stream.Write(CreateTime);
-            stream.Write(LifespanMins);
-            stream.Write(MadeUnitId);
-            stream.Write(WorldId);
-            stream.Write(UnsecureTime);
-            stream.Write(UnpackTime);
-            stream.Write(ChargeUseSkillTime); // added in 1.7
-        }
+        stream.Write((byte)DetailType); // detailType
+        WriteDetails(stream);
+
+        stream.Write(CreateTime);
+        stream.Write(LifespanMins);
+        stream.Write(MadeUnitId);
+        stream.Write(WorldId);
+        stream.Write(UnsecureTime);
+        stream.Write(UnpackTime);
+        stream.Write(ChargeUseSkillTime); // added in 1.7
 
         return stream;
     }
@@ -237,7 +237,36 @@ public class Item : PacketMarshaler, IComparable<Item>
         switch (DetailType)
         {
             case ItemDetailType.Equipment: // 1
-                mDetailLength = 56; // есть расшифровка в items/EquipItem
+                //mDetailLength = 36; // есть расшифровка в items/EquipItem, в 3+ длина данных 36 (когда нет информации), в 1.2 было 56
+                Durability = stream.ReadByte();       // durability
+                ChargeCount = stream.ReadInt16();     // chargeCount
+                ChargeTime = stream.ReadDateTime();   // chargeTime
+                TemperPhysical = stream.ReadUInt16(); // scaledA
+                TemperMagical = stream.ReadUInt16();  // scaledB
+
+                var mGems = stream.ReadPisc(4);
+                GemIds[0] = (uint)mGems[0];
+                GemIds[1] = (uint)mGems[1];
+                GemIds[2] = (uint)mGems[2];
+                GemIds[3] = (uint)mGems[3];
+
+                mGems = stream.ReadPisc(4);
+                GemIds[4] = (uint)mGems[0];
+                GemIds[5] = (uint)mGems[1];
+                GemIds[6] = (uint)mGems[2];
+                GemIds[7] = (uint)mGems[3];
+
+                mGems = stream.ReadPisc(4);
+                GemIds[8] = (uint)mGems[0];
+                GemIds[9] = (uint)mGems[1];
+                GemIds[10] = (uint)mGems[2];
+                GemIds[11] = (uint)mGems[3];
+
+                mGems = stream.ReadPisc(4);
+                GemIds[12] = (uint)mGems[0];
+                GemIds[13] = (uint)mGems[1];
+                GemIds[14] = (uint)mGems[2];
+                GemIds[15] = (uint)mGems[3];
                 break;
             case ItemDetailType.Slave: // 2
                 mDetailLength = 30; // есть расшифровка в items/SummonSlave
@@ -284,7 +313,17 @@ public class Item : PacketMarshaler, IComparable<Item>
         switch (DetailType)
         {
             case ItemDetailType.Equipment:
-                mDetailLength = 56; // есть расшифровка в items/Equipment
+                //mDetailLength = 36; // есть расшифровка в items/EquipItem, в 3+ длина данных 36 (когда нет информации), в 1.2 было 56
+                stream.Write(Durability);     // durability
+                stream.Write(ChargeCount);    // chargeCount
+                stream.Write(ChargeTime);     // chargeTime
+                stream.Write(TemperPhysical); // scaledA
+                stream.Write(TemperMagical);  // scaledB
+
+                stream.WritePisc(GemIds[0], GemIds[1], GemIds[2], GemIds[3]);
+                stream.WritePisc(GemIds[4], GemIds[5], GemIds[6], GemIds[7]);
+                stream.WritePisc(GemIds[8], GemIds[9], GemIds[10], GemIds[11]);
+                stream.WritePisc(GemIds[12], GemIds[13], GemIds[14], GemIds[15]); // в 3+ длина данных 36 (когда нет информации), в 1.2 было 56
                 break;
             case ItemDetailType.Slave:
                 mDetailLength = 30;

@@ -479,6 +479,7 @@ public class Npc : Unit
             parameters["npc_template"] = FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
             parameters["npc_kind"] = FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
             parameters["npc_grade"] = FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+            parameters["heir_level"] = Template.HeirLevel;
             var res = formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.MeleeDpsInc))
             {

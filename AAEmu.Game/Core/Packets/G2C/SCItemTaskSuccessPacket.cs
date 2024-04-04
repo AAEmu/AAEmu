@@ -23,7 +23,7 @@ public class SCItemTaskSuccessPacket : GamePacket
     public SCItemTaskSuccessPacket(ItemTaskType action, ItemTask task, List<ulong> forceRemove) : base(SCOffsets.SCItemTaskSuccessPacket, 5)
     {
         _action = action;
-        _tasks = new List<ItemTask>() { task };
+        _tasks = [task];
         _forceRemove = forceRemove;
     }
 
@@ -33,15 +33,11 @@ public class SCItemTaskSuccessPacket : GamePacket
 
         stream.Write((byte)_tasks.Count); // TODO max count 30
         foreach (var task in _tasks)
-        {
             stream.Write(task);
-        }
 
         stream.Write((byte)_forceRemove.Count); // TODO max count 30
         foreach (var remove in _forceRemove)
-        {
             stream.Write(remove);
-        }
 
         stream.Write(0u); // type(id)
         stream.Write(0u); // lockItemSlotKey

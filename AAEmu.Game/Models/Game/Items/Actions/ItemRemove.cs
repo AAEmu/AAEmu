@@ -21,11 +21,11 @@ public class ItemRemove : ItemTask
         stream.Write((byte)_item.SlotType); // type
         stream.Write((byte)_item.Slot);     // index
         stream.Write(_item.Id);             // id
-        stream.Write(_item.Count);          // stack ? 
+        stream.Write(_item.Count);          // stack
         stream.Write(DateTime.MinValue);    // removeReservationTime
-        stream.Write(_item.TemplateId);     // type ?
-        stream.Write((uint)0);              // dbSlaveId
-        stream.Write((uint)0);              // type
+        stream.Write(_item.TemplateId);     // type
+        stream.Write((uint)0u);              // dbSlaveId
+        stream.Write((uint)0u);              // type
         return stream;
     }
 }
