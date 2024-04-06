@@ -30,6 +30,8 @@ public class Portal : PacketMarshaler
         stream.Write(offY);
         stream.Write(Z);
         stream.Write(ZRot);
+        stream.Write(false); // isFavorite
+
         return stream;
     }
 }
