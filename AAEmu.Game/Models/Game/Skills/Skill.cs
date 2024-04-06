@@ -152,8 +152,7 @@ public class Skill
             {
                 foreach (var mate in mates.Where(mate => mate is { MateType: MateType.Ride }))
                 {
-                    MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver,
-                        AttachUnitReason.None);
+                    MateManager.Instance.UnMountMate(character.Connection, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
                 }
             }
         }

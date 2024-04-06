@@ -1818,7 +1818,7 @@ public partial class Character : Unit, ICharacter
         var isOnMount = MateManager.Instance.GetIsMounted(ObjId, out var attachedRiderPoint);
         if (isOnMount != null)
         {
-            MateManager.Instance.UnMountMate(this, isOnMount.TlId, attachedRiderPoint, reason);
+            MateManager.Instance.UnMountMate(Connection, isOnMount.TlId, attachedRiderPoint, reason);
             res = true;
         }
         // Force remove from slaves

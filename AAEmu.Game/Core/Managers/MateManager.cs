@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items;
@@ -35,6 +36,21 @@ public class MateManager : Singleton<MateManager>
     public List<Mate> GetActiveMates(uint ownerObjId)
     {
         return _activeMates.TryGetValue(ownerObjId, out var mates) ? mates : null;
+    }
+
+    public Mate GetMateByTlId(uint tlId)
+    {
+        var res = new Mate();
+        foreach (var mateList in _activeMates.Values)
+        {
+            foreach (var mate in mateList.Where(mate => mate.TlId == tlId))
+            {
+                res = mate;
+                return res;
+            }
+        }
+
+        return res;
     }
 
     public Mate GetActiveMateByTlId(uint ownerObjId, uint tlId)
@@ -66,6 +82,17 @@ public class MateManager : Singleton<MateManager>
 
         return null;
     }
+    public MatePassengerInfo GetPassenger(Mate mateInfo, AttachPointKind attachPoint)
+    {
+        if (mateInfo == null) { return null; }
+        foreach (var matePassengers in mateInfo.Passengers)
+        {
+            if (matePassengers.Key != attachPoint) { continue; }
+            return matePassengers.Value;
+        }
+
+        return null;
+    }
 
     public void ChangeStateMate(GameConnection connection, uint tlId, byte newState)
     {
@@ -83,7 +110,16 @@ public class MateManager : Singleton<MateManager>
         mateInfo.CurrentTarget = objId > 0 ? WorldManager.Instance.GetUnit(objId) : null;
         owner.BroadcastPacket(new SCTargetChangedPacket(mateInfo.ObjId, mateInfo.CurrentTarget?.ObjId ?? 0), true);
 
-        Logger.Debug("ChangeTargetMate. tlId: {0}, objId: {1}, targetObjId: {2}", mateInfo.TlId, mateInfo.ObjId, objId);
+        Logger.Debug($"ChangeTargetMate. tlId: {mateInfo.TlId}, objId: {mateInfo.ObjId}, targetObjId: {objId}");
+    }
+
+    private (Character, Mate) GetMateInfoByTlId(uint tlId)
+    {
+        var mateInfo = GetMateByTlId(tlId);
+        var ownerObjId = mateInfo.OwnerObjId;
+        var owner = WorldManager.Instance.GetCharacterByObjId(ownerObjId);
+
+        return (owner, mateInfo);
     }
 
     private (Character, Mate) GetMateInfoByTlId(GameConnection connection, uint tlId)
@@ -105,61 +141,83 @@ public class MateManager : Singleton<MateManager>
 
     public void MountMate(GameConnection connection, uint tlId, AttachPointKind attachPoint, AttachUnitReason reason)
     {
-        var (owner, mateInfo) = GetMateInfoByTlId(connection, tlId);
-        if (mateInfo == null) return;
+        var character = connection.ActiveChar;
+        var (owner, mateInfo) = GetMateInfoByTlId(tlId);
+        if (mateInfo == null)
+        {
+            character.SendErrorMessage(ErrorMessageType.MateCannotMountBlocked);
+            return;
+        }
 
         // Request seat position
-        if (mateInfo.Passengers.TryGetValue(attachPoint, out var seatInfo))
+        var seatInfo = GetPassenger(mateInfo, attachPoint);
+        if (seatInfo != null)
         {
             // If first seat, check if it's the owner
             if (attachPoint == AttachPointKind.Driver && mateInfo.OwnerObjId != owner.ObjId)
             {
-                Logger.Warn("MountMate. Non-owner {0} ({1}) tried to take the first seat on mount {2} ({3})", owner.Name, owner.ObjId, mateInfo.Name, mateInfo.ObjId);
+                Logger.Warn($"MountMate: Non-owner=[{character.Name}:{character.ObjId}] tried to take the first seat on mount=[{mateInfo.Name}:{mateInfo.ObjId}]");
                 return;
             }
 
             // Check if seat is empty
             if (seatInfo.ObjId == 0)
             {
-                owner.BroadcastPacket(new SCUnitAttachedPacket(owner.ObjId, attachPoint, reason, mateInfo.ObjId), true);
-                seatInfo.ObjId = owner.ObjId;
+                character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPoint, reason, mateInfo.ObjId), true);
+                seatInfo.ObjId = character.ObjId;
                 seatInfo.Reason = reason;
 
-                owner.Transform.Parent = mateInfo.Transform;
-                owner.Transform.Local.SetPosition(0, 0, 0); // correct the position of the character
-                owner.IsRiding = true;
-                owner.AttachedPoint = attachPoint;
+                character.Transform.Parent = mateInfo.Transform;
+                character.Transform.Local.SetPosition(0, 0, 0); // correct the position of the character
+                character.IsRiding = true;
+                character.AttachedPoint = attachPoint;
 
-                owner.IsVisible = true; // When we're on a horse, you can see us
+                character.IsVisible = true; // When we're on a horse, you can see us
             }
         }
         else
         {
-            Logger.Warn("MountMate. Player {0} ({1}) tried to take a invalid seat {4} on mount {2} ({3})", owner.Name, owner.ObjId, mateInfo.Name, mateInfo.ObjId, attachPoint);
+            character.SendErrorMessage(ErrorMessageType.MateCannotMountBlocked);
+            Logger.Warn($"MountMate. Player=[{character.Name}:{character.ObjId}] tried to take a invalid seat={attachPoint} on mount=[{mateInfo.Name}:{mateInfo.ObjId}]");
             return;
         }
 
-        owner.Buffs.TriggerRemoveOn(BuffRemoveOn.Mount);
-        Logger.Debug("MountMate. mountTlId: {0}, attachPoint: {1}, reason: {2}, seats: {3}", mateInfo.TlId, attachPoint, reason, string.Join(", ", mateInfo.Passengers.Values.ToList()));
+        character.Buffs.TriggerRemoveOn(BuffRemoveOn.Mount);
+        Logger.Debug($"MountMate: mountTlId={mateInfo.TlId}, attachPoint={attachPoint}, reason={reason}, seats={string.Join(", ", mateInfo.Passengers.Values.ToList())}");
     }
 
-    public void UnMountMate(Character character, uint tlId, AttachPointKind attachPoint, AttachUnitReason reason)
+    public void UnMountMate(GameConnection connection, uint tlId, AttachPointKind attachPoint, AttachUnitReason reason)
     {
-        var (owner, mateInfo) = GetMateInfoByTlId(character.Connection, tlId);
-        if (mateInfo == null) return;
+        var character = connection.ActiveChar;
+        var (owner, mateInfo) = GetMateInfoByTlId(tlId);
+        if (mateInfo == null)
+        {
+            character.SendErrorMessage(ErrorMessageType.MateCannotMountBlocked);
+            return;
+        }
 
-        mateInfo.StopUpdateXp();
+        if (mateInfo.OwnerObjId == character.ObjId)
+        {
+            // if we are the owner, we stop the accumulation of XP
+            mateInfo.StopUpdateXp();
+        }
 
         // Request seat position
+        var seatInfo = GetPassenger(mateInfo, attachPoint);
         Character targetObj = null;
-        if (mateInfo.Passengers.TryGetValue(attachPoint, out var seatInfo))
+        if (seatInfo != null)
         {
             // Check if seat is taken by player
-            if (seatInfo.ObjId != 0)
+            if (seatInfo.ObjId != 0 && seatInfo.ObjId == character.ObjId)
             {
-                targetObj = WorldManager.Instance.GetCharacterByObjId(seatInfo.ObjId);
+                targetObj = character; //WorldManager.Instance.GetCharacterByObjId(seatInfo.ObjId);
                 seatInfo.ObjId = 0;
                 seatInfo.Reason = 0;
+            }
+            else
+            {
+                character.SendErrorMessage(ErrorMessageType.MateCannotMountBlocked);
+                return;
             }
         }
         else
@@ -175,10 +233,13 @@ public class MateManager : Singleton<MateManager>
             targetObj.Events.OnUnmount(owner, new OnUnmountArgs { });
             mateInfo.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
             targetObj.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
-            Logger.Debug("UnMountMate. mountTlId: {0}, targetObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId, targetObj.ObjId, attachPoint, reason);
+            Logger.Debug($"UnMountMate. mountTlId: {mateInfo.TlId}, targetObjId: {targetObj.ObjId}, attachPoint: {attachPoint}, reason: {reason}");
         }
         else
-            Logger.Warn("UnMountMate. No valid seat entry, mountTlId: {0}, characterObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId, 0, attachPoint, reason);
+        {
+            character.SendErrorMessage(ErrorMessageType.MateCannotMountBlocked);
+            Logger.Warn($"UnMountMate: No valid seat entry, mountTlId={mateInfo.TlId}, characterObjId={0}, attachPoint={attachPoint}, reason={reason}");
+        }
     }
 
     public void UnMountMate(Mate mateInfo, AttachPointKind attachPoint, MatePassengerInfo seatInfo)
@@ -210,10 +271,10 @@ public class MateManager : Singleton<MateManager>
             targetObj.Events.OnUnmount(targetObj, new OnUnmountArgs { });
             mateInfo.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
             targetObj.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
-            Logger.Debug("UnMountMate. mountTlId: {0}, targetObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId, targetObj.ObjId, attachPoint, seatInfo.Reason);
+            Logger.Debug($"UnMountMate: mountTlId={mateInfo.TlId}, targetObjId={targetObj.ObjId}, attachPoint={attachPoint}, reason={seatInfo.Reason}");
         }
         else
-            Logger.Warn("UnMountMate. No valid seat entry, mountTlId: {0}, characterObjId: {1}, attachPoint: {2}, reason: {3}", mateInfo.TlId, 0, attachPoint, seatInfo.Reason);
+            Logger.Warn($"UnMountMate: No valid seat entry, mountTlId={mateInfo.TlId}, characterObjId={0}, attachPoint={attachPoint}, reason={seatInfo.Reason}");
     }
 
     public void AddActiveMateAndSpawn(Character owner, Mate mate, Item item)
@@ -228,7 +289,7 @@ public class MateManager : Singleton<MateManager>
         owner.SendPacket(new SCMateSpawnedPacket(mate));
         mate.Spawn();
 
-        Logger.Debug("Mount spawned. ownerObjId: {0}, tlId: {1}, mateObjId: {2}", owner.ObjId, mate.TlId, mate.ObjId);
+        Logger.Debug($"Mount spawned: ownerObjId={owner.ObjId}, tlId={mate.TlId}, mateObjId={mate.ObjId}");
     }
 
     public void RemoveActiveMateAndDespawn(Character owner, uint tlId)
@@ -258,7 +319,7 @@ public class MateManager : Singleton<MateManager>
         ObjectIdManager.Instance.ReleaseId(mateInfo.ObjId);
         TlIdManager.Instance.ReleaseId(mateInfo.TlId);
 
-        Logger.Debug($"Mount removed. OwnerObjId: {owner.ObjId}, tlId: {mateInfo.TlId}, mateObjId: {mateInfo.ObjId}");
+        Logger.Debug($"Mount removed: OwnerObjId={owner.ObjId}, tlId={mateInfo.TlId}, mateObjId={mateInfo.ObjId}");
     }
 
     /// <summary>

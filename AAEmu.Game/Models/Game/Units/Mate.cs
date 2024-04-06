@@ -587,7 +587,7 @@ public sealed class Mate : Unit
                 {
                     rider.DoFallDamage(fallVel);
                     if (rider.Hp <= 0)
-                        MateManager.Instance.UnMountMate(rider, TlId, pos, AttachUnitReason.SlaveBinding);
+                        MateManager.Instance.UnMountMate(rider.Connection, TlId, pos, AttachUnitReason.SlaveBinding);
                 }
             }
         }
@@ -610,7 +610,7 @@ public sealed class Mate : Unit
                 var rider = WorldManager.Instance.GetCharacterByObjId(riders[i].Value.ObjId);
                 if (rider != null)
                 {
-                    MateManager.Instance.UnMountMate(rider, TlId, pos, AttachUnitReason.None);
+                    MateManager.Instance.UnMountMate(rider.Connection, TlId, pos, AttachUnitReason.None);
                 }
             }
             return;

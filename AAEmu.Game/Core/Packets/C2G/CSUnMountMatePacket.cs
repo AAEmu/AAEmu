@@ -18,6 +18,6 @@ public class CSUnMountMatePacket : GamePacket
         var reason = (AttachUnitReason)stream.ReadByte();
 
         //Logger.Warn("UnMountMate, TlId: {0}, Ap: {1}, Reason: {2}", tlId, ap, reason);
-        MateManager.Instance.UnMountMate(Connection.ActiveChar, tlId, ap, reason);
+        MateManager.Instance.UnMountMate(Connection, tlId, ap, reason);
     }
 }
