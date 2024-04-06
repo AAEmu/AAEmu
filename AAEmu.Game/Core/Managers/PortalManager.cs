@@ -326,8 +326,7 @@ public class PortalManager : Singleton<PortalManager>
                         FactionId = reader.GetUInt32("faction_id"),
                         ReturnPointId = reader.GetUInt32("return_point_id")
                     };
-                    if (!_districtReturnPoints.ContainsKey(template.Id))
-                        _districtReturnPoints.Add(template.Id, template);
+                    _districtReturnPoints.TryAdd(template.Id, template);
                 }
             }
         }

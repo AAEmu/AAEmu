@@ -4,6 +4,7 @@
 	/*
 	  По SubZoneId добавляются зоны которые посетил персонаж для возврата в них из книги телепортов (Memory Tome).
 	  По Id и SubZoneId добавляется точка для возврата по скиллу Recall.
+	  !!! Id это ReturnPointId !!!
 	  -------+---------
 	    race  factionId
 	  -------+---------
@@ -1355,6 +1356,61 @@
         "ZoneId": 282,
         "ZRot": 0.0,
         "SubZoneId": 1110,
+        "Owner": 0
+    },
+    {
+        "Id": 798, // 417->798
+        "Name": "Clockwork Factory",
+        "X": 8041.9,
+        "Y": 13532.7,
+        "Z": 821.8,
+        "ZoneId": 328,
+        "ZRot": 0.0,
+        "SubZoneId": 1171,
+        "Owner": 0
+    },
+    {
+        "Id": 799, // 418->799
+        "Name": "Aubre Cradle Community Center",
+        "X": 7549.9,
+        "Y": 12587.8,
+        "Z": 687.7,
+        "ZoneId": 150,
+        "ZRot": 0.0,
+        "SubZoneId": 1164,
+        "Owner": 0
+    },
+    {
+        "Id": 157, // 110->157
+        "Name": "Millennium Snow",
+        "X": 6237.3,
+        "Y": 13081.2,
+        "Z": 1135.5,
+        "ZoneId": 154,
+        "ZRot": 0.0,
+        "SubZoneId": 720,
+        "Owner": 0
+    },
+    {
+        "Id": 23, // 109->23
+        "Name": "Airain Rock Community Center",
+        "X": 6540.2,
+        "Y": 13425.0,
+        "Z": 969.9,
+        "ZoneId": 193,
+        "ZRot": 0.0,
+        "SubZoneId": 1194,
+        "Owner": 0
+    },
+    {
+        "Id": 21, // 107->21
+        "Name": "Valhantlera",
+        "X": 7351.9,
+        "Y": 13785.9,
+        "Z": 1173.6,
+        "ZoneId": 193,
+        "ZRot": 0.0,
+        "SubZoneId": 1200,
         "Owner": 0
     }
 ]
