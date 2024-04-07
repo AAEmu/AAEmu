@@ -24,6 +24,12 @@ public class QuestActConAcceptNpc(QuestComponentTemplate parentComponent) : Ques
         return character.CurrentTarget.TemplateId == NpcId;
     }
 
+    /// <summary>
+    /// Checks if the Acceptor is the specified NPC
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
     public override bool RunAct(Quest quest, int currentObjectiveCount)
     {
         Logger.Trace($"QuestActConAcceptNpc({DetailId}).RunAct: Quest: {quest.TemplateId}, NpcId {NpcId}");

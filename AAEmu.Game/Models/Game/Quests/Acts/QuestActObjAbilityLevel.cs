@@ -33,4 +33,35 @@ public class QuestActObjAbilityLevel(QuestComponentTemplate parentComponent) : Q
 
         return completes.All(a => a == true);
     }
+
+    /// <summary>
+    /// Checks if the Ability Levels (classes) are at least the specified amounts
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    {
+        Logger.Debug($"QuestActObjAbilityLevel({DetailId}).RunAct: Quest: {quest.TemplateId}, AbilityId: {AbilityId}, Level: {Level}");
+
+        if (AbilityId > 0)
+        {
+            // Single Ability check
+            var ability = quest.Owner.Abilities.Abilities[AbilityId];
+            int abLevel = ExperienceManager.Instance.GetLevelFromExp(ability.Exp);
+            return abLevel >= Level;
+        }
+
+        // All abilities check
+        for (var i = AbilityType.General+1; i < AbilityType.None; i++)
+        {
+            var ability = quest.Owner.Abilities.Abilities[i];
+            int abLevel = ExperienceManager.Instance.GetLevelFromExp(ability.Exp);
+            if (abLevel < Level)
+                return false; // Fail check if any of the Abilities is below the required level
+        }
+
+        // Only return true, if all included checks were true
+        return true;
+    }
 }

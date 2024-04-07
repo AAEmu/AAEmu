@@ -170,6 +170,16 @@ public partial class Quest : PacketMarshaler
         get => Steps.GetValueOrDefault(Step);
     }
 
+    /// <summary>
+    /// Set to false if item rewards have been disabled by objectives (mostly used by Aggro quests)
+    /// </summary>
+    public bool AllowItemRewards { get; set; } = true;
+
+    /// <summary>
+    /// Percent that the reward should be scaled to (mostly used by Aggro quests)
+    /// </summary>
+    public int QuestRewardRatio { get; set; } = 100;
+
     public Quest(IQuestTemplate questTemplate, IQuestManager questManager, ISphereQuestManager sphereQuestManager,
         ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager,
         IWorldManager worldManager)
@@ -741,7 +751,7 @@ public partial class Quest : PacketMarshaler
     public void DistributeRewards()
     {
         // Distribute Items if needed
-        if (QuestRewardItemsPool.Count > 0)
+        if ((QuestRewardItemsPool.Count > 0) && (AllowItemRewards))
         {
             // TODO: Add a way to distribute honor or vocation badges in mail as well
 
@@ -1730,6 +1740,16 @@ public partial class Quest : PacketMarshaler
     public int[] GetObjectives(QuestComponentKind step)
     {
         return Objectives;
+    }
+
+    /// <summary>
+    /// Get Objective count at a specific index
+    /// </summary>
+    /// <param name="questActObjectiveIndex"></param>
+    /// <returns></returns>
+    public int GetActObjective(byte questActObjectiveIndex)
+    {
+        return questActObjectiveIndex >= Objectives.Length ? 0 : Objectives[questActObjectiveIndex];
     }
 
     #region Packets and Database

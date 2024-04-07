@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
@@ -1169,5 +1170,32 @@ public class Npc : Unit
     public void DoDespawn(Npc npc)
     {
         Spawner.DoDespawn(npc);
+    }
+
+    /// <summary>
+    /// Returns the ranking in this Npc's aggro table in percent
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns>Position in the aggro table ranking in percent, 0 = most aggro, 100 = no aggro</returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public float GetAggroRatingInPercent(uint objId)
+    {
+        // grab a sorted copy of the aggro list
+        var sortedAggro = AggroTable.OrderBy(x => x.Value.TotalAggro).ToList();
+
+        // Find our position in the list
+        var pos = 0;
+        for (; pos < sortedAggro.Count; pos++)
+        {
+            if (sortedAggro[pos].Key == objId)
+                break;
+        }
+
+        // If at the end of the list (not found), don't round anything, always return 100
+        if (pos >= sortedAggro.Count)
+            return 100f;
+
+        // Return the position in the list 0 = most aggro, 100 = least aggro
+        return 1f / sortedAggro.Count * pos;
     }
 }

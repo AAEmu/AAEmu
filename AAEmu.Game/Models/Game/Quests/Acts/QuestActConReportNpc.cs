@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
@@ -18,5 +19,17 @@ public class QuestActConReportNpc(QuestComponentTemplate parentComponent) : Ques
             return false;
 
         return npc.TemplateId == NpcId;
+    }
+
+    /// <summary>
+    /// Checks if the current target is the specified Npc
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    {
+        Logger.Debug($"QuestActConReportNpc({DetailId}).RunAct: Quest: {quest.TemplateId}, NpcId {NpcId}");
+        return (quest.Owner.CurrentTarget is Npc npc) && (npc.TemplateId == NpcId);
     }
 }

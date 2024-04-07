@@ -14,4 +14,17 @@ public class QuestActConReportDoodad(QuestComponentTemplate parentComponent) : Q
         Logger.Debug("QuestActConReportDoodad");
         return true;
     }
+
+    /// <summary>
+    /// Checks if quest was turned in at the specified Doodad
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    {
+        Logger.Debug($"QuestActConReportDoodad({DetailId}).RunAct: Quest: {quest.TemplateId}, DoodadId {DoodadId}");
+        // TODO: Check range?
+        return true;
+    }
 }

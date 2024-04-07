@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using NLog;
 
 using AAEmu.Game.Models.Game.Char;
@@ -123,11 +124,14 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// </summary>
     /// <param name="quest"></param>
     /// <param name="amount"></param>
-    public int AddObjective(Quest quest, int amount)
+    /// <param name="maxValue">If defined, the objective count will be capped at maxValue if it gets more than that</param>
+    public int AddObjective(Quest quest, int amount, int maxValue = 0)
     {
         if (quest == null)
             return 0;
         quest.Objectives[ThisComponentObjectiveIndex] += amount;
+        if ((maxValue > 0) && (quest.Objectives[ThisComponentObjectiveIndex] > maxValue))
+            quest.Objectives[ThisComponentObjectiveIndex] = maxValue;
         return quest.Objectives[ThisComponentObjectiveIndex];
     }
 

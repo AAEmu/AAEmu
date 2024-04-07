@@ -13,4 +13,16 @@ public class QuestActConFail(QuestComponentTemplate parentComponent) : QuestActT
         Logger.Debug("QuestActConFail");
         return false;
     }
+
+    /// <summary>
+    /// Not sure how this was supposed to work. Does not seem to be used anymore
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    {
+        Logger.Debug($"QuestActConFail({DetailId}).RunAct: Quest: {quest.TemplateId}, ForceChangeComponent {ForceChangeComponent}");
+        return false;
+    }
 }

@@ -11,4 +11,16 @@ public class QuestActConAutoComplete(QuestComponentTemplate parentComponent) : Q
 
         return character.Quests.IsQuestComplete(ParentQuestTemplate.Id);
     }
+
+    /// <summary>
+    /// Used for auto-complete conditions, always returns true
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    {
+        Logger.Debug($"QuestActConAutoComplete({DetailId}).RunAct: Quest: {quest.TemplateId}");
+        return true;
+    }
 }
