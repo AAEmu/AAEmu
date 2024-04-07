@@ -32,4 +32,29 @@ public class QuestActObjInteraction(QuestComponentTemplate parentComponent) : Qu
         // Objective count is already set by CheckAct
         Logger.Info($"{QuestActTemplateName} - QuestActItemGather {DetailId} was updated by {updateAmount} for a total of {questAct.GetObjective(quest)}.");
     }
+
+    /// <summary>
+    /// Checks if the number if interactions has been met
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    {
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Count {currentObjectiveCount}/{Count}, WorldInteractionId {WorldInteractionId}, DoodadId {DoodadId}, TeamShare {TeamShare}, Phase {Phase}.");
+        return currentObjectiveCount >= Count;
+    }
+
+    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    {
+        base.InitializeAction(quest, questAct);
+        quest.Parent.RegisterEventHandler(quest.Parent.OnInteractionList, questAct);
+    }
+
+    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    {
+        quest.Parent.UnRegisterEventHandler(quest.Parent.OnInteractionList, questAct);
+        base.FinalizeAction(quest, questAct);
+    }
 }

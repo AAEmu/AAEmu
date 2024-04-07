@@ -1,19 +1,56 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
-
+using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Char;
 
 public partial class CharacterQuests
 {
-    //private object _lock = new();
+    // I would have preferred a simple List or a normal event handler, but there isn't really a option I can think of
+    // how we could make this without having to make duplicate object versions of the ActTemplates
+    public ConcurrentDictionary<uint, IQuestAct> OnInteractionList { get; set; } = new();
+
+    /// <summary>
+    /// Registers a QuestAct to a specific handler list
+    /// </summary>
+    /// <param name="list"></param>
+    /// <param name="act"></param>
+    public void RegisterEventHandler(ConcurrentDictionary<uint, IQuestAct> list, IQuestAct act)
+    {
+        if (list.ContainsKey(act.Template.ActId))
+        {
+            Logger.Warn($"RegisterEventHandler, ActId {act.Template.ActId} was already registered for {act.QuestComponent.Parent.Parent.Owner.Name} ({act.QuestComponent.Parent.Parent.Owner.Id}).");
+            return;
+        }
+
+        if (!list.TryAdd(act.Template.ActId, act))
+            Logger.Error($"RegisterEventHandler, Failed to register ActId {act.Template.ActId} was already registered for {act.QuestComponent.Parent.Parent.Owner.Name} ({act.QuestComponent.Parent.Parent.Owner.Id}).");
+    }
+
+    /// <summary>
+    /// Removes the registration of a QuestAct from the specified list
+    /// </summary>
+    /// <param name="list"></param>
+    /// <param name="act"></param>
+    public void UnRegisterEventHandler(ConcurrentDictionary<uint, IQuestAct> list, IQuestAct act)
+    {
+        if (!list.ContainsKey(act.Template.ActId))
+        {
+            Logger.Warn(
+                $"DeRegisterEventHandler, ActId {act.Template.ActId} was not registered for {act.QuestComponent.Parent.Parent.Owner.Name} ({act.QuestComponent.Parent.Parent.Owner.Id}).");
+            return;
+        }
+
+        if (!list.TryRemove(act.Template.ActId, out _))
+            Logger.Error($"RegisterEventHandler, Failed to un-register ActId {act.Template.ActId} for {act.QuestComponent.Parent.Parent.Owner.Name} ({act.QuestComponent.Parent.Parent.Owner.Id}).");
+    }
 
     #region Events
 
-    // Внимание!!!
-    // для этих событий не будет известен QuestId и будет перебор всех активных квестов
-    // что-бы по два раза не вызывались надо перед подпиской на событие отписываться!!!
+    // Events called here will loop through all registered acts only
 
     /// <summary>
     /// Взаимодействие с doodad, например ломаем шахту по квесту (Interaction with doodad, for example, breaking a mine on a quest)
@@ -22,12 +59,21 @@ public partial class CharacterQuests
     /// <param name="eventArgs"></param>
     public void OnInteractionHandler(object sender, EventArgs eventArgs)
     {
-        //lock (_lock)
-        foreach (var quest in ActiveQuests.Values.ToList())
+        if (eventArgs is not OnInteractionArgs onInteractionArgs)
+            return;
+
+        // Loop through all registered act's for the related list
+        foreach (var item in OnInteractionList.Values.ToList())
         {
-            quest.OnInteractionHandler(this, eventArgs);
+            var questEventArgs = new OnInteractionArgs()
+            {
+                OwningQuest = item.QuestComponent.Parent.Parent, 
+                DoodadId = onInteractionArgs.DoodadId
+            };
+            item.QuestComponent.Parent.Parent.OnInteractionHandler(sender, questEventArgs);
         }
     }
+
     /// <summary>
     /// Взаимодействие с doodad, например сбор ресурсов (Interacting with doodad, such as resource collection)
     /// </summary>

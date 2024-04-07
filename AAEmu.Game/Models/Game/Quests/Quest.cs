@@ -35,7 +35,7 @@ public partial class Quest : PacketMarshaler
     private readonly IExpressTextManager _expressTextManager;
     private readonly IWorldManager _worldManager;
     private QuestComponentKind _step;
-    private CharacterQuests Parent { get; set; }
+    public CharacterQuests Parent { get; set; }
 
     /// <summary>
     /// DB ID
