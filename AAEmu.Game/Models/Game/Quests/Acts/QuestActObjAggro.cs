@@ -64,15 +64,16 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
             (npc.TemplateId == e.OwningQuest.AcceptorId))
         {
             var aggroRate = npc.GetAggroRatingInPercent(e.OwningQuest.Owner.ObjId);
-            // Handle rankings
-            // TODO: implement AllowItemRewards
-            // TODO: implement Set reward ratios
+
+            // Handle ranking and defaults
             e.OwningQuest.AllowItemRewards = false;
+            e.OwningQuest.QuestRewardRatio = 0.0;
+
             // Rank 1
             if (aggroRate <= Rank1)
             {
                 SetObjective(e.OwningQuest, 1);
-                e.OwningQuest.QuestRewardRatio = Rank1Ratio;
+                e.OwningQuest.QuestRewardRatio = Rank1Ratio / 100.0;
                 e.OwningQuest.AllowItemRewards = Rank1Item;
                 return;
             }
@@ -81,8 +82,7 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
             if (aggroRate <= Rank2)
             {
                 SetObjective(e.OwningQuest, 2);
-                // TODO: Set reward ratio
-                e.OwningQuest.QuestRewardRatio = Rank2Ratio;
+                e.OwningQuest.QuestRewardRatio = Rank2Ratio / 100.0;
                 e.OwningQuest.AllowItemRewards = Rank2Item;
                 return;
             }
@@ -91,8 +91,7 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
             if (aggroRate <= Rank3)
             {
                 SetObjective(e.OwningQuest, 3);
-                // TODO: Set reward ratio
-                e.OwningQuest.QuestRewardRatio = Rank3Ratio;
+                e.OwningQuest.QuestRewardRatio = Rank3Ratio / 100.0;
                 e.OwningQuest.AllowItemRewards = Rank3Item;
             }
         }

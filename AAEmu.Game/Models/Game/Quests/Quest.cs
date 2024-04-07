@@ -178,7 +178,7 @@ public partial class Quest : PacketMarshaler
     /// <summary>
     /// Percent that the reward should be scaled to (mostly used by Aggro quests)
     /// </summary>
-    public int QuestRewardRatio { get; set; } = 100;
+    public double QuestRewardRatio { get; set; } = 1.0;
 
     public Quest(IQuestTemplate questTemplate, IQuestManager questManager, ISphereQuestManager sphereQuestManager,
         ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager,
@@ -786,14 +786,18 @@ public partial class Quest : PacketMarshaler
         // Add XP
         if (QuestRewardExpPool > 0)
         {
-            Owner.AddExp(QuestRewardExpPool, true);
+            var xp = (int)Math.Round(QuestRewardExpPool * QuestRewardRatio);
+            if (xp > 0)
+                Owner.AddExp(xp, true);
             QuestRewardExpPool = 0;
         }
 
         // Add copper coins
         if (QuestRewardCoinsPool > 0)
         {
-            Owner.ChangeMoney(SlotType.None, SlotType.Inventory, QuestRewardCoinsPool);
+            var copper = (int)Math.Round(QuestRewardCoinsPool * QuestRewardRatio);
+            if (copper > 0)
+                Owner.ChangeMoney(SlotType.None, SlotType.Inventory, copper);
             QuestRewardCoinsPool = 0;
         }
 
