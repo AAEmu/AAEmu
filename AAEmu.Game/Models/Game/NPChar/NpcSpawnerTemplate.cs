@@ -39,4 +39,17 @@ public class NpcSpawnerTemplate
         var npcs = new List<NpcSpawnerNpc> { new(spawnerId, memberId) };
         Npcs = npcs;
     }
+
+    // Method for cloning an object using MemberwiseClone
+    //public Npc Clone()
+    //{
+    //    return (Npc)MemberwiseClone();
+    //}
+
+    public static T Clone<T>(T obj)
+    {
+        var inst = obj.GetType().GetMethod("MemberwiseClone", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+
+        return (T)inst?.Invoke(obj, null);
+    }
 }

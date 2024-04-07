@@ -130,6 +130,16 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
         }
     }
 
+    public void AddNpcSpawner(NpcSpawnerTemplate template)
+    {
+        _npcSpawnerTemplates.Add(template.Id, template);
+    }
+    public void AddNpcSpawnerNpc(NpcSpawnerNpc nsn)
+    {
+        _npcSpawnerTemplateNpcs.Add(nsn.Id, nsn);
+        //_npcSpawnerTemplates[nsn.NpcSpawnerTemplateId].Npcs.Add(nsn);
+    }
+
     public void PostLoad()
     {
         foreach (var (templateId, skills) in _skillsForNpc)
@@ -154,7 +164,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
     public void LoadMemberAndSpawnerTemplateIds()
     {
         _npcMemberAndSpawnerTemplateIds = new Dictionary<uint, List<uint>>();
-        var npcMemberAndSpawnerId = new Dictionary<uint, List<uint>>();
+        //var npcMemberAndSpawnerId = new Dictionary<uint, List<uint>>();
 
         foreach (var nsn in _npcSpawnerTemplateNpcs.Values)
         {
@@ -167,6 +177,13 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
                 _npcMemberAndSpawnerTemplateIds[nsn.MemberId].Add(nsn.NpcSpawnerTemplateId);
             }
         }
+    }
+    public void AddMemberAndSpawnerTemplateIds(NpcSpawnerNpc nsn)
+    {
+        if (!_npcMemberAndSpawnerTemplateIds.ContainsKey(nsn.MemberId))
+            _npcMemberAndSpawnerTemplateIds.Add(nsn.MemberId, new List<uint> { nsn.NpcSpawnerTemplateId });
+        else
+            _npcMemberAndSpawnerTemplateIds[nsn.MemberId].Add(nsn.NpcSpawnerTemplateId);
     }
 
     public List<uint> GetSpawnerIds(uint memberId)

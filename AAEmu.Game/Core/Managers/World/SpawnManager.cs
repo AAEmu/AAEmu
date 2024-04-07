@@ -48,6 +48,7 @@ public class SpawnManager : Singleton<SpawnManager>
     private List<Doodad> _playerDoodads;
 
     private uint _nextId = 1u;
+    private uint _fakeSpawnerId = 9000001u;
 
     public void AddNpcSpawner(NpcSpawner npcSpawner)
     {
@@ -55,22 +56,46 @@ public class SpawnManager : Singleton<SpawnManager>
         if (npcSpawner.NpcSpawnerIds.Count == 0)
         {
             var npcSpawnerIds = NpcGameData.Instance.GetSpawnerIds(npcSpawner.UnitId);
+            var spawners = new List<NpcSpawner>();
             if (npcSpawnerIds == null)
             {
                 Logger.Warn($"SpawnerIds for Npc={npcSpawner.UnitId} doesn't exist");
-                return;
-            }
-
-            // TODO добавил список спавнеров // added a list of spawners
-            var spawners = new List<NpcSpawner>();
-            foreach (var id in npcSpawnerIds)
-            {
+                Logger.Warn($"Generate Spawner for Npc={npcSpawner.UnitId}...");
+                //var fakeSpawner = GetNpcSpawner(npcSpawner.UnitId, npcSpawner.Position);
+                //var id = ObjectIdManager.Instance.GetNextId();
+                var id = _fakeSpawnerId;
                 npcSpawner.NpcSpawnerIds.Add(id);
                 npcSpawner.Id = id;
-                npcSpawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(id);
-                foreach (var n in npcSpawner.Template.Npcs)
+                var tmpTemplate = NpcGameData.Instance.GetNpcSpawnerTemplate(1); // id=1 Test Warrior
+                npcSpawner.Template = Helpers.Clone(tmpTemplate);
+                npcSpawner.Template.Id = id;
+
+                var tmpNpc = new NpcSpawnerNpc(); //Helpers.Clone(npcSpawner.Template.Npcs[i]); // сделаем копию
+                tmpNpc.Position = npcSpawner.Position;
+                tmpNpc.MemberId = npcSpawner.UnitId;
+                tmpNpc.Id = id;
+                tmpNpc.MemberType = "Npc";
+                tmpNpc.Weight = 1f;
+                tmpNpc.NpcSpawnerTemplateId = id;
+                npcSpawner.Template.Npcs = new List<NpcSpawnerNpc> { tmpNpc }; // заменим на копию
+                NpcGameData.Instance.AddNpcSpawnerNpc(tmpNpc); // добавим в базу сведения о фейковом Npc
+                NpcGameData.Instance.AddMemberAndSpawnerTemplateIds(tmpNpc);
+
+                NpcGameData.Instance.AddNpcSpawner(npcSpawner.Template); // добавим в базу Template по фейковому спавнеру
+                _fakeSpawnerId++;
+            }
+            else
+            {
+                // TODO добавил список спавнеров // added a list of spawners
+                foreach (var id in npcSpawnerIds)
                 {
-                    n.Position = npcSpawner.Position;
+                    npcSpawner.NpcSpawnerIds.Add(id);
+                    npcSpawner.Id = id;
+                    npcSpawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(id);
+                    foreach (var n in npcSpawner.Template.Npcs)
+                    {
+                        n.Position = npcSpawner.Position;
+                    }
                 }
             }
             spawners.Add(npcSpawner);
@@ -570,10 +595,10 @@ public class SpawnManager : Singleton<SpawnManager>
         Logger.Info("Spawning NPCs...");
         foreach (var (worldId, worldSpawners) in _npcSpawners)
         {
-            Task.Run(() =>
-            {
-                SpawnAllNpcs(worldId);
-            });
+            //Task.Run(() =>
+            //{
+            SpawnAllNpcs(worldId);
+            //});
         }
 
         Logger.Info("Spawning Doodads...");
@@ -965,6 +990,36 @@ public class SpawnManager : Singleton<SpawnManager>
             spawner.Position.Y = unit.Transform.World.Position.Y;
             spawner.Position.Z = unit.Transform.World.Position.Z;
             spawner.Position.Yaw = unit.Transform.World.Rotation.Z;
+            spawner.Position.Pitch = 0;
+            spawner.Position.Roll = 0;
+
+            return spawner;
+        }
+    }
+    public NpcSpawner GetNpcSpawner(uint unitId, WorldSpawnPosition position)
+    {
+        lock (_lockSpawner)
+        {
+            var spawner = new NpcSpawner();
+            var npcSpawnersIds = NpcGameData.Instance.GetSpawnerIds(unitId);
+            if (npcSpawnersIds == null)
+            {
+                spawner.UnitId = unitId;
+                spawner.Id = ObjectIdManager.Instance.GetNextId();
+                spawner.NpcSpawnerIds = new List<uint> { spawner.Id };
+                spawner.Template = new NpcSpawnerTemplate(spawner.Id);
+                spawner.Template.Npcs[0].MemberId = spawner.UnitId;
+                spawner.Template.Npcs[0].UnitId = spawner.UnitId;
+                spawner.Template.Npcs[0].MemberType = "Npc";
+            }
+
+            spawner.Position = new WorldSpawnPosition();
+            spawner.Position.WorldId = position.WorldId;
+            spawner.Position.ZoneId = position.ZoneId;
+            spawner.Position.X = position.X;
+            spawner.Position.Y = position.Y;
+            spawner.Position.Z = position.Z;
+            spawner.Position.Yaw = position.Z;
             spawner.Position.Pitch = 0;
             spawner.Position.Roll = 0;
 
