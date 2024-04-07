@@ -15,4 +15,17 @@ public class QuestActObjCondition(QuestComponentTemplate parentComponent) : Ques
         Logger.Debug("QuestActObjCondition");
         return false;
     }
+
+    /// <summary>
+    /// No longer used?
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    {
+        Logger.Error($"QuestActObjCondition({DetailId}).RunAct: Quest: {quest.TemplateId}, ConditionId {ConditionId}");
+        return false;
+    }
 }

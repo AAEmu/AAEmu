@@ -22,9 +22,10 @@ public class QuestActConAcceptDoodad(QuestComponentTemplate parentComponent) : Q
     /// Checks if the Quest starter was indeed the specified doodad
     /// </summary>
     /// <param name="quest"></param>
+    /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Trace($"QuestActConAcceptDoodad({DetailId}).RunAct: Quest: {quest.TemplateId}, DoodadId {DoodadId}");
         return (quest.QuestAcceptorType == QuestAcceptorType.Doodad) && (quest.AcceptorId == DoodadId);

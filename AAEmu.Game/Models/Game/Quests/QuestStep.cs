@@ -27,19 +27,19 @@ public class QuestStep(QuestComponentKind step, Quest parent)
     /// <summary>
     /// Initializes all Components and their Acts for this step
     /// </summary>
-    public void Initialize()
+    public void InitializeStep()
     {
         foreach (var questComponent in Components.Values)
-            questComponent.Initialize();
+            questComponent.InitializeComponent();
     }
 
     /// <summary>
     /// Finalize all Components and their Acts for this step
     /// </summary>
-    public void DeInitialize()
+    public void FinalizeStep()
     {
         foreach (var questComponent in Components.Values)
-            questComponent.DeInitialize();
+            questComponent.FinalizeComponent();
     }
 
     public bool RunComponents()

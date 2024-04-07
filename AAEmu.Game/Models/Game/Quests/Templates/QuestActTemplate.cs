@@ -43,7 +43,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <summary>
     /// Called for every QuestAct in a component when the component is activated (Step changed)
     /// </summary>
-    public virtual void Initialize(Quest quest, IQuestAct questAct)
+    public virtual void InitializeAction(Quest quest, IQuestAct questAct)
     {
         IsInitialized = true;
         Logger.Info($"{QuestActTemplateName} - Initialize {DetailId}.");
@@ -52,7 +52,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <summary>
     /// Called for every QuestAct in a component when the component is fully completed or cancelled (Step changed)
     /// </summary>
-    public virtual void DeInitialize(Quest quest, IQuestAct questAct)
+    public virtual void FinalizeAction(Quest quest, IQuestAct questAct)
     {
         Logger.Info($"{QuestActTemplateName} - DeInitialize {DetailId}.");
         IsInitialized = false;
@@ -88,9 +88,10 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// Execute and check a Act for it's results, called after updating objective counts
     /// </summary>
     /// <param name="quest">Quest this RunAct is called for</param>
+    /// <param name="questAct">IQuestAct this RunAct is called from</param>
     /// <param name="currentObjectiveCount">Current Objective Count</param>
     /// <returns>True if executed correctly, or objectives have been met</returns>
-    public virtual bool RunAct(Quest quest, int currentObjectiveCount)
+    public virtual bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         return false;
     }

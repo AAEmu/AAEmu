@@ -122,7 +122,7 @@ public partial class CharacterQuests
         }
 
         // Create new Quest Object
-        var quest = new Quest(template);
+        var quest = new Quest(template, Owner.Quests);
         quest.Id = QuestIdManager.Instance.GetNextId();
         quest.Status = QuestStatus.Invalid;
         quest.Condition = QuestConditionObj.Progress;
@@ -678,7 +678,7 @@ public partial class CharacterQuests
             {
                 while (reader.Read())
                 {
-                    var quest = new Quest();
+                    var quest = new Quest(Owner.Quests);
                     quest.Id = reader.GetUInt32("id");
                     quest.TemplateId = reader.GetUInt32("template_id");
                     quest.Status = (QuestStatus)reader.GetByte("status");

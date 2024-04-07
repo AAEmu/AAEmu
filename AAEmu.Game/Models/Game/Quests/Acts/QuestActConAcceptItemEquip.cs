@@ -1,4 +1,5 @@
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using NLog;
 
@@ -18,9 +19,9 @@ public class QuestActConAcceptItemEquip(QuestComponentTemplate parentComponent) 
         return false;
     }
 
-    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Warn($"QuestActConAcceptItemEquip({DetailId}).RunAct: Quest: {quest.TemplateId}, ItemId {ItemId}");
-        return base.RunAct(quest, currentObjectiveCount);
+        return quest.QuestAcceptorType == QuestAcceptorType.Item && quest.AcceptorId == ItemId;
     }
 }

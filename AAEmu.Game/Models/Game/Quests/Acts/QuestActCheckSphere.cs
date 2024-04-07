@@ -15,32 +15,33 @@ public class QuestActCheckSphere(QuestComponentTemplate parentComponent) : Quest
         return false;
     }
 
-    public override void Initialize(Quest quest, IQuestAct questAct)
+    public override void InitializeAction(Quest quest, IQuestAct questAct)
     {
-        base.Initialize(quest, questAct);
+        base.InitializeAction(quest, questAct);
         SphereQuestManager.Instance.AddSphereQuestTriggers(quest.Owner, quest, parentComponent.Id, 0);
         quest.Owner.Events.OnEnterSphere += OnEnterSphere;
         quest.Owner.Events.OnExitSphere += OnExitSphere;
     }
 
-    public override void DeInitialize(Quest quest, IQuestAct questAct)
+    public override void FinalizeAction(Quest quest, IQuestAct questAct)
     {
         SphereQuestManager.Instance.RemoveSphereQuestTriggers(quest.Owner.Id, (uint)quest.Id);
         quest.Owner.Events.OnEnterSphere -= OnEnterSphere;
         quest.Owner.Events.OnExitSphere -= OnExitSphere;
-        base.DeInitialize(quest, questAct);
+        base.FinalizeAction(quest, questAct);
     }
 
     /// <summary>
     /// Checks if you are inside a specific Quest Sphere
     /// </summary>
     /// <param name="quest"></param>
+    /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"QuestActCheckSphere({DetailId}).RunAct: Quest {quest.TemplateId}, SphereId {SphereId}");
-        return GetObjective(quest) > 0;
+        return currentObjectiveCount > 0;
     }
 
     private void OnEnterSphere(object sender, OnEnterSphereArgs e)

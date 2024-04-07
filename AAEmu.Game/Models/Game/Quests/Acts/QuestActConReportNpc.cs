@@ -25,9 +25,10 @@ public class QuestActConReportNpc(QuestComponentTemplate parentComponent) : Ques
     /// Checks if the current target is the specified Npc
     /// </summary>
     /// <param name="quest"></param>
+    /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"QuestActConReportNpc({DetailId}).RunAct: Quest: {quest.TemplateId}, NpcId {NpcId}");
         return (quest.Owner.CurrentTarget is Npc npc) && (npc.TemplateId == NpcId);

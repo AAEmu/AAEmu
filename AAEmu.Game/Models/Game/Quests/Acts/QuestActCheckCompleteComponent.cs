@@ -17,9 +17,10 @@ public class QuestActCheckCompleteComponent(QuestComponentTemplate parentCompone
     /// This looks like a Legacy Act that is no longer used. Also got no idea of how it would have worked.
     /// </summary>
     /// <param name="quest"></param>
+    /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"QuestActCheckCompleteComponent({DetailId}).RunAct: Quest {quest.TemplateId}, Complete Component {CompleteComponent}");
         return true;

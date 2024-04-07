@@ -493,7 +493,8 @@ public class QuestTests
             mockTaskManager.Object,
             mockSkillManager.Object,
             mockExpressTextManager.Object,
-            mockWorldManager.Object);
+            mockWorldManager.Object,
+            mockCharacter.Object.Quests);
 
         quest.Owner = mockCharacter.Object;
 
@@ -526,7 +527,8 @@ public class QuestTests
             mockTaskManager.Object,
             mockSkillManager.Object,
             mockExpressTextManager.Object,
-            worldManager);
+            worldManager,
+            mockCharacter.Object.Quests);
 
         quest.Owner = mockCharacter.Object;
 

@@ -35,6 +35,7 @@ public partial class Quest : PacketMarshaler
     private readonly IExpressTextManager _expressTextManager;
     private readonly IWorldManager _worldManager;
     private QuestComponentKind _step;
+    private CharacterQuests Parent { get; set; }
 
     /// <summary>
     /// DB ID
@@ -182,8 +183,9 @@ public partial class Quest : PacketMarshaler
 
     public Quest(IQuestTemplate questTemplate, IQuestManager questManager, ISphereQuestManager sphereQuestManager,
         ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager,
-        IWorldManager worldManager)
+        IWorldManager worldManager, CharacterQuests characterQuests)
     {
+        Parent = characterQuests;
         _questManager = questManager;
         _sphereQuestManager = sphereQuestManager;
         _taskManager = taskManager;
@@ -218,25 +220,27 @@ public partial class Quest : PacketMarshaler
         ReadyToReportNpc = false;
     }
 
-    public Quest() : this(
+    public Quest(CharacterQuests characterQuests) : this(
         null,
         QuestManager.Instance,
         SphereQuestManager.Instance,
         TaskManager.Instance,
         SkillManager.Instance,
         ExpressTextManager.Instance,
-        WorldManager.Instance)
+        WorldManager.Instance,
+        characterQuests)
     {
     }
 
-    public Quest(IQuestTemplate template) : this(
+    public Quest(IQuestTemplate template, CharacterQuests characterQuests) : this(
         template,
         QuestManager.Instance,
         SphereQuestManager.Instance,
         TaskManager.Instance,
         SkillManager.Instance,
         ExpressTextManager.Instance,
-        WorldManager.Instance)
+        WorldManager.Instance,
+        characterQuests)
     {
     }
 

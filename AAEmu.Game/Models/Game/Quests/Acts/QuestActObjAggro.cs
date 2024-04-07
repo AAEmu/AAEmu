@@ -32,24 +32,25 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
     /// Returns true if the objective has been met after killing target Npc. Objective count will be set to Rank number
     /// </summary>
     /// <param name="quest"></param>
+    /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"QuestActObjAggro({DetailId}).RunAct: Quest: {quest.TemplateId}, Range {Range}, Rank1 {Rank1} ");
-        return GetObjective(quest) > 0;
+        return currentObjectiveCount > 0;
     }
 
-    public override void Initialize(Quest quest, IQuestAct questAct)
+    public override void InitializeAction(Quest quest, IQuestAct questAct)
     {
-        base.Initialize(quest, questAct);
+        base.InitializeAction(quest, questAct);
         quest.Owner.Events.OnKill += OnKill;
     }
 
-    public override void DeInitialize(Quest quest, IQuestAct questAct)
+    public override void FinalizeAction(Quest quest, IQuestAct questAct)
     {
         quest.Owner.Events.OnKill -= OnKill;
-        base.DeInitialize(quest, questAct);
+        base.FinalizeAction(quest, questAct);
     }
 
     /// <summary>

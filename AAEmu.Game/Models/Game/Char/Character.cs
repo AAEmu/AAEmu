@@ -130,6 +130,11 @@ public partial class Character : Unit, ICharacter
     /// </summary>
     public AttachPointKind AttachedPoint { get; set; }
 
+    /// <summary>
+    /// Helper to keep track of what cinema is supposed to play
+    /// </summary>
+    public uint CurrentlyPlayingCinemaId { get; set; }
+
     public override bool IsUnderWater
     {
         get { return _isUnderWater; }

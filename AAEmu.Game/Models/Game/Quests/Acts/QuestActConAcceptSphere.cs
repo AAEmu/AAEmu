@@ -22,9 +22,10 @@ public class QuestActConAcceptSphere(QuestComponentTemplate parentComponent) : Q
     /// Checks if a Quest was started with the specified Sphere
     /// </summary>
     /// <param name="quest"></param>
+    /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Trace($"QuestActConAcceptSphere({DetailId}).RunAct: Quest: {quest.TemplateId}, SkillId {SphereId}");
         return quest.QuestAcceptorType == QuestAcceptorType.Sphere && quest.AcceptorId == SphereId;

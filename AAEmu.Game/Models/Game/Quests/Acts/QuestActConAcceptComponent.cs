@@ -21,11 +21,12 @@ public class QuestActConAcceptComponent(QuestComponentTemplate parentComponent) 
     /// Not used?
     /// </summary>
     /// <param name="quest"></param>
+    /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Warn($"QuestActConAcceptComponent({DetailId}).RunAct: Quest: {quest.TemplateId}, QuestContextId {QuestContextId}");
-        return base.RunAct(quest, currentObjectiveCount);
+        return base.RunAct(quest, questAct, currentObjectiveCount);
     }
 }

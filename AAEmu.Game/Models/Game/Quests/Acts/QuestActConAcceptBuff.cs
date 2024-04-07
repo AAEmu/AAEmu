@@ -23,9 +23,10 @@ public class QuestActConAcceptBuff(QuestComponentTemplate parentComponent) : Que
     /// Checks if the Quest was started from the specified Buff
     /// </summary>
     /// <param name="quest"></param>
+    /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Trace($"QuestActConAcceptBuff({DetailId}).RunAct: Quest {quest.TemplateId}, BuffId {BuffId}");
         return quest.QuestAcceptorType == QuestAcceptorType.Buff && quest.AcceptorId == BuffId;

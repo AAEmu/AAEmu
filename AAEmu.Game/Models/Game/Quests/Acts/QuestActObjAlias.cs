@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 /// <summary>
-/// This Template does not seem to be used for server mechanics
+/// This Template is not used for server mechanics, but rather contains the descriptions used for quest descriptions
 /// </summary>
 public class QuestActObjAlias(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
@@ -16,5 +16,18 @@ public class QuestActObjAlias(QuestComponentTemplate parentComponent) : QuestAct
         Logger.Debug("QuestActObjAlias");
 
         return character.Quests.IsQuestComplete(ParentQuestTemplate.Id);
+    }
+
+    /// <summary>
+    /// Should never get called, return true regardless as it does not contain any actions
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    {
+        Logger.Error($"QuestActObjAlias({DetailId}).RunAct: Quest: {quest.TemplateId}");
+        return true;
     }
 }

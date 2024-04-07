@@ -36,10 +36,10 @@ public class UnitEvents
     //public EventHandler<OnTimeArgs> OnTime = delegate { }; //Add it if needed, but I think OnKill is fine?
     public EventHandler<OnHealedArgs> OnHealed = delegate { };
 
-    // --- нужен для квестов
-    // на шаге Start
+    // For Quests
+    // At Step Start
     public EventHandler<OnAcceptDoodadArgs> OnAcceptDoodad = delegate { };
-    // на шаге Progress
+    // At Step Progress
     public EventHandler<OnMonsterHuntArgs> OnMonsterHunt = delegate { };
     public EventHandler<OnMonsterGroupHuntArgs> OnMonsterGroupHunt = delegate { };
     public EventHandler<OnTalkMadeArgs> OnTalkMade = delegate { };
@@ -58,13 +58,15 @@ public class UnitEvents
     public EventHandler<OnCraftArgs> OnCraft = delegate { };
     public EventHandler<OnZoneKillArgs> OnZoneKill = delegate { };
     public EventHandler<OnZoneMonsterHuntArgs> OnZoneMonsterHunt = delegate { };
-    // на шаге Ready
+    public EventHandler<OnCinemaStartedArgs> OnCinemaStarted = delegate { };
+    public EventHandler<OnCinemaEndedArgs> OnCinemaEnded = delegate { };
+    // At Step Ready
     public EventHandler<OnReportNpcArgs> OnReportNpc = delegate { };
     public EventHandler<OnReportDoodadArgs> OnReportDoodad = delegate { };
     public EventHandler<OnReportJournalArgs> OnReportJournal = delegate { };
-    // на шаге Complete?
+    // At Step Complete?
     public EventHandler<OnQuestCompleteArgs> OnQuestComplete = delegate { };
-    // --- нужен для indun
+    // Dungeon related
     public EventHandler<OnCombatStartedArgs> OnCombatStarted = delegate { };
     public EventHandler<InIdleArgs> InIdle = delegate { };
     public EventHandler<InAlertArgs> InAlert = delegate { };
@@ -188,6 +190,16 @@ public class OnZoneKillArgs : QuestEventArgs
 public class OnZoneMonsterHuntArgs : QuestEventArgs
 {
     public uint ZoneGroupId { get; set; }
+}
+
+public class OnCinemaStartedArgs : QuestEventArgs
+{
+    public uint CinemaId { get; set; }
+}
+
+public class OnCinemaEndedArgs : QuestEventArgs
+{
+    public uint CinemaId { get; set; }
 }
 
 public class OnReportNpcArgs : QuestEventArgs

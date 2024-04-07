@@ -26,9 +26,10 @@ public class QuestActConAcceptNpcKill(QuestComponentTemplate parentComponent) : 
     /// Checks if the Quest was started from killing the specified NPC
     /// </summary>
     /// <param name="quest"></param>
+    /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Warn("QuestActConAcceptNpcKill({DetailId}).RunAct: Quest: {quest.TemplateId}, NpcId {NpcId}");
         return quest.QuestAcceptorType == QuestAcceptorType.Npc && quest.AcceptorId == NpcId;

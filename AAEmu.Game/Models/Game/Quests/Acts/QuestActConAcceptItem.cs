@@ -26,9 +26,10 @@ public class QuestActConAcceptItem(QuestComponentTemplate parentComponent) : Que
     /// Checks if the Quest starter was indeed the provided Item and is in the inventory
     /// </summary>
     /// <param name="quest"></param>
+    /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Trace($"QuestActConAcceptItem({DetailId}).RunAct: Quest: {quest.TemplateId}, ItemId {ItemId}");
         return (quest.QuestAcceptorType == QuestAcceptorType.Item) && (quest.AcceptorId == ItemId) && quest.Owner.Inventory.CheckItems(Items.SlotType.Inventory, ItemId, 1);

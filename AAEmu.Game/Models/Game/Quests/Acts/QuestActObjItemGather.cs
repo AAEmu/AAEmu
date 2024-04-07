@@ -40,9 +40,9 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
         Logger.Info($"{QuestActTemplateName} - QuestActItemGather {DetailId} was updated by {updateAmount} for a total of {questAct.GetObjective(quest)}.");
     }
 
-    public override void Initialize(Quest quest, IQuestAct questAct)
+    public override void InitializeAction(Quest quest, IQuestAct questAct)
     {
-        base.Initialize(quest, questAct);
+        base.InitializeAction(quest, questAct);
         questAct.SetObjective(quest, quest.Owner.Inventory.GetItemsCount(ItemId));
 
         // Register Handler if not at max yet
@@ -50,9 +50,9 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
             quest.Owner.Events.OnItemGather += quest.Owner.Quests.OnItemGatherHandler;
     }
 
-    public override void DeInitialize(Quest quest, IQuestAct questAct)
+    public override void FinalizeAction(Quest quest, IQuestAct questAct)
     {
-        base.DeInitialize(quest, questAct);
+        base.FinalizeAction(quest, questAct);
 
         // Un-register event handler
         quest.Owner.Events.OnItemGather -= quest.Owner.Quests.OnItemGatherHandler;

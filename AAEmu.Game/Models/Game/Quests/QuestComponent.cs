@@ -24,16 +24,16 @@ public class QuestComponent : IQuestComponent
         throw new NotImplementedException();
     }
 
-    public void Initialize()
+    public void InitializeComponent()
     {
         foreach (var act in Acts)
-            act.Template.Initialize(Parent.Parent, act);
+            act.Template.InitializeAction(Parent.Parent, act);
     }
 
-    public void DeInitialize()
+    public void FinalizeComponent()
     {
         foreach (var act in Acts)
-            act.Template.DeInitialize(Parent.Parent, act);
+            act.Template.FinalizeAction(Parent.Parent, act);
     }
 
     public QuestComponent(QuestStep parent, QuestComponentTemplate template)

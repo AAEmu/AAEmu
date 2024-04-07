@@ -12,12 +12,12 @@ public interface IQuestComponent
     /// <summary>
     /// Initialize all Acts in this Component (register event handlers)
     /// </summary>
-    public void Initialize();
+    public void InitializeComponent();
 
     /// <summary>
     /// Finalize all Acts in this Component (un-register event handlers)
     /// </summary>
-    public void DeInitialize();
+    public void FinalizeComponent();
 
     /// <summary>
     /// Execute all the acts in this component and return true if successful

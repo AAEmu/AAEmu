@@ -22,9 +22,10 @@ public class QuestActConAcceptSkill(QuestComponentTemplate parentComponent) : Qu
     /// Checks if the Quest Acceptor is the correct skill
     /// </summary>
     /// <param name="quest"></param>
+    /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Trace($"QuestActConAcceptSkill({DetailId}).RunAct: Quest: {quest.TemplateId}, SkillId {SkillId}");
         return quest.QuestAcceptorType == QuestAcceptorType.Skill && quest.AcceptorId == SkillId;

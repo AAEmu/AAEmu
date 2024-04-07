@@ -1653,14 +1653,14 @@ public partial class Quest : PacketMarshaler
 
         // Finalize old Step (if any)
         if (QuestSteps.TryGetValue(_step, out var oldQuestSteps))
-            oldQuestSteps.DeInitialize();
+            oldQuestSteps.FinalizeStep();
 
         // Set new Value
         _step = value;
 
         // Initialize Acts for this Step (if any)
         if (QuestSteps.TryGetValue(value, out var questSteps))
-            questSteps.Initialize();
+            questSteps.InitializeStep();
     }
 
     /// <summary>

@@ -27,9 +27,10 @@ public class QuestActCheckDistance(QuestComponentTemplate parentComponent) : Que
     /// Checks if the player is within a given distance of a target NPC type
     /// </summary>
     /// <param name="quest"></param>
+    /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Trace($"QuestActCheckDistance({DetailId}).RunAct: Quest {quest.TemplateId}, WithIn {WithIn}, NpcId {NpcId}, Distance {Distance}");
         // There is actually no quest left that still uses this
