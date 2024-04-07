@@ -251,4 +251,12 @@ public static class Helpers
 
         return dir;
     }
+
+    // Method for cloning an object using MemberwiseClone
+    public static T Clone<T>(T obj)
+    {
+        var inst = obj.GetType().GetMethod("MemberwiseClone", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+
+        return (T)inst?.Invoke(obj, null);
+    }
 }
