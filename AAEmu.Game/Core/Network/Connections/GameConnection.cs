@@ -13,6 +13,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Network.Connections;
 
@@ -82,7 +83,8 @@ public class GameConnection
                 subscriber.Dispose();
 
             ActiveChar.Events?.OnDisconnect(this, new OnDisconnectArgs { Player = ActiveChar });
-            ActiveChar.ForceDismountAndDespawn();
+            ActiveChar.ForceDismountAndDespawn(); // Despawn delay 10 minutes
+            Unit.DespawMate(ActiveChar);          // Despawn because we lost control over them
         }
 
         foreach (var subscriber in Subscribers)

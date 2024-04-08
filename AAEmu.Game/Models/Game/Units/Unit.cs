@@ -29,6 +29,8 @@ using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
 
+using static System.Runtime.InteropServices.JavaScript.JSType;
+
 namespace AAEmu.Game.Models.Game.Units;
 
 public class Unit : BaseUnit, IUnit
@@ -488,16 +490,13 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
-    private static void DespawMate(Character character)
+    public static void DespawMate(Character character)
     {
-        // if we died sitting on a horse
-        if (character.Hp > 0) { return; }
-
         var mates = MateManager.Instance.GetActiveMates(character.ObjId);
         if (mates != null)
         {
-            foreach (var mate in mates)
-                character.Mates.DespawnMate(mate.TlId);
+            for (var i = 0; i < mates.Count; i++)
+                character.Mates.DespawnMate(mates[i]);
         }
     }
 

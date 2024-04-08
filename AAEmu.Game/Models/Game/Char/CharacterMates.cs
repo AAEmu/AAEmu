@@ -83,12 +83,12 @@ public class CharacterMates
                 var mateDb = GetMateDbInfo(skillData.ItemId);
                 if (mateDb != null && oldMate.DbInfo.Id == mateDb.Id)
                 {
-                    DespawnMate(oldMate.TlId); // such an object already exists
+                    DespawnMate(oldMate); // such an object already exists
                     return;
                 }
 
                 if (oldMate.MateType == (MateType)(item.Template.CategoryId == 92 ? 1 : 2)) // 92 - Mount, 95 - Battle)
-                    DespawnMate(oldMate.TlId); // there is an object of this type
+                    DespawnMate(oldMate); // there is an object of this type
             }
         }
 
@@ -177,7 +177,24 @@ public class CharacterMates
             }
         }
 
-        MateManager.Instance.RemoveActiveMateAndDespawn(Owner, tlId);
+        MateManager.Instance.RemoveActiveMateAndDespawn(Owner, mateInfo);
+    }
+
+    public void DespawnMate(Units.Mate mateInfo)
+    {
+        if (mateInfo == null) { return; }
+        var mateDbInfo = GetMateDbInfo(mateInfo.ItemId);
+        if (mateDbInfo != null)
+        {
+            mateDbInfo.Hp = mateInfo.Hp;
+            mateDbInfo.Mp = mateInfo.Mp;
+            mateDbInfo.Level = mateInfo.Level;
+            mateDbInfo.Xp = mateInfo.Experience;
+            mateDbInfo.Mileage = mateInfo.Mileage;
+            mateDbInfo.Name = mateInfo.Name;
+            mateDbInfo.UpdatedAt = DateTime.UtcNow;
+        }
+        MateManager.Instance.RemoveActiveMateAndDespawn(Owner, mateInfo);
     }
 
     public void Load(MySqlConnection connection)

@@ -82,6 +82,7 @@ public class MateManager : Singleton<MateManager>
 
         return null;
     }
+
     public MatePassengerInfo GetPassenger(Mate mateInfo, AttachPointKind attachPoint)
     {
         if (mateInfo == null) { return null; }
@@ -322,6 +323,31 @@ public class MateManager : Singleton<MateManager>
         Logger.Debug($"Mount removed: OwnerObjId={owner.ObjId}, tlId={mateInfo.TlId}, mateObjId={mateInfo.ObjId}");
     }
 
+    public void RemoveActiveMateAndDespawn(Character owner, Mate mateInfo)
+    {
+        if (mateInfo == null) return;
+        foreach (var ati in mateInfo.Passengers)
+            UnMountMate(mateInfo, ati.Key, ati.Value);
+
+        mateInfo.StopUpdateXp();
+
+        for (var i = 0; i < _activeMates[owner.ObjId].Count; i++)
+        {
+            if (_activeMates[owner.ObjId][i].TlId != mateInfo.TlId) continue;
+            var am = _activeMates[owner.ObjId];
+            _activeMates[owner.ObjId][i].Delete(); // despawn mate
+            am.RemoveRange(i, 1);
+        }
+
+        if (_activeMates[owner.ObjId].Count == 0)
+            _activeMates.Remove(owner.ObjId);
+
+        ObjectIdManager.Instance.ReleaseId(mateInfo.ObjId);
+        TlIdManager.Instance.ReleaseId(mateInfo.TlId);
+
+        Logger.Debug($"Mount removed: OwnerObjId={owner.ObjId}, tlId={mateInfo.TlId}, mateObjId={mateInfo.ObjId}");
+    }
+
     /// <summary>
     /// Remove all mounts that are in the world and owned by character
     /// </summary>
@@ -335,7 +361,7 @@ public class MateManager : Singleton<MateManager>
         for (var i = 0; i < mates.Count; i++)
         {
             if (mates[i].OwnerObjId != character.ObjId) continue;
-            RemoveActiveMateAndDespawn(character, mates[i].TlId);
+            RemoveActiveMateAndDespawn(character, mates[i]);
         }
     }
 

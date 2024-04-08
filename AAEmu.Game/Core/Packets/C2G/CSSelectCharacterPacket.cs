@@ -10,6 +10,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Route;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -51,6 +52,11 @@ public class CSSelectCharacterPacket : GamePacket
             {
                 Logger.Warn($"{Connection.ActiveChar.Name}: Interrupting the transport shutdown task");
                 mySlave.CancelTokenSource.Cancel();
+            }
+            var myMates = MateManager.Instance.GetActiveMates(Connection.ActiveChar.ObjId);
+            if (myMates != null)
+            {
+                Unit.DespawMate(Connection.ActiveChar); // despawn because we lost control over them
             }
 
             Connection.ActiveChar.Simulation = new Simulation(character);
