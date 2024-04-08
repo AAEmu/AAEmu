@@ -278,6 +278,83 @@ public class MateManager : Singleton<MateManager>
             Logger.Warn($"UnMountMate: No valid seat entry, mountTlId={mateInfo.TlId}, characterObjId={0}, attachPoint={attachPoint}, reason={seatInfo.Reason}");
     }
 
+    public void UnMountMate(Character owner)
+    {
+        if (owner.ObjId == 0) { return; }
+        var mates = GetActiveMates(owner.ObjId);
+        foreach (var mateInfo in mates)
+        {
+            foreach (var seatInfo in mateInfo.Passengers.Values)
+            {
+                mateInfo.StopUpdateXp();
+
+                // Request seat position
+                Character targetObj = null;
+                if (seatInfo != null)
+                {
+                    // Check if seat is taken by player
+                    if (seatInfo.ObjId != 0)
+                    {
+                        targetObj = WorldManager.Instance.GetCharacterByObjId(seatInfo.ObjId);
+                        seatInfo.ObjId = 0;
+                        seatInfo.Reason = 0;
+                    }
+                }
+
+                if (targetObj != null)
+                {
+                    targetObj.Transform.Parent = null;
+                    targetObj.SetPosition(mateInfo.Transform.World.Position.X, mateInfo.Transform.World.Position.Y, mateInfo.Transform.World.Position.Z, mateInfo.Transform.World.Rotation.X, mateInfo.Transform.World.Rotation.Y, mateInfo.Transform.World.Rotation.Z);
+                    targetObj.IsRiding = false;
+                    targetObj.AttachedPoint = AttachPointKind.None;
+                    targetObj.BroadcastPacket(new SCUnitDetachedPacket(targetObj.ObjId, seatInfo.Reason), true);
+                    targetObj.Events.OnUnmount(targetObj, new OnUnmountArgs { });
+                    mateInfo.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
+                    targetObj.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
+                    Logger.Debug($"UnMountMate: mountTlId={mateInfo.TlId}, targetObjId={targetObj.ObjId}, reason={seatInfo.Reason}");
+                }
+                else
+                    Logger.Warn($"UnMountMate: No valid seat entry, mountTlId={mateInfo.TlId}, characterObjId={0}, reason={seatInfo.Reason}");
+            }
+        }
+    }
+
+    public void UnMountMate(Mate mateInfo)
+    {
+        foreach (var seatInfo in mateInfo.Passengers.Values)
+        {
+            mateInfo.StopUpdateXp();
+
+            // Request seat position
+            Character targetObj = null;
+            if (seatInfo != null)
+            {
+                // Check if seat is taken by player
+                if (seatInfo.ObjId != 0)
+                {
+                    targetObj = WorldManager.Instance.GetCharacterByObjId(seatInfo.ObjId);
+                    seatInfo.ObjId = 0;
+                    seatInfo.Reason = 0;
+                }
+            }
+
+            if (targetObj != null)
+            {
+                targetObj.Transform.Parent = null;
+                targetObj.SetPosition(mateInfo.Transform.World.Position.X, mateInfo.Transform.World.Position.Y, mateInfo.Transform.World.Position.Z, mateInfo.Transform.World.Rotation.X, mateInfo.Transform.World.Rotation.Y, mateInfo.Transform.World.Rotation.Z);
+                targetObj.IsRiding = false;
+                targetObj.AttachedPoint = AttachPointKind.None;
+                targetObj.BroadcastPacket(new SCUnitDetachedPacket(targetObj.ObjId, seatInfo.Reason), true);
+                targetObj.Events.OnUnmount(targetObj, new OnUnmountArgs { });
+                mateInfo.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
+                targetObj.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
+                Logger.Debug($"UnMountMate: mountTlId={mateInfo.TlId}, targetObjId={targetObj.ObjId}, reason={seatInfo.Reason}");
+            }
+            else
+                Logger.Warn($"UnMountMate: No valid seat entry, mountTlId={mateInfo.TlId}, characterObjId={0}, reason={seatInfo.Reason}");
+        }
+    }
+
     public void AddActiveMateAndSpawn(Character owner, Mate mate, Item item)
     {
         var mates = GetActiveMates(owner.ObjId);
@@ -302,7 +379,7 @@ public class MateManager : Singleton<MateManager>
         //foreach (var ati in mateInfo.Passengers)
         //    UnMountMate(WorldManager.Instance.GetCharacterByObjId(ati.Value.ObjId), mateInfo.TlId, ati.Key, AttachUnitReason.SlaveBinding);
         foreach (var ati in mateInfo.Passengers)
-            UnMountMate(mateInfo, ati.Key, ati.Value);
+            UnMountMate(mateInfo);
 
         mateInfo.StopUpdateXp();
 
@@ -326,10 +403,8 @@ public class MateManager : Singleton<MateManager>
     public void RemoveActiveMateAndDespawn(Character owner, Mate mateInfo)
     {
         if (mateInfo == null) return;
-        foreach (var ati in mateInfo.Passengers)
-            UnMountMate(mateInfo, ati.Key, ati.Value);
 
-        mateInfo.StopUpdateXp();
+        UnMountMate(mateInfo);
 
         for (var i = 0; i < _activeMates[owner.ObjId].Count; i++)
         {

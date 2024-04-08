@@ -595,10 +595,10 @@ public class SpawnManager : Singleton<SpawnManager>
         Logger.Info("Spawning NPCs...");
         foreach (var (worldId, worldSpawners) in _npcSpawners)
         {
-            //Task.Run(() =>
-            //{
-            SpawnAllNpcs(worldId);
-            //});
+            Task.Run(() =>
+            {
+                SpawnAllNpcs(worldId);
+            });
         }
 
         Logger.Info("Spawning Doodads...");

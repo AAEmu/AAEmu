@@ -435,16 +435,15 @@ public class Unit : BaseUnit, IUnit
         {
             switch (this)
             {
-                //case Npc:
-                //    break;
                 case Mate mate:
-                    DespawMate(WorldManager.Instance.GetCharacterByObjId(mate.OwnerObjId));
+                    MateManager.Instance.UnMountMate(mate);
                     break;
                 case Character character:
-                    DespawMate(character);
-                    break;
-                //default:
-                //    break;
+                    {
+                        MateManager.Instance.UnMountMate(character);
+                        //character.ForceDismount();
+                        break;
+                    }
             }
             return;
         }

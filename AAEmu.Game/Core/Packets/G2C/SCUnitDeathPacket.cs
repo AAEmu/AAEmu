@@ -20,24 +20,25 @@ public class SCUnitDeathPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.WriteBc(_objId);
-        stream.Write((byte)_killReason);
+        stream.WriteBc(_objId);          // uid
+        stream.Write((byte)_killReason); // killReason
         // ---------------
-        stream.Write(15000u); // resurrectionWaitingTime
-        stream.Write(0); // lostExp
+        stream.Write(15000u);  // resurrectionWaitingTime
+        stream.Write(75000u);  // autoResurrectionWaitingTime
+        stream.Write(0);       // lostExp
         stream.Write((byte)0); // deathDurabilityLossRatio
         // ---------------
-        stream.WriteBc(_killer?.ObjId ?? 0);
+        stream.WriteBc(_killer?.ObjId ?? 0); // killer
         if (_killer != null)
         {
             // ---------------
-            stream.Write((byte)0); // GameType
+            stream.Write((byte)0);      // GameType
             // ---------------
-            stream.Write((ushort)0); // killStreak
-            stream.Write((byte)0); // param1
-            stream.Write((byte)0); // param2
-            stream.Write((byte)0); // param3
-            stream.Write(_killer.Name);
+            stream.Write((ushort)0);    // killStreak
+            stream.Write((byte)0);      // param1
+            stream.Write((byte)0);      // param2
+            stream.Write((byte)0);      // param3
+            stream.Write(_killer.Name); // killerName
 
         }
 
