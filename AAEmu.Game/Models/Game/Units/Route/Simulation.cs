@@ -358,8 +358,14 @@ public class Simulation : Patrol
     public void MoveTo(Simulation sim, Npc npc, Vector3 target)
     {
         var move = false;
-        var delta = TimeSpan.FromMilliseconds(100);
-        var distance = 0.5f;
+        var distance = npc.BaseMoveSpeed * (100 / 1000.0f);
+        distance *= npc.MoveSpeedMul; // Apply speed modifier
+        if (distance < 0.01f)
+        {
+            // take the next point to move to it
+            OnMove(npc);
+            return;
+        }
 
         var dist = MathUtil.CalculateDistance(npc.Transform.World.Position, target, true);
         if (dist > RangeToCheckPoint)

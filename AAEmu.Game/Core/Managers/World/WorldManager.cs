@@ -606,7 +606,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         if (!world.ValidRegion(sx, sy))
         {
-            Logger.Fatal("GetZoneId(): Coordicates out of bounds for WorldId {0} - x:{1:#,0.#} - y: {2:#,0.#}", worldId, x, y);
+            Logger.Fatal("GetZoneId(): Coordinates out of bounds for WorldId {0} - x:{1:#,0.#} - y: {2:#,0.#}", worldId, x, y);
             return 0;
         }
 

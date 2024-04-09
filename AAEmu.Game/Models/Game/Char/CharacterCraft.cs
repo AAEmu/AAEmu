@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Tasks.Skills;
 
 namespace AAEmu.Game.Models.Game.Char;
@@ -19,6 +20,7 @@ public class CharacterCraft
     private int _count { get; set; }
     private Craft _craft { get; set; }
     private uint _doodadId { get; set; }
+    private int _consumeLaborPower { get; set; }
 
     public Character Owner { get; set; }
     public bool IsCrafting { get; set; }
@@ -85,7 +87,6 @@ public class CharacterCraft
             Owner.SendMessage($"Crafting using @DOODAD_NAME({doodad.TemplateId}) - {doodad.TemplateId} (objId: {doodad.ObjId}) with current permission {doodad.FuncPermission} = {hasPermission}");
         }
 
-
         if (hasMaterials && hasPermission)
         {
             IsCrafting = true;
@@ -97,6 +98,7 @@ public class CharacterCraft
             target.ObjId = doodadId;
 
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(craft.SkillId));
+            _consumeLaborPower = skill.Template.ConsumeLaborPower;
             skill.Use(Owner, caster, target);
         }
     }
@@ -112,9 +114,16 @@ public class CharacterCraft
             return;
         }
 
+        if (Owner.LaborPower < _consumeLaborPower)
+        {
+            Owner.SendMessage("|cFFFFFF00[Craft] Not enough Labor Powers for crafting! Performing a fictitious crafting step...|r");
+            CraftOrCancel();
+            return;
+        }
+
         if (Owner.Inventory.FreeSlotCount(SlotType.Inventory) < _craft.CraftProducts.Count)
         {
-            CancelCraft();
+            CraftOrCancel();
             return;
         }
 
@@ -154,13 +163,7 @@ public class CharacterCraft
 
         if (_count > 0)
         {
-            var newCraft = new CraftTask(Owner, _craft.Id, _doodadId, _count);
-            var skillTemplate = SkillManager.Instance.GetSkillTemplate(_craft.SkillId);
-            var timeToGlobalCooldown = Owner.GlobalCooldown - DateTime.UtcNow;
-            var nextCraftDelay = timeToGlobalCooldown.TotalMilliseconds > skillTemplate.CooldownTime
-                ? timeToGlobalCooldown
-                : TimeSpan.FromMilliseconds(skillTemplate.CooldownTime);
-            TaskManager.Instance.Schedule(newCraft, nextCraftDelay, null, 1);
+            ScheduleCrtaft();
             // Owner.SendMessage($"Continue craft: {_craft.Id} for {_count} more times TaskId: {newCraft.Id}, cooldown: {nextCraftDelay.TotalMilliseconds}ms");
             // Craft(_craft, _count, _doodadId);
         }
@@ -168,6 +171,27 @@ public class CharacterCraft
         {
             CancelCraft();
         }
+    }
+
+    private void CraftOrCancel()
+    {
+        if (_count > 0)
+        {
+            ScheduleCrtaft();
+        }
+        else
+            CancelCraft();
+    }
+
+    private void ScheduleCrtaft()
+    {
+        var newCraft = new CraftTask(Owner, _craft.Id, _doodadId, _count);
+        var skillTemplate = SkillManager.Instance.GetSkillTemplate(_craft.SkillId);
+        var timeToGlobalCooldown = Owner.GlobalCooldown - DateTime.UtcNow;
+        var nextCraftDelay = timeToGlobalCooldown.TotalMilliseconds > skillTemplate.CooldownTime
+            ? timeToGlobalCooldown
+            : TimeSpan.FromMilliseconds(skillTemplate.CooldownTime);
+        TaskManager.Instance.Schedule(newCraft, nextCraftDelay, null, 1);
     }
 
     public void CancelCraft()
@@ -185,6 +209,6 @@ public class CharacterCraft
             Owner.InterruptSkills();
         }
 
-        // Might want to send a packet here, I think there is a packet when crafting fails. Not sure yet..
+        // Might want to send a packet here, I think there is a packet when crafting fails. Not sure yet.
     }
 }

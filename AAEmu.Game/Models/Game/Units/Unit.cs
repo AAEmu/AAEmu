@@ -881,7 +881,7 @@ public class Unit : BaseUnit, IUnit
             Logger.Info($"SetFaction: npc={TemplateId}:{ObjId} attack the character={character.Name}:{character.TemplateId}:{character.ObjId}");
             npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, character, 1);
             npc.Ai.OnAggroTargetChanged();
-            npc.Ai.GoToCombat();
+            //npc.Ai.GoToCombat();
         }
     }
 
