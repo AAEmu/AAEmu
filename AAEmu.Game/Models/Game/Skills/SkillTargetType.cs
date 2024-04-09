@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Skills;
+﻿namespace AAEmu.Game.Models.Game.Skills;
 
 public enum SkillTargetType : byte
 {
@@ -21,5 +21,11 @@ public enum SkillTargetType : byte
     Others = 16,
     FriendlyOthers = 17,
     CursorPos = 18,
-    Building = 19
+    GeneralUnit = 19,
+    Parent = 20,
+    ChildSlave = 21,
+    AnyUnitAlways = 22,
+    CommanderPos = 23,
+    PetOwner = 24,
+    IgnoreProtected = 25
 }

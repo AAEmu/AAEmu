@@ -786,14 +786,14 @@
         "Owner": 0
     },
     {
-        "Id": 164, // 117 164
+        "Id": 164, // 117->164
         "Name": "Lutesong Harbor",
         "X": 21167.3,
         "Y": 10519.2,
         "Z": 115.6,
         "ZoneId": 160,
         "ZRot": 0,
-        "SubZoneId": 1009,
+        "SubZoneId": 1006, // 1009,
         "Owner": 0
     },
     {

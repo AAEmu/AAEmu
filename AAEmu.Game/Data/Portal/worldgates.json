@@ -235,5 +235,14 @@
         "Z": 140.2,
         "Yaw": 42.2,
         "SubZoneId": 632
+    },
+    {
+        "Id": 191,
+        "Name": "Respawn: Lutesong Harbor",
+        "X": 21257.80,
+        "Y": 10570.30,
+        "Z": 121.90,
+        "ZRot": 63,
+        "SubZoneId": 10191
     }
 ]

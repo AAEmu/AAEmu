@@ -42,7 +42,7 @@ public class Return : SpecialEffectAction
         }
         else
         {
-            // Worldgates
+            // Worldgates - see file worldgates.json
             returnPointId = (uint)value1;
             trp = PortalManager.Instance.GetWorldgatesById(returnPointId);
         }

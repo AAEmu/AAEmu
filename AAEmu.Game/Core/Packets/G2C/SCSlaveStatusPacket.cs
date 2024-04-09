@@ -16,12 +16,12 @@ public class SCSlaveStatusPacket : GamePacket
     public SCSlaveStatusPacket(uint objId, ushort tlId, string creatorName, uint ownerId, uint DbHouseId) :
         base(SCOffsets.SCSlaveStatusPacket, 5)
     {
-            _objId = objId;
-            _tlId = tlId;
-            _creatorName = creatorName;
-            _DbHouseId = DbHouseId;
-            _ownerId = ownerId;
-        }
+        _objId = objId;
+        _tlId = tlId;
+        _creatorName = creatorName;
+        _DbHouseId = DbHouseId;
+        _ownerId = ownerId;
+    }
 
     public override PacketStream Write(PacketStream stream)
     {

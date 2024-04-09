@@ -32,13 +32,13 @@ public class SCMySlavePacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.WriteBc(_unitId);
-        stream.Write(_tl);
-        stream.Write(_slaveName);
-        stream.Write(_templateId);
-        stream.Write(_hp);
-        stream.Write(_maxHp);
-        stream.Write(Helpers.ConvertLongX(_x));
+        stream.WriteBc(_unitId);     // unitId
+        stream.Write(_tl);           // slaveId
+        stream.Write(_slaveName);    // slaveName
+        stream.Write(_templateId);   // type
+        stream.Write(_hp);           // hp
+        stream.Write(_maxHp);        // maxHp
+        stream.Write(Helpers.ConvertLongX(_x)); // WorldPosXYZ_0940
         stream.Write(Helpers.ConvertLongY(_y));
         stream.Write(_z);
         return stream;

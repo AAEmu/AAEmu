@@ -269,7 +269,7 @@ public class Skill
 
         // HACKFIX : Mounts and Turbulence
         if (skillCaster.Type == SkillCasterType.Mount || skillCaster.Type == SkillCasterType.Unit)
-            target = WorldManager.Instance.GetUnit(skillCaster.ObjId);
+            target = WorldManager.Instance.GetUnit(targetCaster.ObjId);
 
         switch (Template.TargetType)
         {
@@ -393,7 +393,7 @@ public class Skill
 
                     break;
                 }
-            case SkillTargetType.Building:
+            case SkillTargetType.GeneralUnit: // Building:
                 {
                     if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                     {
@@ -448,8 +448,28 @@ public class Skill
                 }
             case SkillTargetType.CursorPos:
                 break;
+            case SkillTargetType.Parent:
+            case SkillTargetType.ChildSlave:
+            case SkillTargetType.AnyUnitAlways:
+            case SkillTargetType.CommanderPos:
+            case SkillTargetType.PetOwner:
+            case SkillTargetType.IgnoreProtected:
             default:
-                throw new NotSupportedException($"SkillTargetType not supported {Template.TargetType}");
+                //throw new NotSupportedException($"SkillTargetType not supported {Template.TargetType}");
+                if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
+                {
+                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    if (target != null)
+                    {
+                        targetCaster.ObjId = target.ObjId;
+                    }
+                }
+
+                if (target != null && caster.ObjId == target.ObjId)
+                {
+                    return null; //TODO отправлять ошибку?
+                }
+                break;
         }
 
         return target;

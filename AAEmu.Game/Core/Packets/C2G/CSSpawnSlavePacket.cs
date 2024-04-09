@@ -13,20 +13,15 @@ public class CSSpawnSlavePacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        var slaveId = stream.ReadUInt32();
-        var x = Helpers.ConvertLongX(stream.ReadInt64());
+        var slaveId = stream.ReadUInt32(); // slave
+        var x = Helpers.ConvertLongX(stream.ReadInt64()); // WorldPosXYZ_0940
         var y = Helpers.ConvertLongY(stream.ReadInt64());
         var z = stream.ReadSingle();
-        var zRot = stream.ReadSingle();
-        var itemId = stream.ReadUInt64();
-
-        // TODO : check this part with nikes
-        stream.ReadByte();
-        var slotType = (SlotType)stream.ReadByte();
-        stream.ReadByte();
-        var slot = stream.ReadByte();
-
-        var hideSpawnEffect = stream.ReadBoolean();
+        var zRot = stream.ReadSingle();   // zrot
+        var itemId = stream.ReadUInt64(); // item
+        var slotType = (SlotType)stream.ReadByte(); // type
+        var slot = stream.ReadByte();          // index
+        var hideSpawnEffect = stream.ReadBoolean(); // hideSpawnEffect
 
         Logger.Debug("SpawnSlave, SlaveId: {0}", slaveId);
     }

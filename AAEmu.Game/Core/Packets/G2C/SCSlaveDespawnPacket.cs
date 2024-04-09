@@ -14,7 +14,8 @@ public class SCSlaveDespawnPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.WriteBc(_id);
+        stream.WriteBc(_id); // bc
+        stream.Write(true); // success
         return stream;
     }
 }
