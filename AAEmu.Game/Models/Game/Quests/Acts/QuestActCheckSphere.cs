@@ -19,15 +19,15 @@ public class QuestActCheckSphere(QuestComponentTemplate parentComponent) : Quest
     {
         base.InitializeAction(quest, questAct);
         SphereQuestManager.Instance.AddSphereQuestTriggers(quest.Owner, quest, parentComponent.Id, 0);
-        quest.Owner.Events.OnEnterSphere += OnEnterSphere;
-        quest.Owner.Events.OnExitSphere += OnExitSphere;
+        quest.Owner.Events.OnEnterSphere += questAct.OnEnterSphere;
+        quest.Owner.Events.OnExitSphere += questAct.OnExitSphere;
     }
 
     public override void FinalizeAction(Quest quest, IQuestAct questAct)
     {
         SphereQuestManager.Instance.RemoveSphereQuestTriggers(quest.Owner.Id, (uint)quest.Id);
-        quest.Owner.Events.OnEnterSphere -= OnEnterSphere;
-        quest.Owner.Events.OnExitSphere -= OnExitSphere;
+        quest.Owner.Events.OnEnterSphere -= questAct.OnEnterSphere;
+        quest.Owner.Events.OnExitSphere -= questAct.OnExitSphere;
         base.FinalizeAction(quest, questAct);
     }
 
@@ -44,17 +44,17 @@ public class QuestActCheckSphere(QuestComponentTemplate parentComponent) : Quest
         return currentObjectiveCount > 0;
     }
 
-    private void OnEnterSphere(object sender, OnEnterSphereArgs e)
+    public override void OnEnterSphere(IQuestAct questAct, object sender, OnEnterSphereArgs e)
     {
-        if (e.SphereQuest.QuestId != ParentQuestTemplate.Id)
+        if ((questAct.Id == ActId) && (e.SphereQuest.QuestId != ParentQuestTemplate.Id))
             return;
-        SetObjective(e.OwningQuest, 1);
+        SetObjective(questAct, 1);
     }
 
-    private void OnExitSphere(object sender, OnExitSphereArgs e)
+    public override void OnExitSphere(IQuestAct questAct, object sender, OnExitSphereArgs e)
     {
-        if (e.SphereQuest.QuestId != ParentQuestTemplate.Id)
+        if ((questAct.Id != ActId) || (e.SphereQuest.QuestId != ParentQuestTemplate.Id))
             return;
-        SetObjective(e.OwningQuest, 0);
+        SetObjective(questAct, 0);
     }
 }

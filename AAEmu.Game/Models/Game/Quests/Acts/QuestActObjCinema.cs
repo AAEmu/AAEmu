@@ -33,43 +33,52 @@ public class QuestActObjCinema(QuestComponentTemplate parentComponent) : QuestAc
     public override void InitializeAction(Quest quest, IQuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
-        quest.Owner.Events.OnCinemaStarted += OnCinemaStarted;
-        quest.Owner.Events.OnCinemaEnded += OnCinemaEnded;
+        quest.Owner.Events.OnCinemaStarted += questAct.OnCinemaStarted;
+        quest.Owner.Events.OnCinemaEnded += questAct.OnCinemaEnded;
     }
 
     public override void FinalizeAction(Quest quest, IQuestAct questAct)
     {
-        quest.Owner.Events.OnCinemaEnded -= OnCinemaEnded;
-        quest.Owner.Events.OnCinemaStarted -= OnCinemaStarted;
+        quest.Owner.Events.OnCinemaEnded -= questAct.OnCinemaEnded;
+        quest.Owner.Events.OnCinemaStarted -= questAct.OnCinemaStarted;
         base.FinalizeAction(quest, questAct);
     }
 
     /// <summary>
     /// Player request playing a cinematic
     /// </summary>
+    /// <param name="questAct"></param>
     /// <param name="sender">Character</param>
     /// <param name="e">Note, owning quest is not populated here</param>
-    private void OnCinemaStarted(object sender, OnCinemaStartedArgs e)
+    public override void OnCinemaStarted(IQuestAct questAct, object sender, OnCinemaStartedArgs e)
     {
+        if (questAct.Id != ActId)
+            return;
+
         if (sender is not Character player)
             return;
-        // Set currently playing Id
+        // Set currentlyPlayingId
         player.CurrentlyPlayingCinemaId = CinemaId;
     }
 
     /// <summary>
     /// Player finished playing a cinematic
     /// </summary>
+    /// <param name="questAct"></param>
     /// <param name="sender">Character</param>
     /// <param name="e">Note, owning quest is not populated here</param>
-    private void OnCinemaEnded(object sender, OnCinemaEndedArgs e)
+    public override void OnCinemaEnded(IQuestAct questAct, object sender, OnCinemaEndedArgs e)
     {
+        if (questAct.Id != ActId)
+            return;
+
         if (sender is not Character player)
             return;
         // Playing something else?
         if (player.CurrentlyPlayingCinemaId != CinemaId)
             return;
-        SetObjective(e.OwningQuest, 1);
+
+        SetObjective(questAct, 1);
         player.CurrentlyPlayingCinemaId = 0;
     }
 }

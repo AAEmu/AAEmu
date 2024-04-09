@@ -37,18 +37,18 @@ public class QuestActObjCraft(QuestComponentTemplate parentComponent) : QuestAct
     public override void InitializeAction(Quest quest, IQuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
-        quest.Owner.Events.OnCraft += OnCraft;
+        quest.Owner.Events.OnCraft += questAct.OnCraft;
     }
 
     public override void FinalizeAction(Quest quest, IQuestAct questAct)
     {
-        quest.Owner.Events.OnCraft -= OnCraft;
+        quest.Owner.Events.OnCraft -= questAct.OnCraft;
         base.FinalizeAction(quest, questAct);
     }
 
-    private void OnCraft(object sender, OnCraftArgs e)
+    public override void OnCraft(IQuestAct questAct, object sender, OnCraftArgs e)
     {
-        if ((e.OwningQuest.TemplateId == ParentQuestTemplate.Id) && (e.CraftId == CraftId))
-            AddObjective(e.OwningQuest, 1);
+        if ((questAct.Template.ActId == ActId) && (e.CraftId == CraftId))
+            AddObjective(questAct.QuestComponent.Parent.Parent, 1);
     }
 }

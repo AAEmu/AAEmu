@@ -49,12 +49,12 @@ public class QuestActObjInteraction(QuestComponentTemplate parentComponent) : Qu
     public override void InitializeAction(Quest quest, IQuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
-        quest.Parent.RegisterEventHandler(quest.Parent.OnInteractionList, questAct);
+        quest.Owner.Events.OnInteraction += questAct.OnInteraction;
     }
 
     public override void FinalizeAction(Quest quest, IQuestAct questAct)
     {
-        quest.Parent.UnRegisterEventHandler(quest.Parent.OnInteractionList, questAct);
+        quest.Owner.Events.OnInteraction -= questAct.OnInteraction;
         base.FinalizeAction(quest, questAct);
     }
 }

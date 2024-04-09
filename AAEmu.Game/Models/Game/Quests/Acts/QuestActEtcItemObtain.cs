@@ -45,19 +45,19 @@ public class QuestActEtcItemObtain(QuestComponentTemplate parentComponent) : Que
     public override void InitializeAction(Quest quest, IQuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
-        quest.Owner.Events.OnItemGather += OnItemGather;
+        quest.Owner.Events.OnItemGather += questAct.OnItemGather;
     }
 
     public override void FinalizeAction(Quest quest, IQuestAct questAct)
     {
-        quest.Owner.Events.OnItemGather -= OnItemGather;
+        quest.Owner.Events.OnItemGather -= questAct.OnItemGather;
         base.FinalizeAction(quest, questAct);
     }
 
-    private void OnItemGather(object sender, OnItemGatherArgs e)
+    public override void OnItemGather(IQuestAct questAct, object sender, OnItemGatherArgs e)
     {
         // Check if obtained the specified item, there is no check for removing for EtcItemObtain
-        if ((e.ItemId == ItemId) && (e.Count > 0))
-            AddObjective(e.OwningQuest, e.Count, Count);
+        if ((questAct.Id == ActId) && (e.ItemId == ItemId) && (e.Count > 0))
+            AddObjective(questAct, e.Count, Count);
     }
 }

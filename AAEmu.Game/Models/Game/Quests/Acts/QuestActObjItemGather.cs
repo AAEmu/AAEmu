@@ -47,7 +47,7 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
 
         // Register Handler if not at max yet
         if (questAct.GetObjective(quest) < MaxObjective())
-            quest.Owner.Events.OnItemGather += quest.Owner.Quests.OnItemGatherHandler;
+            quest.Owner.Events.OnItemGather += questAct.OnItemGather;
     }
 
     public override void FinalizeAction(Quest quest, IQuestAct questAct)
@@ -55,6 +55,6 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
         base.FinalizeAction(quest, questAct);
 
         // Un-register event handler
-        quest.Owner.Events.OnItemGather -= quest.Owner.Quests.OnItemGatherHandler;
+        quest.Owner.Events.OnItemGather -= questAct.OnItemGather;
     }
 }

@@ -3,6 +3,7 @@ using System.Linq;
 using NLog;
 
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Templates;
 
@@ -109,6 +110,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
         if (quest != null)
             quest.Objectives[ThisComponentObjectiveIndex] = value;
     }
+    public void SetObjective(IQuestAct questAct, int value) => SetObjective(questAct.QuestComponent.Parent.Parent, value); 
 
     /// <summary>
     /// Get Current Objective Count for this Act (forwarded value from Quest)
@@ -119,6 +121,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     {
         return quest?.Objectives[ThisComponentObjectiveIndex] ?? 0;
     }
+    public int GetObjective(IQuestAct questAct) => GetObjective(questAct.QuestComponent.Parent.Parent);
 
     /// <summary>
     /// Set Current Objective Count for this Act (forwards to quest object)
@@ -137,6 +140,15 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     }
 
     /// <summary>
+    /// Set Current Objective Count for this Act (forwards to quest object)
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="amount"></param>
+    /// <param name="maxValue"></param>
+    /// <returns></returns>
+    public int AddObjective(IQuestAct questAct, int amount, int maxValue = 0) => AddObjective(questAct.QuestComponent.Parent.Parent, amount, maxValue);
+
+    /// <summary>
     /// Called when a quest ended or otherwise removed, use to clean up items and tasks
     /// </summary>
     /// <param name="quest"></param>
@@ -153,4 +165,341 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     {
         // Nothing by default
     }
+    
+    // The handlers here are the ones that actually do something.
+    // The versions in IQuestAct are the ones that get registered during Initialize/Finalize, and forward it to these 
+    #region event_handlers
+
+    /// <summary>
+    /// OnMonsterGroupHunt 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnMonsterGroupHunt(IQuestAct questAct, object sender, OnMonsterGroupHuntArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnMonsterHunt 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnMonsterHunt(IQuestAct questAct, object sender, OnMonsterHuntArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnItemGather 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnItemGather(IQuestAct questAct, object sender, OnItemGatherArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnItemGroupGather 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnItemGroupGather(IQuestAct questAct, object sender, OnItemGroupGatherArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnTalkMade 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnTalkMade(IQuestAct questAct, object sender, OnTalkMadeArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnTalkNpcGroupMade 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnTalkNpcGroupMade(IQuestAct questAct, object sender, OnTalkNpcGroupMadeArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnAggro 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnAggro(IQuestAct questAct, object sender, OnAggroArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnItemUse 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnItemUse(IQuestAct questAct, object sender, OnItemUseArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnItemGroupUse 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnItemGroupUse(IQuestAct questAct, object sender, OnItemGroupUseArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnInteract 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnInteraction(IQuestAct questAct, object sender, OnInteractionArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnCraft 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnCraft(IQuestAct questAct, object sender, OnCraftArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnExpressFire 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnExpressFire(IQuestAct questAct, object sender, OnExpressFireArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnLevelUp 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnLevelUp(IQuestAct questAct, object sender, OnLevelUpArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnAbilityLevelUp 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnAbilityLevelUp(IQuestAct questAct, object sender, OnAbilityLevelUpArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnEnterSphere 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnEnterSphere(IQuestAct questAct, object sender, OnEnterSphereArgs args)
+    {
+        //
+    }
+    
+    /// <summary>
+    /// OnExitSphere 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnExitSphere(IQuestAct questAct, object sender, OnExitSphereArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnZoneKill 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnZoneKill(IQuestAct questAct, object sender, OnZoneKillArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnZoneMonsterHunt 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnZoneMonsterHunt(IQuestAct questAct, object sender, OnZoneMonsterHuntArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnCinemaStarted 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnCinemaStarted(IQuestAct questAct, object sender, OnCinemaStartedArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnCinemaEnded 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnCinemaEnded(IQuestAct questAct, object sender, OnCinemaEndedArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnReportNpc 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnReportNpc(IQuestAct questAct, object sender, OnReportNpcArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnAcceptDoodad 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnAcceptDoodad(IQuestAct questAct, object sender, OnAcceptDoodadArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnReportDoodad 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnReportDoodad(IQuestAct questAct, object sender, OnReportDoodadArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnReportJournal 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnReportJournal(IQuestAct questAct, object sender, OnReportJournalArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnQuestComplete 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnQuestComplete(IQuestAct questAct, object sender, OnQuestCompleteArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnKill 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnKill(IQuestAct questAct, object sender, OnKillArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnAttack 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnAttack(IQuestAct questAct, object sender, OnAttackArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnAttacked 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnAttacked(IQuestAct questAct, object sender, OnAttackedArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnDamage 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnDamage(IQuestAct questAct, object sender, OnDamageArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnDamaged
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnDamaged(IQuestAct questAct, object sender, OnDamagedArgs args)
+    {
+        //
+    }
+
+    
+    #endregion // Event Handlers
 }

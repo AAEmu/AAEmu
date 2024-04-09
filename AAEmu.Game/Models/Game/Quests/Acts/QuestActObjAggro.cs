@@ -44,56 +44,61 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
     public override void InitializeAction(Quest quest, IQuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
-        quest.Owner.Events.OnKill += OnKill;
+        quest.Owner.Events.OnKill += questAct.OnKill;
     }
 
     public override void FinalizeAction(Quest quest, IQuestAct questAct)
     {
-        quest.Owner.Events.OnKill -= OnKill;
+        quest.Owner.Events.OnKill -= questAct.OnKill;
         base.FinalizeAction(quest, questAct);
     }
 
     /// <summary>
     /// Set objective count based on Aggro ranking when the Npc gets killed
     /// </summary>
+    /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    private void OnKill(object sender, OnKillArgs e)
+    public override void OnKill(IQuestAct questAct, object sender, OnKillArgs e)
     {
+        if (questAct.Id != ActId)
+            return;
+
+        var q = questAct.QuestComponent.Parent.Parent;
+
         // Check if it's the correct Npc for this quest
-        if ((e.target is Npc npc) && (e.OwningQuest.QuestAcceptorType == QuestAcceptorType.Npc) &&
-            (npc.TemplateId == e.OwningQuest.AcceptorId))
+        if ((e.target is Npc npc) && (q.QuestAcceptorType == QuestAcceptorType.Npc) && (npc.TemplateId == q.AcceptorId))
         {
-            var aggroRate = npc.GetAggroRatingInPercent(e.OwningQuest.Owner.ObjId);
+            var aggroRate = npc.GetAggroRatingInPercent(q.Owner.ObjId);
 
             // Handle ranking and defaults
-            e.OwningQuest.AllowItemRewards = false;
-            e.OwningQuest.QuestRewardRatio = 0.0;
+            q.AllowItemRewards = false;
+            q.QuestRewardRatio = 0.0;
 
             // Rank 1
             if (aggroRate <= Rank1)
             {
-                SetObjective(e.OwningQuest, 1);
-                e.OwningQuest.QuestRewardRatio = Rank1Ratio / 100.0;
-                e.OwningQuest.AllowItemRewards = Rank1Item;
+                SetObjective(q, 1);
+                q.QuestRewardRatio = Rank1Ratio / 100.0;
+                q.AllowItemRewards = Rank1Item;
                 return;
             }
 
             // Rank 2
             if (aggroRate <= Rank2)
             {
-                SetObjective(e.OwningQuest, 2);
-                e.OwningQuest.QuestRewardRatio = Rank2Ratio / 100.0;
-                e.OwningQuest.AllowItemRewards = Rank2Item;
+                SetObjective(q, 2);
+                q.QuestRewardRatio = Rank2Ratio / 100.0;
+                q.AllowItemRewards = Rank2Item;
                 return;
             }
 
             // Rank 3
             if (aggroRate <= Rank3)
             {
-                SetObjective(e.OwningQuest, 3);
-                e.OwningQuest.QuestRewardRatio = Rank3Ratio / 100.0;
-                e.OwningQuest.AllowItemRewards = Rank3Item;
+                SetObjective(q, 3);
+                q.QuestRewardRatio = Rank3Ratio / 100.0;
+                q.AllowItemRewards = Rank3Item;
             }
         }
     }
