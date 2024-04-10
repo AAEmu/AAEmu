@@ -1924,14 +1924,16 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     /// <summary>
     /// Trigger the quest events to interacting with a Doodad
     /// </summary>
-    /// <param name="owner"></param>
-    /// <param name="templateId"></param>
-    public void DoDoodadInteractionEvents(ICharacter owner, uint templateId)
+    /// <param name="sourcePlayer"></param>
+    /// <param name="targetPlayer">Used for TeamShare, otherwise should be same as sourcePlayer</param>
+    /// <param name="doodadTemplateId"></param>
+    public void DoDoodadInteractionEvents(ICharacter sourcePlayer, ICharacter targetPlayer, uint doodadTemplateId)
     {
         // Trigger the interaction event
-        owner?.Events?.OnInteraction(this, new OnInteractionArgs
+        targetPlayer?.Events?.OnInteraction(this, new OnInteractionArgs
         {
-            DoodadId = templateId
+            DoodadId = doodadTemplateId,
+            SourcePlayer = sourcePlayer
         });
     }
 

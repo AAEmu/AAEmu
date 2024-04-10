@@ -43,7 +43,7 @@ public class QuestActObjAbilityLevel(QuestComponentTemplate parentComponent) : Q
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActObjAbilityLevel({DetailId}).RunAct: Quest: {quest.TemplateId}, AbilityId: {AbilityId}, Level: {Level}");
+        Logger.Debug($"QuestActObjAbilityLevel({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), AbilityId: {AbilityId}, Level: {Level}");
 
         if (AbilityId > 0)
         {

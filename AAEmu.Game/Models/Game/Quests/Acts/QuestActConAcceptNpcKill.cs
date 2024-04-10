@@ -31,7 +31,7 @@ public class QuestActConAcceptNpcKill(QuestComponentTemplate parentComponent) : 
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Warn("QuestActConAcceptNpcKill({DetailId}).RunAct: Quest: {quest.TemplateId}, NpcId {NpcId}");
+        Logger.Warn($"QuestActConAcceptNpcKill({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), NpcId {NpcId}");
         return quest.QuestAcceptorType == QuestAcceptorType.Npc && quest.AcceptorId == NpcId;
     }
 }

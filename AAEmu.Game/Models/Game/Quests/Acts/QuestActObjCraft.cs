@@ -28,7 +28,7 @@ public class QuestActObjCraft(QuestComponentTemplate parentComponent) : QuestAct
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActObjCinema({DetailId}).RunAct: Quest: {quest.TemplateId}, CraftId {CraftId}, Count {Count}");
+        Logger.Debug($"QuestActObjCraft({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), CraftId {CraftId}, Count {Count}");
         return ParentQuestTemplate.Score > 0
             ? currentObjectiveCount * Count > ParentQuestTemplate.Score
             : currentObjectiveCount >= Count;
@@ -49,6 +49,9 @@ public class QuestActObjCraft(QuestComponentTemplate parentComponent) : QuestAct
     public override void OnCraft(IQuestAct questAct, object sender, OnCraftArgs e)
     {
         if ((questAct.Template.ActId == ActId) && (e.CraftId == CraftId))
+        {
+            Logger.Debug($"QuestActObjCraft({DetailId}).OnCraft: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), CraftId {CraftId}");
             AddObjective(questAct.QuestComponent.Parent.Parent, 1);
+        }
     }
 }

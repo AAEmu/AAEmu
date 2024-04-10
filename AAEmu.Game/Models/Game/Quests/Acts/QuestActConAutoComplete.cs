@@ -13,15 +13,15 @@ public class QuestActConAutoComplete(QuestComponentTemplate parentComponent) : Q
     }
 
     /// <summary>
-    /// Used for auto-complete conditions, always returns true
+    /// Used for auto-complete conditions
     /// </summary>
     /// <param name="quest"></param>
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
-    /// <returns></returns>
+    /// <returns>True</returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActConAutoComplete({DetailId}).RunAct: Quest: {quest.TemplateId}");
+        Logger.Debug($"QuestActConAutoComplete({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id})");
         return true;
     }
 }

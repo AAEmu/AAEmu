@@ -14,15 +14,16 @@ public class QuestActConReportJournal(QuestComponentTemplate parentComponent) : 
     }
 
     /// <summary>
-    /// Checks if the quest can be auto-completed, always returns true
+    /// Checks if the quest can be auto-completed, differs in some way from QuestActConAutoComplete
+    /// Seems to be used mostly on TaskBoard style group kill quests
     /// </summary>
     /// <param name="quest"></param>
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
-    /// <returns></returns>
+    /// <returns>True</returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Trace($"QuestActConReportJournal({DetailId}).RunAct: Quest: {quest.TemplateId}");
+        Logger.Trace($"QuestActConReportJournal({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id})");
         return true;
     }
 }

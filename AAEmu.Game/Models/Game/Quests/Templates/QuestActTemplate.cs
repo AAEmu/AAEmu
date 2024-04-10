@@ -86,7 +86,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     }
 
     /// <summary>
-    /// Execute and check a Act for it's results, called after updating objective counts
+    /// Execute and check a Act for it's results, called after updating objective counts, descendents should never call base()
     /// </summary>
     /// <param name="quest">Quest this RunAct is called for</param>
     /// <param name="questAct">IQuestAct this RunAct is called from</param>
@@ -94,6 +94,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <returns>True if executed correctly, or objectives have been met</returns>
     public virtual bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
+        Logger.Error($"{QuestActTemplateName}({DetailId}).RunAct, Quest {quest.TemplateId}, Owner: {quest.Owner.Name}, not implemented!");
         return false;
     }
 

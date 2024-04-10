@@ -38,7 +38,7 @@ public class QuestActEtcItemObtain(QuestComponentTemplate parentComponent) : Que
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActEtcItemObtain({DetailId}).RunAct: Quest: {quest.TemplateId}, ItemId {ItemId}, Count {Count}");
+        Logger.Debug($"QuestActEtcItemObtain({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}, Count {currentObjectiveCount}/{Count}");
         return currentObjectiveCount >= Count;
     }
 

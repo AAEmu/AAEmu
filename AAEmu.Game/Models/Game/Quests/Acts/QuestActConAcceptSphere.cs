@@ -27,7 +27,7 @@ public class QuestActConAcceptSphere(QuestComponentTemplate parentComponent) : Q
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Trace($"QuestActConAcceptSphere({DetailId}).RunAct: Quest: {quest.TemplateId}, SkillId {SphereId}");
+        Logger.Trace($"QuestActConAcceptSphere({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), SkillId {SphereId}");
         return quest.QuestAcceptorType == QuestAcceptorType.Sphere && quest.AcceptorId == SphereId;
     }
 }

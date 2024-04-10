@@ -33,7 +33,7 @@ public class QuestActConAcceptNpcEmotion(QuestComponentTemplate parentComponent)
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         // TODO: Somehow check if the emote was correct
-        Logger.Warn($"QuestActConAcceptNpcEmotion({DetailId}).RunAct: Quest: {quest.TemplateId}, DetailId: {DetailId}, NpcId {NpcId}, Emotion {Emotion}");
+        Logger.Warn($"QuestActConAcceptNpcEmotion({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), DetailId: {DetailId}, NpcId {NpcId}, Emotion {Emotion}");
         return quest.QuestAcceptorType == QuestAcceptorType.Npc && quest.AcceptorId == NpcId;
     }
 }

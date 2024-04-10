@@ -24,8 +24,8 @@ public class QuestActConReportDoodad(QuestComponentTemplate parentComponent) : Q
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActConReportDoodad({DetailId}).RunAct: Quest: {quest.TemplateId}, DoodadId {DoodadId}");
-        // TODO: Check range?
+        Logger.Debug($"QuestActConReportDoodad({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), DoodadId {DoodadId}");
+        // TODO: Check doodad range?
         return true;
     }
 }

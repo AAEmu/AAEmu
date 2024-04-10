@@ -142,6 +142,7 @@ public class OnItemGroupUseArgs : EventArgs
 public class OnInteractionArgs : EventArgs
 {
     public uint DoodadId { get; set; } // Doodad.TemplateId
+    public ICharacter SourcePlayer { get; set; }
 }
 
 public class OnCraftArgs : EventArgs

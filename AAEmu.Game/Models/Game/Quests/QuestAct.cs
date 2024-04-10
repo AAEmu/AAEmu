@@ -39,6 +39,7 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
         return template.Use(character, quest, this, objective);
     }
 
+    #region objectives
     /// <summary>
     /// Set Current Objective Count for this Act (forwards to quest object)
     /// </summary>
@@ -70,6 +71,7 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
         quest.Objectives[ThisComponentObjectiveIndex] += amount;
         return quest.Objectives[ThisComponentObjectiveIndex];
     }
+    #endregion
 
     public bool RunAct()
     {
@@ -77,9 +79,11 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
         return Template.RunAct(QuestComponent.Parent.Parent, this, count);
     }
 
-    /*
-     * To sort an array
-     */
+    /// <summary>
+    /// Compare Ids
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
     public int CompareTo(QuestAct other)
     {
         return Id.CompareTo(other.Id);

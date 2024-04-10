@@ -33,7 +33,7 @@ public class QuestActConAcceptNpc(QuestComponentTemplate parentComponent) : Ques
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Trace($"QuestActConAcceptNpc({DetailId}).RunAct: Quest: {quest.TemplateId}, NpcId {NpcId}");
+        Logger.Trace($"QuestActConAcceptNpc({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), NpcId {NpcId}");
         return quest.QuestAcceptorType == QuestAcceptorType.Npc && quest.AcceptorId == NpcId;
     }
 }

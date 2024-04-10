@@ -26,7 +26,7 @@ public class QuestActObjCinema(QuestComponentTemplate parentComponent) : QuestAc
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"QuestActObjCinema({DetailId}).RunAct: Quest: {quest.TemplateId}, CinemaId {CinemaId}");
-        // Assume the client will actually start the cinema on it's own
+        // Assume the client will actually start the cinema on its own
         return currentObjectiveCount >= 1;
     }
 

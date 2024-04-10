@@ -14,7 +14,7 @@ public class QuestActCheckCompleteComponent(QuestComponentTemplate parentCompone
     }
 
     /// <summary>
-    /// This looks like a Legacy Act that is no longer used. Also got no idea of how it would have worked.
+    /// Checks if a specific component of this quest has its objective completed
     /// </summary>
     /// <param name="quest"></param>
     /// <param name="questAct"></param>
@@ -22,7 +22,17 @@ public class QuestActCheckCompleteComponent(QuestComponentTemplate parentCompone
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActCheckCompleteComponent({DetailId}).RunAct: Quest {quest.TemplateId}, Complete Component {CompleteComponent}");
-        return true;
+        Logger.Debug($"QuestActCheckCompleteComponent({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Complete Component {CompleteComponent}");
+        if (questAct.QuestComponent.Parent.Components.TryGetValue(CompleteComponent, out var targetComponent))
+        {
+            // Found target component, check if it's completed
+            // Basically the Same as doing a RunAct on all acts of this component to check the results
+            return targetComponent.RunComponent();
+        }
+        else
+        {
+            Logger.Error($"QuestActCheckCompleteComponent({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Complete Component {CompleteComponent} NOT FOUND!");
+        }
+        return false;
     }
 }

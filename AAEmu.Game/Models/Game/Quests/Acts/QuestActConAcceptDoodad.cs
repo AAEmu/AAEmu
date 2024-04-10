@@ -27,7 +27,7 @@ public class QuestActConAcceptDoodad(QuestComponentTemplate parentComponent) : Q
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Trace($"QuestActConAcceptDoodad({DetailId}).RunAct: Quest: {quest.TemplateId}, DoodadId {DoodadId}");
+        Logger.Trace($"QuestActConAcceptDoodad({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), DoodadId {DoodadId}");
         return (quest.QuestAcceptorType == QuestAcceptorType.Doodad) && (quest.AcceptorId == DoodadId);
     }
 }

@@ -8,7 +8,7 @@ using Jace.Util;
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 /// <summary>
-/// Not used in any existing quests
+/// Does not seem to be used anymore in any active quests
 /// </summary>
 /// <param name="parentComponent"></param>
 public class QuestActCheckDistance(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
@@ -32,7 +32,7 @@ public class QuestActCheckDistance(QuestComponentTemplate parentComponent) : Que
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Trace($"QuestActCheckDistance({DetailId}).RunAct: Quest {quest.TemplateId}, WithIn {WithIn}, NpcId {NpcId}, Distance {Distance}");
+        Logger.Error($"QuestActCheckDistance({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), WithIn {WithIn}, NpcId {NpcId}, Distance {Distance}");
         // There is actually no quest left that still uses this
         var player = quest.Owner as Character;
         var npcs = WorldManager.GetAround<Npc>(player, Distance);

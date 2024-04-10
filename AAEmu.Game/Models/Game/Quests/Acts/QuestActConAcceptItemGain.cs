@@ -28,7 +28,7 @@ public class QuestActConAcceptItemGain(QuestComponentTemplate parentComponent) :
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Trace($"QuestActConAcceptItemGain({DetailId}).RunAct: Quest: {quest.TemplateId}, ItemId {ItemId}");
+        Logger.Trace($"QuestActConAcceptItemGain({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}");
         return (quest.QuestAcceptorType == QuestAcceptorType.Item) && (quest.AcceptorId == ItemId) && quest.Owner.Inventory.CheckItems(Items.SlotType.Inventory, ItemId, Count);
     }
 }

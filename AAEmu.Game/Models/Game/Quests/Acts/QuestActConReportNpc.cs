@@ -30,7 +30,8 @@ public class QuestActConReportNpc(QuestComponentTemplate parentComponent) : Ques
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActConReportNpc({DetailId}).RunAct: Quest: {quest.TemplateId}, NpcId {NpcId}");
+        Logger.Debug($"QuestActConReportNpc({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), NpcId {NpcId}");
+        // TODO Verify: Does it actually have to be targeted?
         return (quest.Owner.CurrentTarget is Npc npc) && (npc.TemplateId == NpcId);
     }
 }

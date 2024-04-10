@@ -6,7 +6,7 @@ using NLog;
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 /// <summary>
-/// Not used? Assumed to start a quest when a item is equipped?
+/// Not used? Assumed to start a quest when an item is equipped?
 /// </summary>
 /// <param name="parentComponent"></param>
 public class QuestActConAcceptItemEquip(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
@@ -21,7 +21,7 @@ public class QuestActConAcceptItemEquip(QuestComponentTemplate parentComponent) 
 
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Warn($"QuestActConAcceptItemEquip({DetailId}).RunAct: Quest: {quest.TemplateId}, ItemId {ItemId}");
+        Logger.Error($"QuestActConAcceptItemEquip({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}");
         return quest.QuestAcceptorType == QuestAcceptorType.Item && quest.AcceptorId == ItemId;
     }
 }

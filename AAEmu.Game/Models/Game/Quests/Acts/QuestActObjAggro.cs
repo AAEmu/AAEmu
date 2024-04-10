@@ -37,7 +37,7 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActObjAggro({DetailId}).RunAct: Quest: {quest.TemplateId}, Range {Range}, Rank1 {Rank1} ");
+        Logger.Debug($"QuestActObjAggro({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Range {Range}, Ranks {Rank1}/{Rank2}/{Rank3}");
         return currentObjectiveCount > 0;
     }
 
@@ -81,6 +81,7 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
                 SetObjective(q, 1);
                 q.QuestRewardRatio = Rank1Ratio / 100.0;
                 q.AllowItemRewards = Rank1Item;
+                Logger.Debug($"QuestActObjAggro({DetailId}).OnKill: Quest: {q.TemplateId}, Rank1 reward, Player {q.Owner.Name} ({q.Owner.Id})");
                 return;
             }
 
@@ -90,6 +91,7 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
                 SetObjective(q, 2);
                 q.QuestRewardRatio = Rank2Ratio / 100.0;
                 q.AllowItemRewards = Rank2Item;
+                Logger.Debug($"QuestActObjAggro({DetailId}).OnKill: Quest: {q.TemplateId}, Rank1 reward, Player {q.Owner.Name} ({q.Owner.Id})");
                 return;
             }
 
@@ -99,7 +101,10 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
                 SetObjective(q, 3);
                 q.QuestRewardRatio = Rank3Ratio / 100.0;
                 q.AllowItemRewards = Rank3Item;
+                Logger.Debug($"QuestActObjAggro({DetailId}).OnKill: Quest: {q.TemplateId}, Rank1 reward, Player {q.Owner.Name} ({q.Owner.Id})");
+                return;
             }
         }
+        Logger.Warn($"QuestActObjAggro({DetailId}).OnKill: Quest: {q.TemplateId}, no rank reward found, Player {q.Owner.Name} ({q.Owner.Id})");
     }
 }

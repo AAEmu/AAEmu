@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 /// <summary>
-/// This Act does not seem to be used
+/// This Act does not seem to be used anymore
 /// </summary>
 public class QuestActObjEffectFire(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {

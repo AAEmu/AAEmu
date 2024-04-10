@@ -25,7 +25,7 @@ public class QuestActObjCompleteQuest(QuestComponentTemplate parentComponent) : 
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActObjCompleteQuest({DetailId}).RunAct: Quest: {quest.TemplateId}, QuestId {QuestId}, AcceptWith {AcceptWith}");
+        Logger.Warn($"QuestActObjCompleteQuest({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), QuestId {QuestId}, AcceptWith {AcceptWith}");
         // TODO: Not sure what AcceptWith is supposed to do, but none of the still existing quests seem to use this
         // I'd assume this would indicate that you also automatically accept this quest when getting to this step?
 

@@ -12,15 +12,13 @@ using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Quests;
 
 public partial class Quest : PacketMarshaler
 {
-    private object _lock = new();
-    public Dictionary<QuestComponentKind, QuestStep> QuestSteps { get; set; } = new();
+    private Dictionary<QuestComponentKind, QuestStep> QuestSteps { get; set; } = new();
 
     #region Framework
 
@@ -101,7 +99,7 @@ public partial class Quest : PacketMarshaler
         var loopLockCheck = 0;
         while (true)
         {
-            // Shouldn't happen, but check for a infinite loop
+            // Shouldn't happen, but check for infinite loops
             if (loopLockCheck > 20)
             {
                 Logger.Error($"GoToNextStep got stuck in a infinite loop for Quest:{TemplateId}, Step:{lastStep} -> {Step}, Player {Owner.Name} ({Owner.Id}");
@@ -123,7 +121,7 @@ public partial class Quest : PacketMarshaler
                     Step = QuestComponentKind.Ready; // When Objectives completed, go to Ready
                     break;
                 case QuestComponentKind.Fail:
-                    // Fail state does not have a next step, player needs to manually dro/restart the quest
+                    // Fail state does not have a next step, player needs to manually drop/restart the quest
                     return;
                 case QuestComponentKind.Ready:
                     Step = QuestComponentKind.Reward; // Go to Reward when turning in the quest 

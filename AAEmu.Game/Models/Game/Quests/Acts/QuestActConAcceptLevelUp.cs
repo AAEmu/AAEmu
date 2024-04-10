@@ -24,7 +24,7 @@ public class QuestActConAcceptLevelUp(QuestComponentTemplate parentComponent) : 
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Trace($"QuestActConAcceptLevelUp({DetailId}).RunAct: Quest: {quest.TemplateId}, Level {Level}");
+        Logger.Trace($"QuestActConAcceptLevelUp({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Level {Level}");
         return quest.Owner.Level >= Level;
     }
 }

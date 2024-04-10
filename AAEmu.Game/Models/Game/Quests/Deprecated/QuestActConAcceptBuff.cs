@@ -28,7 +28,7 @@ public class QuestActConAcceptBuff(QuestComponentTemplate parentComponent) : Que
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Trace($"QuestActConAcceptBuff({DetailId}).RunAct: Quest {quest.TemplateId}, BuffId {BuffId}");
+        Logger.Error($"QuestActConAcceptBuff({DetailId}).RunAct: Quest {quest.TemplateId}, Player {quest.Owner.Name} ({quest.Owner.Id}), BuffId {BuffId}");
         return quest.QuestAcceptorType == QuestAcceptorType.Buff && quest.AcceptorId == BuffId;
     }
 }
