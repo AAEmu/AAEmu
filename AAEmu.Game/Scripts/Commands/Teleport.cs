@@ -187,6 +187,15 @@ public class Teleport : ICommand
         locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.East,
+            Name = "rokhala",
+            Info = "Rokhala Plains",
+            X = 28057,
+            Y = 10005,
+            Z = 866
+        });
+        locations.Add(new TPloc
+        {
+            Region = TeleportCommandRegions.East,
             Name = "hasla",
             Info = "Hasla, Veroe",
             X = 30029,
@@ -295,6 +304,38 @@ public class Teleport : ICommand
             X = 22349,
             Y = 24941,
             Z = 189
+        });
+        locations.Add(new TPloc
+        {
+            Region = TeleportCommandRegions.Auroria,
+            Name = "oshcastle",
+            Info = "Osh Castle",
+            X = 17257,
+            Y = 27516,
+            Z = 141,
+            AltNames = new string[] { "oc" }
+        });
+        locations.Add(new TPloc
+        {
+            Region = TeleportCommandRegions.Auroria,
+            Name = "wastelandofcorvus",
+            Info = "Wasteland of Corvus",
+            X = 19611,
+            Y = 28288,
+            Z = 295,
+            AltNames = new string[] { "woc" }
+
+        });
+        locations.Add(new TPloc
+        {
+            Region = TeleportCommandRegions.Auroria,
+            Name = "blooddewgorge",
+            Info = "Blooddew Gorge",
+            X = 23422,
+            Y = 27719,
+            Z = 179,
+            AltNames = new string[] { "bg" }
+
         });
         locations.Add(new TPloc
         {
