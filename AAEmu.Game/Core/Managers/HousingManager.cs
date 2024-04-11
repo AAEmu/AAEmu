@@ -1417,7 +1417,7 @@ public class HousingManager : Singleton<HousingManager>
             return false;
         }
 
-        if (house.SellToPlayerId == character.Id)
+        if (house.OwnerId == character.Id)
         {
             // Cannot buy own building
             character.SendErrorMessage(ErrorMessageType.HouseCannotBuyAsOwner);
