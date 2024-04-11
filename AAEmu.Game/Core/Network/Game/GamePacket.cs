@@ -24,7 +24,7 @@ public abstract class GamePacket : PacketBase<GameConnection>
     // send encrypted packets from the server
     public override PacketStream Encode()
     {
-        lock (Connection.WriteLock)
+        //lock (Connection.WriteLock)
         {
             byte count = 0;
             var ps = new PacketStream();
@@ -86,7 +86,7 @@ public abstract class GamePacket : PacketBase<GameConnection>
                 throw;
             }
 
-            var logString = $"GamePacket: S->C type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
+            var logString = $"GamePacket: S->C type [{Level}:{TypeId:X3}] C:[{count}:{EncryptionManager.Instance.GetSCMessageCount(Connection.Id, Connection.AccountId)}] {ToString()?.Substring(23)}{Verbose()}";
             switch (LogLevel)
             {
                 case PacketLogLevel.Trace:
@@ -112,19 +112,43 @@ public abstract class GamePacket : PacketBase<GameConnection>
                     break;
             }
 
+            if (TypeId == 0xFFF)
+            {
+                Logger.Error("UNKNOWN OPCODE FOR PACKET");
+                Logger.Debug($"GamePacket: S->C type [{Level}:{TypeId:X3}] C:[{count}:{EncryptionManager.Instance.GetSCMessageCount(Connection.Id, Connection.AccountId)}] {ToString()?.Substring(23)}{Verbose()}");
+                throw new SystemException();
+            }
+            if (EncryptionManager.Instance.GetSCMessageCount(Connection.Id, Connection.AccountId) == count && Level == 5)
+            {
+                Logger.Error($"Looks like we got double count {count}");
+            }
+            if (EncryptionManager.Instance.GetSCMessageCount(Connection.Id, Connection.AccountId) - count > 1 && Level == 5)
+            {
+                Logger.Error($"Looks like we've had a counting glitch [{Level}:{TypeId:X3}] C:[{count}:{EncryptionManager.Instance.GetSCMessageCount(Connection.Id, Connection.AccountId)}] {ToString()?.Substring(23)}{Verbose()}");
+            }
+
+            Connection.LastCount = count;
+
             return ps;
         }
     }
 
     public override PacketBase<GameConnection> Decode(PacketStream ps)
     {
-        lock (Connection.ReadLock)
+        //lock (Connection.ReadLock)
         {
+            if (TypeId == 0xFFF)
+            {
+                Logger.Error("UNKNOWN OPCODE FOR PACKET");
+                Logger.Debug($"GamePacket: S->C type [{Level}:{TypeId:X3}] {ToString()?.Substring(23)}{Verbose()}");
+                throw new SystemException();
+            }
+
             try
             {
                 Read(ps);
 
-                var logString = $"GamePacket: C->S type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
+                var logString = $"GamePacket: C->S type [{Level}:{TypeId:X3}] {ToString()?.Substring(23)}{Verbose()}";
                 switch (LogLevel)
                 {
                     case PacketLogLevel.Trace:
@@ -154,7 +178,7 @@ public abstract class GamePacket : PacketBase<GameConnection>
             }
             catch (Exception ex)
             {
-                Logger.Error("GamePacket: C->S type {0:X3} {1}", TypeId, ToString()?.Substring(23));
+                Logger.Error($"GamePacket: C->S type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}");
                 Logger.Fatal(ex);
                 throw;
             }

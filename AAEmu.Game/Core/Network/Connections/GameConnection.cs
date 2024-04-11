@@ -60,8 +60,11 @@ public class GameConnection
 
     public void SendPacket(GamePacket packet)
     {
-        packet.Connection = this;
-        SendPacket(packet.Encode());
+        lock (WriteLock)
+        {
+            packet.Connection = this;
+            SendPacket(packet.Encode());
+        }
     }
 
     public void SendPacket(byte[] packet)

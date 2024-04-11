@@ -27,4 +27,8 @@ public class SkillEffect
     public bool AlwaysHit { get; set; }
     public uint ItemSetId { get; set; }
     public bool InteractionSuccessHit { get; set; }
+    public bool CheckNoSourceTagSrc { get; set; }
+    public bool CheckNoTargetTagSrc { get; set; }
+    public bool CheckSourceTagSrc { get; set; }
+    public bool CheckTargetTagSrc { get; set; }
 }

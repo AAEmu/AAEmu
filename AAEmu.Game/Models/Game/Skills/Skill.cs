@@ -269,7 +269,7 @@ public class Skill
 
         // HACKFIX : Mounts and Turbulence
         if (skillCaster.Type == SkillCasterType.Mount || skillCaster.Type == SkillCasterType.Unit)
-            target = WorldManager.Instance.GetUnit(targetCaster.ObjId);
+            target = WorldManager.Instance.GetUnit(skillCaster.ObjId);
 
         switch (Template.TargetType)
         {
@@ -773,7 +773,7 @@ public class Skill
         if (Template.TargetAreaRadius > 0)
         {
             var units = WorldManager.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius, true);
-            units.Add(targetSelf); // Add main target as well
+            //units.Add(targetSelf); // Add main target as well - !!! не добавляем себя !!!
             units = FilterAoeUnits(caster, units).ToList();
 
             targets.AddRange(units);
@@ -882,23 +882,27 @@ public class Skill
                     continue;
                 }
 
-                if (effect.SourceBuffTagId > 0 && !caster.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceBuffTagId)))
+                if (effect.SourceBuffTagId > 0 && effect.CheckSourceTagSrc && !caster.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceBuffTagId)))
                 {
                     // TODO Commented out the code for the Id=2255 quest to work. Restore after finding a solution to the lack of a debuff.
                     continue;
                 }
 
-                if (effect.SourceNoBuffTagId > 0 && caster.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceNoBuffTagId)))
+                if (effect.SourceNoBuffTagId > 0 && effect.CheckNoSourceTagSrc && caster.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceNoBuffTagId)))
                 {
                     continue;
                 }
 
-                if (effect.TargetBuffTagId > 0 && !target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetBuffTagId)))
+                if (effect.TargetBuffTagId > 0 && effect.CheckTargetTagSrc && !target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetBuffTagId)))
                 {
                     continue;
                 }
 
-                if (effect.TargetNoBuffTagId > 0 && target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetNoBuffTagId)))
+                if (effect.TargetNoBuffTagId > 0 && effect.CheckNoTargetTagSrc && target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetNoBuffTagId)))
+                {
+                    continue;
+                }
+                if (effect.TargetNpcTagId > 0 && target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetNpcTagId)))
                 {
                     continue;
                 }

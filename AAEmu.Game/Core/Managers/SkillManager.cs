@@ -1600,6 +1600,10 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.AlwaysHit = reader.GetBoolean("always_hit", true);
                         template.ItemSetId = reader.GetUInt32("item_set_id", 0);
                         template.InteractionSuccessHit = reader.GetBoolean("interaction_success_hit", true);
+                        template.CheckNoSourceTagSrc = reader.GetBoolean("check_no_source_tag_src", true);
+                        template.CheckNoTargetTagSrc = reader.GetBoolean("check_no_target_tag_src", true);
+                        template.CheckSourceTagSrc = reader.GetBoolean("check_source_tag_src", true);
+                        template.CheckTargetTagSrc = reader.GetBoolean("check_target_tag_src", true);
                         _skills[skillId].Effects.Add(template);
                     }
                 }
