@@ -32,9 +32,9 @@ public class SCBuffCreatedPacket : GamePacket
         else
             stream.Write(0);
 
-        stream.Write(0);                             // stack add in 3.0.3.0
+        stream.Write(0);         // stack add in 3.0.3.0
+        _buff.WriteData(stream); // pisc
 
-        _buff.WriteData(stream);
         return stream;
     }
 

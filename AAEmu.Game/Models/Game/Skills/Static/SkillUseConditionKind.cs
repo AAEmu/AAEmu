@@ -6,9 +6,7 @@ public enum SkillUseConditionKind
     InCombat = 0,
     InIdle = 1,
     OnDeath = 2,
-    InAlert = 3,
-    InDead = 4,
-    OnSpawn = 5,
-    OnDespawn = 6,
-    OnAlert = 7
+    OnAlert = 3,
+    OnSpawn = 4,
+    OnDespawn = 5
 }

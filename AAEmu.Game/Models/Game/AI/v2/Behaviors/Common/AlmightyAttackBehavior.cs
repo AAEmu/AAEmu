@@ -41,7 +41,7 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
 
         _aiParams = aiParams;
 
-        if (!UpdateTarget() || ShouldReturn)
+        if (!UpdateTarget() || ShouldReturn) // проверим, что таблица abuser не пустая и назначим текущую цель
         {
             Ai.OnNoAggroTarget();
             return;
