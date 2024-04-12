@@ -68,9 +68,7 @@ public class Buffs : IBuffs
     {
         foreach (var effect in _effects.ToList())
         {
-            if (effect == null)
-                continue;
-            var template = effect.Template;
+            var template = effect?.Template;
 
             if (template == null)
                 continue;
@@ -161,10 +159,8 @@ public class Buffs : IBuffs
         var buffIdsSet = new HashSet<uint>(ids);
 
         foreach (var effect in _effects)
-        {
             if (effect?.Template?.BuffId > 0 && buffIdsSet.Contains(effect.Template.BuffId))
                 return true;
-        }
 
         return false;
     }
@@ -224,9 +220,7 @@ public class Buffs : IBuffs
                     _nextIndex = 1;
             }
             else
-            {
                 buff.Index = index;
-            }
 
             var buffIds = SkillManager.Instance.GetBuffTags(buff.Template.Id);
             var buffTolerance = buffIds
@@ -248,28 +242,25 @@ public class Buffs : IBuffs
                         counter.CurrentStep = buffTolerance.GetFirstStep();
                     }
                     else
-                    {
                         counter.CurrentStep = nextStep;
-                    }
                 }
 
                 counter.LastStep = DateTime.UtcNow;
             }
             else if (buffTolerance != null)
             {
-                _toleranceCounters.Add(buffTolerance.Id, new BuffToleranceCounter()
+                var btc = new BuffToleranceCounter
                 {
                     Tolerance = buffTolerance,
                     CurrentStep = buffTolerance.GetFirstStep(),
                     LastStep = DateTime.UtcNow
-                });
+                };
+                _toleranceCounters[buffTolerance.Id] = btc;
             }
 
             buff.Duration = buff.Template.GetDuration(buff.AbLevel);
-            buff.Duration = (int)buff.Caster.BuffModifiersCache.ApplyModifiers(buff.Template,
-                BuffAttribute.Duration, buff.Duration);
-            buff.Duration = (int)buff.Owner.BuffModifiersCache.ApplyModifiers(buff.Template,
-                BuffAttribute.InDuration, buff.Duration);
+            buff.Duration = (int)buff.Caster.BuffModifiersCache.ApplyModifiers(buff.Template, BuffAttribute.Duration, buff.Duration);
+            buff.Duration = (int)buff.Owner.BuffModifiersCache.ApplyModifiers(buff.Template, BuffAttribute.InDuration, buff.Duration);
 
             if (buffTolerance != null)
             {
@@ -343,7 +334,6 @@ public class Buffs : IBuffs
                     owner.InterruptSkills();
             }
 
-            //if (buff.Duration > 0)
             if (buff.Duration > 0 || buff.Template.TickEffects.Count > 0)
                 buff.SetInUse(true, false);
             else
@@ -357,10 +347,8 @@ public class Buffs : IBuffs
             if (buffIds.Contains((uint)TagsEnum.NoFight) || buffIds.Contains((uint)TagsEnum.Returning))
             {
                 // Unit entered a "safe zone"
-                if ((owner is Npc npc) && (npc.Ai != null))
-                {
+                if (owner is Npc { Ai: not null } npc)
                     npc.ClearAllAggro();
-                }
 
                 if (owner is Unit unit)
                     unit.IsInBattle = false;
@@ -368,9 +356,7 @@ public class Buffs : IBuffs
         }
 
         if (finalToleranceBuffId > 0)
-        {
             AddBuff(new Buff(buff.Owner, buff.Caster, buff.SkillCaster, SkillManager.Instance.GetBuffTemplate(finalToleranceBuffId), buff.Skill, DateTime.UtcNow));
-        }
     }
 
     public void RemoveEffect(Buff buff)
@@ -381,7 +367,7 @@ public class Buffs : IBuffs
             if (own == null)
                 return;
 
-            if (buff == null || _effects == null || !_effects.Contains(buff))
+            if (buff == null || _effects?.Contains(buff) != true)
                 return;
 
             buff.SetInUse(false, false);
