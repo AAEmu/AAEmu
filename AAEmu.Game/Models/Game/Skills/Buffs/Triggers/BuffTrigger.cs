@@ -22,7 +22,7 @@ public class BuffTrigger
 
         if (_owner is not Unit) // if doodads
         {
-            Logger.Warn("Owner is a Doodad");
+            //Logger.Warn("Owner is a Doodad");
             var target0 = _buff?.Owner;
             var source0 = _buff?.Owner;
 
@@ -54,7 +54,7 @@ public class BuffTrigger
             return;
         }
 
-        Logger.Warn("Owner is a Unit");
+        //Logger.Warn("Owner is a Unit");
         var target = _buff?.Owner;
         var source = (Unit)_buff?.Owner;
 
