@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Security.AccessControl;
 
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
@@ -8,6 +7,10 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
+/// <summary>
+/// Not used
+/// </summary>
+/// <param name="parentComponent"></param>
 public class QuestActObjItemGroupGather(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint ItemGroupId { get; set; }

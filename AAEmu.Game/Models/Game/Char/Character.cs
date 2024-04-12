@@ -1577,18 +1577,16 @@ public partial class Character : Unit, ICharacter
     /// <summary>
     /// ItemUse - is used to work the quests
     /// </summary>
-    /// <param name="id"></param>
+    /// <param name="id">item.id</param>
     public void ItemUse(ulong id)
     {
         var item = Inventory.GetItemById(id);
         if (item is { Count: > 0 })
         {
-            //Quests.OnItemUse(item);
-            // инициируем событие
+            // Trigger event
             Events?.OnItemUse(this, new OnItemUseArgs
             {
-                ItemId = item.TemplateId,
-                Count = item.Count
+                ItemId = item.TemplateId
             });
         }
     }

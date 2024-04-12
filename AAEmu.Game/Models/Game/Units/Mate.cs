@@ -26,17 +26,13 @@ public class MatePassengerInfo
 public sealed class Mate : Unit
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Mate;
-    //public ushort TlId { get; set; }
-    //public uint TemplateId { get; set; } // moved to BaseUnit
     public NpcTemplate Template { get; set; }
-
     public uint OwnerObjId { get; set; }
     public Dictionary<AttachPointKind, MatePassengerInfo> Passengers { get; }
-
     public override float Scale => Template.Scale;
-
-    // SpawnMate
-    //public uint Id { get; set; } // moved to BaseUnit
+    /// <summary>
+    /// The item that this summon is from
+    /// </summary>
     public ulong ItemId { get; set; }
     public byte UserState { get; set; }
     public int Experience { get; set; }
@@ -510,9 +506,29 @@ public sealed class Mate : Unit
         Passengers.Add(AttachPointKind.Passenger0, new MatePassengerInfo() { _objId = 0, _reason = 0 });
     }
 
+    /// <summary>
+    /// Update the Item Data if it was summoned by an item
+    /// </summary>
+    private void UpdateMateItemData()
+    {
+        if (ItemId > 0)
+        {
+            var item = ItemManager.Instance.GetItemByItemId(ItemId);
+            if (item is SummonMate mateItem)
+            {
+                mateItem.DetailMateExp = Experience;
+                mateItem.DetailLevel = Level;
+                mateItem.IsDirty = true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Adds exp to this Mate and checks for level ups
+    /// </summary>
+    /// <param name="exp"></param>
     public void AddExp(int exp)
     {
-
         if (exp == 0)
             return;
         if (exp > 0)
@@ -524,25 +540,33 @@ public sealed class Mate : Unit
         CheckLevelUp();
     }
 
-    public void CheckLevelUp()
+    private void CheckLevelUp()
     {
-        var needExp = ExperienceManager.Instance.GetExpForLevel((byte)(Level + 1));
-        var change = false;
+        var needExp = ExperienceManager.Instance.GetExpForLevel((byte)(Level + 1), true);
+        var leveledUp = false;
         while (Experience >= needExp)
         {
-            change = true;
+            leveledUp = true;
             Level++;
-            needExp = ExperienceManager.Instance.GetExpForLevel((byte)(Level + 1));
+            needExp = ExperienceManager.Instance.GetExpForLevel((byte)(Level + 1), true);
         }
 
-        if (change)
-        {
-            BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
-            //StartRegen();
-        }
-
+        UpdateMateItemData();
         DbInfo.Xp = Experience;
         DbInfo.Level = Level;
+
+        if (leveledUp)
+        {
+            BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
+            if (OwnerId > 0)
+            {
+                // Notify owner of the level up event
+                var owner = WorldManager.Instance.GetCharacterByObjId(OwnerObjId);
+                if (owner != null)
+                    owner.Events.OnMateLevelUp(this, new OnMateLevelUpArgs());
+            }
+            //StartRegen();
+        }
     }
 
     public override void AddVisibleObject(Character character)

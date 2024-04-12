@@ -222,6 +222,16 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
     }
 
     /// <summary>
+    /// OnMateLevelUp
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnMateLevelUp(object sender, OnMateLevelUpArgs args)
+    {
+        Template.OnMateLevelUp(this, sender, args);
+    }
+
+    /// <summary>
     /// OnAbilityLevelUp 
     /// </summary>
     /// <param name="sender"></param>

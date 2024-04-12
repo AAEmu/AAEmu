@@ -920,12 +920,12 @@ public class Inventory
             //Owner?.Quests?.OnItemGather(item, count);
             // инициируем событие
             //Task.Run(() => QuestManager.Instance.DoAcquiredEvents((Character)Owner, item.TemplateId, item.Count));
-            QuestManager.Instance.DoAcquiredEvents((ICharacter)Owner, item.TemplateId, item.Count);
+            QuestManager.Instance.DoItemsAcquiredEvents(Owner, item.TemplateId, item.Count);
         }
     }
 
     /// <summary>
-    /// Triggers whenever a item (count) is removed
+    /// Triggers whenever an item (count) is removed
     /// </summary>
     /// <param name="item"></param>
     /// <param name="count"></param>
@@ -942,7 +942,7 @@ public class Inventory
             //Owner?.Quests?.OnItemUse(item);
             // инициируем событие
             //Task.Run(() => QuestManager.Instance.DoConsumedEvents((Character)Owner, item.TemplateId, count));
-            QuestManager.Instance.DoConsumedEvents((Character)Owner, item.TemplateId, count);
+            QuestManager.Instance.DoItemsConsumedEvents(Owner, item.TemplateId, count);
         }
     }
 

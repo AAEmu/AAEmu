@@ -12,39 +12,37 @@ public class ExperienceManager : Singleton<ExperienceManager>
 
     private Dictionary<byte, ExperienceLevelTemplate> _levels;
 
+    // TODO: Put this in the configuration files
+    public static byte MaxPlayerLevel => 55;
+    public static byte MaxMateLevel => 50;
+
     public int GetExpForLevel(byte level, bool mate = false)
     {
-        return level > _levels.Count ? 0 :
-            mate ? _levels[level].TotalMateExp : _levels[level].TotalExp;
+        var levelTemplate = _levels.GetValueOrDefault(level);
+        return mate ? levelTemplate?.TotalMateExp ?? 0 : levelTemplate?.TotalExp ?? 0;
     }
 
     public byte GetLevelFromExp(int exp, bool mate = false)
     {
         // Loop the levels to find the level for a given exp value
-        for (byte lv = 1; lv < _levels.Count; lv++)
+        foreach (var (level, levelTemplate) in _levels)
         {
-            if (exp >= (mate ? _levels[lv].TotalMateExp : _levels[lv].TotalExp))
-                continue;
-            return (lv--);
+            if (exp < (mate ? levelTemplate.TotalMateExp : levelTemplate.TotalExp))
+                return (byte)(level-1);
         }
         return 0;
     }
 
     public int GetExpNeededToGivenLevel(int currentExp, byte targetLevel, bool mate = false)
     {
-        var targetexp = GetExpForLevel(targetLevel, mate);
-        var diff = targetexp - currentExp;
+        var targetExp = GetExpForLevel(targetLevel, mate);
+        var diff = targetExp - currentExp;
         return (diff <= 0) ? 0 : diff;
     }
 
     public int GetSkillPointsForLevel(byte level)
     {
-        if (level > _levels.Count)
-            return 0;
-        var points = 0;
-        for (var i = 1; i <= level; i++)
-            points += _levels[level].SkillPoints;
-        return points;
+        return _levels.GetValueOrDefault(level)?.SkillPoints ?? 0;
     }
 
     public void Load()

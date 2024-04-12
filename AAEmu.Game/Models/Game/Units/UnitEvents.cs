@@ -52,6 +52,7 @@ public class UnitEvents
     public EventHandler<OnInteractionArgs> OnInteraction = delegate { };
     public EventHandler<OnExpressFireArgs> OnExpressFire = delegate { };
     public EventHandler<OnLevelUpArgs> OnLevelUp = delegate { };
+    public EventHandler<OnMateLevelUpArgs> OnMateLevelUp = delegate { };
     public EventHandler<OnAbilityLevelUpArgs> OnAbilityLevelUp = delegate { };
     public EventHandler<OnEnterSphereArgs> OnEnterSphere = delegate { };
     public EventHandler<OnExitSphereArgs> OnExitSphere = delegate { };
@@ -101,6 +102,7 @@ public class OnItemGroupGatherArgs : EventArgs
 {
     public uint ItemId { get; set; }
     public int Count { get; set; }
+    public uint ItemGroupId { get; set; }
 }
 
 public class OnTalkMadeArgs : EventArgs
@@ -130,7 +132,6 @@ public class OnAggroArgs : EventArgs
 public class OnItemUseArgs : EventArgs
 {
     public uint ItemId { get; set; }
-    public int Count { get; set; }
 }
 
 public class OnItemGroupUseArgs : EventArgs
@@ -157,6 +158,11 @@ public class OnExpressFireArgs : EventArgs
 }
 
 public class OnLevelUpArgs : EventArgs
+{
+    // Empty
+}
+
+public class OnMateLevelUpArgs : EventArgs
 {
     // Empty
 }

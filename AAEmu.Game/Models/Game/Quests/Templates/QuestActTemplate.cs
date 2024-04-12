@@ -141,7 +141,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     }
 
     /// <summary>
-    /// Set Current Objective Count for this Act (forwards to quest object)
+    /// Adds to current Objective Count for this Act (forwards to quest object)
     /// </summary>
     /// <param name="questAct"></param>
     /// <param name="amount"></param>
@@ -310,6 +310,17 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="sender"></param>
     /// <param name="args"></param>
     public virtual void OnLevelUp(IQuestAct questAct, object sender, OnLevelUpArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// OnMateLevelUp 
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnMateLevelUp(IQuestAct questAct, object sender, OnMateLevelUpArgs args)
     {
         //
     }

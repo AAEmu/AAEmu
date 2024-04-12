@@ -6,6 +6,10 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
+/// <summary>
+/// Only used in one instance of a test quest
+/// </summary>
+/// <param name="parentComponent"></param>
 public class QuestActObjItemGroupUse(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint ItemGroupId { get; set; }

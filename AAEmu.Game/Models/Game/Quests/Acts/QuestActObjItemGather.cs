@@ -2,8 +2,10 @@
 
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -40,14 +42,26 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
         Logger.Info($"{QuestActTemplateName} - QuestActItemGather {DetailId} was updated by {updateAmount} for a total of {questAct.GetObjective(quest)}.");
     }
 
+    /// <summary>
+    /// Checks if the number of items have been acquired 
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    {
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}, Count {currentObjectiveCount}/{Count}");
+        SetObjective(quest, quest.Owner.Inventory.GetItemsCount(ItemId));
+        return GetObjective(quest) >= Count;
+    }
+
     public override void InitializeAction(Quest quest, IQuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
         questAct.SetObjective(quest, quest.Owner.Inventory.GetItemsCount(ItemId));
 
-        // Register Handler if not at max yet
-        if (questAct.GetObjective(quest) < MaxObjective())
-            quest.Owner.Events.OnItemGather += questAct.OnItemGather;
+        // Register event handler
+        quest.Owner.Events.OnItemGather += questAct.OnItemGather;
     }
 
     public override void FinalizeAction(Quest quest, IQuestAct questAct)
@@ -56,5 +70,33 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
 
         // Un-register event handler
         quest.Owner.Events.OnItemGather -= questAct.OnItemGather;
+    }
+
+    public override void QuestCleanup(Quest quest)
+    {
+        base.QuestCleanup(quest);
+        if (!Cleanup)
+            return;
+
+        quest.Owner?.Inventory.ConsumeItem([], ItemTaskType.QuestRemoveSupplies, ItemId, MaxObjective(), null);
+    }
+
+    public override void QuestDropped(Quest quest)
+    {
+        base.QuestDropped(quest);
+        if (!DestroyWhenDrop)
+            return;
+
+        quest.Owner?.Inventory.ConsumeItem([], ItemTaskType.QuestRemoveSupplies, ItemId, MaxObjective(), null);
+    }
+
+    public override void OnItemGather(IQuestAct questAct, object sender, OnItemGatherArgs args)
+    {
+        if ((questAct.Id != ActId) || (args.ItemId != ItemId))
+            return;
+
+        // Just adding/removing the count should technically be enough without having to do a new count
+        // AddObjective(questAct, args.Count);
+        SetObjective(questAct, questAct.QuestComponent.Parent.Parent.Owner.Inventory.GetItemsCount(ItemId));
     }
 }

@@ -1838,7 +1838,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
 
             //Connection.ActiveChar.Quests.OnReportToNpc(_npcObjId, _questContextId, _selected);
             // Initiate the event of Npc report on task completion
-            owner.Events?.OnReportNpc(this, new OnReportNpcArgs
+            owner.Events?.OnReportNpc(owner, new OnReportNpcArgs
             {
                 QuestId = questContextId,
                 NpcId = npc.TemplateId,
@@ -1856,7 +1856,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
 
             //Connection.ActiveChar.Quests.OnReportToDoodad(_doodadObjId, _questContextId, _selected);
             // Trigger the Report to Doodad event
-            owner.Events?.OnReportDoodad(this, new OnReportDoodadArgs
+            owner.Events?.OnReportDoodad(owner, new OnReportDoodadArgs
             {
                 QuestId = questContextId,
                 DoodadId = doodad.TemplateId,
@@ -1872,29 +1872,12 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     }
 
     /// <summary>
-    /// Trigger the quest events for handling the consumption of items
+    /// Trigger the quest events for handling the consumption or reduction of items
     /// </summary>
     /// <param name="owner"></param>
     /// <param name="templateId"></param>
     /// <param name="count"></param>
-    public void DoConsumedEvents(ICharacter owner, uint templateId, int count)
-    {
-        // Trigger the item use event
-        owner?.Events?.OnItemUse(this, new OnItemUseArgs
-        {
-            ItemId = templateId,
-            Count = count
-        });
-
-        // Trigger the item group use event
-        // Check what groups this item belongs to
-        // TODO: Optimize this to be added after item and quest loading
-        var itemGroupsForThisItem = _groupItems.Where(x => x.Value.Contains(templateId)).Select(x => x.Key);
-        foreach (var itemGroup in itemGroupsForThisItem)
-        {
-            owner?.Events?.OnItemGroupUse(this, new OnItemGroupUseArgs { ItemGroupId = templateId, Count = count });
-        }
-    }
+    public void DoItemsConsumedEvents(ICharacter owner, uint templateId, int count) => DoItemsAcquiredEvents(owner, templateId, -count);
 
     /// <summary>
     /// Trigger the quest events for acquiring items
@@ -1902,10 +1885,10 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     /// <param name="owner"></param>
     /// <param name="templateId"></param>
     /// <param name="count"></param>
-    public void DoAcquiredEvents(ICharacter owner, uint templateId, int count)
+    public void DoItemsAcquiredEvents(ICharacter owner, uint templateId, int count)
     {
         // Trigger the item acquire event
-        owner?.Events?.OnItemGather(this, new OnItemGatherArgs
+        owner?.Events?.OnItemGather(owner, new OnItemGatherArgs
         {
             ItemId = templateId,
             Count = count
@@ -1917,7 +1900,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         var itemGroupsForThisItem = _groupItems.Where(x => x.Value.Contains(templateId)).Select(x => x.Key);
         foreach (var itemGroup in itemGroupsForThisItem)
         {
-            owner?.Events?.OnItemGroupGather(this, new OnItemGroupGatherArgs { ItemId = templateId, Count = count });
+            owner?.Events?.OnItemGroupGather(owner, new OnItemGroupGatherArgs { ItemId = templateId, Count = count, ItemGroupId = itemGroup});
         }
     }
 
@@ -1930,7 +1913,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     public void DoDoodadInteractionEvents(ICharacter sourcePlayer, ICharacter targetPlayer, uint doodadTemplateId)
     {
         // Trigger the interaction event
-        targetPlayer?.Events?.OnInteraction(this, new OnInteractionArgs
+        targetPlayer?.Events?.OnInteraction(sourcePlayer, new OnInteractionArgs
         {
             DoodadId = doodadTemplateId,
             SourcePlayer = sourcePlayer
@@ -1952,7 +1935,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
             return;
 
         // Trigger talk to NPC event
-        owner.Events?.OnTalkMade(this, new OnTalkMadeArgs
+        owner.Events?.OnTalkMade(owner, new OnTalkMadeArgs
         {
             QuestId = questContextId,
             NpcId = npc.TemplateId,
@@ -1965,7 +1948,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         var npcGroupsForThisNpc = _groupNpcs.Where(x => x.Value.Contains(npc.TemplateId)).Select(x => x.Key);
         foreach (var npcGroup in npcGroupsForThisNpc)
         {
-            owner.Events?.OnTalkNpcGroupMade(this,
+            owner.Events?.OnTalkNpcGroupMade(owner,
                 new OnTalkNpcGroupMadeArgs
                 {
                     QuestId = questContextId,
@@ -1990,7 +1973,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         var npcZoneGroupId = ZoneManager.Instance.GetZoneByKey(npc.Transform.ZoneId)?.GroupId ?? 0;
 
         // Individual monster kill
-        owner.Events?.OnMonsterHunt(this, new OnMonsterHuntArgs
+        owner.Events?.OnMonsterHunt(owner, new OnMonsterHuntArgs
         {
             NpcId = npc.TemplateId,
             Count = 1,
@@ -2001,7 +1984,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         var npcGroupsForThisNpc = _groupNpcs.Where(x => x.Value.Contains(npc.TemplateId)).Select(x => x.Key);
         foreach (var npcGroup in npcGroupsForThisNpc)
         {
-            owner.Events?.OnMonsterGroupHunt(this, new OnMonsterGroupHuntArgs
+            owner.Events?.OnMonsterGroupHunt(owner, new OnMonsterGroupHuntArgs
             {
                 NpcId = npcGroup,
                 Count = 1,
@@ -2010,7 +1993,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         }
 
         // Trigger zone kills with specific Victim and Killer
-        owner.Events?.OnZoneKill(this, new OnZoneKillArgs
+        owner.Events?.OnZoneKill(owner, new OnZoneKillArgs
         {
             ZoneGroupId = npcZoneGroupId,
             Killer = owner,
@@ -2018,7 +2001,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         });
 
         // Trigger any zone kills
-        owner.Events?.OnZoneMonsterHunt(this, new OnZoneMonsterHuntArgs
+        owner.Events?.OnZoneMonsterHunt(owner, new OnZoneMonsterHuntArgs
         {
             ZoneGroupId = npcZoneGroupId
         });
@@ -2034,7 +2017,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         if (npc == null)
             return;
 
-        owner.Events?.OnAggro(this, new OnAggroArgs
+        owner.Events?.OnAggro(owner, new OnAggroArgs
         {
             NpcId = npc.TemplateId,
             Transform = npc.Transform
@@ -2059,7 +2042,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         if (npc == null)
             return;
 
-        owner.Events?.OnExpressFire(this, new OnExpressFireArgs
+        owner.Events?.OnExpressFire(owner, new OnExpressFireArgs
         {
             NpcId = npc.TemplateId,
             EmotionId = emotionId
@@ -2072,10 +2055,10 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     /// <param name="owner"></param>
     public void DoOnLevelUpEvents(ICharacter owner)
     {
-        owner.Events?.OnLevelUp(this, new OnLevelUpArgs());
+        owner.Events?.OnLevelUp(owner, new OnLevelUpArgs());
 
         // Added for quest In the Footsteps of Gods and Heroes ( 5967 ), get all abilities (classes) to 50
-        owner.Events?.OnAbilityLevelUp(this, new OnAbilityLevelUpArgs());
+        owner.Events?.OnAbilityLevelUp(owner, new OnAbilityLevelUpArgs());
 
         // Also handle Level-based (character main level) quest starters
         // Un-started quests can't have a level event handler, so we need to do it this way for quest starters
@@ -2102,7 +2085,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     public void DoOnCraftEvents(ICharacter owner, uint craftId)
     {
         // Added for quest Id=6024
-        owner.Events?.OnCraft(this, new OnCraftArgs
+        owner.Events?.OnCraft(owner, new OnCraftArgs
         {
             CraftId = craftId
         });
@@ -2118,10 +2101,9 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         // Check if there's a active quest attached to this sphere
         var quest = owner.Quests.ActiveQuests.GetValueOrDefault(sphereQuest.QuestId);
 
-        owner.Events?.OnEnterSphere(this, new OnEnterSphereArgs
+        owner.Events?.OnEnterSphere(owner, new OnEnterSphereArgs
         {
-            SphereQuest = sphereQuest,
-            OwningQuest = quest
+            SphereQuest = sphereQuest
         });
     }
 
@@ -2135,10 +2117,9 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         // Check if there's a active quest attached to this sphere
         var quest = owner.Quests.ActiveQuests.GetValueOrDefault(sphereQuest.QuestId);
 
-        owner.Events?.OnExitSphere(this, new OnExitSphereArgs
+        owner.Events?.OnExitSphere(owner, new OnExitSphereArgs
         {
-            SphereQuest = sphereQuest,
-            OwningQuest = quest
+            SphereQuest = sphereQuest
         });
     }
 }

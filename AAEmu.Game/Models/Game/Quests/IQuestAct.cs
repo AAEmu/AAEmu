@@ -44,6 +44,7 @@ public interface IQuestAct
     void OnCraft(object sender, OnCraftArgs args);
     void OnExpressFire(object sender, OnExpressFireArgs args);
     void OnLevelUp(object sender, OnLevelUpArgs args);
+    void OnMateLevelUp(object sender, OnMateLevelUpArgs args);
     void OnAbilityLevelUp(object sender, OnAbilityLevelUpArgs args);
     void OnEnterSphere(object sender, OnEnterSphereArgs args);
     void OnExitSphere(object sender, OnExitSphereArgs args);
