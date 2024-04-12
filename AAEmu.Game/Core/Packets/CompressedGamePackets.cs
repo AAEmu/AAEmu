@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using AAEmu.Commons.Network;
@@ -45,7 +45,7 @@ public class CompressedGamePackets : GamePacket
             stream.Write(packetsData);
             ps.Write(stream);
             stopwatch.Stop();
-            Logger.Trace("DD04 Size {0} (compressed), {1} (uncompressed). Took {2}ms to write", packetsData.Length, packets.Count, stopwatch.ElapsedMilliseconds);
+            Logger.Info("DD04 Size {0} (compressed), {1} (uncompressed). Took {2}ms to write", packetsData.Length, packets.Count, stopwatch.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
@@ -54,13 +54,16 @@ public class CompressedGamePackets : GamePacket
         }
 
         foreach (var packet in Packets)
-            Logger.Trace("DD04 - GamePacket: S->C type {0:X3} {1}", packet.TypeId, packet.ToString().Substring(23));
+            Logger.Info("DD04 - GamePacket: S->C type {0:X3} {1}", packet.TypeId, packet.ToString().Substring(23));
         return ps;
     }
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(Encode(), false);
-        return stream;
+        lock (Connection.WriteLock)
+        {
+            stream.Write(Encode(), false);
+            return stream;
+        }
     }
 }
