@@ -223,7 +223,6 @@ public class GimmickManager : Singleton<GimmickManager>
 
         const float maxVelocity = 4.5f;
         const float deltaTime = 0.05f;
-        const float movingDistance = 0.27f;
 
         var position = gimmick.Transform.World.Position;
         var velocityZ = gimmick.Vel.Z;
@@ -238,20 +237,20 @@ public class GimmickManager : Singleton<GimmickManager>
         if (isInMiddleZ)
         {
             if (position.Z < gimmick.Spawner.MiddleZ && gimmick.Vel.Z >= 0 && !isMovingDown)
-                MoveAlongZAxis(gimmick, ref position, middleTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
+                MoveAlongZAxis(ref gimmick, ref position, middleTarget, maxVelocity, deltaTime, ref velocityZ);
             else if (position.Z < gimmick.Spawner.TopZ && gimmick.Vel.Z >= 0 && !isMovingDown)
-                MoveAlongZAxis(gimmick, ref position, topTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
+                MoveAlongZAxis(ref gimmick, ref position, topTarget, maxVelocity, deltaTime, ref velocityZ);
             else if (position.Z > gimmick.Spawner.MiddleZ && gimmick.Vel.Z <= 0 && isMovingDown)
-                MoveAlongZAxis(gimmick, ref position, middleTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
-            else
-                MoveAlongZAxis(gimmick, ref position, bottomTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
+                MoveAlongZAxis(ref gimmick, ref position, middleTarget, maxVelocity, deltaTime, ref velocityZ);
+            else if (position.Z > gimmick.Spawner.BottomZ && gimmick.Vel.Z <= 0 && isMovingDown)
+                MoveAlongZAxis(ref gimmick, ref position, bottomTarget, maxVelocity, deltaTime, ref velocityZ);
         }
         else
         {
             if (position.Z < gimmick.Spawner.TopZ && gimmick.Vel.Z >= 0)
-                MoveAlongZAxis(gimmick, ref position, topTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
+                MoveAlongZAxis(ref gimmick, ref position, topTarget, maxVelocity, deltaTime, ref velocityZ);
             else
-                MoveAlongZAxis(gimmick, ref position, bottomTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
+                MoveAlongZAxis(ref gimmick, ref position, bottomTarget, maxVelocity, deltaTime, ref velocityZ);
         }
 
         gimmick.Transform.Local.SetHeight(position.Z);
@@ -264,14 +263,24 @@ public class GimmickManager : Singleton<GimmickManager>
             return;
 
         gimmick.WaitTime = DateTime.UtcNow.AddSeconds(gimmick.Spawner.WaitTime);
-        gimmick.moveDown = !gimmick.moveDown;
+
+        if (position.Z > gimmick.Spawner.BottomZ && isMovingDown)
+        {
+            gimmick.moveDown = true;
+        }
+        else if (position.Z < gimmick.Spawner.TopZ && !isMovingDown)
+        {
+            gimmick.moveDown = false;
+        }
+        else
+            gimmick.moveDown = !gimmick.moveDown;
     }
 
-    private static void MoveAlongZAxis(Gimmick gimmick, ref Vector3 position, Vector3 target, float maxVelocity, float deltaTime, float movingDistance, ref float velocityZ, ref bool isMovingDown)
+    private static void MoveAlongZAxis(ref Gimmick gimmick, ref Vector3 position, Vector3 target, float maxVelocity, float deltaTime, ref float velocityZ)
     {
         var distance = target - position;
         velocityZ = maxVelocity * Math.Sign(distance.Z);
-        movingDistance = velocityZ * deltaTime;
+        var movingDistance = velocityZ * deltaTime;
 
         if (Math.Abs(distance.Z) >= Math.Abs(movingDistance))
         {
