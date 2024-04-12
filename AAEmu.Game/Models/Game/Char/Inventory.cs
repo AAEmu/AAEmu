@@ -919,12 +919,10 @@ public class Inventory
             Bag.ContainerSize = Owner.NumInventorySlots;
         }
 
-        Owner.SendPacket(
-            new SCInvenExpandedPacket(
+        Owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.DepositMoney, tasks, new List<ulong>()));
+        Owner.SendPacket(new SCInvenExpandedPacket(
                 isBank ? SlotType.Bank : SlotType.Inventory,
-                isBank ? (byte)Owner.NumBankSlots : Owner.NumInventorySlots
-            )
-        );
+                isBank ? (byte)Owner.NumBankSlots : Owner.NumInventorySlots));
     }
 
     /// <summary>

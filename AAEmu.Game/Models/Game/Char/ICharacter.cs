@@ -26,6 +26,7 @@ public interface ICharacter : IUnit
     void ChangeLabor(short change, int actabilityId);
     void AddExp(int exp, bool shouldAddAbilityExp);
     void UpdateGearBonuses(Item itemAdded, Item itemRemoved);
+    public bool ChangeMoney(SlotType moneylocation, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney) => ChangeMoney(SlotType.None, moneylocation, amount, itemTaskType);
     public bool ChangeMoney(SlotType typeFrom, SlotType typeTo, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney);
     public void ChangeGamePoints(GamePointKind kind, int change);
     public void SetGrowthRate(float value);
