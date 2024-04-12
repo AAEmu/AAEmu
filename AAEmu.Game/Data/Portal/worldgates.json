@@ -238,11 +238,12 @@
     },
     {
         "Id": 191,
-        "Name": "Respawn: Lutesong Harbor",
+        "Name": "Respawn: Villanhelle",
+        "ZoneId": 160,
         "X": 21257.80,
         "Y": 10570.30,
         "Z": 121.90,
         "ZRot": 63,
-        "SubZoneId": 10191
+        "SubZoneId": 542
     }
 ]
