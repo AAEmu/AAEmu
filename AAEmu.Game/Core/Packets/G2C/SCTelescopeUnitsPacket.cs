@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCTelescopeUnitsPacket : GamePacket
 {
-    public override PacketLogLevel LogLevel => PacketLogLevel.Debug;
+    public override PacketLogLevel LogLevel => PacketLogLevel.Off;
 
     private readonly bool _last;
     private readonly Slave[] _slaves;

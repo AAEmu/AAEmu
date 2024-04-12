@@ -28,7 +28,7 @@ public class AttackBehavior : BaseCombatBehavior
         if (!_enter)
             return; // not initialized yet Enter()
 
-        if (!UpdateTarget() || ShouldReturn) // проверим, что таблица abuser не пустая и назначим текущую цель
+        if (!UpdateTarget() || ShouldReturn)
         {
             Ai.OnNoAggroTarget();
             return;
@@ -43,10 +43,17 @@ public class AttackBehavior : BaseCombatBehavior
         if (!CanUseSkill)
             return;
 
+        var delay = 150;
         // Will delay for 150 Milliseconds to eliminate the hanging of the skill
-        if (!Ai.Owner.CheckInterval(Delay)) { return; }
-        var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
-        PickSkillAndUseIt(SkillUseConditionKind.OnAlert, Ai.Owner.CurrentTarget, targetDist); // используем скиллы на врага
+        if (!Ai.Owner.CheckInterval(delay))
+        {
+            Logger.Trace($"Skill: CooldownTime [{delay}]!");
+        }
+        else
+        {
+            var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+            PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget, targetDist);
+        }
     }
 
     public override void Exit()

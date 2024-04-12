@@ -3,6 +3,7 @@ using System.Linq;
 using System.Numerics;
 
 using AAEmu.Game.Models.Game.AI.AStar;
+using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.AI.v2.Params.Flytrap;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -11,7 +12,7 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Flytrap;
 
-public class FlytrapAttackBehavior : BaseCombatBehavior
+public class FlytrapAttackBehavior : Behavior
 {
     private FlytrapAiParams _aiParams;
     private bool _enter;

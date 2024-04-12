@@ -20,37 +20,9 @@ public class BuffTrigger
         Logger.Trace("Buff[{0}] {1} executed. Applying {2}[{3}]!", _buff?.Template?.BuffId, GetType().Name, Template.Effect.GetType().Name, Template.Effect.Id);
         //Template.Effect.Apply()
 
-        if (_owner is not Unit) // if doodads
+        if (_owner is not Unit)
         {
             Logger.Warn("Owner is not a Unit");
-            var target0 = _buff?.Owner;
-            var source0 = _buff?.Owner;
-
-            if (Template.UseOriginalSource)
-            {
-                source0 = _buff?.Caster;
-            }
-
-            if (Template.EffectOnSource)
-            {
-                target0 = source0;
-            }
-
-            if (Template.TargetBuffTagId != 0)
-            {
-                if (target0 != null && !target0.Buffs.CheckBuffTag(Template.TargetBuffTagId))
-                    return;
-            }
-            if (Template.TargetNoBuffTagId != 0)
-            {
-                if (target0 != null && target0.Buffs.CheckBuffTag(Template.TargetNoBuffTagId))
-                    return;
-            }
-
-            if (target0 == null) { return; }
-            Template.Effect.Apply(source0, new SkillCasterUnit(_owner.ObjId), target0, new SkillCastUnitTarget(target0.ObjId), new CastBuff(_buff),
-                new EffectSource(_buff?.Skill), // TODO : EffectSource Type trigger 
-                null, DateTime.UtcNow);
             return;
         }
 

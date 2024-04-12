@@ -5,8 +5,6 @@ namespace AAEmu.Game.Core.Packets.Proxy;
 
 public class ChangeStatePacket : GamePacket
 {
-    public override PacketLogLevel LogLevel => PacketLogLevel.Off;
-
     private readonly int _state;
 
     public ChangeStatePacket(int state) : base(PPOffsets.ChangeStatePacket, 2)

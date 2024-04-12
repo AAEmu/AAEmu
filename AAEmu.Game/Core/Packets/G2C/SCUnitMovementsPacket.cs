@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCUnitMovementsPacket : GamePacket // TODO ... SCOneUnitMovementPacket
 {
-    public override PacketLogLevel LogLevel => PacketLogLevel.Debug;
+    public override PacketLogLevel LogLevel => PacketLogLevel.Off;
 
     private (uint id, MoveType type)[] _movements;
 

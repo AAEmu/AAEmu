@@ -9,8 +9,6 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 public class HoldPositionBehavior : BaseCombatBehavior
 {
     private bool _enter;
-    private float teleportThresholdDist = 7f;
-    private float returnThresholdDist = 3f;
 
     public override void Enter()
     {
@@ -24,11 +22,19 @@ public class HoldPositionBehavior : BaseCombatBehavior
         if (!_enter)
             return; // not initialized yet Enter()
 
-        CheckAggression(); // наполним таблицу abuser (возможно, что уйдем с этого поведения на другое)
-
+        var delay = 150;
         // Will delay for 150 Milliseconds to eliminate the hanging of the skill
-        if (!Ai.Owner.CheckInterval(Delay)) { return; }
-        PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, 0); // используем скиллы на себя
+        if (!Ai.Owner.CheckInterval(delay))
+        {
+            Logger.Trace($"Skill: CooldownTime [{delay}]!");
+        }
+        else
+        {
+            var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+            PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, targetDist);
+        }
+
+        CheckAggression();
     }
 
     public override void Exit()
