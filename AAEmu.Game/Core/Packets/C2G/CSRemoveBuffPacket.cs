@@ -16,15 +16,16 @@ public class CSRemoveBuffPacket : GamePacket
         var objId = stream.ReadBc();
         var buffId = stream.ReadUInt32();
         var reason = stream.ReadByte();
-        var mate = MateManager.Instance.GetActiveMate(Connection.ActiveChar.ObjId);
+        var mates = MateManager.Instance.GetActiveMates(Connection.ActiveChar.ObjId);
         var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
 
-                var mateEffect = mate.Buffs.GetEffectByIndex(buffId);
-                if (mateEffect == null)
-                    return;
-                if (mateEffect.Template.Kind == BuffKind.Good)
-                    mateEffect.Exit();
-            }
+        foreach (var mate in mates)
+        {
+            var mateEffect = mate.Buffs.GetEffectByIndex(buffId);
+            if (mateEffect == null)
+                return;
+            if (mateEffect.Template.Kind == BuffKind.Good)
+                mateEffect.Exit();
         }
 
         if (slave?.ObjId == objId)

@@ -1,5 +1,6 @@
 ﻿using System;
 
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Char;
@@ -46,7 +47,7 @@ public class SpawnEffect : EffectTemplate
                         Logger.Info($"SpawnEffect: SubType={SubType} not found in spawners.");
                         return;
                     }
-                    var (xx, yy) = MathUtil.AddDistanceToFrontDeg(PosDistance, target.Transform.World.Position.X, target.Transform.World.Position.Y, PosAngle);
+                    var (xx, yy) = MathUtil.AddDistanceToFrontDeg(PosDistanceMax, target.Transform.World.Position.X, target.Transform.World.Position.Y, PosAngleMax);
                     var zz = WorldManager.Instance.GetHeight(target.Transform.ZoneId, xx, yy);
                     if (zz == 0)
                     {
@@ -55,7 +56,7 @@ public class SpawnEffect : EffectTemplate
                     spawner.Position.X = xx;
                     spawner.Position.Y = yy;
                     spawner.Position.Z = zz;
-                    spawner.Position.Yaw = PosAngle;
+                    spawner.Position.Yaw = PosAngleMax;
 
                     spawner.RespawnTime = 0; // don't respawn
 
@@ -73,7 +74,7 @@ public class SpawnEffect : EffectTemplate
                             return;
                         }
                         slave.Transform = player.Transform.CloneDetached(slave);
-                        slave.Transform.Local.AddDistanceToFront(PosDistance);
+                        slave.Transform.Local.AddDistanceToFront(PosDistanceMax);
                         player.ForceDismountAndDespawn(slave, 500000); // delete Slave after 8min 20s
                     }
                     break;
