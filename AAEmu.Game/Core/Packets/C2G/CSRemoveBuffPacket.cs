@@ -16,33 +16,35 @@ public class CSRemoveBuffPacket : GamePacket
         var objId = stream.ReadBc();
         var buffId = stream.ReadUInt32();
         var reason = stream.ReadByte();
-        var mates = MateManager.Instance.GetActiveMates(Connection.ActiveChar.ObjId);
-        var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
 
-        foreach (var mate in mates)
+        var mate = MateManager.Instance.GetActiveMate(Connection.ActiveChar.ObjId);
+        if (mate?.ObjId == objId)
         {
             var mateEffect = mate.Buffs.GetEffectByIndex(buffId);
-            if (mateEffect == null)
-                return;
-            if (mateEffect.Template.Kind == BuffKind.Good)
-                mateEffect.Exit();
+            if (RemoveEffect(mateEffect)) { return; }
         }
 
-        if (slave?.ObjId == objId)
+        var slave = SlaveManager.Instance.GetSlaveByObjId(objId);
+        if (slave != null)
         {
             var slaveEffect = slave.Buffs.GetEffectByIndex(buffId);
-            if (slaveEffect == null)
-                return;
-            if (slaveEffect.Template.Kind == BuffKind.Good)
-                slaveEffect.Exit();
+            if (RemoveEffect(slaveEffect)) { return; }
         }
 
         if (Connection.ActiveChar.ObjId != objId)
             return;
         var effect = Connection.ActiveChar.Buffs.GetEffectByIndex(buffId);
-        if (effect == null)
-            return;
-        if (effect.Template.Kind == BuffKind.Good)
-            effect.Exit();
+        if (RemoveEffect(effect)) { return; }
+
+        return;
+
+        bool RemoveEffect(Buff buffEffect)
+        {
+            if (buffEffect == null)
+                return false;
+            if (buffEffect.Template.Kind == BuffKind.Good)
+                buffEffect.Exit();
+            return true;
+        }
     }
 }

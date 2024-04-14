@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
@@ -67,14 +67,17 @@ public class SpawnEffect : EffectTemplate
                 {
                     if (caster is Character player)
                     {
-                        var slave = SlaveManager.Instance.Create(player, SubType);
-                        if (slave.Template == null)
+                        var transform = player.Transform.CloneDetached();
+                        if (PosDistance == 0) { PosDistance = 2; }
+                        transform.World.AddDistanceToFront(PosDistance);
+                        transform.World.Rotate(transform.World.Rotation with { Z = OriAngle });
+
+                        var slave = SlaveManager.Instance.Create(SubType, true, transform);
+                        if (slave is { Template: null })
                         {
                             Logger.Info($"SpawnEffect: SubType={SubType} not found...");
                             return;
                         }
-                        slave.Transform = player.Transform.CloneDetached(slave);
-                        slave.Transform.Local.AddDistanceToFront(PosDistanceMax);
                         player.ForceDismountAndDespawn(slave, 500000); // delete Slave after 8min 20s
                     }
                     break;
