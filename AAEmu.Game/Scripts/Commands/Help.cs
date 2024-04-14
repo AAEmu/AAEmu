@@ -25,30 +25,34 @@ public class Help : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        var list = CommandManager.Instance.GetCommandKeys();
-        list.Sort();
-
         if (args.Length > 0)
         {
             var thisCommand = args[0].ToLower();
-            bool foundIt = false;
-            foreach (var command in list)
+            if (AccessLevelManager.Instance.GetLevel(CommandManager.Instance.GetCommandNameBase(thisCommand)) > character.AccessLevel)
             {
-                if (command == thisCommand)
-                {
-                    foundIt = true;
-                    var cmd = CommandManager.Instance.GetCommandInterfaceByName(thisCommand);
-                    var argText = cmd.GetCommandLineHelp();
-                    var helpText = cmd.GetCommandHelpText();
-                    character.SendMessage("Help for: |cFFFFFFFF" + CommandManager.CommandPrefix + thisCommand + " " + argText + "|r\n|cFF999999" + helpText + "|r");
-                }
+                // deliberately the same error as command not found 
+                character.SendMessage("Help for: |cFFFFFFFF" + CommandManager.CommandPrefix + thisCommand + "|r not available!");
             }
-            if (!foundIt)
-                character.SendMessage("Command not found: " + CommandManager.CommandPrefix + thisCommand);
+            else
+            {
+                var cmd = CommandManager.Instance.GetCommandInterfaceByName(thisCommand);
+                if (cmd == null)
+                {
+                    // deliberately the same error as insufficient rights 
+                    character.SendMessage("Help for: |cFFFFFFFF" + CommandManager.CommandPrefix + thisCommand + "|r not available!");
+                    return;
+                }
+
+                var helpLineText = cmd.GetCommandLineHelp();
+                var helpText = cmd.GetCommandHelpText();
+                character.SendMessage("Help for: |cFFFFFFFF" + CommandManager.CommandPrefix + thisCommand + " " + helpLineText + "|r\n|cFF999999" + helpText + "|r");
+            }
             return;
         }
 
         character.SendMessage("|cFF80FFFFList of available GM Commands|r\n-------------------------\n");
+        var list = CommandManager.Instance.GetCommandKeys();
+        list.Sort();
         foreach (var command in list)
         {
             if (command == "help")
@@ -57,9 +61,11 @@ public class Help : ICommand
                 continue;
 
             var cmd = CommandManager.Instance.GetCommandInterfaceByName(command);
-            var arghelp = cmd.GetCommandLineHelp();
-            if (arghelp != string.Empty)
-                character.SendMessage(CommandManager.CommandPrefix + command + " |cFF999999" + arghelp + "|r");
+            if (cmd == null)
+                continue; // should never happen
+            var helpLineText = cmd.GetCommandLineHelp();
+            if (helpLineText != string.Empty)
+                character.SendMessage(CommandManager.CommandPrefix + command + " |cFF999999" + helpLineText + "|r");
             else
                 character.SendMessage(CommandManager.CommandPrefix + command);
         }
