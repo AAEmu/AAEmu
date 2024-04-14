@@ -109,9 +109,9 @@ public class SlaveManager : Singleton<SlaveManager>
     {
         lock (_slaveListLock)
         {
-            foreach (var slave in _activeSlaves.Values)
+            foreach (var slave in _activeSlaves.Values.Where(slave => slave.ObjId == objId))
             {
-                if (slave.ObjId == objId) return slave;
+                return slave;
             }
         }
         return null;
@@ -120,6 +120,23 @@ public class SlaveManager : Singleton<SlaveManager>
     {
         lock (_slaveListLock)
         {
+            foreach (var slave in _testSlaves.Where(slave => slave.ObjId == objId))
+            {
+                return slave;
+            }
+        }
+        return null;
+    }
+ 
+    public Slave GetSlaveByObjId(uint objId)
+    {
+        lock (_slaveListLock)
+        {
+            foreach (var slave in _activeSlaves.Values.Where(slave => slave.ObjId == objId))
+            {
+                return slave;
+            }
+
             foreach (var slave in _testSlaves.Where(slave => slave.ObjId == objId))
             {
                 return slave;
@@ -227,19 +244,12 @@ public class SlaveManager : Singleton<SlaveManager>
     /// <param name="objId"></param>
     public void Delete(Character owner, uint objId)
     {
-        if (owner == null) return;
-
         var activeSlaveInfo = GetActiveSlaveByObjId(objId);
         var testSlaveInfo = GetTestSlaveByObjId(objId);
-        if (activeSlaveInfo == null && testSlaveInfo == null) return;
-
         // replace Slave with test ones from Mirage
         activeSlaveInfo ??= testSlaveInfo;
-
-        // record only the ones that we spawn from items, but do not record the test ones from Mirage.
-        if (testSlaveInfo == null)
-            activeSlaveInfo.Save();
-
+        if (activeSlaveInfo == null) return;
+        activeSlaveInfo.Save();
         // Remove passengers
         foreach (var character in activeSlaveInfo.AttachedCharacters.Values.ToList())
             UnbindSlave(character, activeSlaveInfo.TlId, AttachUnitReason.SlaveBinding);
@@ -295,22 +305,16 @@ public class SlaveManager : Singleton<SlaveManager>
     }
 
     /// <summary>
-    /// Slave created from spawn effect (тестовый транспорт Миража)
+    /// Slave created from spawn effect since this is a test vehicle from Mirage
     /// </summary>
-    /// <param name="owner"></param>
     /// <param name="SubType">TemplateId</param>
-    public Slave Create(Character owner, uint SubType)
+    /// <param name="hideSpawnEffect"></param>
+    /// <param name="positionOverride"></param>
+    public Slave Create(uint SubType, bool hideSpawnEffect = false, Transform positionOverride = null)
     {
-        if (owner == null) return null;
-
-        var slave = Create(owner, null, SubType);
+        var slave = Create(null, null, SubType, null, hideSpawnEffect, positionOverride);
         if (slave == null) return null;
-
-        lock (_slaveListLock)
-        {
-            _activeSlaves.Remove(owner.ObjId); // we will delete it, since this is a test vehicle from Mirage
-            _testSlaves.Add(slave); // add to test
-        }
+        _testSlaves.Add(slave);
 
         return slave;
     }
@@ -379,26 +383,24 @@ public class SlaveManager : Singleton<SlaveManager>
             command.Parameters.AddWithValue("playerId", owner.Id);
             command.Parameters.AddWithValue("itemId", item.Id);
             command.Prepare();
-            using (var reader = command.ExecuteReader())
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
             {
-                while (reader.Read())
-                {
-                    dbId = reader.GetUInt32("id");
-                    // var slaveItemId = reader.GetUInt32("item_id");
-                    // var slaveOwnerId = reader.GetUInt32("owner");
-                    slaveName = reader.GetString("name");
-                    // var slaveCreatedAt = reader.GetDateTime("created_at");
-                    // var slaveUpdatedAt = reader.GetDateTime("updated_at");
-                    slaveHp = reader.GetInt32("hp");
-                    slaveMp = reader.GetInt32("mp");
-                    // Coords are saved, but not really used when summoning and are only required to show vehicle
-                    // location after a server restart (if it was still summoned)
-                    // var slaveX = reader.GetFloat("x");
-                    // var slaveY = reader.GetFloat("y");
-                    // var slaveZ = reader.GetFloat("z");
-                    isLoadedPlayerSlave = true;
-                    break;
-                }
+                dbId = reader.GetUInt32("id");
+                // var slaveItemId = reader.GetUInt32("item_id");
+                // var slaveOwnerId = reader.GetUInt32("owner");
+                slaveName = reader.GetString("name");
+                // var slaveCreatedAt = reader.GetDateTime("created_at");
+                // var slaveUpdatedAt = reader.GetDateTime("updated_at");
+                slaveHp = reader.GetInt32("hp");
+                slaveMp = reader.GetInt32("mp");
+                // Coords are saved, but not really used when summoning and are only required to show vehicle
+                // location after a server restart (if it was still summoned)
+                // var slaveX = reader.GetFloat("x");
+                // var slaveY = reader.GetFloat("y");
+                // var slaveZ = reader.GetFloat("z");
+                isLoadedPlayerSlave = true;
+                break;
             }
         }
 
@@ -681,12 +683,8 @@ public class SlaveManager : Singleton<SlaveManager>
             summonedSlave.Transform.World.Position.Z
         ));
 
-        // record only the ones that we spawn from items, but do not record the test ones from Mirage.
-        if (summonedSlave.SummoningItem != null)
-        {
-            // Save to DB
-            summonedSlave.Save();
-        }
+        // Save to DB
+        summonedSlave.Save();
 
         summonedSlave.PostUpdateCurrentHp(summonedSlave, 0, summonedSlave.Hp, KillReason.Unknown);
         UpdateSlaveRepairPoints(summonedSlave);
@@ -1293,8 +1291,7 @@ public class SlaveManager : Singleton<SlaveManager>
         var activeSlaveInfo = GetActiveSlaveByOwnerObjId(owner.ObjId);
         if (activeSlaveInfo != null)
         {
-            if (activeSlaveInfo.SummoningItem != null)
-                activeSlaveInfo.Save();
+            activeSlaveInfo.Save();
             Delete(owner, activeSlaveInfo.ObjId);
         }
     }
