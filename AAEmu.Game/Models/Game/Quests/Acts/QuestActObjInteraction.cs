@@ -89,6 +89,8 @@ public class QuestActObjInteraction(QuestComponentTemplate parentComponent) : Qu
                     // Skip self
                     if (teamMember.Character.Id == player.Id)
                         continue;
+                    
+                    // TODO: Range check?
 
                     // Directly call OnInteraction on team members to avoid loops/duplicates
                     teamMember.Character.Events.OnInteraction(sender, args);

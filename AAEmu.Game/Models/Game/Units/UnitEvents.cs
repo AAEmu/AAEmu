@@ -112,12 +112,14 @@ public class OnTalkMadeArgs : EventArgs
     public uint QuestComponentId { get; set; }
     public uint QuestActId { get; set; }
     public Transform Transform { get; set; }
+    public ICharacter SourcePlayer { get; set; }
 }
 
 public class OnTalkNpcGroupMadeArgs : EventArgs
 {
     public uint QuestId { get; set; } // QuestContextId
-    public uint NpcGroupId { get; set; } // Npc.TemplateId
+    public uint NpcGroupId { get; set; } // Npc Group Id
+    public uint NpcId { get; set; } // Npc.TemplateId
     public uint QuestComponentId { get; set; }
     public uint QuestActId { get; set; }
     public Transform Transform { get; set; }

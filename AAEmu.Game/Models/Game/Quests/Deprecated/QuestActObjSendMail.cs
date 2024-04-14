@@ -3,6 +3,10 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
+/// <summary>
+/// Not used
+/// </summary>
+/// <param name="parentComponent"></param>
 public class QuestActObjSendMail(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint ItemId1 { get; set; }

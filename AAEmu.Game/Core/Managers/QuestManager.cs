@@ -1923,36 +1923,39 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     /// <summary>
     /// Triggers the events for talking to a NPC
     /// </summary>
-    /// <param name="owner"></param>
+    /// <param name="sourcePlayer">Player that is talking to the Npc</param>
+    /// <param name="targetPlayer">Player to receive this event, used internally for TeamShared</param>
     /// <param name="npcObjId"></param>
     /// <param name="questContextId"></param>
     /// <param name="questComponentId"></param>
     /// <param name="questActId"></param>
-    public void DoTalkMadeEvents(ICharacter owner, uint npcObjId, uint questContextId, uint questComponentId, uint questActId)
+    public void DoTalkMadeEvents(ICharacter sourcePlayer, ICharacter targetPlayer, uint npcObjId, uint questContextId, uint questComponentId, uint questActId)
     {
         var npc = WorldManager.Instance.GetNpc(npcObjId);
         if (npc == null)
             return;
 
         // Trigger talk to NPC event
-        owner.Events?.OnTalkMade(owner, new OnTalkMadeArgs
+        targetPlayer.Events?.OnTalkMade(targetPlayer, new OnTalkMadeArgs
         {
             QuestId = questContextId,
             NpcId = npc.TemplateId,
             QuestComponentId = questComponentId,
             QuestActId = questActId,
-            Transform = npc.Transform
+            Transform = npc.Transform,
+            SourcePlayer = sourcePlayer
         });
 
         // Trigger Talk to NPC group event
         var npcGroupsForThisNpc = _groupNpcs.Where(x => x.Value.Contains(npc.TemplateId)).Select(x => x.Key);
         foreach (var npcGroup in npcGroupsForThisNpc)
         {
-            owner.Events?.OnTalkNpcGroupMade(owner,
+            targetPlayer.Events?.OnTalkNpcGroupMade(targetPlayer,
                 new OnTalkNpcGroupMadeArgs
                 {
                     QuestId = questContextId,
-                    NpcGroupId = npc.TemplateId,
+                    NpcGroupId = npcGroup,
+                    NpcId = npc.TemplateId,
                     QuestComponentId = questComponentId,
                     QuestActId = questActId,
                     Transform = npc.Transform

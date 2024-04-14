@@ -28,6 +28,7 @@ public class QuestActObjMateLevel(QuestComponentTemplate parentComponent) : Ques
     /// <returns>Level of the first mate that was valid</returns>
     private byte CalculateObjective(Quest quest)
     {
+        // Get a list of all items with the specified template
         if (!quest.Owner.Inventory.GetAllItemsByTemplate([], ItemId, -1, out var validItems, out _))
         {
             SetObjective(quest, 0);
@@ -36,9 +37,11 @@ public class QuestActObjMateLevel(QuestComponentTemplate parentComponent) : Ques
 
         foreach (var item in validItems)
         {
+            // Sanity check, should already be the correct type
             if (item is not SummonMate summonMate)
                 continue;
 
+            // Check level on the Item itself, should be already updated by Mate's AddExp() function
             var res = summonMate.DetailLevel >= Level;
             if (res)
             {
