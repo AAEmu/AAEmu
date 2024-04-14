@@ -1829,22 +1829,22 @@ public partial class Character : Unit, ICharacter
         return res;
     }
 
-    public bool ForceDismountAndDespawn(AttachUnitReason reason = AttachUnitReason.PrefabChanged)
+    public bool ForceDismountAndDespawn(AttachUnitReason reason = AttachUnitReason.PrefabChanged, int timeToDespawn = 1000 * 60 * 10)
     {
         var res = ForceDismount();
 
         var mySlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
         if (mySlave != null)
         {
-            // run the task to turn off the transport after 10 minutes
+            // run the task to turn off the transport after timeToDespawn minutes
             mySlave.CancelTokenSource = new CancellationTokenSource();
             var token = mySlave.CancelTokenSource.Token;
             mySlave.LeaveTask = new Task(() =>
             {
-                Thread.Sleep(TimeSpan.FromMilliseconds(1000 * 60 * 10)); // 10 minutes
+                Thread.Sleep(TimeSpan.FromMilliseconds(timeToDespawn)); // 10 minutes
                 if (token.IsCancellationRequested)
                     return;
-                RemoveAndDespawnActiveOwnedMatesSlaves();
+                SlaveManager.Instance.RemoveAndDespawnAllActiveOwnedSlaves(this);
             }, token);
             mySlave.LeaveTask.Start();
         }
@@ -1852,11 +1852,39 @@ public partial class Character : Unit, ICharacter
         return res;
     }
 
-    private void RemoveAndDespawnActiveOwnedMatesSlaves()
+    /// <summary>
+    /// ForceDismountAndDespawn - deleting Mirage's test transport
+    /// </summary>
+    /// <param name="slave"></param>
+    /// <param name="timeToDespawn"></param>
+    /// <returns></returns>
+    public bool ForceDismountAndDespawn(Slave slave, int timeToDespawn = 100)
+    {
+        var res = ForceDismount();
+
+        if (slave != null)
+        {
+            // run the task to turn off the transport after timeToDespawn minutes
+            slave.CancelTokenSource = new CancellationTokenSource();
+            var token = slave.CancelTokenSource.Token;
+            slave.LeaveTask = new Task(() =>
+            {
+                Thread.Sleep(TimeSpan.FromMilliseconds(timeToDespawn));
+                if (token.IsCancellationRequested)
+                    return;
+                SlaveManager.Instance.RemoveAndDespawnTestSlave(this, slave.ObjId);
+            }, token);
+            slave.LeaveTask.Start();
+        }
+
+        return res;
+    }
+
+    public void RemoveAndDespawnActiveOwnedMatesSlaves()
     {
         // Despawn and unmount everybody from owned Mates
         MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(this);
-        SlaveManager.Instance.RemoveAndDespawnAllActiveOwnedSlaves(this);
+        ForceDismountAndDespawn();
     }
 
     #region Database

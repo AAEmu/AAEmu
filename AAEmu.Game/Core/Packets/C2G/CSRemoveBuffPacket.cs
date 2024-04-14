@@ -17,6 +17,7 @@ public class CSRemoveBuffPacket : GamePacket
         var buffId = stream.ReadUInt32();
         var reason = stream.ReadByte();
         var mate = MateManager.Instance.GetActiveMate(Connection.ActiveChar.ObjId);
+        var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
 
         if (mate?.ObjId == objId)
         {
@@ -25,6 +26,15 @@ public class CSRemoveBuffPacket : GamePacket
                 return;
             if (mateEffect.Template.Kind == BuffKind.Good)
                 mateEffect.Exit();
+        }
+
+        if (slave?.ObjId == objId)
+        {
+            var slaveEffect = slave.Buffs.GetEffectByIndex(buffId);
+            if (slaveEffect == null)
+                return;
+            if (slaveEffect.Template.Kind == BuffKind.Good)
+                slaveEffect.Exit();
         }
 
         if (Connection.ActiveChar.ObjId != objId)

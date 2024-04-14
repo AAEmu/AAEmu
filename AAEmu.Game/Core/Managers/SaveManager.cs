@@ -99,8 +99,9 @@ public class SaveManager : Singleton<SaveManager>
                         var savedSlaves = 0;
                         foreach (var slave in WorldManager.Instance.GetAllSlaves())
                         {
-                            if (slave.Save(connection, transaction))
-                                savedSlaves++;
+                            if (slave.SummoningItem != null)
+                                if (slave.Save(connection, transaction))
+                                    savedSlaves++;
                         }
 
                         var totalCommits = 0;
