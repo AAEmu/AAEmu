@@ -68,8 +68,8 @@ public class SpawnEffect : EffectTemplate
                     if (caster is Character player)
                     {
                         var transform = player.Transform.CloneDetached();
-                        if (PosDistance == 0) { PosDistance = 2; }
-                        transform.World.AddDistanceToFront(PosDistance);
+                        if (PosDistanceMax == 0) { PosDistanceMax = 2; }
+                        transform.World.AddDistanceToFront(PosDistanceMax);
                         transform.World.Rotate(transform.World.Rotation with { Z = OriAngle });
 
                         var slave = SlaveManager.Instance.Create(SubType, true, transform);
