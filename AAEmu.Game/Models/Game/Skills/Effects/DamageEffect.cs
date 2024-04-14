@@ -340,8 +340,14 @@ public class DamageEffect : EffectTemplate
         var healthStolen = (int)(value * (HealthStealRatio / 100.0f));
         var manaStolen = (int)(value * (ManaStealRatio / 100.0f));
 
+        // ID=6151, Test Drive Restriction, 8m
+        if (castObj is CastBuff buff && buff.Buff.Template.Id == 6151)
+        {
+            // TODO I don’t know how to correctly check for the destruction buff of a test car
+            // skip the check CanAttack()
+        }
         // Safeguard to prevent accidental flagging
-        if (!caster.CanAttack(trg))
+        else if (!caster.CanAttack(trg))
             return;
 
         trg.ReduceCurrentHp(caster, value);

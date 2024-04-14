@@ -1385,7 +1385,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                     {
                         var template = new SpawnEffect();
                         template.Id = reader.GetUInt32("id");
-                        template.OwnerTypeId = reader.GetUInt32("owner_type_id");
+                        template.OwnerTypeId = (BaseUnitType)reader.GetUInt32("owner_type_id");
                         template.SubType = reader.GetUInt32("sub_type");
                         template.PosDirId = reader.GetUInt32("pos_dir_id");
                         //template.PosAngle = reader.GetFloat("pos_angle"); // there is no such field in the database for version 3.0.3.0
@@ -1399,7 +1399,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.LifeTime = reader.GetFloat("life_time");
                         template.DespawnOnCreatorDeath = reader.GetBoolean("despawn_on_creator_death", true);
                         template.UseSummonerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true);
-                        template.MateStateId = reader.GetUInt32("mate_state_id", 0);
+                        template.MateStateId = (MateState)reader.GetUInt32("mate_state_id", 0);
                         _effects["SpawnEffect"].Add(template.Id, template);
                     }
                 }

@@ -13,15 +13,11 @@ public class CSRemoveBuffPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        var objId = stream.ReadBc();      // unitId
-        var buffId = stream.ReadUInt32(); // buffId
-        var reason = stream.ReadByte();   // reason
-        var mates = MateManager.Instance.GetActiveMates(Connection.ActiveChar.ObjId);
-        if (mates != null)
-        {
-            foreach (var mate in mates)
-            {
-                if (mate?.ObjId != objId) { continue; }
+        var objId = stream.ReadBc();
+        var buffId = stream.ReadUInt32();
+        var reason = stream.ReadByte();
+        var mate = MateManager.Instance.GetActiveMate(Connection.ActiveChar.ObjId);
+        var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
 
                 var mateEffect = mate.Buffs.GetEffectByIndex(buffId);
                 if (mateEffect == null)
@@ -29,6 +25,15 @@ public class CSRemoveBuffPacket : GamePacket
                 if (mateEffect.Template.Kind == BuffKind.Good)
                     mateEffect.Exit();
             }
+        }
+
+        if (slave?.ObjId == objId)
+        {
+            var slaveEffect = slave.Buffs.GetEffectByIndex(buffId);
+            if (slaveEffect == null)
+                return;
+            if (slaveEffect.Template.Kind == BuffKind.Good)
+                slaveEffect.Exit();
         }
 
         if (Connection.ActiveChar.ObjId != objId)

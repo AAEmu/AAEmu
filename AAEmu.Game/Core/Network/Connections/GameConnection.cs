@@ -86,8 +86,7 @@ public class GameConnection
                 subscriber.Dispose();
 
             ActiveChar.Events?.OnDisconnect(this, new OnDisconnectArgs { Player = ActiveChar });
-            ActiveChar.ForceDismountAndDespawn(); // Despawn delay 10 minutes
-            Unit.DespawMate(ActiveChar);          // Despawn because we lost control over them
+            ActiveChar.RemoveAndDespawnActiveOwnedMatesSlaves();
         }
 
         foreach (var subscriber in Subscribers)
