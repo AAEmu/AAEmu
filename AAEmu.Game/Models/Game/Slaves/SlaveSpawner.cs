@@ -64,7 +64,6 @@ public class SlaveSpawner : Spawner<Slave>
         SpawnManager.Instance.AddDespawn(npc);
     }
 
-
     private void DoSpawn()
     {
         var slave = SlaveManager.Instance.Create(null, this, 0);

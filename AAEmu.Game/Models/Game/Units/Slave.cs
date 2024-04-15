@@ -781,7 +781,7 @@ public class Slave : Unit
 
     public bool Save()
     {
-        if (Id <= 0)
+        if (Id <= 0 || SummoningItem == null)
             return false;
 
         using var connection = MySQL.CreateConnection();
@@ -790,7 +790,7 @@ public class Slave : Unit
 
     public bool Save(MySqlConnection connection, MySqlTransaction transaction)
     {
-        if (Id <= 0)
+        if (Id <= 0 || SummoningItem == null)
             return false;
 
         var result = false;
