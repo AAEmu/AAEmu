@@ -18,12 +18,15 @@ public class CSRemoveBuffPacket : GamePacket
         var reason = stream.ReadByte();
 
         var mates = MateManager.Instance.GetActiveMates(Connection.ActiveChar.ObjId);
-        foreach (var mate in mates)
+        if (mates != null)
         {
-            if (mate?.ObjId == objId)
+            foreach (var mate in mates)
             {
-                var mateEffect = mate.Buffs.GetEffectByIndex(buffId);
-                if (RemoveEffect(mateEffect)) { return; }
+                if (mate?.ObjId == objId)
+                {
+                    var mateEffect = mate.Buffs.GetEffectByIndex(buffId);
+                    if (RemoveEffect(mateEffect)) { return; }
+                }
             }
         }
 

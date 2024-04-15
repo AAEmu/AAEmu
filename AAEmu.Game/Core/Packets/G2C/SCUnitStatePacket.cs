@@ -105,7 +105,7 @@ public class SCUnitStatePacket : GamePacket
                     stream.Write(slave.Id);             // Id ? slave.Id
                     stream.Write(slave.TlId);           // tl
                     stream.Write(slave.TemplateId);     // templateId
-                    stream.Write(slave.Summoner.ObjId); // ownerId ? slave.Summoner.ObjId
+                    stream.Write(slave.Summoner?.ObjId ?? 0); // ownerId ? slave.Summoner.ObjId
                     break;
                 }
             case BaseUnitType.Housing:
