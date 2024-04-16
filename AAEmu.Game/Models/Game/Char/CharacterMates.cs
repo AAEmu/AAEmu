@@ -154,12 +154,11 @@ public class CharacterMates
         {
             case 92:
             case 109:
-            case 175:
-            case 191:
+            case 176:
                 res = MateType.Ride;
                 break;
             case 95:
-            case 176:
+            case 191:
             default:
                 res = MateType.Battle;
                 break;
@@ -174,12 +173,11 @@ public class CharacterMates
         {
             case 92:
             case 109:
-            case 175:
-            case 191:
+            case 176:
                 mount.MateType = MateType.Ride;
                 break;
             case 95:
-            case 176:
+            case 191:
             default:
                 mount.MateType = MateType.Battle;
                 break;

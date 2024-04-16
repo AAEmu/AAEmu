@@ -155,9 +155,9 @@ public enum ItemCategory : int
     unk172 = 172,
     unk173 = 173,
     unk174 = 174,
-    unk175 = 175,
+    unk175 = 175, // Gliders - Wings
     unk176 = 176,
-    unk191 = 191,
+    unk191 = 191, // Pet
     unk193 = 193,
     unk195 = 195,
     unk197 = 197
