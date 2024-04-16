@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Items;
+﻿namespace AAEmu.Game.Models.Game.Items;
 
 public enum ItemCategory : int
 {
@@ -138,4 +138,27 @@ public enum ItemCategory : int
     Boar = 151,
     Lunagem = 152,
     Unidentified = 153,
+    unk56 = 156,
+    unk157 = 157,
+    unk158 = 158,
+    unk159 = 159,
+    unk160 = 160,
+    unk161 = 161,
+    unk162 = 162,
+    unk164 = 164,
+    unk165 = 165,
+    unk166 = 166,
+    unk167 = 167,
+    unk169 = 169,
+    unk170 = 170,
+    unk171 = 171,
+    unk172 = 172,
+    unk173 = 173,
+    unk174 = 174,
+    unk175 = 175,
+    unk176 = 176,
+    unk191 = 191,
+    unk193 = 193,
+    unk195 = 195,
+    unk197 = 197
 }

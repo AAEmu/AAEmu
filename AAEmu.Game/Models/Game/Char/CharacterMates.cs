@@ -87,7 +87,7 @@ public class CharacterMates
                     return;
                 }
 
-                if (oldMate.MateType == (MateType)(item.Template.CategoryId == 92 ? 1 : 2)) // 92 - Mount, 95 - Battle)
+                if (oldMate.MateType == GetMateType(item))
                     DespawnMate(oldMate); // there is an object of this type
             }
         }
@@ -114,19 +114,7 @@ public class CharacterMates
         mount.Mileage = mateDbInfo.Mileage;
         mount.SpawnDelayTime = 0; // TODO
         mount.DbInfo = mateDbInfo;
-        switch (item.Template.CategoryId)
-        {
-            case 92:
-            case 109:
-                mount.MateType = MateType.Ride;
-                break;
-            case 95:
-            case 191:
-            default:
-                mount.MateType = MateType.Battle;
-                //mount.MateType = MateType.None;
-                break;
-        }
+        SetMateType(item, mount);
 
         mount.Transform = Owner.Transform.CloneDetached(mount);
 
@@ -157,6 +145,45 @@ public class CharacterMates
         //Logger.Warn($"Spawn the pet:{mount.ObjId} X={mount.Transform.World.Position.X} Y={mount.Transform.World.Position.Y}");
         MateManager.Instance.AddActiveMateAndSpawn(Owner, mount, item);
         mount.PostUpdateCurrentHp(mount, 0, mount.Hp, KillReason.Unknown);
+    }
+
+    private static MateType GetMateType(Item item)
+    {
+        MateType res;
+        switch (item.Template.CategoryId)
+        {
+            case 92:
+            case 109:
+            case 175:
+            case 191:
+                res = MateType.Ride;
+                break;
+            case 95:
+            case 176:
+            default:
+                res = MateType.Battle;
+                break;
+        }
+
+        return res;
+    }
+
+    private static void SetMateType(Item item, Units.Mate mount)
+    {
+        switch (item.Template.CategoryId)
+        {
+            case 92:
+            case 109:
+            case 175:
+            case 191:
+                mount.MateType = MateType.Ride;
+                break;
+            case 95:
+            case 176:
+            default:
+                mount.MateType = MateType.Battle;
+                break;
+        }
     }
 
     public void DespawnMate(uint tlId)
