@@ -1,8 +1,4 @@
-﻿using System.Security.AccessControl;
-
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Quests.Static;
-using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -19,12 +15,8 @@ public class QuestActObjItemGroupUse(QuestComponentTemplate parentComponent) : Q
     public uint QuestActObjAliasId { get; set; }
     public bool DropWhenDestroy { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug("QuestActObjItemGroupUse");
-
-        Update(quest, questAct);
-
-        return quest.GetQuestObjectiveStatus() >= QuestObjectiveStatus.CanEarlyComplete; 
+        return base.RunAct(quest, questAct, currentObjectiveCount);
     }
 }

@@ -8,10 +8,19 @@ public class QuestActSupplyHonorPoint(QuestComponentTemplate parentComponent) : 
 {
     public int Point { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
+    /// <summary>
+    /// Gain honor points
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActSupplyHonorPoint, Point: {Point}");
-        character.ChangeGamePoints(GamePointKind.Honor, Point);
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Point {Point}");
+        var player = quest.Owner as Character;
+        // TODO: Calculate modifiers for honor gain
+        player?.ChangeGamePoints(GamePointKind.Honor, Point);
         return true;
     }
 }

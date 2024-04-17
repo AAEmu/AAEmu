@@ -1,6 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -12,13 +10,6 @@ public class QuestActObjExpressFire(QuestComponentTemplate parentComponent) : Qu
     public uint NpcGroupId { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug("QuestActObjExpressFire");
-
-        return objective > Count;
-    }
 
     /// <summary>
     /// Checks if the number of emotes have been performed on target NpcGroup 

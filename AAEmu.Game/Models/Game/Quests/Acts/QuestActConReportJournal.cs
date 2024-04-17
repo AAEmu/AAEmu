@@ -1,18 +1,9 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Quests.Templates;
-using NLog;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActConReportJournal(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective) // take reward
-    {
-        Logger.Debug("QuestActConReportJournal");
-
-        return true;
-    }
-
     /// <summary>
     /// Checks if the quest can be auto-completed, differs in some way from QuestActConAutoComplete
     /// Seems to be used mostly on TaskBoard style group kill quests
@@ -23,7 +14,7 @@ public class QuestActConReportJournal(QuestComponentTemplate parentComponent) : 
     /// <returns>True</returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Trace($"QuestActConReportJournal({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id})");
+        Logger.Trace($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id})");
         return true;
     }
 }

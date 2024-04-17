@@ -1,7 +1,5 @@
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -13,15 +11,9 @@ public class QuestActConAcceptItemEquip(QuestComponentTemplate parentComponent) 
 {
     public uint ItemId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug($"QuestActConAcceptItemEquip: ItemId {ItemId}");
-        return false;
-    }
-
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Error($"QuestActConAcceptItemEquip({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}");
+        Logger.Error($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}");
         return quest.QuestAcceptorType == QuestAcceptorType.Item && quest.AcceptorId == ItemId;
     }
 }

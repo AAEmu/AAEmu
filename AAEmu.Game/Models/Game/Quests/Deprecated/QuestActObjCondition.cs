@@ -14,9 +14,8 @@ public class QuestActObjCondition(QuestComponentTemplate parentComponent) : Ques
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug("QuestActObjCondition");
-        return false;
+        return base.RunAct(quest, questAct, currentObjectiveCount);
     }
 }

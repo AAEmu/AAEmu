@@ -1,5 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.NPChar;
+﻿using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -8,6 +7,9 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    private const int MaxRankObjective = 3;
+    // This Count override is needed to allow SetObjective to allow more than a value of 1
+    public override int Count => MaxRankObjective;
     public int Range { get; set; }
     public int Rank1 { get; set; }
     public int Rank2 { get; set; }
@@ -21,13 +23,6 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        // TODO: Implement Aggro ranking system to pick rewards
-        Logger.Debug("QuestActObjAggro");
-        return true;
-    }
-
     /// <summary>
     /// Returns true if the objective has been met after killing target Npc. Objective count will be set to Rank number
     /// </summary>
@@ -37,7 +32,7 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActObjAggro({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Range {Range}, Ranks {Rank1}/{Rank2}/{Rank3}");
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Range {Range}, Ranks {Rank1}/{Rank2}/{Rank3}");
         return currentObjectiveCount > 0;
     }
 
@@ -81,7 +76,7 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
                 SetObjective(q, 1);
                 q.QuestRewardRatio = Rank1Ratio / 100.0;
                 q.AllowItemRewards = Rank1Item;
-                Logger.Debug($"QuestActObjAggro({DetailId}).OnKill: Quest: {q.TemplateId}, Rank1 reward, Player {q.Owner.Name} ({q.Owner.Id})");
+                Logger.Debug($"{QuestActTemplateName}({DetailId}).OnKill: Quest: {q.TemplateId}, Rank1 reward, Player {q.Owner.Name} ({q.Owner.Id})");
                 return;
             }
 
@@ -91,7 +86,7 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
                 SetObjective(q, 2);
                 q.QuestRewardRatio = Rank2Ratio / 100.0;
                 q.AllowItemRewards = Rank2Item;
-                Logger.Debug($"QuestActObjAggro({DetailId}).OnKill: Quest: {q.TemplateId}, Rank1 reward, Player {q.Owner.Name} ({q.Owner.Id})");
+                Logger.Debug($"{QuestActTemplateName}({DetailId}).OnKill: Quest: {q.TemplateId}, Rank1 reward, Player {q.Owner.Name} ({q.Owner.Id})");
                 return;
             }
 
@@ -101,10 +96,10 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
                 SetObjective(q, 3);
                 q.QuestRewardRatio = Rank3Ratio / 100.0;
                 q.AllowItemRewards = Rank3Item;
-                Logger.Debug($"QuestActObjAggro({DetailId}).OnKill: Quest: {q.TemplateId}, Rank1 reward, Player {q.Owner.Name} ({q.Owner.Id})");
+                Logger.Debug($"{QuestActTemplateName}({DetailId}).OnKill: Quest: {q.TemplateId}, Rank1 reward, Player {q.Owner.Name} ({q.Owner.Id})");
                 return;
             }
         }
-        Logger.Warn($"QuestActObjAggro({DetailId}).OnKill: Quest: {q.TemplateId}, no rank reward found, Player {q.Owner.Name} ({q.Owner.Id})");
+        Logger.Warn($"{QuestActTemplateName}({DetailId}).OnKill: Quest: {q.TemplateId}, no rank reward found, Player {q.Owner.Name} ({q.Owner.Id})");
     }
 }

@@ -2,6 +2,7 @@
 
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
+using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 
@@ -58,7 +59,7 @@ public class UnitEvents
     public EventHandler<OnExitSphereArgs> OnExitSphere = delegate { };
     public EventHandler<OnCraftArgs> OnCraft = delegate { };
     public EventHandler<OnZoneKillArgs> OnZoneKill = delegate { };
-    public EventHandler<OnZoneMonsterHuntArgs> OnZoneMonsterHunt = delegate { };
+    // public EventHandler<OnZoneMonsterHuntArgs> OnZoneMonsterHunt = delegate { }; // Integrated into OnZoneKill
     public EventHandler<OnCinemaStartedArgs> OnCinemaStarted = delegate { };
     public EventHandler<OnCinemaEndedArgs> OnCinemaEnded = delegate { };
     // At Step Ready
@@ -75,6 +76,8 @@ public class UnitEvents
     public EventHandler<OnDeathArgs> OnDeath = delegate { };
     public EventHandler<OnSpawnArgs> OnSpawn = delegate { };
     public EventHandler<OnDespawnArgs> OnDespawn = delegate { };
+    public EventHandler<OnTimerExpiredArgs> OnTimerExpired = delegate { };
+    public EventHandler<OnQuestStepChangedArgs> OnQuestStepChanged = delegate { };
 }
 
 public class OnMonsterHuntArgs : EventArgs
@@ -189,11 +192,6 @@ public class OnZoneKillArgs : EventArgs
     public uint ZoneGroupId { get; set; }
     public ICharacter Killer { get; set; }
     public Unit Victim { get; set; }
-}
-
-public class OnZoneMonsterHuntArgs : EventArgs
-{
-    public uint ZoneGroupId { get; set; }
 }
 
 public class OnCinemaStartedArgs : EventArgs
@@ -378,3 +376,16 @@ public class OnDespawnArgs : EventArgs
 {
     public Unit Npc { get; set; }
 }
+
+public class OnTimerExpiredArgs : EventArgs
+{
+    public uint QuestId { get; set; }
+}
+
+public class OnQuestStepChangedArgs : EventArgs
+{
+    public uint QuestId { get; set; }
+    public QuestComponentKind Step { get; set; }
+}
+
+

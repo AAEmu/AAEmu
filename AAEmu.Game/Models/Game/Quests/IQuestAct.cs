@@ -1,5 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests;
@@ -17,14 +16,10 @@ public interface IQuestAct
     uint DetailId { get; }
     void SetObjective(Quest quest, int value);
     int GetObjective(Quest quest);
-
     int CompareTo(QuestAct other);
-    QuestActTemplate GetTemplate();
-    T GetTemplate<T>() where T : QuestActTemplate;
-    bool Use(ICharacter character, Quest quest, int objective);
     int AddObjective(Quest quest, int amount);
     /// <summary>
-    /// Execute a Act and return true if successful (early complete quests should return true if minimum is met)
+    /// Execute an Act and return true if successful (early complete quests should return true if minimum is met)
     /// </summary>
     /// <returns></returns>
     bool RunAct();
@@ -49,7 +44,6 @@ public interface IQuestAct
     void OnEnterSphere(object sender, OnEnterSphereArgs args);
     void OnExitSphere(object sender, OnExitSphereArgs args);
     void OnZoneKill(object sender, OnZoneKillArgs args);
-    void OnZoneMonsterHunt(object sender, OnZoneMonsterHuntArgs args);
     void OnCinemaStarted(object sender, OnCinemaStartedArgs args);
     void OnCinemaEnded(object sender, OnCinemaEndedArgs args);
     void OnReportNpc(object sender, OnReportNpcArgs args);
@@ -62,7 +56,10 @@ public interface IQuestAct
     void OnAttacked(object sender, OnAttackedArgs args);
     void OnDamage(object sender, OnDamageArgs args);
     void OnDamaged(object sender, OnDamagedArgs args);
+    void OnTimerExpired(object sender, OnTimerExpiredArgs args);
+    void OnQuestStepChanged(object sender, OnQuestStepChangedArgs e);
 
     #endregion // Event Handlers
 
+    void RequestEvaluation();
 }

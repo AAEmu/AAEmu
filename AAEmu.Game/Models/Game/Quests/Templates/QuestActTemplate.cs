@@ -2,14 +2,12 @@
 using System.Linq;
 using NLog;
 
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Templates;
 
 public class QuestActTemplate(QuestComponentTemplate parentComponent)
 {
-    private bool IsInitialized { get; set; }
     protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public QuestTemplate ParentQuestTemplate { get; set; } = parentComponent.ParentQuestTemplate;
@@ -29,8 +27,11 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <summary>
     /// Total Objective Count needed to mark this Act as completed, also used for giving item count, as this is technically also a goal.
     /// </summary>
-    public int Count { get; set; } = 0;
+    public virtual int Count { get; set; }
 
+    /// <summary>
+    /// Resolved short name of this Class
+    /// </summary>
     protected string QuestActTemplateName
     {
         get
@@ -39,15 +40,22 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
         }
     }
 
+    /// <summary>
+    /// Index inside this Component for objectives
+    /// </summary>
     public byte ThisComponentObjectiveIndex { get; set; } = 0xFF;
+
+    /// <summary>
+    /// The index of this Selective Reward Act
+    /// </summary>
+    public int ThisSelectiveIndex { get; set; }
 
     /// <summary>
     /// Called for every QuestAct in a component when the component is activated (Step changed)
     /// </summary>
     public virtual void InitializeAction(Quest quest, IQuestAct questAct)
     {
-        IsInitialized = true;
-        Logger.Info($"{QuestActTemplateName} - Initialize {DetailId}.");
+        Logger.Info($"{QuestActTemplateName}.InitializeAction({questAct.Template.DetailId}) Owner {quest.Owner.Name} ({quest.Owner.Id})");
     }
 
     /// <summary>
@@ -55,8 +63,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// </summary>
     public virtual void FinalizeAction(Quest quest, IQuestAct questAct)
     {
-        Logger.Info($"{QuestActTemplateName} - DeInitialize {DetailId}.");
-        IsInitialized = false;
+        Logger.Info($"{QuestActTemplateName}.FinalizeAction({questAct.Template.DetailId}) Owner {quest.Owner.Name} ({quest.Owner.Id})");
     }
 
     /// <summary>
@@ -71,22 +78,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     }
 
     /// <summary>
-    /// Resets objective for this QuestAct
-    /// </summary>
-    public virtual void ClearStatus(Quest quest, IQuestAct questAct)
-    {
-        Logger.Info($"{QuestActTemplateName} - Reset QuestAct {DetailId} objectives.");
-        questAct.SetObjective(quest, 0);
-    }
-
-    public virtual bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Info($"{QuestActTemplateName} - Use QuestAct {DetailId}, Character: {character.Name}, Objective {objective}.");
-        return false;
-    }
-
-    /// <summary>
-    /// Execute and check a Act for it's results, called after updating objective counts, descendents should never call base()
+    /// Execute and check an Act for its results, called after updating objective counts, descendents should never call base()
     /// </summary>
     /// <param name="quest">Quest this RunAct is called for</param>
     /// <param name="questAct">IQuestAct this RunAct is called from</param>
@@ -98,20 +90,44 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
         return false;
     }
 
+    /// <summary>
+    /// Max Objective based if quest can overachieve
+    /// </summary>
+    /// <returns></returns>
     public virtual int MaxObjective()
     {
-        return ParentQuestTemplate.LetItDone ? Count * 3 / 2 : Count;
+        var val = Count;
+        // If Score-base, calculate max objective count needed to get score
+        if (ParentComponent.ParentQuestTemplate.Score > 0)
+            val = (ParentComponent.ParentQuestTemplate.Score / Count) + 1;
+        return val > 0 ? (ParentQuestTemplate.LetItDone ? val * 3 / 2 : val) : 1;
     }
 
     /// <summary>
-    /// Set Current Objective Count for this Act (forwards to quest object)
+    /// Set Current Objective Count for this Act
     /// </summary>
-    public void SetObjective(Quest quest, int value)
+    /// <param name="quest"></param>
+    /// <param name="value"></param>
+    protected void SetObjective(Quest quest, int value)
     {
-        if (quest != null)
+        if (quest == null)
+            return;
+
+        // Don't go over max
+        value = Math.Min(value, MaxObjective());
+        if (quest.Objectives[ThisComponentObjectiveIndex] != value)
+        {
             quest.Objectives[ThisComponentObjectiveIndex] = value;
+            quest.RequestEvaluation();
+        }
     }
-    public void SetObjective(IQuestAct questAct, int value) => SetObjective(questAct.QuestComponent.Parent.Parent, value); 
+
+    /// <summary>
+    /// Set Current Objective Count for this Act, forwards using questAct's quest object
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="value"></param>
+    protected void SetObjective(IQuestAct questAct, int value) => SetObjective(questAct.QuestComponent.Parent.Parent, value); 
 
     /// <summary>
     /// Get Current Objective Count for this Act (forwarded value from Quest)
@@ -129,14 +145,23 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// </summary>
     /// <param name="quest"></param>
     /// <param name="amount"></param>
-    /// <param name="maxValue">If defined, the objective count will be capped at maxValue if it gets more than that</param>
-    public int AddObjective(Quest quest, int amount, int maxValue = 0)
+    /// <returns>New amount for the objective</returns>
+    protected int AddObjective(Quest quest, int amount)
     {
-        if (quest == null)
-            return 0;
-        quest.Objectives[ThisComponentObjectiveIndex] += amount;
-        if ((maxValue > 0) && (quest.Objectives[ThisComponentObjectiveIndex] > maxValue))
+        if ((quest == null) || (amount == 0))
+            return quest?.Objectives[ThisComponentObjectiveIndex] ?? 0;
+
+        var maxValue = MaxObjective();
+        if ((maxValue > 0) && (quest.Objectives[ThisComponentObjectiveIndex] + amount >= maxValue))
+        {
             quest.Objectives[ThisComponentObjectiveIndex] = maxValue;
+        }
+        else
+        {
+            quest.Objectives[ThisComponentObjectiveIndex] += amount;
+        }
+        quest.RequestEvaluation();
+
         return quest.Objectives[ThisComponentObjectiveIndex];
     }
 
@@ -145,9 +170,8 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// </summary>
     /// <param name="questAct"></param>
     /// <param name="amount"></param>
-    /// <param name="maxValue"></param>
-    /// <returns></returns>
-    public int AddObjective(IQuestAct questAct, int amount, int maxValue = 0) => AddObjective(questAct.QuestComponent.Parent.Parent, amount, maxValue);
+    /// <returns>New amount for the objective</returns>
+    public int AddObjective(IQuestAct questAct, int amount) => AddObjective(questAct.QuestComponent.Parent.Parent, amount);
 
     /// <summary>
     /// Called when a quest ended or otherwise removed, use to clean up items and tasks
@@ -370,17 +394,6 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     }
 
     /// <summary>
-    /// OnZoneMonsterHunt 
-    /// </summary>
-    /// <param name="questAct"></param>
-    /// <param name="sender"></param>
-    /// <param name="args"></param>
-    public virtual void OnZoneMonsterHunt(IQuestAct questAct, object sender, OnZoneMonsterHuntArgs args)
-    {
-        //
-    }
-
-    /// <summary>
     /// OnCinemaStarted 
     /// </summary>
     /// <param name="questAct"></param>
@@ -512,6 +525,26 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
         //
     }
 
+    /// <summary>
+    /// Triggered when a Quest Timer is expired
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    public virtual void OnTimerExpired(IQuestAct questAct, object sender, OnTimerExpiredArgs args)
+    {
+        //
+    }
+
+    /// <summary>
+    /// Triggered when a Quest changes step states
+    /// </summary>
+    /// <param name="questAct"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    public virtual void OnQuestStepChanged(IQuestAct questAct, object sender, OnQuestStepChangedArgs args)
+    {
+        //
+    }
     
     #endregion // Event Handlers
 }

@@ -1,7 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Templates;
+﻿using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -14,12 +11,6 @@ public class QuestActObjMateLevel(QuestComponentTemplate parentComponent) : Ques
     public bool Cleanup { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug("QuestActObjMateLevel");
-        return character.Mates.GetMateInfo(ItemId).Level >= Level;
-    }
 
     /// <summary>
     /// Checks if any of your items is the required summon item, and if it's level has been met

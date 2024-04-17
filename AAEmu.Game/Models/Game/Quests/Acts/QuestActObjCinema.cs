@@ -10,12 +10,6 @@ public class QuestActObjCinema(QuestComponentTemplate parentComponent) : QuestAc
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug("QuestActObjCinema");
-        return false;
-    }
-
     /// <summary>
     /// Checks if the Cinematic has been played
     /// </summary>
@@ -25,7 +19,7 @@ public class QuestActObjCinema(QuestComponentTemplate parentComponent) : QuestAc
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActObjCinema({DetailId}).RunAct: Quest: {quest.TemplateId}, CinemaId {CinemaId}");
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, CinemaId {CinemaId}");
         // Assume the client will actually start the cinema on its own
         return currentObjectiveCount >= 1;
     }

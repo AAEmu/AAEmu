@@ -1,7 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -18,23 +15,6 @@ public class QuestActObjInteraction(QuestComponentTemplate parentComponent) : Qu
     public int HighlightDoodadPhase { get; set; }
     public uint QuestActObjAliasId { get; set; }
     public uint Phase { get; set; } // phase here is same as the related WI effect's next_phase of the doodad for the quest
-
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        // TODO: Validate Phase when needed
-        Logger.Debug($"QuestActObjInteraction: DoodadId {DoodadId}, Count {Count}, quest {ParentQuestTemplate.Id}, objective {objective}");
-
-        Update(quest, questAct);
-
-        return quest.GetQuestObjectiveStatus() >= QuestObjectiveStatus.CanEarlyComplete;
-    }
-
-    public override void Update(Quest quest, IQuestAct questAct, int updateAmount = 1)
-    {
-        // base.Update(quest, questAct, updateAmount);
-        // Objective count is already set by CheckAct
-        Logger.Info($"{QuestActTemplateName} - QuestActItemGather {DetailId} was updated by {updateAmount} for a total of {questAct.GetObjective(quest)}.");
-    }
 
     /// <summary>
     /// Checks if the number of interactions has been met
@@ -71,7 +51,6 @@ public class QuestActObjInteraction(QuestComponentTemplate parentComponent) : Qu
 
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnInteraction: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), WorldInteractionId {WorldInteractionId}, DoodadId {DoodadId}, TeamShare {TeamShare}, Phase {Phase}.");
         AddObjective(questAct, 1);
-
         
         var player = questAct.QuestComponent.Parent.Parent.Owner;
         if (player.Id == args.SourcePlayer.Id)

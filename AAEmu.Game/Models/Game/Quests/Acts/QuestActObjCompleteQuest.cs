@@ -1,4 +1,3 @@
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -10,12 +9,6 @@ public class QuestActObjCompleteQuest(QuestComponentTemplate parentComponent) : 
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug("QuestActObjCompleteQuest");
-        return character.Quests.IsQuestComplete(QuestId) == AcceptWith;
-    }
-
     /// <summary>
     /// Checks if a specific quest has been completed before
     /// </summary>
@@ -25,7 +18,7 @@ public class QuestActObjCompleteQuest(QuestComponentTemplate parentComponent) : 
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Warn($"QuestActObjCompleteQuest({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), QuestId {QuestId}, AcceptWith {AcceptWith}");
+        Logger.Warn($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), QuestId {QuestId}, AcceptWith {AcceptWith}");
         // TODO: Not sure what AcceptWith is supposed to do, but none of the still existing quests seem to use this
         // I'd assume this would indicate that you also automatically accept this quest when getting to this step?
 

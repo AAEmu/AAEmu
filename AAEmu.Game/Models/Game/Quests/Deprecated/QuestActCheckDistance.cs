@@ -3,7 +3,6 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Templates;
-using Jace.Util;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -17,12 +16,6 @@ public class QuestActCheckDistance(QuestComponentTemplate parentComponent) : Que
     public uint NpcId { get; set; }
     public int Distance { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug($"QuestActCheckDistance: WithIn {WithIn}, NpcId {NpcId}, Distance {Distance}");
-        return false;
-    }
-
     /// <summary>
     /// Checks if the player is within a given distance of a target NPC type
     /// </summary>
@@ -32,7 +25,7 @@ public class QuestActCheckDistance(QuestComponentTemplate parentComponent) : Que
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Error($"QuestActCheckDistance({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), WithIn {WithIn}, NpcId {NpcId}, Distance {Distance}");
+        Logger.Error($"{QuestActTemplateName}({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), WithIn {WithIn}, NpcId {NpcId}, Distance {Distance}");
         // There is actually no quest left that still uses this
         var player = quest.Owner as Character;
         var npcs = WorldManager.GetAround<Npc>(player, Distance);

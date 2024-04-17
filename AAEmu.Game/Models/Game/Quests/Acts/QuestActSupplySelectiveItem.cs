@@ -1,5 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Items;
+﻿using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -9,12 +8,20 @@ public class QuestActSupplySelectiveItem(QuestComponentTemplate parentComponent)
     public uint ItemId { get; set; }
     public byte GradeId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
+    /// <summary>
+    /// Does a selective item reward
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns>Always returns true to allow progress even if this isn't the selected reward</returns>
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActSupplySelectiveItem, ItemId: {ItemId}, Count: {Count}, GradeId: {GradeId}");
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}, Count {Count}, GradeId {GradeId}, Selected {quest.SelectedRewardIndex}, This {ThisSelectiveIndex}");
 
-        quest.QuestRewardItemsPool.Add(new ItemCreationDefinition(ItemId, Count, GradeId));
-        // the item will be added in the DistributeRewards() method
+        // Only add reward if it was this selection
+        if (quest.SelectedRewardIndex == ThisSelectiveIndex)
+            quest.QuestRewardItemsPool.Add(new ItemCreationDefinition(ItemId, Count, GradeId));
 
         return true;
     }

@@ -1,4 +1,3 @@
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -11,10 +10,8 @@ public class QuestActConFail(QuestComponentTemplate parentComponent) : QuestActT
 {
     public bool ForceChangeComponent { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        // TODO: Implement ForceChangeComponent
-        Logger.Debug("QuestActConFail");
-        return false;
+        return base.RunAct(quest, questAct, currentObjectiveCount);
     }
 }

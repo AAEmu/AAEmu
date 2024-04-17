@@ -1,6 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Quests.Static;
-using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -15,20 +13,6 @@ public class QuestActEtcItemObtain(QuestComponentTemplate parentComponent) : Que
     public uint HighlightDoodadId { get; set; }
     public bool Cleanup { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug("QuestActEtcItemObtain");
-
-        Update(quest, questAct);
-
-        return quest.GetQuestObjectiveStatus() >= QuestObjectiveStatus.CanEarlyComplete;
-    }
-
-    public override void Update(Quest quest, IQuestAct questAct, int updateAmount = 1)
-    {
-        // base.Update(quest, questAct, updateAmount);
-    }
-
     /// <summary>
     /// Checks if the Objective count has been met
     /// </summary>
@@ -38,7 +22,7 @@ public class QuestActEtcItemObtain(QuestComponentTemplate parentComponent) : Que
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActEtcItemObtain({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}, Count {currentObjectiveCount}/{Count}");
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}, Count {currentObjectiveCount}/{Count}");
         return currentObjectiveCount >= Count;
     }
 
@@ -58,6 +42,6 @@ public class QuestActEtcItemObtain(QuestComponentTemplate parentComponent) : Que
     {
         // Check if obtained the specified item, there is no check for removing for EtcItemObtain
         if ((questAct.Id == ActId) && (e.ItemId == ItemId) && (e.Count > 0))
-            AddObjective(questAct, e.Count, Count);
+            AddObjective(questAct, e.Count);
     }
 }

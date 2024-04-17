@@ -46,9 +46,18 @@ public class QuestComponent : IQuestComponent
     {
         var res = true;
 
+        // Normal checks
         foreach (var questAct in Acts)
             res &= questAct.RunAct();
 
         return res;
+    }
+
+    /// <summary>
+    /// Sets the RequestEvaluationFlag to true signalling the server that it should check this quest's progress again
+    /// </summary>
+    public void RequestEvaluation()
+    {
+        Parent.RequestEvaluation();
     }
 }

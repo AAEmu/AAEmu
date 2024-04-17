@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -13,14 +12,6 @@ public class QuestActObjSphere(QuestComponentTemplate parentComponent) : QuestAc
     public int HighlightDoodadPhase { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug($"QuestActObjSphere Quest={ParentQuestTemplate.Id}, ComponentId={ParentComponent.Id}, Act={DetailId}");
-        //character.SendMessage("[AAEmu] Your quest was completed automatically because that's how quest spheres are implemented...");
-
-        return true;
-    }
 
     /// <summary>
     /// Checks if the player is inside the sphere

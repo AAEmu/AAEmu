@@ -1,17 +1,10 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActConAcceptComponent(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint QuestContextId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug($"QuestActConAcceptComponent: QuestContextId {QuestContextId}");
-        return true;
-    }
 
     /// <summary>
     /// This quest starter seems to always reference itself and assumes the quest was started in some other way?
@@ -23,7 +16,7 @@ public class QuestActConAcceptComponent(QuestComponentTemplate parentComponent) 
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Warn($"QuestActConAcceptComponent({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), QuestContextId {QuestContextId}");
+        Logger.Warn($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), QuestContextId {QuestContextId}");
         // TODO: We don't do any actual checks here, just return true. Later maybe could check if the acceptor type is valid?
         return true;
     }

@@ -1,17 +1,10 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActCheckCompleteComponent(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint CompleteComponent { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug($"QuestActCheckCompleteComponent: Complete Component {CompleteComponent}");
-        return true;
-    }
 
     /// <summary>
     /// Checks if a specific component of this quest has its objective completed
@@ -22,7 +15,7 @@ public class QuestActCheckCompleteComponent(QuestComponentTemplate parentCompone
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActCheckCompleteComponent({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Complete Component {CompleteComponent}");
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Complete Component {CompleteComponent}");
         if (questAct.QuestComponent.Parent.Components.TryGetValue(CompleteComponent, out var targetComponent))
         {
             // Found target component, check if it's completed
@@ -31,7 +24,7 @@ public class QuestActCheckCompleteComponent(QuestComponentTemplate parentCompone
         }
         else
         {
-            Logger.Error($"QuestActCheckCompleteComponent({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Complete Component {CompleteComponent} NOT FOUND!");
+            Logger.Error($"{QuestActTemplateName}({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Complete Component {CompleteComponent} NOT FOUND!");
         }
         return false;
     }

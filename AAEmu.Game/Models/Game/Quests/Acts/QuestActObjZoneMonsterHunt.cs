@@ -1,5 +1,7 @@
 ﻿using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -9,13 +11,40 @@ public class QuestActObjZoneMonsterHunt(QuestComponentTemplate parentComponent) 
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
+    /// <summary>
+    /// Checks if the target amount of enemies have been killed in the specified zone
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug("QuestActObjZoneMonsterHunt");
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Zone {ZoneId}");
+        return quest.Template.Score > 0 ? currentObjectiveCount * Count >= quest.Template.Score : currentObjectiveCount > Count;
+    }
 
-        if (character.Transform.ZoneId != ZoneId)
-            return false;
+    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    {
+        base.InitializeAction(quest, questAct);
+        quest.Owner.Events.OnZoneKill += questAct.OnZoneKill;
+    }
 
-        return ParentQuestTemplate.Score > 0 ? objective * Count >= ParentQuestTemplate.Score : objective >= Count;
+    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    {
+        quest.Owner.Events.OnZoneKill -= questAct.OnZoneKill;
+        base.FinalizeAction(quest, questAct);
+    }
+
+    public override void OnZoneKill(IQuestAct questAct, object sender, OnZoneKillArgs args)
+    {
+        if ((questAct.Id != ActId) || (args.ZoneGroupId != ZoneId))
+            return;
+        
+        if (args.Victim is not Npc npc)
+            return;
+
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).OnZoneKill(@QuestActObjZoneMonsterHunt): Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), ZoneGroupId {args.ZoneGroupId}, NpcObjId {npc.ObjId}");
+        AddObjective(questAct, 1);
     }
 }

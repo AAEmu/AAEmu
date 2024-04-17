@@ -1,5 +1,3 @@
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -10,12 +8,6 @@ public class QuestActObjTalkNpcGroup(QuestComponentTemplate parentComponent) : Q
     public uint NpcGroupId { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug("QuestActObjTalkNpcGroup");
-        return false;
-    }
     
     /// <summary>
     /// Checks if talked to a member of target Npc group

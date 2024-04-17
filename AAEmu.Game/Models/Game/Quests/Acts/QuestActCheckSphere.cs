@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -9,16 +8,10 @@ public class QuestActCheckSphere(QuestComponentTemplate parentComponent) : Quest
 {
     public uint SphereId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug($"QuestActCheckSphere: SphereId {SphereId}");
-        return false;
-    }
-
     public override void InitializeAction(Quest quest, IQuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
-        SphereQuestManager.Instance.AddSphereQuestTriggers(quest.Owner, quest, parentComponent.Id, 0);
+        SphereQuestManager.Instance.AddSphereQuestTriggers(quest.Owner, quest, ParentComponent.Id, 0);
         quest.Owner.Events.OnEnterSphere += questAct.OnEnterSphere;
         quest.Owner.Events.OnExitSphere += questAct.OnExitSphere;
     }
@@ -40,21 +33,23 @@ public class QuestActCheckSphere(QuestComponentTemplate parentComponent) : Quest
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActCheckSphere({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), SphereId {SphereId}");
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), SphereId {SphereId}");
         return currentObjectiveCount > 0;
     }
 
-    public override void OnEnterSphere(IQuestAct questAct, object sender, OnEnterSphereArgs e)
+    public override void OnEnterSphere(IQuestAct questAct, object sender, OnEnterSphereArgs args)
     {
-        if ((questAct.Id == ActId) && (e.SphereQuest.QuestId != ParentQuestTemplate.Id))
+        if ((questAct.Id == ActId) && (args.SphereQuest.QuestId != ParentQuestTemplate.Id))
             return;
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).OnEnterSphere: Quest {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), SphereId {SphereId}");
         SetObjective(questAct, 1);
     }
 
-    public override void OnExitSphere(IQuestAct questAct, object sender, OnExitSphereArgs e)
+    public override void OnExitSphere(IQuestAct questAct, object sender, OnExitSphereArgs args)
     {
-        if ((questAct.Id != ActId) || (e.SphereQuest.QuestId != ParentQuestTemplate.Id))
+        if ((questAct.Id != ActId) || (args.SphereQuest.QuestId != ParentQuestTemplate.Id))
             return;
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).OnExitSphere: Quest {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), SphereId {SphereId}");
         SetObjective(questAct, 0);
     }
 }

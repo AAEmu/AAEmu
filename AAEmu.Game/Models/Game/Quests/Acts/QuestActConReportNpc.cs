@@ -1,7 +1,6 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.NPChar;
+﻿using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -10,16 +9,6 @@ public class QuestActConReportNpc(QuestComponentTemplate parentComponent) : Ques
     public uint NpcId { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug("QuestActConReportNpc");
-
-        if (character.CurrentTarget is not Npc npc)
-            return false;
-
-        return npc.TemplateId == NpcId;
-    }
 
     /// <summary>
     /// Checks if the current target is the specified Npc
@@ -30,8 +19,29 @@ public class QuestActConReportNpc(QuestComponentTemplate parentComponent) : Ques
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActConReportNpc({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), NpcId {NpcId}");
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), NpcId {NpcId}");
         // TODO Verify: Does it actually have to be targeted?
         return (quest.Owner.CurrentTarget is Npc npc) && (npc.TemplateId == NpcId);
+    }
+
+    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    {
+        base.InitializeAction(quest, questAct);
+        quest.Owner.Events.OnReportNpc += questAct.OnReportNpc;
+    }
+
+    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    {
+        quest.Owner.Events.OnReportNpc -= questAct.OnReportNpc;
+        base.FinalizeAction(quest, questAct);
+    }
+
+    public override void OnReportNpc(IQuestAct questAct, object sender, OnReportNpcArgs args)
+    {
+        if ((questAct.Id != ActId) || (NpcId != args.NpcId))
+            return;
+        Logger.Debug($"QuestActConReportNpc({DetailId}).OnReportNpc: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), NpcId {args.NpcId}, Selected {args.Selected}");
+        questAct.QuestComponent.Parent.Parent.SelectedRewardIndex = args.Selected;
+        questAct.RequestEvaluation();
     }
 }

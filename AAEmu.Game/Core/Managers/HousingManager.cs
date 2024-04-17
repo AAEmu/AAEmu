@@ -563,7 +563,7 @@ public class HousingManager : Singleton<HousingManager>
             var totalUserTaxCount = userTaxCount + userBoundTaxCount;
             var totalCertsCost = (int)Math.Ceiling(totalTaxAmountDue / 10000f);
 
-            // Alloyingly complex item consumption, maybe we need a seperate function in inventory to handle this kind of thing
+            // Annoyingly complex item consumption, maybe we need a separate function in inventory to handle this kind of thing
             var consumedCerts = totalCertsCost;
             if (totalCertsCost > totalUserTaxCount)
             {

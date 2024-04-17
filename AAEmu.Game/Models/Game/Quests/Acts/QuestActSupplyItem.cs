@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
@@ -15,28 +16,29 @@ public class QuestActSupplyItem(QuestComponentTemplate parentComponent) : QuestA
     public bool DropWhenDestroy { get; set; }
     public bool DestroyWhenDrop { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
+    /// <summary>
+    /// Gives item to the player, either directly equipped, bag or by mail (for non-backpack)
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns>False if it failed to provide the item</returns>
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug("QuestActSupplyItem");
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}, GradeId {GradeId}, Count {Count}, ShowActionBar {ShowActionBar}, Cleanup {Cleanup}, DropWhenDestroy {DropWhenDestroy}, DestroyWhenDrop {DestroyWhenDrop}");
 
-        if (objective >= Count) // checking for call recursion
-            return true;
-
-        var acquireSuccessful = ItemManager.Instance.IsAutoEquipTradePack(ItemId) ?
-            character.Inventory.TryEquipNewBackPack(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId) : 
-            character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
-
-        if (!acquireSuccessful)
+        if (quest.Owner is Character player)
         {
-            var amountFree = character.Inventory.Bag.SpaceLeftForItem(ItemId);
-            if (amountFree < Count)
+            // If a backpack, directly handle it, otherwise use the reward pool
+            if (ItemManager.Instance.IsAutoEquipTradePack(ItemId))
             {
-                character.SendErrorMessage(ErrorMessageType.BagFull);
+                return player.Inventory.TryEquipNewBackPack(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
             }
+            
+            // Add item to reward pool (pool gets distributed and reset at the end of each step)
+            quest.QuestRewardItemsPool.Add(new ItemCreationDefinition(ItemId, Count, GradeId));
+            return true;
         }
-
-        questAct.SetObjective(quest, Count);
-
-        return acquireSuccessful;
+        return false; // Not a player somehow, should never get here
     }
 }

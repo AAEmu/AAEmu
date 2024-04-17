@@ -1,5 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Items.Actions;
+﻿using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
@@ -12,16 +11,6 @@ public class QuestActConAcceptItem(QuestComponentTemplate parentComponent) : Que
     public bool DropWhenDestroy { get; set; }
     public bool DestroyWhenDrop { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective) // triggered by using things
-    {
-        Logger.Debug($"QuestActConAcceptItem: ItemId {ItemId}");
-
-        quest.QuestAcceptorType = QuestAcceptorType.Item;
-        quest.AcceptorId = ItemId;
-
-        return character.Inventory.CheckItems(Items.SlotType.Inventory, ItemId, 1);
-    }
-
     /// <summary>
     /// Checks if the Quest starter was indeed the provided Item and is in the inventory
     /// </summary>
@@ -31,7 +20,7 @@ public class QuestActConAcceptItem(QuestComponentTemplate parentComponent) : Que
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Trace($"QuestActConAcceptItem({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}");
+        Logger.Trace($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}");
         return (quest.QuestAcceptorType == QuestAcceptorType.Item) && (quest.AcceptorId == ItemId) && quest.Owner.Inventory.CheckItems(Items.SlotType.Inventory, ItemId, 1);
     }
 

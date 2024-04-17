@@ -1,9 +1,4 @@
-﻿using System;
-
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Quests.Static;
+﻿using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -19,28 +14,6 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
     public bool Cleanup { get; set; }
     public bool DropWhenDestroy { get; set; }
     public bool DestroyWhenDrop { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug($"QuestActObjItemGather: ItemId {ItemId}, Count {Count}, UseAlias {UseAlias}, QuestActObjAliasId {QuestActObjAliasId}, HighlightDoodadId {HighlightDoodadId}, HighlightDoodadPhase {HighlightDoodadPhase}, quest {ParentQuestTemplate.Id}, objective {objective}, Score {ParentQuestTemplate.Score}");
-
-        var res = quest.GetQuestObjectiveStatus() >= QuestObjectiveStatus.CanEarlyComplete;
-        var maxCleanup = ParentQuestTemplate.LetItDone ? Count * 3 / 2 : Count;
-
-        Update(quest, questAct, objective);
-
-        if (res && Cleanup)
-            quest.QuestCleanupItemsPool.Add(new ItemCreationDefinition(ItemId, Math.Min(maxCleanup, objective)));
-
-        return res;
-    }
-
-    public override void Update(Quest quest, IQuestAct questAct, int updateAmount = 1)
-    {
-        base.Update(quest, questAct, updateAmount);
-        // Objective count is already set by CheckAct
-        Logger.Info($"{QuestActTemplateName} - QuestActItemGather {DetailId} was updated by {updateAmount} for a total of {questAct.GetObjective(quest)}.");
-    }
 
     /// <summary>
     /// Checks if the number of items have been acquired 
@@ -96,7 +69,7 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
             return;
 
         // Just adding/removing the count should technically be enough without having to do a new count
-        // AddObjective(questAct, args.Count);
+        // AddObjective(questAct, args.Count, Count);
         SetObjective(questAct, questAct.QuestComponent.Parent.Parent.Owner.Inventory.GetItemsCount(ItemId));
     }
 }

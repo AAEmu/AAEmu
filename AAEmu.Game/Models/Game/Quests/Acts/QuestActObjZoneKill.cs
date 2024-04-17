@@ -3,7 +3,6 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -28,18 +27,13 @@ public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : Quest
     public uint NpcFactionId { get; set; }
     public bool NpcFactionExclusive { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug("QuestActObjZoneKill");
-
-        if (character.Transform.ZoneId != ZoneId)
-        {
-            return false;
-        }
-
-        return objective >= CountNpc || objective >= CountPlayerKill;
-    }
-
+    /// <summary>
+    /// Checks if either the NPC or PK kill quota has been met
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Zone {ZoneId}, Npc kills x {CountNpc} (Faction {NpcFactionId} Ex {NpcFactionExclusive}, Lv{LvlMinNpc}~{LvlMaxNpc}), PK x {CountPlayerKill} (Faction {PcFactionId} Ex {PcFactionExclusive}, Lv{LvlMin}~{LvlMax}), TeamShare {TeamShare}, IsParty {IsParty}");
@@ -111,6 +105,7 @@ public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : Quest
 
         if (valid)
         {
+            // TODO: Check if this would actually need 2 objective counters or not
             AddObjective(questAct, 1);
             
             // Handle Team sharing (if needed)

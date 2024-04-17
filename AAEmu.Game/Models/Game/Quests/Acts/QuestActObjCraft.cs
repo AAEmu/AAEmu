@@ -1,6 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Crafts;
-using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -13,12 +11,6 @@ public class QuestActObjCraft(QuestComponentTemplate parentComponent) : QuestAct
     public uint HighlightDoodadId { get; set; }
     public int HighlightDoodadPhase { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug("QuestActObjCraft");
-        return ParentQuestTemplate.Score > 0 ? objective * Count >= ParentQuestTemplate.Score : objective >= Count;
-    }
-
     /// <summary>
     /// Checks if the number of crafts have been completed (or score has been met)
     /// </summary>
@@ -28,7 +20,7 @@ public class QuestActObjCraft(QuestComponentTemplate parentComponent) : QuestAct
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActObjCraft({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), CraftId {CraftId}, Count {Count}");
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), CraftId {CraftId}, Count {Count}");
         return ParentQuestTemplate.Score > 0
             ? currentObjectiveCount * Count > ParentQuestTemplate.Score
             : currentObjectiveCount >= Count;
@@ -50,7 +42,7 @@ public class QuestActObjCraft(QuestComponentTemplate parentComponent) : QuestAct
     {
         if ((questAct.Template.ActId == ActId) && (e.CraftId == CraftId))
         {
-            Logger.Debug($"QuestActObjCraft({DetailId}).OnCraft: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), CraftId {CraftId}");
+            Logger.Debug($"{QuestActTemplateName}({DetailId}).OnCraft: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), CraftId {CraftId}");
             AddObjective(questAct.QuestComponent.Parent.Parent, 1);
         }
     }

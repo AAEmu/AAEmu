@@ -1,4 +1,3 @@
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -9,12 +8,6 @@ public class QuestActObjLevel(QuestComponentTemplate parentComponent) : QuestAct
     public byte Level { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug($"QuestActObjLevel, Level: {Level}");
-        return character.Level >= Level;
-    }
 
     /// <summary>
     /// Checks if the player has reached target level

@@ -1,7 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Quests.Static;
+﻿using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
-using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -13,12 +11,6 @@ public class QuestActConAcceptBuff(QuestComponentTemplate parentComponent) : Que
 {
     public uint BuffId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        Logger.Debug($"QuestActConAcceptBuff: BuffId {BuffId}");
-        return false;
-    }
-
     /// <summary>
     /// Checks if the Quest was started from the specified Buff
     /// </summary>
@@ -28,7 +20,7 @@ public class QuestActConAcceptBuff(QuestComponentTemplate parentComponent) : Que
     /// <returns></returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Error($"QuestActConAcceptBuff({DetailId}).RunAct: Quest {quest.TemplateId}, Player {quest.Owner.Name} ({quest.Owner.Id}), BuffId {BuffId}");
+        Logger.Error($"{QuestActTemplateName}({DetailId}).RunAct: Quest {quest.TemplateId}, Player {quest.Owner.Name} ({quest.Owner.Id}), BuffId {BuffId}");
         return quest.QuestAcceptorType == QuestAcceptorType.Buff && quest.AcceptorId == BuffId;
     }
 }

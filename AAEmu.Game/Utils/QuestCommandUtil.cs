@@ -137,7 +137,6 @@ public class QuestCommandUtil
                         // посылаем пакеты для того, что-бы клиент был в курсе обновления квестов
                         character.Quests.Send();
                         character.Quests.SendCompleted();
-                        character.Quests.RecallEvents();
                     }
                 }
                 else

@@ -1,15 +1,15 @@
 ﻿using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 /// <summary>
-/// This Act does not seem to be used anymore
+/// Not actively used
 /// </summary>
-public class QuestActObjEffectFire(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
+/// <param name="parentComponent"></param>
+public class QuestActSupplyInteraction(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
-    public uint EffectId { get; set; }
-    public bool UseAlias { get; set; }
-    public uint QuestActObjAliasId { get; set; }
+    public WorldInteractionType WiId { get; set; }
 
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {

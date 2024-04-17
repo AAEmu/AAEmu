@@ -1,5 +1,4 @@
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.World;
@@ -14,13 +13,6 @@ public class QuestActObjDistance(QuestComponentTemplate parentComponent) : Quest
     public uint HighlightDoodadId { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
-    {
-        // TODO: Actually check the distance?
-        Logger.Debug("QuestActObjDistance");
-        return false;
-    }
 
     /// <summary>
     /// Checks if target Npc is within range (or not) of the player

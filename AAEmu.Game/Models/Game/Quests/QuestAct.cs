@@ -15,29 +15,12 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
     /// </summary>
     public uint Id => Template?.ActId ?? 0;
     public uint ComponentId { get; set; }
-    public uint DetailId { get; set; }
+    public uint DetailId => Template?.DetailId ?? 0;
     public string DetailType { get; set; }
-
     public byte ThisComponentObjectiveIndex { get; set; }
 
     public QuestComponent QuestComponent { get; } = parentComponent;
     public QuestActTemplate Template { get; set; } = template;
-
-    public QuestActTemplate GetTemplate()
-    {
-        return QuestManager.Instance.GetActTemplate(DetailId, DetailType);
-    }
-
-    public T GetTemplate<T>() where T : QuestActTemplate
-    {
-        return QuestManager.Instance.GetActTemplate<T>(DetailId, DetailType);
-    }
-
-    public bool Use(ICharacter character, Quest quest, int objective)
-    {
-        var template = QuestManager.Instance.GetActTemplate(DetailId, DetailType);
-        return template.Use(character, quest, this, objective);
-    }
 
     #region objectives
     /// <summary>
@@ -272,16 +255,6 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
     }
 
     /// <summary>
-    /// OnZoneMonsterHunt 
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="args"></param>
-    public virtual void OnZoneMonsterHunt(object sender, OnZoneMonsterHuntArgs args)
-    {
-        Template.OnZoneMonsterHunt(this, sender, args);
-    }
-
-    /// <summary>
     /// OnCinemaStarted 
     /// </summary>
     /// <param name="sender"></param>
@@ -401,6 +374,23 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
         Template.OnDamaged(this, sender, args);
     }
 
+    public void OnTimerExpired(object sender, OnTimerExpiredArgs args)
+    {
+        Template.OnTimerExpired(this, sender, args);
+    }
+    
+    public void OnQuestStepChanged(object sender, OnQuestStepChangedArgs args)
+    {
+        Template.OnQuestStepChanged(this, sender, args);
+    }
+
     #endregion // Event Handlers
     
+    /// <summary>
+    /// Sets the RequestEvaluationFlag to true signalling the server that it should check this quest's progress again
+    /// </summary>
+    public void RequestEvaluation()
+    {
+        QuestComponent.RequestEvaluation();
+    }
 }

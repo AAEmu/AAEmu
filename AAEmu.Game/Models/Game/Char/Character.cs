@@ -75,6 +75,7 @@ public partial class Character : Unit, ICharacter
     public int VocationPoint { get; set; }
     public short CrimePoint { get; set; }
     public int CrimeRecord { get; set; }
+    public int JuryPoint { get; set; }
     public DateTime DeleteRequestTime { get; set; }
     public DateTime TransferRequestTime { get; set; }
     public DateTime DeleteTime { get; set; }
@@ -1919,6 +1920,7 @@ public partial class Character : Unit, ICharacter
                     character.VocationPoint = reader.GetInt32("vocation_point");
                     character.CrimePoint = reader.GetInt16("crime_point");
                     character.CrimeRecord = reader.GetInt32("crime_record");
+                    // character.JuryPoint = reader.GetInt32("jury_point"); // TODO: Implement JuryPoint
                     character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
                     character.HonorGainedInCombat = reader.GetUInt32("pvp_honor");
                     character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
@@ -2444,7 +2446,7 @@ public partial class Character : Unit, ICharacter
         stream.Write(0L); // moneyAmount ?
         stream.Write(CrimePoint); // current crime points (/50)
         stream.Write(CrimeRecord); // total infamy 
-        stream.Write((short)0); // crimeScore?
+        stream.Write((short)0); // crimeScore? trials served?
         stream.Write(DeleteRequestTime);
         stream.Write(TransferRequestTime);
         stream.Write(DeleteTime); // deleteDelay
@@ -2459,6 +2461,32 @@ public partial class Character : Unit, ICharacter
         stream.Write(Updated);
         stream.Write((byte)0); // forceNameChange ?
         return stream;
+    }
+
+    /// <summary>
+    /// Adds crime, and returns the new (current) crime value
+    /// </summary>
+    /// <param name="amount"></param>
+    /// <returns></returns>
+    public short AddCrime(int amount)
+    {
+        var newAmount = CrimePoint + amount;
+        if (newAmount > short.MaxValue)
+        {
+            CrimePoint = short.MaxValue; // current crime point can't go over short MaxValue
+        }
+        if (newAmount < 0)
+        {
+            CrimePoint = 0;
+        }
+        else
+        {
+            CrimePoint = (short)newAmount;
+        }
+        CrimeRecord += amount; // total amount
+        if (CrimeRecord < 0)
+            CrimeRecord = 0;
+        return CrimePoint;
     }
 
     public override string DebugName()

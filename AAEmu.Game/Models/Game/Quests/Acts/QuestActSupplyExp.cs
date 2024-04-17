@@ -7,10 +7,18 @@ public class QuestActSupplyExp(QuestComponentTemplate parentComponent) : QuestAc
 {
     public int Exp { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
+    /// <summary>
+    /// Adds Xp
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug($"QuestActSupplyExp, Exp: {Exp}");
-        quest.QuestRewardExpPool += Exp;
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Exp {Exp}");
+        var player = quest.Owner as Character;
+        player?.AddExp(Exp, true);
         return true;
     }
 }

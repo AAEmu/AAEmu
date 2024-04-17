@@ -1,4 +1,3 @@
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -15,10 +14,8 @@ public class QuestActObjDoodadPhaseCheck(QuestComponentTemplate parentComponent)
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, IQuestAct questAct, int objective)
+    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
-        // TODO: Check the actual phase of the doodad
-        Logger.Debug("QuestActObjDoodadPhaseCheck");
-        return false;
+        return base.RunAct(quest, questAct, currentObjectiveCount);
     }
 }

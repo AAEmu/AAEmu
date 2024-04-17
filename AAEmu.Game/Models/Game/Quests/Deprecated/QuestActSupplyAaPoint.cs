@@ -3,13 +3,12 @@
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 /// <summary>
-/// This Act does not seem to be used anymore
+/// Not used, Gives AAPoints to the player
 /// </summary>
-public class QuestActObjEffectFire(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
+/// <param name="parentComponent"></param>
+public class QuestActSupplyAaPoint(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
-    public uint EffectId { get; set; }
-    public bool UseAlias { get; set; }
-    public uint QuestActObjAliasId { get; set; }
+    public int Point { get; set; }
 
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
