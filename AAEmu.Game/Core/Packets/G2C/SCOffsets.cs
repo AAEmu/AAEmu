@@ -626,7 +626,7 @@ public static class SCOffsets
     public const ushort SCKnockBackUnitPacket = 0x256;
     public const ushort SCItemDetailUpdatedPacket = 0x046;
     public const ushort SCUnitEquipmentsChangedPacket = 0x1C8;
-    public const ushort SCCofferContentsPacket = 0x019;
+    public const ushort SCCofferContentsUpdatePacket = 0x019; // SCCofferContentsPacket
     public const ushort SCItemAcquisitionPacket = 0x22B;
     public const ushort SCItemGradeEnchantResultPacket = 0x09F; // SCGradeEnchantResultPacket
     public const ushort SCLinkTextForEnchantBroadcastPacket = 0x003;
@@ -765,5 +765,4 @@ public static class SCOffsets
     public const ushort SCExpeditionRoleChangedPacket = 0xfff;
     //public const ushort SCFactionListPacket = 0xfff; // SCSystemFactionListPacket
     public const ushort SCItemUccDataChangedPacket = 0xfff; // SCItemUccChangedPacket
-    public const ushort SCCofferContentsUpdatePacket = 0xfff; // SCCofferContentsPacket
 }

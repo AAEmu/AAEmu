@@ -11,7 +11,7 @@ public class SCCofferContentsPacket : GamePacket
     private readonly byte _firstSlot;
     private readonly byte _slotCount;
 
-    public SCCofferContentsPacket(DoodadCoffer cofferDoodad, byte firstSlot) : base(SCOffsets.SCCofferContentsPacket, 5)
+    public SCCofferContentsPacket(DoodadCoffer cofferDoodad, byte firstSlot) : base(SCOffsets.SCCofferContentsUpdatePacket, 5)
     {
         _cofferDoodad = cofferDoodad;
         _firstSlot = firstSlot;
