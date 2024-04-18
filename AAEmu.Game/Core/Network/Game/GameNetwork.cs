@@ -374,7 +374,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSRepairSingleEquipmentPacket, 5, typeof(CSRepairSingleEquipmentPacket));
         RegisterPacket(CSOffsets.CSRepairAllEquipmentsPacket, 5, typeof(CSRepairAllEquipmentsPacket));
         //RegisterPacket(CSOffsets.CSChangeAutoUseAAPointPacket, 5, typeof(CSChangeAutoUseAAPointPacket));
-        //RegisterPacket(CSOffsets.CSThisTimeUnpackPacket, 5, typeof(CSThisTimeUnpackPacket));
+        RegisterPacket(CSOffsets.CSThisTimeUnpackPacket, 5, typeof(CSThisTimeUnpackItemPacket));
         //RegisterPacket(CSOffsets.CSTakeScheduleItemPacket, 5, typeof(CSTakeScheduleItemPacket));
         RegisterPacket(CSOffsets.CSChangeMateEquipmentPacket, 5, typeof(CSChangeMateEquipmentPacket));
         RegisterPacket(CSOffsets.CSChangeSlaveEquipmentPacket, 5, typeof(CSChangeSlaveEquipmentPacket));

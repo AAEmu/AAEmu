@@ -361,7 +361,7 @@ public static class CSOffsets
     public const ushort CSRepairSingleEquipmentPacket = 0x10D;
     public const ushort CSRepairAllEquipmentsPacket = 0x19E;
     public const ushort CSChangeAutoUseAaPointPacket = 0x01C;
-    public const ushort CSThisTimeUnpackPacket = 0x0CC;
+    public const ushort CSThisTimeUnpackPacket = 0x0CC; // CSThisTimeUnpackItemPacket
     public const ushort CSTakeScheduleItemPacket = 0x0BA;
     public const ushort CSChangeMateEquipmentPacket = 0x00F;
     public const ushort CSChangeSlaveEquipmentPacket = 0x117;
@@ -425,7 +425,6 @@ public static class CSOffsets
     public const ushort CSSetupSecondPasswordPacket = 0xfff; // CSSetupSecondPassword
     public const ushort CSSpecialtyRecordLoadPacket = 0xfff;
     public const ushort CSTakedownTradeItemPacket = 0xfff;
-    public const ushort CSThisTimeUnpackItemPacket = 0xfff;
     public const ushort CSUpdateDominionTaxRatePacket = 0xfff;
     public const ushort CSUpdateNationalTaxRatePacket = 0xfff;
 }
