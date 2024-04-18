@@ -606,7 +606,7 @@ public class Doodad : BaseUnit
         stream.Write(PuzzleGroup);     // puzzleGroup
         stream.Write((byte)OwnerType); // ownerType
         stream.Write(OwnerDbId); // dbHouseId
-        stream.Write(Data); // data
+        stream.Write(Data); // data - attachPointId для хранения в базе данных
 
         return stream;
     }

@@ -2,11 +2,11 @@
 
 namespace AAEmu.Game.Models.Game.Items.Actions;
 
-public class ItemUpdate : ItemTask
+public class ItemUpdateRepair : ItemTask
 {
     private readonly Item _item;
 
-    public ItemUpdate(Item item)
+    public ItemUpdateRepair(Item item)
     {
         _type = ItemAction.UpdateDetail; // 9
         _item = item;
@@ -22,7 +22,8 @@ public class ItemUpdate : ItemTask
 
         var details = new PacketStream();
         details.Write((byte)_item.DetailType);
-        //details.Write(0u); // добавил для нормальной работы починки предметов
+
+        details.Write(0u); // добавил для нормальной работы починки предметов
 
         _item.WriteDetails(details);
 

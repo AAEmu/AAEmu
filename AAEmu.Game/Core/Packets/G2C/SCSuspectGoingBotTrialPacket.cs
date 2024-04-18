@@ -11,16 +11,16 @@ public class SCSuspectGoingBotTrialPacket : GamePacket
 
     public SCSuspectGoingBotTrialPacket(uint type, uint type2, bool kicked) : base(SCOffsets.SCSuspectGoingBotTrialPacket, 5)
     {
-            _type = type;
-            _type2 = type2;
-            _kicked = kicked;
-        }
+        _type = type;
+        _type2 = type2;
+        _kicked = kicked;
+    }
 
     public override PacketStream Write(PacketStream stream)
     {
-            stream.Write(_type);
-            stream.Write(_type2);
-            stream.Write(_kicked);
-            return stream;
-        }
+        stream.Write(_type);
+        stream.Write(_type2);
+        stream.Write(_kicked);
+        return stream;
+    }
 }

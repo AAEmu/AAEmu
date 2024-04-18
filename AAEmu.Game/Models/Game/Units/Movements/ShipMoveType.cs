@@ -14,6 +14,7 @@ public class ShipMoveType : MoveType
     public float AngVelZ { get; set; }
     public sbyte Steering { get; set; }
     public sbyte Throttle { get; set; }
+    public sbyte Rpm { get; set; }
     public ushort ZoneId { get; set; }
     public bool Stuck { get; set; }
 
@@ -33,6 +34,7 @@ public class ShipMoveType : MoveType
         AngVelZ = stream.ReadSingle();
         Steering = stream.ReadSByte();
         Throttle = stream.ReadSByte();
+        Rpm = stream.ReadSByte();
         ZoneId = stream.ReadUInt16();
         Stuck = stream.ReadBoolean();
     }
@@ -56,6 +58,7 @@ public class ShipMoveType : MoveType
 
         stream.Write(Steering);
         stream.Write(Throttle);
+        stream.Write(Rpm);
 
         stream.Write(ZoneId);
         stream.Write(Stuck);
@@ -79,6 +82,7 @@ public class ShipMoveType : MoveType
         Time = (uint)(DateTime.UtcNow - slave.SpawnTime).TotalMilliseconds;
         Stuck = false;
         Throttle = slave.ThrottleRequest;
+        Rpm = slave.Rpm;
         Steering = slave.SteeringRequest;
     }
 }

@@ -8,18 +8,16 @@ public class SCSlaveCreatedPacket : GamePacket
     private readonly uint _ownerObjId;
     private readonly ushort _tlId;
     private readonly uint _slaveObjId;
-    private readonly bool _hideSpawnEffect;
-    private readonly long _unkId;
+    private readonly ulong _itemId;
     private readonly string _creatorName;
 
-    public SCSlaveCreatedPacket(uint ownerObjId, ushort tlId, uint slaveObjId, bool hideSpawnEffect, long unkId, string creatorName)
+    public SCSlaveCreatedPacket(uint ownerObjId, ushort tlId, uint slaveObjId, ulong itemId, string creatorName)
         : base(SCOffsets.SCSlaveCreatedPacket, 5)
     {
         _ownerObjId = ownerObjId;
         _tlId = tlId;
         _slaveObjId = slaveObjId;
-        _hideSpawnEffect = hideSpawnEffect;
-        _unkId = unkId;
+        _itemId = itemId;
         _creatorName = creatorName;
     }
 
@@ -28,8 +26,8 @@ public class SCSlaveCreatedPacket : GamePacket
         stream.WriteBc(_ownerObjId);
         stream.Write(_tlId);
         stream.WriteBc(_slaveObjId);
-        stream.Write(_hideSpawnEffect);
-        stream.Write(_unkId);
+        //stream.Write(_hideSpawnEffect); // no in 3+
+        stream.Write(0ul);
         stream.Write(_creatorName);
         return stream;
     }

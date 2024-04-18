@@ -380,7 +380,7 @@ public class NpcSpawner : Spawner<Npc>
             {
                 TaskManager.Instance.CronSchedule(new NpcSpawnerDoSpawnTask(this), cronExpression);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Logger.Warn($"DoSpawnSchedule: Can't reschedule spawn npc {UnitId} from spawnerId {Template.Id}");
                 Logger.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
@@ -453,7 +453,7 @@ public class NpcSpawner : Spawner<Npc>
             {
                 TaskManager.Instance.CronSchedule(new NpcSpawnerDoDespawnTask(npc), cronExpression);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Logger.Warn($"DoDespawnSchedule: Can't reschedule despawn npc {UnitId} from spawnerId {Template.Id}");
                 Logger.Warn($"DoDespawnSchedule: cronExpression {cronExpression}");

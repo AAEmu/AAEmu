@@ -682,7 +682,7 @@ public static class SCOffsets
     public const ushort SCOneUnitMovementPacket = 0x09A;
     public const ushort SCImpulseUnitPacket = 0x090;
     public const ushort SCItemTaskNotifyPacket = 0x04D;
-    public const ushort SCHousePacket = 0x17B; // off_39C09FCC // SCMyHousePacket
+    public const ushort SCMyHousePacket = 0x17B; // off_39C09FCC // SCMyHousePacket
     public const ushort SCHouseTaxInfoPacket = 0x180;
     public const ushort SCConstructHouseTaxPacket = 0x19D;
     public const ushort SCHouseSetForSalePacket = 0x25D;

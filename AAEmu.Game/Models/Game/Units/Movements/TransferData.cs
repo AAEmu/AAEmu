@@ -53,7 +53,7 @@ public class TransferData : MoveType
         (X, Y, Z) = stream.ReadPosition();
         WorldPos = new WorldPos(Helpers.ConvertLongX(X), Helpers.ConvertLongY(Y), Z);
         var tempVelocity = stream.ReadVector3Short();
-        Velocity = new Vector3(tempVelocity.X * 50f, tempVelocity.Y * 50f, tempVelocity.Z * 50f);
+        Velocity = new Vector3(tempVelocity.X * 30f, tempVelocity.Y * 30f, tempVelocity.Z * 30f);
         Rot = stream.ReadQuaternionShort();
         AngVel = stream.ReadVector3Single();
         Steering = stream.ReadInt32();

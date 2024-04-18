@@ -312,9 +312,9 @@ public class SlaveManager : Singleton<SlaveManager>
     /// <param name="SubType">TemplateId</param>
     /// <param name="hideSpawnEffect"></param>
     /// <param name="positionOverride"></param>
-    public Slave Create(uint SubType, bool hideSpawnEffect = false, Transform positionOverride = null)
+    public Slave Create(uint SubType, Transform positionOverride = null)
     {
-        var slave = Create(null, null, SubType, null, hideSpawnEffect, positionOverride);
+        var slave = Create(null, null, SubType, null, positionOverride);
         if (slave == null) return null;
         _testSlaves.Add(slave);
 
@@ -328,7 +328,7 @@ public class SlaveManager : Singleton<SlaveManager>
     /// <param name="skillData"></param>
     /// <param name="hideSpawnEffect"></param>
     /// <param name="positionOverride"></param>
-    public void Create(Character owner, SkillItem skillData, bool hideSpawnEffect = false, Transform positionOverride = null)
+    public void Create(Character owner, SkillItem skillData, Transform positionOverride = null)
     {
         var activeSlaveInfo = GetActiveSlaveByOwnerObjId(owner.ObjId);
         if (activeSlaveInfo != null)
@@ -345,7 +345,7 @@ public class SlaveManager : Singleton<SlaveManager>
         var itemTemplate = (SummonSlaveTemplate)ItemManager.Instance.GetTemplate(item.TemplateId);
         if (itemTemplate == null) return;
 
-        Create(owner, null, itemTemplate.SlaveId, item, hideSpawnEffect, positionOverride); // TODO replace the underlying code with this call
+        Create(owner, null, itemTemplate.SlaveId, item, positionOverride); // TODO replace the underlying code with this call
     }
 
     // added "/slave spawn <templateId>" to be called from the script command
@@ -359,7 +359,7 @@ public class SlaveManager : Singleton<SlaveManager>
     /// <param name="hideSpawnEffect"></param>
     /// <param name="positionOverride"></param>
     /// <returns>Newly created Slave</returns>
-    public Slave Create(Character owner, SlaveSpawner useSpawner, uint templateId, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
+    public Slave Create(Character owner, SlaveSpawner useSpawner, uint templateId, Item item = null, Transform positionOverride = null)
     {
         var slaveTemplate = GetSlaveTemplate(useSpawner?.UnitId ?? templateId);
         if (slaveTemplate == null) return null;
@@ -454,8 +454,7 @@ public class SlaveManager : Singleton<SlaveManager>
                 var minDepth = tempShipModel.MassBoxSizeZ - tempShipModel.MassCenterZ + 1f;
 
                 // Somehow take into account where the ship will end up related to it's mass center (also check boat physics)
-                spawnOffsetPos.Z += (tempShipModel.MassCenterZ < 0f ? (tempShipModel.MassCenterZ / 2f) : 0f) -
-                                    tempShipModel.KeelHeight;
+                spawnOffsetPos.Z += (tempShipModel.MassCenterZ < 0f ? (tempShipModel.MassCenterZ / 2f) : 0f) - tempShipModel.KeelHeight;
 
                 for (var inFront = 0f; inFront < (50f + tempShipModel.MassBoxSizeX); inFront += 1f)
                 {
@@ -512,31 +511,32 @@ public class SlaveManager : Singleton<SlaveManager>
             owner?.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new ItemUpdate(item), new List<ulong>()));
         }
 
-        owner?.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, hideSpawnEffect, 0, owner.Name), true);
+        owner?.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, item?.Id ?? 0ul, owner.Name), true);
 
         // Get new Id to save if it has a player as owner
         if ((owner?.Id > 0) && (dbId <= 0))
             dbId = CharacterIdManager.Instance.GetNextId(); // dbId = SlaveIdManager.Instance.GetNextId();
 
-        var summonedSlave = new Slave
-        {
-            TlId = tlId,
-            ObjId = objId,
-            TemplateId = slaveTemplate.Id,
-            Name = string.IsNullOrWhiteSpace(slaveName) ? slaveTemplate.Name : slaveName,
-            Level = (byte)slaveTemplate.Level,
-            ModelId = slaveTemplate.ModelId,
-            Template = slaveTemplate,
-            Hp = slaveHp,
-            Mp = slaveMp,
-            ModelParams = new UnitCustomModelParams(),
-            Faction = owner?.Faction ?? FactionManager.Instance.GetFaction(slaveTemplate.FactionId),
-            Id = dbId,
-            Summoner = owner,
-            SummoningItem = item,
-            SpawnTime = DateTime.UtcNow,
-            Spawner = useSpawner,
-        };
+        var summonedSlave = new Slave();
+        summonedSlave.TlId = tlId;
+        summonedSlave.ObjId = objId;
+        summonedSlave.TemplateId = slaveTemplate.Id;
+        summonedSlave.Name = string.IsNullOrWhiteSpace(slaveName) ? slaveTemplate.Name : slaveName;
+        summonedSlave.Level = (byte)slaveTemplate.Level;
+        summonedSlave.ModelId = slaveTemplate.ModelId;
+        summonedSlave.Template = slaveTemplate;
+        summonedSlave.Hp = slaveHp;
+        summonedSlave.Mp = slaveMp;
+        summonedSlave.ModelParams = new UnitCustomModelParams();
+        summonedSlave.Faction = owner?.Faction ?? FactionManager.Instance.GetFaction(slaveTemplate.FactionId);
+        summonedSlave.Id = dbId;
+        summonedSlave.Summoner = owner;
+        summonedSlave.OwnerObjId = owner?.ObjId ?? 0;
+        summonedSlave.OwnerId = owner?.Id ?? 0;
+        summonedSlave.SummoningItem = item;
+        summonedSlave.SpawnTime = DateTime.UtcNow;
+        summonedSlave.Spawner = useSpawner;
+        summonedSlave.Skills = new List<uint>();
         var slaveSkills = MateManager.Instance.GetMateSkills(slaveTemplate.Id);
         if (slaveSkills is { Count: > 0 })
             summonedSlave.Skills.AddRange(slaveSkills);
@@ -582,24 +582,22 @@ public class SlaveManager : Singleton<SlaveManager>
             if (summonedSlave.AttachedDoodads.Any(d => d.AttachPoint == doodadBinding.AttachPointId))
                 continue;
 
-            var doodad = new Doodad
-            {
-                ObjId = ObjectIdManager.Instance.GetNextId(),
-                TemplateId = doodadBinding.DoodadId,
-                OwnerObjId = owner?.ObjId ?? 0,
-                ParentObjId = summonedSlave.ObjId,
-                AttachPoint = doodadBinding.AttachPointId,
-                OwnerId = owner?.Id ?? 0,
-                PlantTime = summonedSlave.SpawnTime,
-                OwnerType = DoodadOwnerType.Slave,
-                OwnerDbId = summonedSlave.Id,
-                Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
-                Data = (byte)doodadBinding.AttachPointId, // copy of AttachPointId
-                ParentObj = summonedSlave,
-                Faction = summonedSlave.Faction,
-                Type2 = 1u, // Flag: No idea why it's 1 for slave's doodads, seems to be 0 for everything else
-                Spawner = null,
-            };
+            var doodad = new Doodad();
+            doodad.ObjId = ObjectIdManager.Instance.GetNextId();
+            doodad.TemplateId = doodadBinding.DoodadId;
+            doodad.OwnerObjId = owner?.ObjId ?? 0;
+            doodad.ParentObjId = summonedSlave.ObjId;
+            doodad.AttachPoint = doodadBinding.AttachPointId;
+            doodad.OwnerId = owner?.Id ?? 0;
+            doodad.PlantTime = summonedSlave.SpawnTime;
+            doodad.OwnerType = DoodadOwnerType.Slave;
+            doodad.OwnerDbId = summonedSlave.Id;
+            doodad.Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId);
+            doodad.Data = (byte)doodadBinding.AttachPointId; // copy of AttachPointId
+            doodad.ParentObj = summonedSlave;
+            doodad.Faction = summonedSlave.Faction;
+            doodad.Type2 = 1u; // Flag: No idea why it's 1 for slave's doodads, seems to be 0 for everything else
+            doodad.Spawner = null;
 
             doodad.SetScale(doodadBinding.Scale);
 
@@ -630,26 +628,27 @@ public class SlaveManager : Singleton<SlaveManager>
             var childSlaveTemplate = GetSlaveTemplate(slaveBinding.SlaveId);
             var childTlId = (ushort)TlIdManager.Instance.GetNextId();
             var childObjId = ObjectIdManager.Instance.GetNextId();
-            var childSlave = new Slave()
-            {
-                TlId = childTlId,
-                ObjId = childObjId,
-                ParentObj = summonedSlave,
-                TemplateId = childSlaveTemplate.Id,
-                Name = childSlaveTemplate.Name,
-                Level = (byte)childSlaveTemplate.Level,
-                ModelId = childSlaveTemplate.ModelId,
-                Template = childSlaveTemplate,
-                Hp = 1,
-                Mp = 1,
-                ModelParams = new UnitCustomModelParams(),
-                Faction = owner?.Faction ?? summonedSlave.Faction,
-                Id = 11, // TODO
-                Summoner = owner,
-                SpawnTime = DateTime.UtcNow,
-                AttachPointId = (sbyte)slaveBinding.AttachPointId,
-                OwnerObjId = summonedSlave.ObjId
-            };
+            var childSlave = new Slave();
+            childSlave.TlId = childTlId;
+            childSlave.ObjId = childObjId;
+            childSlave.ParentObj = summonedSlave;
+            childSlave.TemplateId = childSlaveTemplate.Id;
+            childSlave.Name = childSlaveTemplate.Name;
+            childSlave.Level = (byte)childSlaveTemplate.Level;
+            childSlave.ModelId = childSlaveTemplate.ModelId;
+            childSlave.Template = childSlaveTemplate;
+            childSlave.Hp = 1;
+            childSlave.Mp = 1;
+            childSlave.ModelParams = new UnitCustomModelParams();
+            childSlave.Faction = owner?.Faction ?? summonedSlave.Faction;
+            childSlave.Id = 11; // TODO
+            childSlave.Summoner = owner;
+            childSlave.OwnerObjId = owner?.ObjId ?? 0;
+            childSlave.OwnerId = owner?.Id ?? 0;
+            //childSlave.SummoningItem = item;
+            childSlave.SpawnTime = DateTime.UtcNow;
+            childSlave.AttachPointId = (sbyte)slaveBinding.AttachPointId;
+            childSlave.OwnerObjId = summonedSlave.ObjId;
 
             ApplySlaveBonuses(childSlave);
 
@@ -1252,25 +1251,23 @@ public class SlaveManager : Singleton<SlaveManager>
                     return;
                 }
 
-                var wreckArea = new Doodad
-                {
-                    ObjId = ObjectIdManager.Instance.GetNextId(),
-                    TemplateId = healBinding.DoodadId,
-                    OwnerObjId = slave.OwnerObjId,
-                    ParentObjId = slave.ObjId,
-                    AttachPoint = wreckPointLocation,
-                    OwnerId = slave.Summoner?.Id ?? 0,
-                    PlantTime = DateTime.UtcNow,
-                    OwnerType = DoodadOwnerType.Slave,
-                    OwnerDbId = slave.Id,
-                    Template = DoodadManager.Instance.GetTemplate(healBinding.DoodadId),
-                    Data = (byte)wreckPointLocation, // copy of AttachPointId
-                    ParentObj = slave,
-                    Faction = slave.Faction, // FactionManager.Instance.GetFaction(FactionsEnum.Friendly),
-                    Type2 = 1u, // Flag: No idea why it's 1 for slave's doodads, seems to be 0 for everything else
-                    Spawner = null,
-                    IsPersistent = false,
-                };
+                var wreckArea = new Doodad();
+                wreckArea.ObjId = ObjectIdManager.Instance.GetNextId();
+                wreckArea.TemplateId = healBinding.DoodadId;
+                wreckArea.OwnerObjId = slave.OwnerObjId;
+                wreckArea.ParentObjId = slave.ObjId;
+                wreckArea.AttachPoint = wreckPointLocation;
+                wreckArea.OwnerId = slave.Summoner?.Id ?? 0;
+                wreckArea.PlantTime = DateTime.UtcNow;
+                wreckArea.OwnerType = DoodadOwnerType.Slave;
+                wreckArea.OwnerDbId = slave.Id;
+                wreckArea.Template = DoodadManager.Instance.GetTemplate(healBinding.DoodadId);
+                wreckArea.Data = (byte)wreckPointLocation; // copy of AttachPointId
+                wreckArea.ParentObj = slave;
+                wreckArea.Faction = slave.Faction; // FactionManager.Instance.GetFaction(FactionsEnum.Friendly),
+                wreckArea.Type2 = 1u; // Flag: No idea why it's 1 for slave's doodads, seems to be 0 for everything else
+                wreckArea.Spawner = null;
+                wreckArea.IsPersistent = false;
 
                 wreckArea.SetScale(1f);
                 ApplyAttachPointLocation(slave, wreckArea, wreckPointLocation);

@@ -9,8 +9,8 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 public class HoldPositionBehavior : BaseCombatBehavior
 {
     private bool _enter;
-    private float teleportThresholdDist = 7f;
-    private float returnThresholdDist = 3f;
+    //private float teleportThresholdDist = 7f;
+    //private float returnThresholdDist = 3f;
 
     public override void Enter()
     {

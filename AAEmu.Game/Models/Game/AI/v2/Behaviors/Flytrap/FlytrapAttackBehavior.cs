@@ -65,7 +65,7 @@ public class FlytrapAttackBehavior : BaseCombatBehavior
     }
 
     #region Gimmick
-    private void MoveInRange(BaseUnit target, TimeSpan delta)
+    private new void MoveInRange(BaseUnit target, TimeSpan delta)
     {
         if (Ai?.Owner?.Gimmick == null)
             return;
@@ -139,7 +139,7 @@ public class FlytrapAttackBehavior : BaseCombatBehavior
         }
     }
 
-    private bool UpdateTarget()
+    private new bool UpdateTarget()
     {
         // We might want to optimize this somehow...
         var aggroList = Ai.Owner.AggroTable.Values;

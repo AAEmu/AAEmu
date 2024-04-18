@@ -47,6 +47,7 @@ public class Slave : Unit
     public float Speed { get; set; }
     public sbyte SteeringRequest { get; set; }
     public sbyte Steering { get; set; }
+    public sbyte Rpm { get; set; }
     public float RotSpeed { get; set; }
     public short RotationZ { get; set; }
     public float RotationDegrees { get; set; }
@@ -594,7 +595,8 @@ public class Slave : Unit
     {
         character.SendPacket(new SCUnitStatePacket(this));
         character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc));
-        character.SendPacket(new SCSlaveStatusPacket(ObjId, TlId, Summoner?.Name ?? string.Empty, Summoner?.ObjId ?? 0, Id));
+        //character.SendPacket(new SCSlaveStatusPacket(ObjId, TlId, Summoner?.Name ?? string.Empty, Summoner?.ObjId ?? 0, Id));
+        character.SendPacket(new SCSlaveStatusPacket(this));
 
         base.AddVisibleObject(character);
 

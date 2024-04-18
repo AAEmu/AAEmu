@@ -194,7 +194,7 @@ public class ShipyardManager : Singleton<ShipyardManager>
             // calculate skillData
             var skillData = (SkillItem)SkillCaster.GetByType(SkillCasterType.Item);
             skillData.ItemId = foundItems[0].Id;
-            SlaveManager.Instance.Create(character, skillData, true, shipyard.Transform);
+            SlaveManager.Instance.Create(character, skillData, shipyard.Transform);
         }
         RemoveShipyard(shipyard);
     }

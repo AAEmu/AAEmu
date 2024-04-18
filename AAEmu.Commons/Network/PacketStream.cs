@@ -766,7 +766,6 @@ public class PacketStream : ICloneable, IComparable
         return this;
     }
 
-
     public PacketStream WriteQuaternionShort(Quaternion values, bool scalar = false)
     {
         var temp = new PacketStream();

@@ -4,12 +4,10 @@ using System.Threading;
 
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Physics.Forces;
 using AAEmu.Game.Physics.Util;
 using AAEmu.Game.Utils;
@@ -59,24 +57,25 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
 
         // Добавим поверхность земли // Add ground surface
         if (SimulationWorld.Name != "main_world") { return; }
-        try
-        {
-            var hmap = WorldManager.Instance.GetWorld(0).HeightMaps;
-            var heightMaxCoefficient = WorldManager.Instance.GetWorld(0).HeightMaxCoefficient;
-            var dx = hmap.GetLength(0);
-            var dz = hmap.GetLength(1);
-            var hmapTerrain = new float[dx, dz];
-            for (var x = 0; x < dx; x += 1)
-                for (var y = 0; y < dz; y += 1)
-                    hmapTerrain[x, y] = (float)(hmap[x, y] / heightMaxCoefficient);
-            var terrain = new TerrainShape(hmapTerrain, 2.0f, 2.0f);
-            var body = new RigidBody(terrain) { IsStatic = true };
-            _physWorld.AddBody(body);
-        }
-        catch (Exception e)
-        {
-            Logger.Error("{0}\n{1}", e.Message, e.StackTrace);
-        }
+        // неправильно работает HeightMaps в версии 3+
+        //try
+        //{
+        //    var hmap = WorldManager.Instance.GetWorld(0).HeightMaps;
+        //    var heightMaxCoefficient = WorldManager.Instance.GetWorld(0).HeightMaxCoefficient;
+        //    var dx = hmap.GetLength(0);
+        //    var dz = hmap.GetLength(1);
+        //    var hmapTerrain = new float[dx, dz];
+        //    for (var x = 0; x < dx; x += 1)
+        //        for (var y = 0; y < dz; y += 1)
+        //            hmapTerrain[x, y] = (float)(hmap[x, y] / heightMaxCoefficient);
+        //    var terrain = new TerrainShape(hmapTerrain, 2.0f, 2.0f);
+        //    var body = new RigidBody(terrain) { IsStatic = true };
+        //    _physWorld.AddBody(body);
+        //}
+        //catch (Exception e)
+        //{
+        //    Logger.Error("{0}\n{1}", e.Message, e.StackTrace);
+        //}
     }
 
     public void StartPhysics()
@@ -241,34 +240,34 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
         var tubeVolume = shipModel.TubeLength * shipModel.TubeRadius * MathF.PI;
         var solidVolume = MathF.Abs(rigidBody.Mass - tubeVolume);
 
-        // Get the floor height coordinates
-        var floor = WorldManager.Instance.GetHeight(slave.Transform);
-        Logger.Trace($"[Height] Z-Pos: {slave.Transform.World.Position.Z} - Floor: {floor}");
+        //// Get the floor height coordinates
+        //var floor = WorldManager.Instance.GetHeight(slave.Transform);
+        //Logger.Trace($"[Height] Z-Pos: {slave.Transform.World.Position.Z} - Floor: {floor}");
 
-        // Check floor collision
-        if (slave.Transform.World.Position.Z - boxSize.Y / 2 - floor < 1.0 && AppConfiguration.Instance.HeightMapsEnable)
-        {
-            if (slave.Hp <= 0)
-            {
-                slave.Speed = 0;
-                return;
-            }
+        //// Check floor collision
+        //if (slave.Transform.World.Position.Z - boxSize.Y / 2 - floor < 1.0 && AppConfiguration.Instance.HeightMapsEnable)
+        //{
+        //    if (slave.Hp <= 0)
+        //    {
+        //        slave.Speed = 0;
+        //        return;
+        //    }
 
-            var damage = _random.Next(500, 750); // damage randomly 500-750
-            if (damage > 0)
-            {
-                slave.DoDamage(damage, false, KillReason.Collide);
-            }
+        //    var damage = _random.Next(500, 750); // damage randomly 500-750
+        //    if (damage > 0)
+        //    {
+        //        slave.DoDamage(damage, false, KillReason.Collide);
+        //    }
 
-            Logger.Debug($"Slave: {slave.ObjId}, speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}, floor: {floor}, Z: {slave.Transform.World.Position.Z}, damage: {damage}");
-        }
+        //    Logger.Debug($"Slave: {slave.ObjId}, speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}, floor: {floor}, Z: {slave.Transform.World.Position.Z}, damage: {damage}");
+        //}
 
         // Get current rotation of the ship
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
         var slaveRotRad = rpy.Item1 + 90 * (MathF.PI / 180.0f);
 
         var forceThrottle = slave.Speed * slave.MoveSpeedMul; // Not sure if correct, but it feels correct
-        // Apply directional force
+                                                              // Apply directional force
         rigidBody.AddForce(new JVector(forceThrottle * rigidBody.Mass * MathF.Cos(slaveRotRad), 0.0f, forceThrottle * rigidBody.Mass * MathF.Sin(slaveRotRad)));
 
         var steer = slave.RotSpeed * 60f;
@@ -278,7 +277,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
 
         // Calculate Steering Force based on bounding box
         var steerForce = -steer * (solidVolume * boxSize.X * boxSize.Y / 172.5f * 2f); // Totally random value, but it feels right
-        //var steerForce = -steer * solidVolume ;
+                                                                                       //var steerForce = -steer * solidVolume ;
         rigidBody.AddTorque(new JVector(0, steerForce, 0));
 
         /*

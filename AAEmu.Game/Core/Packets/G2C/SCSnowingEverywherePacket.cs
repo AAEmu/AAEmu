@@ -9,12 +9,12 @@ public class SCSnowingEverywherePacket : GamePacket
 
     public SCSnowingEverywherePacket(bool @on) : base(SCOffsets.SCSnowingEverywherePacket, 5)
     {
-            _on = @on;
-        }
+        _on = @on;
+    }
 
     public override PacketStream Write(PacketStream stream)
     {
-            stream.Write(_on);
-            return stream;
-        }
+        stream.Write(_on);
+        return stream;
+    }
 }

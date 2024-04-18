@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
@@ -1760,8 +1761,8 @@ public partial class Character : Unit, ICharacter
             equipItem.Durability = equipItem.MaxDurability;
             equipItem.IsDirty = true;
             repairCost += currentRepairCost;
-
-            tasks.Add(new ItemUpdate(item));
+            // добавил 4 байта перед Durability для нормальной работы починки предметов 
+            tasks.Add(new ItemUpdateRepair(item));
         }
 
         if (repairCost > 0)

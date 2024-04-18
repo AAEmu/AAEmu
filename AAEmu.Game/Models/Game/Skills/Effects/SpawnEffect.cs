@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Numerics;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
@@ -72,7 +72,7 @@ public class SpawnEffect : EffectTemplate
                         transform.World.AddDistanceToFront(PosDistanceMax);
                         transform.World.Rotate(transform.World.Rotation with { Z = OriAngle });
 
-                        var slave = SlaveManager.Instance.Create(SubType, true, transform);
+                        var slave = SlaveManager.Instance.Create(SubType, transform);
                         if (slave is { Template: null })
                         {
                             Logger.Info($"SpawnEffect: SubType={SubType} not found...");
