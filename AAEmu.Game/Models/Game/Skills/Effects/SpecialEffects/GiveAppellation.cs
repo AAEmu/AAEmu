@@ -7,6 +7,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
 public class GiveAppellation : SpecialEffectAction
 {
+    protected override SpecialType SpecialEffectActionType => SpecialType.GiveAppellation;
+
     public override void Execute(BaseUnit caster,
         SkillCaster casterObj,
         BaseUnit target,
@@ -15,12 +17,15 @@ public class GiveAppellation : SpecialEffectAction
         Skill skill,
         SkillObject skillObject,
         DateTime time,
-        int value1,
+        int appellationId,
         int value2,
         int value3,
         int value4)
     {
-        // TODO ...
-        if (caster is Character) { Logger.Debug("Special effects: GiveAppellation value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is Character character)
+        {
+            Logger.Debug($"Special effects: GiveAppellation value1 {appellationId}");
+            character.Appellations.Add((uint)appellationId);
+        }
     }
 }
