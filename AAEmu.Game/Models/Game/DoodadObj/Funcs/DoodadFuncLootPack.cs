@@ -17,15 +17,26 @@ public class DoodadFuncLootPack : DoodadFuncTemplate
             return;
 
         var lootPack = LootGameData.Instance.GetPack(LootPackId);
-        var lootPackContents = lootPack.GeneratePack(character);
-
-        if (character.Inventory.Bag.FreeSlotCount >= lootPackContents.Count)
+        if (lootPack != null)
         {
-            lootPack.GiveLootPack(character, ItemTaskType.DoodadInteraction, lootPackContents);
-            owner.ToNextPhase = true;
+            var lootPackContents = lootPack.GeneratePack(character);
 
+            if (character.Inventory.Bag.FreeSlotCount >= lootPackContents.Count)
+            {
+                lootPack.GiveLootPack(character, ItemTaskType.DoodadInteraction, lootPackContents);
+                owner.ToNextPhase = true;
+
+                return;
+            }
+        }
+        else
+        {
+            character.SendErrorMessage(ErrorMessageType.NotEnoughItem);
+            character.SendMessage($"DoodadFuncLootPack: There is no such LootPackId={LootPackId} in the database!");
+            Logger.Info($"DoodadFuncLootPack: There is no such LootPackId={LootPackId} in the database!");
             return;
         }
+
         // TODO: make sure the doodad is marked as loot-able when not enough inventory space
 
         character.SendErrorMessage(ErrorMessageType.BagFull);
