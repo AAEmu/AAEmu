@@ -1,17 +1,17 @@
-
-/*
+[
+    /*
   TemplateId=1927 -> 'modeld' ->
   sub_id=820 -> 'prefab_elements' ->
   820 & state=1 -> id=3936 => file_path
   file_path = housing_tree.xml
-  � ����� housing_tree.xml ����
-  housing_tree_pink.tree_body � �������� ����� ��
+  in the housing_tree.xml file we look for
+  housing_tree_pink.tree_body and select points from
   house_tree_out.cgf.dump,
   housing_tree_base.cgf.dump
   tree_stair.cgf.dump,
   housing_tree_in.cgf.dump,
   housing_tree_stair.cgf.dump
-  (dump �������� � ������� RC)
+  (dump obtained using RC)
 */
     {
         "TemplateId": [
@@ -791,12 +791,12 @@
                 "Z": 3.374,
                 "Yaw": 45
             },
-			"13": {
+            "13": {
                 "X": 0.002039,
                 "Y": -9.8473,
                 "Z": 3.374
             },
-			"14": {
+            "14": {
                 "X": -6.9444,
                 "Y": -6.9391,
                 "Z": 3.374,
@@ -808,7 +808,7 @@
                 "Z": 3.374,
                 "Yaw": -135
             },
-			"16": {
+            "16": {
                 "X": -0.013981,
                 "Y": 3.305,
                 "Z": 3.374
@@ -818,19 +818,19 @@
                 "Y": -2.9901,
                 "Z": 3.374,
                 "Yaw": 180
-			},
-			"24": {
+            },
+            "24": {
                 "X": -11.448,
                 "Y": 0.000151,
                 "Z": -1.7376,
                 "Yaw": 90
-			},
-			"25": {
+            },
+            "25": {
                 "X": 11.451,
                 "Y": 0,
                 "Z": -1.7928,
                 "Yaw": -90
-			},
+            },
             "57": {
                 "X": 9.8933,
                 "Y": 4.1,
