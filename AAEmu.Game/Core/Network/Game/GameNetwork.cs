@@ -238,8 +238,8 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSChangeHouseNamePacket, 5, typeof(CSChangeHouseNamePacket));
         RegisterPacket(CSOffsets.CSChangeHousePermissionPacket, 5, typeof(CSChangeHousePermissionPacket));
         RegisterPacket(CSOffsets.CSRequestHouseTaxPacket, 5, typeof(CSRequestHouseTaxPacket));
-        //RegisterPacket(CSOffsets.CSPerpayHouseTaxPacket, 5, typeof(CSPerpayHouseTaxPacket));
-        //RegisterPacket(CSOffsets.CSAllowRecoverPacket, 5, typeof(CSAllowRecoverPacket));
+        RegisterPacket(CSOffsets.CSPerpayHouseTaxPacket, 5, typeof(CSPerpayHouseTaxPacket));
+        RegisterPacket(CSOffsets.CSAllowRecoverPacket, 5, typeof(CSAllowHousingRecoverPacket)); // CSAllowRecoverPacket
         RegisterPacket(CSOffsets.CSSellHouseCancelPacket, 5, typeof(CSSellHouseCancelPacket));
         RegisterPacket(CSOffsets.CSDecorateHousePacket, 5, typeof(CSDecorateHousePacket));
         RegisterPacket(CSOffsets.CSSellHousePacket, 5, typeof(CSSellHousePacket));
@@ -327,9 +327,9 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSTakeAttachmentItemPacket, 5, typeof(CSTakeAttachmentItemPacket));
         RegisterPacket(CSOffsets.CSActiveWeaponChangedPacket, 5, typeof(CSActiveWeaponChangedPacket));
         //RegisterPacket(CSOffsets.CSUnknown0x0d8Packet, 5, typeof(CSUnknown0x0d8Packet));
-        //RegisterPacket(CSOffsets.CSRequestExpandAbilitySetSlotPacket, 5, typeof(CSRequestExpandAbilitySetSlotPacket));
-        //RegisterPacket(CSOffsets.CSSaveAbilitySetPacket, 5, typeof(CSSaveAbilitySetPacket));
-        //RegisterPacket(CSOffsets.CSDeleteAbilitySetPacket, 5, typeof(CSDeleteAbilitySetPacket));
+        RegisterPacket(CSOffsets.CSRequestExpandAbilitySetSlotPacket, 5, typeof(CSRequestExpandAbilitySetSlotPacket));
+        RegisterPacket(CSOffsets.CSSaveAbilitySetPacket, 5, typeof(CSSaveAbilitySetPacket));
+        RegisterPacket(CSOffsets.CSDeleteAbilitySetPacket, 5, typeof(CSDeleteAbilitySetPacket));
         RegisterPacket(CSOffsets.CSRepairSlaveItemsPacket, 5, typeof(CSRepairSlaveItemsPacket));
         RegisterPacket(CSOffsets.CSRepairPetItemsPacket, 5, typeof(CSRepairPetItemsPacket));
         //RegisterPacket(CSOffsets.CSFactionIssuanceOfMobilizationOrderPacket, 5, typeof(CSFactionIssuanceOfMobilizationOrderPacket));
@@ -344,7 +344,7 @@ public class GameNetwork : Singleton<GameNetwork>
         //RegisterPacket(CSOffsets.CSExpeditionSummonPacket, 5, typeof(CSExpeditionSummonPacket));
         //RegisterPacket(CSOffsets.CSExpeditionSummonReplyPacket, 5, typeof(CSExpeditionSummonReplyPacket));
         //RegisterPacket(CSOffsets.CSInstantTimePacket, 5, typeof(CSInstantTimePacket));
-        //RegisterPacket(CSOffsets.CSSetHouseAllowRecoverPacket, 5, typeof(CSSetHouseAllowRecoverPacket));
+        RegisterPacket(CSOffsets.CSSetHouseAllowRecoverPacket, 5, typeof(CSSetHouseAllowRecoverPacket)); // CSAllowHousingRecoverPacket
         //RegisterPacket(CSOffsets.CSRefreshBotCheckInfoPacket, 5, typeof(CSRefreshBotCheckInfoPacket));
         //RegisterPacket(CSOffsets.CSAnswerBotCheckPacket, 5, typeof(CSAnswerBotCheckPacket));
         RegisterPacket(CSOffsets.CSChangeSlaveNamePacket, 5, typeof(CSChangeSlaveNamePacket));

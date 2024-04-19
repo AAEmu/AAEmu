@@ -331,7 +331,7 @@ public static class CSOffsets
     public const ushort CSExpeditionSummonPacket = 0x12B;
     public const ushort CSExpeditionSummonReplyPacket = 0x047;
     public const ushort CSInstantTimePacket = 0x033;
-    public const ushort CSSetHouseAllowRecoverPacket = 0x1AE;
+    public const ushort CSSetHouseAllowRecoverPacket = 0x1AE; // CSAllowHousingRecoverPacket
     public const ushort CSRefreshBotCheckInfoPacket = 0x032;
     public const ushort CSAnswerBotCheckPacket = 0x091;
     public const ushort CSChangeSlaveNamePacket = 0x02D;
