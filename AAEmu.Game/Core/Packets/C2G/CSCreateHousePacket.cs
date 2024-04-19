@@ -9,6 +9,7 @@ public class CSCreateHousePacket : GamePacket
 {
     public CSCreateHousePacket() : base(CSOffsets.CSCreateHousePacket, 5)
     {
+        //
     }
 
     public override void Read(PacketStream stream)
@@ -23,7 +24,7 @@ public class CSCreateHousePacket : GamePacket
         var ht = stream.ReadInt32();
         var autoUseAaPoint = stream.ReadBoolean();
 
-        Logger.Debug("CreateHouse, Id: {0}, X: {1}, Y: {2}, Z: {3}, ZRot: {4}", designId, x, y, z, zRot);
+        Logger.Debug($"CreateHouse, Id: {designId}, X: {x}, Y: {y}, Z: {z}, ZRot: {zRot}");
 
         HousingManager.Instance.Build(
             Connection,
