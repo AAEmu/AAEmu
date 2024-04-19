@@ -55,7 +55,11 @@ public class CSChangeTargetPacket : GamePacket
                 npc.CurrentGameStance, npc.BaseMoveSpeed));
         }
         else if (Connection.ActiveChar.CurrentTarget is House house)
-            Connection.ActiveChar.SendMessage($"ObjId: {targetId}, HouseId: {house.Id}, Pos: {house.Transform}");
+            Connection.ActiveChar.SendMessage($"ObjId: {targetId}, HouseId: {house.Id}, Pos: {house.Transform}," +
+                                              $" Player: {Connection.ActiveChar.Id}, Pos: {Connection.ActiveChar.Transform}" +
+                                              $"\nx: {house.Transform.World.Position.X - Connection.ActiveChar.Transform.World.Position.X}" +
+                                              $"y: {house.Transform.World.Position.Y - Connection.ActiveChar.Transform.World.Position.Y}" +
+                                              $"z: {house.Transform.World.Position.Z - Connection.ActiveChar.Transform.World.Position.Z}");
         else if (Connection.ActiveChar.CurrentTarget is Transfer transfer)
             Connection.ActiveChar.SendMessage($"ObjId: {targetId}, Transfer TemplateId: {transfer.TemplateId}\nPos: {transfer.Transform}");
         else if (Connection.ActiveChar.CurrentTarget is Slave slave)
