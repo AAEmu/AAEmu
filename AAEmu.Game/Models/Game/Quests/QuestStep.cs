@@ -53,8 +53,23 @@ public class QuestStep(QuestComponentKind step, Quest parent)
     {
         var res = true;
 
-        foreach (var questComponent in Components.Values)
-            res &= questComponent.RunComponent();
+        if (Parent.Template.Selective && ThisStep == QuestComponentKind.Progress)
+        {
+            // Require only one of the components to be true in the progress step is quest has selective flag
+            res = false;
+            foreach (var questComponent in Components.Values)
+            {
+                res |= questComponent.RunComponent();
+            }
+        }
+        else
+        {
+            // Requires all components to be true
+            foreach (var questComponent in Components.Values)
+            {
+                res &= questComponent.RunComponent();
+            }
+        }
 
         // Override result for score quests
         if ((ThisStep == QuestComponentKind.Progress) && (Parent.Template.Score > 0))

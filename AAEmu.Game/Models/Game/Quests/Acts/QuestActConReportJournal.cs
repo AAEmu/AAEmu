@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Static;
+using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -11,10 +13,30 @@ public class QuestActConReportJournal(QuestComponentTemplate parentComponent) : 
     /// <param name="quest"></param>
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
-    /// <returns>True</returns>
+    /// <returns>False</returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Trace($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id})");
-        return true;
+        return false;
+    }
+
+    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    {
+        base.InitializeQuest(quest, questAct);
+        quest.Owner.Events.OnReportJournal += questAct.OnReportJournal;
+    }
+
+    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    {
+        quest.Owner.Events.OnReportJournal -= questAct.OnReportJournal;
+        base.FinalizeQuest(quest, questAct);
+    }
+
+    public override void OnReportJournal(IQuestAct questAct, object sender, OnReportJournalArgs args)
+    {
+        if (questAct.Id != ActId)
+            return;
+
+        questAct.OverrideObjectiveCompleted = true;
     }
 }

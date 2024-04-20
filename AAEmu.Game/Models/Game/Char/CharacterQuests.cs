@@ -307,6 +307,7 @@ public partial class CharacterQuests
 
         quest.Cleanup();
         quest.Drop(update);
+        quest.FinalizeQuestActs();
         ActiveQuests.Remove(questId);
         _removed.Add(questId);
 

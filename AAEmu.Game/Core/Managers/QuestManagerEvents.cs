@@ -320,7 +320,6 @@ public partial class QuestManager
     /// </summary>
     /// <param name="owner"></param>
     /// <param name="questId"></param>
-    /// <exception cref="NotImplementedException"></exception>
     public void OnTimerExpired(ICharacter owner, uint questId)
     {
         owner?.Events?.OnTimerExpired(owner, new OnTimerExpiredArgs() { QuestId = questId });

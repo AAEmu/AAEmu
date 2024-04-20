@@ -1177,7 +1177,6 @@ public class Npc : Unit
     /// </summary>
     /// <param name="objId"></param>
     /// <returns>Position in the aggro table ranking in percent, 0 = most aggro, 100 = no aggro</returns>
-    /// <exception cref="NotImplementedException"></exception>
     public float GetAggroRatingInPercent(uint objId)
     {
         // grab a sorted copy of the aggro list

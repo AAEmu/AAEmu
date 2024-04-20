@@ -153,7 +153,7 @@ public partial class Quest : PacketMarshaler
     /// <summary>
     /// List of Steps available for this quest
     /// </summary>
-    public Dictionary<QuestComponentKind, QuestStep> Steps { get; set; } = new();
+    private Dictionary<QuestComponentKind, QuestStep> Steps { get; set; } = new();
 
     /// <summary>
     /// Current QuestStep, or null if the current step is invalid
@@ -222,17 +222,20 @@ public partial class Quest : PacketMarshaler
             Template = questTemplate;
 
             // Construct Active Components in Steps
-            foreach (var (componentId, component) in Template.Components.OrderBy(x => x.Value.KindId).ThenBy(x => x.Value.Id))
+            foreach (var (componentId, component) in Template.Components.OrderBy(x => x.Value.KindId)
+                         .ThenBy(x => x.Value.Id))
             {
                 if (!Steps.TryGetValue(component.KindId, out var questStep))
                 {
                     questStep = new QuestStep(component.KindId, this);
                     Steps.Add(component.KindId, questStep);
                 }
+
                 var comp = new QuestComponent(questStep, component);
                 questStep.Components.Add(componentId, comp);
             }
         }
+
         _step = QuestComponentKind.None;
 
         Objectives = new int[MaxObjectiveCount];
@@ -241,6 +244,8 @@ public partial class Quest : PacketMarshaler
         QuestRewardItemsPool = new List<ItemCreationDefinition>();
         QuestCleanupItemsPool = new List<ItemCreationDefinition>();
         ReadyToReportNpc = false;
+
+        InitializeQuestActs();
     }
 
     public Quest() : this(null, QuestManager.Instance, SphereQuestManager.Instance, TaskManager.Instance, SkillManager.Instance, ExpressTextManager.Instance, WorldManager.Instance)
@@ -717,14 +722,14 @@ public partial class Quest : PacketMarshaler
     /// Use Skill на себя или на Npc, с которым взаимодействуем (Use Skill on yourself or on the Npc you interact with)
     /// </summary>
     /// <param name="component"></param>
-    public void UseSkillAndBuff(QuestComponent component)
+    public void UseSkillAndBuff(QuestComponentTemplate component)
     {
         if (component == null) { return; }
         UseSkill(component);
         UseBuff(component);
     }
 
-    private void UseBuff(QuestComponent component)
+    private void UseBuff(QuestComponentTemplate component)
     {
         if (component.BuffId > 0)
         {
@@ -837,6 +842,8 @@ public partial class Quest : PacketMarshaler
                 Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestComplete, cleanupItem.TemplateId, cleanupItem.Count, null);
             QuestCleanupItemsPool.Clear();
         }
+
+        return res;
     }
 
     public uint Complete(int selected)
@@ -1160,7 +1167,6 @@ public partial class Quest : PacketMarshaler
     /// <summary>
     /// Runs the QuestCleanup code of all the quest's acts
     /// </summary>
-    /// <exception cref="NotImplementedException"></exception>
     public void Cleanup()
     {
         foreach (var questComponentTemplate in Template.Components.Values)
@@ -1178,6 +1184,28 @@ public partial class Quest : PacketMarshaler
     public void RequestEvaluation()
     {
         RequestEvaluationFlag = true;
+    }
+
+    /// <summary>
+    /// Runs initializers for Acts that need to be activated at the start of the quest
+    /// </summary>
+    public void InitializeQuestActs()
+    {
+        foreach (var questStep in Steps.Values)
+        foreach (var questComponent in questStep.Components.Values)
+        foreach (var questAct in questComponent.Acts)
+            questAct.Template.InitializeQuest(this, questAct);
+    }
+    
+    /// <summary>
+    /// Runs Finalizers for Acts that are active the entire quest
+    /// </summary>
+    public void FinalizeQuestActs()
+    {
+        foreach (var questStep in Steps.Values)
+        foreach (var questComponent in questStep.Components.Values)
+        foreach (var questAct in questComponent.Acts)
+            questAct.Template.FinalizeQuest(this, questAct);
     }
     
     #region Packets and Database

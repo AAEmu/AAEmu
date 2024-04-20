@@ -175,7 +175,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
             {
                 var quest = EvaluationQueue.Dequeue();
                 Logger.Info($"DoQueuedEvaluations, {quest.Owner.Name} ({quest.Owner.Id}), Quest {quest.TemplateId}");
-                quest.RunCurrentStep();
+                _ = quest.RunCurrentStep();
             }
         }
     }

@@ -5,27 +5,73 @@ namespace AAEmu.Game.Models.Game.Quests;
 
 public interface IQuestAct
 {
+    int CompareTo(QuestAct other);
+
     /// <summary>
     /// Same as Template.ActId
     /// </summary>
     uint Id { get; }
+    
+    /// <summary>
+    /// Actual Template for this Act
+    /// </summary>
     QuestActTemplate Template { get; }
-    uint ComponentId { get; set; }
+
+    /// <summary>
+    /// DetailType of this Act
+    /// </summary>
     string DetailType { get; set; }
+
+    /// <summary>
+    /// Parent QuestComponent of this Act
+    /// </summary>
     public QuestComponent QuestComponent { get; }
+
+    /// <summary>
+    /// Detail Id of this Act
+    /// </summary>
     uint DetailId { get; }
+
+    /// <summary>
+    /// Set this to true for acts with "objectives" that don't really used objectives like most events in the Ready step
+    /// RunAct is still executed, but the results will be overwritten
+    /// </summary>
+    bool OverrideObjectiveCompleted { get; set; }
+
+    /// <summary>
+    /// Set current Objective Count for this Act
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="value"></param>
     void SetObjective(Quest quest, int value);
+
+    /// <summary>
+    /// Get the current Objective Count for this Act
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <returns></returns>
     int GetObjective(Quest quest);
-    int CompareTo(QuestAct other);
+
+    /// <summary>
+    /// Adds amount to current Objective Counter for this Act
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="amount"></param>
+    /// <returns></returns>
     int AddObjective(Quest quest, int amount);
+
     /// <summary>
     /// Execute an Act and return true if successful (early complete quests should return true if minimum is met)
     /// </summary>
     /// <returns></returns>
     bool RunAct();
+
+    /// <summary>
+    /// Sets the RequestEvaluationFlag to true signalling the server that it should check this quest's progress again
+    /// </summary>
+    void RequestEvaluation();
     
     #region event_handlers
-
     void OnMonsterGroupHunt(object sender, OnMonsterGroupHuntArgs args);
     void OnMonsterHunt(object sender, OnMonsterHuntArgs args);
     void OnItemGather(object sender, OnItemGatherArgs args);
@@ -58,8 +104,5 @@ public interface IQuestAct
     void OnDamaged(object sender, OnDamagedArgs args);
     void OnTimerExpired(object sender, OnTimerExpiredArgs args);
     void OnQuestStepChanged(object sender, OnQuestStepChangedArgs e);
-
     #endregion // Event Handlers
-
-    void RequestEvaluation();
 }

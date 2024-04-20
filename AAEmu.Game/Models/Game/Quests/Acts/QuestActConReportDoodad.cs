@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Static;
+using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -14,11 +16,32 @@ public class QuestActConReportDoodad(QuestComponentTemplate parentComponent) : Q
     /// <param name="quest"></param>
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
-    /// <returns></returns>
+    /// <returns>False</returns>
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), DoodadId {DoodadId}");
+        return false;
+    }
+
+    public override void InitializeQuest(Quest quest, IQuestAct questAct)
+    {
+        base.InitializeQuest(quest, questAct);
+        quest.Owner.Events.OnReportDoodad += questAct.OnReportDoodad;
+    }
+
+    public override void FinalizeQuest(Quest quest, IQuestAct questAct)
+    {
+        quest.Owner.Events.OnReportDoodad += questAct.OnReportDoodad;
+        base.FinalizeQuest(quest, questAct);
+    }
+
+    public override void OnReportDoodad(IQuestAct questAct, object sender, OnReportDoodadArgs args)
+    {
+        if ((questAct.Id != ActId) || (args.DoodadId != DoodadId))
+            return;
+
         // TODO: Check doodad range?
-        return true;
+
+        questAct.OverrideObjectiveCompleted = true;
     }
 }

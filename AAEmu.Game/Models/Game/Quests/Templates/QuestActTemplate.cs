@@ -67,16 +67,22 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     }
 
     /// <summary>
-    /// Moves objective for this QuestAct one further
+    /// Called for every QuestAct used by the Quest when creating the Quest (basically on Quest Constructor)
     /// </summary>
-    public virtual void Update(Quest quest, IQuestAct questAct, int updateAmount = 1)
+    public virtual void InitializeQuest(Quest quest, IQuestAct questAct)
     {
-        if (updateAmount == 0)
-            return;
-        questAct.AddObjective(quest, updateAmount);
-        Logger.Info($"{QuestActTemplateName} - {DetailId} has been updated by {updateAmount} for a total of {questAct.GetObjective(quest)}.");
+        Logger.Info($"{QuestActTemplateName}.InitializeQuest({questAct.Template.DetailId}) Owner {quest.Owner.Name} ({quest.Owner.Id})");
     }
 
+    /// <summary>
+    /// Called for every QuestAct used by the Quest when the Quest gets removed in any way (basically on Quest Destructor)
+    /// </summary>
+    public virtual void FinalizeQuest(Quest quest, IQuestAct questAct)
+    {
+        Logger.Info($"{QuestActTemplateName}.FinalizeQuest({questAct.Template.DetailId}) Owner {quest.Owner.Name} ({quest.Owner.Id})");
+    }
+
+    
     /// <summary>
     /// Execute and check an Act for its results, called after updating objective counts, descendents should never call base()
     /// </summary>

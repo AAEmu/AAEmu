@@ -14,7 +14,6 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
     /// Same as Template.ActId
     /// </summary>
     public uint Id => Template?.ActId ?? 0;
-    public uint ComponentId { get; set; }
     public uint DetailId => Template?.DetailId ?? 0;
     public string DetailType { get; set; }
     public byte ThisComponentObjectiveIndex { get; set; }
@@ -23,6 +22,20 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
     public QuestActTemplate Template { get; set; } = template;
 
     #region objectives
+
+    private bool _overrideObjectiveCompleted;
+    public bool OverrideObjectiveCompleted
+    {
+        get => _overrideObjectiveCompleted;
+        set
+        {
+            if (_overrideObjectiveCompleted == value)
+                return;
+            _overrideObjectiveCompleted = value;
+            RequestEvaluation();
+        }
+    }
+
     /// <summary>
     /// Set Current Objective Count for this Act (forwards to quest object)
     /// </summary>
@@ -59,7 +72,7 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
     public bool RunAct()
     {
         var count = (QuestComponent.Template.KindId == QuestComponentKind.Progress) && (Template.ThisComponentObjectiveIndex < QuestComponent.Parent.Parent.Objectives.Length) ? QuestComponent.Parent.Parent.Objectives[Template.ThisComponentObjectiveIndex] : 0;
-        return Template.RunAct(QuestComponent.Parent.Parent, this, count);
+        return Template.RunAct(QuestComponent.Parent.Parent, this, count) || OverrideObjectiveCompleted;
     }
 
     /// <summary>

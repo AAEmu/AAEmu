@@ -8,21 +8,11 @@ namespace AAEmu.Game.Models.Game.Quests;
 /// <summary>
 /// Used Instance of a Quests Component
 /// </summary>
-public class QuestComponent : IQuestComponent
+public class QuestComponent(QuestStep parent, QuestComponentTemplate template) : IQuestComponent
 {
-    public QuestComponentTemplate Template { get; set; }
-    public QuestStep Parent { get; set; }
+    public QuestComponentTemplate Template { get; set; } = template;
+    public QuestStep Parent { get; set; } = parent;
     public List<IQuestAct> Acts { get; set; } = new();
-
-    public void Add(QuestComponent component)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void Remove(QuestComponent component)
-    {
-        throw new NotImplementedException();
-    }
 
     public void InitializeComponent()
     {
@@ -34,12 +24,6 @@ public class QuestComponent : IQuestComponent
     {
         foreach (var act in Acts)
             act.Template.FinalizeAction(Parent.Parent, act);
-    }
-
-    public QuestComponent(QuestStep parent, QuestComponentTemplate template)
-    {
-        Parent = parent;
-        Template = template;
     }
 
     public bool RunComponent()

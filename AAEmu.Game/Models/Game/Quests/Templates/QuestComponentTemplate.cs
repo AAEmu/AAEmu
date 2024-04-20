@@ -18,7 +18,9 @@ public class QuestComponentTemplate(QuestTemplate parentTemplate)
 {
     public uint Id { get; set; }
     public QuestComponentKind KindId { get; set; }
-    // TODO: NextComponent feels like it is a deprecated field in the compact.sqlite3, the only 3 references doesn't seem to make any sense
+    /// <summary>
+    /// NextComponent feels like it is a deprecated field in the compact.sqlite3, the only 3 references doesn't seem to make any sense
+    /// </summary>
     public uint NextComponent { get; set; }
     public QuestNpcAiName NpcAiId { get; set; }
     public uint NpcId { get; set; }

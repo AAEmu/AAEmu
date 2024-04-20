@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -24,13 +25,13 @@ public class QuestActConReportNpc(QuestComponentTemplate parentComponent) : Ques
         return (quest.Owner.CurrentTarget is Npc npc) && (npc.TemplateId == NpcId);
     }
 
-    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    public override void InitializeQuest(Quest quest, IQuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
         quest.Owner.Events.OnReportNpc += questAct.OnReportNpc;
     }
 
-    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    public override void FinalizeQuest(Quest quest, IQuestAct questAct)
     {
         quest.Owner.Events.OnReportNpc -= questAct.OnReportNpc;
         base.FinalizeAction(quest, questAct);
@@ -40,8 +41,10 @@ public class QuestActConReportNpc(QuestComponentTemplate parentComponent) : Ques
     {
         if ((questAct.Id != ActId) || (NpcId != args.NpcId))
             return;
+
         Logger.Debug($"QuestActConReportNpc({DetailId}).OnReportNpc: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), NpcId {args.NpcId}, Selected {args.Selected}");
+
         questAct.QuestComponent.Parent.Parent.SelectedRewardIndex = args.Selected;
-        questAct.RequestEvaluation();
+        questAct.OverrideObjectiveCompleted = true;
     }
 }
