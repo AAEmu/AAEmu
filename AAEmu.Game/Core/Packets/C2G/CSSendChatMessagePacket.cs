@@ -110,8 +110,19 @@ public class CSSendChatMessagePacket : GamePacket
                     Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotInExpedition);
                 }
                 break;
+            case ChatType.Family:
+                if (Connection.ActiveChar.Family > 0)
+                {
+                    ChatManager.Instance.GetFamilyChat(Connection.ActiveChar.Family).SendMessage(Connection.ActiveChar, message, ability, languageType);
+                }
+                else
+                {
+                    // Looks like the client blocks the chat even before it can get to the server, but let's intercept it anyway
+                    Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotInFamily);
+                }
+                break;
             /*
-        case ChatType.Judge: 
+        case ChatType.Judge:
             // TODO: Need a check so only defendant and jury can talk here, the client does some checks too, but let's make sure
             ChatManager.Instance.GetNationChat(Connection.ActiveChar.Race).SendPacket(
                 new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType)

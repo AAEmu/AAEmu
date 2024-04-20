@@ -92,7 +92,7 @@ public class ChatManager : Singleton<ChatManager>
     }
 
     /// <summary>
-    /// Removes zone, party, guild, etc channels that have zero members in them to free up space (and Id's)
+    /// Removes zone, party, guild, etc. channels that have zero members in them to free up space (and Id's)
     /// </summary>
     public int CleanUpChannels()
     {
@@ -224,6 +224,32 @@ public class ChatManager : Singleton<ChatManager>
         else
         {
             Logger.Error("Should not be able to get a null channel from GetGuildChat !");
+            return nullChannel;
+        }
+    }
+
+    private bool AddFamilyChannel(uint familyId)
+    {
+        var channel = new ChatChannel() { chatType = ChatType.Family, subType = (short)familyId, internalId = familyId, internalName = $"Family {familyId}" };
+        return _familyChannels.TryAdd(familyId, channel);
+    }
+    
+    public ChatChannel GetFamilyChat(uint familyId)
+    {
+        // create it if it's not there
+        if (!_familyChannels.ContainsKey(familyId))
+        {
+            if (!AddFamilyChannel(familyId))
+                Logger.Error("Failed to create family chat channel !");
+        }
+
+        if (_familyChannels.TryGetValue(familyId, out var channel))
+        {
+            return channel;
+        }
+        else
+        {
+            Logger.Error("Should not be able to get a null channel from GetFamilyChat !");
             return nullChannel;
         }
     }
