@@ -18,6 +18,9 @@ public class FamilyManager : Singleton<FamilyManager>
     private Dictionary<uint, Family> _families;
     private Dictionary<uint, FamilyMember> _familyMembers;
 
+    /// <summary>
+    /// Load family data
+    /// </summary>
     public void Load()
     {
         _families = new Dictionary<uint, Family>();
@@ -54,39 +57,57 @@ public class FamilyManager : Singleton<FamilyManager>
             }
         }
 
-        Logger.Info("Loaded {0} families", _families.Count);
+        Logger.Info($"Loaded {_families.Count} families");
     }
 
+    /// <summary>
+    /// Force save all families
+    /// </summary>
     public void SaveAllFamilies()
     {
-        using (var connection = MySQL.CreateConnection())
-        using (var transaction = connection.BeginTransaction())
-        {
-            foreach (var family in _families.Values)
-                family.Save(connection, transaction);
+        using var connection = MySQL.CreateConnection();
+        using var transaction = connection.BeginTransaction();
 
-            transaction.Commit(); // TODO try/catch
-        }
-    }
-
-    public static void SaveFamily(Family family)
-    {
-        using (var connection = MySQL.CreateConnection())
-        using (var transaction = connection.BeginTransaction())
-        {
+        foreach (var family in _families.Values)
             family.Save(connection, transaction);
 
-            transaction.Commit(); // TODO try/catch
-        }
+        transaction.Commit(); // TODO try/catch
     }
 
+    /// <summary>
+    /// Save family data
+    /// </summary>
+    /// <param name="family"></param>
+    public static void SaveFamily(Family family)
+    {
+        using var connection = MySQL.CreateConnection();
+        using var transaction = connection.BeginTransaction();
+
+        family.Save(connection, transaction);
+
+        transaction.Commit(); // TODO: try/catch
+    }
+
+    /// <summary>
+    /// Sends invite request
+    /// </summary>
+    /// <param name="inviter"></param>
+    /// <param name="invitedCharacterName"></param>
+    /// <param name="title"></param>
     public static void InviteToFamily(Character inviter, string invitedCharacterName, string title)
     {
         var invited = WorldManager.Instance.GetCharacter(invitedCharacterName);
-        if (invited != null && invited.Family == 0)
+        if (invited is { Family: 0 })
             invited.SendPacket(new SCFamilyInvitationPacket(inviter.Id, inviter.Name, 1, title));
     }
 
+    /// <summary>
+    /// Handle reply from a invite request
+    /// </summary>
+    /// <param name="invitorId"></param>
+    /// <param name="invitedChar"></param>
+    /// <param name="join"></param>
+    /// <param name="title"></param>
     public void ReplyToInvite(uint invitorId, Character invitedChar, bool join, string title)
     {
         if (!join)
@@ -99,17 +120,18 @@ public class FamilyManager : Singleton<FamilyManager>
         {
             var newFamily = new Family();
             newFamily.Id = FamilyIdManager.Instance.GetNextId();
-            FamilyMember owner = GetMemberForCharacter(invitor, 1, "");
+            var owner = GetMemberForCharacter(invitor, 1, "");
             newFamily.AddMember(owner);
             _familyMembers.Add(owner.Id, owner);
 
             _families.Add(newFamily.Id, newFamily);
             invitor.Family = newFamily.Id;
             invitor.SendPacket(new SCFamilyCreatedPacket(newFamily));
+            ChatManager.Instance.GetFamilyChat(newFamily.Id)?.JoinChannel(invitor);
         }
 
         var family = _families[invitor.Family];
-        FamilyMember member = GetMemberForCharacter(invitedChar, 0, title);
+        var member = GetMemberForCharacter(invitedChar, 0, title);
         family.AddMember(member);
         _familyMembers.Add(member.Id, member);
         invitedChar.Family = invitor.Family;
@@ -117,6 +139,7 @@ public class FamilyManager : Singleton<FamilyManager>
         family.SendPacket(new SCFamilyMemberAddedPacket(family, family.Members.Count - 1));
 
         SaveFamily(family);
+        ChatManager.Instance.GetFamilyChat(family.Id)?.JoinChannel(invitedChar);
     }
 
     /// <summary>
@@ -129,6 +152,7 @@ public class FamilyManager : Singleton<FamilyManager>
         var member = _familyMembers[character.Id];
         member.Character = character;
 
+        ChatManager.Instance.GetFamilyChat(family.Id)?.JoinChannel(character);
         character.SendPacket(new SCFamilyDescPacket(family));
         family.SendPacket(new SCFamilyMemberOnlinePacket(family.Id, member.Id, true));
     }
@@ -143,6 +167,7 @@ public class FamilyManager : Singleton<FamilyManager>
         var member = family.GetMember(character);
         member.Character = null;
 
+        ChatManager.Instance.GetFamilyChat(family.Id)?.LeaveChannel(character);
         family.SendPacket(new SCFamilyMemberOnlinePacket(family.Id, character.Id, false), character.Id);
     }
 
@@ -159,11 +184,12 @@ public class FamilyManager : Singleton<FamilyManager>
 
         character.SendPacket(new SCFamilyRemovedPacket(family.Id));
         family.SendPacket(new SCFamilyMemberRemovedPacket(family.Id, false, character.Id));
+        ChatManager.Instance.GetFamilyChat(family.Id)?.LeaveChannel(character);
 
         if (family.Members.Count < 2)
             DisbandFamily(family);
         else
-            SaveFamily(family); // TODO need to think how to do right
+            SaveFamily(family); // TODO: need to think how to do right
     }
 
     /// <summary>
@@ -179,6 +205,7 @@ public class FamilyManager : Singleton<FamilyManager>
             var member = family.Members[i];
             if (member.Character != null)
             {
+                ChatManager.Instance.GetFamilyChat(family.Id)?.LeaveChannel(member.Character);
                 member.Character.SendPacket(removed);
                 member.Character.Family = 0;
             }
@@ -199,14 +226,14 @@ public class FamilyManager : Singleton<FamilyManager>
     public void KickMember(Character kicker, uint kickedId)
     {
         if (kicker.Family == 0) return;
-        Family family = _families[kicker.Family];
+        var family = _families[kicker.Family];
 
-        FamilyMember kickerMember = family.GetMember(kicker);
+        var kickerMember = family.GetMember(kicker);
         if (kickerMember.Role != 1) return; // Only the steward can kick
 
         // Load kicked character
-        Character kickedCharacter = WorldManager.Instance.GetCharacterById(kickedId);
-        bool isOnline = false;
+        var kickedCharacter = WorldManager.Instance.GetCharacterById(kickedId);
+        var isOnline = false;
         if (kickedCharacter != null)
         {
             isOnline = true;
@@ -225,6 +252,7 @@ public class FamilyManager : Singleton<FamilyManager>
 
         if (isOnline)
         {
+            ChatManager.Instance.GetFamilyChat(family.Id)?.LeaveChannel(kickedCharacter);
             kickedCharacter.SendPacket(new SCFamilyRemovedPacket(family.Id));
         }
 
@@ -236,29 +264,40 @@ public class FamilyManager : Singleton<FamilyManager>
             SaveFamily(family);
     }
 
+    /// <summary>
+    /// Changes the title of a member
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="memberId"></param>
+    /// <param name="newTitle"></param>
     public void ChangeTitle(Character owner, uint memberId, string newTitle)
     {
         if (owner.Family == 0) return;
-        Family family = _families[owner.Family];
+        var family = _families[owner.Family];
 
-        FamilyMember ownerMember = family.GetMember(owner);
+        var ownerMember = family.GetMember(owner);
         if (ownerMember.Role != 1) return; // Only the steward can change titles
 
-        FamilyMember member = _familyMembers[memberId];
+        var member = _familyMembers[memberId];
         member.Title = newTitle;
 
         family.SendPacket(new SCFamilyTitleChangedPacket(family.Id, memberId, newTitle));
     }
 
+    /// <summary>
+    /// Changes the Steward of a Family
+    /// </summary>
+    /// <param name="previousOwner"></param>
+    /// <param name="memberId"></param>
     public void ChangeOwner(Character previousOwner, uint memberId)
     {
         if (previousOwner.Family == 0) return;
-        Family family = _families[previousOwner.Family];
+        var family = _families[previousOwner.Family];
 
-        FamilyMember previousOwnerMember = family.GetMember(previousOwner);
+        var previousOwnerMember = family.GetMember(previousOwner);
         if (previousOwnerMember.Role != 1) return; // Only the steward can change owner
 
-        FamilyMember member = _familyMembers[memberId];
+        var member = _familyMembers[memberId];
         member.Role = 1;
         previousOwnerMember.Role = 0;
 
@@ -266,24 +305,46 @@ public class FamilyManager : Singleton<FamilyManager>
         family.SendPacket(new SCFamilyDescPacket(family));
     }
 
+    /// <summary>
+    /// Get Family by Id
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     public Family GetFamily(uint id)
     {
         return _families[id];
     }
 
+    /// <summary>
+    /// Creates a Member object from a Character
+    /// </summary>
+    /// <param name="character"></param>
+    /// <param name="owner">Is Owner Flag (role)</param>
+    /// <param name="title"></param>
+    /// <returns></returns>
     private static FamilyMember GetMemberForCharacter(Character character, byte owner, string title)
     {
-        var member = new FamilyMember();
-        member.Character = character;
-        member.Id = character.Id;
-        member.Name = character.Name;
-        member.Role = owner;
-        member.Title = title;
-        return member;
+        return new FamilyMember { 
+            Character = character, 
+            Id = character.Id, 
+            Name = character.Name, 
+            Role = owner,
+            Title = title
+        };
     }
 
+    /// <summary>
+    /// Gets FamilyId of an offline or online character
+    /// </summary>
+    /// <param name="characterId"></param>
+    /// <returns></returns>
     public uint GetFamilyOfCharacter(uint characterId)
     {
-        return (from family in _families.Values from member in family.Members where member.Id == characterId select family.Id).FirstOrDefault();
+        foreach (var family in _families.Values)
+        foreach (var member in family.Members)
+            if (member.Id == characterId)
+                return family.Id;
+
+        return 0;
     }
 }
