@@ -19,7 +19,8 @@ public class SCChatBubblePacket : GamePacket
     /// <param name="kind2">What type to use: 1 use text, 2 use type</param>
     /// <param name="type">bubble Id</param>
     /// <param name="text"></param>
-    public SCChatBubblePacket(uint bc, byte kind1, byte kind2, uint type, string text) : base(SCOffsets.SCChatBubblePacket, 1)
+    public SCChatBubblePacket(uint bc, byte kind1, byte kind2, uint type, string text)
+        : base(SCOffsets.SCChatBubblePacket, 5)
     {
         _bc = bc;
         _kind1 = kind1;

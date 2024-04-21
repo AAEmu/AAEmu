@@ -309,7 +309,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSInteractNPCEndPacket, 5, typeof(CSInteractNPCEndPacket));
         RegisterPacket(CSOffsets.CSBeautyShopBypassPacket, 5, typeof(CSBeautyShopBypassPacket));
         RegisterPacket(CSOffsets.CSSpecialtyRatioPacket, 5, typeof(CSSpecialtyRatioPacket));
-        //RegisterPacket(CSOffsets.CSUnknown0x17Packet, 5, typeof(CSUnknown0x17Packet));
+        RegisterPacket(CSOffsets.CSListSpecialtyGoodsPacket, 5, typeof(CSListSpecialtyGoodsPacket));
         RegisterPacket(CSOffsets.CSJoinUserChatChannelPacket, 5, typeof(CSJoinUserChatChannelPacket));
         RegisterPacket(CSOffsets.CSLeaveChatChannelPacket, 5, typeof(CSLeaveChatChannelPacket));
         RegisterPacket(CSOffsets.CSSendChatMessagePacket, 5, typeof(CSSendChatMessagePacket));

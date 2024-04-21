@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -174,7 +174,6 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
 
         return res;
     }
-    
 
     public int GetBasePriceForSpecialty(Character player, uint npcId)
     {
@@ -334,7 +333,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
             _soldPackAmountInTick[backpack.TemplateId].Add(zoneGroupId, 0);
 
         _soldPackAmountInTick[backpack.TemplateId][zoneGroupId] += 1;
-    
+
         return basePrice;
     }
 

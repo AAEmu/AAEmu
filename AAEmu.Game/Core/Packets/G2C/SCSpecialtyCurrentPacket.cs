@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -10,7 +11,8 @@ public class SCSpecialtyCurrentPacket : GamePacket
     private ushort _toZoneGroup;
     private List<(uint, uint)> _results;
 
-    public SCSpecialtyCurrentPacket(ushort fromZoneGroup, ushort toZoneGroup, List<(uint, uint)> results) : base(SCOffsets.SCSpecialtyCurrentPacket, 1)
+    public SCSpecialtyCurrentPacket(ushort fromZoneGroup, ushort toZoneGroup, List<(uint, uint)> results)
+        : base(SCOffsets.SCSpecialtyCurrentPacket, 5)
     {
         _fromZoneGroup = fromZoneGroup;
         _toZoneGroup = toZoneGroup;

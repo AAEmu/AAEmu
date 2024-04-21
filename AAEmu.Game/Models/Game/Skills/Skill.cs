@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 using AAEmu.Commons.Utils;
@@ -983,7 +982,7 @@ public class Skill
 
         // Check if any of the effects use Weight, and pick a random value
         var weightedTotal = 0;
-        var selectedWeight = -1; 
+        var selectedWeight = -1;
         foreach (var item in effectsToApply)
             weightedTotal += item.effect.Weight;
         if (weightedTotal > 0)

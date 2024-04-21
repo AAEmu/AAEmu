@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSRequestSpecialtyCurrentPacket : GamePacket
 {
-    public CSRequestSpecialtyCurrentPacket() : base(CSOffsets.CSRequestSpecialtyCurrentPacket, 1)
+    public CSRequestSpecialtyCurrentPacket() : base(CSOffsets.CSRequestSpecialtyCurrentPacket, 5)
     {
         //
     }

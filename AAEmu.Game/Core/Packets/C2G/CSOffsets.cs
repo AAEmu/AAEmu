@@ -93,7 +93,6 @@ public static class CSOffsets
     public const ushort CSMountMatePacket = 0x15C;
     public const ushort CSLeaveWorldPacket = 0x0EB;
     public const ushort CSCancelLeaveWorldPacket = 0x065;
-    public const ushort CSRequestSpecialtyCurrentPacket = 0xfff;
     public const ushort CSIdleStatusPacket = 0x1A2;
     public const ushort CSChangeClientNpcTargetPacket = 0x0EC;
     public const ushort CSCompletedCinemaPacket = 0x063;
@@ -296,7 +295,7 @@ public static class CSOffsets
     public const ushort CSStartInteractionPacket = 0x1AC;
     public const ushort CSBeautyShopBypassPacket = 0x19F; // CSEnterBeautySalonPacket
     public const ushort CSSpecialtyRatioPacket = 0x055;
-    public const ushort off_39C2AB2C = 0x017;
+    public const ushort CSListSpecialtyGoodsPacket = 0x017;
     public const ushort CSJoinUserChatChannelPacket = 0x169;
     public const ushort CSLeaveChatChannelPacket = 0x053;
     public const ushort CSSendChatMessagePacket = 0x167;
@@ -374,7 +373,7 @@ public static class CSOffsets
     public const ushort CSSellBackpackGoodsPacket = 0x153; // off_39C41B6C
     public const ushort CSSellItemsPacket = 0x105;
     public const ushort CSListSoldItemPacket = 0x027;
-    public const ushort CSSpecialtyCurrentLoadPacket = 0x044;
+    public const ushort CSRequestSpecialtyCurrentPacket = 0x044; // CSSpecialtyCurrentLoadPacket
     public const ushort CSStartTradePacket = 0x09A;
     public const ushort CSCanStartTradePacket = 0x0D0;
     public const ushort CSCannotStartTradePacket = 0x077;
@@ -413,7 +412,6 @@ public static class CSOffsets
     public const ushort CSKickFromExpeditionPacket = 0xfff;
     public const ushort CSLeaveExpeditionPacket = 0xfff;
     public const ushort CSListCharacterPacket = 0xfff;
-    public const ushort CSListSpecialtyGoodsPacket = 0xfff;
     public const ushort CSQuestStartWithPacket = 0xfff;
     public const ushort CSRenameExpeditionPacket = 0xfff;
     public const ushort CSReplyExpeditionInvitationPacket = 0xfff;
