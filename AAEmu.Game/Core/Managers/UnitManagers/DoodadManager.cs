@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -23,6 +23,7 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
 using NLog;
+
 // ReSharper disable ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
 // ReSharper disable ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
 
@@ -31,19 +32,21 @@ namespace AAEmu.Game.Core.Managers.UnitManagers;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class DoodadManager : Singleton<DoodadManager>
 {
-    // ReSharper disable once FieldCanBeMadeReadOnly.Local
-    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private bool _loaded;
-
-    private Dictionary<uint, DoodadTemplate> _templates;
     private Dictionary<uint, DoodadFuncGroups> _allFuncGroups;
-    private Dictionary<uint, List<DoodadFunc>> _funcsByGroups;
-    private Dictionary<uint, DoodadFunc> _funcsById;
-    private Dictionary<uint, List<DoodadPhaseFunc>> _phaseFuncs;
-    private Dictionary<string, Dictionary<uint, DoodadFuncTemplate>> _funcTemplates;
-    private Dictionary<string, Dictionary<uint, DoodadPhaseFuncTemplate>> _phaseFuncTemplates;
+
     // Details data
     private Dictionary<uint, DoodadFuncConsumeChangerItem> _doodadFuncConsumeChangerItem;
+    private Dictionary<uint, List<DoodadFunc>> _funcsByGroups;
+    private Dictionary<uint, DoodadFunc> _funcsById;
+    private Dictionary<string, Dictionary<uint, DoodadFuncTemplate>> _funcTemplates;
+    private bool _loaded;
+    private Dictionary<uint, List<DoodadPhaseFunc>> _phaseFuncs;
+    private Dictionary<string, Dictionary<uint, DoodadPhaseFuncTemplate>> _phaseFuncTemplates;
+
+    private Dictionary<uint, DoodadTemplate> _templates;
+
+    // ReSharper disable once FieldCanBeMadeReadOnly.Local
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public bool Exist(uint templateId)
     {
@@ -58,7 +61,9 @@ public class DoodadManager : Singleton<DoodadManager>
     public void Load()
     {
         if (_loaded)
+        {
             return;
+        }
 
         _templates = new Dictionary<uint, DoodadTemplate>();
         _allFuncGroups = new Dictionary<uint, DoodadFuncGroups>();
@@ -67,23 +72,32 @@ public class DoodadManager : Singleton<DoodadManager>
         _phaseFuncs = new Dictionary<uint, List<DoodadPhaseFunc>>();
         _funcTemplates = new Dictionary<string, Dictionary<uint, DoodadFuncTemplate>>();
         _phaseFuncTemplates = new Dictionary<string, Dictionary<uint, DoodadPhaseFuncTemplate>>();
-        foreach (var type in Helpers.GetTypesInNamespace(Assembly.GetAssembly(GetType()), "AAEmu.Game.Models.Game.DoodadObj.Funcs"))
+        foreach (var type in Helpers.GetTypesInNamespace(Assembly.GetAssembly(GetType()),
+                     "AAEmu.Game.Models.Game.DoodadObj.Funcs"))
+        {
             if (type.BaseType == typeof(DoodadFuncTemplate))
+            {
                 _funcTemplates.Add(type.Name, new Dictionary<uint, DoodadFuncTemplate>());
+            }
             else if (type.BaseType == typeof(DoodadPhaseFuncTemplate))
+            {
                 _phaseFuncTemplates.Add(type.Name, new Dictionary<uint, DoodadPhaseFuncTemplate>());
+            }
+        }
 
         _doodadFuncConsumeChangerItem = new Dictionary<uint, DoodadFuncConsumeChangerItem>();
 
         using (var connection = SQLite.CreateConnection())
         {
             #region doodad_funcs
+
             Logger.Info("Loading doodad functions ...");
 
             // doodad_func_groups
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM doodad_func_groups ORDER BY doodad_almighty_id, doodad_func_group_kind_id";
+                command.CommandText =
+                    "SELECT * FROM doodad_func_groups ORDER BY doodad_almighty_id, doodad_func_group_kind_id";
                 command.Prepare();
                 using (var sqliteDataReaderChild = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteDataReaderChild))
@@ -94,7 +108,8 @@ public class DoodadManager : Singleton<DoodadManager>
                         {
                             Id = reader.GetUInt32("id"),
                             Almighty = reader.GetUInt32("doodad_almighty_id"),
-                            GroupKindId = (DoodadFuncGroups.DoodadFuncGroupKind)reader.GetUInt32("doodad_func_group_kind_id"),
+                            GroupKindId =
+                                (DoodadFuncGroups.DoodadFuncGroupKind)reader.GetUInt32("doodad_func_group_kind_id"),
                             SoundId = reader.GetUInt32("sound_id", 0),
                             Model = reader.GetString("model", "")
                         };
@@ -129,12 +144,15 @@ public class DoodadManager : Singleton<DoodadManager>
                         };
                         List<DoodadFunc> tempListGroups;
                         if (_funcsByGroups.TryGetValue(func.GroupId, out var funcsByGroup))
+                        {
                             tempListGroups = funcsByGroup;
+                        }
                         else
                         {
                             tempListGroups = new List<DoodadFunc>();
                             _funcsByGroups.Add(func.GroupId, tempListGroups);
                         }
+
                         tempListGroups.Add(func);
                         _funcsById.Add(func.FuncKey, func);
                     }
@@ -159,7 +177,9 @@ public class DoodadManager : Singleton<DoodadManager>
                         };
                         List<DoodadPhaseFunc> list;
                         if (_phaseFuncs.TryGetValue(func.GroupId, out var phaseFunc))
+                        {
                             list = phaseFunc;
+                        }
                         else
                         {
                             list = new List<DoodadPhaseFunc>();
@@ -2575,12 +2595,15 @@ public class DoodadManager : Singleton<DoodadManager>
                         {
                             Id = reader.GetUInt32("id"),
                             Almighty = reader.GetUInt32("doodad_almighty_id"),
-                            GroupKindId = (DoodadFuncGroups.DoodadFuncGroupKind)reader.GetUInt32("doodad_func_group_kind_id"),
+                            GroupKindId =
+                                (DoodadFuncGroups.DoodadFuncGroupKind)reader.GetUInt32("doodad_func_group_kind_id"),
                             SoundId = reader.GetUInt32("sound_id", 0)
                         };
 
                         if (!_allFuncGroups.TryAdd(funcGroups.Id, funcGroups))
+                        {
                             Logger.Fatal($"Failed to add FuncGroups: {funcGroups.Id}");
+                        }
                     }
                 }
             }
@@ -2599,7 +2622,9 @@ public class DoodadManager : Singleton<DoodadManager>
 
                         var cofferCapacity = IsCofferTemplate(templateId);
 
-                        var template = cofferCapacity > 0 ? new DoodadCofferTemplate() { Capacity = cofferCapacity } : new DoodadTemplate();
+                        var template = cofferCapacity > 0
+                            ? new DoodadCofferTemplate() { Capacity = cofferCapacity }
+                            : new DoodadTemplate();
 
                         template.Id = templateId;
                         template.OnceOneMan = reader.GetBoolean("once_one_man", true);
@@ -2629,7 +2654,9 @@ public class DoodadManager : Singleton<DoodadManager>
                         template.GrowthTime = reader.GetInt32("growth_time", 0);
                         template.DespawnOnCollision = reader.GetBoolean("despawn_on_collision", true);
                         template.NoCollision = reader.GetBoolean("no_collision", true);
-                        template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
+                        template.RestrictZoneId = reader.IsDBNull("restrict_zone_id")
+                            ? 0
+                            : reader.GetUInt32("restrict_zone_id");
 
                         _templates.Add(template.Id, template);
                     }
@@ -2644,6 +2671,7 @@ public class DoodadManager : Singleton<DoodadManager>
             }
 
             Logger.Info($"Loaded {_templates.Count} doodad templates");
+
             #endregion
         }
 
@@ -2659,7 +2687,6 @@ public class DoodadManager : Singleton<DoodadManager>
         // For all doodad templates
         foreach (var template in _templates.Values)
         {
-
             // Cache Total Growth Times for doodads that have them
             template.TotalDoodadGrowthTime = 0;
             foreach (var funcGroup in template.FuncGroups)
@@ -2674,10 +2701,12 @@ public class DoodadManager : Singleton<DoodadManager>
                     }
                 }
             }
-            if (template.TotalDoodadGrowthTime <= 0)
-                template.TotalDoodadGrowthTime = template.GrowthTime;
-        }
 
+            if (template.TotalDoodadGrowthTime <= 0)
+            {
+                template.TotalDoodadGrowthTime = template.GrowthTime;
+            }
+        }
     }
 
     /// <summary>
@@ -2688,41 +2717,60 @@ public class DoodadManager : Singleton<DoodadManager>
     private int IsCofferTemplate(uint templateId)
     {
         if (templateId == 0)
+        {
             return -1;
+        }
 
         // Check if template is a Coffer
         foreach (var (_, funcGroup) in _allFuncGroups)
         {
             if (funcGroup.Almighty != templateId)
+            {
                 continue;
+            }
+
             if (!_funcsByGroups.TryGetValue(funcGroup.Id, out var funcList))
+            {
                 continue;
+            }
 
             foreach (var func in funcList)
             {
                 if (!_phaseFuncTemplates.TryGetValue(func.FuncType, out var phaseFuncTemplates))
+                {
                     continue;
+                }
 
                 if (!phaseFuncTemplates.TryGetValue(func.FuncId, out var phaseFuncTemplate))
+                {
                     continue;
+                }
 
                 if (phaseFuncTemplate is DoodadFuncCoffer funcCoffer)
+                {
                     return funcCoffer.Capacity;
+                }
             }
         }
 
         return -1;
     }
 
-    public Doodad Create(uint bcId, uint templateId, GameObject ownerObject = null, bool skipPhaseInitialization = false)
+    public Doodad Create(uint bcId, uint templateId, GameObject ownerObject = null,
+        bool skipPhaseInitialization = false)
     {
         if (!_templates.TryGetValue(templateId, out var template))
+        {
             return null;
+        }
+
         Doodad doodad = null;
 
         // Check if template is a Coffer
         if (template is DoodadCofferTemplate doodadCofferTemplate)
+        {
             doodad = new DoodadCoffer { Capacity = doodadCofferTemplate.Capacity };
+        }
 
         doodad ??= new Doodad();
 
@@ -2756,7 +2804,9 @@ public class DoodadManager : Singleton<DoodadManager>
         }
 
         if (!skipPhaseInitialization)
+        {
             Task.Run(() => doodad.InitDoodad());
+        }
 
         //Logger.Debug($"Create: TemplateId {doodad.TemplateId}, ObjId {doodad.ObjId}, FuncGroupId {doodad.FuncGroupId}");
 
@@ -2771,25 +2821,49 @@ public class DoodadManager : Singleton<DoodadManager>
     public DoodadFunc GetFunc(uint funcGroupId, uint skillId)
     {
         if (!_funcsByGroups.ContainsKey(funcGroupId))
+        {
             return null;
-        foreach (var func in _funcsByGroups[funcGroupId])
+        }
+
+        var funcsInGroup = _funcsByGroups[funcGroupId];
+        foreach (var func in funcsInGroup)
         {
             if (func.SkillId == skillId)
+            {
                 return func;
+            }
+
+            var funcTemplate = GetFuncTemplate(func.FuncId, func.FuncType);
+            // Special handler for fake use skill id
+            if (funcTemplate is DoodadFuncFakeUse fakeUseTemplate && fakeUseTemplate.FakeSkillId > 0 &&
+                fakeUseTemplate.FakeSkillId == skillId)
+            {
+                return func;
+            }
+
+            // Special handler for use (func) skill id
+            if (funcTemplate is DoodadFuncUse useTemplate && useTemplate.SkillId > 0 && useTemplate.SkillId == skillId)
+            {
+                return func;
+            }
         }
 
         // First we skip functions with NextPhase = -1
-        foreach (var func in _funcsByGroups[funcGroupId])
+        foreach (var func in funcsInGroup)
         {
             if (func.SkillId == 0 && func.NextPhase != -1)
+            {
                 return func;
+            }
         }
 
         // Then we search with NextPhase = -1
-        foreach (var func in _funcsByGroups[funcGroupId])
+        foreach (var func in funcsInGroup)
         {
             if (func.SkillId == 0)
+            {
                 return func;
+            }
         }
 
         return null;
@@ -2808,14 +2882,20 @@ public class DoodadManager : Singleton<DoodadManager>
     public DoodadFuncTemplate GetFuncTemplate(uint funcId, string funcType)
     {
         if (!_funcTemplates.TryGetValue(funcType, out var funcs))
+        {
             return null;
+        }
+
         return funcs.TryGetValue(funcId, out var template) ? template : null;
     }
 
     public DoodadPhaseFuncTemplate GetPhaseFuncTemplate(uint funcId, string funcType)
     {
         if (!_phaseFuncTemplates.ContainsKey(funcType))
+        {
             return null;
+        }
+
         var funcs = _phaseFuncTemplates[funcType];
         return funcs.TryGetValue(funcId, out var template) ? template : null;
     }
@@ -2834,6 +2914,7 @@ public class DoodadManager : Singleton<DoodadManager>
         {
             listDoodadFuncGroups.AddRange(template.FuncGroups);
         }
+
         return listDoodadFuncGroups;
     }
 
@@ -2844,11 +2925,15 @@ public class DoodadManager : Singleton<DoodadManager>
         var listDoodadFuncGroups = new List<DoodadFuncGroups>();
 
         if (!_templates.TryGetValue(doodadTemplateId, out var template))
+        {
             return listId;
+        }
 
         listDoodadFuncGroups.AddRange(template.FuncGroups);
         foreach (var item in listDoodadFuncGroups)
+        {
             listId.Add(item.Id);
+        }
 
         return listId;
     }
@@ -2876,7 +2961,8 @@ public class DoodadManager : Singleton<DoodadManager>
     /// <summary>
     /// Saves and creates a doodad
     /// </summary>
-    public static Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId)
+    public static Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot,
+        float scale, ulong itemId)
     {
         Logger.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
 
@@ -2905,7 +2991,9 @@ public class DoodadManager : Singleton<DoodadManager>
         }
 
         if (scale > 0f)
+        {
             doodad.SetScale(scale);
+        }
 
         // Consume item
         var items = ItemManager.Instance.GetItemIdsFromDoodad(id);
@@ -2920,13 +3008,20 @@ public class DoodadManager : Singleton<DoodadManager>
 
         doodad.ItemTemplateId = preferredItem.TemplateId;
         if (preferredItem.Template.MaxCount > 1)
+        {
             doodad.ItemId = 0; // If it's a stackable item, don't store the actual itemId, but only it's templateId
+        }
 
         if (doodad is DoodadCoffer coffer)
+        {
             coffer.InitializeCoffer(character.Id);
+        }
 
         foreach (var item in items)
-            character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1, preferredItem);
+        {
+            character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1,
+                preferredItem);
+        }
 
         doodad.InitDoodad();
         doodad.Spawn();
@@ -2939,18 +3034,24 @@ public class DoodadManager : Singleton<DoodadManager>
     {
         var doodad = WorldManager.Instance.GetDoodad(objId);
         if (doodad is not DoodadCoffer coffer)
+        {
             return false;
+        }
 
         // Somebody already using this ?
         if (coffer.OpenedBy != null)
+        {
             return false;
+        }
 
         // TODO: Check permissions
 
         coffer.OpenedBy = character;
 
         if (character == null)
+        {
             return true;
+        }
 
         byte firstSlot = 0;
         while (firstSlot < coffer.Capacity)
@@ -2966,7 +3067,9 @@ public class DoodadManager : Singleton<DoodadManager>
     {
         var doodad = WorldManager.Instance.GetDoodad(objId);
         if (doodad is not DoodadCoffer coffer)
+        {
             return false;
+        }
 
         // Used for GM commands
         if (character is null)
@@ -2977,7 +3080,9 @@ public class DoodadManager : Singleton<DoodadManager>
 
         // Only the person who opened it, can close it
         if (coffer.OpenedBy is not null && coffer.OpenedBy.Id != character.Id)
+        {
             return false;
+        }
 
         coffer.OpenedBy = null;
 
@@ -2988,14 +3093,16 @@ public class DoodadManager : Singleton<DoodadManager>
     {
         // TODO: Can non-coffer doodads that use this packet only be changed by their owner ?
         if (doodad.OwnerId != player.Id)
+        {
             return false;
+        }
 
         // For Coffers validate if select option is applicable
         if (doodad is DoodadCoffer)
         {
             switch (data)
             {
-                case (int)HousingPermission.Family when (player.Family <= 0):
+                case (int)HousingPermission.Family when player.Family <= 0:
                     player.SendErrorMessage(ErrorMessageType.FamilyNotExist); // Not sure
                     return false;
                 case (int)HousingPermission.Guild when player.Expedition is not { Id: > 0 }:
@@ -3013,6 +3120,8 @@ public class DoodadManager : Singleton<DoodadManager>
 
     public List<uint> GetDoodadFuncConsumeChangerItemList(uint doodadFuncConsumeChangerId)
     {
-        return _doodadFuncConsumeChangerItem.Values.Where(d => d.DoodadFuncConsumeChangerId == doodadFuncConsumeChangerId).Select(entry => entry.ItemId).ToList();
+        return _doodadFuncConsumeChangerItem.Values
+            .Where(d => d.DoodadFuncConsumeChangerId == doodadFuncConsumeChangerId).Select(entry => entry.ItemId)
+            .ToList();
     }
 }
