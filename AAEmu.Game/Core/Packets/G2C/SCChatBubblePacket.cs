@@ -11,6 +11,14 @@ public class SCChatBubblePacket : GamePacket
     private readonly uint _type;
     private readonly string _text;
 
+    /// <summary>
+    /// Shows a chat-bubble above a unit
+    /// </summary>
+    /// <param name="bc">ObjId</param>
+    /// <param name="kind1">Bubble-Type: 1 Normal, 2 Think, 3 ???, 4 No Bubble (blue text), others is normal as well</param>
+    /// <param name="kind2">What type to use: 1 use text, 2 use type</param>
+    /// <param name="type">bubble Id</param>
+    /// <param name="text"></param>
     public SCChatBubblePacket(uint bc, byte kind1, byte kind2, uint type, string text) : base(SCOffsets.SCChatBubblePacket, 1)
     {
         _bc = bc;
@@ -25,8 +33,14 @@ public class SCChatBubblePacket : GamePacket
         stream.WriteBc(_bc);
         stream.Write(_kind1);
         stream.Write(_kind2);
-        stream.Write(_type);
-        stream.Write(_text);
+        if (_kind2 != 1)
+        {
+            stream.Write(_type);
+        }
+        else
+        {
+            stream.Write(_text);
+        }
 
         return stream;
     }

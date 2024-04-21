@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 using AAEmu.Commons.Utils;
@@ -949,10 +950,39 @@ public class Skill
             }
         }
 
+        // Check if any of the effects use Weight, and pick a random value
+        var weightedTotal = 0;
+        var selectedWeight = -1; 
+        foreach (var item in effectsToApply)
+            weightedTotal += item.effect.Weight;
+        if (weightedTotal > 0)
+            selectedWeight = Random.Shared.Next(weightedTotal);
+        var currentWeight = 0;
+        // (caster as Character)?.SendMessage($"Effect Random {selectedWeight+1}/{weightedTotal}");
+
         foreach (var item in effectsToApply)
         {
+            // If this item uses Weight, handle the random selector
+            // For example NPC /useskill 13834 has multiple bubble chat effects that need to be picked from
+            // Probably used for some combat and loot skills as well
+            if (item.effect.Weight > 0)
+            {
+                if (selectedWeight < 0)
+                {
+                    currentWeight += item.effect.Weight;
+                    continue;
+                }
+                if (selectedWeight >= currentWeight + item.effect.Weight)
+                {
+                    currentWeight += item.effect.Weight;
+                    continue;
+                }
+                selectedWeight = -1;
+            }
+
             // Template can be null for some reason.
             if (item.effect.Template != null)
+            {
                 if (item.effect.Template is KillNpcWithoutCorpseEffect nsse)
                 {
                     // для квеста 3478, требуется чтобы caster был Npc
@@ -964,6 +994,7 @@ public class Skill
                 {
                     item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
                 }
+            }
             else
                 Logger.Error($"Template not found for Skill[{Template.Id}] Effect[{item.effect.EffectId}]");
         }
