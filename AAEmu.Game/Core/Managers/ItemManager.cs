@@ -1150,7 +1150,7 @@ public class ItemManager : Singleton<ItemManager>
                         var template = _templates.TryGetValue(id, out var templateRes) ? templateRes : new ItemTemplate();
                         template.Id = id;
                         template.Name = reader.IsDBNull("name") ? "" : reader.GetString("name");
-                        template.Category_Id = reader.GetInt32("category_id");
+                        template.CategoryId = reader.GetInt32("category_id");
                         template.Level = reader.GetInt32("level");
                         template.Price = reader.GetInt32("price");
                         template.Refund = reader.GetInt32("refund");
@@ -1169,6 +1169,7 @@ public class ItemManager : Singleton<ItemManager>
                         template.ExpAbsLifetime = reader.GetInt32("exp_abs_lifetime");
                         template.ExpOnlineLifetime = reader.GetInt32("exp_online_lifetime");
                         template.ExpDate = !reader.IsDBNull("exp_date") ? reader.GetDateTime("exp_date") : DateTime.MinValue;
+                        template.SpecialtyZoneId = !reader.IsDBNull("specialty_zone_id") ? reader.GetUInt32("specialty_zone_id") : 0;
                         template.LevelRequirement = reader.GetInt32("level_requirement");
                         template.AuctionCategoryA = reader.IsDBNull("auction_a_category_id") ? 0 : reader.GetInt32("auction_a_category_id");
                         template.AuctionCategoryB = reader.IsDBNull("auction_b_category_id") ? 0 : reader.GetInt32("auction_b_category_id");
