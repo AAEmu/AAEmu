@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
@@ -25,7 +26,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
 
     //                 itemId           bundleId
     private Dictionary<uint, Dictionary<uint, SpecialtyBundleItem>> _specialtyBundleItemsMapped;
-    //                 itemId           zoneId
+    //                 itemId           zoneGroupId
     private Dictionary<uint, Dictionary<uint, double>> _priceRatios;
     //                 itemId           zoneId
     private Dictionary<uint, Dictionary<uint, int>> _soldPackAmountInTick;
@@ -141,12 +142,34 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
         if (backpack == null)
             return 0;
 
-        var zoneId = player.Transform.ZoneId;
+        var zoneGroupId = ZoneManager.Instance.GetZoneByKey(player.Transform.ZoneId)?.GroupId ?? 0;
 
-        InitRatioInZoneForPack(backpack.TemplateId, zoneId);
+        InitRatioInZoneForPack(backpack.TemplateId, zoneGroupId);
 
-        return (int)Math.Floor(_priceRatios[backpack.TemplateId][zoneId]);
+        return (int)Math.Floor(_priceRatios[backpack.TemplateId][zoneGroupId]);
     }
+
+    /// <summary>
+    /// Gets a list of items and their current trade-rate for given zones
+    /// </summary>
+    /// <param name="fromZoneGroupId">Zone where the item was made</param>
+    /// <param name="toZoneGroupId">Zone where the item is traded in</param>
+    /// <returns></returns>
+    public List<(uint, uint)> GetRatiosForTargetRoute(uint fromZoneGroupId, uint toZoneGroupId)
+    {
+        var res = new List<(uint, uint)>();
+
+        // Get list of possible source packs
+        var sourcePacks = ItemManager.Instance.GetAllItems().Where(x => x.SpecialtyZoneId == fromZoneGroupId);
+        foreach (var item in sourcePacks)
+        {
+            InitRatioInZoneForPack(item.Id, toZoneGroupId);
+            res.Add((item.Id, (uint)Math.Floor(_priceRatios[item.Id][toZoneGroupId])));
+        }
+
+        return res;
+    }
+    
 
     public int GetBasePriceForSpecialty(Character player, uint npcId)
     {
@@ -298,13 +321,14 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
         player.ChangeLabor(-60, (int)ActabilityType.Commerce);
 
         // Add one pack sold in this zone during this tick
+        var zoneGroupId = ZoneManager.Instance.GetZoneByKey(player.Transform.ZoneId)?.GroupId ?? 0;
         if (!_soldPackAmountInTick.ContainsKey(backpack.TemplateId))
             _soldPackAmountInTick.Add(backpack.TemplateId, new Dictionary<uint, int>());
 
-        if (!_soldPackAmountInTick[backpack.TemplateId].ContainsKey(player.Transform.ZoneId))
-            _soldPackAmountInTick[backpack.TemplateId].Add(player.Transform.ZoneId, 0);
+        if (!_soldPackAmountInTick[backpack.TemplateId].ContainsKey(zoneGroupId))
+            _soldPackAmountInTick[backpack.TemplateId].Add(zoneGroupId, 0);
 
-        _soldPackAmountInTick[backpack.TemplateId][player.Transform.ZoneId] += 1;
+        _soldPackAmountInTick[backpack.TemplateId][zoneGroupId] += 1;
     
         return basePrice;
     }
@@ -313,17 +337,17 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
     {
         foreach (var (itemId, zoneInfo) in _soldPackAmountInTick)
         {
-            foreach (var (zoneId, count) in zoneInfo)
+            foreach (var (zoneGroupId, count) in zoneInfo)
             {
                 if (count <= 0)
                     continue;
 
                 var ratioDecrease = (int)Math.Ceiling(count * AppConfiguration.Instance.Specialty.RatioDecreasePerPack);
-                InitRatioInZoneForPack(itemId, zoneId);
-                _soldPackAmountInTick[itemId][zoneId] = 0;
+                InitRatioInZoneForPack(itemId, zoneGroupId);
+                _soldPackAmountInTick[itemId][zoneGroupId] = 0;
 
-                var initialRatio = _priceRatios[itemId][zoneId];
-                _priceRatios[itemId][zoneId] = Math.Max(AppConfiguration.Instance.Specialty.MinSpecialtyRatio, initialRatio - ratioDecrease);
+                var initialRatio = _priceRatios[itemId][zoneGroupId];
+                _priceRatios[itemId][zoneGroupId] = Math.Max(AppConfiguration.Instance.Specialty.MinSpecialtyRatio, initialRatio - ratioDecrease);
             }
         }
     }
@@ -343,13 +367,18 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
         }
     }
 
-    private void InitRatioInZoneForPack(uint itemId, uint zoneId)
+    /// <summary>
+    /// Makes sure a base rate exists for the given item and zone combination
+    /// </summary>
+    /// <param name="itemId"></param>
+    /// <param name="zoneGroupId"></param>
+    private void InitRatioInZoneForPack(uint itemId, uint zoneGroupId)
     {
         if (!_priceRatios.ContainsKey(itemId))
             _priceRatios.Add(itemId, new Dictionary<uint, double>());
 
-        if (!_priceRatios[itemId].ContainsKey(zoneId))
-            _priceRatios[itemId].Add(zoneId, AppConfiguration.Instance.Specialty.MaxSpecialtyRatio);
+        if (!_priceRatios[itemId].ContainsKey(zoneGroupId))
+            _priceRatios[itemId].Add(zoneGroupId, AppConfiguration.Instance.Specialty.MaxSpecialtyRatio);
     }
 
     // Dummy for tests

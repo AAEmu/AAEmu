@@ -283,7 +283,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSRankCharacterPacket, 1, typeof(CSRankCharacterPacket));
         RegisterPacket(CSOffsets.CSRequestSecondPasswordKeyTablesPacket, 1, typeof(CSRequestSecondPasswordKeyTablesPacket));
         // 0x130 CSRankSnapshotPacket
-        // 0x131 unk packet
+        RegisterPacket(CSOffsets.CSRequestSpecialtyCurrentPacket, 1, typeof(CSRequestSpecialtyCurrentPacket));
         RegisterPacket(CSOffsets.CSIdleStatusPacket, 1, typeof(CSIdleStatusPacket));
         // 0x133 CSChangeAutoUseAAPointPacket
         RegisterPacket(CSOffsets.CSThisTimeUnpackItemPacket, 1, typeof(CSThisTimeUnpackItemPacket));

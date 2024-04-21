@@ -263,7 +263,7 @@ public static class CSOffsets
     public const ushort CSRankCharacterPacket = 0x12F;
     public const ushort CSRequestSecondPasswordKeyTablesPacket = 0x125;
     // 0x130 CSRankSnapshotPacket
-    // 0x131 unk packet
+    public const ushort CSRequestSpecialtyCurrentPacket = 0x131;
     public const ushort CSIdleStatusPacket = 0x132;
     // 0x133 CSChangeAutoUseAAPointPacket
     public const ushort CSThisTimeUnpackItemPacket = 0x134;
