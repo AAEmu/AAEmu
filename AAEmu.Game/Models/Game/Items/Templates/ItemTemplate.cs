@@ -10,7 +10,7 @@ public class ItemTemplate
 
     public uint Id { get; set; }
     /// <summary>
-    /// Original Korean name is stored here, use LocalizationManager to get the names for other langauges
+    /// Original Korean name is stored here, use LocalizationManager to get the names for other languages
     /// </summary>
     public string Name { get; set; }
     public int CategoryId { get; set; }
@@ -41,6 +41,7 @@ public class ItemTemplate
     public bool Disenchantable { get; set; }
     public int LivingPointPrice { get; set; }
     public byte CharGender { get; set; }
+    public uint SpecialtyZoneId { get; set; }
 
     // Helpers
     public string searchString { get; set; }
