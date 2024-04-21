@@ -93,6 +93,7 @@ public static class CSOffsets
     public const ushort CSMountMatePacket = 0x15C;
     public const ushort CSLeaveWorldPacket = 0x0EB;
     public const ushort CSCancelLeaveWorldPacket = 0x065;
+    public const ushort CSRequestSpecialtyCurrentPacket = 0xfff;
     public const ushort CSIdleStatusPacket = 0x1A2;
     public const ushort CSChangeClientNpcTargetPacket = 0x0EC;
     public const ushort CSCompletedCinemaPacket = 0x063;

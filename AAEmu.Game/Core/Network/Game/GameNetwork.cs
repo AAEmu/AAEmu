@@ -107,6 +107,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSMountMatePacket, 5, typeof(CSMountMatePacket));
         RegisterPacket(CSOffsets.CSLeaveWorldPacket, 5, typeof(CSLeaveWorldPacket));
         RegisterPacket(CSOffsets.CSCancelLeaveWorldPacket, 5, typeof(CSCancelLeaveWorldPacket));
+        RegisterPacket(CSOffsets.CSRequestSpecialtyCurrentPacket, 5, typeof(CSRequestSpecialtyCurrentPacket));
         RegisterPacket(CSOffsets.CSIdleStatusPacket, 5, typeof(CSIdleStatusPacket));
         //RegisterPacket(CSOffsets.CSChangeClientNpcTargetPacket, 5, typeof(CSChangeClientNpcTargetPacket));
         RegisterPacket(CSOffsets.CSCompletedCinemaPacket, 5, typeof(CSCompletedCinemaPacket));
