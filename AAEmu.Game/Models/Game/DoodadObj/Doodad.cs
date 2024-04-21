@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -23,51 +23,52 @@ using AAEmu.Game.Models.Tasks.Doodads;
 
 /*
  *-----------------------------------------------------------------------------------------------------------------
- *                        Как работает doodad
+ *                        How doodad works
  *-----------------------------------------------------------------------------------------------------------------
- [Doodad] Chain: TemplateId 2336 (поливаем клумбу)
+ [Doodad] Chain: TemplateId 2336 (water the flowerbed)
  [Doodad] FuncGroupId : 4651 - start
  [Doodad] PhaseFunc: GroupId 4651, FuncId 250, FuncType DoodadFuncTod : NextPhase 5136, tod 2000
  [Doodad] Func: GroupId 4651, FuncId 543, FuncType DoodadFuncFakeUse, NextPhase 4652, Skill 0
- 
+
  [Doodad] FuncGroupId : 4652 - normal
  [Doodad] PhaseFunc: GroupId 4652, FuncId 822, FuncType DoodadFuncTimer : delay=30000, nextPhase=4651
  [Doodad] Func: GroupId 4652, FuncId 0
- 
+
  [Doodad] FuncGroupId : 5136 - normal
  [Doodad] PhaseFunc: GroupId 5136, FuncId 251, FuncType DoodadFuncTod : NextPhase 4651, tod 600
  [Doodad] Func: GroupId 5136, FuncId 775, FuncType DoodadFuncFakeUse, NextPhase 5137, Skill 0
- 
+
  [Doodad] FuncGroupId : 5137 - normal
  [Doodad] PhaseFunc: GroupId 5137, FuncId 1001, FuncType DoodadFuncTimer : delay=30000, nextPhase=5136
  [Doodad] Func: GroupId 5137, FuncId 0
 *-----------------------------------------------------------------------------------------------------------------
-метод public void Use(BaseUnit caster, uint skillId) запускает в цикле:
+method public void Use(BaseUnit caster, uint skillId) runs in a loop:
 
-2. запуск Func (функций) func.Use(caster, this, skillId, func.NextPhase)
-   - одна функция выбирается методом GetFunc(FuncGroupId, skillId)
-   таких как DoodadFuncUse, DoodadFuncFakeUse, DoodadFuncLootItem и т.д.
-2.1. запуск функции
-2.2. проверка NextPhase и наличие функции
-2.2.1. нет функции - выход  (останавливаемся на этой фазе для ожидания взаимодействия)
-2.2.2. NextPhase = 0 или -1 - выход,
-2.2.3. goto 2.3., либо переход на выполнение следующей фазы
-2.3. прерход на выполнение NextPhase (повтор в бесконечном цикле, переход к п. 1.)
+2. start Func(functions) func.Use(caster, this, skillId, func.NextPhase)
+   - one function is selected by the GetFunc(FuncGroupId, skillId) method
+   such as DoodadFuncUse, DoodadFuncFakeUse, DoodadFuncLootItem, etc.
+2.1. function launch
+2.2. checking NextPhase and the presence of the function
+2.2.1. no function - exit (we stop at this phase to wait for interaction)
+2.2.2. NextPhase = 0 or -1 - exit,
+2.2.3. goto 2.3., or transition to the next phase execution
+2.3. transition to execution of NextPhase (repetition in an infinite loop, transition to step 1.)
 
-1. запуск PhaseFunc (фазовых функций) - phaseFunc.Use(caster, this) - возвращает результат на прерывание и смену фазы
-   с проверкой перехода на новую фазу в зависимости от времени суток - DoodadFuncTod,
-   проверкой на квест - DoodadFuncRequireQuest, возможна отметна выполнения
-   проверкой - DoodadFuncRatioChange, смена фазы в зависимости от поподания в проценты
-   запуск таймера - DoodadFuncTimer, с переходом на выполнения
-   респавна doodad - DoodadFuncFinal
-   рост растений - DoodadFuncGrowth и т.д.
-   - GetPhaseFunc(FuncGroupId) - возвращает список фазовых функций
-1.1. смена фазы
-1.2. проверка валидности - немедленное завершение цикла
-1.3. таймеры ожидания последующего выполнения с новой фазы
-1.4. фазовой функции может не быть (останавливаемся на этой фазе для ожидания взаимодействия), или их несколько (выполняем в цикле)
+1. start PhaseFunc (phase functions) - phaseFunc.Use(caster, this) - returns the result on interrupt and phase change
+   with check for phase change depending on the time of day - DoodadFuncTod,
+   check for quest - DoodadFuncRequireQuest, execution can be flagged.
+   check - DoodadFuncRatioChange, phase change depending on the percentage hit.
+   timer start - DoodadFuncTimer, with transition to execution
+   doodad respawn - DoodadFuncFinal
+   plant growth - DoodadFuncGrowth, etc.
+   - GetPhaseFunc(FuncGroupId) - returns the list of phase functions
+1.1. phase change
+1.2. validity check - immediate loop termination
+1.3. timers waiting for subsequent execution from the new phase
+1.4. there may be no phase function (stop at this phase to wait for interaction), or there may be several (execute in a loop)
 
-*-----------------------------------------------------------------------------------------------------------------*/
+*-----------------------------------------------------------------------------------------------------------------
+ */
 namespace AAEmu.Game.Models.Game.DoodadObj;
 
 public class Doodad : BaseUnit
@@ -88,7 +89,10 @@ public class Doodad : BaseUnit
         get
         {
             foreach (var currentFunc in CurrentFuncs)
+            {
                 return (DoodadFuncPermission)currentFunc.PermId;
+            }
+
             return DoodadFuncPermission.Any;
         }
     }
@@ -103,7 +107,10 @@ public class Doodad : BaseUnit
                 _funcGroupId = value;
                 PhaseTime = DateTime.UtcNow; // Save PhaseTime at start of new phase (group)
                 if (IsPersistent)
+                {
                     Save();
+                }
+
                 CurrentFuncs = DoodadManager.Instance.GetFuncsForGroup(_funcGroupId);
                 CurrentPhaseFuncs = DoodadManager.Instance.GetPhaseFunc(_funcGroupId);
             }
@@ -134,7 +141,9 @@ public class Doodad : BaseUnit
             {
                 _data = value;
                 if (IsPersistent)
+                {
                     Save();
+                }
             }
         }
     }
@@ -162,14 +171,17 @@ public class Doodad : BaseUnit
                 {
                     if (doodadFuncRecoverItemTemplate.After > 0)
                     {
-                        var left = (PhaseTime + TimeSpan.FromMilliseconds(doodadFuncRecoverItemTemplate.After) - DateTime.UtcNow).TotalMilliseconds;
+                        var left = (PhaseTime + TimeSpan.FromMilliseconds(doodadFuncRecoverItemTemplate.After) -
+                                    DateTime.UtcNow).TotalMilliseconds;
                         return (uint)Math.Round(Math.Max(1, left));
                     }
                 }
             }
 
             if (GrowthTime > DateTime.UtcNow)
+            {
                 return (uint)(GrowthTime - DateTime.UtcNow).TotalMilliseconds;
+            }
 
             return 0;
         }
@@ -183,14 +195,16 @@ public class Doodad : BaseUnit
     /// Used to indicate the starting phase of the doodad should be overriden when loading player doodads
     /// </summary>
     public int OverridePhase { get; set; }
+
     /// <summary>
     /// Used to indicate that the phase starting time should be overriden on timing related funcs
     /// </summary>
     public DateTime OverridePhaseTime { get; set; } = DateTime.MinValue;
+
     private bool _deleted = false;
     public VehicleSeat Seat { get; set; }
     private List<uint> ListGroupId { get; set; }
-    public List<AreaTrigger> AttachAreaTriggers { get; set; } = new List<AreaTrigger>();
+    public List<AreaTrigger> AttachAreaTriggers { get; set; } = new();
 
     public Doodad()
     {
@@ -251,24 +265,31 @@ public class Doodad : BaseUnit
         {
             var player = caster as Character;
             if (player != null)
-                Logger.Debug("Use: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+            {
+                Logger.Warn($"Use: TemplateId {TemplateId}, Using phase {FuncGroupId} with SkillId {skillId}");
+            }
             else
-                Logger.Trace("Use: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+            {
+                Logger.Trace($"Use: TemplateId {TemplateId}, Using phase {FuncGroupId} with SkillId {skillId}");
+            }
 
             ToNextPhase = false; // по умолчанию не выполняем следующую фазу
             ListGroupId.Clear();
 
             //  first we find the functions, then we execute
             var funcWithSkill = DoodadManager.Instance.GetFunc(FuncGroupId, skillId); // if skillId > 0
-            var funcsWithoutSkill = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
-            if (funcWithSkill == null && funcsWithoutSkill.Count == 0)
+            var allFuncsForGroup = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
+
+            if (allFuncsForGroup.Count <= 0)
             {
+                // Phase has no funcs
                 return;
             }
 
             if (skillId == 0)
             {
-                foreach (var funcWithoutSkill in funcsWithoutSkill.Where(f => f.FuncType is "DoodadFuncLootItem" or "DoodadFuncLootPack" or "DoodadFuncCutdowning"))
+                foreach (var funcWithoutSkill in allFuncsForGroup.Where(f =>
+                             f.FuncType is "DoodadFuncLootItem" or "DoodadFuncLootPack" or "DoodadFuncCutdowning"))
                 {
                     if (DoFunc(caster, 0, funcWithoutSkill))
                     {
@@ -294,11 +315,13 @@ public class Doodad : BaseUnit
                 // did not pass the quest conditions check or there is no phase function
                 if (caster is Character)
                 {
-                    Logger.Debug("Use: Did not pass the conditions check! TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
-                    Logger.Debug("Use: Ждем взаимодействия с doodad TemplateId {0}, Using phase {1}", TemplateId, FuncGroupId);
+                    Logger.Debug($"Use: Did not pass the conditions check! TemplateId {TemplateId}, Using phase {FuncGroupId} with SkillId {skillId}");
+                    Logger.Debug($"Use: Looking forward to interacting with doodad TemplateId {TemplateId}, Using phase {FuncGroupId}");
                 }
                 else
-                    Logger.Trace("Use: Did not pass the conditions check! TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                {
+                    Logger.Trace($"Use: Did not pass the conditions check! TemplateId {TemplateId}, Using phase {FuncGroupId} with SkillId {skillId}");
+                }
 
                 return;
             }
@@ -320,9 +343,14 @@ public class Doodad : BaseUnit
         if (func == null)
         {
             if (caster is Character)
-                Logger.Debug("DoFunc: Finished execution with func = null: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+            {
+                Logger.Debug($"DoFunc: Finished execution with func = null: TemplateId {TemplateId}, Using phase {FuncGroupId} with SkillId {skillId}");
+            }
             else
-                Logger.Trace("DoFunc: Finished execution with func = null: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+            {
+                Logger.Trace($"DoFunc: Finished execution with func = null: TemplateId {TemplateId}, Using phase {FuncGroupId} with SkillId {skillId}");
+            }
+
             return true;
         }
 
@@ -347,6 +375,7 @@ public class Doodad : BaseUnit
                         FuncTask = null;
                         Logger.Debug($"DoFunc::DoodadFuncTimer: The current timer has been canceled. TemplateId {TemplateId}, ObjId {ObjId}, nextPhase {func.NextPhase}");
                     }
+
                     // Delete doodad
                     if (Spawner is not null)
                     {
@@ -357,6 +386,7 @@ public class Doodad : BaseUnit
                         Delete();
                     }
                 }
+
                 return true;
             }
 
@@ -375,9 +405,14 @@ public class Doodad : BaseUnit
         else
         {
             if (caster is Character)
-                Logger.Debug("DoFunc Finished execution withOut ToNextPhase = {3}: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId, ToNextPhase);
+            {
+                Logger.Debug($"DoFunc Finished execution withOut ToNextPhase = {ToNextPhase}: TemplateId {TemplateId}, Using phase {FuncGroupId} with SkillId {skillId}");
+            }
             else
-                Logger.Trace("DoFunc Finished execution withOut ToNextPhase = {3}: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId, ToNextPhase);
+            {
+                Logger.Trace($"DoFunc Finished execution withOut ToNextPhase = {ToNextPhase}: TemplateId {TemplateId}, Using phase {FuncGroupId} with SkillId {skillId}");
+            }
+
             return true;
         }
 
@@ -408,13 +443,18 @@ public class Doodad : BaseUnit
             {
                 // например, если это ID=2231, Target, то надо прервать рекурсию
                 if (caster is Character)
-                    Logger.Debug("DoPhase: Finished execution with recurse: TemplateId {0}, Using phase {1}", TemplateId, FuncGroupId);
+                {
+                    Logger.Debug($"DoPhase: Finished execution with recurse: TemplateId {TemplateId}, Using phase {FuncGroupId}");
+                }
                 else
-                    Logger.Trace("DoPhase: Finished execution with recurse: TemplateId {0}, Using phase {1}", TemplateId, FuncGroupId);
+                {
+                    Logger.Trace($"DoPhase: Finished execution with recurse: TemplateId {TemplateId}, Using phase {FuncGroupId}");
+                }
 
                 ListGroupId.Clear();
                 return true;
             }
+
             // например, если это ID=898, Prison Gate, то не надо прервать рекурсию
             ListGroupId.Clear();
         }
@@ -424,15 +464,23 @@ public class Doodad : BaseUnit
             FuncTask.CancelAsync().GetAwaiter().GetResult();
             FuncTask = null;
             if (caster is Character)
+            {
                 Logger.Debug("DoPhaseFuncs:DoodadFuncTimer: The current timer has been canceled.");
+            }
             else
+            {
                 Logger.Trace("DoPhaseFuncs:DoodadFuncTimer: The current timer has been canceled.");
+            }
         }
 
         if (caster is Character)
-            Logger.Debug("DoPhaseFuncs: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
+        {
+            Logger.Debug($"DoPhaseFuncs: TemplateId {TemplateId}, ObjId {ObjId}, nextPhase {nextPhase}");
+        }
         else
-            Logger.Trace("DoPhaseFuncs: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
+        {
+            Logger.Trace($"DoPhaseFuncs: TemplateId {TemplateId}, ObjId {ObjId}, nextPhase {nextPhase}");
+        }
 
         var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(FuncGroupId);
         if (phaseFuncs.Count == 0)
@@ -466,7 +514,9 @@ public class Doodad : BaseUnit
         }
 
         if (!_deleted)
+        {
             Save(); // let's save the doodad in the database
+        }
 
         return stop; // if true, it did not pass the check for the quest (it must be aborted)
     }
@@ -489,9 +539,13 @@ public class Doodad : BaseUnit
         if (nextPhase <= 0) { return false; }
 
         if (caster is Character)
-            Logger.Debug("DoChangePhase: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
+        {
+            Logger.Debug($"DoChangePhase: TemplateId {TemplateId}, ObjId {ObjId}, nextPhase {nextPhase}");
+        }
         else
-            Logger.Trace("DoChangePhase: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
+        {
+            Logger.Trace($"DoChangePhase: TemplateId {TemplateId}, ObjId {ObjId}, nextPhase {nextPhase}");
+        }
 
         var stop = DoPhaseFuncs(caster, ref nextPhase);
 
@@ -518,8 +572,8 @@ public class Doodad : BaseUnit
     public uint GetFuncGroupId()
     {
         return (from funcGroup in Template.FuncGroups
-                where funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start
-                select funcGroup.Id).FirstOrDefault();
+            where funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start
+            select funcGroup.Id).FirstOrDefault();
     }
 
     public void OnSkillHit(BaseUnit caster, uint skillId)
@@ -541,7 +595,10 @@ public class Doodad : BaseUnit
         // Apply Climate settings
         var growTime = Template.TotalDoodadGrowthTime / AppConfiguration.Instance.World.GrowthRate;
         if (Template.TotalDoodadGrowthTime > 0 && ZoneManager.DoodadHasMatchingClimate(this))
+        {
             growTime = (int)Math.Round(growTime * 0.73f);
+        }
+
         GrowthTime = PlantTime.AddMilliseconds(growTime);
 
         // Actually do the phase change
@@ -552,7 +609,9 @@ public class Doodad : BaseUnit
     public override void BroadcastPacket(GamePacket packet, bool self)
     {
         foreach (var character in WorldManager.GetAround<Character>(this))
+        {
             character.SendPacket(packet);
+        }
     }
 
     public override void AddVisibleObject(Character character)
@@ -619,14 +678,19 @@ public class Doodad : BaseUnit
         {
             AreaTriggerManager.Instance.RemoveAreaTrigger(areaTrigger);
         }
+
         AttachAreaTriggers.Clear();
 
         // Delete associated item if expired
         if (ItemId > 0)
         {
             var item = ItemManager.Instance.GetItemByItemId(ItemId);
-            if (item != null && item._holdingContainer != null && (item._holdingContainer.ContainerType == SlotType.None || item._holdingContainer.ContainerType == SlotType.System))
+            if (item != null && item._holdingContainer != null &&
+                (item._holdingContainer.ContainerType == SlotType.None ||
+                 item._holdingContainer.ContainerType == SlotType.System))
+            {
                 item._holdingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
+            }
         }
 
         if (IsPersistent)
@@ -649,7 +713,10 @@ public class Doodad : BaseUnit
     public void Save()
     {
         if (!IsPersistent)
+        {
             return;
+        }
+
         DbId = DbId > 0 ? DbId : DoodadIdManager.Instance.GetNextId();
         using (var connection = MySQL.CreateConnection())
         {
@@ -657,8 +724,10 @@ public class Doodad : BaseUnit
             {
                 // Lookup Parent
                 var parentDoodadId = 0u;
-                if ((Transform?.Parent?.GameObject is Doodad pDoodad) && (pDoodad.DbId > 0))
+                if (Transform?.Parent?.GameObject is Doodad pDoodad && pDoodad.DbId > 0)
+                {
                     parentDoodadId = pDoodad.DbId;
+                }
 
                 command.CommandText =
                     "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `attach_point`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `scale`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`) " +
@@ -703,7 +772,9 @@ public class Doodad : BaseUnit
         foreach (var child in Transform.Children)
         {
             if (child.GameObject is Doodad { IsPersistent: true })
+            {
                 return false;
+            }
         }
 
         return base.AllowRemoval();
