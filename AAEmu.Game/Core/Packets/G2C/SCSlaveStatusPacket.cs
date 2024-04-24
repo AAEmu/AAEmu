@@ -14,7 +14,7 @@ public class SCSlaveStatusPacket : GamePacket
         base(SCOffsets.SCSlaveStatusPacket, 5)
     {
         _slave = slave;
-        _skillCount = slave.Skills.Count;
+        _skillCount = slave.Skills?.Count ?? 0;
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -24,20 +24,27 @@ public class SCSlaveStatusPacket : GamePacket
         stream.Write(_slave.SummoningItem?.Id ?? 0ul); // type
 
         #region skill&tag
-        var count = _slave.Skills.Count;
-        stream.Write(count); // skillCount
-        foreach (var skill in _slave.Skills)
+        stream.Write(_skillCount); // skillCount
+        if (_skillCount > 0)
         {
-            stream.Write(skill);   // type
+            foreach (var skill in _slave.Skills)
+            {
+                stream.Write(skill);   // type
+            }
         }
+
         stream.Write(_tagCount); // tagCount
-        for (var i = 0; i < _tagCount; i++)
+        if (_tagCount > 0)
         {
-            stream.Write(0u);   // type
-            stream.Write(0u);  // type
-            stream.Write(0u); // type
+            for (var i = 0; i < _tagCount; i++)
+            {
+                stream.Write(0u);   // type
+                stream.Write(0u);  // type
+                stream.Write(0u); // type
+            }
         }
         #endregion
+
         stream.Write(_slave.Summoner.Name ?? string.Empty);  // creatorName
         stream.Write(_slave.Summoner?.ObjId ?? 0);          // type
         stream.Write(_slave.Id);                           // dbId DbHouseId
