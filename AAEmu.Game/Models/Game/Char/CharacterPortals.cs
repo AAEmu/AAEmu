@@ -248,7 +248,7 @@ public class CharacterPortals
 
             //var returnPointsId = PortalManager.Instance.GetDistrictReturnPoint(subZone.Value.Id, Owner.Faction.Id);
 
-            if (portals.Count == 0) { continue; }
+            if ((portals == null) || (portals.Count == 0)) { continue; }
 
             foreach (var portal in portals)
             {

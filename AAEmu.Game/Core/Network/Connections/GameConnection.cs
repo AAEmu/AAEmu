@@ -77,7 +77,7 @@ public class GameConnection
                 subscriber.Dispose();
 
             ActiveChar.Events?.OnDisconnect(this, new OnDisconnectArgs { Player = ActiveChar });
-            ActiveChar.ForceDismountAndDespawn();
+            ActiveChar.RemoveAndDespawnActiveOwnedMatesSlaves();
         }
 
         foreach (var subscriber in Subscribers)

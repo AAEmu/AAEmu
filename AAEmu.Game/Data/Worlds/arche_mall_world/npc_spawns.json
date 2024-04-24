@@ -1,3348 +1,6274 @@
 [
   {
+    "Id": 0,
     "UnitId": 8553,
+    "Title": "Winter Maiden's Messenger",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3710.438,
       "Y": 4522.67,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 9151,
+    "Title": "Nayah Luna Elder",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3663.8599,
-      "Y": 4465.7803,
-      "Z": 142.42404
-    }
+      "X": 3663.85986,
+      "Y": 4465.78027,
+      "Z": 142.424042,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 9153,
+    "Title": "Nayah Luna Cook",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3702.234,
       "Y": 4518.27,
-      "Z": 143.8772
-    }
+      "Z": 143.8772,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 9154,
+    "Title": "Nayah Luna Elder",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3690.122,
-      "Y": 4569.7803,
-      "Z": 141.00215
-    }
+      "Y": 4569.78027,
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 9155,
+    "Title": "Master Luck Craftsman",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3706.678,
       "Y": 4514.25,
-      "Z": 143.73657
-    }
+      "Z": 143.736572,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 10856,
+    "Title": "Piporo",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3713.988,
-      "Y": 4537.2197,
-      "Z": 144.988
-    }
+      "Y": 4537.21973,
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 123.8
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50579,
     "UnitId": 10913,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3710.013,
-      "Y": 4545.76,
-      "Z": 141.00215
-    }
+      "X": 3710.012,
+      "Y": 4545.766,
+      "Z": 144.9243,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 70.3125
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50638,
     "UnitId": 10913,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3681.768,
-      "Y": 4561.09,
-      "Z": 141.00215
-    }
+      "X": 3681.774,
+      "Y": 4561.092,
+      "Z": 156.1347,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 8.4375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50627,
     "UnitId": 10913,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3689.399,
-      "Y": 4547.64,
-      "Z": 141.00215
-    }
+      "X": 3689.408,
+      "Y": 4547.642,
+      "Z": 149.413,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 8.4375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 10914,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3697.528,
-      "Y": 4534.2197,
-      "Z": 144.988
-    }
+      "Y": 4534.21973,
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50626,
     "UnitId": 10914,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3689.072,
-      "Y": 4566.34,
-      "Z": 144.988
-    }
+      "Y": 4566.348,
+      "Z": 156.1397,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 75.9375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50619,
     "UnitId": 10914,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3703.8901,
-      "Y": 4558.9697,
-      "Z": 144.988
-    }
+      "X": 3703.898,
+      "Y": 4558.98,
+      "Z": 149.413,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 75.9375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50609,
     "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3704.353,
-      "Y": 4561.45,
-      "Z": 144.988
-    }
+      "X": 3704.36,
+      "Y": 4561.46,
+      "Z": 149.413,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 120.9375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50613,
     "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3690.91,
-      "Y": 4536.19,
-      "Z": 144.988
-    }
+      "X": 3690.918,
+      "Y": 4536.194,
+      "Z": 144.9243,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -56.25
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50630,
     "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3687.448,
-      "Y": 4547.99,
-      "Z": 144.988
-    }
+      "X": 3687.458,
+      "Y": 4548.0,
+      "Z": 149.43,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -56.25
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3694.896,
       "Y": 4530.86,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50590,
     "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3712.31,
+      "X": 3712.316,
       "Y": 4546.04,
-      "Z": 144.988
-    }
+      "Z": 144.9113,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 120.9375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50617,
     "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3710.461,
+      "X": 3710.472,
       "Y": 4550.02,
-      "Z": 144.988
-    }
+      "Z": 144.9113,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 123.75
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50584,
     "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3714.356,
-      "Y": 4547.79,
-      "Z": 144.988
-    }
+      "X": 3714.364,
+      "Y": 4547.796,
+      "Z": 144.9873,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 120.9375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50597,
     "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3711.997,
+      "X": 3712.008,
       "Y": 4543.57,
-      "Z": 144.988
-    }
+      "Z": 144.9113,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 123.75
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3692.421,
       "Y": 4531.37,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3698.552,
       "Y": 4529.79,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50581,
     "UnitId": 10916,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3552.477,
-      "Y": 4405.68,
-      "Z": 104.18909
-    }
+      "X": 3552.488,
+      "Y": 4405.684,
+      "Z": 104.1884,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 25.3125
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50632,
     "UnitId": 10917,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3864.833,
-      "Y": 4637.42,
-      "Z": 107.81415
-    }
+      "X": 3864.84,
+      "Y": 4637.43,
+      "Z": 107.9579,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 129.375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50595,
     "UnitId": 10918,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3951.643,
-      "Y": 4592.44,
-      "Z": 99.31402
-    }
+      "X": 3951.646,
+      "Y": 4592.45,
+      "Z": 105.0767,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 36.5625
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50616,
     "UnitId": 10918,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3618.253,
-      "Y": 4305.17,
-      "Z": 95.56396
-    }
+      "X": 3618.258,
+      "Y": 4305.174,
+      "Z": 103.7522,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 67.5
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50622,
     "UnitId": 10919,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3502.82,
-      "Y": 4378.59,
-      "Z": 105.92349
-    }
+      "X": 3502.826,
+      "Y": 4378.592,
+      "Z": 105.9561,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 61.875
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50605,
     "UnitId": 10919,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3855.029,
-      "Y": 4704.43,
-      "Z": 109.423546
-    }
+      "X": 3855.028,
+      "Y": 4704.44,
+      "Z": 109.7776,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 39.375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50585,
     "UnitId": 10921,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3947.875,
-      "Y": 4698.65,
-      "Z": 108.501656
-    }
+      "X": 3947.884,
+      "Y": 4698.652,
+      "Z": 108.5141,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 61.875
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50587,
     "UnitId": 10921,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3494.9639,
-      "Y": 4240.62,
-      "Z": 104.61097
-    }
+      "X": 3494.974,
+      "Y": 4240.622,
+      "Z": 104.4785,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -75.9375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50600,
     "UnitId": 10922,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3820.0571,
+      "X": 3820.058,
       "Y": 4869.56,
-      "Z": 109.11104
-    }
+      "Z": 109.0993,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -73.125
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50598,
     "UnitId": 10922,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 4920.42,
-      "Y": 4486.98,
-      "Z": 147.62726
-    }
+      "X": 4920.43,
+      "Y": 4486.99,
+      "Z": 153.8748,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 123.75
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50637,
     "UnitId": 10922,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3469.215,
+      "X": 3469.22,
       "Y": 4238.56,
-      "Z": 105.92349
-    }
+      "Z": 105.9391,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -67.5
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50586,
     "UnitId": 10922,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3926.526,
-      "Y": 4650.82,
-      "Z": 108.17352
-    }
+      "Y": 4650.826,
+      "Z": 108.316,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 87.1875
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50624,
     "UnitId": 10922,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3595.23,
-      "Y": 4435.61,
-      "Z": 105.62661
-    }
+      "X": 3595.234,
+      "Y": 4435.612,
+      "Z": 105.758,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 143.4375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50580,
     "UnitId": 10922,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3930.06,
-      "Y": 4713.3,
-      "Z": 109.56417
-    }
+      "Y": 4713.306,
+      "Z": 109.5955,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -140.625
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50596,
     "UnitId": 10922,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3565.8071,
-      "Y": 4331.11,
-      "Z": 104.92348
-    }
+      "X": 3565.814,
+      "Y": 4331.112,
+      "Z": 105.3188,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 123.75
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50604,
     "UnitId": 10922,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3861.428,
-      "Y": 4653.86,
-      "Z": 109.23604
-    }
+      "X": 3861.438,
+      "Y": 4653.868,
+      "Z": 109.3604,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -165.9375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50629,
     "UnitId": 10923,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3545.012,
       "Y": 4441.52,
-      "Z": 105.17348
-    }
+      "Z": 105.4339,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 137.8125
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50618,
     "UnitId": 10924,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3573.41,
-      "Y": 4398.45,
-      "Z": 105.92349
-    }
+      "X": 3573.418,
+      "Y": 4398.46,
+      "Z": 105.9761,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 84.375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50582,
     "UnitId": 10925,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3585.958,
-      "Y": 4412.74,
-      "Z": 105.93912
-    }
+      "X": 3585.968,
+      "Y": 4412.744,
+      "Z": 105.9411,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 78.75
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50578,
     "UnitId": 10926,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3613.583,
-      "Y": 4424.88,
-      "Z": 103.75159
-    }
+      "X": 3613.584,
+      "Y": 4424.888,
+      "Z": 103.7522,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 81.5625
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50610,
     "UnitId": 10927,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3532.554,
-      "Y": 4422.38,
-      "Z": 104.29847
-    }
+      "Y": 4422.388,
+      "Z": 104.2694,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -56.25
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50611,
     "UnitId": 10927,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3842.9639,
-      "Y": 4670.18,
-      "Z": 109.43917
-    }
+      "X": 3842.974,
+      "Y": 4670.184,
+      "Z": 109.4554,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 137.8125
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50589,
     "UnitId": 12053,
+    "Title": "Bugira",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3612.483,
-      "Y": 4682.66,
-      "Z": 142.79906
-    }
+      "X": 3612.494,
+      "Y": 4682.662,
+      "Z": 147.7964,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -59.0625
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 12219,
+    "Title": "Kyprosa's Light Collector",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3749.945,
       "Y": 4498.64,
-      "Z": 142.72093
-    }
+      "Z": 142.720932,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 67.5
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 12227,
+    "Title": "Eanna's Gift Collector",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3755.707,
       "Y": 4497.24,
-      "Z": 142.28342
-    }
+      "Z": 142.283417,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 67.5
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 12228,
+    "Title": "Tahyang's Roar Collector",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3751.245,
       "Y": 4494.73,
-      "Z": 142.42404
-    }
+      "Z": 142.424042,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 67.5
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 12229,
+    "Title": "Gene's Dignity Collector",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3747.19,
       "Y": 4496.99,
-      "Z": 142.68968
-    }
+      "Z": 142.689682,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 67.5
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50602,
     "UnitId": 12230,
+    "Title": "Lucky Bunny",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3616.84,
+      "X": 3616.848,
       "Y": 4690.51,
-      "Z": 143.6897
-    }
+      "Z": 147.7804,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 109.6875
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50588,
     "UnitId": 12230,
+    "Title": "Lucky Bunny",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3608.065,
-      "Y": 4681.98,
-      "Z": 142.11154
-    }
+      "X": 3608.066,
+      "Y": 4681.99,
+      "Z": 147.7594,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 123.75
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50577,
     "UnitId": 12230,
+    "Title": "Lucky Bunny",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3621.509,
-      "Y": 4684.66,
-      "Z": 143.79907
-    }
+      "X": 3621.508,
+      "Y": 4684.662,
+      "Z": 147.7644,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 137.8125
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50591,
     "UnitId": 12231,
+    "Title": "Lucky Bunny",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3590.978,
-      "Y": 4689.23,
-      "Z": 140.37714
-    }
+      "X": 3590.988,
+      "Y": 4689.234,
+      "Z": 161.9029,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -163.125
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50628,
     "UnitId": 12231,
+    "Title": "Lucky Bunny",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3613.77,
-      "Y": 4661.18,
-      "Z": 141.87717
-    }
+      "X": 3613.776,
+      "Y": 4661.184,
+      "Z": 161.8639,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 59.0625
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50606,
     "UnitId": 12231,
+    "Title": "Lucky Bunny",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3617.634,
-      "Y": 4697.8,
-      "Z": 143.7522
-    }
+      "X": 3617.636,
+      "Y": 4697.806,
+      "Z": 161.8879,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -163.125
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50615,
     "UnitId": 12399,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3553.653,
-      "Y": 4427.99,
-      "Z": 105.18
-    }
+      "X": 3553.656,
+      "Y": 4428.0,
+      "Z": 105.2958,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 118.125
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50620,
     "UnitId": 12400,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3739.209,
+      "X": 3739.214,
       "Y": 4674.02,
-      "Z": 143.73657
-    }
+      "Z": 143.5598,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 157.5
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50625,
     "UnitId": 12401,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3559.944,
-      "Y": 4545.34,
-      "Z": 142.54906
-    }
+      "X": 3559.954,
+      "Y": 4545.348,
+      "Z": 142.5804,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 129.375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50583,
     "UnitId": 12402,
+    "Title": "Mirage Isle Guide",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3567.357,
-      "Y": 4533.63,
-      "Z": 142.61156
-    }
+      "X": 3567.364,
+      "Y": 4533.632,
+      "Z": 142.5594,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 132.1875
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13160,
+    "Title": "Fisherman Daru",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3936.663,
       "Y": 4554.98,
-      "Z": 95.98584
-    }
+      "Z": 95.98584,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13160,
+    "Title": "Fisherman Daru",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3642.478,
       "Y": 4306.24,
-      "Z": 94.67332
-    }
+      "Z": 94.67332,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13218,
+    "Title": "Bartering Fisherman",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3932.259,
       "Y": 4558.33,
-      "Z": 95.92334
-    }
+      "Z": 95.92334,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13218,
+    "Title": "Bartering Fisherman",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3636.87,
       "Y": 4310.02,
-      "Z": 94.67332
-    }
+      "Z": 94.67332,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13219,
+    "Title": "Bartering Fisherman",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3926.6191,
+      "X": 3926.61914,
       "Y": 4555.19,
-      "Z": 95.98584
-    }
+      "Z": 95.98584,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13219,
+    "Title": "Bartering Fisherman",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3641.832,
       "Y": 4314.71,
-      "Z": 94.67332
-    }
+      "Z": 94.67332,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13220,
+    "Title": "Bartering Fisherman",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3646.562,
       "Y": 4312.14,
-      "Z": 94.67332
-    }
+      "Z": 94.67332,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13220,
+    "Title": "Bartering Fisherman",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3930.637,
       "Y": 4550.82,
-      "Z": 95.98584
-    }
+      "Z": 95.98584,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13243,
+    "Title": "Lucius' Song Collector",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3757.97,
-      "Y": 4499.7803,
-      "Z": 142.28342
-    }
+      "Y": 4499.78027,
+      "Z": 142.283417,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 67.5
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13244,
+    "Title": "Aranzeb's Meditation Collector",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3762.092,
       "Y": 4512.3,
-      "Z": 142.98656
-    }
+      "Z": 142.986557,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 120.8
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13245,
+    "Title": "Aranzebia's Smile Collector",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3759.391,
-      "Y": 4510.2803,
-      "Z": 142.86156
-    }
+      "Y": 4510.28027,
+      "Z": 142.861557,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 120.8
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13246,
+    "Title": "Orchidna's Dream Collector",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3750.479,
-      "Y": 4505.0303,
-      "Z": 142.98656
-    }
+      "Y": 4505.03027,
+      "Z": 142.986557,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 67.5
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13249,
+    "Title": "Albino Yata",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3640.16,
       "Y": 4304.01,
-      "Z": 94.54832
-    }
+      "Z": 94.54832,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13249,
+    "Title": "Albino Yata",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3938.382,
       "Y": 4557.45,
-      "Z": 95.98584
-    }
+      "Z": 95.98584,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50592,
     "UnitId": 13384,
+    "Title": "Sinru",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3533.005,
-      "Y": 4456.32,
-      "Z": 105.79849
-    }
+      "X": 3533.004,
+      "Y": 4456.326,
+      "Z": 105.869,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 149.0625
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50608,
     "UnitId": 13385,
+    "Title": "Kiru",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3840.773,
-      "Y": 4632.1,
-      "Z": 108.36103
-    }
+      "X": 3840.778,
+      "Y": 4632.102,
+      "Z": 108.369,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -146.25
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13451,
+    "Title": "Red Dragon Revenant",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3380.1611,
+      "X": 3380.16113,
       "Y": 4356.02,
-      "Z": 104.04846
-    }
+      "Z": 104.048462,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50636,
     "UnitId": 13453,
+    "Title": "Lunaru",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3522.712,
+      "X": 3522.716,
       "Y": 4427.0,
-      "Z": 104.79848
-    }
+      "Z": 104.7336,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -56.25
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50593,
     "UnitId": 13453,
+    "Title": "Lunaru",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3857.466,
-      "Y": 4651.31,
-      "Z": 109.23604
-    }
+      "X": 3857.476,
+      "Y": 4651.316,
+      "Z": 109.2864,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 143.4375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50633,
     "UnitId": 13454,
+    "Title": "Garini",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3518.243,
-      "Y": 4431.76,
-      "Z": 104.42347
-    }
+      "X": 3518.248,
+      "Y": 4431.766,
+      "Z": 104.4125,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -53.4375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50634,
     "UnitId": 13454,
+    "Title": "Garini",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3851.755,
-      "Y": 4653.5303,
-      "Z": 109.43917
-    }
+      "X": 3851.76,
+      "Y": 4653.53,
+      "Z": 109.4714,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 143.4375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50594,
     "UnitId": 13455,
+    "Title": "Morudo",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3514.952,
-      "Y": 4436.2197,
-      "Z": 104.73597
-    }
+      "X": 3514.962,
+      "Y": 4436.224,
+      "Z": 104.7006,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -53.4375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50635,
     "UnitId": 13455,
+    "Title": "Morudo",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3847.726,
-      "Y": 4658.27,
-      "Z": 109.423546
-    }
+      "X": 3847.73,
+      "Y": 4658.276,
+      "Z": 109.4714,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 143.4375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13472,
+    "Title": "Lifeguard Captain Mitcher",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3730.0,
       "Y": 4499.0,
-      "Z": 142.79906
-    }
+      "Z": 142.799057,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13517,
+    "Title": "Dragon Slayer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3432.433,
       "Y": 4393.11,
-      "Z": 105.98599
-    }
+      "Z": 105.985992,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13619,
+    "Title": "Master Combiner Ogolloro",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3715.094,
       "Y": 4540.33,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 123.8
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13633,
+    "Title": "Edmund",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3736.0,
       "Y": 4497.0,
-      "Z": 142.72093
-    }
+      "Z": 142.720932,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13634,
+    "Title": "Matthias",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3738.0,
       "Y": 4503.0,
-      "Z": 143.04906
-    }
+      "Z": 143.049057,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13635,
+    "Title": "Jhimie",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3740.0,
       "Y": 4499.0,
-      "Z": 142.79906
-    }
+      "Z": 142.799057,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13636,
+    "Title": "Khaci",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3725.0,
       "Y": 4490.0,
-      "Z": 142.48654
-    }
+      "Z": 142.486542,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13637,
+    "Title": "Shuani",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3727.0,
       "Y": 4493.0,
-      "Z": 142.48654
-    }
+      "Z": 142.486542,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13638,
+    "Title": "Lani",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3723.0,
       "Y": 4493.0,
-      "Z": 142.68968
-    }
+      "Z": 142.689682,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13639,
+    "Title": "Wardrobe Stylist",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3642.48,
       "Y": 4578.76,
-      "Z": 144.23657
-    }
+      "Z": 144.236572,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13639,
+    "Title": "Wardrobe Stylist",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3684.743,
       "Y": 4609.49,
-      "Z": 144.36157
-    }
+      "Z": 144.361572,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13639,
+    "Title": "Wardrobe Stylist",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3681.591,
       "Y": 4588.21,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13639,
+    "Title": "Wardrobe Stylist",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3663.873,
       "Y": 4575.35,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13642,
+    "Title": "Fairmoon Clerk",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3651.554,
       "Y": 4593.67,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13644,
+    "Title": "Fairmoon Clerk",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3667.301,
       "Y": 4605.39,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13645,
+    "Title": "Veroe Weapons Dealer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3675.487,
       "Y": 4609.38,
-      "Z": 144.36157
-    }
+      "Z": 144.361572,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13646,
+    "Title": "Fairmoon Clerk",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3660.37,
       "Y": 4622.4,
-      "Z": 144.29907
-    }
+      "Z": 144.299072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13646,
+    "Title": "Fairmoon Clerk",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3636.195,
       "Y": 4598.02,
-      "Z": 144.04907
-    }
+      "Z": 144.049072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3728.654,
       "Y": 4177.37,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3732.667,
       "Y": 4330.05,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4193.83,
       "Y": 4537.07,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3874.637,
       "Y": 4454.36,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3818.427,
       "Y": 4390.73,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3987.804,
       "Y": 4406.73,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3946.467,
       "Y": 4444.25,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4149.15,
       "Y": 4595.04,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4179.54,
       "Y": 4530.88,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4166.02,
       "Y": 4540.92,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4143.35,
       "Y": 4573.9,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3808.3809,
+      "X": 3808.38086,
       "Y": 4405.79,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3809.061,
       "Y": 4328.7,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3680.185,
       "Y": 4125.29,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4141.52,
       "Y": 4597.55,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 4004.7231,
+      "X": 4004.72314,
       "Y": 4404.6,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4121.9,
       "Y": 4449.85,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3754.965,
-      "Y": 4276.2803,
-      "Z": 98.6
-    }
+      "Y": 4276.28027,
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4135.15,
       "Y": 4585.48,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3987.977,
       "Y": 4503.46,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3786.643,
       "Y": 4339.11,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3660.094,
       "Y": 4133.09,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3811.189,
-      "Y": 4414.2197,
-      "Z": 98.6
-    }
+      "Y": 4414.21973,
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3743.686,
       "Y": 4264.49,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3677.617,
       "Y": 4147.56,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4127.76,
       "Y": 4471.68,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4045.034,
       "Y": 4478.99,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3888.266,
       "Y": 4440.35,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4173.19,
       "Y": 4551.86,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3673.8179,
+      "X": 3673.81787,
       "Y": 4142.84,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3707.075,
       "Y": 4201.95,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4111.21,
       "Y": 4551.94,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3856.742,
       "Y": 4438.76,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4001.41,
       "Y": 4401.25,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3829.904,
       "Y": 4406.87,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3798.593,
       "Y": 4339.04,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3741.3271,
+      "X": 3741.32715,
       "Y": 4273.3,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3691.462,
       "Y": 4270.16,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4004.686,
       "Y": 4409.37,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4117.73,
       "Y": 4465.17,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3756.876,
       "Y": 4269.3,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3856.632,
       "Y": 4359.66,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3978.936,
       "Y": 4479.71,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3735.977,
       "Y": 4185.1,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3753.651,
       "Y": 4264.25,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3710.638,
       "Y": 4258.62,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3716.4438,
+      "X": 3716.44385,
       "Y": 4193.73,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4136.1,
       "Y": 4463.14,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4111.23,
       "Y": 4541.82,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3732.03,
       "Y": 4343.89,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3928.475,
       "Y": 4445.38,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3670.833,
       "Y": 4255.39,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4051.886,
       "Y": 4475.68,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3970.377,
-      "Y": 4495.7803,
-      "Z": 98.6
-    }
+      "Y": 4495.78027,
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3952.441,
       "Y": 4447.06,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3711.636,
       "Y": 4174.94,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3952.518,
       "Y": 4439.99,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3653.363,
       "Y": 4148.01,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3675.046,
-      "Y": 4131.5303,
-      "Z": 98.6
-    }
+      "Y": 4131.53027,
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3807.955,
       "Y": 4392.94,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4102.17,
       "Y": 4533.69,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3739.976,
       "Y": 4324.92,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3798.305,
       "Y": 4329.17,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3872.6719,
+      "X": 3872.67188,
       "Y": 4439.18,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3944.32,
-      "Y": 4433.9697,
-      "Z": 98.6
-    }
+      "Y": 4433.96973,
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3850.917,
       "Y": 4358.39,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3992.248,
       "Y": 4410.16,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3653.15,
       "Y": 4127.24,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3719.6309,
+      "X": 3719.63086,
       "Y": 4338.41,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3989.209,
       "Y": 4485.96,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4050.684,
       "Y": 4469.01,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4116.12,
       "Y": 4532.29,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3667.5562,
+      "X": 3667.55615,
       "Y": 4138.45,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3859.384,
       "Y": 4346.39,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3845.634,
       "Y": 4361.32,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3995.196,
       "Y": 4401.48,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3685.983,
       "Y": 4232.29,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3944.142,
       "Y": 4452.25,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4103.98,
       "Y": 4523.05,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3852.212,
-      "Y": 4365.9697,
-      "Z": 98.6
-    }
+      "Y": 4365.96973,
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3867.129,
       "Y": 4364.21,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4044.488,
       "Y": 4472.15,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3999.901,
       "Y": 4493.26,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3796.847,
       "Y": 4315.93,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 4048.1191,
+      "X": 4048.11914,
       "Y": 4473.63,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3721.538,
       "Y": 4182.9,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3693.529,
       "Y": 4259.29,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3868.041,
       "Y": 4356.29,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3741.468,
-      "Y": 4278.9697,
-      "Z": 98.6
-    }
+      "Y": 4278.96973,
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3703.436,
       "Y": 4249.05,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4045.134,
       "Y": 4466.87,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4180.43,
       "Y": 4549.1,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4095.6,
       "Y": 4542.14,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3728.636,
       "Y": 4191.85,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3822.215,
       "Y": 4416.33,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3822.261,
       "Y": 4405.54,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4158.58,
       "Y": 4593.96,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3852.2979,
+      "X": 3852.29785,
       "Y": 4373.33,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13676,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4157.42,
       "Y": 4577.27,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3738.2,
       "Y": 4288.46,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4188.86,
       "Y": 4552.21,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3726.768,
       "Y": 4338.07,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3721.296,
       "Y": 4202.02,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4048.791,
       "Y": 4462.55,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3691.457,
       "Y": 4250.16,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3707.94,
       "Y": 4184.05,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3992.747,
       "Y": 4496.23,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3750.376,
       "Y": 4281.8,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4187.24,
       "Y": 4541.56,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3880.05,
       "Y": 4432.31,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4149.52,
       "Y": 4587.2,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3990.21,
       "Y": 4402.32,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4139.06,
       "Y": 4580.42,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3882.2969,
+      "X": 3882.29688,
       "Y": 4462.91,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3807.493,
-      "Y": 4337.7803,
-      "Z": 98.6
-    }
+      "Y": 4337.78027,
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4049.841,
       "Y": 4479.66,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3741.0981,
+      "X": 3741.09814,
       "Y": 4345.62,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3868.498,
       "Y": 4460.37,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3995.937,
       "Y": 4397.55,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3786.373,
       "Y": 4325.01,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3739.157,
-      "Y": 4335.2803,
-      "Z": 98.6
-    }
+      "Y": 4335.28027,
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3816.008,
       "Y": 4409.55,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4104.54,
       "Y": 4546.25,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4041.123,
       "Y": 4469.74,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4097.76,
       "Y": 4530.01,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3683.088,
       "Y": 4260.34,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4198.91,
       "Y": 4549.29,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3839.996,
       "Y": 4370.13,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3895.815,
       "Y": 4446.61,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3803.392,
       "Y": 4399.52,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3860.142,
       "Y": 4367.26,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3701.695,
       "Y": 4264.06,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3734.45,
       "Y": 4319.09,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3863.359,
       "Y": 4447.73,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3698.752,
       "Y": 4237.66,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4138.33,
       "Y": 4472.71,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4120.45,
       "Y": 4535.89,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3999.586,
       "Y": 4413.66,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4107.6,
       "Y": 4536.66,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3717.948,
       "Y": 4165.08,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3997.796,
       "Y": 4405.69,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3692.792,
       "Y": 4242.52,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4141.92,
       "Y": 4589.35,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3723.837,
       "Y": 4324.3,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3665.412,
       "Y": 4125.85,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3679.2441,
+      "X": 3679.24414,
       "Y": 4244.18,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3804.281,
       "Y": 4323.58,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3997.101,
       "Y": 4484.93,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 4005.3901,
+      "X": 4005.39014,
       "Y": 4485.35,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3723.713,
       "Y": 4330.31,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3681.355,
       "Y": 4138.67,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4038.41,
-      "Y": 4474.2197,
-      "Z": 98.6
-    }
+      "Y": 4474.21973,
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4040.745,
       "Y": 4464.19,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3843.535,
       "Y": 4376.06,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4133.25,
       "Y": 4452.92,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4177.55,
-      "Y": 4537.9697,
-      "Z": 98.6
-    }
+      "Y": 4537.96973,
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4116.6,
-      "Y": 4544.4697,
-      "Z": 98.6
-    }
+      "Y": 4544.46973,
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3981.231,
-      "Y": 4490.7197,
-      "Z": 98.6
-    }
+      "Y": 4490.71973,
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3951.775,
       "Y": 4454.37,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3748.1729,
-      "Y": 4256.5303,
-      "Z": 98.6
-    }
+      "X": 3748.17285,
+      "Y": 4256.53027,
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3849.752,
       "Y": 4349.81,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 4109.2803,
+      "X": 4109.28027,
       "Y": 4527.11,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3987.8389,
+      "X": 3987.83887,
       "Y": 4476.04,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4149.13,
       "Y": 4579.1,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3810.538,
       "Y": 4385.7,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3936.8481,
+      "X": 3936.84814,
       "Y": 4438.35,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4126.75,
       "Y": 4461.54,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3827.07,
       "Y": 4398.19,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3667.791,
       "Y": 4149.39,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3791.481,
       "Y": 4332.14,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4157.85,
       "Y": 4585.91,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3881.832,
       "Y": 4448.81,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4044.236,
       "Y": 4458.38,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3734.653,
       "Y": 4198.45,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3747.252,
       "Y": 4270.21,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3789.05,
       "Y": 4318.41,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3971.301,
       "Y": 4485.4,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3814.1099,
+      "X": 3814.10986,
       "Y": 4397.55,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3652.924,
       "Y": 4137.92,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13677,
+    "Title": "Swimmer",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3979.062,
       "Y": 4502.55,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4268.17,
       "Y": 4553.59,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4011.741,
       "Y": 3980.647,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4098.06,
       "Y": 4297.51,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4161.92,
       "Y": 4411.32,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3804.667,
       "Y": 4165.77,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4330.04,
       "Y": 4542.6,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4171.27,
       "Y": 4324.51,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4312.58,
       "Y": 4434.6,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4230.19,
       "Y": 4478.43,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4365.68,
       "Y": 4143.66,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4263.69,
-      "Y": 4279.7803,
-      "Z": 98.6
-    }
+      "Y": 4279.78027,
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3998.7,
       "Y": 4165.02,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 4367.5303,
+      "X": 4367.53027,
       "Y": 4227.49,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3970.663,
       "Y": 4254.84,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4307.5,
       "Y": 4316.37,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3763.23,
       "Y": 4044.081,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4084.8,
       "Y": 4374.79,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4015.554,
       "Y": 4348.93,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3901.872,
       "Y": 4139.43,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3899.4731,
+      "X": 3899.47314,
       "Y": 3983.055,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3930.1191,
+      "X": 3930.11914,
       "Y": 4057.215,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3934.573,
       "Y": 4332.63,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3872.224,
       "Y": 4292.9,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4379.79,
       "Y": 4466.44,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3812.805,
       "Y": 4239.08,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4354.44,
       "Y": 4453.8,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3897.01,
       "Y": 4219.59,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4310.16,
       "Y": 4403.2,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4262.15,
       "Y": 4196.13,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13680,
+    "Title": "Shark",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4168.74,
       "Y": 4162.9,
-      "Z": 98.6
-    }
+      "Z": 98.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13685,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3639.388,
       "Y": 4580.44,
-      "Z": 144.17407
-    }
+      "Z": 144.174072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13686,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3638.314,
       "Y": 4581.83,
-      "Z": 144.17407
-    }
+      "Z": 144.174072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13687,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3637.136,
       "Y": 4583.32,
-      "Z": 144.17407
-    }
+      "Z": 144.174072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13688,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3636.113,
       "Y": 4584.93,
-      "Z": 144.17407
-    }
+      "Z": 144.174072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13689,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3633.721,
       "Y": 4588.16,
-      "Z": 144.11157
-    }
+      "Z": 144.111572,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13690,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3632.883,
       "Y": 4589.42,
-      "Z": 144.11157
-    }
+      "Z": 144.111572,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13691,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3631.719,
       "Y": 4590.92,
-      "Z": 144.04907
-    }
+      "Z": 144.049072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13692,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3630.563,
       "Y": 4592.54,
-      "Z": 144.04907
-    }
+      "Z": 144.049072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13693,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3675.132,
-      "Y": 4625.2197,
-      "Z": 144.29907
-    }
+      "Y": 4625.21973,
+      "Z": 144.299072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13694,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3676.174,
       "Y": 4623.71,
-      "Z": 144.29907
-    }
+      "Z": 144.299072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13695,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3677.201,
-      "Y": 4622.2803,
-      "Z": 144.29907
-    }
+      "Y": 4622.28027,
+      "Z": 144.299072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13696,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3678.294,
       "Y": 4620.8,
-      "Z": 144.29907
-    }
+      "Z": 144.299072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13697,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3680.611,
       "Y": 4617.55,
-      "Z": 144.29907
-    }
+      "Z": 144.299072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13698,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3681.491,
-      "Y": 4616.2197,
-      "Z": 144.29907
-    }
+      "Y": 4616.21973,
+      "Z": 144.299072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13699,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3682.579,
       "Y": 4614.7,
-      "Z": 144.29907
-    }
+      "Z": 144.299072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13700,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3683.602,
-      "Y": 4613.2197,
-      "Z": 144.29907
-    }
+      "Y": 4613.21973,
+      "Z": 144.299072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13787,
+    "Title": "Naima's Dance Collector",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3760.243,
       "Y": 4506.42,
-      "Z": 142.79906
-    }
+      "Z": 142.799057,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 120.8
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13788,
+    "Title": "Melisara's Shadow Collector",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3742.678,
       "Y": 4494.66,
-      "Z": 142.54906
-    }
+      "Z": 142.549057,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 67.5
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13789,
+    "Title": "Inoch's Faith Collector",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3759.0781,
+      "X": 3759.07813,
       "Y": 4514.19,
-      "Z": 142.98656
-    }
+      "Z": 142.986557,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 120.8
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 13790,
+    "Title": "Ollo's Prosperity Collector",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3757.1719,
+      "X": 3757.17188,
       "Y": 4516.5,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 120.8
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14010,
+    "Title": "National Liberation Day Event Guide",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3729.28,
       "Y": 4674.89,
-      "Z": 144.29907
-    }
+      "Z": 144.299072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14036,
+    "Title": "National Liberation Day Troupe Captain",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3733.784,
       "Y": 4663.75,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14037,
+    "Title": "National Liberation Day Trouper",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3733.784,
       "Y": 4663.75,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14037,
+    "Title": "National Liberation Day Trouper",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3733.784,
       "Y": 4663.75,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14037,
+    "Title": "National Liberation Day Trouper",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3733.784,
       "Y": 4663.75,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14037,
+    "Title": "National Liberation Day Trouper",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3733.784,
       "Y": 4663.75,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14038,
+    "Title": "Festive Citizen",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3776.344,
       "Y": 4538.32,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14038,
+    "Title": "Festive Citizen",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3760.425,
       "Y": 4604.63,
-      "Z": 142.48654
-    }
+      "Z": 142.486542,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14038,
+    "Title": "Festive Citizen",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3703.624,
       "Y": 4530.79,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14038,
+    "Title": "Festive Citizen",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3742.022,
       "Y": 4512.85,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14038,
+    "Title": "Festive Citizen",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3752.109,
       "Y": 4675.02,
-      "Z": 141.75217
-    }
+      "Z": 141.752167,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14038,
+    "Title": "Festive Citizen",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3762.239,
       "Y": 4528.1,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14039,
+    "Title": "Cheering Citizen",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3756.5059,
-      "Y": 4642.7197,
-      "Z": 144.988
-    }
+      "X": 3756.50586,
+      "Y": 4642.71973,
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14040,
+    "Title": "Festive Citizen",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3748.606,
       "Y": 4517.8,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14040,
+    "Title": "Festive Citizen",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3736.188,
       "Y": 4508.66,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14040,
+    "Title": "Festive Citizen",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3761.285,
       "Y": 4594.73,
-      "Z": 142.29904
-    }
+      "Z": 142.299042,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14040,
+    "Title": "Festive Citizen",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3758.823,
       "Y": 4633.82,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14041,
+    "Title": "Cheering Citizen",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3755.542,
       "Y": 4673.44,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14041,
+    "Title": "Cheering Citizen",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3706.9941,
+      "X": 3706.99414,
       "Y": 4526.66,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14067,
+    "Title": "Maintenance Foreman",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3642.1,
       "Y": 4614.09,
-      "Z": 144.11157
-    }
+      "Z": 144.111572,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14068,
+    "Title": "Premium Potion Merchant",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3650.009,
       "Y": 4621.84,
-      "Z": 144.29907
-    }
+      "Z": 144.299072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14069,
+    "Title": "Fairmoon Receptionist",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3659.083,
       "Y": 4582.43,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14069,
+    "Title": "Fairmoon Receptionist",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3676.0269,
+      "X": 3676.02686,
       "Y": 4594.8,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14076,
+    "Title": "Certificate Exchange Manager",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3723.094,
       "Y": 4547.52,
-      "Z": 144.04907
-    }
+      "Z": 144.049072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 123.8
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14242,
+    "Title": "Linguist Siskuru",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3686.1611,
+      "X": 3686.16113,
       "Y": 4575.36,
-      "Z": 156.0
-    }
+      "Z": 156.0,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50603,
     "UnitId": 14275,
+    "Title": "Contest Coin Collector",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3711.937,
-      "Y": 4512.14,
-      "Z": 144.988
-    }
+      "X": 3711.946,
+      "Y": 4512.142,
+      "Z": 144.9493,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -50.625
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 50607,
     "UnitId": 14275,
+    "Title": "Contest Coin Collector",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3463.5781,
-      "Y": 3783.892,
-      "Z": 101.42342
-    }
+      "X": 3463.578,
+      "Y": 3783.9,
+      "Z": 101.9135,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -39.375
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14277,
+    "Title": "Sejong's Faithful Sunsamuru",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3689.278,
       "Y": 4468.8,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14279,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3645.51,
       "Y": 4576.8,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14280,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3647.397,
       "Y": 4576.49,
-      "Z": 144.29907
-    }
+      "Z": 144.299072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14281,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3649.317,
       "Y": 4576.19,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14282,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3651.242,
       "Y": 4575.89,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14283,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3654.784,
       "Y": 4575.36,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14284,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3656.649,
       "Y": 4575.06,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14285,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3658.584,
       "Y": 4574.74,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14286,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3660.3809,
+      "X": 3660.38086,
       "Y": 4574.42,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14287,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3667.401,
       "Y": 4576.09,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14288,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3668.882,
       "Y": 4577.3,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14289,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3685.685,
       "Y": 4606.02,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14290,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3685.463,
-      "Y": 4604.2803,
-      "Z": 141.00215
-    }
+      "Y": 4604.28027,
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14291,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3685.122,
-      "Y": 4602.2803,
-      "Z": 141.00215
-    }
+      "Y": 4602.28027,
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14292,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3684.893,
       "Y": 4600.39,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14293,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3684.249,
       "Y": 4596.88,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14294,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3683.956,
-      "Y": 4595.0303,
-      "Z": 141.00215
-    }
+      "Y": 4595.03027,
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14295,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3683.688,
-      "Y": 4593.0303,
-      "Z": 141.00215
-    }
+      "Y": 4593.03027,
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14296,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3683.356,
       "Y": 4591.17,
-      "Z": 141.00215
-    }
+      "Z": 141.002151,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14297,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3679.58,
       "Y": 4584.9,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14298,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3678.083,
       "Y": 4583.84,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14300,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3676.491,
       "Y": 4582.76,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14301,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3675.076,
-      "Y": 4581.7803,
-      "Z": 144.988
-    }
+      "Y": 4581.78027,
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14303,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3670.5,
       "Y": 4578.48,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14304,
+    "Title": "Fairmoon Model",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3671.898,
-      "Y": 4579.5303,
-      "Z": 144.988
-    }
+      "Y": 4579.53027,
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14312,
     "Title": "Vile Gourdhead",
-    "NpcSpawnerIds": [ 900001 ],
+    "NpcSpawnerIds": [
+      900001
+    ],
     "Position": {
       "X": 3380.147,
       "Y": 4361.33,
-      "Z": 104.04846
-    }
+      "Z": 104.048462,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14313,
+    "Title": "Stern Witch Evern",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3432.619,
       "Y": 4387.67,
-      "Z": 105.98599
-    }
+      "Z": 105.985992,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14320,
+    "Title": "All Hallows Merchant",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3651.511,
       "Y": 4610.74,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14325,
+    "Title": "Surprise Helper",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4174.01,
       "Y": 3778.01,
-      "Z": 100.8392
-    }
+      "Z": 100.8392,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14325,
+    "Title": "Surprise Helper",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3928.971,
       "Y": 4264.2,
-      "Z": 100.8392
-    }
+      "Z": 100.8392,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14325,
+    "Title": "Surprise Helper",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4284.73,
       "Y": 4276.24,
-      "Z": 100.8392
-    }
+      "Z": 100.8392,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14325,
+    "Title": "Surprise Helper",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4322.65,
-      "Y": 3853.3071,
-      "Z": 100.8392
-    }
+      "Y": 3853.30713,
+      "Z": 100.8392,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14325,
+    "Title": "Surprise Helper",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4000.011,
       "Y": 3799.175,
-      "Z": 100.8392
-    }
+      "Z": 100.8392,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14325,
+    "Title": "Surprise Helper",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4383.84,
       "Y": 4143.23,
-      "Z": 100.8392
-    }
+      "Z": 100.8392,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14325,
+    "Title": "Surprise Helper",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4387.7,
-      "Y": 3986.6719,
-      "Z": 100.8392
-    }
+      "Y": 3986.67188,
+      "Z": 100.8392,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14325,
+    "Title": "Surprise Helper",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3873.867,
       "Y": 3921.347,
-      "Z": 100.8392
-    }
+      "Z": 100.8392,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14325,
+    "Title": "Surprise Helper",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3854.55,
       "Y": 4101.48,
-      "Z": 100.8392
-    }
+      "Z": 100.8392,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14325,
+    "Title": "Surprise Helper",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 4109.74,
       "Y": 4323.27,
-      "Z": 100.8392
-    }
+      "Z": 100.8392,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14425,
+    "Title": "Glider Companion Merchant",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3645.901,
-      "Y": 4584.4697,
-      "Z": 144.988
-    }
+      "Y": 4584.46973,
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14683,
+    "Title": "Expert Friendship Envoy",
+    "NpcSpawnerIds": [],
     "Position": {
-      "X": 3727.4941,
+      "X": 3727.49414,
       "Y": 4530.21,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14684,
+    "Title": "Beginner Friendship Envoy",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3729.826,
       "Y": 4527.43,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14714,
+    "Title": "Timothy Walter",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3687.574,
       "Y": 4571.92,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14718,
+    "Title": "Nui's Shield Investigator",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3699.603,
       "Y": 4517.74,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14719,
+    "Title": "Nui's Shield Investigator",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3699.606,
       "Y": 4517.73,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14720,
+    "Title": "Nui's Shield Investigator",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3699.632,
       "Y": 4517.75,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14721,
+    "Title": "Nui's Shield Investigator",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3699.638,
       "Y": 4517.69,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14722,
+    "Title": "Nui's Shield Investigator",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3699.66,
       "Y": 4517.69,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14723,
+    "Title": "Nui's Shield Investigator",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3699.699,
       "Y": 4517.67,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14724,
+    "Title": "Nui's Shield Investigator",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3699.655,
       "Y": 4517.71,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14816,
+    "Title": "Birthday Delegate",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3725.17,
       "Y": 4521.64,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14831,
+    "Title": "Fortuneteller",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3705.224,
       "Y": 4516.42,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14835,
+    "Title": "ArcheAge Birthday Hat Helper",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3729.103,
       "Y": 4524.94,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14844,
+    "Title": "Chocolatier Roche",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3699.736,
       "Y": 4517.73,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14845,
+    "Title": "Lonely Beggar",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3712.641,
-      "Y": 4485.2197,
-      "Z": 142.48654
-    }
+      "Y": 4485.21973,
+      "Z": 142.486542,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14902,
+    "Title": "Khoba",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3705.437,
       "Y": 4509.95,
-      "Z": 143.67407
-    }
+      "Z": 143.674072,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14903,
+    "Title": "Chocolatier Roche",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3699.502,
       "Y": 4517.66,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14918,
+    "Title": "Lonely One",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3693.904,
       "Y": 4525.1,
-      "Z": 143.8772
-    }
+      "Z": 143.8772,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14921,
+    "Title": "Garar",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3699.63,
       "Y": 4517.74,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14953,
+    "Title": "Guild Loyalty Agent Boson",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3699.503,
       "Y": 4517.82,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14989,
+    "Title": "Boson's Left Hand",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3698.183,
       "Y": 4518.66,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 0,
     "UnitId": 14990,
+    "Title": "Boson's Right Hand",
+    "NpcSpawnerIds": [],
     "Position": {
       "X": 3699.78,
       "Y": 4516.55,
-      "Z": 144.988
-    }
+      "Z": 144.988,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
   }
 ]
