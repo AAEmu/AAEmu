@@ -689,30 +689,13 @@ public class HousingManager : Singleton<HousingManager>
     public void ChangeHousePermission(GameConnection connection, ushort tlId, HousingPermission permission)
     {
         if (!_housesTl.TryGetValue(tlId, out var house))
-            return;
+            return; // invalid house
 
         if (house.OwnerId != connection.ActiveChar.Id)
-            return;
-
-        switch (permission)
-        {
-            case HousingPermission.Guild when connection.ActiveChar.Expedition == null:
-            case HousingPermission.Family when connection.ActiveChar.Family == 0:
-                return;
-            case HousingPermission.Guild:
-                house.CoOwnerId = connection.ActiveChar.Expedition.Id;
-                break;
-            case HousingPermission.Family:
-                house.CoOwnerId = connection.ActiveChar.Family;
-                break;
-            default:
-                house.CoOwnerId = connection.ActiveChar.Id;
-                break;
-        }
-
+            return; // not the owner
+        
         house.Permission = permission;
         house.BroadcastPacket(new SCHousePermissionChangedPacket(tlId, (byte)permission), false);
-        // connection.SendPacket(new SCHousePermissionChangedPacket(tlId, (byte)permission));
     }
 
     /// <summary>
@@ -1549,7 +1532,7 @@ public class HousingManager : Singleton<HousingManager>
         house.SellToPlayerId = 0;
         house.AccountId = character.AccountId;
         house.OwnerId = character.Id;
-        house.CoOwnerId = character.Id;
+        house.CoOwnerId = character.Id; // not entirely sure if this actually needs to change
         house.Permission = house.Template.AlwaysPublic ? HousingPermission.Public : HousingPermission.Private;
         UpdateHouseFaction(house, character.Faction.Id);
         UpdateTaxInfo(house); // send tax due mails etc if needed ...
