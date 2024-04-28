@@ -341,7 +341,7 @@ public sealed class House : Unit
         switch (Permission)
         {
             case HousingPermission.Private:
-                if (player.Id != OwnerId)
+                if (player.Id == OwnerId)
                     return base.AllowedToInteract(player);
                 var ownerAccount = NameManager.Instance.GetCharaterAccount(OwnerId);
                 return (player.AccountId == ownerAccount) && base.AllowedToInteract(player);
