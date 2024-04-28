@@ -222,7 +222,7 @@ public class Unit : BaseUnit, IUnit
     public PlotState ActivePlotState { get; set; }
     public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
     public UnitCooldowns Cooldowns { get; set; }
-    public Expedition Expedition { get; set; }
+    public virtual Expedition Expedition { get; set; }
 
     public bool IsInBattle
     {

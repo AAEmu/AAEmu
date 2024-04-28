@@ -10,6 +10,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Units;
 using MySql.Data.MySqlClient;
 
@@ -122,6 +123,22 @@ public sealed class House : Unit
     public uint SellToPlayerId { get => _sellToPlayerId; set { _sellToPlayerId = value; _isDirty = true; } }
     public uint SellPrice { get => _sellPrice; set { _sellPrice = value; _isDirty = true; } }
     public bool AllowRecover { get => _allowRecover; set { _allowRecover = value; _isDirty = true; } }
+
+    // House always gets its guild from its owner
+    public override Expedition Expedition
+    {
+        get
+        {
+            var guildId = ExpeditionManager.Instance.GetExpeditionOfCharacter(OwnerId);
+            if (guildId == 0)
+                return null;
+            return ExpeditionManager.Instance.GetExpedition(guildId);
+        }
+        set
+        {
+            // Ignored, we always get the guild from its owner
+        }
+    }
 
     public House()
     {
@@ -324,13 +341,14 @@ public sealed class House : Unit
         switch (Permission)
         {
             case HousingPermission.Private:
-                if (player.Id != OwnerId)
+                if (player.Id == OwnerId)
                     return base.AllowedToInteract(player);
                 var ownerAccount = NameManager.Instance.GetCharaterAccount(OwnerId);
                 return (player.AccountId == ownerAccount) && base.AllowedToInteract(player);
-            case HousingPermission.Family when (player.Family != CoOwnerId):
-            case HousingPermission.Guild when (player.Expedition.Id != CoOwnerId):
-                return false;
+            case HousingPermission.Family when (player.Family > 0):
+                return FamilyManager.Instance.GetFamily(player.Family).Members.Any(x => x.Id == OwnerId);
+            case HousingPermission.Guild when (player.Expedition?.Id > 0):
+                return player.Expedition.Members.Any(x => x.CharacterId == OwnerId);
             case HousingPermission.Public:
             default:
                 return base.AllowedToInteract(player);
