@@ -260,6 +260,7 @@ public class SCUnitStatePacket : GamePacket
                 break;
         }
 
+        // ???, ??? and Appellation (Title)
         if (character is not null)
         {
             stream.WritePisc(0, 0, character.Appellations.ActiveAppellation, 0); // pisc
@@ -269,6 +270,7 @@ public class SCUnitStatePacket : GamePacket
             stream.WritePisc(0, 0, 0, 0); // pisc
         }
 
+        // Faction and Guild
         stream.WritePisc(_unit.Faction?.Id ?? 0, _unit.Expedition?.Id ?? 0, 0, 0); // pisc
 
         if (character is not null)
@@ -285,6 +287,7 @@ public class SCUnitStatePacket : GamePacket
                 flags.Set(13);
             }
 
+            // PvP Honor gained and PvP Kills
             stream.WritePisc(character.HonorGainedInCombat, character.HostileFactionKills); // очки чести полученные в PvP, кол-во убийств в PvP
             stream.Write(flags.ToByteArray()); // flags(ushort)
             /*
@@ -299,8 +302,9 @@ public class SCUnitStatePacket : GamePacket
         }
         else
         {
+            // PvP Honor gained and PvP Kills
             stream.WritePisc(0, 0); // pisc
-            stream.Write((ushort)8192); // flags
+            stream.Write((ushort)0x2000); // flags
         }
 
         if (character is not null)
