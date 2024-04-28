@@ -8,15 +8,12 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
-using AAEmu.Game.Models.Game.World;
 
 using MySql.Data.MySqlClient;
 
@@ -24,7 +21,7 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.Char;
 
-public partial class CharacterQuests
+public class CharacterQuests
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly List<uint> _removed;
@@ -231,71 +228,6 @@ public partial class CharacterQuests
     }
 
     /// <summary>
-    /// Complete - завершаем квест, получаем награду
-    /// </summary>
-    /// <param name="questId"></param>
-    /// <param name="selected"></param>
-    /// <param name="supply"></param>
-    public void CompleteQuest(uint questId, int selected, bool supply = true)
-    {
-        if (!ActiveQuests.TryGetValue(questId, out var quest))
-        {
-            Logger.Warn($"[CharacterQuests] {Owner.Name} CompleteQuest, quest does not exist {questId}");
-            return;
-        }
-
-        quest.QuestRewardItemsPool.Clear();
-        quest.QuestRewardCoinsPool = 0;
-        quest.QuestRewardExpPool = 0;
-        var res = quest.Complete(selected);
-        if (res != 0)
-        {
-            if (supply)
-            {
-                var levelBasedRewards = QuestManager.Instance.GetSupplies(quest.Template.Level);
-                if (levelBasedRewards != null)
-                {
-                    if (quest.Template.LetItDone)
-                    {
-                        // Add (or reduce) extra for over-achieving (or early completing) of the quest if allowed
-                        quest.QuestRewardRatio = quest.GetQuestObjectivePercent(); // ratio is used by DistributeRewards
-                        quest.QuestRewardExpPool += levelBasedRewards.Exp;
-                        quest.QuestRewardCoinsPool += levelBasedRewards.Copper;
-
-                        if (quest.GetQuestObjectiveStatus() < QuestObjectiveStatus.ExtraProgress)
-                        {
-                            // посылаем пакет, так как он был пропущен в методе Update()
-                            // send a packet because it was skipped in the Update() method
-                            quest.Status = QuestStatus.Progress;
-                            // пакет не нужен
-                            //Owner.SendPacket(new SCQuestContextUpdatedPacket(quest, quest.ComponentId));
-                            quest.Status = QuestStatus.Completed;
-                        }
-                    }
-                    else
-                    {
-                        quest.QuestRewardExpPool += levelBasedRewards.Exp;
-                        quest.QuestRewardCoinsPool += levelBasedRewards.Copper;
-                    }
-                }
-            }
-            quest.DistributeRewards();
-
-            // Mark Quest as Completed
-            var completedBlock = SetCompletedQuestFlag(quest.TemplateId, true);
-            // copy body data for packet
-            var body = new byte[8];
-            completedBlock.Body.CopyTo(body, 0);
-            
-            // Remove quest from list
-            DropQuest(questId, false);
-            
-            // Send packet to player
-            Owner.SendPacket(new SCQuestContextCompletedPacket(quest.TemplateId, body, res));
-        }
-    }
-
-    /// <summary>
     /// Removes a quest
     /// </summary>
     /// <param name="questId"></param>
@@ -329,8 +261,9 @@ public partial class CharacterQuests
     /// </summary>
     /// <param name="questContextId"></param>
     /// <param name="step"></param>
+    /// <param name="selectedReward"></param>
     /// <returns></returns>
-    public bool SetStep(uint questContextId, uint step)
+    public bool SetStep(uint questContextId, uint step, int selectedReward = -1)
     {
         if (step > 8)
             return false;
@@ -338,6 +271,8 @@ public partial class CharacterQuests
         if (!ActiveQuests.TryGetValue(questContextId, out var quest))
             return false;
 
+        if (selectedReward >= 0)
+            quest.SelectedRewardIndex = selectedReward;
         quest.Step = (QuestComponentKind)step;
         return true;
     }
@@ -687,12 +622,28 @@ public partial class CharacterQuests
     /// <param name="sendPacketsIfChanged"></param>
     public void ResetDailyQuests(bool sendPacketsIfChanged)
     {
-        Owner.Quests.ResetQuests(
+        ResetQuests(
             new []
             {
                 QuestDetail.Daily, QuestDetail.DailyGroup, QuestDetail.DailyHunt,
                 QuestDetail.DailyLivelihood
             }, sendPacketsIfChanged
         );
+    }
+
+    public void TryCompleteQuestAsLetItDone(uint questId, int selectedReward)
+    {
+        if (!ActiveQuests.TryGetValue(questId, out var quest))
+            return; // Quest not active
+
+        if (quest.Template.LetItDone == false)
+            return; // Quest doesn't have early complete function
+        
+        if (quest.GetQuestObjectiveStatus() < QuestObjectiveStatus.CanEarlyComplete)
+            return; // Quest not ready to turn in yet
+
+        // Go to reward step
+        quest.SelectedRewardIndex = selectedReward;
+        quest.Step = QuestComponentKind.Reward;
     }
 }

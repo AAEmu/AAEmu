@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -44,8 +43,8 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
     private readonly Dictionary<uint, List<uint>> _groupNpcs = new();
     private readonly Dictionary<uint, QuestComponentTemplate> _templateComponents = new();
     public Dictionary<uint, Dictionary<uint, QuestTimeoutTask>> QuestTimeoutTask { get; } = new();
-    private readonly Queue<Quest> EvaluationQueue = new();
-    private object _evaluationQueueLock = new();
+    private Queue<Quest> EvaluationQueue { get; } = new();
+    private readonly object _evaluationQueueLock = new();
 
     /// <summary>
     /// Gets the Template of a Quest by TemplateId
@@ -133,16 +132,6 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
     public bool CheckGroupNpc(uint groupId, uint npcId)
     {
         return _groupNpcs.ContainsKey(groupId) && (_groupNpcs[groupId].Contains(npcId));
-    }
-
-    /// <summary>
-    /// Completes a quest (used by acts)
-    /// </summary>
-    /// <param name="owner"></param>
-    /// <param name="questId"></param>
-    public void QuestCompleteTask(ICharacter owner, uint questId)
-    {
-        owner.Quests.CompleteQuest(questId, 0);
     }
 
     /// <summary>
@@ -321,7 +310,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
     /// <returns>Gets the target quest which accepts the item</returns>
     public uint GetQuestIdFromStarterItemNew(uint itemTemplateId)
     {
-        foreach (var foundActs in _actTemplates["QuestActConAcceptItem"].Values.Where(qAcceptItem => qAcceptItem is QuestActConAcceptItem qai && qai.ItemId == itemTemplateId))
+        foreach (var foundActs in _actTemplates["QuestActConAcceptItem"].Values.Where(qAcceptItem => qAcceptItem is QuestActConAcceptItem questActConAcceptItem && questActConAcceptItem.ItemId == itemTemplateId))
         {
             var matchingAct = _actTemplates["QuestActConAcceptItem"].Values
                 .FirstOrDefault(act =>
@@ -348,13 +337,13 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
             var groupId = reader.GetUInt32("quest_monster_group_id");
             var npcId = reader.GetUInt32("npc_id");
             List<uint> npcs;
-            if (!_groupNpcs.ContainsKey(groupId))
+            if (!_groupNpcs.TryGetValue(groupId, out var npcIdList))
             {
                 npcs = new List<uint>();
                 _groupNpcs.Add(groupId, npcs);
             }
             else
-                npcs = _groupNpcs[groupId];
+                npcs = npcIdList;
             npcs.Add(npcId);
         }
     }
@@ -374,13 +363,13 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
             var groupId = reader.GetUInt32("quest_item_group_id");
             var itemId = reader.GetUInt32("item_id");
             List<uint> items;
-            if (!_groupItems.ContainsKey(groupId))
+            if (!_groupItems.TryGetValue(groupId, out var itemList))
             {
                 items = new List<uint>();
                 _groupItems.Add(groupId, items);
             }
             else
-                items = _groupItems[groupId];
+                items = itemList;
 
             items.Add(itemId);
         }
@@ -450,10 +439,10 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
         while (reader.Read())
         {
             var questId = reader.GetUInt32("quest_context_id");
-            if (!_templates.ContainsKey(questId))
+            if (!_templates.TryGetValue(questId, out var questTemplate))
                 continue;
 
-            var template = new QuestComponentTemplate(_templates[questId]);
+            var template = new QuestComponentTemplate(questTemplate);
             template.Id = reader.GetUInt32("id");
             template.KindId = (QuestComponentKind)reader.GetByte("component_kind_id");
             template.NextComponent = reader.GetUInt32("next_component", 0);

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Quests.Static;
 
 namespace AAEmu.Game.Models.Game.Quests;
@@ -33,6 +33,13 @@ public class QuestComponent(QuestStep parent, QuestComponentTemplate template) :
         // Normal checks
         foreach (var questAct in Acts)
             res &= questAct.RunAct();
+
+        // If acts completed, handle skill and buff effects
+        if (res)
+        {
+            parent.Parent.UseSkillAndBuff(Template);
+            parent.Parent.SetNpcAggro(Template);
+        }
 
         return res;
     }

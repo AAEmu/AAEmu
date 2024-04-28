@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Acts;
+using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
@@ -62,7 +62,12 @@ public partial class QuestManager
         else
         {
             // Doesn't have a NPC or Doodad to turn in at, just auto-complete it
-            owner.Quests.CompleteQuest(questContextId, selected, true);
+            // owner.Quests.CompleteQuest(questContextId, selected, true);
+            if (owner.Quests.ActiveQuests.TryGetValue(questContextId, out var quest))
+            {
+                quest.SelectedRewardIndex = selected;
+                quest.Step = QuestComponentKind.Reward;
+            }
         }
     }
 
@@ -290,8 +295,8 @@ public partial class QuestManager
     /// <param name="sphereQuest"></param>
     public void DoOnEnterSphereEvents(ICharacter owner, SphereQuest sphereQuest)
     {
-        // Check if there's a active quest attached to this sphere
-        var quest = owner.Quests.ActiveQuests.GetValueOrDefault(sphereQuest.QuestId);
+        // Check if there's an active quest attached to this sphere
+        // var quest = owner.Quests.ActiveQuests.GetValueOrDefault(sphereQuest.QuestId);
 
         owner.Events?.OnEnterSphere(owner, new OnEnterSphereArgs
         {
@@ -306,8 +311,8 @@ public partial class QuestManager
     /// <param name="sphereQuest"></param>
     public void DoOnExitSphereEvents(ICharacter owner, SphereQuest sphereQuest)
     {
-        // Check if there's a active quest attached to this sphere
-        var quest = owner.Quests.ActiveQuests.GetValueOrDefault(sphereQuest.QuestId);
+        // Check if there's an active quest attached to this sphere
+        // var quest = owner.Quests.ActiveQuests.GetValueOrDefault(sphereQuest.QuestId);
 
         owner.Events?.OnExitSphere(owner, new OnExitSphereArgs
         {

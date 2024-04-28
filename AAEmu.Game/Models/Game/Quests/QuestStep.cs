@@ -17,7 +17,7 @@ public class QuestStep(QuestComponentKind step, Quest parent)
     /// <summary>
     /// This step's QuestComponentKind
     /// </summary>
-    public QuestComponentKind ThisStep { get; set; } = step;
+    private QuestComponentKind ThisStep { get; set; } = step;
 
     /// <summary>
     /// List of components inside this step by ComponentId
@@ -59,7 +59,10 @@ public class QuestStep(QuestComponentKind step, Quest parent)
             res = false;
             foreach (var questComponent in Components.Values)
             {
-                res |= questComponent.RunComponent();
+                var componentResult = questComponent.RunComponent();
+                if (componentResult)
+                    parent.ComponentId = questComponent.Template.Id;
+                res |= componentResult;
             }
         }
         else
@@ -68,6 +71,8 @@ public class QuestStep(QuestComponentKind step, Quest parent)
             foreach (var questComponent in Components.Values)
             {
                 res &= questComponent.RunComponent();
+                if (res)
+                    parent.ComponentId = questComponent.Template.Id;
             }
         }
 

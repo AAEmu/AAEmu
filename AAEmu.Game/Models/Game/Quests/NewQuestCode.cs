@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Units;
@@ -76,7 +75,9 @@ public partial class Quest
         var res = questStep.RunComponents();
 
         if (res)
+        {
             GoToNextStep();
+        }
 
         /*
         ComponentId = 0;
@@ -84,7 +85,7 @@ public partial class Quest
             ? QuestStatus.Ready // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
             : QuestStatus.Progress; // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
         Condition = QuestConditionObj.Progress;
-        
+
         */
         
         // Send update to player
@@ -113,7 +114,8 @@ public partial class Quest
             // Change action based on current step
             switch (Step)
             {
-                case QuestComponentKind.None: // This step is only used in legacy task boards, but we go through it anyway
+                case QuestComponentKind.None:
+                    // This step is only used in legacy task boards, but we go through it anyway
                     Step = QuestComponentKind.Supply; // Next we assume Supply
                     break;
                 case QuestComponentKind.Start:
@@ -133,10 +135,20 @@ public partial class Quest
                     break;
                 case QuestComponentKind.Drop:
                     // This quest is being dropped, there is no next step
+                    Owner.Quests.DropQuest(TemplateId, true, false);
+                    return;
                 case QuestComponentKind.Reward:
                     // Reward is the last possible step
 
-                    Owner?.Quests.DropQuest(TemplateId, true, false);
+                    // Mark quest as completed
+                    var completedBlock = Owner.Quests.SetCompletedQuestFlag(TemplateId, true);
+                    // copy body data for packet
+                    var body = new byte[8];
+                    completedBlock.Body.CopyTo(body, 0);
+
+                    Owner.Quests.DropQuest(TemplateId, true, false);
+                    Owner.SendPacket(new SCQuestContextCompletedPacket(TemplateId, body, 0));
+
                     return;
                 default:
                     Logger.Warn($"Quest GoToNextStep failed for Step:{Step}, Quest:{TemplateId}, Player:{Owner.Name} ({Owner.Id}");
@@ -166,6 +178,9 @@ public partial class Quest
 
         // Set new Value
         _step = value;
+
+        // Reset active component (used by packet only) 
+        ComponentId = 0;
 
         // Initialize Acts for this Step (if any)
         if (QuestSteps.TryGetValue(value, out var questSteps))

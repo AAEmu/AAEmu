@@ -5,28 +5,31 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSTryQuestCompleteAsLetItDonePacket : GamePacket
 {
-    private uint id;
-    private uint objId;
-    private int selected;
+    private uint _id;
+    private uint _objId;
+    private int _selected;
+
     public CSTryQuestCompleteAsLetItDonePacket() : base(CSOffsets.CSTryQuestCompleteAsLetItDonePacket, 1)
     {
+        //
     }
 
     public override void Read(PacketStream stream)
     {
-        id = stream.ReadUInt32();
-        objId = stream.ReadBc();
-        selected = stream.ReadInt32();
+        _id = stream.ReadUInt32();
+        _objId = stream.ReadBc();
+        _selected = stream.ReadInt32();
 
-        Logger.Warn("TryQuestCompleteAsLetItDone, Id: {0}, ObjId: {1}, Selected: {2}", id, objId, selected);
+        Logger.Warn($"TryQuestCompleteAsLetItDone, Id: {_id}, ObjId: {_objId}, Selected: {_selected}");
 
+        // Check if player is actually targeting the NPC
         if (
-            objId > 0
+            _objId > 0
             && Connection.ActiveChar.CurrentTarget != null
-            && Connection.ActiveChar.CurrentTarget.ObjId != objId
+            && Connection.ActiveChar.CurrentTarget.ObjId != _objId
            )
             return;
-        Connection.ActiveChar.Quests.CompleteQuest(id, selected);
+        Connection.ActiveChar.Quests.TryCompleteQuestAsLetItDone(_id, _selected);
     }
 }
 

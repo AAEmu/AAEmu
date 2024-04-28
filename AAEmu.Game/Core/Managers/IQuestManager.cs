@@ -17,6 +17,5 @@ public interface IQuestManager
     QuestSupplies GetSupplies(byte level);
     QuestTemplate GetTemplate(uint id);
     void Load();
-    void QuestCompleteTask(ICharacter owner, uint questId);
     void EnqueueEvaluation(Quest quest);
 }

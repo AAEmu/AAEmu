@@ -45,11 +45,11 @@ public class QuestCommandUtil
                     {
                         if (args.Length >= 3 && int.TryParse(args[2], out var selectedId))
                         {
-                            character.Quests.CompleteQuest(questId, selectedId);
+                            character.Quests.SetStep(questId, 8, selectedId);
                         }
                         else
                         {
-                            character.Quests.CompleteQuest(questId, 0);
+                            character.Quests.SetStep(questId, 8);
                         }
                     }
                 }
@@ -108,7 +108,7 @@ public class QuestCommandUtil
                                 break;
                             }
                             character.SendMessage($"[Quest] Perform step {quest.Step} for quest {questId}");
-                            quest.Update();
+                            // quest.Update();
                         }
                         else
                         {
