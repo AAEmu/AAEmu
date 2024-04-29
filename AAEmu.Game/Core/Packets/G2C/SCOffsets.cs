@@ -123,7 +123,7 @@ public static class SCOffsets
     public const ushort SCUnitNameChangedPacket = 0x021;
     public const ushort SCUnitDeathPacket = 0x1C3;
     public const ushort SCUnitTeleportPacket = 0x101; // SCTeleportUnitPacket
-    public const ushort SCUnitBlinkPacket = 0x1E7;
+    public const ushort SCUnitBlinkPacket = 0x1E7; // SCBlinkUnitPacket
     public const ushort SCUnitAttachedPacket = 0x1CA;
     public const ushort SCUnitDetachedPacket = 0x0E3;
     public const ushort SCUnitInvisiblePacket = 0x18F;
@@ -745,7 +745,7 @@ public static class SCOffsets
     public const ushort SCCharBriefPacket = 0xfff;
     public const ushort SCPlaytimePacket = 0xfff;
     public const ushort SCPortalInfoSavedPacket = 0xfff;
-    public const ushort SCBlinkUnitPacket = 0xfff;
+    //public const ushort SCBlinkUnitPacket = 0xfff; // SCUnitBlinkPacket
     public const ushort SCItemSocketingLunagemResultPacket = 0xfff;
     public const ushort SCItemSocketingLunastoneResultPacket = 0xfff;
     public const ushort SCGradeEnchantBroadcastPacket = 0xfff;

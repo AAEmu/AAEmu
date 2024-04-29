@@ -13,7 +13,7 @@ public class SCBlinkUnitPacket : GamePacket
     private readonly float _y;
     private readonly float _z;
 
-    public SCBlinkUnitPacket(uint objId, float distance, float degree, float x, float y, float z) : base(SCOffsets.SCBlinkUnitPacket, 5)
+    public SCBlinkUnitPacket(uint objId, float distance, float degree, float x, float y, float z) : base(SCOffsets.SCUnitBlinkPacket, 5)
     {
         _objId = objId;
         _distance = distance;
