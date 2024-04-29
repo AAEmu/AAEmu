@@ -667,7 +667,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 if (_attempts is { Count: 0 })
                 {
-                    Logger.Info("Attemts: 0");
+                    Logger.Info("Attempts: 0");
                 }
                 else
                 {
