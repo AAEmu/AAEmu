@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -47,14 +49,18 @@ public class CSSendMailPacket : GamePacket
         bool mailCheckOK;
         if (doodad != null)
         {
-            // Doodad GroupID 6 is "Other - Mailboxes"
-            if (doodad.Template.GroupId == 6)
+            // Cannot rely on doodad GroupID being "Other - Mailboxes (6)", as some of the mailboxes belong to other groups (e.g. "Housing - Furniture").
+            // Instead, ensure the doodad in its current state supports opening of the mailbox.
+            if (doodad.CurrentFuncs?.Any(func => func.FuncType == "DoodadFuncNaviOpenMailbox") == true)
             {
                 var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Transform.World.Position, doodad.Transform.World.Position);
                 mailCheckOK = (dist <= 5f); // 5m is kinda generous I guess
             }
             else
+            {
+                Logger.Warn($"SendMail by {Connection.ActiveChar.Name} invalid - doodad ObjId {doodad.Id} ({doodad.TemplateId}) does not have DoodadFuncNaviOpenMailbox func");
                 mailCheckOK = false;
+            }
         }
         else
             mailCheckOK = false;
