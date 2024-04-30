@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.Schedules;
 using AAEmu.Game.Utils.DB;
 
 using Microsoft.Data.Sqlite;
+
 using DayOfWeek = AAEmu.Game.Models.Game.Schedules.DayOfWeek;
 
 namespace AAEmu.Game.GameData;
@@ -20,7 +21,7 @@ public class SchedulesGameData : Singleton<SchedulesGameData>, IGameDataLoader
     private Dictionary<int, GameScheduleDoodads> _gameScheduleDoodads;
     private Dictionary<int, GameScheduleQuests> _gameScheduleQuests;
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _gameSchedules = new Dictionary<int, GameSchedules>();
         _gameScheduleSpawners = new Dictionary<int, GameScheduleSpawners>();

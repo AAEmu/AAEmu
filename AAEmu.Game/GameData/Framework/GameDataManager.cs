@@ -1,9 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.GameData.Framework;
@@ -26,12 +27,13 @@ public class GameDataManager : Singleton<GameDataManager>
 
         Logger.Info("Loading game data");
         CreateLoaders();
+        using (var connection2 = SQLite.CreateConnection("Data", "compact.server.table.sqlite3"))
         using (var connection = SQLite.CreateConnection())
         {
             foreach (var loader in _loaders)
             {
                 Logger.Info("Loading {0}", loader.GetType().Name);
-                loader.Load(connection);
+                loader.Load(connection, connection2);
                 Logger.Info("Loaded {0}", loader.GetType().Name);
             }
         }

@@ -1,8 +1,10 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Items.Loots;
 using AAEmu.Game.Utils.DB;
+
 using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.GameData;
@@ -23,7 +25,7 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
     private Dictionary<uint, List<LootGroups>> _lootGroupsByPackId;
     private Dictionary<uint, List<LootActabilityGroups>> _lootActabilityGroupsByPackId;
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _lootPacks = new Dictionary<uint, LootPack>();
 
@@ -36,7 +38,7 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
         _lootActabilityGroupsByPackId = new Dictionary<uint, List<LootActabilityGroups>>();
 
         // table 'loots'
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM loots";
             command.Prepare();
@@ -69,7 +71,7 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
         }
 
         // table 'loot_groups'
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM loot_groups";
             command.Prepare();
@@ -98,7 +100,7 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
         }
 
         // table 'loot_actability_groups'
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM loot_actability_groups";
             command.Prepare();

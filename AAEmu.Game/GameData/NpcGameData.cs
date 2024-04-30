@@ -22,7 +22,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
     public Dictionary<uint, NpcSpawnerTemplate> _npcSpawnerTemplates;    // NpcSpawnerTemplateId, template
     public Dictionary<uint, List<uint>> _npcMemberAndSpawnerTemplateIds; // memberId, List<npcSpawnerId>
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _skillsForNpc = new Dictionary<uint, List<NpcSkill>>();
         _passivesForNpc = new Dictionary<uint, List<NpcPassiveBuff>>();
@@ -30,7 +30,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
         _npcSpawnerTemplates = new Dictionary<uint, NpcSpawnerTemplate>();
         _npcMemberAndSpawnerTemplateIds = new Dictionary<uint, List<uint>>();
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM np_skills";
             command.Prepare();
@@ -56,7 +56,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM np_passive_buffs";
             command.Prepare();
@@ -79,7 +79,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM npc_spawners";
             command.Prepare();
@@ -109,7 +109,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM npc_spawner_npcs";
             command.Prepare();

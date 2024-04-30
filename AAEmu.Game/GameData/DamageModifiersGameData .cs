@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
@@ -6,6 +7,7 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
+
 using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.GameData;
@@ -20,7 +22,7 @@ public class DamageModifierGameData : Singleton<DamageModifierGameData>, IGameDa
         return __damageModifiers.TryGetValue(ownerId, out var modifier) ? modifier : new List<BonusTemplate>();
     }
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         __damageModifiers = new Dictionary<uint, List<BonusTemplate>>();
 

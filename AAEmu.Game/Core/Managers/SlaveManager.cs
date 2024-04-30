@@ -806,6 +806,7 @@ public class SlaveManager : Singleton<SlaveManager>
 
         #region SQLLite
 
+        using (var connection2 = SQLite.CreateConnection("Data", "compact.server.table.sqlite3"))
         using (var connection = SQLite.CreateConnection())
         {
             using (var command = connection.CreateCommand())
@@ -1074,7 +1075,7 @@ public class SlaveManager : Singleton<SlaveManager>
                 }
             }
 
-            using (var command = connection.CreateCommand())
+            using (var command = connection2.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM repairable_slaves";
                 command.Prepare();

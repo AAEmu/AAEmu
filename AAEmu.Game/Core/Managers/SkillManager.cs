@@ -328,6 +328,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
         _skillReagents = new Dictionary<uint, SkillReagent>();
         _skillProducts = new Dictionary<uint, SkillProduct>();
 
+        using (var connection2 = SQLite.CreateConnection("Data", "compact.server.table.sqlite3"))
         using (var connection = SQLite.CreateConnection())
         {
             Logger.Info("Loading skills...");
@@ -867,7 +868,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                 }
             }
 
-            using (var command = connection.CreateCommand())
+            using (var command = connection2.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM cinema_effects";
                 command.Prepare();
@@ -1198,7 +1199,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                 }
             }
 
-            using (var command = connection.CreateCommand())
+            using (var command = connection2.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM npc_control_effects";
                 command.Prepare();
@@ -1405,7 +1406,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                 }
             }
 
-            using (var command = connection.CreateCommand())
+            using (var command = connection2.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM npc_spawner_spawn_effects";
                 command.Prepare();
@@ -1425,7 +1426,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                 }
             }
 
-            using (var command = connection.CreateCommand())
+            using (var command = connection2.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM npc_spawner_despawn_effects";
                 command.Prepare();
@@ -1681,7 +1682,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                 }
             }
 
-            using (var command = connection.CreateCommand())
+            using (var command = connection2.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM combat_buffs";
                 command.Prepare();

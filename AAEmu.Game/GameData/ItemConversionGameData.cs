@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
+
 using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.GameData;
@@ -60,7 +62,7 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
         return _conversions.Contains(opcode) && reagent.ConversionId == opcode;
     }
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _reagents = new List<ItemConversionReagent>();
         _products = new List<ItemConversionProduct>();

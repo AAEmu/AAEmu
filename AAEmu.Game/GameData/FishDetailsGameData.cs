@@ -17,7 +17,7 @@ public class FishDetailsGameData : Singleton<FishDetailsGameData>, IGameDataLoad
 {
     private Dictionary<uint, FishDetails> _fishDetails;
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _fishDetails = new Dictionary<uint, FishDetails>();
 

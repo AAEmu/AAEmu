@@ -25,49 +25,49 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
 
     public IndunZone GetDungeonZone(uint id)
     {
-            if (_indunZones != null && _indunZones.TryGetValue(id, out var zone))
-                return zone;
-            return null;
-        }
+        if (_indunZones != null && _indunZones.TryGetValue(id, out var zone))
+            return zone;
+        return null;
+    }
 
     public List<IndunEvent> GetIndunEvents(uint zoneGroupId)
     {
-            if (_indunEvents != null && _indunEvents.TryGetValue(zoneGroupId, out var value))
-                return value;
-            return new List<IndunEvent>();
-        }
+        if (_indunEvents != null && _indunEvents.TryGetValue(zoneGroupId, out var value))
+            return value;
+        return new List<IndunEvent>();
+    }
 
     public IndunAction GetIndunActionById(uint indunActionId)
     {
-            if (_indunActions != null && _indunActions.TryGetValue(indunActionId, out var value))
-                return value;
-            return null;
-        }
+        if (_indunActions != null && _indunActions.TryGetValue(indunActionId, out var value))
+            return value;
+        return null;
+    }
 
     public IndunRoom GetRoom(uint roomId)
     {
-            if (_indunRooms != null && _indunRooms.TryGetValue(roomId, out var value))
-                return value;
-            return null;
-        }
+        if (_indunRooms != null && _indunRooms.TryGetValue(roomId, out var value))
+            return value;
+        return null;
+    }
 
     public IndunEvent GetIndunEventById(uint eventId)
     {
-            if (_indunEvents == null) { return null; }
+        if (_indunEvents == null) { return null; }
 
-            foreach (var evList in _indunEvents.Values)
+        foreach (var evList in _indunEvents.Values)
+        {
+            foreach (var ev in evList)
             {
-                foreach (var ev in evList)
-                {
-                    if (ev.Id == eventId)
-                        return ev;
-                }
+                if (ev.Id == eventId)
+                    return ev;
             }
-
-            return null;
         }
 
-    public void Load(SqliteConnection connection)
+        return null;
+    }
+
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _indunActions = new Dictionary<uint, IndunAction>();
         _indunEvents = new Dictionary<uint, List<IndunEvent>>();
@@ -75,7 +75,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         _indunRooms = new Dictionary<uint, IndunRoom>();
 
         #region Actions
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = @"SELECT indun_actions.*, doodad_almighty_id, doodad_func_group_id FROM indun_actions
                                         LEFT JOIN indun_action_change_doodad_phases 
@@ -99,7 +99,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                 }
             }
         }
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = @"SELECT indun_actions.*, tag_id FROM indun_actions
                                         LEFT JOIN indun_action_remove_tagged_npcs 
@@ -122,7 +122,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                 }
             }
         }
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = @"SELECT indun_actions.*, indun_room_id FROM indun_actions
                                         LEFT JOIN indun_action_set_room_cleareds 
@@ -145,7 +145,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                 }
             }
         }
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = @"SELECT indun_actions.* FROM indun_actions
                                         WHERE indun_actions.detail_type = 'NpcSpawnerSpawnEffect'";
@@ -167,7 +167,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         }
         #endregion
         #region Events
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = @"SELECT indun_events.*, doodad_almighty_id, doodad_func_group_id FROM indun_events
                                         LEFT JOIN indun_event_doodad_spawneds
@@ -194,7 +194,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                 }
             }
         }
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = @"SELECT indun_events.*, room_id FROM indun_events
                                         LEFT JOIN indun_event_no_alive_ch_in_rooms
@@ -220,7 +220,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                 }
             }
         }
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = @"SELECT indun_events.*, npc_id FROM indun_events
                                         LEFT JOIN indun_event_npc_combat_endeds
@@ -246,7 +246,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                 }
             }
         }
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = @"SELECT indun_events.*, npc_id FROM indun_events
                                         LEFT JOIN indun_event_npc_combat_starteds
@@ -272,7 +272,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                 }
             }
         }
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = @"SELECT indun_events.*, npc_id FROM indun_events
                                         LEFT JOIN indun_event_npc_killeds
@@ -298,7 +298,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                 }
             }
         }
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = @"SELECT indun_events.*, npc_id FROM indun_events
                                         LEFT JOIN indun_event_npc_spawneds
@@ -358,7 +358,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         }
         #endregion
         #region Rooms
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = @"SELECT indun_rooms.*, center_doodad_id, radius FROM indun_rooms
                                         LEFT JOIN indun_room_spheres ON indun_rooms.shape_id = indun_room_spheres.id";
@@ -382,5 +382,5 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
 
     public void PostLoad()
     {
-        }
+    }
 }

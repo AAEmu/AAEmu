@@ -37,7 +37,7 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
         return null;
     }
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _aiParams = new Dictionary<uint, AiParams>();
         _aiCommands = new Dictionary<uint, List<AiCommands>>();
@@ -62,7 +62,7 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM npc_ai_params";
             command.Prepare();
@@ -93,7 +93,7 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM ai_commands";
             command.Prepare();
@@ -125,7 +125,7 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM ai_command_sets";
             command.Prepare();

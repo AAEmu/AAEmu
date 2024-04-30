@@ -525,7 +525,7 @@ public class NpcManager : Singleton<NpcManager>
                         template.NpcTemplateId = (NpcTemplateType)reader.GetByte("npc_template_id");
                         template.ModelId = reader.GetUInt32("model_id");
                         template.FactionId = reader.GetUInt32("faction_id");
-                        template.HeirLevel = reader.GetUInt32("heir_level");
+                        //template.HeirLevel = reader.GetUInt32("heir_level"); // there is no such field in the database for version 3.0.3.0
                         template.SkillTrainer = reader.GetBoolean("skill_trainer", true);
                         template.AiFileId = reader.GetInt32("ai_file_id");
                         template.Merchant = reader.GetBoolean("merchant", true);
@@ -565,8 +565,7 @@ public class NpcManager : Singleton<NpcManager>
                         template.HonorPoint = reader.GetInt32("honor_point");
                         template.Trader = reader.GetBoolean("trader", true);
                         template.AggroLinkSpecialGuard = reader.GetBoolean("aggro_link_special_guard", true);
-                        template.AggroLinkSpecialIgnoreNpcAttacker =
-                            reader.GetBoolean("aggro_link_special_ignore_npc_attacker", true);
+                        template.AggroLinkSpecialIgnoreNpcAttacker = reader.GetBoolean("aggro_link_special_ignore_npc_attacker", true);
                         template.AbsoluteReturnDistance = reader.GetFloat("absolute_return_distance");
                         template.Repairman = reader.GetBoolean("repairman", true);
                         template.ActivateAiAlways = reader.GetBoolean("activate_ai_always", true);
@@ -582,8 +581,7 @@ public class NpcManager : Singleton<NpcManager>
                         template.BaseSkillDelay = reader.GetFloat("base_skill_delay");
                         template.NpcInteractionSetId = reader.GetInt32("npc_interaction_set_id", 0);
                         template.UseAbuserList = reader.GetBoolean("use_abuser_list", true);
-                        template.ReturnWhenEnterHousingArea =
-                            reader.GetBoolean("return_when_enter_housing_area", true);
+                        template.ReturnWhenEnterHousingArea = reader.GetBoolean("return_when_enter_housing_area", true);
                         template.LookConverter = reader.GetBoolean("look_converter", true);
                         template.UseDDCMSMountSkill = reader.GetBoolean("use_ddcms_mount_skill", true);
                         template.CrowdEffect = reader.GetBoolean("crowd_effect", true);

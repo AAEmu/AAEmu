@@ -23,22 +23,21 @@ public class TagsGameData : Singleton<TagsGameData>, IGameDataLoader
     private Logger Logger = LogManager.GetCurrentClassLogger();
     private Dictionary<TagType, Dictionary<uint, HashSet<uint>>> _tags;
 
-
     //Use different type if we need to ICollection/HashSet/Etc
     public IReadOnlySet<uint> GetIdsByTagId(TagType type, uint tagId)
     {
-            if (_tags.TryGetValue(type, out var temp))
+        if (_tags.TryGetValue(type, out var temp))
+        {
+            if (temp.TryGetValue(tagId, out var result))
             {
-                if (temp.TryGetValue(tagId, out var result))
-                {
-                    return result;
-                }
+                return result;
             }
-
-            return new HashSet<uint>();
         }
 
-    public void Load(SqliteConnection connection)
+        return new HashSet<uint>();
+    }
+
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _tags = new Dictionary<TagType, Dictionary<uint, HashSet<uint>>>();
         #region Tag Tables
@@ -131,5 +130,5 @@ public class TagsGameData : Singleton<TagsGameData>, IGameDataLoader
 
     public void PostLoad()
     {
-        }
+    }
 }

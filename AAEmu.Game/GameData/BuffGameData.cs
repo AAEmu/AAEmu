@@ -30,7 +30,7 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
         return _buffTolerances.TryGetValue(buffTag, out var tolerance) ? tolerance : null;
     }
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _buffModifiers = new Dictionary<uint, List<BuffModifier>>();
         _buffTolerances = new Dictionary<uint, BuffTolerance>();
@@ -63,7 +63,7 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM buff_tolerances";
             command.Prepare();
@@ -88,7 +88,7 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM buff_tolerance_steps";
             command.Prepare();
