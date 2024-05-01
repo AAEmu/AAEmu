@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -19,7 +20,9 @@ public class DoodadFuncQuest : DoodadFuncTemplate
         {
             if (!character.Quests.HasQuest(QuestId))
             {
-                character.Quests.AddQuestFromDoodad(QuestId, owner.ObjId);
+                if (caster is Character player)
+                    player.SendPacket(new SCDoodadQuestAcceptPacket(owner.ObjId, QuestId));
+                // character.Quests.AddQuestFromDoodad(QuestId, owner.ObjId);
             }
             else
             {

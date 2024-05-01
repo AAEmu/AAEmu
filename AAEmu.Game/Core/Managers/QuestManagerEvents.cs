@@ -259,7 +259,7 @@ public partial class QuestManager
 
         // Also handle Level-based (character main level) quest starters
         // Un-started quests can't have a level event handler, so we need to do it this way for quest starters
-        var levelActs = _actTemplates.GetValueOrDefault("QuestActConAcceptLevelUp")?.Values;
+        var levelActs = _actTemplatesByDetailType.GetValueOrDefault("QuestActConAcceptLevelUp")?.Values;
         if (levelActs != default)
             foreach (var levelAct in levelActs)
             {

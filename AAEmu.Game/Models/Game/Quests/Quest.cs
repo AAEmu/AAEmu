@@ -185,6 +185,13 @@ public partial class Quest : PacketMarshaler
         }
     }
 
+    private bool _skipUpdatePacket;
+
+    public void SkipUpdatePackets()
+    {
+        _skipUpdatePacket = true;
+    }
+
     /// <summary>
     /// The last chosen selective reward index for this quest
     /// </summary>
@@ -194,16 +201,18 @@ public partial class Quest : PacketMarshaler
     /// Create Quest object
     /// </summary>
     /// <param name="questTemplate"></param>
+    /// <param name="owner"></param>
     /// <param name="questManager"></param>
     /// <param name="sphereQuestManager"></param>
     /// <param name="taskManager"></param>
     /// <param name="skillManager"></param>
     /// <param name="expressTextManager"></param>
     /// <param name="worldManager"></param>
-    public Quest(IQuestTemplate questTemplate, IQuestManager questManager, ISphereQuestManager sphereQuestManager,
+    public Quest(IQuestTemplate questTemplate, ICharacter owner, IQuestManager questManager, ISphereQuestManager sphereQuestManager,
         ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager,
         IWorldManager worldManager)
     {
+        Owner = owner;
         _questManager = questManager;
         _sphereQuestManager = sphereQuestManager;
         _taskManager = taskManager;
@@ -243,12 +252,12 @@ public partial class Quest : PacketMarshaler
         InitializeQuestActs();
     }
 
-    public Quest() : this(null, QuestManager.Instance, SphereQuestManager.Instance, TaskManager.Instance, SkillManager.Instance, ExpressTextManager.Instance, WorldManager.Instance)
+    public Quest(ICharacter owner) : this(null, owner, QuestManager.Instance, SphereQuestManager.Instance, TaskManager.Instance, SkillManager.Instance, ExpressTextManager.Instance, WorldManager.Instance)
     {
         // Nothing extra
     }
 
-    public Quest(IQuestTemplate template) : this(template, QuestManager.Instance, SphereQuestManager.Instance, TaskManager.Instance, SkillManager.Instance, ExpressTextManager.Instance, WorldManager.Instance)
+    public Quest(IQuestTemplate template, ICharacter owner) : this(template, owner, QuestManager.Instance, SphereQuestManager.Instance, TaskManager.Instance, SkillManager.Instance, ExpressTextManager.Instance, WorldManager.Instance)
     {
         // Nothing Extra
     }
@@ -753,7 +762,7 @@ public partial class Quest : PacketMarshaler
     /// Mails items if not enough space to add all items directly added to inventory
     /// </summary>
     /// <returns></returns>
-    public bool DistributeRewards()
+    public bool DistributeRewards(bool addBaseQuestReward)
     {
         var res = true;
         // Distribute Items if needed
@@ -792,7 +801,7 @@ public partial class Quest : PacketMarshaler
         }
 
         // Add quest level based rewards
-        if (Template.Level > 0)
+        if ((addBaseQuestReward) && (Template.Level > 0) && (Step == QuestComponentKind.Reward))
         {
             var levelBasedRewards = QuestManager.Instance.GetSupplies(Template.Level);
             if (levelBasedRewards != null)
@@ -845,8 +854,11 @@ public partial class Quest : PacketMarshaler
         for (var step = QuestComponentKind.Ready; step < QuestComponentKind.Reward; step++)
         {
             var component = Template.GetFirstComponent(step);
-            UseSkill(component);
-            UseBuff(component);
+            if (component != null)
+            {
+                UseSkill(component);
+                UseBuff(component);
+            }
         }
 
         if (update)

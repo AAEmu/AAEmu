@@ -8,11 +8,23 @@ namespace AAEmu.Game.Models.Game.Quests;
 /// <summary>
 /// Used Instance of a Quests Component
 /// </summary>
-public class QuestComponent(QuestStep parent, QuestComponentTemplate template) : IQuestComponent
+public class QuestComponent : IQuestComponent
 {
-    public QuestComponentTemplate Template { get; set; } = template;
-    public QuestStep Parent { get; set; } = parent;
+    public QuestComponentTemplate Template { get; set; }
+    public QuestStep Parent { get; set; }
     public List<IQuestAct> Acts { get; set; } = new();
+
+    public QuestComponent(QuestStep parent, QuestComponentTemplate template)
+    {
+        Parent = parent;
+        Template = template;
+        var actTemplateList = QuestManager.Instance.GetActsInComponent(Template.Id);
+        foreach (var questActTemplate in actTemplateList)
+        {
+            var newAct = new QuestAct(this, questActTemplate);
+            Acts.Add(newAct);
+        }
+    }
 
     public void InitializeComponent()
     {
@@ -37,8 +49,8 @@ public class QuestComponent(QuestStep parent, QuestComponentTemplate template) :
         // If acts completed, handle skill and buff effects
         if (res)
         {
-            parent.Parent.UseSkillAndBuff(Template);
-            parent.Parent.SetNpcAggro(Template);
+            Parent.Parent.UseSkillAndBuff(Template);
+            Parent.Parent.SetNpcAggro(Template);
         }
 
         return res;

@@ -89,7 +89,8 @@ public partial class Quest
         */
         
         // Send update to player
-        Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
+        if (!_skipUpdatePacket)
+            Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
 
         return res;
     }
@@ -123,15 +124,19 @@ public partial class Quest
                     break;
                 case QuestComponentKind.Supply:
                     Step = QuestComponentKind.Progress; // After giving the Supply Items, go to Progress
+                    Status = QuestStatus.Progress;
                     break;
                 case QuestComponentKind.Progress:
                     Step = QuestComponentKind.Ready; // When Objectives completed, go to Ready
+                    Status = QuestStatus.Ready;
                     break;
                 case QuestComponentKind.Fail:
+                    Status = QuestStatus.Failed;
                     // Fail state does not have a next step, player needs to manually drop/restart the quest
                     return;
                 case QuestComponentKind.Ready:
                     Step = QuestComponentKind.Reward; // Go to Reward when turning in the quest 
+                    Status = QuestStatus.Completed;
                     break;
                 case QuestComponentKind.Drop:
                     // This quest is being dropped, there is no next step
@@ -188,6 +193,8 @@ public partial class Quest
 
         // Trigger OnQuestStepChanged event, even if this step is not available
         Owner?.Events?.OnQuestStepChanged(Owner, new OnQuestStepChangedArgs() { QuestId = TemplateId, Step = value });
+        Owner?.SendMessage($"Quest {TemplateId}, Step => {value}");
+        Logger.Warn($"Player {Owner?.Name ?? "???"}, Quest {TemplateId}, Step => {value}");
         RequestEvaluation();
     }
 
@@ -281,5 +288,10 @@ public partial class Quest
         }
 
         return highest;
+    }
+
+    public void StartingEvaluation()
+    {
+        RequestEvaluationFlag = false;
     }
 }

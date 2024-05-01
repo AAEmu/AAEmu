@@ -29,7 +29,7 @@ public class QuestActConAcceptItem(QuestComponentTemplate parentComponent) : Que
         base.QuestCleanup(quest);
         if (!Cleanup)
             return;
-        quest.Owner?.Inventory.ConsumeItem([], ItemTaskType.QuestRemoveSupplies, ItemId, 1, null);
+        quest.Owner?.Inventory.ConsumeItem([], ItemTaskType.QuestRemoveSupplies, ItemId, Count, null);
     }
 
     public override void QuestDropped(Quest quest)
@@ -37,6 +37,6 @@ public class QuestActConAcceptItem(QuestComponentTemplate parentComponent) : Que
         base.QuestDropped(quest);
         if (!DestroyWhenDrop)
             return;
-        quest.Owner?.Inventory.ConsumeItem([], ItemTaskType.QuestRemoveSupplies, ItemId, 1, null);
+        quest.Owner?.Inventory.ConsumeItem([], ItemTaskType.QuestRemoveSupplies, ItemId, Count, null);
     }
 }

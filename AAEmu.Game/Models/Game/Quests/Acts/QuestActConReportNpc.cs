@@ -46,5 +46,6 @@ public class QuestActConReportNpc(QuestComponentTemplate parentComponent) : Ques
 
         questAct.QuestComponent.Parent.Parent.SelectedRewardIndex = args.Selected;
         questAct.OverrideObjectiveCompleted = true;
+        questAct.RequestEvaluation(); // Manual request since this does not use objective counters to trigger
     }
 }
