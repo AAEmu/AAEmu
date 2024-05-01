@@ -2468,6 +2468,7 @@ public partial class Character : Unit, ICharacter
         stream.Write(ModelParams);
         stream.Write(LaborPower);
         stream.Write(LaborPowerModified);
+        stream.Write((short)0); // add in 3042 localLaborPower
         stream.Write(DeadCount);
         stream.Write(DeadTime);
         stream.Write(RezWaitDuration);
