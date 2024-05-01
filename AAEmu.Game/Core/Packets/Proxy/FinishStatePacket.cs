@@ -56,7 +56,7 @@ public class FinishStatePacket : GamePacket
                 );
                 Connection.SendPacket(new SCChatSpamConfigPacket());
                 Connection.SendPacket(new SCAccountAttributeConfigPacket(new[] { false, true, false }));
-                Connection.SendPacket(new SCLevelRestrictionConfigPacket(10, 10, 10, 10, 10, new byte[] { 0, 15, 15, 15, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 15, 0, 0 })); // TODO - config files
+                Connection.SendPacket(new SCLevelRestrictionConfigPacket(0, 10, 0, 10, 10, new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })); // TODO - config files
 
                 Connection.SendPacket(new SCTaxItemConfigPacket(0));
                 Connection.SendPacket(new SCInGameShopConfigPacket(1, 2, 0));
