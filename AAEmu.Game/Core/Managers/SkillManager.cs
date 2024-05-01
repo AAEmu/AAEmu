@@ -345,7 +345,8 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.Id = reader.GetUInt32("id");
                         template.Cost = reader.GetInt32("cost");
                         template.Show = reader.GetBoolean("show", true);
-                        template.FireAnim = AnimationManager.Instance.GetAnimation(reader.GetUInt32("fire_anim_id", 0));
+                        template.FireAnimId = reader.GetUInt32("fire_anim_id", 0);
+                        template.FireAnim = AnimationManager.Instance.GetAnimation(template.FireAnimId);
                         template.AbilityId = reader.GetByte("ability_id");
                         template.ManaCost = reader.GetInt32("mana_cost");
                         template.TimingId = reader.GetInt32("timing_id");
