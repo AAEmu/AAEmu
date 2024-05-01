@@ -47,7 +47,7 @@ public class QuestTests
         Assert.False(result);
         foreach (var exceptedId in expectedIds)
         {
-            mockQuestManager.Verify(qm => qm.GetActs(It.IsIn(exceptedId)), Times.Once);
+            mockQuestManager.Verify(qm => qm.GetActsInComponent(It.IsIn(exceptedId)), Times.Once);
         }
         mockOwner.Verify(o => o.SendPacket(It.IsAny<SCQuestContextStartedPacket>()), Times.Once);
     }
@@ -67,7 +67,7 @@ public class QuestTests
         mockQuestAct.Setup(qa => qa.Use(It.IsAny<ICharacter>(), It.IsAny<Quest>(), It.IsAny<int>())).Returns(false);
         mockQuestAct.SetupGet(qa => qa.DetailType).Returns("QuestActConAcceptNpc");
 
-        mockQuestManager.Setup(qm => qm.GetActs(It.IsAny<uint>())).Returns(new[] {
+        mockQuestManager.Setup(qm => qm.GetActsInComponent(It.IsAny<uint>())).Returns(new[] {
             mockQuestAct.Object, mockQuestAct.Object
         });
 
@@ -78,7 +78,7 @@ public class QuestTests
         Assert.False(result);
         foreach (var exceptedId in expectedIds)
         {
-            mockQuestManager.Verify(qm => qm.GetActs(It.IsIn(exceptedId)), Times.Once);
+            mockQuestManager.Verify(qm => qm.GetActsInComponent(It.IsIn(exceptedId)), Times.Once);
         }
         mockOwner.Verify(o => o.SendPacket(It.IsAny<SCQuestContextStartedPacket>()), Times.Never);
     }
@@ -101,7 +101,7 @@ public class QuestTests
         var mockQuestAct = new Mock<IQuestAct>();
         mockQuestAct.Setup(qa => qa.Use(It.IsAny<ICharacter>(), It.IsAny<Quest>(), It.IsAny<int>())).Returns(true);
         mockQuestAct.SetupGet(qa => qa.DetailType).Returns("QuestActConAcceptNpc");
-        mockQuestManager.Setup(qm => qm.GetActs(It.IsAny<uint>())).Returns(new[] {
+        mockQuestManager.Setup(qm => qm.GetActsInComponent(It.IsAny<uint>())).Returns(new[] {
             mockQuestAct.Object, mockQuestAct.Object
         });
 

@@ -14,7 +14,7 @@ using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
-
+using AAEmu.Game.Models.StaticValues;
 using MySql.Data.MySqlClient;
 
 using NLog;
@@ -91,9 +91,9 @@ public class CharacterQuests
         }
         if (questZoneKeyCheck > 0)
         {
-            var zone = ZoneManager.Instance.GetZoneByKey(questZoneKeyCheck);
-            var zoneFaction = FactionManager.Instance.GetFaction(zone.FactionId);
-            var relation = zoneFaction.GetRelationState(Owner.Faction);
+            var zone = ZoneManager.Instance.GetZoneById(questZoneKeyCheck);
+            var zoneFaction = FactionManager.Instance.GetFaction(zone?.FactionId ?? FactionsEnum.Neutral);
+            var relation = zoneFaction?.GetRelationState(Owner.Faction) ?? RelationState.Neutral;
             if (relation == RelationState.Hostile)
             {
                 // Quest not allowed in hostile zones?
@@ -119,11 +119,10 @@ public class CharacterQuests
         }
 
         // Create new Quest Object
-        var quest = new Quest(template);
+        var quest = new Quest(template, Owner);
         quest.Id = QuestIdManager.Instance.GetNextId();
         quest.Status = QuestStatus.Invalid;
         quest.Condition = QuestConditionObj.Progress;
-        quest.Owner = Owner;
         quest.QuestAcceptorType = questAcceptorType;
         quest.AcceptorId = acceptorId;
 
@@ -237,6 +236,7 @@ public class CharacterQuests
     {
         if (!ActiveQuests.TryGetValue(questId, out var quest)) { return; }
 
+        quest.SkipUpdatePackets(); // make sure no further "update packets" are send to the player
         quest.Cleanup();
         quest.Drop(update);
         quest.FinalizeQuestActs();
@@ -520,11 +520,19 @@ public class CharacterQuests
             {
                 while (reader.Read())
                 {
-                    var quest = new Quest();
-                    quest.Id = reader.GetUInt32("id");
-                    quest.TemplateId = reader.GetUInt32("template_id");
-                    quest.Template = QuestManager.Instance.GetTemplate(quest.TemplateId);
-                    quest.Owner = Owner;
+                    var questId = reader.GetUInt32("id");
+                    var templateId = reader.GetUInt32("template_id");
+                    
+                    var template = QuestManager.Instance.GetTemplate(templateId);
+                    if (template == null)
+                    {
+                        Logger.Error($"Quest {templateId} by {Owner.Name} does not exist");
+                        continue;
+                    }
+
+                    var quest = new Quest(template, Owner);
+                    quest.Id = questId;
+                    quest.TemplateId = templateId;
 
                     quest.Status = (QuestStatus)reader.GetByte("status");
                     var oldStatus = quest.Status;

@@ -30,7 +30,7 @@ public class QuestStep(QuestComponentKind step, Quest parent)
     public void InitializeStep()
     {
         // Distribute any rewards that may still be open so the pool is empty
-        Parent.DistributeRewards();
+        Parent.DistributeRewards(false);
 
         foreach (var questComponent in Components.Values)
             questComponent.InitializeComponent();
@@ -88,7 +88,7 @@ public class QuestStep(QuestComponentKind step, Quest parent)
         }
         
         // Handle Supply/Reward Distribution
-        res &= Parent.DistributeRewards();
+        res &= Parent.DistributeRewards(true);
 
         return res;
     }

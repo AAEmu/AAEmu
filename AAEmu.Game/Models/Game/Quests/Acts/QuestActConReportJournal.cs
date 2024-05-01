@@ -38,5 +38,6 @@ public class QuestActConReportJournal(QuestComponentTemplate parentComponent) : 
             return;
 
         questAct.OverrideObjectiveCompleted = true;
+        questAct.RequestEvaluation(); // Manual request since this does not use objective counters to trigger
     }
 }

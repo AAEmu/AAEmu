@@ -10,7 +10,7 @@ public interface IQuestManager
     void FailQuest(ICharacter owner, uint questId);
     bool CheckGroupItem(uint groupId, uint itemId);
     bool CheckGroupNpc(uint groupId, uint npcId);
-    List<QuestActTemplate> GetActs(uint id);
+    List<QuestActTemplate> GetActsInComponent(uint id);
     QuestActTemplate GetActTemplate(uint id, string type);
     T GetActTemplate<T>(uint id, string type) where T : QuestActTemplate;
     List<uint> GetGroupItems(uint groupId);

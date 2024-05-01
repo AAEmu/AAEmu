@@ -316,7 +316,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
             for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
             {
                 var component = components[componentIndex];
-                var acts = QuestManager.Instance.GetActs(component.Id);
+                var acts = QuestManager.Instance.GetActsInComponent(component.Id);
 
                 if (acts.Count > 0)
                 {

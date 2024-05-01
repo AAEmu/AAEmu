@@ -8,7 +8,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests;
 
-public class QuestAct(QuestComponent parentComponent, QuestActTemplate template) : IComparable<QuestAct>, IQuestAct
+public class QuestAct : IComparable<QuestAct>, IQuestAct
 {
     /// <summary>
     /// Same as Template.ActId
@@ -18,8 +18,8 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
     public string DetailType { get; set; }
     public byte ThisComponentObjectiveIndex { get; set; }
 
-    public QuestComponent QuestComponent { get; } = parentComponent;
-    public QuestActTemplate Template { get; set; } = template;
+    public QuestComponent QuestComponent { get; }
+    public QuestActTemplate Template { get; set; }
 
     #region objectives
 
@@ -36,6 +36,12 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
         }
     }
 
+    public QuestAct(QuestComponent parentComponent, QuestActTemplate template)
+    {
+        QuestComponent = parentComponent;
+        Template = template;
+    }
+    
     /// <summary>
     /// Set Current Objective Count for this Act (forwards to quest object)
     /// </summary>
