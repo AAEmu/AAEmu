@@ -64,12 +64,12 @@ public class CSSelectCharacterPacket : GamePacket
             // TODO: Fix the patron and auction house license buff issue
             if (Connection.ActiveChar is { } unit)
             {
-                if (!unit.Buffs.CheckBuff(8000011)) //TODO Wrong place
+                if (!unit.Buffs.CheckBuff((uint)SkillConstants.Patron)) //TODO Wrong place
                 {
                     unit.Buffs.AddBuff(new Buff(unit, unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000011), null, System.DateTime.Now));
                 }
 
-                if (!unit.Buffs.CheckBuff(8000012)) //TODO Wrong place
+                if (!unit.Buffs.CheckBuff((uint)SkillConstants.AuctionLicense)) //TODO Wrong place
                 {
                     unit.Buffs.AddBuff(new Buff(unit, unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000012), null, System.DateTime.Now));
                 }

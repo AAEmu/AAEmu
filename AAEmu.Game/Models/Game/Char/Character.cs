@@ -1731,23 +1731,29 @@ public partial class Character : Unit, ICharacter
                 continue;
             }
 
+            // TODO maybe we need to check something else?
+            if (!Buffs.CheckBuff((uint)SkillConstants.Patron))
+            {
 #pragma warning disable CA1508 // Avoid dead conditional code
-            if (CurrentInteractionObject is not Npc npc)
-                continue;
+                if (CurrentInteractionObject is not Npc npc)
+                {
+                    continue;
+                }
 #pragma warning restore CA1508 // Avoid dead conditional code
 
-            if (!npc.Template.Blacksmith)
-            {
-                Logger.Warn($"Attempting to repair an item while not at a blacksmith, Item={item.Id}, NPC={npc}");
-                continue;
-            }
+                if (!npc.Template.Blacksmith)
+                {
+                    Logger.Warn($"Attempting to repair an item while not at a blacksmith, Item={item.Id}, NPC={npc}");
+                    continue;
+                }
 
-            var dist = MathUtil.CalculateDistance(Transform.World.Position, npc.Transform.World.Position);
+                var dist = MathUtil.CalculateDistance(Transform.World.Position, npc.Transform.World.Position);
 
-            if (dist > 5f)
-            {
-                SendErrorMessage(ErrorMessageType.TooFarAway);
-                continue;
+                if (dist > 5f)
+                {
+                    SendErrorMessage(ErrorMessageType.TooFarAway);
+                    continue;
+                }
             }
 
             var currentRepairCost = equipItem.RepairCost;
