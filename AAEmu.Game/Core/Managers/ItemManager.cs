@@ -1463,6 +1463,8 @@ public class ItemManager : Singleton<ItemManager>
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
+                    var ArmorType = 1u;
+                    var ItemGrade = 4u;
                     while (reader.Read())
                     {
                         var armorGradeBuff = new ArmorGradeBuff();
@@ -1471,11 +1473,14 @@ public class ItemManager : Singleton<ItemManager>
                         //armorGradeBuff.ItemGrade = (ItemGrade)reader.GetUInt32("item_grade_id"); // there is no such field in the database for version 3.0.3.0
                         armorGradeBuff.BuffId = reader.GetUInt32("buff_id");
 
-                        if (!_armorGradeBuffs.ContainsKey(armorGradeBuff.ArmorType))
-                            _armorGradeBuffs.Add(armorGradeBuff.ArmorType, new Dictionary<ItemGrade, ArmorGradeBuff>());
+                        _armorGradeBuffs.TryAdd((ArmorType)ArmorType, new Dictionary<ItemGrade, ArmorGradeBuff>());
+                        _armorGradeBuffs[(ArmorType)ArmorType].TryAdd((ItemGrade)ItemGrade, armorGradeBuff);
 
-                        if (!_armorGradeBuffs[armorGradeBuff.ArmorType].ContainsKey(armorGradeBuff.ItemGrade))
-                            _armorGradeBuffs[armorGradeBuff.ArmorType].Add(armorGradeBuff.ItemGrade, armorGradeBuff);
+                        // hardcoded fix
+                        ItemGrade++;
+                        if (ItemGrade != 12) { continue; }
+                        ArmorType++;
+                        ItemGrade = 4;
                     }
                 }
             }
