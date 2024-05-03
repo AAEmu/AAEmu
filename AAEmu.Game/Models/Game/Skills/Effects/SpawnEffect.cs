@@ -54,7 +54,7 @@ public class SpawnEffect : EffectTemplate
                     spawner.Position.X = xx;
                     spawner.Position.Y = yy;
                     spawner.Position.Z = zz;
-                    spawner.Position.Yaw = PosAngle;
+                    spawner.Position.Yaw = PosAngle.DegToRad();
 
                     spawner.RespawnTime = 0; // don't respawn
 
@@ -65,10 +65,11 @@ public class SpawnEffect : EffectTemplate
                 {
                     if (caster is Character player)
                     {
-                        var transform = player.Transform.CloneDetached();
+                        // TODO: Implement OriDirId, PosDirId and MateStateId
+                        using var transform = player.Transform.CloneDetached();
                         if (PosDistance == 0) { PosDistance = 2; }
                         transform.World.AddDistanceToFront(PosDistance);
-                        transform.World.Rotate(transform.World.Rotation with { Z = OriAngle });
+                        transform.World.Rotate(transform.World.Rotation with { Z = OriAngle.DegToRad() });
 
                         var slave = SlaveManager.Instance.Create(SubType, true, transform);
                         if (slave is { Template: null })
