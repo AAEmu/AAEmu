@@ -624,7 +624,9 @@ public class SlaveManager : Singleton<SlaveManager>
         }
 
         foreach (var slaveBinding in summonedSlave.Template.SlaveBindings)
-        {
+        { 
+            if (slaveBinding.OwnerType != "Slave")
+                continue;
             var childSlaveTemplate = GetSlaveTemplate(slaveBinding.SlaveId);
             var childTlId = (ushort)TlIdManager.Instance.GetNextId();
             var childObjId = ObjectIdManager.Instance.GetNextId();
