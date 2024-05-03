@@ -23,6 +23,11 @@ public class EquipItem : Item
     public virtual int Spi => 0;
     public virtual byte MaxDurability => 0;
 
+    /// <summary>
+    /// The item ID of the dye pot that was used on the equipment.
+    /// </summary>
+    public uint DyeItemId { get; set; }
+
     public int RepairCost
     {
         get
@@ -47,6 +52,7 @@ public class EquipItem : Item
     public EquipItem(ulong id, ItemTemplate template, int count) : base(id, template, count)
     {
         GemIds = new uint[7];
+        DyeItemId = ((EquipItemTemplate)Template).DefaultDyeItemId;
     }
 
     public override void Read(PacketStream stream)
@@ -80,7 +86,7 @@ public class EquipItem : Item
         RuneId = stream.ReadUInt32();
 
         ChargeStartTime = stream.ReadDateTime();
-        stream.ReadBytes(4);
+        DyeItemId = stream.ReadUInt32();
 
         for (var i = 0; i < GemIds.Length; i++)
             GemIds[i] = stream.ReadUInt32();
@@ -97,7 +103,7 @@ public class EquipItem : Item
         stream.Write(RuneId);
 
         stream.Write(Template.BindType == ItemBindType.BindOnUnpack ? UnpackTime : ChargeStartTime);
-        stream.Write((uint)0);
+        stream.Write(DyeItemId);
 
         foreach (var gemId in GemIds)
             stream.Write(gemId);
