@@ -28,48 +28,34 @@ public class SCUnitStatePacket : GamePacket
         _unit = unit;
         switch (_unit)
         {
-            case Character _:
-                {
-                    _baseUnitType = BaseUnitType.Character;
-                    _modelPostureType = ModelPostureType.None;
-                    break;
-                }
+            case Character:
+                _baseUnitType = BaseUnitType.Character;
+                _modelPostureType = ModelPostureType.None;
+                break;
             case Npc npc:
-                {
-                    _baseUnitType = BaseUnitType.Npc;
-                    _modelPostureType = npc.Template.AnimActionId > 0 ? ModelPostureType.ActorModelState : ModelPostureType.None;
-                    break;
-                }
-            case Slave _:
-                {
-                    _baseUnitType = BaseUnitType.Slave;
-                    _modelPostureType = ModelPostureType.TurretState; // was TurretState = 8
-                    break;
-                }
-            case House _:
-                {
-                    _baseUnitType = BaseUnitType.Housing;
-                    _modelPostureType = ModelPostureType.HouseState;
-                    break;
-                }
-            case Transfer _:
-                {
-                    _baseUnitType = BaseUnitType.Transfer;
-                    _modelPostureType = ModelPostureType.TurretState;
-                    break;
-                }
-            case Mate _:
-                {
-                    _baseUnitType = BaseUnitType.Mate;
-                    _modelPostureType = ModelPostureType.None;
-                    break;
-                }
-            case Shipyard _:
-                {
-                    _baseUnitType = BaseUnitType.Shipyard;
-                    _modelPostureType = ModelPostureType.None;
-                    break;
-                }
+                _baseUnitType = BaseUnitType.Npc;
+                _modelPostureType = npc.Template.AnimActionId > 0 ? ModelPostureType.ActorModelState : ModelPostureType.None;
+                break;
+            case Slave:
+                _baseUnitType = BaseUnitType.Slave;
+                _modelPostureType = ModelPostureType.TurretState; // was TurretState = 8
+                break;
+            case House:
+                _baseUnitType = BaseUnitType.Housing;
+                _modelPostureType = ModelPostureType.HouseState;
+                break;
+            case Transfer:
+                _baseUnitType = BaseUnitType.Transfer;
+                _modelPostureType = ModelPostureType.TurretState;
+                break;
+            case Mate:
+                _baseUnitType = BaseUnitType.Mate;
+                _modelPostureType = ModelPostureType.None;
+                break;
+            case Shipyard:
+                _baseUnitType = BaseUnitType.Shipyard;
+                _modelPostureType = ModelPostureType.None;
+                break;
         }
     }
 
@@ -79,69 +65,57 @@ public class SCUnitStatePacket : GamePacket
         stream.WriteBc(_unit.ObjId);
         stream.Write(_unit.Name);
 
+        // Cache character & npc
+        var character = _unit as Character;
+        var npc = _unit as Npc;
+
         #region BaseUnitType
         stream.Write((byte)_baseUnitType);
         switch (_baseUnitType)
         {
             case BaseUnitType.Character:
-                {
-                    var character = (Character)_unit;
-                    stream.Write(character.Id); // type(id)
-                    stream.Write(0L);           // v?
-                    break;
-                }
+                stream.Write(character?.Id ?? 0u); // type(id)
+                stream.Write(0L);                  // v
+                break;
             case BaseUnitType.Npc:
-                {
-                    var npc = (Npc)_unit;
-                    stream.WriteBc(npc.ObjId);    // objId
-                    stream.Write(npc.TemplateId); // npc templateId
-                    stream.Write(0u);             // type(id)
-                    stream.Write((byte)0);        // clientDriven
-                    break;
-                }
+                stream.WriteBc(npc.ObjId);    // objId
+                stream.Write(npc.TemplateId); // npc templateId
+                stream.Write(0u);             // type(id)
+                stream.Write((byte)0);        // clientDriven
+                break;
             case BaseUnitType.Slave:
-                {
-                    var slave = (Slave)_unit;
-                    stream.Write(slave.Id);             // Id ? slave.Id
-                    stream.Write(slave.TlId);           // tl
-                    stream.Write(slave.TemplateId);     // templateId
-                    stream.Write(slave.Summoner?.ObjId ?? 0); // ownerId ? slave.Summoner.ObjId
-                    break;
-                }
+                var slave = (Slave)_unit;
+                stream.Write(slave.Id);             // Id ? slave.Id
+                stream.Write(slave.TlId);           // tl
+                stream.Write(slave.TemplateId);     // templateId
+                stream.Write(slave.Summoner?.ObjId ?? 0); // ownerId ? slave.Summoner.ObjId
+                break;
             case BaseUnitType.Housing:
-                {
-                    var house = (House)_unit;
-                    var buildStep = house.CurrentStep == -1
-                        ? 0
-                        : -house.Template.BuildSteps.Count + house.CurrentStep;
+                var house = (House)_unit;
+                var buildStep = house.CurrentStep == -1
+                    ? 0
+                    : -house.Template.BuildSteps.Count + house.CurrentStep;
 
-                    stream.Write(house.TlId); // tl
-                    stream.Write(house.TemplateId); // templateId
-                    stream.Write((short)buildStep); // buildstep
-                    break;
-                }
+                stream.Write(house.TlId); // tl
+                stream.Write(house.TemplateId); // templateId
+                stream.Write((short)buildStep); // buildstep
+                break;
             case BaseUnitType.Transfer:
-                {
-                    var transfer = (Transfer)_unit;
-                    stream.Write(transfer.TlId); // tl
-                    stream.Write(transfer.TemplateId); // templateId
-                    break;
-                }
+                var transfer = (Transfer)_unit;
+                stream.Write(transfer.TlId); // tl
+                stream.Write(transfer.TemplateId); // templateId
+                break;
             case BaseUnitType.Mate:
-                {
-                    var mount = (Mate)_unit;
-                    stream.Write(mount.TlId);       // tl
-                    stream.Write(mount.TemplateId); // teplateId
-                    stream.Write(mount.OwnerId);    // characterId (masterId)
-                    break;
-                }
+                var mount = (Mate)_unit;
+                stream.Write(mount.TlId);       // tl
+                stream.Write(mount.TemplateId); // teplateId
+                stream.Write(mount.OwnerId);    // characterId (masterId)
+                break;
             case BaseUnitType.Shipyard:
-                {
-                    var shipyard = (Shipyard)_unit;
-                    stream.Write(shipyard.ShipyardData.Id);         // type(id)
-                    stream.Write(shipyard.ShipyardData.TemplateId); // type(id)
-                    break;
-                }
+                var shipyard = (Shipyard)_unit;
+                stream.Write(shipyard.ShipyardData.Id);         // type(id)
+                stream.Write(shipyard.ShipyardData.TemplateId); // type(id)
+                break;
         }
         #endregion BaseUnitType
 
@@ -151,25 +125,21 @@ public class SCUnitStatePacket : GamePacket
             stream.Write(name ?? "");
         }
         else
-        {
             stream.Write("");
-        }
 
         stream.WritePosition(_unit.Transform.Local.Position);
         stream.Write(_unit.Scale); // scale
         stream.Write(_unit.Level); // level
         stream.Write((byte)0);     // level for 3.0.3.0
         for (var i = 0; i < 4; i++)
-        {
             stream.Write((sbyte)-1); // slot for 3.0.3.0
-        }
 
         stream.Write(_unit.ModelId); // modelRef
 
         #region CharacterInfo_3EB0
 
         //Inventory_Equip1(stream, _unit); // Equip character
-        //            Inventory_Equip2(stream, _unit, _baseUnitType); // Equip character
+        //Inventory_Equip2(stream, _unit, _baseUnitType); // Equip character
         //Inventory_Equip0(stream, _unit); // Equip character
         Inventory_Equip3(stream, _unit); // Equip character
 
@@ -184,86 +154,64 @@ public class SCUnitStatePacket : GamePacket
         #region AttachPoint1
         switch (_unit)
         {
-            case Gimmick _:
-            case Portal _:
-            case Character _:
-            case Npc _:
-            case House _:
-            case Mate _:
-            case Shipyard _:
-                {
-                    stream.Write((byte)AttachPointKind.System);   // point
-                    break;
-                }
+            case Gimmick:
+            case Portal:
+            case Character:
+            case Npc:
+            case House:
+            case Mate:
+            case Shipyard:
+                stream.Write((byte)AttachPointKind.System);   // point
+                break;
             case Slave unit:
-                {
-                    stream.Write(unit.AttachPointId);
-                    if (unit.AttachPointId > -1)
-                    {
-                        stream.WriteBc(unit.OwnerObjId);
-                    }
-                    break;
-                }
+                stream.Write(unit.AttachPointId);
+                if (unit.AttachPointId > -1)
+                    stream.WriteBc(unit.OwnerObjId);
+                break;
             case Transfer unit:
+                if (unit.BondingObjId != 0)
                 {
-                    if (unit.BondingObjId != 0)
-                    {
-                        stream.Write((byte)unit.AttachPointId);  // point
-                        stream.WriteBc(unit.BondingObjId); // point to the owner where to attach
-                    }
-                    else
-                    {
-                        stream.Write((byte)AttachPointKind.System);   // point
-                    }
-                    break;
+                    stream.Write((byte)unit.AttachPointId);  // point
+                    stream.WriteBc(unit.BondingObjId); // point to the owner where to attach
                 }
+                else
+                    stream.Write((byte)AttachPointKind.System);   // point
+                break;
         }
         #endregion AttachPoint1
 
         #region AttachPoint2
         switch (_unit)
         {
-            case Character unit:
+            case Character:
+                switch (character.Bonding)
                 {
-                    switch (unit.Bonding)
-                    {
-                        case null:
-                            {
-                                stream.Write((byte)AttachPointKind.System);   // point
-                                break;
-                            }
-                        default:
-                            {
-                                stream.Write(unit.Bonding);
-                                break;
-                            }
-                    }
-                    break;
-                }
-            case Npc _:
-            case House _:
-            case Mate _:
-            case Shipyard _:
-            case Transfer _:
-                {
-                    stream.Write((byte)AttachPointKind.System);   // point
-                    break;
-                }
-            case Slave unit:
-                {
-                    if (unit.BondingObjId > 0)
-                    {
-                        stream.WriteBc(unit.BondingObjId);
-                        stream.Write(0);  // space
-                        stream.Write(0);  // spot
-                        stream.Write(0);  // type
-                    }
-                    else
-                    {
+                    case null:
                         stream.Write((byte)AttachPointKind.System);   // point
-                    }
-                    break;
+                        break;
+                    default:
+                        stream.Write(character.Bonding);
+                        break;
                 }
+                break;
+            case Npc:
+            case House:
+            case Mate:
+            case Shipyard:
+            case Transfer:
+                stream.Write((byte)AttachPointKind.System);   // point
+                break;
+            case Slave unit:
+                if (unit.BondingObjId > 0)
+                {
+                    stream.WriteBc(unit.BondingObjId);
+                    stream.Write(0);  // space
+                    stream.Write(0);  // spot
+                    stream.Write(0);  // type
+                }
+                else
+                    stream.Write((byte)AttachPointKind.System);   // point
+                break;
         }
         #endregion AttachPoint2
 
@@ -277,25 +225,20 @@ public class SCUnitStatePacket : GamePacket
 
         switch (_unit)
         {
-            case Character character:
+            case Character:
                 {
-                    stream.Write((byte)character.Skills.Skills.Count);       // learnedSkillCount
-                    if (character.Skills.Skills.Count >= 0)
-                    {
+                    var skillList = character.Skills.Skills.Values.ToList();
+
+                    stream.Write((byte)skillList.Count);       // learnedSkillCount
+                    if (skillList.Count > 0)
                         Logger.Trace($"Warning! character.learnedSkillCount = {character.Skills.Skills.Count}");
-                    }
+
                     stream.Write((byte)character.Skills.PassiveBuffs.Count); // passiveBuffCount
-                    if (character.Skills.PassiveBuffs.Count >= 0)
-                    {
+                    if (character.Skills.PassiveBuffs.Count > 0)
                         Logger.Trace($"Warning! character.passiveBuffCount = {character.Skills.PassiveBuffs.Count}");
-                    }
+
                     stream.Write(character.HighAbilityRsc);                  // highAbilityRsc
 
-                    var skillList = new List<Skill>();
-                    foreach (var skill in character.Skills.Skills.Values)
-                    {
-                        skillList.Add(skill);
-                    }
                     var hcount = skillList.Count;
                     var index = 0;
                     do
@@ -304,13 +247,9 @@ public class SCUnitStatePacket : GamePacket
                         do
                         {
                             if (hcount > 4)
-                            {
                                 hcount -= pcount;
-                            }
                             else
-                            {
                                 pcount = hcount;
-                            }
                             switch (pcount)
                             {
                                 case 1:
@@ -345,11 +284,7 @@ public class SCUnitStatePacket : GamePacket
                         hcount -= index;
                     } while (hcount > 0);
 
-                    var buffList = new List<PassiveBuff>();
-                    foreach (var buff in character.Skills.PassiveBuffs.Values)
-                    {
-                        buffList.Add(buff);
-                    }
+                    var buffList = character.Skills.PassiveBuffs.Values.ToList();
                     hcount = buffList.Count;
                     index = 0;
                     do
@@ -358,13 +293,9 @@ public class SCUnitStatePacket : GamePacket
                         do
                         {
                             if (hcount > 4)
-                            {
                                 hcount -= pcount;
-                            }
                             else
-                            {
                                 pcount = hcount;
-                            }
                             switch (pcount)
                             {
                                 case 1:
@@ -400,118 +331,112 @@ public class SCUnitStatePacket : GamePacket
                     } while (hcount > 0);
                     break;
                 }
-            case Npc npc:
+            case Npc:
                 {
-                    stream.Write((byte)npc.Template.Skills.Count);    // learnedSkillCount
-                    if (npc.Template.Skills.Count >= 0)
-                    {
-                        Logger.Trace($"Warning! npc.Template.Skills.Count = {npc.Template.Skills.Count}");
-                    }
+                    var skills = new List<NpcSkill>();
+                    foreach (var sl in npc.Template.Skills.Values)
+                        skills.AddRange(sl);
+
+                    stream.Write((byte)skills.Count);    // learnedSkillCount
+                    if (skills.Count > 0)
+                        Logger.Trace($"Warning! npc.Template.Skills.Count = {skills.Count}");
+
                     stream.Write((byte)npc.Template.PassiveBuffs.Count); // passiveBuffCount
+
                     stream.Write(npc.HighAbilityRsc);                    // highAbilityRsc
-                    foreach (var skills in npc.Template.Skills.Values)
+
+                    var hcount = skills.Count;
+                    var index = 0;
+                    do
                     {
-                        var hcount = skills.Count;
-                        var index = 0;
+                        var pcount = 4;
                         do
                         {
-                            var pcount = 4;
+                            if (hcount > 4)
+                                hcount -= pcount;
+                            else
+                                pcount = hcount;
+                            switch (pcount)
+                            {
+                                case 1:
+                                    {
+                                        stream.WritePisc(skills[index].Id);
+                                        index += 1;
+                                        break;
+                                    }
+                                case 2:
+                                    {
+                                        stream.WritePisc(skills[index].Id, skills[index + 1].Id);
+                                        index += 2;
+                                        break;
+                                    }
+                                case 3:
+                                    {
+                                        stream.WritePisc(skills[index].Id, skills[index + 1].Id, skills[index + 2].Id);
+                                        index += 3;
+                                        break;
+                                    }
+                                case 4:
+                                    {
+                                        stream.WritePisc(skills[index].Id, skills[index + 1].Id, skills[index + 2].Id, skills[index + 3].Id);
+                                        index += 4;
+                                        break;
+                                    }
+                            }
+
+                            pcount -= index;
+                        } while (pcount > 0);
+
+                        hcount -= index;
+                    } while (hcount > 0);
+
+                    var buffs = npc.Template.PassiveBuffs;
+                    if (buffs.Count > 0)
+                    {
+                        var hcount2 = buffs.Count;
+                        var index2 = 0;
+                        do
+                        {
+                            var pcount2 = 4;
                             do
                             {
-                                if (hcount > 4)
-                                {
-                                    hcount -= pcount;
-                                }
+                                if (hcount2 > 4)
+                                    hcount2 -= pcount2;
                                 else
-                                {
-                                    pcount = hcount;
-                                }
-                                switch (pcount)
+                                    pcount2 = hcount2;
+                                switch (pcount2)
                                 {
                                     case 1:
                                         {
-                                            stream.WritePisc(skills[index].Id);
-                                            index += 1;
+                                            stream.WritePisc(buffs[index2].Id);
+                                            index2 += 1;
                                             break;
                                         }
                                     case 2:
                                         {
-                                            stream.WritePisc(skills[index].Id, skills[index + 1].Id);
-                                            index += 2;
+                                            stream.WritePisc(buffs[index2].Id, buffs[index2 + 1].Id);
+                                            index2 += 2;
                                             break;
                                         }
                                     case 3:
                                         {
-                                            stream.WritePisc(skills[index].Id, skills[index + 1].Id, skills[index + 2].Id);
-                                            index += 3;
+                                            stream.WritePisc(buffs[index2].Id, buffs[index2 + 1].Id, buffs[index2 + 2].Id);
+                                            index2 += 3;
                                             break;
                                         }
                                     case 4:
                                         {
-                                            stream.WritePisc(skills[index].Id, skills[index + 1].Id, skills[index + 2].Id, skills[index + 3].Id);
-                                            index += 4;
+                                            stream.WritePisc(buffs[index2].Id, buffs[index2 + 1].Id, buffs[index2 + 2].Id, buffs[index2 + 3].Id);
+                                            index2 += 4;
                                             break;
                                         }
                                 }
 
-                                pcount -= index;
-                            } while (pcount > 0);
+                                pcount2 -= index2;
+                            } while (pcount2 > 0);
 
-                            hcount -= index;
-                        } while (hcount > 0);
-                    }
-                    if (npc.Template.PassiveBuffs.Count > 0)
-                    {
-                        var buffs = npc.Template.PassiveBuffs;
-
-                        var hcount = npc.Template.PassiveBuffs.Count;
-                        var index = 0;
-                        do
-                        {
-                            var pcount = 4;
-                            do
-                            {
-                                if (hcount > 4)
-                                {
-                                    hcount -= pcount;
-                                }
-                                else
-                                {
-                                    pcount = hcount;
-                                }
-                                switch (pcount)
-                                {
-                                    case 1:
-                                        {
-                                            stream.WritePisc(buffs[index].Id);
-                                            index += 1;
-                                            break;
-                                        }
-                                    case 2:
-                                        {
-                                            stream.WritePisc(buffs[index].Id, buffs[index + 1].Id);
-                                            index += 2;
-                                            break;
-                                        }
-                                    case 3:
-                                        {
-                                            stream.WritePisc(buffs[index].Id, buffs[index + 1].Id, buffs[index + 2].Id);
-                                            index += 3;
-                                            break;
-                                        }
-                                    case 4:
-                                        {
-                                            stream.WritePisc(buffs[index].Id, buffs[index + 1].Id, buffs[index + 2].Id, buffs[index + 3].Id);
-                                            index += 4;
-                                            break;
-                                        }
-                                }
-
-                                pcount -= index;
-                            } while (pcount > 0);
-
-                            hcount -= index;
-                        } while (hcount > 0);
+                            hcount2 -= index2;
+                        } while (hcount2 > 0);
                     }
                     break;
                 }
@@ -526,9 +451,7 @@ public class SCUnitStatePacket : GamePacket
 
         // Rotation
         if (_baseUnitType == BaseUnitType.Housing)
-        {
             stream.Write(_unit.Transform.Local.Rotation.Z); // должно быть float
-        }
         else
         {
             var (roll, pitch, yaw) = _unit.Transform.Local.ToRollPitchYawSBytes();
@@ -539,28 +462,25 @@ public class SCUnitStatePacket : GamePacket
 
         switch (_unit)
         {
-            case Character unit:
-                {
-                    stream.Write(unit.RaceGender);
-                    break;
-                }
-            case Npc npc:
-                {
-                    stream.Write(npc.RaceGender);
-                    break;
-                }
+            case Character:
+                stream.Write(character.RaceGender);
+                break;
+            case Npc:
+                stream.Write(npc.RaceGender);
+                break;
             default:
-                {
-                    stream.Write(_unit.RaceGender);
-                    break;
-                }
+                stream.Write(_unit.RaceGender);
+                break;
         }
 
-        if (_unit is Character character4)
+        if (_unit is Character)
         {
-            stream.WritePisc(0, 0, character4.Appellations.ActiveAppellation, 0);      // pisc
-            stream.WritePisc(_unit.Faction?.Id ?? 0, _unit.Expedition?.Id ?? 0, 0, 0); // pisc
-            stream.WritePisc(0, 0, 0, 0); // pisc
+            // ???, ??? and Appellation (Title)
+            stream.WritePisc(0, 0, character.Appellations.ActiveAppellation, 0);      // pisc
+                                                                                      // Faction and Guild
+            stream.WritePisc(character.Faction?.Id ?? 0, character.Expedition?.Id ?? 0, 0, 0); // pisc
+                                                                                               // PvP Honor gained and PvP Kills
+            stream.WritePisc(character.HonorGainedInCombat, character.HostileFactionKills, 0, 0); // pisc
         }
         else
         {
@@ -569,70 +489,58 @@ public class SCUnitStatePacket : GamePacket
             stream.WritePisc(0, 0, 0, 0); // pisc
         }
 
-        if (_unit is Character character5)
+        switch (_unit)
         {
-            var flags = new BitSet(16); // short
+            case Character:
+                {
+                    var flags = new BitSet(16); // short
+                    if (character.Invisible)
+                        flags.Set(5);
+                    if (character.IdleStatus)
+                        flags.Set(13);
+                    stream.Write(flags.ToByteArray()); // flags(ushort)
 
-            if (character5.Invisible)
-            {
-                flags.Set(5);
-            }
-
-            if (character5.IdleStatus)
-            {
-                flags.Set(13);
-            }
-
-            //stream.WritePisc(0, 0); // очки чести полученные в PvP, кол-во убийств в PvP
-            stream.Write(flags.ToByteArray()); // flags(ushort)
-            /*
-             * 0x0001 - 8bit - режим боя
-             * 0x0002 - 7bit - 
-             * 0x0004 - 6bit - невидимость?
-             * 0x0008 - 5bit - дуэль
-             * 0x0010 - 4bit - 
-             * 0x0040 - 2bit - gmmode, дополнительно 7 байт
-             * 0x0080 - 1bit - дополнительно tl(ushort), tl(ushort), tl(ushort), tl(ushort)
-             * 0x0020
-             * 0x0200
-             * 0x0100 - 16bit - дополнительно 3 байт (bc), firstHitterTeamId(uint)
-             * 0x0400 - 14bit - надпись "Отсутсвует" под именем
-             * 0x1000
-             * 0x0800
-             */
-        }
-        else if (_unit is Npc npc)
-        {
-            //var flags = new BitSet(16); // short
-
-            //if (npc.IsInBattle)
-            //{
-            //    flags.Set(1);
-            //}
-            //if (npc.Invisible)
-            //{
-            //    flags.Set(5);
-            //}
-
-            //stream.Write(flags.ToByteArray()); // flags(ushort)
-
-            //if (flags.Get(1)) // если Npc в бою, то шлем дополнительные байты
-            //{
-            //    stream.WriteBc(npc.CurrentAggroTarget);  // objId бойца
-            //    stream.WriteBc(0u); // TeamId команды, кто первая нанесла удар
-            //}
-            stream.Write((ushort)0); // flags
-        }
-        else
-        {
-            stream.Write((ushort)0); // flags
+                    /*
+                    * 0x0001 - 8bit - режим боя
+                    * 0x0002 - 7bit - 
+                    * 0x0004 - 6bit - невидимость?
+                    * 0x0008 - 5bit - дуэль
+                    * 0x0010 - 4bit - 
+                    * 0x0040 - 2bit - gmmode, дополнительно 7 байт
+                    * 0x0080 - 1bit - дополнительно tl(ushort), tl(ushort), tl(ushort), tl(ushort)
+                    * 0x0020
+                    * 0x0200
+                    * 0x0100 - 16bit - дополнительно 3 байт (bc), firstHitterTeamId(uint)
+                    * 0x0400 - 14bit - надпись "Отсутсвует" под именем
+                    * 0x1000
+                    * 0x0800
+                    */
+                    break;
+                }
+            case Npc:
+                //var flags = new BitSet(16); // short
+                //if (npc.IsInBattle)
+                //    flags.Set(1);
+                //if (npc.Invisible)
+                //    flags.Set(5);
+                //stream.Write(flags.ToByteArray()); // flags(ushort)
+                //if (flags.Get(1)) // если Npc в бою, то шлем дополнительные байты
+                //{
+                //    stream.WriteBc(npc.CurrentAggroTarget);  // objId бойца
+                //    stream.WriteBc(0u); // TeamId команды, кто первая нанесла удар
+                //}
+                stream.Write((ushort)0); // flags
+                break;
+            default:
+                stream.Write((ushort)0); // flags
+                break;
         }
 
-        if (_unit is Character character6)
+        if (_unit is Character)
         {
             #region read_Abilities_6300
-            var activeAbilities = character6.Abilities.GetActiveAbilities();
-            foreach (var ability in character6.Abilities.Values)
+            var activeAbilities = character.Abilities.GetActiveAbilities();
+            foreach (var ability in character.Abilities.Values)
             {
                 stream.Write(ability.Exp);
                 stream.Write(ability.Order);
@@ -646,7 +554,7 @@ public class SCUnitStatePacket : GamePacket
             #endregion read_Abilities_6300
 
             #region read_Exp_Order_6460
-            foreach (var ability in character6.Abilities.Values)
+            foreach (var ability in character.Abilities.Values)
             {
                 stream.Write(ability.Exp);
                 stream.Write(ability.Order);  // ability.Order
