@@ -1,5 +1,6 @@
 ﻿using System;
 
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
@@ -34,17 +35,23 @@ public class TeleportToUnit : SpecialEffectAction
             return;
         }
 
-        var pos = target.Transform.World.Position;
-        var distance = value1 / 1000f;
-        var (endX, endY) = MathUtil.AddDistanceToFront(distance, target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.ToRollPitchYawDegrees().Z);
+        // value1 is the minimum distance you will be placed from the target and value2 is the maximum.
+        // value3 is the minimum rotation in degrees relative to the target's orientation, and value4 is the maximum.
+        // E.g. if rotationDegrees is 0, you will be placed in front of the target, and if rotationDegrees is 180 you will be placed behind the target.
+
+        var distance = Rand.Next(value1, value2);
+        var rotationDegrees = Rand.Next(value3, value4);
+
+        var targetPosition = target.Transform.World.Position;
+        var (endX, endY) = MathUtil.AddDistanceToFrontDeg(distance / 1000f, targetPosition.X, targetPosition.Y, target.Transform.World.ToRollPitchYawDegrees().Z + 90 + rotationDegrees);
 
         switch (caster)
         {
             case Character character:
-                character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, 0f, 0f, endX, endY, pos.Z));
+                character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, 0f, 0f, endX, endY, targetPosition.Z));
                 break;
             case Npc npc:
-                npc.MoveTowards(pos, 10000);
+                npc.MoveTowards(targetPosition, 10000);
                 npc.StopMovement();
                 break;
         }
