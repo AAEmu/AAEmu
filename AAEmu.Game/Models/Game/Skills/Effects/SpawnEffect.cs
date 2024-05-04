@@ -37,6 +37,34 @@ public class SpawnEffect : EffectTemplate
     {
         Logger.Info($"SpawnEffect: OwnerTypeId={OwnerTypeId}, SubType={SubType}, UseSummonerFaction={UseSummonerFaction}, LifeTime={LifeTime}");
 
+        var random = new Random();
+        PosAngle = PosAngleMin + (PosAngleMax - PosAngleMin) * random.NextDouble();
+        if (PosDistanceMin != 0 && PosDistanceMax != 0)
+        {
+            PosDistance = PosDistanceMin + (PosDistanceMax - PosDistanceMin) * random.NextDouble();
+        }
+        else
+        {
+            PosDistanceMin = 2;
+            PosDistanceMax = 3;
+            PosDistance = PosDistanceMin + (PosDistanceMax - PosDistanceMin) * random.NextDouble();
+        }
+
+        // dir id 1 = relative to target/spawner.
+        // dir id 2 = relative to caster.
+        var positionRelativeToUnit = PosDirId switch
+        {
+            1 => target,
+            2 => caster,
+            _ => null
+        };
+        var orientationRelativeToUnit = OriDirId switch
+        {
+            1 => target,
+            2 => caster,
+            _ => null
+        };
+
         switch (OwnerTypeId)
         {
             case BaseUnitType.Npc:
@@ -47,16 +75,26 @@ public class SpawnEffect : EffectTemplate
                         Logger.Info($"SpawnEffect: SubType={SubType} not found in spawners.");
                         return;
                     }
-                    var (xx, yy) = MathUtil.AddDistanceToFrontDeg(PosDistanceMax, target.Transform.World.Position.X, target.Transform.World.Position.Y, PosAngleMax);
-                    var zz = WorldManager.Instance.GetHeight(target.Transform.ZoneId, xx, yy);
-                    if (zz == 0)
+
+                    if (positionRelativeToUnit == null || orientationRelativeToUnit == null)
                     {
-                        zz = target.Transform.World.Position.Z;
+                        Logger.Warn($"SpawnEffect: Unhandled PosDirId {PosDirId} or OriDirId {OriDirId}");
+                        return;
                     }
+
+                    var (xx, yy) = MathUtil.AddDistanceToFrontDeg(PosDistance, positionRelativeToUnit.Transform.World.Position.X, positionRelativeToUnit.Transform.World.Position.Y, PosAngle);
+
+                    // TODO: Not sure if this is needed.
+                    //var zz = WorldManager.Instance.GetHeight(target.Transform.ZoneId, xx, yy);
+                    //if (zz == 0) {
+                    //	zz = target.Transform.World.Position.Z;
+                    //}
+
                     spawner.Position.X = xx;
                     spawner.Position.Y = yy;
-                    spawner.Position.Z = zz;
-                    spawner.Position.Yaw = PosAngleMax.DegToRad();
+                    spawner.Position.Z = positionRelativeToUnit.Transform.World.Position.Z;
+
+                    spawner.Position.Yaw = orientationRelativeToUnit.Transform.World.Rotation.Z + PosAngle.DegToRad();
 
                     spawner.RespawnTime = 0; // don't respawn
 
@@ -68,10 +106,15 @@ public class SpawnEffect : EffectTemplate
                     if (caster is Character player)
                     {
                         // TODO: Implement OriDirId, PosDirId and MateStateId
-                        using var transform = player.Transform.CloneDetached();
-                        if (PosDistanceMax == 0) { PosDistanceMax = 2; }
-                        transform.World.AddDistanceToFront(PosDistanceMax);
-                        transform.World.Rotate(transform.World.Rotation with { Z = OriAngle.DegToRad() });
+                        if (positionRelativeToUnit == null || orientationRelativeToUnit == null)
+                        {
+                            Logger.Warn($"SpawnEffect: Unhandled PosDirId {PosDirId} or OriDirId {OriDirId}");
+                            return;
+                        }
+
+                        using var transform = positionRelativeToUnit.Transform.CloneDetached();
+                        transform.World.AddDistanceToFront(PosDistance);
+                        transform.World.Rotate(transform.World.Rotation with { Z = orientationRelativeToUnit.Transform.World.Rotation.Z + OriAngle.DegToRad() });
 
                         var slave = SlaveManager.Instance.Create(SubType, transform);
                         if (slave is { Template: null })
