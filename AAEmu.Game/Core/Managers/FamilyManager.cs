@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -41,8 +42,7 @@ public class FamilyManager : Singleton<FamilyManager>
                         if (familyId == 0)
                             continue;
 
-                        var family = new Family();
-                        family.Id = familyId;
+                        var family = new Family() { Id = familyId };
                         _families.Add(family.Id, family);
 
                         using (var connection2 = MySQL.CreateConnection())
@@ -118,28 +118,60 @@ public class FamilyManager : Singleton<FamilyManager>
 
         if (invitor.Family == 0)
         {
-            var newFamily = new Family();
-            newFamily.Id = FamilyIdManager.Instance.GetNextId();
-            var owner = GetMemberForCharacter(invitor, 1, "");
-            newFamily.AddMember(owner);
-            _familyMembers.Add(owner.Id, owner);
-
-            _families.Add(newFamily.Id, newFamily);
-            invitor.Family = newFamily.Id;
-            invitor.SendPacket(new SCFamilyCreatedPacket(newFamily));
-            ChatManager.Instance.GetFamilyChat(newFamily.Id)?.JoinChannel(invitor);
+            CreateFamily(invitor, invitedChar, title);
         }
+        else
+        {
+            var family = _families[invitor.Family];
 
-        var family = _families[invitor.Family];
-        var member = GetMemberForCharacter(invitedChar, 0, title);
-        family.AddMember(member);
-        _familyMembers.Add(member.Id, member);
-        invitedChar.Family = invitor.Family;
+            AddFamilyMember(family, invitedChar, title);
+            family.SendPacket(new SCFamilyMemberAddedPacket(family, family.Members.Count - 1));
+            SaveFamily(family);
+        }
+    }
 
-        family.SendPacket(new SCFamilyMemberAddedPacket(family, family.Members.Count - 1));
+    private Family CreateFamily(Character invitor, Character invitedChar, string invitedCharTitle)
+    {
+        var family = new Family
+        {
+            Id = FamilyIdManager.Instance.GetNextId()
+        };
+
+        AddFamilyMember(family, invitor);
+        AddFamilyMember(family, invitedChar, invitedCharTitle);
+
+        _families.Add(family.Id, family);
+
+        family.SendPacket(new SCFamilyCreatedPacket(family));
 
         SaveFamily(family);
-        ChatManager.Instance.GetFamilyChat(family.Id)?.JoinChannel(invitedChar);
+
+        return family;
+    }
+
+    /// <summary>
+    /// Adds a character to a family.
+    /// </summary>
+    /// <param name="family">The family to add the character to.</param>
+    /// <param name="character">The character to add to the family.</param>
+    /// <param name="title">The title given to the character by the family owner. Only used if the character is not also the owner.</param>
+    /// <remarks>
+    /// If the family is empty, the first call to this method will add the character as the owner of the family.
+    /// The character is joined to the family chat channel.
+    /// This method does not send any packets, and no checks are made as to whether the character is already in a family.
+    /// </remarks>
+    private void AddFamilyMember(Family family, Character character, string title = null)
+    {
+        var isOwner = family.Members.Count == 0;
+        var ownerFlag = (byte)(isOwner ? 1 : 0);
+        if (isOwner || title == null) title = "";
+
+        var member = GetMemberForCharacter(character, ownerFlag, title);
+        family.AddMember(member);
+        _familyMembers.Add(member.Id, member);
+        character.Family = family.Id;
+
+        ChatManager.Instance.GetFamilyChat(family.Id)?.JoinChannel(character);
     }
 
     /// <summary>
@@ -324,10 +356,10 @@ public class FamilyManager : Singleton<FamilyManager>
     /// <returns></returns>
     private static FamilyMember GetMemberForCharacter(Character character, byte owner, string title)
     {
-        return new FamilyMember { 
-            Character = character, 
-            Id = character.Id, 
-            Name = character.Name, 
+        return new FamilyMember {
+            Character = character,
+            Id = character.Id,
+            Name = character.Name,
             Role = owner,
             Title = title
         };
