@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Shipyard;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -240,15 +241,13 @@ public class SCUnitStatePacket : GamePacket
                     stream.Write(character.HighAbilityRsc);                  // highAbilityRsc
 
                     var hcount = skillList.Count;
-                    var index = 0;
-                    do
+                    if (hcount > 0)
                     {
-                        var pcount = 4;
+                        var index = 0;
                         do
                         {
-                            if (hcount > 4)
-                                hcount -= pcount;
-                            else
+                            var pcount = 4;
+                            if (hcount <= 4)
                                 pcount = hcount;
                             switch (pcount)
                             {
@@ -266,35 +265,32 @@ public class SCUnitStatePacket : GamePacket
                                     }
                                 case 3:
                                     {
-                                        stream.WritePisc(skillList[index].Id, skillList[index + 1].Id, skillList[index + 2].Id);
+                                        stream.WritePisc(skillList[index].Id, skillList[index + 1].Id,
+                                            skillList[index + 2].Id);
                                         index += 3;
                                         break;
                                     }
                                 case 4:
                                     {
-                                        stream.WritePisc(skillList[index].Id, skillList[index + 1].Id, skillList[index + 2].Id, skillList[index + 3].Id);
+                                        stream.WritePisc(skillList[index].Id, skillList[index + 1].Id,
+                                            skillList[index + 2].Id, skillList[index + 3].Id);
                                         index += 4;
                                         break;
                                     }
                             }
-
-                            pcount -= index;
-                        } while (pcount > 0);
-
-                        hcount -= index;
-                    } while (hcount > 0);
+                            hcount -= pcount;
+                        } while (hcount > 0);
+                    }
 
                     var buffList = character.Skills.PassiveBuffs.Values.ToList();
-                    hcount = buffList.Count;
-                    index = 0;
-                    do
+                    if (buffList.Count > 0)
                     {
-                        var pcount = 4;
+                        hcount = buffList.Count;
+                        var index = 0;
                         do
                         {
-                            if (hcount > 4)
-                                hcount -= pcount;
-                            else
+                            var pcount = 4;
+                            if (hcount <= 4)
                                 pcount = hcount;
                             switch (pcount)
                             {
@@ -306,34 +302,53 @@ public class SCUnitStatePacket : GamePacket
                                     }
                                 case 2:
                                     {
-                                        stream.WritePisc(buffList[index].Template.BuffId, buffList[index + 1].Template.BuffId);
+                                        stream.WritePisc(buffList[index].Template.BuffId,
+                                            buffList[index + 1].Template.BuffId);
                                         index += 2;
                                         break;
                                     }
                                 case 3:
                                     {
-                                        stream.WritePisc(buffList[index].Template.BuffId, buffList[index + 1].Template.BuffId, buffList[index + 2].Template.BuffId);
+                                        stream.WritePisc(buffList[index].Template.BuffId,
+                                            buffList[index + 1].Template.BuffId,
+                                            buffList[index + 2].Template.BuffId);
                                         index += 3;
                                         break;
                                     }
                                 case 4:
                                     {
-                                        stream.WritePisc(buffList[index].Template.BuffId, buffList[index + 1].Template.BuffId, buffList[index + 2].Template.BuffId, buffList[index + 3].Template.BuffId);
+                                        stream.WritePisc(buffList[index].Template.BuffId,
+                                            buffList[index + 1].Template.BuffId,
+                                            buffList[index + 2].Template.BuffId,
+                                            buffList[index + 3].Template.BuffId);
                                         index += 4;
                                         break;
                                     }
                             }
-
-                            pcount -= index;
-                        } while (pcount > 0);
-
-                        hcount -= index;
-                    } while (hcount > 0);
+                            hcount -= pcount;
+                        } while (hcount > 0);
+                    }
                     break;
                 }
             case Npc:
                 {
                     var skills = new List<NpcSkill>();
+
+                    if (npc.Template.BaseSkillId > 0)
+                    {
+                        var baseSkill = new NpcSkill
+                        {
+                            Id = 0,
+                            OwnerId = npc.TemplateId,
+                            OwnerType = "Npc",
+                            SkillId = (uint)npc.Template.BaseSkillId,
+                            SkillUseCondition = SkillUseConditionKind.InCombat,
+                            SkillUseParam1 = 0,
+                            SkillUseParam2 = 0
+                        };
+                        skills.Add(baseSkill);
+                    }
+
                     foreach (var sl in npc.Template.Skills.Values)
                         skills.AddRange(sl);
 
@@ -346,15 +361,13 @@ public class SCUnitStatePacket : GamePacket
                     stream.Write(npc.HighAbilityRsc);                    // highAbilityRsc
 
                     var hcount = skills.Count;
-                    var index = 0;
-                    do
+                    if (hcount > 0)
                     {
-                        var pcount = 4;
+                        var index = 0;
                         do
                         {
-                            if (hcount > 4)
-                                hcount -= pcount;
-                            else
+                            var pcount = 4;
+                            if (hcount <= 4)
                                 pcount = hcount;
                             switch (pcount)
                             {
@@ -372,70 +385,61 @@ public class SCUnitStatePacket : GamePacket
                                     }
                                 case 3:
                                     {
-                                        stream.WritePisc(skills[index].SkillId, skills[index + 1].SkillId, skills[index + 2].SkillId);
+                                        stream.WritePisc(skills[index].SkillId, skills[index + 1].SkillId,
+                                            skills[index + 2].SkillId);
                                         index += 3;
                                         break;
                                     }
                                 case 4:
                                     {
-                                        stream.WritePisc(skills[index].SkillId, skills[index + 1].SkillId, skills[index + 2].SkillId, skills[index + 3].SkillId);
+                                        stream.WritePisc(skills[index].SkillId, skills[index + 1].SkillId,
+                                            skills[index + 2].SkillId, skills[index + 3].SkillId);
                                         index += 4;
                                         break;
                                     }
                             }
-
-                            pcount -= index;
-                        } while (pcount > 0);
-
-                        hcount -= index;
-                    } while (hcount > 0);
+                            hcount -= pcount;
+                        } while (hcount > 0);
+                    }
 
                     var buffs = npc.Template.PassiveBuffs;
                     if (buffs.Count > 0)
                     {
                         hcount = buffs.Count;
-                        index = 0;
+                        var index = 0;
                         do
                         {
                             var pcount = 4;
-                            do
+                            if (hcount <= 4)
+                                pcount = hcount;
+                            switch (pcount)
                             {
-                                if (hcount > 4)
-                                    hcount -= pcount;
-                                else
-                                    pcount = hcount;
-                                switch (pcount)
-                                {
-                                    case 1:
-                                        {
-                                            stream.WritePisc(buffs[index].PassiveBuffId);
-                                            index += 1;
-                                            break;
-                                        }
-                                    case 2:
-                                        {
-                                            stream.WritePisc(buffs[index].PassiveBuffId, buffs[index + 1].PassiveBuffId);
-                                            index += 2;
-                                            break;
-                                        }
-                                    case 3:
-                                        {
-                                            stream.WritePisc(buffs[index].PassiveBuffId, buffs[index + 1].PassiveBuffId, buffs[index + 2].PassiveBuffId);
-                                            index += 3;
-                                            break;
-                                        }
-                                    case 4:
-                                        {
-                                            stream.WritePisc(buffs[index].PassiveBuffId, buffs[index + 1].PassiveBuffId, buffs[index + 2].PassiveBuffId, buffs[index + 3].PassiveBuffId);
-                                            index += 4;
-                                            break;
-                                        }
-                                }
-
-                                pcount -= index;
-                            } while (pcount > 0);
-
-                            hcount -= index;
+                                case 1:
+                                    {
+                                        stream.WritePisc(buffs[index].PassiveBuffId);
+                                        index += 1;
+                                        break;
+                                    }
+                                case 2:
+                                    {
+                                        stream.WritePisc(buffs[index].PassiveBuffId, buffs[index + 1].PassiveBuffId);
+                                        index += 2;
+                                        break;
+                                    }
+                                case 3:
+                                    {
+                                        stream.WritePisc(buffs[index].PassiveBuffId, buffs[index + 1].PassiveBuffId, buffs[index + 2].PassiveBuffId);
+                                        index += 3;
+                                        break;
+                                    }
+                                case 4:
+                                    {
+                                        stream.WritePisc(buffs[index].PassiveBuffId, buffs[index + 1].PassiveBuffId, buffs[index + 2].PassiveBuffId, buffs[index + 3].PassiveBuffId);
+                                        index += 4;
+                                        break;
+                                    }
+                            }
+                            hcount -= pcount;
                         } while (hcount > 0);
                     }
                     break;
