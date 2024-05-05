@@ -968,6 +968,7 @@ public class Inventory
 
     public void OnItemManuallyDestroyed(Item item, int count)
     {
+        item?.OnManuallyDestroyingItem();
         if (item?.Template.LootQuestId > 0)
             if (Owner.Quests.HasQuest(item.Template.LootQuestId))
                 Owner.Quests.Drop(item.Template.LootQuestId, true);

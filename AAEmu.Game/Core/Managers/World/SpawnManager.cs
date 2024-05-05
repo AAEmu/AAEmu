@@ -446,7 +446,7 @@ public class SpawnManager : Singleton<SpawnManager>
         using var connection = MySQL.CreateConnection();
         using (var command = connection.CreateCommand())
         {
-            // Sorting required to make make sure parenting doesn't produce invalid parents (normally)
+            // Sorting required to make sure parenting doesn't produce invalid parents (normally)
 
             command.CommandText = "SELECT * FROM doodads  WHERE owner_type = @OwnerType";
             if (ownerToSpawnId >= 0)
@@ -503,7 +503,7 @@ public class SpawnManager : Singleton<SpawnManager>
                     // Try to grab info from the actual item if it still exists
                     var sourceItem = ItemManager.Instance.GetItemByItemId(itemId);
                     doodad.ItemTemplateId = sourceItem?.TemplateId ?? itemTemplateId;
-                    // Grab Ucc from it's old source item
+                    // Grab Ucc from its old source item
                     doodad.UccId = sourceItem?.UccId ?? 0;
                     doodad.SetData(data); // Directly assigning to Data property would trigger a .Save()
 
