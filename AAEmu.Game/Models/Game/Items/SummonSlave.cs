@@ -2,6 +2,8 @@
 using System.Numerics;
 
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Items;
@@ -32,10 +34,12 @@ public class SummonSlave : Item
 
     public SummonSlave()
     {
+        //
     }
 
     public SummonSlave(ulong id, ItemTemplate template, int count) : base(id, template, count)
     {
+        //
     }
 
     public override void ReadDetails(PacketStream stream)
@@ -49,10 +53,7 @@ public class SummonSlave : Item
         {
             // Read time of something else than 0
             var timeBytes = stream.ReadBytes(4);
-            if (Convert.ToInt32(timeBytes) != 0)
-                RepairStartTime = Convert.ToDateTime(timeBytes);
-            else
-                RepairStartTime = DateTime.MinValue;
+            RepairStartTime = Convert.ToInt32(timeBytes) != 0 ? Convert.ToDateTime(timeBytes) : DateTime.MinValue;
 
             // Read remaining bytes
             _ = stream.ReadBytes((int)DetailBytesLength - 1 - 4 - 4); // Filler, Equipment?
@@ -83,5 +84,28 @@ public class SummonSlave : Item
         stream.Write(0);
         stream.Write(0);
         stream.Write(0);
+    }
+
+    public override void OnManuallyDestroyingItem()
+    {
+        if (!SlaveManager.Instance.OnDeleteSlaveItem(this))
+            Logger.Warn($"Failed to delete Slave attached to Item Id: {Id}, Type: {TemplateId}");
+    }
+
+    public override bool CanDestroy()
+    {
+        // TODO: Always allow expired items to be removed regardless if summoned or not 
+        var owner = WorldManager.Instance.GetCharacterById((uint)OwnerId);
+        if (owner != null)
+        {
+            var checkSlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(owner.ObjId);
+            if (checkSlave?.Id == SlaveDbId)
+            {
+                owner.SendErrorMessage(ErrorMessageType.SlaveSpawnItemLocked);
+                return false;
+            }
+        }
+
+        return true;
     }
 }

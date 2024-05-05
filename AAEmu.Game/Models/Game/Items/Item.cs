@@ -376,4 +376,17 @@ public class Item : PacketMarshaler, IComparable<Item>
     {
         ItemFlags &= ~flag;
     }
+
+    /// <summary>
+    /// Called just before a item is getting destroyed
+    /// </summary>
+    public virtual void OnManuallyDestroyingItem()
+    {
+        
+    }
+
+    public virtual bool CanDestroy()
+    {
+        return true;
+    }
 }

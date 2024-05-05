@@ -37,6 +37,8 @@ public class Slave : Unit
     public SlaveTemplate Template { get; set; }
     // public Character Driver { get; set; }
     public Character Summoner { get; set; }
+    public BaseUnitType OwnerType { get; set; }
+    
     public Item SummoningItem { get; set; }
     public List<Doodad> AttachedDoodads { get; set; }
     public List<Slave> AttachedSlaves { get; set; }
@@ -618,9 +620,15 @@ public class Slave : Unit
         character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
     }
 
-    public void DoDamage(int damage, bool isPercent = true, KillReason killReason = KillReason.Damage)
+    /// <summary>
+    /// Damage handler used by BoatPhysics
+    /// </summary>
+    /// <param name="damage"></param>
+    /// <param name="isPercent"></param>
+    /// <param name="killReason"></param>
+    public void DoFloorCollisionDamage(int damage, bool isPercent = true, KillReason killReason = KillReason.Damage)
     {
-        // If % based, calculate it's damage
+        // If % based, calculate its damage
         if (isPercent)
         {
             damage = MaxHp * damage / 100;
@@ -655,12 +663,15 @@ public class Slave : Unit
         Summoner?.SendPacket(new SCSlaveRemovedPacket(ObjId, TlId));
     }
 
+    /// <summary>
+    /// Destroys (de-spawns) any child doodads and slaves and drops trade packs if present in a random 1m range to the center of the vehicle
+    /// </summary>
     private void DestroyAttachedItems()
     {
         // Destroy Doodads
         foreach (var doodad in AttachedDoodads)
         {
-            // Check if the doodad held a item
+            // Check if the doodad held an item
             if (doodad.ItemId > 0)
             {
                 var droppedItem = ItemManager.Instance.GetItemByItemId(doodad.ItemId);
@@ -743,6 +754,9 @@ public class Slave : Unit
         }
     }
 
+    /// <summary>
+    /// Creates the random debris created by destroying some of the vehicles (mostly ships)
+    /// </summary>
     private void DistributeSlaveDropDoodads()
     {
         foreach (var dropDoodad in Template.SlaveDropDoodads)
@@ -771,6 +785,9 @@ public class Slave : Unit
         }
     }
 
+    /// <summary>
+    /// Updates the summon item data as being destroyed
+    /// </summary>
     private void MarkSummoningItemAsDestroyed()
     {
         if (SummoningItem is not SummonSlave item)
@@ -782,6 +799,10 @@ public class Slave : Unit
         Summoner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.MateDeath, new ItemUpdate(item), new List<ulong>()));
     }
 
+    /// <summary>
+    /// Creates a new DB connection and calls the Save function
+    /// </summary>
+    /// <returns></returns>
     public bool Save()
     {
         if (Id <= 0 || SummoningItem == null)
@@ -791,12 +812,18 @@ public class Slave : Unit
         return Save(connection, null);
     }
 
+    /// <summary>
+    /// Saves vehicle data to DB
+    /// </summary>
+    /// <param name="connection"></param>
+    /// <param name="transaction"></param>
+    /// <returns></returns>
     public bool Save(MySqlConnection connection, MySqlTransaction transaction)
     {
-        if (Id <= 0 || SummoningItem == null)
+        if (Id <= 0)
             return false;
 
-        var result = false;
+        bool result;
         try
         {
             using var command = connection.CreateCommand();
@@ -805,11 +832,15 @@ public class Slave : Unit
                 command.Transaction = transaction;
 
             command.CommandText =
-                "REPLACE INTO slaves(`id`,`item_id`,`name`,`owner`,`updated_at`,`hp`,`mp`,`x`,`y`,`z`) " +
-                "VALUES (@id, @item_id, @name, @owner, @updated_at, @hp, @mp, @x, @y, @z)";
+                "REPLACE INTO slaves(`id`,`item_id`,`template_id`,`attach_point`,`name`,`owner_type`,`owner_id`,`summoner`,`updated_at`,`hp`,`mp`,`x`,`y`,`z`) " +
+                "VALUES (@id, @item_id, @templateId, @attachPoint, @name, @ownerType, @ownerId, @owner, @updated_at, @hp, @mp, @x, @y, @z)";
             command.Parameters.AddWithValue("@id", Id);
             command.Parameters.AddWithValue("@item_id", SummoningItem?.Id ?? 0);
-            command.Parameters.AddWithValue("@owner", Summoner?.Id ?? OwnerId);
+            command.Parameters.AddWithValue("@templateId", Template.Id);
+            command.Parameters.AddWithValue("@attachPoint", AttachPointId);
+            command.Parameters.AddWithValue("@ownerType", (byte)OwnerType);
+            command.Parameters.AddWithValue("@ownerId", OwnerId);
+            command.Parameters.AddWithValue("@owner", Summoner?.Id ?? 0);
             command.Parameters.AddWithValue("@name", Name);
             command.Parameters.AddWithValue("@hp", Hp);
             command.Parameters.AddWithValue("@mp", Mp);
@@ -825,6 +856,11 @@ public class Slave : Unit
             Logger.Error(ex);
             result = false;
         }
+
+        // Also save its children if needed
+        foreach(var child in AttachedSlaves)
+            if (child.Id > 0)
+                child.Save(connection, transaction);
 
         return result;
     }
@@ -860,5 +896,4 @@ public class Slave : Unit
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc), false);
         PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
-
 }

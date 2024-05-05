@@ -267,7 +267,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
         var slaveRotRad = rpy.Item1 + 90 * (MathF.PI / 180.0f);
 
         var forceThrottle = slave.Speed * slave.MoveSpeedMul; // Not sure if correct, but it feels correct
-                                                              // Apply directional force
+        // Apply directional force
         rigidBody.AddForce(new JVector(forceThrottle * rigidBody.Mass * MathF.Cos(slaveRotRad), 0.0f, forceThrottle * rigidBody.Mass * MathF.Sin(slaveRotRad)));
 
         var steer = slave.RotSpeed * 60f;
@@ -277,7 +277,7 @@ public class BoatPhysicsManager//: Singleton<BoatPhysicsManager>
 
         // Calculate Steering Force based on bounding box
         var steerForce = -steer * (solidVolume * boxSize.X * boxSize.Y / 172.5f * 2f); // Totally random value, but it feels right
-                                                                                       //var steerForce = -steer * solidVolume ;
+        //var steerForce = -steer * solidVolume ;
         rigidBody.AddTorque(new JVector(0, steerForce, 0));
 
         /*
