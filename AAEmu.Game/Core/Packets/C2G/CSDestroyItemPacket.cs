@@ -12,6 +12,7 @@ public class CSDestroyItemPacket : GamePacket
 {
     public CSDestroyItemPacket() : base(CSOffsets.CSDestroyItemPacket, 1)
     {
+        //
     }
 
     public override void Read(PacketStream stream)
@@ -46,6 +47,7 @@ public class CSDestroyItemPacket : GamePacket
             if (!item._holdingContainer.RemoveItem(ItemTaskType.Destroy, item, true))
             {
                 Logger.Warn("DestroyItem: Failed to destroy item...");
+                return;
             }
             // Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemRemove(item) }, new List<ulong>()));
         }
