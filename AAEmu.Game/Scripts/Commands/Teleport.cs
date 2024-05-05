@@ -366,9 +366,9 @@ public class Teleport : ICommand
             Region = TeleportCommandRegions.Auroria,
             Name = "sungold",
             Info = "Sungold Fields",
-            X = 22349,
-            Y = 24941,
-            Z = 189
+            X = 22122,
+            Y = 26412,
+            Z = 163
         });
         // locations.Add(new TPloc { Region = TeleReg.Origin, Name = "whalesong", Info = "Whalesong Harbor", X = 14436, Y = 26696, Z = 135, altNames = ("whale"} });
         #endregion

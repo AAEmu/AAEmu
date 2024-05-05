@@ -475,8 +475,12 @@ DROP TABLE IF EXISTS `slaves`;
 CREATE TABLE `slaves` (
 	`id` INT(10) UNSIGNED NOT NULL,
 	`item_id` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Item that is used to summon this vehicle',
+	`template_id` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Slave template Id of this vehicle',
+	`attach_point` INT(10) NULL DEFAULT NULL COMMENT 'Binding point Id',
 	`name` TEXT NULL DEFAULT NULL COLLATE 'utf8mb4_general_ci',
-	`owner` INT(10) UNSIGNED NULL DEFAULT NULL,
+	`owner_type` INT(10) UNSIGNED NULL DEFAULT '0' COMMENT 'Parent unit type',
+	`owner_id` INT(10) UNSIGNED NULL DEFAULT '0' COMMENT 'Parent unit DB Id',
+	`summoner` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Owning player',
 	`created_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
 	`updated_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
 	`hp` INT(11) NULL DEFAULT NULL,

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -10,8 +10,8 @@ public class Family : PacketMarshaler
 {
     private List<uint> _removedMembers;
 
-    public uint Id { get; set; }
-    public List<FamilyMember> Members { get; set; }
+    public uint Id { get; init; }
+    public List<FamilyMember> Members { get; } = new();
 
     public Family()
     {
@@ -29,9 +29,6 @@ public class Family : PacketMarshaler
 
     public void AddMember(FamilyMember member)
     {
-        if (Members == null)
-            Members = new List<FamilyMember>();
-
         Members.Add(member);
     }
 

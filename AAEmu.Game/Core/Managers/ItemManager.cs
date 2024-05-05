@@ -71,6 +71,7 @@ public class ItemManager : Singleton<ItemManager>
     private Dictionary<uint, ItemProcTemplate> _itemProcTemplates;
     private Dictionary<ArmorType, Dictionary<ItemGrade, ArmorGradeBuff>> _armorGradeBuffs;
     private Dictionary<uint, EquipItemSet> _equipItemSets;
+    private Dictionary<uint, uint> _defaultDyeIds;
 
     // Events
     public event EventHandler OnItemsLoaded;
@@ -506,6 +507,13 @@ public class ItemManager : Singleton<ItemManager>
         return null;
     }
 
+    public uint GetDyeableItemDefaultDyeId(uint itemId)
+    {
+        if (_defaultDyeIds.TryGetValue(itemId, out var dyeItemId))
+            return dyeItemId;
+        return 0;
+    }
+
     public ItemProcTemplate GetItemProcTemplate(uint templateId)
     {
         if (_itemProcTemplates.TryGetValue(templateId, out var template))
@@ -619,6 +627,7 @@ public class ItemManager : Singleton<ItemManager>
         _armorGradeBuffs = new Dictionary<ArmorType, Dictionary<ItemGrade, ArmorGradeBuff>>();
         _itemUnitModifiers = new Dictionary<uint, List<BonusTemplate>>();
         _equipItemSets = new Dictionary<uint, EquipItemSet>();
+        _defaultDyeIds = new Dictionary<uint, uint>();
         _config = new ItemConfig();
         ItemTimerLock = new();
         LastTimerCheck = DateTime.UtcNow;
@@ -848,6 +857,20 @@ public class ItemManager : Singleton<ItemManager>
                 }
             }
 
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM dyeable_items";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        _defaultDyeIds.Add(reader.GetUInt32("item_id"), reader.GetUInt32("default_dyeing_item_id"));
+                    }
+                }
+            }
+
             // Item stat bonuses (when equipped)
             using (var command = connection.CreateCommand())
             {
@@ -931,12 +954,13 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
+                        var id = reader.GetUInt32("item_id");
                         var slotTypeId = reader.GetUInt32("slot_type_id");
                         var typeId = reader.GetUInt32("type_id");
 
                         var template = new ArmorTemplate
                         {
-                            Id = reader.GetUInt32("item_id"),
+                            Id = id,
                             WearableTemplate = _wearables[typeId * 128 + slotTypeId],
                             KindTemplate = _wearableKinds[typeId],
                             SlotTemplate = _wearableSlots[slotTypeId],
@@ -949,7 +973,8 @@ public class ItemManager : Singleton<ItemManager>
                             ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
                             ChargeCount = reader.GetInt32("charge_count", 0),
                             ItemLookConvert = GetWearableItemLookConvert(slotTypeId),
-                            EquipItemSetId = reader.GetUInt32("eiset_id", 0)
+                            EquipItemSetId = reader.GetUInt32("eiset_id", 0),
+                            DefaultDyeItemId = GetDyeableItemDefaultDyeId(id)
                         };
                         _templates.Add(template.Id, template);
                     }

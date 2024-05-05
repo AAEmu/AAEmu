@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Numerics;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
@@ -45,16 +45,41 @@ public class SpawnEffect : EffectTemplate
                         Logger.Info($"SpawnEffect: SubType={SubType} not found in spawners.");
                         return;
                     }
-                    var (xx, yy) = MathUtil.AddDistanceToFrontDeg(PosDistance, target.Transform.World.Position.X, target.Transform.World.Position.Y, PosAngle);
-                    var zz = WorldManager.Instance.GetHeight(target.Transform.ZoneId, xx, yy);
-                    if (zz == 0)
+
+                    // dir id 1 = relative to target/spawner.
+                    // dir id 2 = relative to caster.
+                    var positionRelativeToUnit = PosDirId switch
                     {
-                        zz = target.Transform.World.Position.Z;
+                        1 => target,
+                        2 => caster,
+                        _ => null
+                    };
+                    var orientationRelativeToUnit = OriDirId switch
+                    {
+                        1 => target,
+                        2 => caster,
+                        _ => null
+                    };
+
+                    if (positionRelativeToUnit == null || orientationRelativeToUnit == null)
+                    {
+                        Logger.Warn($"SpawnEffect: Unhandled PosDirId {PosDirId} or OriDirId {OriDirId}");
+                        return;
                     }
+
+                    var (xx, yy) = MathUtil.AddDistanceToFrontDeg(PosDistance, positionRelativeToUnit.Transform.World.Position.X, positionRelativeToUnit.Transform.World.Position.Y, PosAngle);
+
+                    // TODO: Not sure if this is needed.
+                    //var zz = WorldManager.Instance.GetHeight(target.Transform.ZoneId, xx, yy);
+                    //if (zz == 0) {
+                    //	zz = target.Transform.World.Position.Z;
+                    //}
+
                     spawner.Position.X = xx;
                     spawner.Position.Y = yy;
-                    spawner.Position.Z = zz;
-                    spawner.Position.Yaw = PosAngle;
+                    spawner.Position.Z = positionRelativeToUnit.Transform.World.Position.Z;
+
+                    spawner.Position.Yaw = orientationRelativeToUnit.Transform.World.Rotation.Z + OriAngle.DegToRad();
 
                     spawner.RespawnTime = 0; // don't respawn
 
@@ -65,10 +90,11 @@ public class SpawnEffect : EffectTemplate
                 {
                     if (caster is Character player)
                     {
-                        var transform = player.Transform.CloneDetached();
+                        // TODO: Implement OriDirId, PosDirId and MateStateId
+                        using var transform = player.Transform.CloneDetached();
                         if (PosDistance == 0) { PosDistance = 2; }
                         transform.World.AddDistanceToFront(PosDistance);
-                        transform.World.Rotate(transform.World.Rotation with { Z = OriAngle });
+                        transform.World.Rotate(transform.World.Rotation with { Z = OriAngle.DegToRad() });
 
                         var slave = SlaveManager.Instance.Create(SubType, true, transform);
                         if (slave is { Template: null })
