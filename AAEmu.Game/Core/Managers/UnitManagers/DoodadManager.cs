@@ -22,6 +22,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
+using MySql.Data.MySqlClient;
 using NLog;
 
 // ReSharper disable ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
@@ -426,7 +427,7 @@ public class DoodadManager : Singleton<DoodadManager>
                 }
             }
 
-            // doodad_func_cleanupLoggeric_links
+            // doodad_func_cleanup_logic_links
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_cleanup_logic_links";
@@ -2815,17 +2816,16 @@ public class DoodadManager : Singleton<DoodadManager>
 
     public DoodadFunc GetFunc(uint funcId)
     {
-        return _funcsById.TryGetValue(funcId, out var res) ? res : null;
+        return _funcsById.GetValueOrDefault(funcId);
     }
 
     public DoodadFunc GetFunc(uint funcGroupId, uint skillId)
     {
-        if (!_funcsByGroups.ContainsKey(funcGroupId))
+        if (!_funcsByGroups.TryGetValue(funcGroupId, out var funcsInGroup))
         {
             return null;
         }
 
-        var funcsInGroup = _funcsByGroups[funcGroupId];
         foreach (var func in funcsInGroup)
         {
             if (func.SkillId == skillId)
@@ -2835,14 +2835,13 @@ public class DoodadManager : Singleton<DoodadManager>
 
             var funcTemplate = GetFuncTemplate(func.FuncId, func.FuncType);
             // Special handler for fake use skill id
-            if (funcTemplate is DoodadFuncFakeUse fakeUseTemplate && fakeUseTemplate.FakeSkillId > 0 &&
-                fakeUseTemplate.FakeSkillId == skillId)
+            if (funcTemplate is DoodadFuncFakeUse { FakeSkillId: > 0 } fakeUseTemplate && fakeUseTemplate.FakeSkillId == skillId)
             {
                 return func;
             }
 
             // Special handler for use (func) skill id
-            if (funcTemplate is DoodadFuncUse useTemplate && useTemplate.SkillId > 0 && useTemplate.SkillId == skillId)
+            if (funcTemplate is DoodadFuncUse { SkillId: > 0 } useTemplate && useTemplate.SkillId == skillId)
             {
                 return func;
             }
@@ -2886,18 +2885,17 @@ public class DoodadManager : Singleton<DoodadManager>
             return null;
         }
 
-        return funcs.TryGetValue(funcId, out var template) ? template : null;
+        return funcs.GetValueOrDefault(funcId);
     }
 
     public DoodadPhaseFuncTemplate GetPhaseFuncTemplate(uint funcId, string funcType)
     {
-        if (!_phaseFuncTemplates.ContainsKey(funcType))
+        if (!_phaseFuncTemplates.TryGetValue(funcType, out var funcs))
         {
             return null;
         }
 
-        var funcs = _phaseFuncTemplates[funcType];
-        return funcs.TryGetValue(funcId, out var template) ? template : null;
+        return funcs.GetValueOrDefault(funcId);
     }
 
 
@@ -3123,5 +3121,66 @@ public class DoodadManager : Singleton<DoodadManager>
         return _doodadFuncConsumeChangerItem.Values
             .Where(d => d.DoodadFuncConsumeChangerId == doodadFuncConsumeChangerId).Select(entry => entry.ItemId)
             .ToList();
+    }
+
+    /// <summary>
+    /// Deletes a persistent doodad directly from DB (do not use on spawned doodads)
+    /// </summary>
+    /// <param name="connection"></param>
+    /// <param name="transaction"></param>
+    /// <param name="dbId">Doodad DB Id</param>
+    public void DeleteDoodadById(MySqlConnection connection, MySqlTransaction transaction, uint dbId)
+    {
+        // First grab the doodad data from the DB to check if there are items attached
+        ulong attachedItemId = 0u;
+        ulong attachedContainer = 0u;
+        using (var command = connection.CreateCommand())
+        {
+            if (transaction != null)
+                command.Transaction = transaction;
+            
+            // First grab item related data
+            command.CommandText = "SELECT * FROM doodads WHERE id = @id LIMIT 1";
+            command.Parameters.AddWithValue("@id", dbId);
+            command.Prepare();
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    attachedItemId = reader.GetUInt32("item_id");
+                    attachedContainer = reader.GetUInt32("item_container_id");
+                }
+            }
+            
+            // Actually delete the doodad from DB
+            command.CommandText = "DELETE FROM doodads WHERE id = @id";
+            // command.Parameters.AddWithValue("@id", dbId); // recycled from above
+            command.Prepare();
+            if (command.ExecuteNonQuery() <= 0)
+            {
+                Logger.Error($"Failed to delete doodad from DB Id: {dbId}");
+                return;
+            }
+        }
+        DoodadIdManager.Instance.ReleaseId(dbId); // Free up the Id
+        
+        // Handle attached items
+        if (attachedItemId > 0)
+        {
+            var item = ItemManager.Instance.GetItemByItemId(attachedItemId);
+            if (item != null)
+            {
+                item._holdingContainer = null;
+                ItemManager.Instance.ReleaseId(item.Id);
+            }
+        }
+
+        // Delete attached container
+        if (attachedContainer > 0)
+        {
+            var container = ItemManager.Instance.GetItemContainerByDbId(attachedContainer);
+            if (container != null)
+                ItemManager.Instance.DeleteItemContainer(container);
+        }
     }
 }

@@ -8,13 +8,14 @@ public class CSDespawnSlavePacket : GamePacket
 {
     public CSDespawnSlavePacket() : base(CSOffsets.CSDespawnSlavePacket, 1)
     {
+        //
     }
 
     public override void Read(PacketStream stream)
     {
         var slaveObjId = stream.ReadBc();
 
-        //Logger.Debug("DespawnSlave, SlaveObjId: {0}", slaveObjId);
-        SlaveManager.Instance.Delete(Connection.ActiveChar, slaveObjId);
+        // Logger.Debug($"DespawnSlave, SlaveObjId: {slaveObjId}");
+        SlaveManager.Instance.Delete(Connection.ActiveChar, slaveObjId, false);
     }
 }
