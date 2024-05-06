@@ -38,16 +38,17 @@ public class SpawnEffect : EffectTemplate
         Logger.Info($"SpawnEffect: OwnerTypeId={OwnerTypeId}, SubType={SubType}, UseSummonerFaction={UseSummonerFaction}, LifeTime={LifeTime}");
 
         var random = new Random();
-        PosAngle = PosAngleMin + (PosAngleMax - PosAngleMin) * random.NextDouble();
+        var PosAngle = (float)(PosAngleMin + (PosAngleMax - PosAngleMin) * random.NextDouble());
+        float PosDistance;
         if (PosDistanceMin != 0 && PosDistanceMax != 0)
         {
-            PosDistance = PosDistanceMin + (PosDistanceMax - PosDistanceMin) * random.NextDouble();
+            PosDistance = (float)(PosDistanceMin + (PosDistanceMax - PosDistanceMin) * random.NextDouble());
         }
         else
         {
             PosDistanceMin = 2;
             PosDistanceMax = 3;
-            PosDistance = PosDistanceMin + (PosDistanceMax - PosDistanceMin) * random.NextDouble();
+            PosDistance = (float)(PosDistanceMin + (PosDistanceMax - PosDistanceMin) * random.NextDouble());
         }
 
         // dir id 1 = relative to target/spawner.
@@ -65,6 +66,12 @@ public class SpawnEffect : EffectTemplate
             _ => null
         };
 
+        if (positionRelativeToUnit == null || orientationRelativeToUnit == null)
+        {
+            Logger.Warn($"SpawnEffect: Unhandled PosDirId {PosDirId} or OriDirId {OriDirId}");
+            return;
+        }
+
         switch (OwnerTypeId)
         {
             case BaseUnitType.Npc:
@@ -73,12 +80,6 @@ public class SpawnEffect : EffectTemplate
                     if (spawner == null)
                     {
                         Logger.Info($"SpawnEffect: SubType={SubType} not found in spawners.");
-                        return;
-                    }
-
-                    if (positionRelativeToUnit == null || orientationRelativeToUnit == null)
-                    {
-                        Logger.Warn($"SpawnEffect: Unhandled PosDirId {PosDirId} or OriDirId {OriDirId}");
                         return;
                     }
 
@@ -106,12 +107,6 @@ public class SpawnEffect : EffectTemplate
                     if (caster is Character player)
                     {
                         // TODO: Implement OriDirId, PosDirId and MateStateId
-                        if (positionRelativeToUnit == null || orientationRelativeToUnit == null)
-                        {
-                            Logger.Warn($"SpawnEffect: Unhandled PosDirId {PosDirId} or OriDirId {OriDirId}");
-                            return;
-                        }
-
                         using var transform = positionRelativeToUnit.Transform.CloneDetached();
                         transform.World.AddDistanceToFront(PosDistance);
                         transform.World.Rotate(transform.World.Rotation with { Z = orientationRelativeToUnit.Transform.World.Rotation.Z + OriAngle.DegToRad() });
@@ -127,9 +122,17 @@ public class SpawnEffect : EffectTemplate
                     break;
                 }
             case BaseUnitType.Mate:
-                {
-                    break;
-                }
+                break;
+            case BaseUnitType.Character:
+                break;
+            case BaseUnitType.Housing:
+                break;
+            case BaseUnitType.Transfer:
+                break;
+            case BaseUnitType.Shipyard:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
 }
