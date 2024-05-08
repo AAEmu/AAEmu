@@ -10920,6 +10920,17 @@
     "Scale": 1.0
   },
   {
+    "UnitId": 6962,
+    "Position": {
+      "X": 3571.2,
+      "Y": 4544.9,
+      "Z": 142.7,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -53.8887
+    }
+  },
+  {
     "Id": 925,
     "UnitId": 4957,
     "Title": "Mirage Isle Sale Prep Sign",
@@ -14929,12 +14940,12 @@
     "UnitId": 4836,
     "Title": "Swept-Roof Chalet Design",
     "Position": {
-      "X": 3891.898,
-      "Y": 4660.6,
-      "Z": 109.5285,
+      "X": 3893.6,
+      "Y": 4665.3,
+      "Z": 109.4,
       "Roll": 0.0,
       "Pitch": 0.0,
-      "Yaw": -151.277
+      "Yaw": -154.7
     },
     "funcGroupId": 11970,
     "Scale": 1.0
@@ -14944,12 +14955,12 @@
     "UnitId": 4835,
     "Title": "Swept-Roof Cottage Design",
     "Position": {
-      "X": 3874.96,
-      "Y": 4653.074,
-      "Z": 109.5385,
+      "X": 3874.5,
+      "Y": 4655.8,
+      "Z": 109.4,
       "Roll": 0.0,
       "Pitch": 0.0,
-      "Yaw": -144.7751
+      "Yaw": -151.9
     },
     "funcGroupId": 11968,
     "Scale": 1.0
@@ -16804,12 +16815,12 @@
     "UnitId": 4837,
     "Title": "Swept-Roof Manor Design",
     "Position": {
-      "X": 3970.14,
-      "Y": 4676.324,
-      "Z": 110.3588,
+      "X": 3968.9,
+      "Y": 4675.2,
+      "Z": 110.2,
       "Roll": 0.0,
       "Pitch": 0.0,
-      "Yaw": 11.0014839
+      "Yaw": 10.7588
     },
     "funcGroupId": 11972,
     "Scale": 1.0
