@@ -1,25 +1,25 @@
 [
     //----------------- Memory Tome for Recall -----------------
     //----------------- Nuia continent -------------------------
-	/*
-	  По SubZoneId добавляются зоны которые посетил персонаж для возврата в них из книги телепортов (Memory Tome).
-	  По Id и SubZoneId добавляется точка для возврата по скиллу Recall.
-	  -------+---------
-	    race  factionId
-	  -------+---------
-	  1 Nuian     101
-	  2 Fairy     101
-	  3 Dwarf     104
-	  4 Elf       103
-	  5 Hariharan 109
-	  6 Ferre     113
-	  7 Returned  112
-	  8 Warborn   187
-	    Pirate    161
-		Red       159
-		Blue      160
-		Unknown   114
-	*/
+    /*
+      По SubZoneId добавляются зоны которые посетил персонаж для возврата в них из книги телепортов (Memory Tome).
+      По Id и SubZoneId добавляется точка для возврата по скиллу Recall.
+      -------+---------
+        race  factionId
+      -------+---------
+      1 Nuian     101
+      2 Fairy     101
+      3 Dwarf     104
+      4 Elf       103
+      5 Hariharan 109
+      6 Ferre     113
+      7 Returned  112
+      8 Warborn   187
+        Pirate    161
+        Red       159
+        Blue      160
+        Unknown   114
+    */
     {
         //    districtId ->(factionId)->returnPointId
         //            183->(161)->290
@@ -99,6 +99,17 @@
         "ZoneId": 178,
         "ZRot": 75,
         "SubZoneId": 499,
+        "Owner": 0
+    },
+    {
+        "Id": 18, // 4 18
+        "Name": "Ривертон",
+        "X": 13588.9,
+        "Y": 14542.3,
+        "Z": 109.3,
+        "ZoneId": 142,
+        "ZRot": 75,
+        "SubZoneId": 338,
         "Owner": 0
     },
     {
@@ -1204,6 +1215,17 @@
     },
     {
         "Id": 521, // 347 521
+        "Name": "Solzreed Scarecrow Farm",
+        "X": 14349.4,
+        "Y": 15520.0,
+        "Z": 152.9,
+        "ZoneId": 142,
+        "ZRot": 0,
+        "SubZoneId": 641,
+        "Owner": 0
+    },
+    {
+        "Id": 347, // 347 521
         "Name": "Mahadevi Scarecrow Farm",
         "X": 20031.6,
         "Y": 9707.0,
@@ -1258,7 +1280,7 @@
         "Owner": 0
     },
     //----------------- Auroria continent ----------------------
-	{
+    {
         "Id": 559,
         "Name": "Calmlands ",
         "X": 21135.0,
@@ -1269,7 +1291,7 @@
         "SubZoneId": 1110,
         "Owner": 0
     },
-	{
+    {
         "Id": 555,
         "Name": "Marcalan",
         "X": 20135.3,
@@ -1337,7 +1359,7 @@
     },
     {
         "Id": 673, // 375 (161) 673
-		"Name": "Diamond Shores: Pirate Rally Point",
+        "Name": "Diamond Shores: Pirate Rally Point",
         "X": 19332.0,
         "Y": 26883.0,
         "Z": 130.5,
