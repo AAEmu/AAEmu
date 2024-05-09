@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Static;
 using Discord;
 
@@ -20,9 +21,26 @@ public class QuestCommandUtil
             case "add":
                 if (args.Length >= 2)
                 {
+                    var acceptorType = QuestAcceptorType.Unknown;
+                    var acceptorId = 0u;
+                    if (args.Length >= 3)
+                    {
+                        if (Enum.TryParse<QuestAcceptorType>(args[2], out var acceptorTypeVal))
+                            acceptorType = acceptorTypeVal;
+                    }
+                    if (args.Length >= 4)
+                    {
+                        if (uint.TryParse(args[3], out var acceptorIdVal))
+                            acceptorId = acceptorIdVal;
+                    }
+                    else
+                    {
+                        if ((acceptorType == QuestAcceptorType.Npc) && (character.CurrentTarget is Npc npc))
+                            acceptorId = npc.TemplateId;
+                    }
                     if (uint.TryParse(args[1], out questId))
                     {
-                        character.Quests.AddQuest(questId, true);
+                        character.Quests.AddQuest(questId, true, acceptorType, acceptorId);
                     }
                 }
                 else
@@ -135,6 +153,31 @@ public class QuestCommandUtil
                             character.SendMessage($"[Quest] You do not have the quest {questId}");
                         }
                         // посылаем пакеты для того, что-бы клиент был в курсе обновления квестов
+                        character.Quests.Send();
+                        character.Quests.SendCompleted();
+                    }
+                }
+                else
+                {
+                    character.SendMessage("[Quest] Proper usage: /quest remove <questId>");
+                }
+                break;
+            case "uncomplete":
+                // Drops a quest if active, and completely removes it, as if it was never started
+                if (args.Length >= 2)
+                {
+                    if (uint.TryParse(args[1], out questId))
+                    {
+                        if (character.Quests.HasQuest(questId))
+                        {
+                            character.Quests.DropQuest(questId, true, true); // удаляем и из CompletedQuests
+                        }
+
+                        if (character.Quests.IsQuestComplete(questId))
+                        {
+                            character.Quests.SetCompletedQuestFlag(questId, false);
+                        }
+
                         character.Quests.Send();
                         character.Quests.SendCompleted();
                     }
