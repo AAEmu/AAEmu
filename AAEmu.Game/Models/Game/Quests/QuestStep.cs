@@ -12,7 +12,7 @@ public class QuestStep(QuestComponentKind step, Quest parent)
     /// <summary>
     /// Owning Quest object
     /// </summary>
-    public Quest Parent { get; set; } = parent;
+    public Quest Parent { get; private set; } = parent;
 
     /// <summary>
     /// This step's QuestComponentKind
@@ -61,7 +61,7 @@ public class QuestStep(QuestComponentKind step, Quest parent)
             {
                 var componentResult = questComponent.RunComponent();
                 if (componentResult)
-                    parent.ComponentId = questComponent.Template.Id;
+                    Parent.ComponentId = questComponent.Template.Id;
                 res |= componentResult;
             }
         }
@@ -72,7 +72,7 @@ public class QuestStep(QuestComponentKind step, Quest parent)
             {
                 res &= questComponent.RunComponent();
                 if (res)
-                    parent.ComponentId = questComponent.Template.Id;
+                    Parent.ComponentId = questComponent.Template.Id;
             }
         }
 

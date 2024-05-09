@@ -146,14 +146,9 @@ public partial class Quest : PacketMarshaler
     public int QuestRewardExpPool { get; set; }
 
     /// <summary>
-    /// List of Steps available for this quest
-    /// </summary>
-    private Dictionary<QuestComponentKind, QuestStep> Steps { get; set; } = new();
-
-    /// <summary>
     /// Current QuestStep, or null if the current step is invalid
     /// </summary>
-    public QuestStep CurrentStep => Steps.GetValueOrDefault(Step);
+    public QuestStep CurrentStep => QuestSteps.GetValueOrDefault(Step);
 
     /// <summary>
     /// Set to false if item rewards have been disabled by objectives (mostly used by Aggro quests)
@@ -225,22 +220,11 @@ public partial class Quest : PacketMarshaler
             TemplateId = questTemplate.Id;
             Template = questTemplate;
 
-            // Construct Active Components in Steps
-            foreach (var (componentId, component) in Template.Components.OrderBy(x => x.Value.KindId)
-                         .ThenBy(x => x.Value.Id))
-            {
-                if (!Steps.TryGetValue(component.KindId, out var questStep))
-                {
-                    questStep = new QuestStep(component.KindId, this);
-                    Steps.Add(component.KindId, questStep);
-                }
-
-                var comp = new QuestComponent(questStep, component);
-                questStep.Components.Add(componentId, comp);
-            }
+            CreateQuestSteps();
         }
 
-        _step = QuestComponentKind.None;
+        _step = QuestComponentKind.Invalid;
+        Status = QuestStatus.Invalid;
 
         Objectives = new int[MaxObjectiveCount];
         SupplyItem = 0;
@@ -917,7 +901,7 @@ public partial class Quest : PacketMarshaler
     /// </summary>
     public void InitializeQuestActs()
     {
-        foreach (var questStep in Steps.Values)
+        foreach (var questStep in QuestSteps.Values)
         foreach (var questComponent in questStep.Components.Values)
         foreach (var questAct in questComponent.Acts)
             questAct.Template.InitializeQuest(this, questAct);
@@ -928,7 +912,7 @@ public partial class Quest : PacketMarshaler
     /// </summary>
     public void FinalizeQuestActs()
     {
-        foreach (var questStep in Steps.Values)
+        foreach (var questStep in QuestSteps.Values)
         foreach (var questComponent in questStep.Components.Values)
         foreach (var questAct in questComponent.Acts)
             questAct.Template.FinalizeQuest(this, questAct);

@@ -185,6 +185,58 @@ public class QuestCommandUtil
                     character.SendMessage("[Quest] /quest debug <questId> <stuff>");
                 }
                 break;
+            case "template":
+                if (args.Length >= 2)
+                {
+                    if (!uint.TryParse(args[1], out var questVal))
+                        break;
+
+                    var questTemplate = QuestManager.Instance.GetTemplate(questVal);
+                    if (questTemplate == null)
+                    {
+                        character.SendMessage(ChatType.System, $"[Quest] No such quest {questVal}", Color.Red);
+                        break;
+                    }
+
+                    character.SendMessage($"[Quest] {questVal} -- Template");
+                    foreach (var (componentId, componentTemplate) in questTemplate.Components)
+                    {
+                        character.SendMessage($"-- Component({componentId}), Step {componentTemplate.KindId}");
+                        foreach (var actTemplate in componentTemplate.ActTemplates)
+                        {
+                            character.SendMessage($"---- Act({actTemplate.ActId}) => {actTemplate.DetailType}({actTemplate.DetailId})");
+                        }
+                    }
+                    character.SendMessage($"[Quest] {questVal} -- End of Template");
+                    
+                    if (character.Quests.ActiveQuests.TryGetValue(questVal, out var activeQuest))
+                    {
+                        character.SendMessage($"[Quest] {questVal} -- Active");
+                        foreach (var (stepId, step) in activeQuest.QuestSteps)
+                        {
+                            character.SendMessage($"Step {stepId}");
+                            foreach (var (componentId, component) in step.Components)
+                            {
+                                character.SendMessage($"-- Component({componentId})");
+                                foreach (var act in component.Acts)
+                                {
+                                    character.SendMessage($"---- Act({act.Id}) => {act.DetailType}({act.DetailId})");
+                                }
+                            }
+                        }
+                        character.SendMessage($"[Quest] {questVal} -- End of Active Quest");
+                    }
+                    else
+                    {
+                        character.SendMessage($"[Quest] {questVal} is not active");
+                    }
+
+                }
+                else
+                {
+                    character.SendMessage("[Quest] /quest template <questId>");
+                }
+                break;
             default:
                 character.SendMessage("[Quest] /quest <add/remove/list/prog/reward/resetdaily>\nBefore that, target the Npc you need for the quest");
                 break;

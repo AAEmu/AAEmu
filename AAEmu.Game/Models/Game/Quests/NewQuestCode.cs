@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Quests;
 
 public partial class Quest
 {
-    private Dictionary<QuestComponentKind, QuestStep> QuestSteps { get; set; } = new();
+    public Dictionary<QuestComponentKind, QuestStep> QuestSteps { get; private set; } = new();
 
     #region Framework
 
@@ -31,12 +31,7 @@ public partial class Quest
             var newComponent = new QuestComponent(step, componentTemplate);
             step.Components.Add(componentId, newComponent);
 
-            // Add Acts (if any)
-            foreach (var questActTemplate in newComponent.Template.ActTemplates)
-            {
-                var newAct = new QuestAct(newComponent, questActTemplate);
-                newComponent.Acts.Add(newAct);
-            }
+            // Acts are already populated when creating the QuestComponent
         }
 
         if (QuestSteps.Count <= 0)
@@ -69,7 +64,7 @@ public partial class Quest
     /// <returns></returns>
     public bool RunCurrentStep()
     {
-        if (!Steps.TryGetValue(Step, out var questStep))
+        if (!QuestSteps.TryGetValue(Step, out var questStep))
             return false;
 
         var res = questStep.RunComponents();
@@ -176,11 +171,14 @@ public partial class Quest
     {
         if (value == _step)
             return;
+        // var oldValue = _step;
+        // Owner?.SendMessage($"Quest {TemplateId}, Begin Step Change {oldValue} => {value}");
 
         // Finalize old Step (if any)
         if (QuestSteps.TryGetValue(_step, out var oldQuestSteps))
             oldQuestSteps.FinalizeStep();
 
+        // Owner?.SendMessage($"Quest {TemplateId}, Set _step => {value}");
         // Set new Value
         _step = value;
 
@@ -193,8 +191,8 @@ public partial class Quest
 
         // Trigger OnQuestStepChanged event, even if this step is not available
         Owner?.Events?.OnQuestStepChanged(Owner, new OnQuestStepChangedArgs() { QuestId = TemplateId, Step = value });
-        Owner?.SendMessage($"Quest {TemplateId}, Step => {value}");
-        Logger.Warn($"Player {Owner?.Name ?? "???"}, Quest {TemplateId}, Step => {value}");
+        // Owner?.SendMessage($"Quest {TemplateId}, Step {oldValue} => {value}");
+        // Logger.Debug($"Player {Owner?.Name ?? "???"}, Quest {TemplateId}, Step => {value}");
         RequestEvaluation();
     }
 
