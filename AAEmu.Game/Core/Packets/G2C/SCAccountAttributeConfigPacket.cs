@@ -14,7 +14,7 @@ public class SCAccountAttributeConfigPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        for (var i = 0; i < 3; i++) // 2 in 1.2, 3 in 3+
+        for (var i = 0; i < 4; i++) // 2 in 1.2, 3 in 3+, 4 in 10810
         {
             stream.Write(_used[i]);
         }

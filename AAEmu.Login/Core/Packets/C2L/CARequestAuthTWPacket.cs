@@ -4,9 +4,9 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
-public class CARequestAuthMailRuPacket : LoginPacket
+public class CARequestAuthTWPacket : LoginPacket
 {
-    public CARequestAuthMailRuPacket() : base(CLOffsets.CARequestAuthMailRuPacket)
+    public CARequestAuthTWPacket() : base(CLOffsets.CARequestAuthTWPacket)
     {
     }
 
@@ -14,12 +14,14 @@ public class CARequestAuthMailRuPacket : LoginPacket
     {
         var pFrom = stream.ReadUInt32();
         var pTo = stream.ReadUInt32();
+        var svc = stream.ReadByte();
         var dev = stream.ReadBoolean();
+        var account = stream.ReadString();
         var mac = stream.ReadBytes();
-        var id = stream.ReadString();
-        var token = stream.ReadBytes();
         var is64bit = stream.ReadBoolean(); // added 5.7.5.0
 
-        LoginController.Login(Connection, id, token);
+        Logger.Info("Connected to Login: {0}", account);
+
+        LoginController.Login(Connection, account);
     }
 }

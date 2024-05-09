@@ -46,7 +46,7 @@ public class CSAesXorKeyPacket : GamePacket
             }
         }
 
-        Connection.SendPacket(new SCAccountAttributePacket());
+        //Connection.SendPacket(new SCAccountAttributePacket());
 
     }
 }

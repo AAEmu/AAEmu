@@ -10,9 +10,12 @@ public class SCLevelRestrictionConfigPacket : GamePacket
     private readonly byte _postLevel;
     private readonly byte _trade;
     private readonly byte _mail;
+    private readonly byte _perm;
+    private readonly byte _others;
     private readonly byte[] _limitLevels;
 
-    public SCLevelRestrictionConfigPacket(byte searchLevel, byte bidLevel, byte postLevel, byte trade, byte mail, byte[] limitLevels) : base(SCOffsets.SCLevelRestrictionConfigPacket, 5)
+    public SCLevelRestrictionConfigPacket(byte searchLevel, byte bidLevel, byte postLevel, byte trade, byte mail, byte perm, byte others, byte[] limitLevels)
+        : base(SCOffsets.SCLevelRestrictionConfigPacket, 5)
     {
         _searchLevel = searchLevel;
         _bidLevel = bidLevel;
@@ -20,6 +23,8 @@ public class SCLevelRestrictionConfigPacket : GamePacket
         _trade = trade;
         _mail = mail;
         _limitLevels = limitLevels;
+        _perm = perm;
+        _others = others;
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -29,7 +34,9 @@ public class SCLevelRestrictionConfigPacket : GamePacket
         stream.Write(_postLevel);
         stream.Write(_trade);
         stream.Write(_mail);
-        for (var i = 0; i < 17; i++) // 15 in 1.2, 17 in 3+
+        stream.Write(_perm);
+        stream.Write(_others);
+        for (var i = 0; i < 20; i++) // 15 in 3030, 17 in 3.5.0.3, 18 in 5.7.5.0, 20 in 10810
         {
             stream.Write(_limitLevels[i]);
         }

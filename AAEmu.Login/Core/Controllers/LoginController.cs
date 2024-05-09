@@ -53,7 +53,8 @@ public class LoginController : Singleton<LoginController>
                     connection.LastLogin = DateTime.UtcNow;
                     connection.LastIp = connection.Ip;
 
-                    connection.SendPacket(new ACJoinResponsePacket(1, 0x480306, 0));
+                    Logger.Info("{0} connected...", connection.AccountName);
+                    connection.SendPacket(new ACJoinResponsePacket(1, 0x02020402, 0));
                     connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
                 }
             }
@@ -61,7 +62,7 @@ public class LoginController : Singleton<LoginController>
     }
 
     /// <summary>
-    /// Eu Method Auth
+    /// Eu, MailRu Method Auth
     /// </summary>
     /// <param name="connection"></param>
     /// <param name="username"></param>
@@ -104,8 +105,8 @@ public class LoginController : Singleton<LoginController>
                     connection.LastLogin = DateTime.UtcNow;
                     connection.LastIp = connection.Ip;
 
-                    Logger.Info("{0} connected.", connection.AccountName);
-                    connection.SendPacket(new ACJoinResponsePacket(1, 0x480306, 0));
+                    Logger.Info("{0} connected...", connection.AccountName);
+                    connection.SendPacket(new ACJoinResponsePacket(1, 0x02020402, 0));
                     connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
                 }
             }
@@ -167,7 +168,8 @@ public class LoginController : Singleton<LoginController>
         if (_tokens[gsId][token] == accountId)
         {
             connection.AccountId = accountId;
-            connection.SendPacket(new ACJoinResponsePacket(1, 0x480306, 0));
+            Logger.Info("{0} reconnected...", connection.AccountName);
+            connection.SendPacket(new ACJoinResponsePacket(1, 0x02020402, 0));
             connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
         }
         else

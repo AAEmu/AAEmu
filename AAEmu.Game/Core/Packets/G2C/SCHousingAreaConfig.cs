@@ -5,9 +5,9 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCProtectFactionPacket : GamePacket
+public class SCHousingAreaConfig : GamePacket
 {
-    private readonly byte _protectFaction;
+    private readonly bool _protectOwner;
     private readonly DateTime _time;
     private readonly int _year;
     private readonly int _month;
@@ -15,9 +15,9 @@ public class SCProtectFactionPacket : GamePacket
     private readonly int _hour;
     private readonly int _min;
 
-    public SCProtectFactionPacket(byte protectFaction, DateTime time) : base(SCOffsets.SCProtectFactionPacket, 5)
+    public SCHousingAreaConfig(bool protectOwner, DateTime time) : base(SCOffsets.SCHousingAreaConfig, 5)
     {
-        _protectFaction = protectFaction;
+        _protectOwner = protectOwner;
         _time = time;
         _year = time.Year;
         _month = time.Month;
@@ -28,13 +28,19 @@ public class SCProtectFactionPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_protectFaction);
+        #region housingAreaConfig
+        stream.Write(1u); // size
+        stream.Write(0u); // k
+        #region v 
+        stream.Write(_protectOwner); // protectOwner
         stream.Write(_time);
         stream.Write(_year);
         stream.Write(_month);
         stream.Write(_day);
         stream.Write(_hour);
         stream.Write(_min);
+        #endregion v
+        #endregion housingAreaConfig
         return stream;
     }
 }

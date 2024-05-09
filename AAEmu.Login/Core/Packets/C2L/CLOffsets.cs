@@ -3,6 +3,7 @@
     public static class CLOffsets
     {
         // All opcodes here are updated for version client_3030_r330995
+        public const ushort CARequestAuthPacket = 0x001;
         public const ushort CARequestAuthPacket_0x001 = 0x001;
         public const ushort CARequestAuthPacket_0x002 = 0x002;
         public const ushort CARequestAuthPacket_0x003 = 0x003;
@@ -17,5 +18,7 @@
         public const ushort CAEnterWorldPacket = 0x00d;
         public const ushort CACancelEnterWorldPacket = 0x00e;
         public const ushort CARequestReconnectPacket = 0x00f;
+        public const ushort CARequestAuthTWPacket = 0x011;
+        public const ushort CARequestAuthKakaoPacket = 0x017;
     }
 }

@@ -1,4 +1,6 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -6,12 +8,14 @@ namespace AAEmu.Game.Core.Packets.G2C;
 public class SCAccountAttendancePacket : GamePacket
 {
     private readonly uint _count;
-    private readonly ulong _accountAttendance;
+    private readonly DateTime _time;
+    private readonly bool _isArchelife;
 
     public SCAccountAttendancePacket(uint count) : base(SCOffsets.SCAccountAttendancePacket, 5)
     {
         _count = count;
-        _accountAttendance = 0;
+        _time = DateTime.MinValue;
+        _isArchelife = false;
 
     }
 
@@ -19,7 +23,8 @@ public class SCAccountAttendancePacket : GamePacket
     {
         for (var i = 0; i < _count; i++)
         {
-            stream.Write(_accountAttendance);
+            stream.Write(_time);
+            stream.Write(_isArchelife);
         }
 
         return stream;

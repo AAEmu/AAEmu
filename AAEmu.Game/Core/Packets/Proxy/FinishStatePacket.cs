@@ -21,7 +21,7 @@ public class FinishStatePacket : GamePacket
         {
             case 0:
                 Connection.SendPacket(new ChangeStatePacket(1));
-                Connection.SendPacket(new SCHackGuardRetAddrsRequestPacket(false, false)); // HG_REQ? // TODO - config files
+                //Connection.SendPacket(new SCHackGuardRetAddrsRequestPacket(false, false)); // HG_REQ? // TODO - config files
                 var levelname = string.Empty;
                 if (Connection.ActiveChar != null)
                 {
@@ -37,31 +37,20 @@ public class FinishStatePacket : GamePacket
                 // Test URLs                                     // Original Trion values
                 // Client treats these as folders and will add a trailing slash (/) with whatever it needs
                 // For example, opening the Wiki would send http://localhost/aaemu/platform/login
-                var authUrl = "http://localhost/aaemu/login";     // "https://session.draft.integration.triongames.priv";
-                var platformUrl = "http://localhost/aaemu/platform";  // "http://archeage.draft.integration.triongames.priv/commerce/pruchase/credits/purchase-credits-flow.action";
-                var commerceUrl = "http://localhost/aaemu/shop";      // "" ;
+                var authUrl = "http://aaemu/login";        // "https://session.draft.integration.triongames.priv";
+                var platformUrl = "http://aaemu/platform"; // "http://archeage.draft.integration.triongames.priv/commerce/pruchase/credits/purchase-credits-flow.action";
+                var commerceUrl = "http://aaemu/shop";     // "" ;
 
                 // It seems this packet can be ignored if you don't use the wiki/shop
-                Connection.SendPacket(new SCTrionConfigPacket(
-                    true,
-                    authUrl,
-                    platformUrl,
-                    commerceUrl)
-                ); // TODO - config files
-                Connection.SendPacket(new SCAccountInfoPacket(
-                        (int)Connection.Payment.Method,
-                        Connection.Payment.Location,
-                        Connection.Payment.StartTime,
-                        Connection.Payment.EndTime)
-                );
+                Connection.SendPacket(new SCTrionConfigPacket(true, authUrl, platformUrl, commerceUrl)); // TODO - config files
+                Connection.SendPacket(new SCAccountInfoPacket((int)Connection.Payment.Method, Connection.Payment.Location, Connection.Payment.StartTime, Connection.Payment.EndTime));
                 Connection.SendPacket(new SCChatSpamConfigPacket());
-                Connection.SendPacket(new SCAccountAttributeConfigPacket(new[] { false, true, false }));
-                Connection.SendPacket(new SCLevelRestrictionConfigPacket(0, 10, 0, 10, 10, new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })); // TODO - config files
-
+                Connection.SendPacket(new SCAccountAttributeConfigPacket([false, true, false, false]));
+                Connection.SendPacket(new SCLevelRestrictionConfigPacket(0, 10, 0, 0, 0, 0, 0, [0, 0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])); // TODO - config files
                 Connection.SendPacket(new SCTaxItemConfigPacket(0));
                 Connection.SendPacket(new SCInGameShopConfigPacket(1, 2, 0));
                 Connection.SendPacket(new SCGameRuleConfigPacket(0, 0));
-                Connection.SendPacket(new SCProtectFactionPacket(1, DateTime.UtcNow));
+                Connection.SendPacket(new SCHousingAreaConfig(true, DateTime.UtcNow));
                 Connection.SendPacket(new SCTaxItemConfig2Packet(0));
                 break;
             case 1:

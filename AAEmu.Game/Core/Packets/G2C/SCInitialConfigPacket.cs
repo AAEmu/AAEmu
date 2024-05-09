@@ -6,13 +6,24 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCInitialConfigPacket : GamePacket
 {
+    private readonly string _host;
+    private readonly int _count;
+    private readonly uint _code;
+    private readonly string _cashHost;
+    private readonly string _securityHost;
+
     public SCInitialConfigPacket() : base(SCOffsets.SCInitialConfigPacket, 5)
     {
+        _host = "aaemu.local";
+        _count = 0;
+        _code = 0; // TODO: code[count]
+        _cashHost = "xlcash.xlgames.com";
+        _securityHost = "cs.xlgames.com";
     }
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write("aaemu.local"); // host
+        stream.Write(_host); // host
 
         // siege -> (byte)fset[0] & 1 == 1
         // premium -> (byte)fset[0] & 0x10 == 0x10
@@ -70,13 +81,23 @@ public class SCInitialConfigPacket : GamePacket
 
         // TODO 0x3E, 0x32, 0x0F, 0x0F, 0x79, 0x00, 0x33
 
-        stream.Write(0); // count // candidatelist.lua
+        stream.Write(_count);    // count // candidatelist.lua
+        if (_count > 0)
+        {
+            var i = 0;
+            do
+            {
+                stream.Write(_code);    // code
+                ++i;
+            }
+            while (i < _count);
+        }
         /*
          * local retrieveCount = X2:GetCandidateOnceRetrieveCount()
          * x2ui\baselib
          */
 
-        stream.Write(0); // initLp
+        stream.Write(0);    // initLp 50 in 5750, 0 in 6070
         stream.Write(true); // canPlaceHouse
         stream.Write(true); // canPayTax
         stream.Write(true); // canUseAuction
@@ -93,15 +114,25 @@ public class SCInitialConfigPacket : GamePacket
          */
         stream.Write((byte)0); // secondPasswordMaxFailCount
 
-        stream.Write(0); // idleKickTime
+        stream.Write(0u); // idleKickTime
 
-        stream.Write(false); // enable
-        stream.Write((byte)0); // pcbang
-        stream.Write((byte)0); // premium
-        stream.Write((byte)0); // maxch
+        stream.Write(false);       // enable
+        stream.Write((byte)0);     // pcbang
+        stream.Write((byte)0);     // premium
+        stream.Write((byte)0);     // maxCh
         stream.Write((ushort)400); // honorPointDuringWarPercent
-        stream.Write((byte)5); // uccver
-        stream.Write((byte)1); // memberType
+        stream.Write((byte)12);    // uccver 6 in 5750, 8 in 6070, 9 in 7533, 12 in 10.8.1.0
+        stream.Write((byte)1);     // memberType
+
+        // added 5.7.5.0
+        stream.Write((float)256);    // bigModel
+        stream.Write((byte)0);       // tmpMaxCharSlot 0 in 5750, 2 in 6070
+        stream.Write(_cashHost);     // cashHost
+        stream.Write(_securityHost); // securityHost
+        stream.Write(false);         // isDev
+        stream.Write(1u);            // premiumConfigType
+        stream.Write(1u);            // specificWorldDivisionIds
+        stream.Write(0x000013B9);    // ?
 
         return stream;
     }

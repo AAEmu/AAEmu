@@ -10,8 +10,7 @@ public class SCSlaveStatusPacket : GamePacket
     private readonly int _tagCount = 0;
     private readonly Slave _slave;
 
-    public SCSlaveStatusPacket(Slave slave) :
-        base(SCOffsets.SCSlaveStatusPacket, 5)
+    public SCSlaveStatusPacket(Slave slave) : base(SCOffsets.SCSlaveStatusPacket, 5)
     {
         _slave = slave;
         _skillCount = slave.Skills?.Count ?? 0;

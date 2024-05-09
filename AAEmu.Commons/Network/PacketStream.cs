@@ -3,9 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
+
 using AAEmu.Commons.Conversion;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
+
 using SBuffer = System.Buffer;
 
 namespace AAEmu.Commons.Network;
@@ -37,8 +39,7 @@ public class PacketStream : ICloneable, IComparable
     public bool HasBytes => Pos < Count;
     public int LeftBytes => Count - Pos;
 
-    public EndianBitConverter Converter =>
-        (IsLittleEndian ? EndianBitConverter.Little : EndianBitConverter.Big);
+    public EndianBitConverter Converter => IsLittleEndian ? EndianBitConverter.Little : EndianBitConverter.Big;
 
     #endregion // Properties
 
@@ -270,6 +271,10 @@ public class PacketStream : ICloneable, IComparable
     {
         return Insert(offset, copyArray, 0, copyArray.Length);
     }
+    public PacketStream Insert(int offset, float[] copyArray)
+    {
+        return Insert(offset, copyArray, 0, copyArray.Length * 4);
+    }
 
     public PacketStream Insert(int offset, PacketStream copyStream, int copyStreamOffset, int count)
     {
@@ -282,6 +287,16 @@ public class PacketStream : ICloneable, IComparable
         // move data from position offset to position offset + count
         SBuffer.BlockCopy(Buffer, offset, Buffer, offset + count, Count - offset);
         // copy the new data array to position offset
+        SBuffer.BlockCopy(copyArray, copyArrayOffset, Buffer, offset, count);
+        Count += count;
+        return this;
+    }
+    public PacketStream Insert(int offset, float[] copyArray, int copyArrayOffset, int count)
+    {
+        Reserve(Count + count);
+        // передвигаем данные с позиции offset до позиции offset + count
+        SBuffer.BlockCopy(Buffer, offset, Buffer, offset + count, Count - offset);
+        // копируем новый массив данных в позицию offset
         SBuffer.BlockCopy(copyArray, copyArrayOffset, Buffer, offset, count);
         Count += count;
         return this;
@@ -524,7 +539,7 @@ public class PacketStream : ICloneable, IComparable
     public long[] ReadPisc(int count)
     {
         var result = new long[count];
-        var pish = new BitArray(new byte[] { ReadByte() });
+        var pish = new BitArray(new[] { ReadByte() });
         for (var index = 0; index < count * 2; index += 2)
         {
             if (pish[index] && pish[index + 1]) // uint
@@ -540,9 +555,28 @@ public class PacketStream : ICloneable, IComparable
         return result;
     }
 
+    public long[] ReadPisc(PacketStream stream, int count)
+    {
+        var result = new long[count];
+        var pish = new BitArray(new[] { stream.ReadByte() });
+        for (var index = 0; index < count * 2; index += 2)
+        {
+            if (pish[index] && pish[index + 1]) // uint
+                result[index / 2] = stream.ReadUInt32();
+            else if (pish[index + 1]) // bc
+                result[index / 2] = stream.ReadBc();
+            else if (pish[index]) // ushort
+                result[index / 2] = stream.ReadUInt16();
+            else // byte
+                result[index / 2] = stream.ReadByte();
+        }
+
+        return result;
+    }
+
     public (float x, float y, float z) ReadPosition()
     {
-        var position = ReadBytes(9);
+        var position = ReadBytes(11);
         return Helpers.ConvertPosition(position);
     }
 
@@ -613,6 +647,13 @@ public class PacketStream : ICloneable, IComparable
     {
         PushBack(value);
         return this;
+    }
+
+    public PacketStream Write(float[] value, bool appendSize = false)
+    {
+        if (appendSize)
+            Write((ushort)value.Length);
+        return Insert(Count, value);
     }
 
     public PacketStream Write(byte[] value, bool appendSize = false)

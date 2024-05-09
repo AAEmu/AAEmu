@@ -21,6 +21,7 @@ public class CARequestAuthTrionPacket : LoginPacket
         var ticket = stream.ReadString();    // param
         var signature = stream.ReadString(); // si
         var isLast = stream.ReadBoolean();
+        var is64bit = stream.ReadBoolean(); // added 5.7.5.0
 
         var xmlDoc = XDocument.Parse(ticket);
 
