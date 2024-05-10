@@ -47,7 +47,7 @@ public class CSSelectCharacterPacket : GamePacket
                 Character.UsedCharacterObjIds.TryAdd(character.Id, character.ObjId);
             }
 
-            var mySlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
+            var mySlave = SlaveManager.Instance.GetSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
             if (mySlave != null)
             {
                 Logger.Warn($"{Connection.ActiveChar.Name}: Interrupting the transport shutdown task");

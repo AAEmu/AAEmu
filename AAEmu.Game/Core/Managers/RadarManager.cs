@@ -209,8 +209,6 @@ public class RadarManager : Singleton<RadarManager>
                         }
                     }
                 }
-
-
             } // for each player
         } // lock
     }

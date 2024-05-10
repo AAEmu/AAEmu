@@ -13,7 +13,6 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -42,9 +41,9 @@ public class SlaveManager : Singleton<SlaveManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Dictionary<uint, SlaveTemplate> _slaveTemplates;
-    private Dictionary<uint, Slave> _activeSlaves;
-    private List<Slave> _testSlaves;
-    private Dictionary<uint, Slave> _tlSlaves;
+    //private Dictionary<uint, Slave> _activeSlaves; // смотри _slaves в WorldManager
+    //private List<Slave> _testSlaves; // смотри _slaves в WorldManager
+    //private Dictionary<uint, Slave> _tlSlaves; // смотри _slaves в WorldManager
     public Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> _attachPoints;
     public Dictionary<uint, List<SlaveInitialItems>> _slaveInitialItems; // PackId and List<Slot/ItemData>
     //public Dictionary<uint, SlaveMountSkills> _slaveMountSkills;
@@ -63,10 +62,13 @@ public class SlaveManager : Singleton<SlaveManager>
         return _slaveTemplates.TryGetValue(id, out var template) ? template : null;
     }
 
-    public Slave GetActiveSlaveByOwnerObjId(uint objId)
+    public Slave GetSlaveByOwnerObjId(uint objId)
     {
         lock (_slaveListLock)
-            return _activeSlaves.TryGetValue(objId, out var slave) ? slave : null;
+        {
+            var slaves = WorldManager.Instance.GetAllSlaves();
+            return slaves.FirstOrDefault(slave => slave.Summoner?.ObjId == objId);
+        }
     }
 
     /// <summary>
@@ -79,10 +81,13 @@ public class SlaveManager : Singleton<SlaveManager>
     {
         lock (_slaveListLock)
         {
+            var slaves = WorldManager.Instance.GetAllSlaves();
             if (worldId >= uint.MaxValue)
-                return _activeSlaves.Select(i => i.Value).Where(s => s.Template.SlaveKind == kind);
+            {
+                return slaves.Where(s => s.Template.SlaveKind == kind);
+            }
 
-            return _activeSlaves.Select(i => i.Value).Where(s => (s.Template.SlaveKind == kind) && (s.Transform.WorldId == worldId));
+            return slaves.Where(s => s.Template.SlaveKind == kind && s.Transform.WorldId == worldId);
         }
     }
 
@@ -96,49 +101,49 @@ public class SlaveManager : Singleton<SlaveManager>
     {
         lock (_slaveListLock)
         {
+            var slaves = WorldManager.Instance.GetAllSlaves();
             if (worldId >= uint.MaxValue)
-                return _activeSlaves.Where(s => kinds.Contains(s.Value.Template.SlaveKind))
-                    .Select(s => s.Value);
+                return slaves.Where(s => kinds.Contains(s.Template.SlaveKind))
+                    .Select(s => s);
 
-            return _activeSlaves.Where(s => kinds.Contains(s.Value.Template.SlaveKind))
-                .Where(s => s.Value?.Transform.WorldId == worldId)
-                .Select(s => s.Value);
+            return slaves.Where(s => kinds.Contains(s.Template.SlaveKind))
+                .Where(s => s.Transform.WorldId == worldId)
+                .Select(s => s);
         }
     }
 
-    public Slave GetActiveSlaveByObjId(uint objId)
+    //public Slave GetActiveSlaveByObjId(uint objId)
+    //{
+    //    lock (_slaveListLock)
+    //    {
+    //        var activeSlaves = WorldManager.Instance.GetAllSlaves();
+    //        foreach (var slave in activeSlaves.Where(slave => slave.ObjId == objId))
+    //        {
+    //            return slave;
+    //        }
+    //    }
+    //    return null;
+    //}
+
+    public Slave GetSlaveByTlId(uint tlId)
     {
         lock (_slaveListLock)
         {
-            foreach (var slave in _activeSlaves.Values.Where(slave => slave.ObjId == objId))
+            var slaves = WorldManager.Instance.GetAllSlaves();
+            foreach (var slave in slaves.Where(slave => slave.TlId == tlId))
             {
                 return slave;
             }
+            return null;
         }
-        return null;
     }
-    public Slave GetTestSlaveByObjId(uint objId)
-    {
-        lock (_slaveListLock)
-        {
-            foreach (var slave in _testSlaves.Where(slave => slave.ObjId == objId))
-            {
-                return slave;
-            }
-        }
-        return null;
-    }
- 
+
     public Slave GetSlaveByObjId(uint objId)
     {
         lock (_slaveListLock)
         {
-            foreach (var slave in _activeSlaves.Values.Where(slave => slave.ObjId == objId))
-            {
-                return slave;
-            }
-
-            foreach (var slave in _testSlaves.Where(slave => slave.ObjId == objId))
+            var slaves = WorldManager.Instance.GetAllSlaves();
+            foreach (var slave in slaves.Where(slave => slave.ObjId == objId))
             {
                 return slave;
             }
@@ -186,9 +191,8 @@ public class SlaveManager : Singleton<SlaveManager>
 
     public void UnbindSlave(Character character, uint tlId, AttachUnitReason reason)
     {
-        Slave slave;
-        lock (_slaveListLock)
-            slave = _tlSlaves[tlId];
+        var slave = GetSlaveByTlId(tlId);
+
         var attachPoint = slave.AttachedCharacters.FirstOrDefault(x => x.Value == character).Key;
         if (attachPoint != default)
         {
@@ -206,11 +210,10 @@ public class SlaveManager : Singleton<SlaveManager>
     public void BindSlave(Character character, uint objId, AttachPointKind attachPoint, AttachUnitReason bondKind)
     {
         // Check if the target spot is already taken
-        Slave slave;
-        lock (_slaveListLock)
-            slave = _tlSlaves.FirstOrDefault(x => x.Value.ObjId == objId).Value;
+        var slave = GetSlaveByObjId(objId);
+
         //var slave = GetActiveSlaveByObjId(objId);
-        if ((slave == null) || (slave.AttachedCharacters.ContainsKey(attachPoint)))
+        if (slave == null || slave.AttachedCharacters.ContainsKey(attachPoint))
             return;
 
         character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPoint, bondKind, objId), true);
@@ -231,9 +234,7 @@ public class SlaveManager : Singleton<SlaveManager>
     public void BindSlave(GameConnection connection, uint tlId)
     {
         var unit = connection.ActiveChar;
-        Slave slave;
-        lock (_slaveListLock)
-            slave = _tlSlaves[tlId];
+        var slave = GetSlaveByTlId(tlId);
 
         BindSlave(unit, slave.ObjId, AttachPointKind.Driver, AttachUnitReason.NewMaster);
     }
@@ -246,31 +247,28 @@ public class SlaveManager : Singleton<SlaveManager>
     /// <param name="objId"></param>
     public void Delete(Character owner, uint objId)
     {
-        var activeSlaveInfo = GetActiveSlaveByObjId(objId);
-        var testSlaveInfo = GetTestSlaveByObjId(objId);
-        // replace Slave with test ones from Mirage
-        activeSlaveInfo ??= testSlaveInfo;
-        if (activeSlaveInfo == null) return;
-        activeSlaveInfo.Save();
+        var slaveInfo = GetSlaveByObjId(objId);
+        if (slaveInfo == null) return;
+        slaveInfo.Save();
         // Remove passengers
-        foreach (var character in activeSlaveInfo.AttachedCharacters.Values.ToList())
-            UnbindSlave(character, activeSlaveInfo.TlId, AttachUnitReason.SlaveBinding);
+        foreach (var character in slaveInfo.AttachedCharacters.Values.ToList())
+            UnbindSlave(character, slaveInfo.TlId, AttachUnitReason.SlaveBinding);
 
         // Check if one of the slave doodads is holding a item
-        foreach (var doodad in activeSlaveInfo.AttachedDoodads)
+        foreach (var doodad in slaveInfo.AttachedDoodads)
         {
-            if ((doodad.ItemId != 0) || (doodad.ItemTemplateId != 0))
+            if (doodad.ItemId != 0 || doodad.ItemTemplateId != 0)
             {
                 owner?.SendErrorMessage(ErrorMessageType.SlaveEquipmentLoadedItem); // TODO: Do we need this error? Client already mentions it.
                 return; // don't allow un-summon if some it's holding a item (should be a trade-pack)
             }
         }
 
-        var despawnDelayedTime = DateTime.UtcNow.AddSeconds(activeSlaveInfo.Template.PortalTime - 0.5f);
+        var despawnDelayedTime = DateTime.UtcNow.AddSeconds(slaveInfo.Template.PortalTime - 0.5f);
 
-        activeSlaveInfo.Transform.DetachAll();
+        slaveInfo.Transform.DetachAll();
 
-        foreach (var doodad in activeSlaveInfo.AttachedDoodads)
+        foreach (var doodad in slaveInfo.AttachedDoodads)
         {
             // Note, we un-check the persistent flag here, or else the doodad will delete itself from DB as well
             // This is not desired for player owned slaves
@@ -281,29 +279,26 @@ public class SlaveManager : Singleton<SlaveManager>
             // doodad.Delete();
         }
 
-        foreach (var attachedSlave in activeSlaveInfo.AttachedSlaves)
+        foreach (var attachedSlave in slaveInfo.AttachedSlaves)
         {
             lock (_slaveListLock)
-                _tlSlaves.Remove(attachedSlave.TlId);
+                WorldManager.Instance.RemoveObject(attachedSlave);
             attachedSlave.Despawn = despawnDelayedTime;
             SpawnManager.Instance.AddDespawn(attachedSlave);
             //attachedSlave.Delete();
         }
 
-        var world = WorldManager.Instance.GetWorld(activeSlaveInfo.Transform.WorldId);
-        world.Physics.RemoveShip(activeSlaveInfo);
+        var world = WorldManager.Instance.GetWorld(slaveInfo.Transform.WorldId);
+        world.Physics.RemoveShip(slaveInfo);
         owner?.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
-        owner?.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);
+        owner?.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, slaveInfo.TlId), true);
         lock (_slaveListLock)
         {
-            if (testSlaveInfo == null)
-                _activeSlaves.Remove(owner.ObjId); // remove only the ones that we spawn from items
-            else
-                _testSlaves.Remove(activeSlaveInfo); // remove only the ones that we spawn from Mirage.
+            WorldManager.Instance.RemoveObject(slaveInfo);
         }
 
-        activeSlaveInfo.Despawn = DateTime.UtcNow.AddSeconds(activeSlaveInfo.Template.PortalTime + 0.5f);
-        SpawnManager.Instance.AddDespawn(activeSlaveInfo);
+        slaveInfo.Despawn = DateTime.UtcNow.AddSeconds(slaveInfo.Template.PortalTime + 0.5f);
+        SpawnManager.Instance.AddDespawn(slaveInfo);
     }
 
     /// <summary>
@@ -315,8 +310,6 @@ public class SlaveManager : Singleton<SlaveManager>
     public Slave Create(uint SubType, Transform positionOverride = null)
     {
         var slave = Create(null, null, SubType, null, positionOverride);
-        if (slave == null) return null;
-        _testSlaves.Add(slave);
 
         return slave;
     }
@@ -330,7 +323,7 @@ public class SlaveManager : Singleton<SlaveManager>
     /// <param name="positionOverride"></param>
     public void Create(Character owner, SkillItem skillData, Transform positionOverride = null)
     {
-        var activeSlaveInfo = GetActiveSlaveByOwnerObjId(owner.ObjId);
+        var activeSlaveInfo = GetSlaveByOwnerObjId(owner.ObjId);
         if (activeSlaveInfo != null)
         {
             activeSlaveInfo.Save();
@@ -375,7 +368,7 @@ public class SlaveManager : Singleton<SlaveManager>
         var slaveHp = 1;
         var slaveMp = 1;
         var isLoadedPlayerSlave = false;
-        if ((owner?.Id > 0) && (item?.Id > 0))
+        if (owner?.Id > 0 && item?.Id > 0)
         {
             using var connection = MySQL.CreateConnection();
             using var command = connection.CreateCommand();
@@ -454,9 +447,9 @@ public class SlaveManager : Singleton<SlaveManager>
                 var minDepth = tempShipModel.MassBoxSizeZ - tempShipModel.MassCenterZ + 1f;
 
                 // Somehow take into account where the ship will end up related to it's mass center (also check boat physics)
-                spawnOffsetPos.Z += (tempShipModel.MassCenterZ < 0f ? (tempShipModel.MassCenterZ / 2f) : 0f) - tempShipModel.KeelHeight;
+                spawnOffsetPos.Z += (tempShipModel.MassCenterZ < 0f ? tempShipModel.MassCenterZ / 2f : 0f) - tempShipModel.KeelHeight;
 
-                for (var inFront = 0f; inFront < (50f + tempShipModel.MassBoxSizeX); inFront += 1f)
+                for (var inFront = 0f; inFront < 50f + tempShipModel.MassBoxSizeX; inFront += 1f)
                 {
                     using var depthCheckPos = spawnPos.CloneDetached();
                     depthCheckPos.Local.AddDistanceToFront(inFront);
@@ -495,7 +488,7 @@ public class SlaveManager : Singleton<SlaveManager>
         {
             slaveSummonItem.SlaveType = 0x02;
             slaveSummonItem.SlaveDbId = dbId;
-            if ((slaveSummonItem.IsDestroyed > 0) || (slaveSummonItem.RepairStartTime > DateTime.MinValue))
+            if (slaveSummonItem.IsDestroyed > 0 || slaveSummonItem.RepairStartTime > DateTime.MinValue)
             {
                 var secondsLeft = (slaveSummonItem.RepairStartTime.AddMinutes(10) - DateTime.UtcNow).TotalSeconds;
                 if (secondsLeft > 0.0)
@@ -514,7 +507,7 @@ public class SlaveManager : Singleton<SlaveManager>
         owner?.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, item?.Id ?? 0ul, owner.Name), true);
 
         // Get new Id to save if it has a player as owner
-        if ((owner?.Id > 0) && (dbId <= 0))
+        if (owner?.Id > 0 && dbId <= 0)
             dbId = CharacterIdManager.Instance.GetNextId(); // dbId = SlaveIdManager.Instance.GetNextId();
 
         var summonedSlave = new Slave();
@@ -607,7 +600,7 @@ public class SlaveManager : Singleton<SlaveManager>
 
             // NOTE: In 1.2 we can't replace slave parts like sail, so just apply it to all of the doodads on spawn)
             // Should probably have a check somewhere if a doodad can have the UCC applied or not
-            if (item != null && item.HasFlag(ItemFlag.HasUCC) && (item.UccId > 0))
+            if (item != null && item.HasFlag(ItemFlag.HasUCC) && item.UccId > 0)
                 doodad.UccId = item.UccId;
 
             ApplyAttachPointLocation(summonedSlave, doodad, doodadBinding.AttachPointId);
@@ -616,7 +609,7 @@ public class SlaveManager : Singleton<SlaveManager>
             doodad.Spawn();
 
             // Only set IsPersistent if the binding is defined as such
-            if ((owner?.Id > 0) && (item?.Id > 0) && (doodadBinding.Persist))
+            if (owner?.Id > 0 && item?.Id > 0 && doodadBinding.Persist)
             {
                 doodad.IsPersistent = true;
                 doodad.Save();
@@ -624,7 +617,7 @@ public class SlaveManager : Singleton<SlaveManager>
         }
 
         foreach (var slaveBinding in summonedSlave.Template.SlaveBindings)
-        { 
+        {
             if (slaveBinding.OwnerType != "Slave")
                 continue;
             var childSlaveTemplate = GetSlaveTemplate(slaveBinding.SlaveId);
@@ -662,17 +655,8 @@ public class SlaveManager : Singleton<SlaveManager>
             ApplyAttachPointLocation(summonedSlave, childSlave, slaveBinding.AttachPointId);
 
             summonedSlave.AttachedSlaves.Add(childSlave);
-            lock (_slaveListLock)
-                _tlSlaves.Add(childSlave.TlId, childSlave);
             childSlave.Spawn();
             childSlave.PostUpdateCurrentHp(childSlave, 0, childSlave.Hp, KillReason.Unknown);
-        }
-
-        lock (_slaveListLock)
-        {
-            _tlSlaves.Add(summonedSlave.TlId, summonedSlave);
-            if (owner != null)
-                _activeSlaves.TryAdd(owner.ObjId, summonedSlave);
         }
 
         if (summonedSlave.Template.IsABoat())
@@ -797,9 +781,9 @@ public class SlaveManager : Singleton<SlaveManager>
         _slaveTemplates = new Dictionary<uint, SlaveTemplate>();
         lock (_slaveListLock)
         {
-            _activeSlaves = new Dictionary<uint, Slave>();
-            _testSlaves = new List<Slave>();
-            _tlSlaves = new Dictionary<uint, Slave>();
+            //_activeSlaves = new Dictionary<uint, Slave>();
+            //_testSlaves = new List<Slave>();
+            //_tlSlaves = new Dictionary<uint, Slave>();
         }
         _slaveInitialItems = new Dictionary<uint, List<SlaveInitialItems>>();
         //_slaveMountSkills = new Dictionary<uint, SlaveMountSkills>();
@@ -1107,27 +1091,30 @@ public class SlaveManager : Singleton<SlaveManager>
 
     public void SendMySlavePacketToAllOwners()
     {
-        Dictionary<uint, Slave> slaveList = null;
-        lock (_slaveListLock)
-            slaveList = _activeSlaves;
+        var slaves = WorldManager.Instance.GetAllSlaves();
 
-        foreach (var (ownerObjId, slave) in slaveList)
+        foreach (var slave in slaves)
         {
-            var owner = WorldManager.Instance.GetCharacterByObjId(ownerObjId);
-            owner?.SendPacket(new SCMySlavePacket(slave.ObjId, slave.TlId, slave.Name, slave.TemplateId,
-                slave.Hp, slave.MaxHp,
-                slave.Transform.World.Position.X,
-                slave.Transform.World.Position.Y,
-                slave.Transform.World.Position.Z));
+            if (slave.Summoner != null)
+            {
+                var owner = WorldManager.Instance.GetCharacterByObjId(slave.Summoner.ObjId);
+                owner?.SendPacket(new SCMySlavePacket(slave.ObjId, slave.TlId, slave.Name, slave.TemplateId,
+                    slave.Hp,
+                    slave.MaxHp,
+                    slave.Transform.World.Position.X,
+                    slave.Transform.World.Position.Y,
+                    slave.Transform.World.Position.Z));
+            }
         }
     }
 
     public Slave GetIsMounted(uint objId, out AttachPointKind attachPoint)
     {
+        var slaves = WorldManager.Instance.GetAllSlaves();
         attachPoint = AttachPointKind.None;
         lock (_slaveListLock)
         {
-            foreach (var slave in _activeSlaves.Values)
+            foreach (var slave in slaves)
                 foreach (var unit in slave.AttachedCharacters)
                 {
                     if (unit.Value.ObjId == objId)
@@ -1143,7 +1130,8 @@ public class SlaveManager : Singleton<SlaveManager>
 
     public void RemoveActiveSlave(Character character, ushort slaveTlId)
     {
-        if (_tlSlaves.TryGetValue(slaveTlId, out var slave))
+        var slave = GetSlaveByTlId(slaveTlId);
+        if (slave != null)
         {
             if (slave.Summoner?.ObjId != character.ObjId)
             {
@@ -1162,7 +1150,7 @@ public class SlaveManager : Singleton<SlaveManager>
 
     public void RidersEscape(Character player, SkillCastPositionTarget skillCastPositionTarget)
     {
-        var mySlave = GetActiveSlaveByOwnerObjId(player.ObjId);
+        var mySlave = GetSlaveByOwnerObjId(player.ObjId);
         if (mySlave == null)
         {
             Logger.Warn($"{player.Name} using Rider's Escape with no slave active!");
@@ -1212,7 +1200,7 @@ public class SlaveManager : Singleton<SlaveManager>
 
         foreach (var doodad in slave.AttachedDoodads)
         {
-            if ((doodad.AttachPoint < AttachPointKind.HealPoint0) || (doodad.AttachPoint > AttachPointKind.HealPoint9))
+            if (doodad.AttachPoint < AttachPointKind.HealPoint0 || doodad.AttachPoint > AttachPointKind.HealPoint9)
                 continue;
             currentHealPoints.Add(doodad);
             unUsedHealPoints.Remove(doodad.AttachPoint);
@@ -1239,10 +1227,10 @@ public class SlaveManager : Singleton<SlaveManager>
             }
         }
 
-        if ((pointsToAdd > 0) && (unUsedHealPoints.Count > 0))
+        if (pointsToAdd > 0 && unUsedHealPoints.Count > 0)
         {
             // We don't have enough points, add some
-            for (var iAdd = 0; (iAdd < pointsToAdd) && (unUsedHealPoints.Count > 0); iAdd++)
+            for (var iAdd = 0; iAdd < pointsToAdd && unUsedHealPoints.Count > 0; iAdd++)
             {
                 // pick a random spot
                 var wreckPointLocation = unUsedHealPoints[Random.Shared.Next(unUsedHealPoints.Count)];
@@ -1286,7 +1274,7 @@ public class SlaveManager : Singleton<SlaveManager>
 
     public void RemoveAndDespawnAllActiveOwnedSlaves(Character owner)
     {
-        var activeSlaveInfo = GetActiveSlaveByOwnerObjId(owner.ObjId);
+        var activeSlaveInfo = GetSlaveByOwnerObjId(owner.ObjId);
         if (activeSlaveInfo != null)
         {
             activeSlaveInfo.Save();
