@@ -16,7 +16,7 @@ public class CSInviteToTeamPacket : GamePacket
         var isParty = stream.ReadBoolean();
         var targetName = stream.ReadString();
 
-        // Logger.Warn("CSInviteToTeam, TeamId: {0}, IsParty: {1}, Char: {2}", teamId, isParty, targetName);
+        Logger.Warn($"CSInviteToTeam, TeamId: {teamId}, IsParty: {isParty}, Char: {targetName}");
         TeamManager.Instance.AskToJoin(Connection.ActiveChar, targetName, teamId, isParty);
     }
 }

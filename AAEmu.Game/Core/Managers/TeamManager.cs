@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.World.Transform;
@@ -90,7 +90,8 @@ public class TeamManager : Singleton<TeamManager>
         // TODO - CONFIG INVITE DISABLED
 
         var activeTeam = GetActiveTeam(teamId);
-        if (GetActiveInvitation(target.Id) != null)
+        var activeInvitation = GetActiveInvitation(target.Id);
+        if (activeInvitation != null)
         {
             owner.SendPacket(new SCRejectedTeamPacket(targetName, isParty));
             return;
@@ -115,7 +116,7 @@ public class TeamManager : Singleton<TeamManager>
             }
         }
 
-        _activeInvitations.Add(target.Id, new InvitationTemplate
+        _activeInvitations.TryAdd(target.Id, new InvitationTemplate
         {
             Owner = owner,
             Target = target,
@@ -284,7 +285,6 @@ public class TeamManager : Singleton<TeamManager>
         if (!activeTeam.IsParty)
             ChatManager.Instance.GetRaidChat(activeTeam).LeaveChannel(unit);
         ChatManager.Instance.GetPartyChat(activeTeam, unit).LeaveChannel(unit);
-
 
         if ((riskyAction == RiskyAction.Leave || riskyAction == RiskyAction.Kick) && activeTeam.RemoveMember(targetId))
         {

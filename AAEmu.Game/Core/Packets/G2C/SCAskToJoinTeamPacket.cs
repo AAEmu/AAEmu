@@ -24,6 +24,8 @@ public class SCAskToJoinTeamPacket : GamePacket
         stream.Write(_senderId);
         stream.Write(_senderName);
         stream.Write(_isParty);
+        stream.Write(_isParty);
+        stream.Write(0UL); // logEventId
         return stream;
     }
 }
