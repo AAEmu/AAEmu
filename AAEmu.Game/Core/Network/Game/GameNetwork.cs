@@ -290,7 +290,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSSetForceAttackPacket, 5, typeof(CSSetForceAttackPacket));
         RegisterPacket(CSOffsets.CSStartSkillPacket, 5, typeof(CSStartSkillPacket));
         //RegisterPacket(CSOffsets.CSUnknown0x122Packet, 5, typeof(CSUnknown0x122Packet));
-        //RegisterPacket(CSOffsets.CSStopLootingPacket, 5, typeof(CSStopLootingPacket));
+        RegisterPacket(CSOffsets.CSStopLootingPacket, 5, typeof(CSStopLootingPacket));
         RegisterPacket(CSOffsets.CSCreateDoodadPacket, 5, typeof(CSCreateDoodadPacket));
         RegisterPacket(CSOffsets.CSNaviTeleportPacket, 5, typeof(CSNaviTeleportPacket));
         RegisterPacket(CSOffsets.CSNaviOpenPortalPacket, 5, typeof(CSNaviOpenPortalPacket));
