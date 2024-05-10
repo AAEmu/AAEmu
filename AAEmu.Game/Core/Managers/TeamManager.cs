@@ -178,7 +178,7 @@ public class TeamManager : Singleton<TeamManager>
             {
                 target.SendPacket(new SCJoinedTeamPacket(activeTeam));
                 target.InParty = true;
-                target.SendPacket(new SCTeamPingPosPacket(true, activeTeam.PingPosition, 0));
+                target.SendPacket(new SCTeamPingPosPacket(activeTeam.PingPosition));
                 activeTeam.BroadcastPacket(new SCTeamMemberJoinedPacket(activeTeam.Id, newTeamMember, party), target.Id);
             }
         }
@@ -231,7 +231,7 @@ public class TeamManager : Singleton<TeamManager>
         activeInvitation.Owner.InParty = true;
         activeInvitation.Target.SendPacket(new SCJoinedTeamPacket(newTeam));
         activeInvitation.Target.InParty = true;
-        newTeam.BroadcastPacket(new SCTeamPingPosPacket(true, activeInvitation.Owner.LocalPingPosition, 0));
+        newTeam.BroadcastPacket(new SCTeamPingPosPacket(activeInvitation.Owner.LocalPingPosition));
         if (!newTeam.IsParty)
         {
             ChatManager.Instance.GetRaidChat(newTeam).JoinChannel(activeInvitation.Owner);
@@ -262,7 +262,7 @@ public class TeamManager : Singleton<TeamManager>
 
         character.SendPacket(new SCJoinedTeamPacket(newTeam));
         character.InParty = asParty;
-        newTeam.BroadcastPacket(new SCTeamPingPosPacket(true, character.LocalPingPosition, 0));
+        newTeam.BroadcastPacket(new SCTeamPingPosPacket(character.LocalPingPosition));
 
         if (!newTeam.IsParty)
             ChatManager.Instance.GetRaidChat(newTeam).JoinChannel(character);
@@ -417,13 +417,13 @@ public class TeamManager : Singleton<TeamManager>
         activeTeam.BroadcastPacket(new SCTeamLootingRuleChangedPacket(teamId, newRules, flags));
     }
 
-    public void SetPingPos(Character unit, uint teamId, bool hasPing, WorldSpawnPosition position, uint insId)
+    public void SetPingPos(Character unit, TeamPingPos teamPingPos)
     {
-        var activeTeam = GetActiveTeam(teamId);
+        var activeTeam = GetActiveTeam(teamPingPos.TeamId);
         if ((activeTeam.OwnerId != unit.Id) && (activeTeam == null || !activeTeam.IsMarked(unit.Id))) return;
 
-        activeTeam.PingPosition = position;
-        activeTeam.BroadcastPacket(new SCTeamPingPosPacket(hasPing, position, insId));
+        activeTeam.PingPosition = teamPingPos;
+        activeTeam.BroadcastPacket(new SCTeamPingPosPacket(activeTeam.PingPosition));
     }
 
     public void SetOffline(Character unit)
