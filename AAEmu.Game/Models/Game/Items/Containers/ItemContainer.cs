@@ -423,7 +423,7 @@ public class ItemContainer
             var owner = WorldManager.Instance.GetCharacterById(summonSlaveItem._holdingContainer.OwnerId);
             if (owner != null)
             {
-                var checkSlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(owner.ObjId);
+                var checkSlave = SlaveManager.Instance.GetSlaveByOwnerObjId(owner.ObjId);
                 if (checkSlave?.Id == summonSlaveItem.SlaveDbId)
                 {
                     owner.SendErrorMessage(ErrorMessageType.SlaveSpawnItemLocked);

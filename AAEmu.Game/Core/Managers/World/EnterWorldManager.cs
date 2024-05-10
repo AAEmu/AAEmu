@@ -92,7 +92,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
                         logoutTime *= 30;
 
                     // Add 10 minutes if you have a Slave Active
-                    if (SlaveManager.Instance.GetActiveSlaveByOwnerObjId(connection.ActiveChar?.ObjId ?? 0) != null)
+                    if (SlaveManager.Instance.GetSlaveByOwnerObjId(connection.ActiveChar?.ObjId ?? 0) != null)
                         logoutTime += 1000 * 60 * 10;
 
                     connection.SendPacket(new SCPrepareLeaveWorldPacket(logoutTime, type, false));

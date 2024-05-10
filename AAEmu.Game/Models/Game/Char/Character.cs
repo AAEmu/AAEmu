@@ -1844,7 +1844,7 @@ public partial class Character : Unit, ICharacter
     {
         var res = ForceDismount();
 
-        var mySlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
+        var mySlave = SlaveManager.Instance.GetSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
         if (mySlave != null)
         {
             // run the task to turn off the transport after timeToDespawn minutes
