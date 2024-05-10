@@ -300,7 +300,7 @@ CREATE TABLE `items` (
   `type` varchar(100) NOT NULL,
   `template_id` int unsigned NOT NULL,
   `container_id` int unsigned NOT NULL DEFAULT '0',
-  `slot_type` enum('Equipment','Inventory','Bank','Trade','Mail','System') NOT NULL,
+  `slot_type` enum('Equipment','Inventory','Bank','Trade','Mail','System','EquipmentMate') NOT NULL,
   `slot` int NOT NULL,
   `count` int NOT NULL,
   `details` blob,

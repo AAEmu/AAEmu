@@ -84,6 +84,7 @@ public class GameConnection
             subscriber.Dispose();
 
         SaveAndRemoveFromWorld();
+        AccountManager.Instance.UpdateLoginTime(AccountId, DateTime.UtcNow);
     }
 
     public void Shutdown()

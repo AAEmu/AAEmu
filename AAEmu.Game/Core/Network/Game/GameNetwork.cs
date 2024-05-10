@@ -294,7 +294,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSTakeAllAttachmentItemPacket, 1, typeof(CSTakeAllAttachmentItemPacket));
         // 0x13a unk packet
         // 0x13b unk packet
-        RegisterPacket(CSOffsets.CSPremiumServieceMsgPacket, 1, typeof(CSPremiumServieceMsgPacket));
+        RegisterPacket(CSOffsets.CSPremiumServiceMsgPacket, 1, typeof(CSPremiumServiceMsgPacket));
         // 0x13d unk packet
         // 0x13e unk packet
         RegisterPacket(CSOffsets.CSUnknownInstancePacket, 1, typeof(CSUnknownInstancePacket));

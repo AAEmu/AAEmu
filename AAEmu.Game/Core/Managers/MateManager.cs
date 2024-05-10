@@ -97,7 +97,7 @@ public class MateManager : Singleton<MateManager>
         if (string.IsNullOrWhiteSpace(newName) || newName.Length == 0 || !_nameRegex.IsMatch(newName)) return null;
         var mateInfo = GetActiveMate(owner.ObjId);
         if (mateInfo == null || mateInfo.TlId != tlId) return null;
-        mateInfo.Name = newName.FirstCharToUpper();
+        mateInfo.Name = newName.NormalizeName();
         owner.BroadcastPacket(new SCUnitNameChangedPacket(mateInfo.ObjId, newName), true);
         return mateInfo;
     }

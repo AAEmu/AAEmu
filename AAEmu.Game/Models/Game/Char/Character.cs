@@ -34,6 +34,7 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
 using MySql.Data.MySqlClient;
+using SQLitePCL;
 
 namespace AAEmu.Game.Models.Game.Char;
 
@@ -50,8 +51,35 @@ public partial class Character : Unit, ICharacter
     public uint AccountId { get; set; }
     public Race Race { get; set; }
     public Gender Gender { get; set; }
-    public short LaborPower { get; set; }
-    public DateTime LaborPowerModified { get; set; }
+
+    /// <summary>
+    /// Cached representation of Account Labor
+    /// </summary>
+    public short LaborPower
+    {
+        get => _laborPower;
+        set
+        {
+            if (_laborPower == value)
+                return;
+            _laborPower = value;
+            AccountManager.Instance.UpdateLabor(AccountId, value);
+        }
+    }
+
+    public DateTime LaborPowerModified
+    {
+        get => _laborPowerModified;
+        set
+        {
+            if (_laborPowerModified == value)
+                return;
+
+            _laborPowerModified = value;
+            AccountManager.Instance.UpdateTickTimes(AccountId, value, true, false, false);
+        }
+    }
+
     public int ConsumedLaborPower { get; set; }
     public AbilityType Ability1 { get; set; }
     public AbilityType Ability2 { get; set; }
@@ -78,6 +106,10 @@ public partial class Character : Unit, ICharacter
     public DateTime DeleteRequestTime { get; set; }
     public DateTime TransferRequestTime { get; set; }
     public DateTime DeleteTime { get; set; }
+    
+    /// <summary>
+    /// Cache value of AccountDetails.Loyalty
+    /// </summary>
     public long BmPoint { get; set; }
     public bool AutoUseAAPoint { get; set; }
     public int PrevPoint { get; set; }
@@ -145,6 +177,14 @@ public partial class Character : Unit, ICharacter
 
     private bool _inParty;
     private bool _isOnline;
+    private short _laborPower;
+    private DateTime _laborPowerModified;
+
+    public void InitializeLaborCache(short labor, DateTime newTime)
+    {
+        _laborPower = labor;
+        _laborPowerModified = newTime;
+    }
 
     public bool InParty
     {
@@ -1451,7 +1491,7 @@ public partial class Character : Unit, ICharacter
     public void SetPirate(bool pirate)
     {
         // TODO : If castle owner -> Nope
-        var defaultFactionId = CharacterManager.Instance.GetTemplate((byte)Race, (byte)Gender).FactionId;
+        var defaultFactionId = CharacterManager.Instance.GetTemplate(Race, Gender).FactionId;
 
         var newFaction = pirate ? FactionsEnum.Pirate : defaultFactionId;
         BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction.Id, newFaction, false), true);
@@ -1891,6 +1931,7 @@ public partial class Character : Unit, ICharacter
 
     public static Character Load(MySqlConnection connection, uint characterId, uint accountId)
     {
+        var accountDetails = AccountManager.Instance.GetAccountDetails(accountId);
         Character character = null;
         using (var command = connection.CreateCommand())
         {
@@ -1918,8 +1959,9 @@ public partial class Character : Unit, ICharacter
                     character.RecoverableExp = reader.GetInt32("recoverable_exp");
                     character.Hp = reader.GetInt32("hp");
                     character.Mp = reader.GetInt32("mp");
-                    character.LaborPower = reader.GetInt16("labor_power");
-                    character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
+                    // character.LaborPower = reader.GetInt16("labor_power");
+                    // character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
+                    character.InitializeLaborCache(accountDetails.Labor, accountDetails.LastUpdated);
                     character.ConsumedLaborPower = reader.GetInt32("consumed_lp");
                     character.Ability1 = (AbilityType)reader.GetByte("ability1");
                     character.Ability2 = (AbilityType)reader.GetByte("ability2");
@@ -1950,7 +1992,7 @@ public partial class Character : Unit, ICharacter
                     character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
                     character.DeleteRequestTime = reader.GetDateTime("delete_request_time");
                     character.DeleteTime = reader.GetDateTime("delete_time");
-                    character.BmPoint = reader.GetInt32("bm_point");
+                    // character.BmPoint = reader.GetInt32("bm_point");
                     character.AutoUseAAPoint = reader.GetBoolean("auto_use_aapoint");
                     character.PrevPoint = reader.GetInt32("prev_point");
                     character.Point = reader.GetInt32("point");
@@ -1966,6 +2008,8 @@ public partial class Character : Unit, ICharacter
 
                     var slotsBlob = (PacketStream)((byte[])reader.GetValue("slots"));
                     character.LoadActionSlots(slotsBlob);
+
+                    character.BmPoint = AccountManager.Instance.GetAccountDetails(character.AccountId).Loyalty;
 
                     if (character.Hp > character.MaxHp)
                         character.Hp = character.MaxHp;
@@ -2018,6 +2062,9 @@ public partial class Character : Unit, ICharacter
                     character = new Character(modelParams);
                     character.Id = reader.GetUInt32("id");
                     character.AccountId = reader.GetUInt32("account_id");
+
+                    var accountDetails = AccountManager.Instance.GetAccountDetails(character.AccountId);
+                    
                     character.Name = reader.GetString("name");
                     character.AccessLevel = reader.GetInt32("access_level");
                     character.Race = (Race)reader.GetByte("race");
@@ -2027,8 +2074,9 @@ public partial class Character : Unit, ICharacter
                     character.RecoverableExp = reader.GetInt32("recoverable_exp");
                     character.Hp = reader.GetInt32("hp");
                     character.Mp = reader.GetInt32("mp");
-                    character.LaborPower = reader.GetInt16("labor_power");
-                    character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
+                    character.InitializeLaborCache(accountDetails.Labor, accountDetails.LastUpdated);
+                    // character.LaborPower = reader.GetInt16("labor_power");
+                    // character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
                     character.ConsumedLaborPower = reader.GetInt32("consumed_lp");
                     character.Ability1 = (AbilityType)reader.GetByte("ability1");
                     character.Ability2 = (AbilityType)reader.GetByte("ability2");
@@ -2059,7 +2107,7 @@ public partial class Character : Unit, ICharacter
                     character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
                     character.DeleteRequestTime = reader.GetDateTime("delete_request_time");
                     character.DeleteTime = reader.GetDateTime("delete_time");
-                    character.BmPoint = reader.GetInt32("bm_point");
+                    // character.BmPoint = reader.GetInt32("bm_point");
                     character.AutoUseAAPoint = reader.GetBoolean("auto_use_aapoint");
                     character.PrevPoint = reader.GetInt32("prev_point");
                     character.Point = reader.GetInt32("point");
@@ -2076,6 +2124,8 @@ public partial class Character : Unit, ICharacter
                     var slotsBlob = (PacketStream)((byte[])reader.GetValue("slots"));
                     character.LoadActionSlots(slotsBlob);
 
+                    character.BmPoint = AccountManager.Instance.GetAccountDetails(character.AccountId).Loyalty;
+                    
                     if (character.Hp > character.MaxHp)
                         character.Hp = character.MaxHp;
                     if (character.Mp > character.MaxMp)
@@ -2194,7 +2244,7 @@ public partial class Character : Unit, ICharacter
 
     public void Load()
     {
-        var template = CharacterManager.Instance.GetTemplate((byte)Race, (byte)Gender);
+        var template = CharacterManager.Instance.GetTemplate(Race, Gender);
         ModelId = template.ModelId;
         BuyBackItems = new ItemContainer(Id, SlotType.None, false);
         Slots = new ActionSlot[MaxActionSlots];
@@ -2287,19 +2337,19 @@ public partial class Character : Unit, ICharacter
                 command.CommandText =
                     "REPLACE INTO `characters` " +
                     "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`experience`,`recoverable_exp`," +
-                    "`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`," +
+                    "`hp`,`mp`,`consumed_lp`,`ability1`,`ability2`,`ability3`," +
                     "`world_id`,`zone_id`,`x`,`y`,`z`,`roll`,`pitch`,`yaw`," +
                     "`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`," +
                     "`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`," +
-                    "`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
+                    "`delete_request_time`,`transfer_request_time`,`delete_time`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
                     "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`created_at`,`updated_at`,`return_district`" +
                     ") VALUES (" +
                     "@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@experience,@recoverable_exp," +
-                    "@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3," +
+                    "@hp,@mp,@consumed_lp,@ability1,@ability2,@ability3," +
                     "@world_id,@zone_id,@x,@y,@z,@yaw,@pitch,@roll," +
                     "@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time," +
                     "@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record," +
-                    "@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift," +
+                    "@delete_request_time,@transfer_request_time,@delete_time,@auto_use_aapoint,@prev_point,@point,@gift," +
                     "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@created_at,@updated_at,@return_district)";
 
                 command.Parameters.AddWithValue("@id", Id);
@@ -2314,8 +2364,8 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@recoverable_exp", RecoverableExp);
                 command.Parameters.AddWithValue("@hp", Hp);
                 command.Parameters.AddWithValue("@mp", Mp);
-                command.Parameters.AddWithValue("@labor_power", LaborPower);
-                command.Parameters.AddWithValue("@labor_power_modified", LaborPowerModified);
+                //command.Parameters.AddWithValue("@labor_power", LaborPower);
+                //command.Parameters.AddWithValue("@labor_power_modified", LaborPowerModified);
                 command.Parameters.AddWithValue("@consumed_lp", ConsumedLaborPower);
                 command.Parameters.AddWithValue("@ability1", (byte)Ability1);
                 command.Parameters.AddWithValue("@ability2", (byte)Ability2);
@@ -2349,7 +2399,7 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@delete_request_time", DeleteRequestTime);
                 command.Parameters.AddWithValue("@transfer_request_time", TransferRequestTime);
                 command.Parameters.AddWithValue("@delete_time", DeleteTime);
-                command.Parameters.AddWithValue("@bm_point", BmPoint);
+                // command.Parameters.AddWithValue("@bm_point", BmPoint);
                 command.Parameters.AddWithValue("@auto_use_aapoint", AutoUseAAPoint);
                 command.Parameters.AddWithValue("@prev_point", PrevPoint);
                 command.Parameters.AddWithValue("@point", Point);

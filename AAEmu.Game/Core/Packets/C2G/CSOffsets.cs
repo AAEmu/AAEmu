@@ -274,7 +274,7 @@ public static class CSOffsets
     public const ushort CSTakeAllAttachmentItemPacket = 0x139;
     // 0x13a unk packet
     // 0x13b unk packet
-    public const ushort CSPremiumServieceMsgPacket = 0x13c;
+    public const ushort CSPremiumServiceMsgPacket = 0x13c;
     // 0x13d unk packet
     // 0x13e unk packet
     public const ushort CSUnknownInstancePacket = 0x13e;
