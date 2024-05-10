@@ -18,6 +18,7 @@ public class CSReplyToJoinTeamPacket : GamePacket
         var isReject = stream.ReadBoolean();
         var charName = stream.ReadString();
         var isArea = stream.ReadBoolean();
+        var logEventId = stream.ReadUInt64();
 
         // Logger.Warn("ReplyToJoinTeam, TeamId: {0}, Party: {1}, CharName: {2}, unkId: {3}, isReject: {4}, isArea: {5}", teamId, isParty, charName, ownerId, isReject, isArea);
         TeamManager.Instance.ReplyToJoinTeam(Connection.ActiveChar, teamId, isParty, ownerId, isReject, charName, isArea);
