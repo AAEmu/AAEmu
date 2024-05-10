@@ -28,6 +28,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Static;
+using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World.Transform;
@@ -124,7 +125,7 @@ public partial class Character : Unit, ICharacter
     public CharacterCraft Craft { get; set; }
     public uint SubZoneId { get; set; } // понадобилось хранить для составления точек Memory Tome (Recall)
     public int AccessLevel { get; set; }
-    public WorldSpawnPosition LocalPingPosition { get; set; } // added as a GM command helper
+    public TeamPingPos LocalPingPosition { get; set; } // added as a GM command helper
     private ConcurrentDictionary<uint, DateTime> _hostilePlayers { get; set; }
     public bool IsRiding { get; set; }
     /// <summary>
@@ -2214,7 +2215,7 @@ public partial class Character : Unit, ICharacter
 
         Craft = new CharacterCraft(this);
         Procs = new UnitProcs(this);
-        LocalPingPosition = new WorldSpawnPosition();
+        LocalPingPosition = new TeamPingPos();
 
         using (var connection = MySQL.CreateConnection())
         {

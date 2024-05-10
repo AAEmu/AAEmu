@@ -198,7 +198,7 @@ public static class CSOffsets
     public const ushort CSInviteAreaToTeamPacket = 0x079;
     public const ushort CSInviteToTeamPacket = 0x10A;
     public const ushort CSReplyToJoinTeamPacket = 0x0FD;
-    public const ushort CSLeaveTeamPacket = 0x040;
+    public const ushort CSLeaveTeamPacket = 0x113;
     public const ushort CSKickTeamMemberPacket = 0x040;
     public const ushort CSMakeTeamOwnerPacket = 0x0BB;
     public const ushort CSConvertToRaidTeamPacket = 0x12D;

@@ -27,23 +27,22 @@ public class PingPosition : ICommand
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
 
-        if ((character.LocalPingPosition.X == 0f) && (character.LocalPingPosition.Y == 0f))
-        {
-            character.SendMessage("|cFFFFFF00[PingPos] Make sure you marked a location on the map WHILE IN A PARTY OR RAID, using this command.\n" +
-                "If required, you can use the /soloparty command to make a party of just yourself.|r");
-        }
-        else
-        {
-            var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.X, character.LocalPingPosition.Y);
-            if (height == 0f)
-            {
-                character.SendMessage("|cFFFF0000[PingPos] |cFFFFFFFFX:" + character.LocalPingPosition.X.ToString("0.0") + " Y:" + character.LocalPingPosition.Y.ToString("0.0") + " Z: ???|r");
-            }
-            else
-            {
-                character.SendMessage("|cFFFF0000[PingPos] |cFFFFFFFFX:" + character.LocalPingPosition.X.ToString("0.0") + " Y:" + character.LocalPingPosition.Y.ToString("0.0") + " Z:" + height.ToString("0.0") + "|r");
-            }
-        }
-
+        //    if ((character.LocalPingPosition.X == 0f) && (character.LocalPingPosition.Y == 0f))
+        //    {
+        //        character.SendMessage("|cFFFFFF00[PingPos] Make sure you marked a location on the map WHILE IN A PARTY OR RAID, using this command.\n" +
+        //            "If required, you can use the /soloparty command to make a party of just yourself.|r");
+        //    }
+        //    else
+        //    {
+        //        var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.X, character.LocalPingPosition.Y);
+        //        if (height == 0f)
+        //        {
+        //            character.SendMessage("|cFFFF0000[PingPos] |cFFFFFFFFX:" + character.LocalPingPosition.X.ToString("0.0") + " Y:" + character.LocalPingPosition.Y.ToString("0.0") + " Z: ???|r");
+        //        }
+        //        else
+        //        {
+        //            character.SendMessage("|cFFFF0000[PingPos] |cFFFFFFFFX:" + character.LocalPingPosition.X.ToString("0.0") + " Y:" + character.LocalPingPosition.Y.ToString("0.0") + " Z:" + height.ToString("0.0") + "|r");
+        //        }
+        //    }
     }
 }

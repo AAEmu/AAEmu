@@ -15,13 +15,13 @@ public class Team : PacketMarshaler
     public TeamMember[] Members { get; set; }
     public LootingRule LootingRule { get; set; }
     public (byte, uint)[] MarksList { get; set; }
-    public WorldSpawnPosition PingPosition { get; set; }
+    public TeamPingPos PingPosition { get; set; }
 
     public Team()
     {
         Members = new TeamMember[50];
         ResetMarks();
-        PingPosition = new WorldSpawnPosition();
+        PingPosition = new TeamPingPos();
     }
 
     public void ResetMarks()
