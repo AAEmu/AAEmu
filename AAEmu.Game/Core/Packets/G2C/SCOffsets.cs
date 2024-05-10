@@ -729,7 +729,7 @@ public static class SCOffsets
     public const ushort SCGamePointChangedPacket = 0x284;
     public const ushort SCNationListPacket = 0x0A7;
     public const ushort SCFactionRelationListPacket = 0x1FB;
-    public const ushort SCFamilyDescribedPacket = 0x1F2;
+    public const ushort SCFamilyDescPacket = 0x1F2; // SCFamilyDescribedPacket
     public const ushort SCFamilyMemberAddedPacket = 0x2D3;
     public const ushort off_39C0D9FC = 0x2A1;
     public const ushort SCFamilyCreatedPacket = 0x28F;
@@ -741,7 +741,6 @@ public static class SCOffsets
     public const ushort SCDominionTaxRatePacket = 0xfff;
     public const ushort SCNationalTaxRatePacket = 0xfff;
     public const ushort SCDominionTaxBalancedPacket = 0xfff;
-    public const ushort SCFamilyDescPacket = 0xfff;
     public const ushort SCCharBriefPacket = 0xfff;
     public const ushort SCPlaytimePacket = 0xfff;
     public const ushort SCPortalInfoSavedPacket = 0xfff;
