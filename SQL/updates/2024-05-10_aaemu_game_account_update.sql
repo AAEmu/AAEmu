@@ -22,7 +22,7 @@ UPDATE `accounts` a1, (
         FROM characters c2
         WHERE c1.account_id = c2.account_id AND deleted = 0
     )
-    GROUP BY c1.account_id
+    GROUP BY c1.account_id, c1.access_level
 ) a2
 SET a1.access_level = a2.access_level
 WHERE a1.account_id = a2.account_id;
@@ -36,7 +36,7 @@ UPDATE `accounts` a1, (
         FROM characters c2
         WHERE c1.account_id = c2.account_id AND deleted = 0
     )
-    GROUP BY c1.account_id
+    GROUP BY c1.account_id, c1.labor_power
 ) a2
 SET a1.labor = a2.labor_power
 WHERE a1.account_id = a2.account_id;
