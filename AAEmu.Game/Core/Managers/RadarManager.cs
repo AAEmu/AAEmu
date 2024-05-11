@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -121,8 +122,8 @@ public class RadarManager : Singleton<RadarManager>
             foreach (var (_, entry) in Registrations)
             {
                 // TODO: Make a proper GM flag
-                var gmRangeCheck = entry.Player.AccessLevel >= 100 ? 100000f : 0f;
-                if ((entry == null) || (entry.Player == null))
+                var gmRangeCheck = CharacterManager.Instance.GetEffectiveAccessLevel(entry.Player) >= 100 ? 100000f : 0f;
+                if (entry.Player == null)
                     continue;
 
                 // Check public Transportation

@@ -135,7 +135,7 @@ public class MateManager : Singleton<MateManager>
         var (owner, mateInfo) = GetMateInfoByTlId(connection, tlId);
         if (string.IsNullOrWhiteSpace(newName) || newName.Length == 0 || !_nameRegex.IsMatch(newName)) return null;
         if (mateInfo?.TlId != tlId) return null;
-        mateInfo.Name = newName.FirstCharToUpper();
+        mateInfo.Name = newName.NormalizeName();
         owner.BroadcastPacket(new SCUnitNameChangedPacket(mateInfo.ObjId, newName), true);
         return mateInfo;
     }
