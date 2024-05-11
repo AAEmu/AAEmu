@@ -1,9 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.StaticValues;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -19,7 +22,7 @@ public class NameManager : Singleton<NameManager>
     public string GetCharacterName(uint characterId)
     {
         if (_characterNames.ContainsKey(characterId))
-            return _characterNames[characterId].FirstCharToUpper();
+            return _characterNames[characterId].NormalizeName();
         return null;
     }
 
@@ -58,34 +61,82 @@ public class NameManager : Singleton<NameManager>
                         var id = reader.GetUInt32("id");
                         var name = reader.GetString("name").ToLower();
                         var account = reader.GetUInt64("account_id");
-                        _characterNames.Add(id, name);
+                        _characterNames.Add(id, name.NormalizeName());
                         _characterAccounts.Add(id, account);
                     }
                 }
             }
         }
 
-        Logger.Info("Loaded {0} character names", _characterNames.Count);
+        Logger.Info($"Loaded {_characterNames.Count} character names");
     }
 
-    public byte ValidationCharacterName(string name)
+    public CharacterCreateError ValidationCharacterName(string name)
     {
         if (_characterNames.ContainsValue(name))
-            return 4; // Персонаж с таким именем уже существует. Выберите другое.
-        if (name == "" || !_characterNameRegex.IsMatch(name)) // TODO ...
-            return 5; // Это имя содержит недопустимую лексику.
-        return 0;
+        {
+            if (CharacterManager.Instance.IsCharacterPendingDeletion(name))
+                return CharacterCreateError.Failed;
+
+            return CharacterCreateError.NameAlreadyExists;
+        }
+
+        if (string.IsNullOrWhiteSpace(name) || !_characterNameRegex.IsMatch(name))
+            return CharacterCreateError.InvalidCharacters;
+
+        return CharacterCreateError.Ok;
     }
 
     public void AddCharacterName(uint characterId, string name, ulong accountId)
     {
-        _characterNames.Add(characterId, name);
-        _characterAccounts.Add(characterId, accountId);
+        if (!_characterNames.TryAdd(characterId, name.NormalizeName()))
+        {
+            var oldName = _characterNames.GetValueOrDefault(characterId) ?? string.Empty;
+            if (string.Compare(name, oldName, StringComparison.InvariantCultureIgnoreCase) != 0)
+                Logger.Error($"AddCharacterName, failed to register name for {name} ({characterId}), Account {accountId}, OldName {oldName}");
+        }
+        else
+        {
+            Logger.Info($"AddCharacterName, Registered character name {name} ({characterId})");
+        }
+
+        if (!_characterAccounts.TryAdd(characterId, accountId))
+        {
+            var oldAccount = _characterAccounts.GetValueOrDefault(characterId);
+            if (accountId != oldAccount)
+                Logger.Error($"AddCharacterName, failed to register account for {name} ({characterId}), Account {accountId}, OldAccount {oldAccount}");
+        }
+        else
+        {
+            Logger.Info($"AddCharacterName, Registered account {accountId} for {name} ({characterId})");
+        }
     }
 
     public void RemoveCharacterName(uint characterId)
     {
-        _characterNames.Remove(characterId);
-        _characterAccounts.Remove(characterId);
+        if (_characterNames.ContainsKey(characterId))
+        {
+            _characterNames.Remove(characterId);
+            Logger.Info($"AddCharacterName, Remove name registration for character Id {characterId}");
+        }
+        else
+        {
+            Logger.Error($"AddCharacterName, No name was registered for character Id {characterId}");
+        }
+
+        if (_characterAccounts.ContainsKey(characterId))
+        {
+            _characterAccounts.Remove(characterId);
+            Logger.Info($"AddCharacterName, Removed account registration for character Id {characterId}");
+        }
+        else
+        {
+            Logger.Error($"AddCharacterName, No account was registered for character Id {characterId}");
+        }
+    }
+
+    public bool NoNamesRegistered()
+    {
+        return _characterNames.Count <= 0;
     }
 }

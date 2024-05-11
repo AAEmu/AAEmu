@@ -16,7 +16,7 @@ public class CSICSMoneyRequestPacket : GamePacket
         // Empty struct
         Logger.Warn("ICSMoneyRequest");
 
-        var points = CashShopManager.Instance.GetAccountCredits(Connection.AccountId);
-        Connection.SendPacket(new SCICSCashPointPacket(points));
+        var points = AccountManager.Instance.GetAccountDetails(Connection.AccountId);
+        Connection.SendPacket(new SCICSCashPointPacket(points.Credits));
     }
 }
