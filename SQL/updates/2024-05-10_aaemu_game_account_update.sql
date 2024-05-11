@@ -41,19 +41,13 @@ UPDATE `accounts` a1, (
 SET a1.labor = a2.labor_power
 WHERE a1.account_id = a2.account_id;
 
--- Copy highest Loyalty value from characters into accounts
-UPDATE `accounts` a1, (
-    SELECT c1.account_id, c1.bm_point
-    FROM `characters` c1
-    WHERE bm_point = (
-        SELECT MAX(c2.bm_point)
-        FROM characters c2
-        WHERE c1.account_id = c2.account_id AND deleted = 0
-    )
-    GROUP BY c1.account_id
-) a2
-SET a1.loyalty = a2.bm_point
-WHERE a1.account_id = a2.account_id;
+-- Copy Loyalty value from all characters into accounts
+UPDATE accounts SET loyalty = 0;
+UPDATE accounts c1 SET c1.loyalty = c1.loyalty + (
+    SELECT SUM(c2.bm_point)
+    FROM characters c2
+    WHERE c1.account_id = c2.account_id AND deleted = 0
+);
 
 -- Remove old unused fields from character
 ALTER TABLE `characters`
