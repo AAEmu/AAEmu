@@ -94,7 +94,7 @@ public class AccountManager : Singleton<AccountManager>
             // Account didn't exist, check if it's our first
             command.CommandText = "SELECT COUNT(*) FROM accounts";
             command.Prepare();
-            var accountCount = (int)(command.ExecuteScalar() ?? 0);
+            var accountCount = (int)((long)(command.ExecuteScalar() ?? 0L));
             var newAccessLevel = (accountCount <= 0)
                 ? AppConfiguration.Instance.Account.AccessLevelFirstAccount
                 : 0;
