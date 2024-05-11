@@ -25,11 +25,21 @@ public static class StringExtensions
     /// <returns></returns>
     public static string NormalizeName(this string input)
     {
+        var trimmed = input.AsSpan().Trim();
+        
         // Ignore if it's just whitespace and return the original
-        if (string.IsNullOrWhiteSpace(input))
+        if (trimmed.Length == 0)
+        {
             return input;
+        }
 
-        input = input.Trim();
-        return char.ToUpper(input[0]) + input[1..].ToLower();
+        Span<char> output = stackalloc char[trimmed.Length];
+        output[0] = char.ToUpper(trimmed[0]);
+        if (trimmed.Length > 1)
+        {
+            trimmed[1..].ToLower(output[1..], System.Globalization.CultureInfo.CurrentCulture);
+        }
+
+        return output.ToString();
     }
 }
