@@ -1,7 +1,8 @@
 -- --------------------------------------------
 -- Add access level and loyalty to Accounts
--- NOTE: Loyalty and Labor update: Make sure to compensate your users for lost Loyalty and Labor as a result of this update
 -- --------------------------------------------
+
+-- Update accounts table with new values
 ALTER TABLE `accounts`
 	ADD COLUMN `access_level` INT(11) NOT NULL DEFAULT '0' AFTER `account_id`,
 	ADD COLUMN `labor` INT(11) NOT NULL DEFAULT '0' AFTER `access_level`,
@@ -12,8 +13,49 @@ ALTER TABLE `accounts`
 	ADD COLUMN `last_credits_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `last_labor_tick`,
 	ADD COLUMN `last_loyalty_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `last_credits_tick`;
 
--- Possibly add query to update/copy values
+-- Copy highest access_level value from characters into accounts
+UPDATE `accounts` a1, (
+    SELECT c1.account_id, c1.access_level
+    FROM `characters` c1
+    WHERE access_level = (
+        SELECT MAX(c2.access_level)
+        FROM characters c2
+        WHERE c1.account_id = c2.account_id AND deleted = 0
+    )
+    GROUP BY c1.account_id
+) a2
+SET a1.access_level = a2.access_level
+WHERE a1.account_id = a2.account_id;
 
+-- Copy highest Labor value from characters into accounts
+UPDATE `accounts` a1, (
+    SELECT c1.account_id, c1.labor_power
+    FROM `characters` c1
+    WHERE labor_power = (
+        SELECT MAX(c2.labor_power)
+        FROM characters c2
+        WHERE c1.account_id = c2.account_id AND deleted = 0
+    )
+    GROUP BY c1.account_id
+) a2
+SET a1.labor = a2.labor_power
+WHERE a1.account_id = a2.account_id;
+
+-- Copy highest Loyalty value from characters into accounts
+UPDATE `accounts` a1, (
+    SELECT c1.account_id, c1.bm_point
+    FROM `characters` c1
+    WHERE bm_point = (
+        SELECT MAX(c2.bm_point)
+        FROM characters c2
+        WHERE c1.account_id = c2.account_id AND deleted = 0
+    )
+    GROUP BY c1.account_id
+) a2
+SET a1.loyalty = a2.bm_point
+WHERE a1.account_id = a2.account_id;
+
+-- Remove old unused fields from character
 ALTER TABLE `characters`
 	DROP COLUMN `labor_power`,
 	DROP COLUMN `labor_power_modified`,
