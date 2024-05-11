@@ -35,13 +35,13 @@ public class GiveCashPoint : SpecialEffectAction
             {
                 if (character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, skillItem.ItemTemplateId, 1, null) > 0)
                 {
-                    if (!CashShopManager.Instance.AddCredits(character.AccountId, value1))
+                    if (!AccountManager.Instance.AddCredits(character.AccountId, value1))
                         Logger.Error($"Failed to credit Account:{character.AccountId} with {value1} credits.");
                     else
                         character.SendMessage($"You received {value1} credits.");
                 }
-                var points = CashShopManager.Instance.GetAccountCredits(character.AccountId);
-                character.SendPacket(new SCICSCashPointPacket(points));
+                var points = AccountManager.Instance.GetAccountDetails(character.AccountId);
+                character.SendPacket(new SCICSCashPointPacket(points.Credits));
             }
         }
     }

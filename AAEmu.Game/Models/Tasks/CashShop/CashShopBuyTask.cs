@@ -40,8 +40,9 @@ public class CashShopBuyTask : Task
         foreach (var sku in _shoppingCart)
             costs[(byte)sku.Currency] += sku.DiscountPrice > 0 ? sku.DiscountPrice : sku.Price;
 
+        var beforeBuyAccountDetails = AccountManager.Instance.GetAccountDetails(_buyer.AccountId);
         // Check Credits
-        if (costs[(byte)CashShopCurrencyType.Credits] > CashShopManager.Instance.GetAccountCredits(_buyer.AccountId))
+        if (costs[(byte)CashShopCurrencyType.Credits] > beforeBuyAccountDetails.Credits)
         {
             _buyer.SendErrorMessage(ErrorMessageType.IngameShopNotEnoughAaCash); // Not sure if this is the correct error
             _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name, 0));
@@ -59,7 +60,7 @@ public class CashShopBuyTask : Task
         */
 
         // Check Loyalty
-        if (costs[(byte)CashShopCurrencyType.Loyalty] > _buyer.BmPoint)
+        if (costs[(byte)CashShopCurrencyType.Loyalty] > beforeBuyAccountDetails.Loyalty)
         {
             _buyer.SendErrorMessage(ErrorMessageType.IngameShopNotEnoughBmMileage);
             _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name, 0));
@@ -238,7 +239,7 @@ public class CashShopBuyTask : Task
             switch (sku.Currency)
             {
                 case CashShopCurrencyType.Credits:
-                    if (!CashShopManager.Instance.RemoveCredits(_buyer.AccountId, (int)(sku.DiscountPrice > 0 ? sku.DiscountPrice : sku.Price)))
+                    if (!AccountManager.Instance.RemoveCredits(_buyer.AccountId, (int)(sku.DiscountPrice > 0 ? sku.DiscountPrice : sku.Price)))
                         Logger.Error($"Sale validation failed for {_buyer.Name}, {sku.Currency} x {sku.Price}");
                     break;
                 case CashShopCurrencyType.AaPoints:
@@ -248,9 +249,9 @@ public class CashShopBuyTask : Task
                     Logger.Warn($"Sale currency not implemented {sku.Currency} for {_buyer.Name}");
                     break;
                 case CashShopCurrencyType.Loyalty:
-                    if (_buyer.BmPoint < sku.Price)
+                    if (beforeBuyAccountDetails.Loyalty < sku.Price)
                         Logger.Error($"Sale validation failed for {_buyer.Name}, {sku.Currency} x {sku.Price}");
-                    _buyer.BmPoint -= sku.Price;
+                    AccountManager.Instance.AddLoyalty(_buyer.AccountId, (int)(sku.Price * -1));
                     break;
                 case CashShopCurrencyType.Coins:
                     if (!_buyer.SubtractMoney(SlotType.Inventory, (int)sku.Price, ItemTaskType.StoreBuy))
@@ -294,15 +295,15 @@ public class CashShopBuyTask : Task
 
         if (entriesSold > 0)
         {
-            _buyer.SendPacket(new SCICSCashPointPacket(CashShopManager.Instance.GetAccountCredits(_buyer.AccountId)));
-            _buyer.SendPacket(new SCBmPointPacket(_buyer.BmPoint));
-            _buyer.SendPacket(new SCICSBuyResultPacket(true, _buyMode, _targetPlayer.Name,
-                (int)costs[(byte)CashShopCurrencyType.AaPoints]));
+            var postSaleAccountDetails = AccountManager.Instance.GetAccountDetails(_buyer.AccountId);
+            _buyer.BmPoint = postSaleAccountDetails.Loyalty;
+            _buyer.SendPacket(new SCICSCashPointPacket(postSaleAccountDetails.Credits));
+            _buyer.SendPacket(new SCBmPointPacket(postSaleAccountDetails.Loyalty));
+            _buyer.SendPacket(new SCICSBuyResultPacket(true, _buyMode, _targetPlayer.Name, (int)costs[(byte)CashShopCurrencyType.AaPoints]));
         }
         else
         {
-            _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name,
-                (int)costs[(byte)CashShopCurrencyType.AaPoints]));
+            _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name, (int)costs[(byte)CashShopCurrencyType.AaPoints]));
         }
 
         #endregion

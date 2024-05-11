@@ -18,7 +18,6 @@ public class CashShopManager : Singleton<CashShopManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private readonly Dictionary<uint, object> _locks = new();
     public bool Enabled { get; private set; }
 
     public Dictionary<uint, IcsSku> SKUs { get; set; } = new();
@@ -31,92 +30,10 @@ public class CashShopManager : Singleton<CashShopManager>
 
         foreach (var character in characters)
         {
-            AddCredits(character.AccountId, 100);
+            AccountManager.Instance.AddCredits(character.AccountId, 100);
             character.SendMessage("You have received 100 credits.");
         }
     }
-
-    public int GetAccountCredits(uint accountId)
-    {
-        object accLock;
-        lock (_locks)
-        {
-            if (!_locks.TryGetValue(accountId, out accLock))
-            {
-                accLock = new object();
-                _locks.Add(accountId, accLock);
-            }
-        }
-        lock (accLock)
-        {
-            try
-            {
-                using (var connection = MySQL.CreateConnection())
-                {
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandText = "SELECT credits FROM accounts WHERE account_id = @acc_id";
-                        command.Parameters.AddWithValue("@acc_id", accountId);
-                        command.Prepare();
-                        using (var reader = command.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                return reader.GetInt32("credits");
-                            }
-                            else
-                            {
-                                reader.Close();
-                                command.CommandText = "INSERT INTO accounts (account_id, credits) VALUES (@acc_id, 0)";
-                                command.Prepare();
-                                command.ExecuteNonQuery();
-                                return 0;
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e.Message);
-                return 0;
-            }
-        }
-    }
-
-    public bool AddCredits(uint accountId, int creditsAmt)
-    {
-        object accLock;
-        lock (_locks)
-        {
-            if (!_locks.TryGetValue(accountId, out accLock))
-            {
-                accLock = new object();
-                _locks.Add(accountId, accLock);
-            }
-        }
-        lock (accLock)
-        {
-            try
-            {
-                using var connection = MySQL.CreateConnection();
-                using var command = connection.CreateCommand();
-                command.CommandText =
-                    "INSERT INTO accounts (account_id, credits) VALUES(@acc_id, @credits_amt) ON DUPLICATE KEY UPDATE credits = credits + @credits_amt";
-                command.Parameters.AddWithValue("@acc_id", accountId);
-                command.Parameters.AddWithValue("@credits_amt", creditsAmt);
-                command.Prepare();
-                return command.ExecuteNonQuery() > 0;
-            }
-            catch (Exception e)
-            {
-                Logger.Error("{0}\n{1}", e.Message, e.StackTrace);
-                return false;
-            }
-        }
-    }
-
-    public bool RemoveCredits(uint accountId, int credits) => AddCredits(accountId, -credits);
 
     public void Load()
     {
@@ -245,7 +162,7 @@ public class CashShopManager : Singleton<CashShopManager>
 
     public void Initialize()
     {
-        TickManager.Instance.OnTick.Subscribe(CreditDisperseTick, TimeSpan.FromMinutes(5));
+        // TickManager.Instance.OnTick.Subscribe(CreditDisperseTick, TimeSpan.FromMinutes(5));
     }
 
     public void EnabledShop()

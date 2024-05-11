@@ -19,8 +19,16 @@ CREATE TABLE `abilities` (
 
 DROP TABLE IF EXISTS `accounts`;
 CREATE TABLE `accounts` (
-  `account_id` int NOT NULL,
-  `credits` int NOT NULL DEFAULT '0',
+  `account_id` INT(11) NOT NULL,
+  `access_level` INT(11) NOT NULL DEFAULT '0',
+  `labor` INT(11) NOT NULL DEFAULT '0',
+  `credits` INT(11) NOT NULL DEFAULT '0',
+  `loyalty` INT(11) NOT NULL DEFAULT '0',
+  `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `last_login` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_labor_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_credits_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_loyalty_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`account_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Account specific values not related to login';
 
@@ -97,8 +105,6 @@ CREATE TABLE `characters` (
   `recoverable_exp` int NOT NULL,
   `hp` int NOT NULL,
   `mp` int NOT NULL,
-  `labor_power` mediumint NOT NULL,
-  `labor_power_modified` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `consumed_lp` int NOT NULL,
   `ability1` tinyint NOT NULL,
   `ability2` tinyint NOT NULL,
@@ -132,7 +138,6 @@ CREATE TABLE `characters` (
   `delete_request_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `transfer_request_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `delete_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
-  `bm_point` int NOT NULL,
   `auto_use_aapoint` tinyint(1) NOT NULL,
   `prev_point` int NOT NULL,
   `point` int NOT NULL,
@@ -300,7 +305,7 @@ CREATE TABLE `items` (
   `type` varchar(100) NOT NULL,
   `template_id` int unsigned NOT NULL,
   `container_id` int unsigned NOT NULL DEFAULT '0',
-  `slot_type` enum('Equipment','Inventory','Bank','Trade','Mail','System') NOT NULL,
+  `slot_type` enum('Equipment','Inventory','Bank','Trade','Mail','System','EquipmentMate') NOT NULL,
   `slot` int NOT NULL,
   `count` int NOT NULL,
   `details` blob,
