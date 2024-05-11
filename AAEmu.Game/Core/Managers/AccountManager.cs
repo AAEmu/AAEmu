@@ -91,7 +91,7 @@ public class AccountManager : Singleton<AccountManager>
 
             reader.Close();
 
-            // Account didn't exist, check if it's out first
+            // Account didn't exist, check if it's our first
             command.CommandText = "SELECT COUNT(*) FROM accounts";
             command.Prepare();
             var accountCount = (int)(command.ExecuteScalar() ?? 0);

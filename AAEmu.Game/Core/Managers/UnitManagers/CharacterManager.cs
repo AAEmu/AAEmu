@@ -408,6 +408,12 @@ public class CharacterManager : Singleton<CharacterManager>
 
     }
 
+    public int GetEffectiveAccessLevel(Character character)
+    {
+        var accountDetails = AccountManager.Instance.GetAccountDetails(character.AccountId);
+        return Math.Max(character.AccessLevel, accountDetails.AccessLevel);
+    }
+
     public void Create(GameConnection connection, string name, Race race, Gender gender, uint[] bodyItems, UnitCustomModelParams customModel, AbilityType ability1, AbilityType ability2, AbilityType ability3, byte level)
     {
         name = name.NormalizeName();
@@ -419,16 +425,16 @@ public class CharacterManager : Singleton<CharacterManager>
         }
 
         // NOTE: This is purely a warning to log potential cheaters
-        // If you have custom
-        if ((ability2 != AbilityType.General) || (ability3 != AbilityType.General))
+        // If you have custom starting classes, make sure to comment or adjust this
+        if ((ability2 != AbilityType.None) || (ability3 != AbilityType.None))
         {
-            Logger.Warn($"User tried to make a new character that has 2nd and/or 3rd ability already set. Account {connection.AccountId}");
+            Logger.Error($"User tried to make a new character that has 2nd and/or 3rd ability already set. Account {connection.AccountId}, Name {name}, Class {ability1}, {ability2}, {ability3}");
         }
 
         var accountDetails = AccountManager.Instance.GetAccountDetails(connection.AccountId);
 
-        // Get default access level for all users and compare to account 
-        var useAccessLevel = Math.Max(AppConfiguration.Instance.Account.AccessLevelDefault, accountDetails.AccessLevel);
+        // Get default access level for all users 
+        var useAccessLevel = AppConfiguration.Instance.Account.AccessLevelDefault;
         
         // If it's the first character created, use first character access level settings 
         if (NameManager.Instance.NoNamesRegistered())

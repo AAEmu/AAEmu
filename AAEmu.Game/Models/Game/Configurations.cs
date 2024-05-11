@@ -21,6 +21,7 @@ public class WorldConfig
     public double LootRate { get; set; } = 1.0;
     public double GoldLootMultiplier { get; set; } = 1.0;
     public double GrowthRate { get; set; } = 1.0;
+    public int IgnoreFallDamageAccessLevel { get; set; } = 100;
     public bool GodMode { get; set; }
     public bool GeoDataMode { get; set; }
 }

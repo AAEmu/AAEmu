@@ -1599,14 +1599,13 @@ public partial class Character : Unit, ICharacter
 
     public override int DoFallDamage(ushort fallVel)
     {
-        if (AccessLevel > 0)
-        {
-            Logger.Debug("{0}'s FallDamage disabled because of GM or Admin flag", Name);
-            return 0; // GM & Admin take 0 damage from falling
-            // TODO: Make this a option, or allow settings of minimum access level
-        }
         var fallDamage = base.DoFallDamage(fallVel);
-        Logger.Debug("FallDamage: {0} - Vel {1} DmgPerc: {2}, Damage {3}", Name, fallVel, (int)((fallVel - 8600) / 150f), fallDamage);
+        if (CharacterManager.Instance.GetEffectiveAccessLevel(this) >= AppConfiguration.Instance.World.IgnoreFallDamageAccessLevel)
+        {
+            Logger.Debug($"{Name}'s negated {fallDamage} FallDamage because of IgnoreFallDamageAccessLevel settings");
+            return 0; // GM & Admin take 0 damage from falling
+        }
+        Logger.Trace($"FallDamage: {Name} - Vel {fallVel} DmgPerc: {(int)((fallVel - 8600) / 150f)}, Damage {fallDamage}");
         return fallDamage;
     }
 

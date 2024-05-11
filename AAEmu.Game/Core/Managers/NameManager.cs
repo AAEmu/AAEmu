@@ -61,7 +61,7 @@ public class NameManager : Singleton<NameManager>
                         var id = reader.GetUInt32("id");
                         var name = reader.GetString("name").ToLower();
                         var account = reader.GetUInt32("account_id");
-                        _characterNames.Add(id, name);
+                        _characterNames.Add(id, name.NormalizeName());
                         _characterAccounts.Add(id, account);
                     }
                 }
@@ -89,7 +89,7 @@ public class NameManager : Singleton<NameManager>
 
     public void AddCharacterName(uint characterId, string name, uint accountId)
     {
-        if (!_characterNames.TryAdd(characterId, name))
+        if (!_characterNames.TryAdd(characterId, name.NormalizeName()))
         {
             var oldName = _characterNames.GetValueOrDefault(characterId) ?? string.Empty;
             if (string.Compare(name, oldName, StringComparison.InvariantCultureIgnoreCase) != 0)

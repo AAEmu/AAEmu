@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
@@ -31,17 +32,17 @@ public class Help : ICommand
         if (args.Length > 0)
         {
             var thisCommand = args[0].ToLower();
-            bool foundIt = false;
+            var foundIt = false;
             foreach (var command in list)
             {
-                if (command == thisCommand)
-                {
-                    foundIt = true;
-                    var cmd = CommandManager.Instance.GetCommandInterfaceByName(thisCommand);
-                    var argText = cmd.GetCommandLineHelp();
-                    var helpText = cmd.GetCommandHelpText();
-                    character.SendMessage("Help for: |cFFFFFFFF" + CommandManager.CommandPrefix + thisCommand + " " + argText + "|r\n|cFF999999" + helpText + "|r");
-                }
+                if (command != thisCommand)
+                    continue;
+
+                foundIt = true;
+                var cmd = CommandManager.Instance.GetCommandInterfaceByName(thisCommand);
+                var argText = cmd.GetCommandLineHelp();
+                var helpText = cmd.GetCommandHelpText();
+                character.SendMessage("Help for: |cFFFFFFFF" + CommandManager.CommandPrefix + thisCommand + " " + argText + "|r\n|cFF999999" + helpText + "|r");
             }
             if (!foundIt)
                 character.SendMessage("Command not found: " + CommandManager.CommandPrefix + thisCommand);
@@ -49,17 +50,18 @@ public class Help : ICommand
         }
 
         character.SendMessage("|cFF80FFFFList of available GM Commands|r\n-------------------------\n");
+        var characterAccessLevel = CharacterManager.Instance.GetEffectiveAccessLevel(character);
         foreach (var command in list)
         {
             if (command == "help")
                 continue;
-            if (AccessLevelManager.Instance.GetLevel(command) > character.AccessLevel)
+            if (AccessLevelManager.Instance.GetLevel(command) > characterAccessLevel)
                 continue;
 
             var cmd = CommandManager.Instance.GetCommandInterfaceByName(command);
-            var arghelp = cmd.GetCommandLineHelp();
-            if (arghelp != string.Empty)
-                character.SendMessage(CommandManager.CommandPrefix + command + " |cFF999999" + arghelp + "|r");
+            var argHelp = cmd.GetCommandLineHelp();
+            if (argHelp != string.Empty)
+                character.SendMessage(CommandManager.CommandPrefix + command + " |cFF999999" + argHelp + "|r");
             else
                 character.SendMessage(CommandManager.CommandPrefix + command);
         }
