@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS `aaemu_game_3030`;
-USE aaemu_game_3030;
+CREATE DATABASE IF NOT EXISTS `aaemu_game_3042`;
+USE aaemu_game_3042;
 -- ----------------------------------------------------------------------------------------------
 -- Make sure to remove the above two lines if you want use your own DB/Schema names during import
 -- ----------------------------------------------------------------------------------------------
