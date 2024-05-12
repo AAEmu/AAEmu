@@ -2,16 +2,18 @@
 -- Add access level and loyalty to Accounts
 -- --------------------------------------------
 
+SET time_zone = '+00:00';
+
 -- Update accounts table with new values
 ALTER TABLE `accounts`
 	ADD COLUMN `access_level` INT(11) NOT NULL DEFAULT '0' AFTER `account_id`,
 	ADD COLUMN `labor` INT(11) NOT NULL DEFAULT '0' AFTER `access_level`,
 	ADD COLUMN `loyalty` INT(11) NOT NULL DEFAULT '0' AFTER `credits`,
-	ADD COLUMN `last_updated` DATETIME NOT NULL DEFAULT UTC_TIMESTAMP() ON UPDATE UTC_TIMESTAMP() AFTER `loyalty`,
-	ADD COLUMN `last_login` DATETIME NOT NULL DEFAULT UTC_TIMESTAMP() AFTER `last_updated`,
-	ADD COLUMN `last_labor_tick` DATETIME NOT NULL DEFAULT UTC_TIMESTAMP() AFTER `last_login`,
-	ADD COLUMN `last_credits_tick` DATETIME NOT NULL DEFAULT UTC_TIMESTAMP() AFTER `last_labor_tick`,
-	ADD COLUMN `last_loyalty_tick` DATETIME NOT NULL DEFAULT UTC_TIMESTAMP() AFTER `last_credits_tick`;
+	ADD COLUMN `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIME ON UPDATE CURRENT_TIME AFTER `loyalty`,
+	ADD COLUMN `last_login` DATETIME NOT NULL DEFAULT CURRENT_TIME AFTER `last_updated`,
+	ADD COLUMN `last_labor_tick` DATETIME NOT NULL DEFAULT CURRENT_TIME AFTER `last_login`,
+	ADD COLUMN `last_credits_tick` DATETIME NOT NULL DEFAULT CURRENT_TIME AFTER `last_labor_tick`,
+	ADD COLUMN `last_loyalty_tick` DATETIME NOT NULL DEFAULT CURRENT_TIME AFTER `last_credits_tick`;
 
 -- Copy highest access_level value from characters into accounts
 UPDATE `accounts` a1, (
