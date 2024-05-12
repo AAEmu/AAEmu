@@ -2,6 +2,8 @@
 -- Add access level and loyalty to Accounts
 -- --------------------------------------------
 
+SET time_zone='+00:00';
+
 -- Update accounts table with new values
 ALTER TABLE `accounts`
 	ADD COLUMN `access_level` INT(11) NOT NULL DEFAULT '0' AFTER `account_id`,
