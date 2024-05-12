@@ -2,16 +2,21 @@
 -- Add access level and loyalty to Accounts
 -- --------------------------------------------
 
+SET time_zone='+00:00';
+
 -- Update accounts table with new values
 ALTER TABLE `accounts`
 	ADD COLUMN `access_level` INT(11) NOT NULL DEFAULT '0' AFTER `account_id`,
 	ADD COLUMN `labor` INT(11) NOT NULL DEFAULT '0' AFTER `access_level`,
 	ADD COLUMN `loyalty` INT(11) NOT NULL DEFAULT '0' AFTER `credits`,
-	ADD COLUMN `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `loyalty`,
+	ADD COLUMN `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `loyalty`,
 	ADD COLUMN `last_login` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `last_updated`,
 	ADD COLUMN `last_labor_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `last_login`,
 	ADD COLUMN `last_credits_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `last_labor_tick`,
 	ADD COLUMN `last_loyalty_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `last_credits_tick`;
+
+-- Add custom trigger for updates
+CREATE TRIGGER update_timestamps BEFORE UPDATE ON accounts FOR EACH ROW BEGIN SET NEW.last_updated = UTC_TIMESTAMP(); END;
 
 -- Copy highest access_level value from characters into accounts
 UPDATE `accounts` a1, (
@@ -48,6 +53,9 @@ UPDATE accounts c1 SET c1.loyalty = c1.loyalty + (
     FROM characters c2
     WHERE c1.account_id = c2.account_id AND deleted = 0
 );
+
+-- Reset timers to UTCNow
+UPDATE accounts SET last_labor_tick = UTC_TIMESTAMP(), last_credits_tick = UTC_TIMESTAMP(), last_loyalty_tick = UTC_TIMESTAMP();
 
 -- Remove old unused fields from character
 ALTER TABLE `characters`
