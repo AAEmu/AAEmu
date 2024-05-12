@@ -95,7 +95,7 @@ public class CSSelectCharacterPacket : GamePacket
 
             Connection.ActiveChar.Buffs.AddBuff((uint)BuffConstants.LoggedOn, Connection.ActiveChar);
 
-            var template = CharacterManager.Instance.GetTemplate((byte)character.Race, (byte)character.Gender);
+            var template = CharacterManager.Instance.GetTemplate(character.Race, character.Gender);
 
             foreach (var buff in template.Buffs)
             {

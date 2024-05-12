@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
@@ -57,7 +58,7 @@ public class Help : ICommand
         {
             if (command == "help")
                 continue;
-            if (AccessLevelManager.Instance.GetLevel(command) > character.AccessLevel)
+            if (AccessLevelManager.Instance.GetLevel(command) > characterAccessLevel)
                 continue;
 
             var cmd = CommandManager.Instance.GetCommandInterfaceByName(command);

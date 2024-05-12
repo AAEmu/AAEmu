@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text.RegularExpressions;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
@@ -112,9 +113,11 @@ public class CommandManager : Singleton<CommandManager>
         // var words = text.Split(' ');
         var thisCommand = words.Length > 0 ? words[0].ToLower() : "";
 
+        var characterAccessLevel = CharacterManager.Instance.GetEffectiveAccessLevel(character);
+
         // Only enable the force_scripts_reload when we don't have anything loaded, this is simply a failsafe function in case
         // things aren't working out when live-editing scripts
-        if ((_commands.Count <= 0) && (words.Length == 3) && (thisCommand == "scripts") && (words[1] == "reload") && (words[2] == "force") && (character.AccessLevel >= 100))
+        if ((_commands.Count <= 0) && (words.Length == 3) && (thisCommand == "scripts") && (words[1] == "reload") && (words[2] == "force") && (characterAccessLevel >= 100))
         {
             ForceScriptsReload(character);
 
@@ -124,7 +127,7 @@ public class CommandManager : Singleton<CommandManager>
         if (_commands.Count <= 0)
         {
             // Only display extended error to admins
-            if (character.AccessLevel >= 100)
+            if (characterAccessLevel >= 100)
                 messageOutput.SendMessage(
                     "|cFFFF0000[Error] No commands have been loaded, this is usually because of compile errors. Try using \"" +
                     CommandManager.CommandPrefix + "scripts reload\" after the issues have been fixed.|r");
@@ -148,7 +151,7 @@ public class CommandManager : Singleton<CommandManager>
         if (command == null)
             return false;
 
-        if (AccessLevelManager.Instance.GetLevel(thisCommand) > character.AccessLevel)
+        if (AccessLevelManager.Instance.GetLevel(thisCommand) > characterAccessLevel)
         {
             messageOutput.SendMessage("|cFFFF0000Insufficient privileges.|r");
             return true;

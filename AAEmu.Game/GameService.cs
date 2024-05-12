@@ -94,7 +94,6 @@ public sealed class GameService : IHostedService, IDisposable
         HousingIdManager.Instance.Initialize();
         HousingTldManager.Instance.Initialize();
         TeamIdManager.Instance.Initialize();
-        LaborPowerManager.Initialize();
         QuestIdManager.Instance.Initialize();
         MailIdManager.Instance.Initialize();
         UccIdManager.Instance.Initialize();
@@ -171,6 +170,8 @@ public sealed class GameService : IHostedService, IDisposable
 
         TimeManager.Instance.Start();
         TaskManager.Instance.Start();
+        // LaborPowerManager.Initialize();
+        TimedRewardsManager.Instance.Initialize();
 
         DuelManager.Initialize();
         SaveManager.Instance.Initialize();
@@ -203,7 +204,7 @@ public sealed class GameService : IHostedService, IDisposable
         SpawnManager.Instance.SpawnAll();
         TransferManager.Instance.SpawnAll();
         spawnSw.Stop();
-        Logger.Info("Units spawned in {0}", spawnSw.Elapsed);
+        Logger.Info($"Units spawned in {spawnSw.Elapsed}");
 
         // Start running Physics when everything is loaded
         WorldManager.Instance.StartPhysics();
@@ -215,7 +216,7 @@ public sealed class GameService : IHostedService, IDisposable
         LoginNetwork.Instance.Start();
 
         stopWatch.Stop();
-        Logger.Info("Server started! Took {0}", stopWatch.Elapsed);
+        Logger.Info($"Server started! Took {stopWatch.Elapsed}");
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
