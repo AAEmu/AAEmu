@@ -99,11 +99,15 @@ public class AccountManager : Singleton<AccountManager>
                 ? AppConfiguration.Instance.Account.AccessLevelFirstAccount
                 : 0;
 
-            command.CommandText = "INSERT INTO accounts (account_id, access_level, labor, credits, loyalty) VALUES (@acc_id, @access_level, @labor, @credits, @loyalty)";
+            command.CommandText = "INSERT INTO accounts (account_id, access_level, labor, credits, loyalty, last_login, last_labor_tick, last_credits_tick, last_loyalty_tick) VALUES (@acc_id, @access_level, @labor, @credits, @loyalty, @last_login, @last_labor_tick, @last_credits_tick, @last_loyalty_tick)";
             command.Parameters.AddWithValue("@access_level", newAccessLevel);
             command.Parameters.AddWithValue("@labor", AppConfiguration.Instance.Labor.Default);
             command.Parameters.AddWithValue("@credits", AppConfiguration.Instance.Credits.Default);
             command.Parameters.AddWithValue("@loyalty", AppConfiguration.Instance.Loyalty.Default);
+            command.Parameters.AddWithValue("@last_login", DateTime.UtcNow);
+            command.Parameters.AddWithValue("@last_labor_tick", DateTime.UtcNow);
+            command.Parameters.AddWithValue("@last_credits_tick", DateTime.UtcNow);
+            command.Parameters.AddWithValue("@last_loyalty_tick", DateTime.UtcNow);
             command.Prepare();
             command.ExecuteNonQuery();
             res.AccountId = (int)command.LastInsertedId;
