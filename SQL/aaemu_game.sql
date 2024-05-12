@@ -24,11 +24,11 @@ CREATE TABLE `accounts` (
   `labor` INT(11) NOT NULL DEFAULT '0',
   `credits` INT(11) NOT NULL DEFAULT '0',
   `loyalty` INT(11) NOT NULL DEFAULT '0',
-  `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `last_login` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `last_labor_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `last_credits_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `last_loyalty_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_updated` DATETIME NOT NULL DEFAULT UTC_TIMESTAMP() ON UPDATE UTC_TIMESTAMP(),
+  `last_login` DATETIME NOT NULL DEFAULT UTC_TIMESTAMP(),
+  `last_labor_tick` DATETIME NOT NULL DEFAULT UTC_TIMESTAMP(),
+  `last_credits_tick` DATETIME NOT NULL DEFAULT UTC_TIMESTAMP(),
+  `last_loyalty_tick` DATETIME NOT NULL DEFAULT UTC_TIMESTAMP(),
   PRIMARY KEY (`account_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Account specific values not related to login';
 
@@ -146,7 +146,7 @@ CREATE TABLE `characters` (
   `num_bank_slot` smallint unsigned NOT NULL DEFAULT '50',
   `expanded_expert` tinyint NOT NULL,
   `slots` blob NOT NULL,
-  `created_at` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+  `created_at` datetime(0) NOT NULL DEFAULT UTC_TIMESTAMP(),
   `updated_at` datetime(0) NOT NULL DEFAULT '0001-01-01 00:00:00',
   `deleted` int(11) NOT NULL DEFAULT 0,
   `return_district` int(11) NOT NULL DEFAULT 0,
@@ -198,7 +198,7 @@ CREATE TABLE `expedition_members` (
   `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `level` tinyint unsigned NOT NULL,
   `role` tinyint unsigned NOT NULL,
-  `last_leave_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_leave_time` datetime NOT NULL DEFAULT UTC_TIMESTAMP(),
   `ability1` tinyint unsigned NOT NULL,
   `ability2` tinyint unsigned NOT NULL,
   `ability3` tinyint unsigned NOT NULL,
@@ -232,7 +232,7 @@ CREATE TABLE `expeditions` (
   `owner_name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `mother` int NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` datetime NOT NULL DEFAULT UTC_TIMESTAMP(),
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Guilds';
 
@@ -274,8 +274,8 @@ CREATE TABLE `housings` (
   `current_step` tinyint NOT NULL,
   `current_action` int NOT NULL DEFAULT '0',
   `permission` tinyint NOT NULL,
-  `place_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `protected_until` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `place_date` datetime NOT NULL DEFAULT UTC_TIMESTAMP(),
+  `protected_until` datetime NOT NULL DEFAULT UTC_TIMESTAMP(),
   `faction_id` int unsigned NOT NULL DEFAULT '1',
   `sell_to` int unsigned NOT NULL DEFAULT '0',
   `sell_price` bigint NOT NULL DEFAULT '0',
@@ -372,8 +372,8 @@ CREATE TABLE `mates` (
   `hp` int NOT NULL,
   `mp` int NOT NULL,
   `owner` int unsigned NOT NULL,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT UTC_TIMESTAMP(),
+  `created_at` datetime NOT NULL DEFAULT UTC_TIMESTAMP(),
   PRIMARY KEY (`id`,`item_id`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Player mounts and pets';
 
@@ -486,8 +486,8 @@ CREATE TABLE `slaves` (
 	`owner_type` INT(10) UNSIGNED NULL DEFAULT '0' COMMENT 'Parent unit type',
 	`owner_id` INT(10) UNSIGNED NULL DEFAULT '0' COMMENT 'Parent unit DB Id',
 	`summoner` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Owning player',
-	`created_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
-	`updated_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+	`created_at` DATETIME NULL DEFAULT UTC_TIMESTAMP(),
+	`updated_at` DATETIME NULL DEFAULT UTC_TIMESTAMP(),
 	`hp` INT(11) NULL DEFAULT NULL,
 	`mp` INT(11) NULL DEFAULT NULL,
 	`x` FLOAT NULL DEFAULT NULL,
@@ -571,7 +571,7 @@ CREATE TABLE `audit_ics_sales` (
     `buyer_char` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Character that was logged in when buying',
     `target_account` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Account of the person receiving the goods',
     `target_char` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Character that received the goods',
-    `sale_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Time of purchase (in UTC)',
+    `sale_date` DATETIME NOT NULL DEFAULT UTC_TIMESTAMP() COMMENT 'Time of purchase (in UTC)',
     `shop_item_id` INT(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Shop item entry id of the sold item',
     `sku` INT(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'SKU of the sold item',
     `sale_cost` INT(11) NOT NULL DEFAULT '0' COMMENT 'Amount this item was sold for',
