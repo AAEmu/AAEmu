@@ -1,10 +1,9 @@
 ﻿using System;
+
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
-using AAEmu.Game.Models.Account;
 using AAEmu.Game.Models.Tasks.TimedRewards;
 
 namespace AAEmu.Game.Core.Managers;
@@ -63,7 +62,7 @@ public class TimedRewardsManager : Singleton<TimedRewardsManager>
             //var character = connection.ActiveChar;
             // Grab current values for last ticks
             var accountDetails = AccountManager.Instance.GetAccountDetails(connection.AccountId);
-            
+
             // Distribute Labor if needed (only for online labor)
             if (AppConfiguration.Instance.Labor.TickMinutes > 0 && accountDetails.LastLaborTick.AddMinutes(AppConfiguration.Instance.Labor.TickMinutes) <= DateTime.UtcNow)
             {
@@ -90,12 +89,12 @@ public class TimedRewardsManager : Singleton<TimedRewardsManager>
             }
         }
     }
-    
-    public void DoDailyAccountLogin(uint accountId)
+
+    public void DoDailyAccountLogin(ulong accountId)
     {
         if (AppConfiguration.Instance.Credits.DailyLogin > 0)
             AccountManager.Instance.AddCredits(accountId, AppConfiguration.Instance.Credits.DailyLogin);
-        
+
         if (AppConfiguration.Instance.Loyalty.DailyLogin > 0)
             AccountManager.Instance.AddLoyalty(accountId, AppConfiguration.Instance.Loyalty.DailyLogin);
     }

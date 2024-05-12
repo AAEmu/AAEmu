@@ -19,7 +19,7 @@ public class AccountManager : Singleton<AccountManager>
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private ConcurrentDictionary<ulong, GameConnection> _accounts;
-    private readonly Dictionary<uint, object> _locks = new();
+    private readonly Dictionary<ulong, object> _locks = new();
 
     public AccountManager()
     {

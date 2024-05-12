@@ -1,15 +1,9 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-<<<<<<<< HEAD:AAEmu.Game/Core/Packets/C2G/CSPremiumServieceMsgPacket.cs
-//public class CSPremiumServieceMsgPacket : GamePacket
-//{
-//    public CSPremiumServieceMsgPacket() : base(CSOffsets.CSPremiumServieceMsgPacket, 5)
-//    {
-//    }
-========
 public class CSPremiumServiceMsgPacket : GamePacket
 {
     public CSPremiumServiceMsgPacket() : base(CSOffsets.CSPremiumServiceMsgPacket, 5)
