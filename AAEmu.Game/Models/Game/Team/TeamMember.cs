@@ -8,11 +8,13 @@ public class TeamMember : PacketMarshaler
 {
     public Character Character { get; set; }
     public MemberRole Role { get; set; }
+    public bool HasGoneRoundRobin { get; set; }
 
     public TeamMember(Character character = null)
     {
         Character = character;
         Role = MemberRole.Undecided;
+        HasGoneRoundRobin = false;
     }
 
     public override PacketStream Write(PacketStream stream)
