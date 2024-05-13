@@ -1,5 +1,4 @@
-﻿using System;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -40,7 +39,8 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
                     switch (owner.OwnerType)
                     {
                         case DoodadOwnerType.Slave:
-                            ownerGameObject = SlaveManager.Instance.GetActiveSlaveByObjId(owner.OwnerDbId);
+                            ownerGameObject = SlaveManager.Instance.GetSlaveByObjId(owner.OwnerDbId);
+                            ownerGameObject = SlaveManager.Instance.GetSlaveByObjId(owner.OwnerDbId);
                             break;
                         case DoodadOwnerType.Housing:
                             ownerGameObject = HousingManager.Instance.GetHouseById(owner.OwnerDbId);
