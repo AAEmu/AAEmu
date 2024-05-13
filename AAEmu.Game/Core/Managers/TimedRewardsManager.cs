@@ -1,10 +1,9 @@
 ﻿using System;
+
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
-using AAEmu.Game.Models.Account;
 using AAEmu.Game.Models.Tasks.TimedRewards;
 
 namespace AAEmu.Game.Core.Managers;
@@ -45,7 +44,7 @@ public class TimedRewardsManager : Singleton<TimedRewardsManager>
             var newLabor = (short)(currentLabor + addLabor);
             AccountManager.Instance.UpdateLabor(connection.AccountId, newLabor);
 
-            connection.SendPacket(new SCCharacterLaborPowerChangedPacket(addLabor, 0, 0, 0));
+            connection.ActiveChar?.SendPacket(new SCCharacterLaborPowerChangedPacket(addLabor, 0, 0, 0));
 
             // Update cache if character was logged in
             connection.ActiveChar?.InitializeLaborCache(newLabor, DateTime.UtcNow);
@@ -63,7 +62,7 @@ public class TimedRewardsManager : Singleton<TimedRewardsManager>
             //var character = connection.ActiveChar;
             // Grab current values for last ticks
             var accountDetails = AccountManager.Instance.GetAccountDetails(connection.AccountId);
-            
+
             // Distribute Labor if needed (only for online labor)
             if (AppConfiguration.Instance.Labor.TickMinutes > 0 && accountDetails.LastLaborTick.AddMinutes(AppConfiguration.Instance.Labor.TickMinutes) <= DateTime.UtcNow)
             {
@@ -77,7 +76,7 @@ public class TimedRewardsManager : Singleton<TimedRewardsManager>
                 // Update Credits
                 AccountManager.Instance.AddCredits(connection.AccountId, AppConfiguration.Instance.Credits.GetTickAmount(connection.Payment.PremiumState));
                 AccountManager.Instance.UpdateTickTimes(connection.AccountId, DateTime.UtcNow, false, true, false);
-                connection.SendPacket(new SCICSCashPointPacket(AccountManager.Instance.GetAccountDetails(connection.AccountId).Credits));
+                connection.ActiveChar?.SendPacket(new SCICSCashPointPacket(AccountManager.Instance.GetAccountDetails(connection.AccountId).Credits));
             }
 
             // Distribute Loyalty if needed
@@ -86,16 +85,16 @@ public class TimedRewardsManager : Singleton<TimedRewardsManager>
                 // Update Loyalty
                 AccountManager.Instance.AddLoyalty(connection.AccountId, AppConfiguration.Instance.Loyalty.GetTickAmount(connection.Payment.PremiumState));
                 AccountManager.Instance.UpdateTickTimes(connection.AccountId, DateTime.UtcNow, false, false, true);
-                connection.SendPacket(new SCBmPointPacket(AccountManager.Instance.GetAccountDetails(connection.AccountId).Loyalty));
+                connection.ActiveChar?.SendPacket(new SCBmPointPacket(AccountManager.Instance.GetAccountDetails(connection.AccountId).Loyalty));
             }
         }
     }
-    
+
     public void DoDailyAccountLogin(uint accountId)
     {
         if (AppConfiguration.Instance.Credits.DailyLogin > 0)
             AccountManager.Instance.AddCredits(accountId, AppConfiguration.Instance.Credits.DailyLogin);
-        
+
         if (AppConfiguration.Instance.Loyalty.DailyLogin > 0)
             AccountManager.Instance.AddLoyalty(accountId, AppConfiguration.Instance.Loyalty.DailyLogin);
     }
