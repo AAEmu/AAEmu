@@ -40,7 +40,6 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
                     {
                         case DoodadOwnerType.Slave:
                             ownerGameObject = SlaveManager.Instance.GetSlaveByObjId(owner.OwnerDbId);
-                            ownerGameObject = SlaveManager.Instance.GetSlaveByObjId(owner.OwnerDbId);
                             break;
                         case DoodadOwnerType.Housing:
                             ownerGameObject = HousingManager.Instance.GetHouseById(owner.OwnerDbId);
