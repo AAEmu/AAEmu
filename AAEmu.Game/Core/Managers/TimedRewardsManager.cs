@@ -44,7 +44,7 @@ public class TimedRewardsManager : Singleton<TimedRewardsManager>
             var newLabor = (short)(currentLabor + addLabor);
             AccountManager.Instance.UpdateLabor(connection.AccountId, newLabor);
 
-            connection.SendPacket(new SCCharacterLaborPowerChangedPacket(addLabor, 0, 0, 0));
+            connection.ActiveChar?.SendPacket(new SCCharacterLaborPowerChangedPacket(addLabor, 0, 0, 0));
 
             // Update cache if character was logged in
             connection.ActiveChar?.InitializeLaborCache(newLabor, DateTime.UtcNow);
@@ -76,7 +76,7 @@ public class TimedRewardsManager : Singleton<TimedRewardsManager>
                 // Update Credits
                 AccountManager.Instance.AddCredits(connection.AccountId, AppConfiguration.Instance.Credits.GetTickAmount(connection.Payment.PremiumState));
                 AccountManager.Instance.UpdateTickTimes(connection.AccountId, DateTime.UtcNow, false, true, false);
-                connection.SendPacket(new SCICSCashPointPacket(AccountManager.Instance.GetAccountDetails(connection.AccountId).Credits));
+                connection.ActiveChar?.SendPacket(new SCICSCashPointPacket(AccountManager.Instance.GetAccountDetails(connection.AccountId).Credits));
             }
 
             // Distribute Loyalty if needed
@@ -85,7 +85,7 @@ public class TimedRewardsManager : Singleton<TimedRewardsManager>
                 // Update Loyalty
                 AccountManager.Instance.AddLoyalty(connection.AccountId, AppConfiguration.Instance.Loyalty.GetTickAmount(connection.Payment.PremiumState));
                 AccountManager.Instance.UpdateTickTimes(connection.AccountId, DateTime.UtcNow, false, false, true);
-                connection.SendPacket(new SCBmPointPacket(AccountManager.Instance.GetAccountDetails(connection.AccountId).Loyalty));
+                connection.ActiveChar?.SendPacket(new SCBmPointPacket(AccountManager.Instance.GetAccountDetails(connection.AccountId).Loyalty));
             }
         }
     }

@@ -2,11 +2,13 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Account;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -183,7 +185,7 @@ public class AccountManager : Singleton<AccountManager>
     }
 
     public bool RemoveCredits(ulong accountId, int credits) => AddCredits(accountId, -credits);
-    
+
     public bool AddLoyalty(ulong accountId, int loyaltyAmount)
     {
         object accLock;
