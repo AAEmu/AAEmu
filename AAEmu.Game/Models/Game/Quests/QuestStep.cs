@@ -85,10 +85,18 @@ public class QuestStep(QuestComponentKind step, Quest parent)
             foreach (var questAct in questComponent.Acts)
                 score += questAct.GetObjective(Parent) * questAct.Template.Count;
             res = score >= Parent.Template.Score;
+            var objectiveStatus = Parent.GetQuestObjectiveStatus();
+            Parent.Status = objectiveStatus >= QuestObjectiveStatus.QuestComplete
+                ? QuestStatus.Ready
+                : QuestStatus.Progress;
         }
         
         // Handle Supply/Reward Distribution
         res &= Parent.DistributeRewards(true);
+
+        // LetItBeDone type of quests, are always forced forward using the Report Acts
+        if ((ThisStep == QuestComponentKind.Progress) && (Parent.Template.LetItDone))
+            res = false;
 
         return res;
     }

@@ -39,26 +39,11 @@ public interface IQuestAct
     bool OverrideObjectiveCompleted { get; set; }
 
     /// <summary>
-    /// Set current Objective Count for this Act
-    /// </summary>
-    /// <param name="quest"></param>
-    /// <param name="value"></param>
-    void SetObjective(Quest quest, int value);
-
-    /// <summary>
     /// Get the current Objective Count for this Act
     /// </summary>
     /// <param name="quest"></param>
     /// <returns></returns>
     int GetObjective(Quest quest);
-
-    /// <summary>
-    /// Adds amount to current Objective Counter for this Act
-    /// </summary>
-    /// <param name="quest"></param>
-    /// <param name="amount"></param>
-    /// <returns></returns>
-    int AddObjective(Quest quest, int amount);
 
     /// <summary>
     /// Execute an Act and return true if successful (early complete quests should return true if minimum is met)

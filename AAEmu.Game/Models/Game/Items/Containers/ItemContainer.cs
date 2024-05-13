@@ -453,9 +453,6 @@ public class ItemContainer
         if (!item.CanDestroy())
             return false;
 
-        Owner?.Inventory.OnConsumedItem(item, item.Count);
-        OnLeaveContainer(item, null);
-
         // Handle items that can expire
         GamePacket sync = null;
         if ((item.ExpirationOnlineMinutesLeft > 0.0) || (item.ExpirationTime > DateTime.UtcNow) || (item.UnpackTime > DateTime.UtcNow))
@@ -472,6 +469,10 @@ public class ItemContainer
             ItemManager.Instance.ReleaseId(item.Id);
         }
         UpdateFreeSlotCount();
+
+        Owner?.Inventory.OnConsumedItem(item, item.Count);
+        OnLeaveContainer(item, null);
+
         return res;
     }
 
@@ -513,13 +514,13 @@ public class ItemContainer
 
             if (preferredItem.Count > 0)
             {
-                Owner?.Inventory.OnConsumedItem(preferredItem, toRemove);
                 itemTasks.Add(new ItemCountUpdate(preferredItem, -toRemove));
             }
             else
             {
                 RemoveItem(taskType, preferredItem, true); // Normally, this can never fail
             }
+            Owner?.Inventory.OnConsumedItem(preferredItem, toRemove);
 
             totalConsumed += toRemove;
         }

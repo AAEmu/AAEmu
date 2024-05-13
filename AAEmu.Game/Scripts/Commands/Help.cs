@@ -54,6 +54,7 @@ public class Help : ICommand
         character.SendMessage("|cFF80FFFFList of available GM Commands|r\n-------------------------\n");
         var list = CommandManager.Instance.GetCommandKeys();
         list.Sort();
+        var characterAccessLevel = CharacterManager.Instance.GetEffectiveAccessLevel(character);
         foreach (var command in list)
         {
             if (command == "help")

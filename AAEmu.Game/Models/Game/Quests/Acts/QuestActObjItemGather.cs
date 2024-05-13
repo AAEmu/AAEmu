@@ -31,7 +31,7 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
     public override void InitializeAction(Quest quest, IQuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
-        questAct.SetObjective(quest, quest.Owner.Inventory.GetItemsCount(ItemId));
+        SetObjective(quest, quest.Owner.Inventory.GetItemsCount(ItemId));
 
         // Register event handler
         quest.Owner.Events.OnItemGather += questAct.OnItemGather;

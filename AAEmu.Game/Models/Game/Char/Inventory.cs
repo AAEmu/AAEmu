@@ -933,15 +933,8 @@ public class Inventory
     public void OnConsumedItem(Item item, int count, bool onlyUpdatedCount = false)
     {
         // Quests
-        //if ((item?.Template.LootQuestId > 0) && (count != 0))
-        // TODO квест id=4294 "Feeding Your Foal", используемый для посадки предмет ID=23635 "Vita Seed" уже имеет Count= 0, поэтому вызов проверки квеста не происходит
-        // TODO quest id=4294 "Feeding Your Foal", used for planting item id=23635 "Vita Seed" already has Count= 0, so the quest check is not called
-        //if (count > 0 && item != null)
         if (item != null)
         {
-            //Owner?.Quests?.OnItemUse(item);
-            // инициируем событие
-            //Task.Run(() => QuestManager.Instance.DoConsumedEvents((Character)Owner, item.TemplateId, count));
             QuestManager.Instance.DoItemsConsumedEvents(Owner, item.TemplateId, count);
         }
     }

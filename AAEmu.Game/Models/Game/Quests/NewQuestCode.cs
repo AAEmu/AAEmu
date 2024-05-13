@@ -202,7 +202,7 @@ public partial class Quest
     /// <returns></returns>
     public QuestObjectiveStatus GetQuestObjectiveStatus()
     {
-        if (!QuestSteps.TryGetValue(Step, out var currentStep))
+        if (!QuestSteps.TryGetValue(QuestComponentKind.Progress, out var currentStep))
             return QuestObjectiveStatus.NotReady;
 
         var questComponents = currentStep.Components.Values ;
@@ -251,7 +251,7 @@ public partial class Quest
     /// <returns></returns>
     public float GetQuestObjectivePercent()
     {
-        if (!QuestSteps.TryGetValue(Step, out var currentStep))
+        if (!QuestSteps.TryGetValue(QuestComponentKind.Progress, out var currentStep))
             return 0f;
 
         var questComponents = currentStep.Components.Values;

@@ -16,7 +16,6 @@ public class QuestAct : IComparable<QuestAct>, IQuestAct
     public uint Id => Template?.ActId ?? 0;
     public uint DetailId => Template?.DetailId ?? 0;
     public string DetailType { get; set; }
-    public byte ThisComponentObjectiveIndex { get; set; }
 
     public QuestComponent QuestComponent { get; }
     public QuestActTemplate Template { get; set; }
@@ -43,35 +42,13 @@ public class QuestAct : IComparable<QuestAct>, IQuestAct
     }
     
     /// <summary>
-    /// Set Current Objective Count for this Act (forwards to quest object)
-    /// </summary>
-    public void SetObjective(Quest quest, int value)
-    {
-        if (quest != null)
-            quest.Objectives[ThisComponentObjectiveIndex] = value;
-    }
-
-    /// <summary>
     /// Get Current Objective Count for this Act (forwarded value from Quest)
     /// </summary>
     /// <param name="quest"></param>
     /// <returns></returns>
     public int GetObjective(Quest quest)
     {
-        return quest?.Objectives[ThisComponentObjectiveIndex] ?? 0;
-    }
-
-    /// <summary>
-    /// Set Current Objective Count for this Act (forwards to quest object)
-    /// </summary>
-    /// <param name="quest"></param>
-    /// <param name="amount"></param>
-    public int AddObjective(Quest quest, int amount)
-    {
-        if (quest == null)
-            return 0;
-        quest.Objectives[ThisComponentObjectiveIndex] += amount;
-        return quest.Objectives[ThisComponentObjectiveIndex];
+        return quest?.Objectives[Template.ThisComponentObjectiveIndex] ?? 0;
     }
     #endregion
 

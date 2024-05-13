@@ -791,7 +791,36 @@ public partial class Quest : PacketMarshaler
             if (levelBasedRewards != null)
             {
                 // Add (or reduce) extra for over-achieving (or early completing) of the quest if allowed
-                QuestRewardRatio = Template.LetItDone ? GetQuestObjectivePercent() : 1f; // ratio is used by DistributeRewards
+                if (Template.LetItDone)
+                {
+                    var objectiveStatus = GetQuestObjectiveStatus();
+                    switch (objectiveStatus)
+                    {
+                        case QuestObjectiveStatus.NotReady:
+                            QuestRewardRatio = 0f;
+                            break;
+                        case QuestObjectiveStatus.CanEarlyComplete:
+                            QuestRewardRatio = 0.3f;
+                            break;
+                        case QuestObjectiveStatus.QuestComplete:
+                            QuestRewardRatio = 1f;
+                            break;
+                        case QuestObjectiveStatus.ExtraProgress:
+                            QuestRewardRatio = 1f;
+                            break;
+                        case QuestObjectiveStatus.Overachieved:
+                            QuestRewardRatio = 1.2f;
+                            break;
+                        default:
+                            QuestRewardRatio = 1f;
+                            break;
+                    }
+                }
+                else
+                {
+                    QuestRewardRatio = 1f;
+                }
+               
                 QuestRewardExpPool += levelBasedRewards.Exp;
                 QuestRewardCoinsPool += levelBasedRewards.Copper;
             }
