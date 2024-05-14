@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -20,7 +21,7 @@ public class QuestActObjMateLevel(QuestComponentTemplate parentComponent) : Ques
     private byte CalculateObjective(Quest quest)
     {
         // Get a list of all items with the specified template
-        if (!quest.Owner.Inventory.GetAllItemsByTemplate([], ItemId, -1, out var validItems, out _))
+        if (!quest.Owner.Inventory.GetAllItemsByTemplate(null, ItemId, -1, out var validItems, out _))
         {
             SetObjective(quest, 0);
             return 0;
@@ -37,6 +38,16 @@ public class QuestActObjMateLevel(QuestComponentTemplate parentComponent) : Ques
             if (res)
             {
                 SetObjective(quest, 1);
+                if (Cleanup)
+                {
+                    // Delete the mate if objective met
+                    var removedCount = quest.Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, summonMate.TemplateId, 1,
+                        summonMate);
+                    if (removedCount < 1)
+                    {
+                        Logger.Warn($"{QuestActTemplateName}({DetailId}).CalculateObjective: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), failed to remove SummonMate item {summonMate.Id}");
+                    }
+                }
                 return summonMate.DetailLevel;
             }
         }
@@ -44,7 +55,7 @@ public class QuestActObjMateLevel(QuestComponentTemplate parentComponent) : Ques
         SetObjective(quest, 0);
         return 0;
     }
-
+    
     /// <summary>
     /// Checks if you own a mate of specified type that is at least given Level
     /// </summary>

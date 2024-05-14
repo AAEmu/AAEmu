@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Quests.Static;
+using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -43,5 +45,14 @@ public class QuestActEtcItemObtain(QuestComponentTemplate parentComponent) : Que
         // Check if obtained the specified item, there is no check for removing for EtcItemObtain
         if ((questAct.Id == ActId) && (e.ItemId == ItemId) && (e.Count > 0))
             AddObjective(questAct, e.Count);
+    }
+    
+    public override void QuestCleanup(Quest quest)
+    {
+        base.QuestCleanup(quest);
+        if (!Cleanup)
+            return;
+
+        quest.Owner?.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, Count, null);
     }
 }

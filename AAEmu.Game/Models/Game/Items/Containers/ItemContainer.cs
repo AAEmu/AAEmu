@@ -488,8 +488,6 @@ public class ItemContainer
     {
         if (!GetAllItemsByTemplate(templateId, -1, out var foundItems, out var count))
             return 0; // Nothing found
-        if (amountToConsume > count)
-            return 0; // Not enough total
 
         if ((preferredItem != null) && (templateId != preferredItem.TemplateId))
             return 0; // Preferred item template did not match the requested template

@@ -38,6 +38,8 @@ public class QuestActConReportJournal(QuestComponentTemplate parentComponent) : 
             return;
 
         questAct.OverrideObjectiveCompleted = true;
+        if (questAct.QuestComponent.Parent.Parent.Step == QuestComponentKind.Progress)
+            questAct.QuestComponent.Parent.Parent.Step = QuestComponentKind.Ready;
         questAct.RequestEvaluation(); // Manual request since this does not use objective counters to trigger
     }
 }

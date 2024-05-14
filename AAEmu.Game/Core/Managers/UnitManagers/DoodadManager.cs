@@ -3017,6 +3017,7 @@ public class DoodadManager : Singleton<DoodadManager>
 
         foreach (var item in items)
         {
+            character.ItemUse(preferredItem.Id);
             character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1,
                 preferredItem);
         }

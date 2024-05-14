@@ -768,7 +768,8 @@ public partial class Quest : PacketMarshaler
             }
             else
             {
-                foreach (var item in QuestRewardItemsPool)
+                var pool = QuestRewardItemsPool.ToList();
+                foreach (var item in pool)
                 {
                     if (ItemManager.Instance.IsAutoEquipTradePack(item.TemplateId))
                     {
@@ -847,7 +848,8 @@ public partial class Quest : PacketMarshaler
         // Cleanup used Items from quest
         if (QuestCleanupItemsPool.Count > 0)
         {
-            foreach (var cleanupItem in QuestCleanupItemsPool)
+            var cleanupList = QuestCleanupItemsPool.ToList();
+            foreach (var cleanupItem in cleanupList)
                 Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestComplete, cleanupItem.TemplateId, cleanupItem.Count, null);
             QuestCleanupItemsPool.Clear();
         }

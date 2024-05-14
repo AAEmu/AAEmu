@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Items.Actions;
+﻿using System;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -51,7 +52,9 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
         if (!Cleanup)
             return;
 
-        quest.Owner?.Inventory.ConsumeItem([], ItemTaskType.QuestRemoveSupplies, ItemId, MaxObjective(), null);
+        // quest.Owner?.Inventory.ConsumeItem([], ItemTaskType.QuestRemoveSupplies, ItemId, MaxObjective(), null);
+        var cleanupCount = Math.Min(GetObjective(quest), MaxObjective());
+        quest.Owner?.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, cleanupCount, null);
     }
 
     public override void QuestDropped(Quest quest)
@@ -60,7 +63,8 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
         if (!DestroyWhenDrop)
             return;
 
-        quest.Owner?.Inventory.ConsumeItem([], ItemTaskType.QuestRemoveSupplies, ItemId, MaxObjective(), null);
+        var cleanupCount = Math.Min(GetObjective(quest), MaxObjective());
+        quest.Owner?.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, cleanupCount, null);
     }
 
     public override void OnItemGather(IQuestAct questAct, object sender, OnItemGatherArgs args)

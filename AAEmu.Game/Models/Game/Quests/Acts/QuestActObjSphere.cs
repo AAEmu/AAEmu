@@ -23,7 +23,7 @@ public class QuestActObjSphere(QuestComponentTemplate parentComponent) : QuestAc
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), SphereId {SphereId}, NpcId {NpcId}");
-        return currentObjectiveCount >= Count;
+        return currentObjectiveCount > 0;
     }
 
     public override void InitializeAction(Quest quest, IQuestAct questAct)
