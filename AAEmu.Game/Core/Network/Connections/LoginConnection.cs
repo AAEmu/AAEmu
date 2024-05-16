@@ -9,8 +9,7 @@ namespace AAEmu.Game.Core.Network.Connections;
 
 public class LoginConnection
 {
-    private Session _session;
-    private Client _client;
+    private ISession _session;
 
     public uint Id => _session.SessionId;
     public IPAddress Ip => _session.Ip;
@@ -19,10 +18,9 @@ public class LoginConnection
     public PacketStream LastPacket { get; set; }
 
 
-    public LoginConnection(Session session)
+    public LoginConnection(ISession session)
     {
         _session = session;
-        _client = session.Client;
     }
 
     public void OnConnect()
@@ -39,11 +37,11 @@ public class LoginConnection
             return;
         packet.Connection = this;
         byte[] buf = packet.Encode();
-        _client.Send(buf);
+        _session.SendPacket(buf);
     }
 
     public void Close()
     {
-        _client.Disconnect();
+        _session.Close();
     }
 }

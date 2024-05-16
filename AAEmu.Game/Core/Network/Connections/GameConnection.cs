@@ -24,7 +24,7 @@ public enum GameState
 
 public class GameConnection
 {
-    private Session _session;
+    private ISession _session;
 
     public uint Id => _session.SessionId;
     public uint AccountId { get; set; }
@@ -41,7 +41,7 @@ public class GameConnection
     public CancellationTokenSource CancelTokenSource { get; set; }
     public DateTime LastPing { get; set; }
 
-    public GameConnection(Session session)
+    public GameConnection(ISession session)
     {
         _session = session;
         Subscribers = new List<IDisposable>();
