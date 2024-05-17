@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Core.Network.Internal;
@@ -8,7 +8,7 @@ namespace AAEmu.Login.Core.Network.Connections;
 
 public class InternalConnection
 {
-    private Session _session;
+    private ISession _session;
 
     public uint Id => _session.SessionId;
     public IPAddress Ip => _session.Ip;
@@ -16,7 +16,7 @@ public class InternalConnection
     public bool Block { get; set; }
     public PacketStream LastPacket { get; set; }
 
-    public InternalConnection(Session session)
+    public InternalConnection(ISession session)
     {
         _session = session;
     }

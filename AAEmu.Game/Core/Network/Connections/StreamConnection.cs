@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using AAEmu.Commons.Network;
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Network.Connections;
 
 public class StreamConnection
 {
-    private Session _session;
+    private ISession _session;
     private int _requestId;
     private readonly Dictionary<int, Doodad[]> _requests;
 
@@ -19,7 +19,7 @@ public class StreamConnection
     public GameConnection GameConnection { get; set; }
     public PacketStream LastPacket { get; set; }
 
-    public StreamConnection(Session session)
+    public StreamConnection(ISession session)
     {
         _session = session;
         _requestId = -1;

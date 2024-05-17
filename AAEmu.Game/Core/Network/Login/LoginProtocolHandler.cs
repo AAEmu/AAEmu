@@ -22,7 +22,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
         _packets = new ConcurrentDictionary<uint, Type>();
     }
 
-    public override void OnConnect(Session session)
+    public override void OnConnect(ISession session)
     {
         Logger.Info("Connect to {0} established, session id: {1}", session.Ip.ToString(), session.SessionId.ToString(CultureInfo.InvariantCulture));
         var con = new LoginConnection(session);
@@ -30,7 +30,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
         LoginNetwork.Instance.SetConnection(con);
     }
 
-    public override void OnDisconnect(Session session)
+    public override void OnDisconnect(ISession session)
     {
         Logger.Info("Connect to LoginServer has been lost");
         LoginNetwork.Instance.SetConnection(null);
@@ -41,7 +41,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
         LoginNetwork.Instance.Start();
     }
 
-    public override void OnReceive(Session session, byte[] buf, int bytes)
+    public override void OnReceive(ISession session, byte[] buf, int offset, int bytes)
     {
         var stream = new PacketStream();
         var connection = LoginNetwork.Instance.GetConnection();
@@ -50,7 +50,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
             stream.Insert(0, _lastPacket);
             _lastPacket = null;
         }
-        stream.Insert(stream.Count, buf, 0, bytes);
+        stream.Insert(stream.Count, buf, offset, bytes);
         while (stream != null && stream.Count > 0)
         {
             ushort len;

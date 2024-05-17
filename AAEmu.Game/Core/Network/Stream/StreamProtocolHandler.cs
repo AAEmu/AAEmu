@@ -20,7 +20,7 @@ public class StreamProtocolHandler : BaseProtocolHandler
         _packets = new ConcurrentDictionary<uint, Type>();
     }
 
-    public override void OnConnect(Session session)
+    public override void OnConnect(ISession session)
     {
         Logger.Info("Connect from {0} established, session id: {1}", session.Ip.ToString(), session.SessionId.ToString());
         try
@@ -36,7 +36,7 @@ public class StreamProtocolHandler : BaseProtocolHandler
         }
     }
 
-    public override void OnDisconnect(Session session)
+    public override void OnDisconnect(ISession session)
     {
         try
         {
@@ -53,14 +53,14 @@ public class StreamProtocolHandler : BaseProtocolHandler
         Logger.Info("Client from {0} disconnected", session.Ip.ToString());
     }
 
-    public override void OnReceive(Session session, byte[] buf, int bytes)
+    public override void OnReceive(ISession session, byte[] buf, int offset, int bytes)
     {
         try
         {
             var connection = StreamConnectionTable.Instance.GetConnection(session.SessionId);
             if (connection == null)
                 return;
-            OnReceive(connection, buf, bytes);
+            OnReceive(connection, buf, offset, bytes);
         }
         catch (Exception e)
         {
@@ -69,7 +69,7 @@ public class StreamProtocolHandler : BaseProtocolHandler
         }
     }
 
-    public void OnReceive(StreamConnection connection, byte[] buf, int bytes)
+    public void OnReceive(StreamConnection connection, byte[] buf, int offset, int bytes)
     {
         try
         {
@@ -80,7 +80,7 @@ public class StreamProtocolHandler : BaseProtocolHandler
                 connection.LastPacket = null;
             }
 
-            stream.Insert(stream.Count, buf, 0, bytes);
+            stream.Insert(stream.Count, buf, offset, bytes);
             while (stream != null && stream.Count > 0)
             {
                 ushort len;
