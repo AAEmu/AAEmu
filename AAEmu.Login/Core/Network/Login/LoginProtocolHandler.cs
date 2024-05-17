@@ -22,7 +22,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
         _packets = new ConcurrentDictionary<uint, Type>();
     }
 
-    public override void OnConnect(Session session)
+    public override void OnConnect(ISession session)
     {
         Logger.Debug($"Connection from {session.Ip} established, session id: {session.SessionId}");
         try
@@ -38,7 +38,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
         }
     }
 
-    public override void OnDisconnect(Session session)
+    public override void OnDisconnect(ISession session)
     {
         if (session is null)
         {
@@ -60,14 +60,14 @@ public class LoginProtocolHandler : BaseProtocolHandler
         Logger.Debug($"Client from {session.Ip} disconnected");
     }
 
-    public override void OnReceive(Session session, byte[] buf, int bytes)
+    public override void OnReceive(ISession session, byte[] buf, int offset, int bytes)
     {
         try
         {
             var connection = LoginConnectionTable.Instance.GetConnection(session.SessionId);
             if (connection == null)
                 return;
-            OnReceive(connection, buf, bytes);
+            OnReceive(connection, buf, offset, bytes);
         }
         catch (Exception e)
         {
@@ -76,7 +76,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
         }
     }
 
-    public void OnReceive(LoginConnection connection, byte[] buf, int bytes)
+    public void OnReceive(LoginConnection connection, byte[] buf, int offset, int bytes)
     {
         try
         {

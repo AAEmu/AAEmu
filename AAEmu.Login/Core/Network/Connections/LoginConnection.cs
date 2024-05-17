@@ -10,7 +10,7 @@ namespace AAEmu.Login.Core.Network.Connections;
 
 public class LoginConnection
 {
-    private Session _session;
+    private ISession _session;
 
     public uint Id => _session.SessionId;
     public IPAddress Ip => _session.Ip;
@@ -25,7 +25,7 @@ public class LoginConnection
 
     public Dictionary<byte, List<LoginCharacterInfo>> Characters;
 
-    public LoginConnection(Session session)
+    public LoginConnection(ISession session)
     {
         _session = session;
 
