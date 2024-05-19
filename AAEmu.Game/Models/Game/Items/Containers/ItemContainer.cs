@@ -598,7 +598,8 @@ public class ItemContainer
         if (amountToAdd <= 0)
             return true;
 
-        GetAllItemsByTemplate(templateId, gradeToAdd, out var currentItems, out var currentTotalItemCount);
+        //GetAllItemsByTemplate(templateId, gradeToAdd, out var currentItems, out var currentTotalItemCount);
+        GetAllItemsByTemplate(templateId, out var currentItems, out var currentTotalItemCount);
         var template = ItemManager.Instance.GetTemplate(templateId);
         if (template == null)
             return false; // Invalid item templateId
@@ -757,6 +758,17 @@ public class ItemContainer
                 unitsOfItemFound += i.Count;
             }
         return (foundItems.Count > 0);
+    }
+    public bool GetAllItemsByTemplate(uint templateId, out List<Item> foundItems, out int unitsOfItemFound)
+    {
+        foundItems = new List<Item>();
+        unitsOfItemFound = 0;
+        foreach (var i in Items.Where(i => i.TemplateId == templateId))
+        {
+            foundItems.Add(i);
+            unitsOfItemFound += i.Count;
+        }
+        return foundItems.Count > 0;
     }
 
     public void ApplyBindRules(ItemTaskType taskType)
