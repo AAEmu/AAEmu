@@ -177,14 +177,13 @@ public class ItemManager : Singleton<ItemManager>
         var lootDropRate = 1f;
         var lootGoldRate = 1f;
 
-        // Check all people with with a claim on the NPC
+        // Check all people with a claim on the NPC
 
         HashSet<Character> eligiblePlayers = new HashSet<Character>();
         if ( unit.CharacterTagging.TagTeam != 0)
         {
-           
-                //A team has tagging rights
-                var team = TeamManager.Instance.GetActiveTeam(unit.CharacterTagging.TagTeam);
+            //A team has tagging rights
+            var team = TeamManager.Instance.GetActiveTeam(unit.CharacterTagging.TagTeam);
             if (team != null)
             {
                 foreach (var member in team.Members)
