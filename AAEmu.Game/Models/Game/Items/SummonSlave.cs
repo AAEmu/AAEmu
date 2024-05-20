@@ -98,7 +98,7 @@ public class SummonSlave : Item
         var owner = WorldManager.Instance.GetCharacterById((uint)OwnerId);
         if (owner != null)
         {
-            var checkSlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(owner.ObjId);
+            var checkSlave = SlaveManager.Instance.GetSlaveByOwnerObjId(owner.ObjId);
             if (checkSlave?.Id == SlaveDbId)
             {
                 owner.SendErrorMessage(ErrorMessageType.SlaveSpawnItemLocked);
