@@ -17,6 +17,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
+using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -43,6 +44,9 @@ public class Npc : Unit
     public ConcurrentDictionary<uint, Aggro> AggroTable { get; }
     public uint CurrentAggroTarget { get; set; }
     public bool CanFly { get; set; } // TODO mark Npc's that can fly so that they don't land on the ground when calculating the Z height
+    //Tagging works differently to Aggro.:
+    public Tagging CharacterTagging { get; set; }
+
 
     public override float BaseMoveSpeed
     {
@@ -708,32 +712,175 @@ public class Npc : Unit
     {
         Name = "";
         AggroTable = new ConcurrentDictionary<uint, Aggro>();
+        CharacterTagging = new Tagging(this);//Adding because Tagging works differently than Aggro
         //Equip = new Item[28];
     }
 
     public override void DoDie(BaseUnit killer, KillReason killReason)
     {
-        base.DoDie(killer, killReason);
-        AggroTable.Clear();
-        if (killer is Character character)
+       
+        HashSet<Character> eligiblePlayers = new HashSet<Character>();
+        if (CharacterTagging.TagTeam != 0)
         {
-            character.AddExp(KillExp, true);
-            var mates = MateManager.Instance.GetActiveMates(character.ObjId);
-            if (mates != null)
+            //A team has tagging rights
+            var team = TeamManager.Instance.GetActiveTeam(CharacterTagging.TagTeam);
+            if (team != null)
             {
-                foreach (var mate in mates)
+
+                //Just to check the team is still a valid team.
+                foreach (var member in team.Members)
                 {
-                    if (mate == null) continue;
-                    mate.AddExp(KillExp);
-                    character.SendMessage($"Pet gained {KillExp} XP");
+                    if (member != null && member.Character != null)
+                    {
+                        if (member.Character is Character tm)
+                        {
+                            var distance = tm.Transform.World.Position - this.Transform.World.Position;
+                            if (distance.Length() <= 200)
+                            {
+                                eligiblePlayers.Add(tm);
+                            }
+                        }
+                    }
                 }
             }
-
-            //character.Quests.OnKill(this);
-            // инициируем событие
-            //Task.Run(() => QuestManager.Instance.DoOnMonsterHuntEvents(character, this));
-            QuestManager.Instance.DoOnMonsterHuntEvents(character, this);
+            else if (CharacterTagging.Tagger != null)
+            {
+                //A player has tag rights, but the team is not valid.
+                eligiblePlayers.Add(CharacterTagging.Tagger);
+            }
         }
+        else if (CharacterTagging.Tagger != null)
+        {
+            //A player has tag rights
+            eligiblePlayers.Add(CharacterTagging.Tagger);
+        }
+
+
+
+        //Logger.Warn($"Eligible killers count is {eligiblePlayers.Count }");
+
+        if (eligiblePlayers.Count == 0 && killer is Character characterKiller)
+        {
+            QuestManager.Instance.DoOnMonsterHuntEvents(characterKiller, this);//No eligible owner, but the killer is a character.
+            characterKiller.AddExp(KillExp, true);
+            var mate = MateManager.Instance.GetActiveMate(characterKiller.ObjId);
+            if (mate != null)
+            {
+                mate.AddExp(KillExp);
+                characterKiller.SendMessage($"Pet gained {KillExp} XP");
+            }
+        }
+        else
+        {
+            var isFullTeam = false;
+            var isRaid = false;
+            if (CharacterTagging.TagTeam != 0)
+            {
+                //A team has tagging rights
+                var team = TeamManager.Instance.GetActiveTeam(CharacterTagging.TagTeam);
+                if (team != null)
+                {
+                    if(!team.IsParty)
+                    {
+                        isRaid = true;
+                        //Team is a raid.
+                    }
+                    else if(team.MembersCount()>3)
+                    {
+                        isFullTeam = true;
+                    }
+                }
+            }
+                    foreach (Character pl in eligiblePlayers)
+            {
+                int plKillXP = 0;
+                int mateKillXP = 0;
+                float plMod = 1f;
+                float mateMod = 1f;
+
+
+                if (isRaid)
+                {
+                    //Player is in a raid. 1.2, pet XP is capped a full team value, but player gets raid XP regardless of how many raiders are present.
+                   plMod =  0.33f;
+                   mateMod = 0.66f;
+                }
+                else if (isFullTeam)
+                {
+                    //Player is in a team of more than 3 people. Player gets full party XP regardless of how many party members are present.
+                    plMod = 0.66f;
+                    mateMod = 0.66f;
+                }
+                
+                else if(eligiblePlayers.Count > 1 && eligiblePlayers.Count <= 3)
+                {
+                    //If players are between 2 and 3, we scale. At this point, the party doesn't matter, just nearby players. 
+                    if (eligiblePlayers.Count == 2)
+                    {
+                        plMod = 0.90f;
+                        mateMod = 0.90f;
+                    }
+                    else if (eligiblePlayers.Count == 3)
+                    {
+                        plMod = 0.875f;
+                        mateMod = 0.875f;
+                    }
+                }
+                else 
+                {
+                    //Player is solo, or at least only 1 player is close enough to get rights
+                    plMod = 1f;
+                    mateMod = 1f;
+                }
+
+                //Now we need to scale XP based on level difference, which gets a bit more complex.
+               
+
+                if (pl.Level >= this.Level + 10 || pl.Level <= this.Level - 10)
+                {
+                   //No XP for you or your pet. Will check on the +10
+                }
+                else
+                {
+                    float LevDif = 1.0f;
+                    int levelDifference = pl.Level - this.Level;
+
+                    if (levelDifference > 0)
+                    {
+                        // pl.Level is above this.Level
+                        LevDif = 1.0f - (0.1f * levelDifference);
+                    }
+                    else if (levelDifference < 0)
+                    {
+                        // pl.Level is below this.Level
+                        LevDif = 1.0f + (0.1f * -levelDifference);
+                    }
+                    
+                    plKillXP = (int)((KillExp * plMod) * LevDif);
+                    mateKillXP = (int)((KillExp * mateMod) * LevDif);
+
+                    pl.AddExp(plKillXP, true);
+                    var mate = MateManager.Instance.GetActiveMate(pl.ObjId);
+                    if (mate != null)
+                    {
+                        mate.AddExp(mateKillXP);
+                        pl.SendMessage($"Pet gained {mateKillXP} XP");
+                    }
+                }
+
+
+
+             
+                //character.Quests.OnKill(this);
+                // инициируем событие
+                //Task.Run(() => QuestManager.Instance.DoOnMonsterHuntEvents(character, this));
+                QuestManager.Instance.DoOnMonsterHuntEvents(pl, this);
+            }
+        }
+        base.DoDie(killer, killReason);
+        AggroTable.Clear();
+        CharacterTagging.ClearAllTaggers();
+
 
         Spawner?.DecreaseCount(this);
         Ai?.GoToDead();
@@ -778,6 +925,11 @@ public class Npc : Unit
             ClearAggroOfUnit(unit);
             return;
         }
+
+        //Add Tagging if it was damage aggro
+        if (kind == AggroKind.Damage)
+            CharacterTagging.AddTagger(unit, amount);
+
 
         amount = (int)(amount * (unit.AggroMul / 100.0f));
         amount = (int)(amount * (IncomingAggroMul / 100.0f));
@@ -840,6 +992,9 @@ public class Npc : Unit
             CheckIfEmptyAggroToReturn(unit);
     }
 
+    //Tagging!
+
+
     private static void CheckIfEmptyAggroToReturn(IBaseUnit unit)
     {
         if (unit is not Npc npc)
@@ -877,6 +1032,9 @@ public class Npc : Unit
 
     public void ClearAllAggro()
     {
+        ///Adding for tagging
+        CharacterTagging.ClearAllTaggers();
+
         foreach (var table in AggroTable)
         {
             var unit = WorldManager.Instance.GetUnit(table.Key);

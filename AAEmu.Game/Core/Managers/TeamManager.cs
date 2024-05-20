@@ -5,6 +5,8 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.World.Transform;
@@ -54,7 +56,7 @@ public class TeamManager : Singleton<TeamManager>
         return null;
     }
 
-    private Team GetActiveTeam(uint teamId)
+    public Team GetActiveTeam(uint teamId)
     {
         if (teamId == 0) return null;
         return _activeTeams.TryGetValue(teamId, out var team) ? team : null;
@@ -208,6 +210,44 @@ public class TeamManager : Singleton<TeamManager>
                 ChatManager.Instance.GetPartyChat(activeTeam, t2).JoinChannel(t2);
         }
     }
+
+    public Character GetNextEligibleLooter(uint teamId, Unit owner)
+    {
+        var activeTeam = GetActiveTeam(teamId);
+        if (activeTeam == null) return null;
+       
+        //Round Robin vs FFA
+        //if(activeTeam.LootingRule==)
+        foreach (var member in activeTeam.Members)
+        {
+            if (member?.Character == null)
+                continue;
+            if (member.HasGoneRoundRobin)
+                continue;
+            //Need to check if player is in range, and skip if not.
+            var distance = member.Character.Transform.World.Position - owner.Transform.World.Position;
+            if (distance.Length() >= 200)
+                continue;
+
+            member.HasGoneRoundRobin = true;
+            return member.Character;
+        }
+
+        // Reset round robin and get the first eligible member
+        Character returnMember = null;
+        foreach (var member in activeTeam.Members)
+        {
+            if (member?.Character == null)
+                continue;
+
+            member.HasGoneRoundRobin = returnMember == null;
+            if (returnMember == null)
+                returnMember = member.Character;
+        }
+
+        return returnMember;
+    }
+
 
     public void CreateNewTeam(InvitationTemplate activeInvitation)
     {
