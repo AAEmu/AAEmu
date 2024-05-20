@@ -342,7 +342,7 @@ public static class SCOffsets
     public const ushort SCTradeCanceledPacket = 0x1B5;
     public const ushort SCTradeItemPutupPacket = 0x0E4;
     public const ushort SCTradeItemTookdownPacket = 0x2AD;
-    public const ushort SCOtherTradeOkPacket = 0x106;
+    public const ushort SCOtherTradeOkPacket = 0x106; // SCTradeOkUpdatePacket
     public const ushort SCTradeLockUpdatePacket = 0x167;
     public const ushort SCTowerDefListPacket = 0x24A;
     public const ushort SCTowerDefStartPacket = 0x0B0;
@@ -753,7 +753,7 @@ public static class SCOffsets
     //public const ushort SCAttachmentTakenPacket = 0xfff;
     //public const ushort SCBondDoodadPacket = 0x205; // SCAttachToDoodadPacket
     //public const ushort SCUnbondDoodadPacket = 0x06a; //SCDetachFromDoodadPacket
-    public const ushort SCTradeOkUpdatePacket = 0xfff;
+    //public const ushort SCTradeOkUpdatePacket = 0xfff; // SCOtherTradeOkPacket
     public const ushort SCChangeJuryOKCountPacket = 0xfff;
     public const ushort SCChangeJuryVerdictCountPacket = 0xfff;
     public const ushort SCTrialAudienceJoinedPacket = 0xfff;

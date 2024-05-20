@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -6,6 +7,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -68,7 +70,7 @@ public class TradeManager : Singleton<TradeManager>
         _trades[tradeId].OkTarget = false;
         owner.SendPacket(new SCTradeLockUpdatePacket(false, false));
         target.SendPacket(new SCTradeLockUpdatePacket(false, false));
-        Logger.Info("Trade Id:{0} Lockers opened and Ok undone.", tradeId);
+        Logger.Info($"Trade Id:{tradeId} Lockers opened and Ok undone.");
     }
 
     public void CanStartTrade(Character owner, Character target)
@@ -76,7 +78,7 @@ public class TradeManager : Singleton<TradeManager>
         if (IsTrading(owner.ObjId) || IsTrading(target.ObjId)) return;
 
         // TODO - Check faction and others
-        Logger.Info("{0}({1}) is trying to trade with {2}({3}).", owner.Name, owner.ObjId, target.Name, target.ObjId);
+        Logger.Info($"{owner.Name}({owner.ObjId}) is trying to trade with {target.Name}({target.ObjId}).");
         target.SendPacket(new SCCanStartTradePacket(owner.ObjId));
     }
 
@@ -102,7 +104,7 @@ public class TradeManager : Singleton<TradeManager>
         };
         _trades.Add(nextId, template);
 
-        Logger.Info("Trade Id:{4} started between {0}({1}) - {2}({3}).", owner.Name, owner.ObjId, target.Name, target.ObjId, nextId);
+        Logger.Info($"Trade Id:{nextId} started between {owner.Name}({owner.ObjId}) - {target.Name}({target.ObjId}).");
         owner.SendPacket(new SCTradeStartedPacket(target.ObjId));
         target.SendPacket(new SCTradeStartedPacket(owner.ObjId));
     }
@@ -121,7 +123,7 @@ public class TradeManager : Singleton<TradeManager>
         var target = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].TargetObjId);
         _trades.Remove(tradeId);
 
-        Logger.Info("Trade Id:{4} between {0}({1}) - {2}({3}) is canceled.", owner.Name, owner.ObjId, target.Name, target.ObjId, tradeId);
+        Logger.Info($"Trade Id:{tradeId} between {owner.Name}({owner.ObjId}) - {target.Name}({target.ObjId}) is canceled.");
         var causedByMe = owner.ObjId.Equals(objId);
         owner.SendPacket(new SCTradeCanceledPacket(reason, causedByMe));
         target.SendPacket(new SCTradeCanceledPacket(reason, !causedByMe));
@@ -138,14 +140,14 @@ public class TradeManager : Singleton<TradeManager>
             var target = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].TargetObjId);
             if (isOwnerWhoAdd)
             {
-                Logger.Info("Trade Id:{0} {1}({2}) added item ({3}-{4}) Amount: {5}.", tradeId, owner.Name, owner.ObjId, slotType, slot, amount);
+                Logger.Info($"Trade Id:{tradeId} {owner.Name}({owner.ObjId}) added item ({slotType}-{slot}) Amount: {amount}.");
                 _trades[tradeId].OwnerItems.Add(item);
                 owner.SendPacket(new SCTradeItemPutupPacket(slotType, slot, amount));
                 target.SendPacket(new SCOtherTradeItemPutupPacket(item));
             }
             else
             {
-                Logger.Info("Trade Id:{0} {1}({2}) added item ({3}-{4}) Amount: {5}.", tradeId, target.Name, target.ObjId, slotType, slot, amount);
+                Logger.Info($"Trade Id:{tradeId} {target.Name}({target.ObjId}) added item ({slotType}-{slot}) Amount: {amount}.");
                 _trades[tradeId].TargetItems.Add(item);
                 owner.SendPacket(new SCOtherTradeItemPutupPacket(item));
                 target.SendPacket(new SCTradeItemPutupPacket(slotType, slot, amount));
@@ -170,14 +172,14 @@ public class TradeManager : Singleton<TradeManager>
             var target = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].TargetObjId);
             if (isOwnerWhoAdd)
             {
-                Logger.Info("Trade Id:{0} {1}({2}) changed Money: {3}.", tradeId, owner.Name, owner.ObjId, moneyAmount);
+                Logger.Info($"Trade Id:{tradeId} {owner.Name}({owner.ObjId}) changed Money: {moneyAmount}.");
                 _trades[tradeId].OwnerMoneyPutup = moneyAmount;
                 owner.SendPacket(new SCTradeMoneyPutupPacket(moneyAmount));
                 target.SendPacket(new SCOtherTradeMoneyPutupPacket(moneyAmount));
             }
             else
             {
-                Logger.Info("Trade Id:{0} {1}({2}) changed Money: {3}.", tradeId, target.Name, target.ObjId, moneyAmount);
+                Logger.Info($"Trade Id:{tradeId} {target.Name}({target.ObjId}) changed Money: {moneyAmount}.");
                 _trades[tradeId].TargetMoneyPutup = moneyAmount;
                 owner.SendPacket(new SCOtherTradeMoneyPutupPacket(moneyAmount));
                 target.SendPacket(new SCTradeMoneyPutupPacket(moneyAmount));
@@ -196,14 +198,14 @@ public class TradeManager : Singleton<TradeManager>
     {
         var tradeId = GetTradeId(character.ObjId);
         var item = character.Inventory.GetItem(slotType, slot);
-        if (tradeId != 0 && item != null)
+        if (tradeId != 0 && item is not null)
         {
             var isOwnerWhoAdd = _trades[tradeId].OwnerObjId.Equals(character.ObjId);
             var owner = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].OwnerObjId);
             var target = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].TargetObjId);
             if (isOwnerWhoAdd)
             {
-                Logger.Info("Trade Id:{0} {1}({2}) tookdown item ({3}-{4}).", tradeId, owner.Name, owner.ObjId, slotType, slot);
+                Logger.Info($"Trade Id:{tradeId} {owner.Name}({owner.ObjId}) tookdown item ({slotType}-{slot}).");
                 if (_trades[tradeId].OwnerItems.Count <= 1) _trades[tradeId].OwnerItems.Clear();
                 else _trades[tradeId].OwnerItems.Remove(item);
                 owner.SendPacket(new SCTradeItemTookdownPacket(slotType, slot));
@@ -211,7 +213,7 @@ public class TradeManager : Singleton<TradeManager>
             }
             else
             {
-                Logger.Info("Trade Id:{0} {1}({2}) tookdown item ({3}-{4}).", tradeId, target.Name, target.ObjId, slotType, slot);
+                Logger.Info($"Trade Id:{tradeId} {target.Name}({target.ObjId}) tookdown item ({slotType}-{slot}).");
                 if (_trades[tradeId].TargetItems.Count <= 1) _trades[tradeId].TargetItems.Clear();
                 else _trades[tradeId].TargetItems.Remove(item);
                 owner.SendPacket(new SCOtherTradeItemTookdownPacket(item));
@@ -245,18 +247,18 @@ public class TradeManager : Singleton<TradeManager>
             {
                 _trades[tradeId].LockOwner = false;
                 _trades[tradeId].LockTarget = false;
-                Logger.Info("Trade Id:{0} {1}({2}) - {3}({4}) unlocked trade.", tradeId, owner.Name, owner.ObjId, target.Name, target.ObjId);
+                Logger.Info($"Trade Id:{tradeId} {owner.Name}({owner.ObjId}) - {target.Name}({target.ObjId}) unlocked trade.");
             }
             else if (isOwnerWhoAdd)
             {
 
                 _trades[tradeId].LockOwner = true;
-                Logger.Info("Trade Id:{0} {1}({2}) locked trade.", tradeId, owner.Name, owner.ObjId);
+                Logger.Info($"Trade Id:{tradeId} {owner.Name}({owner.ObjId}) locked trade.");
             }
             else
             {
                 _trades[tradeId].LockTarget = true;
-                Logger.Info("Trade Id:{0} {1}({2}) locked trade.", tradeId, target.Name, target.ObjId);
+                Logger.Info($"Trade Id:{tradeId} {target.Name}({target.ObjId}) locked trade.");
             }
 
             owner.SendPacket(new SCTradeLockUpdatePacket(_trades[tradeId].LockOwner, _trades[tradeId].LockTarget));
@@ -284,12 +286,12 @@ public class TradeManager : Singleton<TradeManager>
             {
 
                 _trades[tradeId].OkOwner = true;
-                Logger.Info("Trade Id:{0} {1}({2}) ok trade.", tradeId, owner.Name, owner.ObjId);
+                Logger.Info($"Trade Id:{tradeId} {owner.Name}({owner.ObjId}) locked trade.");
             }
             else
             {
                 _trades[tradeId].OkTarget = true;
-                Logger.Info("Trade Id:{0} {1}({2}) ok trade.", tradeId, target.Name, target.ObjId);
+                Logger.Info($"Trade Id:{tradeId} {target.Name}({target.ObjId}) locked trade.");
             }
 
             // Send ok status
@@ -377,7 +379,8 @@ public class TradeManager : Singleton<TradeManager>
         _trades.Remove(tradeId);
         owner.SendPacket(new SCTradeMadePacket(ItemTaskType.Trade, tasksOwner, new List<ulong>()));
         target.SendPacket(new SCTradeMadePacket(ItemTaskType.Trade, tasksTarget, new List<ulong>()));
-        Logger.Info("Trade Id:{0} finished. Owner Items/Money: {1}/{2}. Target Items/Money: {3}/{4}",
-            tradeId, tradeInfo.OwnerItems.Count, tradeInfo.OwnerMoneyPutup, tradeInfo.TargetItems.Count, tradeInfo.TargetMoneyPutup);
+        Logger.Info($"Trade Id:{tradeId} finished." +
+                    $" Owner Items/Money: {tradeInfo.OwnerItems.Count}/{tradeInfo.OwnerMoneyPutup}." +
+                    $" Target Items/Money: {tradeInfo.TargetItems.Count}/{tradeInfo.TargetMoneyPutup}");
     }
 }
