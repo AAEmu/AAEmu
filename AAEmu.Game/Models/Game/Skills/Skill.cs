@@ -777,8 +777,9 @@ public class Skill
             units = FilterAoeUnits(caster, units).ToList();
 
             targets.AddRange(units);
-            // TODO : Need to check if this is needed
-            //if (targetSelf is Unit) targets.Add(targetSelf);
+            // TODO : Need to check if this is needed - !!! снова добавил добавление себя в таргет, не знаю как повлияет на другие скиллы !!!
+            if (targetSelf is Unit && units.Count == 0)
+                targets.Add(targetSelf);
         }
         else
         {
