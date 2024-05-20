@@ -536,7 +536,8 @@ public sealed class Mate : Unit
             var totalExp = (int)Math.Round(AppConfiguration.Instance.World.ExpRate * exp);
             Experience += totalExp;
         }
-        SendPacket(new SCExpChangedPacket(ObjId, exp, false));
+        var owner = WorldManager.Instance.GetCharacterByObjId(OwnerObjId);
+        owner.SendPacket(new SCExpChangedPacket(ObjId, exp, false));
         CheckLevelUp();
     }
 
