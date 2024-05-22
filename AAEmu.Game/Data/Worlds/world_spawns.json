@@ -55,6 +55,17 @@
     },
     {
 
+        "Name": "instance_feast_garden",
+        "SpawnPosition": {
+            "ZoneId": 321,
+            "X": 1031.3,
+            "Y": 1008.86,
+            "Z": 386.3,
+            "Yaw": -90.0
+        }
+    },
+    {
+
         "Name": "instance_hadir_farm",
         "SpawnPosition": {
             "ZoneId": 241,
