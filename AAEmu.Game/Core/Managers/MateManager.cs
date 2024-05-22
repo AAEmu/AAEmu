@@ -282,6 +282,7 @@ public class MateManager : Singleton<MateManager>
     {
         if (owner.ObjId == 0) { return; }
         var mates = GetActiveMates(owner.ObjId);
+        if (mates == null) return;
         foreach (var mateInfo in mates)
         {
             foreach (var seatInfo in mateInfo.Passengers.Values)
