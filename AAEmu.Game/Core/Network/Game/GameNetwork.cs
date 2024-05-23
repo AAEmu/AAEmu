@@ -54,10 +54,10 @@ public class GameNetwork : Singleton<GameNetwork>
         //RegisterPacket(CSOffsets.CSSetVisiblePremiumServicePacket, 5, typeof(CSSetVisiblePremiumServicePacket));
         //RegisterPacket(CSOffsets.CSAddReputationPacket, 5, typeof(CSAddReputationPacket));
         //RegisterPacket(CSOffsets.CSUnknown0x80Packet, 5, typeof(CSUnknown0x80Packet));
-        //RegisterPacket(CSOffsets.CSGetResidentDescPacket, 5, typeof(CSGetResidentDescPacket));
-        //RegisterPacket(CSOffsets.CSRefreshResidentMembersPacket, 5, typeof(CSRefreshResidentMembersPacket));
-        //RegisterPacket(CSOffsets.CSGetResidentZoneListPacket, 5, typeof(CSGetResidentZoneListPacket));
-        //RegisterPacket(CSOffsets.CSResidentFireNuonsArrowPacket, 5, typeof(CSResidentFireNuonsArrowPacket));
+        RegisterPacket(CSOffsets.CSGetResidentDescPacket, 5, typeof(CSGetResidentDescPacket));
+        RegisterPacket(CSOffsets.CSRefreshResidentMembersPacket, 5, typeof(CSRefreshResidentMembersPacket));
+        RegisterPacket(CSOffsets.CSGetResidentZoneListPacket, 5, typeof(CSGetResidentZoneListPacket));
+        RegisterPacket(CSOffsets.CSResidentFireNuonsArrowPacket, 5, typeof(CSResidentFireNuonsArrowPacket));
         //RegisterPacket(CSOffsets.CSUseBlessUthstinInitStatsPacket, 5, typeof(CSUseBlessUthstinInitStatsPacket));
         //RegisterPacket(CSOffsets.CSUseBlessUthstinExtendMaxStatsPacket, 5, typeof(CSUseBlessUthstinExtendMaxStatsPacket));
         //RegisterPacket(CSOffsets.CSBlessUthstinUseApplyStatsItemPacket, 5, typeof(CSBlessUthstinUseApplyStatsItemPacket));
