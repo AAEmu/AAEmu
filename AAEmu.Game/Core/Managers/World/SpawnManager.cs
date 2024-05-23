@@ -52,6 +52,9 @@ public class SpawnManager : Singleton<SpawnManager>
 
     public void AddNpcSpawner(NpcSpawner npcSpawner)
     {
+        if (npcSpawner.NpcSpawnerIds is [0])
+            npcSpawner.NpcSpawnerIds = [];
+
         // check for manually entered NpcSpawnerId
         if (npcSpawner.NpcSpawnerIds.Count == 0)
         {
