@@ -13,22 +13,24 @@ namespace AAEmu.Game.Utils;
 
 public class IdManager
 {
+    // ReSharper disable once MemberCanBePrivate.Global
     protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private BitSet _freeIds;
     private int _freeIdCount;
     private int _nextFreeId;
-    private bool _initialized = false;
+    private bool _initialized;
 
     private readonly string _name;
-    private readonly uint _firstId = 0x00000001;
-    private readonly uint _lastId = 0xFFFFFFFF;
+    private readonly uint _firstId; // = 0x00000001;
+    private readonly uint _lastId; // = 0xFFFFFFFF;
     private readonly uint[] _exclude;
     private readonly int _freeIdSize;
     private readonly string[,] _objTables;
     private readonly bool _distinct;
     private readonly object _lock = new();
 
+    // ReSharper disable once MemberCanBeProtected.Global
     public IdManager(string name, uint firstId, uint lastId, string[,] objTables, uint[] exclude, bool distinct = false)
     {
         _name = name;
@@ -64,7 +66,7 @@ public class IdManager
             }
             catch
             {
-                Logger.Warn("{0} failed to read from database, reverting to default", _name);
+                Logger.Warn($"{_name} failed to read from database, reverting to default");
             }
 
             foreach (var usedObjectId in allUsedObjects)
@@ -74,7 +76,7 @@ public class IdManager
                 var objectId = (int)(usedObjectId - _firstId);
                 if (usedObjectId < _firstId)
                 {
-                    Logger.Warn("{0}: Object ID {1} in DB is less than {2}", _name, usedObjectId, _firstId);
+                    Logger.Warn($"{_name}: Object ID {usedObjectId} in DB is less than {_firstId}");
                     continue;
                 }
 
@@ -85,11 +87,11 @@ public class IdManager
             }
 
             _nextFreeId = _freeIds.NextClear(0);
-            Logger.Info("{0} successfully initialized", _name);
+            Logger.Info($"{_name} successfully initialized");
         }
         catch (Exception e)
         {
-            Logger.Error("{0} could not be initialized correctly", _name);
+            Logger.Error($"{_name} could not be initialized correctly");
             Logger.Error(e);
             return false;
         }
@@ -101,68 +103,67 @@ public class IdManager
     private uint[] ExtractUsedObjectIdTable()
     {
         if (_objTables.Length < 2)
-            return Array.Empty<uint>();
+            return [];
 
-        using (var connection = MySQL.CreateConnection())
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        var query = "SELECT " + (_distinct ? "DISTINCT " : "") + _objTables[0, 1] + ", 0 AS i FROM " +
+                    _objTables[0, 0];
+        for (var i = 1; i < _objTables.Length / 2; i++)
+            query += " UNION SELECT " + (_distinct ? "DISTINCT " : "") + _objTables[i, 1] + ", " + i +
+                     " FROM " + _objTables[i, 0];
+
+        command.CommandText = "SELECT COUNT(*), COUNT(DISTINCT " + _objTables[0, 1] + ") FROM ( " + query +
+                              " ) AS all_ids";
+        command.Prepare();
+        int count;
+        using (var reader = command.ExecuteReader())
         {
-            using (var command = connection.CreateCommand())
-            {
-                var query = "SELECT " + (_distinct ? "DISTINCT " : "") + _objTables[0, 1] + ", 0 AS i FROM " +
-                            _objTables[0, 0];
-                for (var i = 1; i < _objTables.Length / 2; i++)
-                    query += " UNION SELECT " + (_distinct ? "DISTINCT " : "") + _objTables[i, 1] + ", " + i +
-                             " FROM " + _objTables[i, 0];
-
-                command.CommandText = "SELECT COUNT(*), COUNT(DISTINCT " + _objTables[0, 1] + ") FROM ( " + query +
-                                      " ) AS all_ids";
-                command.Prepare();
-                int count;
-                using (var reader = command.ExecuteReader())
-                {
-                    if (!reader.Read())
-                        throw new GameException("IdManager: can't extract count ids");
-                    if (reader.GetInt32(0) != reader.GetInt32(1) && !_distinct)
-                        throw new GameException("IdManager: there are duplicates in object ids");
-                    count = reader.GetInt32(0);
-                }
-
-                if (count == 0)
-                    return Array.Empty<uint>();
-
-                var result = new uint[count];
-                Logger.Info("{0}: Extracting {1} used id's from data tables...", _name, count);
-
-                command.CommandText = query;
-                command.Prepare();
-                using (var reader = command.ExecuteReader())
-                {
-                    var idx = 0;
-                    while (reader.Read())
-                    {
-                        result[idx] = reader.GetUInt32(0);
-                        idx++;
-                    }
-
-                    Logger.Info("{0}: Successfully extracted {1} used id's from data tables.", _name, idx);
-                }
-
-                return result;
-            }
+            if (!reader.Read())
+                throw new GameException("IdManager: can't extract count ids");
+            if (reader.GetInt32(0) != reader.GetInt32(1) && !_distinct)
+                throw new GameException("IdManager: there are duplicates in object ids");
+            count = reader.GetInt32(0);
         }
+
+        if (count == 0)
+            return [];
+
+        var result = new uint[count];
+        Logger.Info($"{_name}: Extracting {count} used id's from data tables...");
+
+        command.CommandText = query;
+        command.Prepare();
+        using (var reader = command.ExecuteReader())
+        {
+            var idx = 0;
+            while (reader.Read())
+            {
+                result[idx] = reader.GetUInt32(0);
+                idx++;
+            }
+
+            Logger.Info($"{_name}: Successfully extracted {idx} used id's from data tables.");
+        }
+
+        return result;
     }
 
     public void ReleaseId(uint usedObjectId)
     {
-        var objectId = (int)(usedObjectId - _firstId);
-        if (objectId > -1)
+        lock (_lock)
         {
-            _freeIds.Clear(objectId);
-            if (_nextFreeId > objectId)
-                _nextFreeId = objectId;
-            Interlocked.Increment(ref _freeIdCount);
+            var objectId = (int)(usedObjectId - _firstId);
+            if (objectId > -1)
+            {
+                _freeIds.Clear(objectId);
+                if (_nextFreeId > objectId)
+                    _nextFreeId = objectId;
+                Interlocked.Increment(ref _freeIdCount);
+            }
+            else
+                Logger.Error($"{_name}: release objectId {usedObjectId} failed");
         }
-        else
-            Logger.Warn("{0}: release objectId {1} failed", _name, usedObjectId);
     }
 
     public void ReleaseId(IEnumerable<uint> usedObjectIds)
