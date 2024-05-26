@@ -32,6 +32,9 @@ public partial class AppConfiguration : Singleton<AppConfiguration>
     public ClientDataConfig ClientData { get; set; } = new ClientDataConfig();
     public SpecialtyConfig Specialty { get; set; } = new SpecialtyConfig();
     public ScriptsConfig Scripts { get; set; } = new ScriptsConfig();
+    public string DefaultLanguage { get; set; } = "en_us";
+
+    
     public class NetworkConfig
     {
         public string Host { get; set; }
