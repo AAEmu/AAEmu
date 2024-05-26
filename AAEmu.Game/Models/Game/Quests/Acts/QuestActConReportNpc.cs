@@ -46,7 +46,7 @@ public class QuestActConReportNpc(QuestComponentTemplate parentComponent) : Ques
 
         questAct.QuestComponent.Parent.Parent.SelectedRewardIndex = args.Selected;
         questAct.OverrideObjectiveCompleted = true;
-        if (questAct.QuestComponent.Parent.Parent.Step == QuestComponentKind.Progress)
+        if (questAct.QuestComponent.Parent.Parent.Step <= QuestComponentKind.Progress)
             questAct.QuestComponent.Parent.Parent.Step = QuestComponentKind.Ready;
         questAct.RequestEvaluation(); // Manual request since this does not use objective counters to trigger
     }

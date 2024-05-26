@@ -1968,19 +1968,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
             }
         }
 
-        /*
-        foreach (var componentTemplate in _componentTemplates.Values)
-        {
-            foreach (var actTemplate in componentTemplate.ActTemplates)
-            {
-                if ((actTemplate.DetailType == actDetailType) && (actTemplate.DetailId == actTemplateId))
-                {
-                    return componentTemplate;
-                }
-            }
-        }
-        */
-        Logger.Error($"GetComponentByActTemplate no Component found that holds {actDetailType} {actTemplateId}");
+        Logger.Trace($"GetComponentByActTemplate no Component found that holds {actDetailType} {actTemplateId}");
         return null;
     }
 

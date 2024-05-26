@@ -14,7 +14,6 @@ using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.StaticValues;
-using AAEmu.Game.Models.Tasks.Quests;
 
 namespace AAEmu.Game.Models.Game.Quests;
 
@@ -160,6 +159,7 @@ public partial class Quest : PacketMarshaler
     /// </summary>
     public double QuestRewardRatio { get; set; } = 1.0;
 
+    private bool _questInitializationFinished;
     private bool _requestEvaluationFlag;
     /// <summary>
     /// Set if this quests is requesting a re-evaluation of its steps/components/acts to check if it has been completed
@@ -173,7 +173,7 @@ public partial class Quest : PacketMarshaler
             if (_requestEvaluationFlag == value)
                 return;
             _requestEvaluationFlag = value;
-            if (value)
+            if (value && _questInitializationFinished)
             {
                 _questManager.EnqueueEvaluation(this);
             }
@@ -948,7 +948,18 @@ public partial class Quest : PacketMarshaler
         foreach (var questAct in questComponent.Acts)
             questAct.Template.FinalizeQuest(this, questAct);
     }
-    
+
+    /// <summary>
+    /// Called at the End of Quest creation to enable the ability to request evaluations
+    /// If previously already request, it gets added to the queue here
+    /// </summary>
+    public void QuestInitialized()
+    {
+        _questInitializationFinished = true;
+        if (_requestEvaluationFlag)
+            _questManager.EnqueueEvaluation(this);
+    }
+
     #region Packets and Database
 
     public override PacketStream Write(PacketStream stream)

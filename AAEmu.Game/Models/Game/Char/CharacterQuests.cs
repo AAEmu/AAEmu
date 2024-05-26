@@ -154,6 +154,7 @@ public class CharacterQuests
         // Execute the first Step
         _ = quest.RunCurrentStep(); // We don't need the return value here
 
+        quest.QuestInitialized();
         return true;
     }
 
@@ -540,6 +541,7 @@ public class CharacterQuests
                     quest.ReadData((byte[])reader.GetValue("data"));
                     quest.Status = oldStatus;
                     ActiveQuests.Add(quest.TemplateId, quest);
+                    quest.QuestInitialized();
                     quest.RequestEvaluation();
                 }
             }
