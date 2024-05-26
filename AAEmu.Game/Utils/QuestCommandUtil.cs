@@ -225,7 +225,7 @@ public class QuestCommandUtil
                 }
                 else
                 {
-                    character.SendMessage("[Quest] /quest debug <questId> <stuff>");
+                    character.SendMessage("[Quest] /quest debug <questId> <obj1> <obj2> <obj3> <obj4> <obj5> <status> <component>");
                 }
                 break;
             case "template":

@@ -90,6 +90,15 @@ public class QuestStep(QuestComponentKind step, Quest parent)
                 ? QuestStatus.Ready
                 : QuestStatus.Progress;
         }
+        else if ((ThisStep == QuestComponentKind.Progress) && (Parent.Template.LetItDone))
+        {
+            // Validate using combined from all components
+            var objectiveStatus = Parent.GetQuestObjectiveStatus();
+            res = objectiveStatus >= QuestObjectiveStatus.Overachieved;
+            Parent.Status = objectiveStatus >= QuestObjectiveStatus.QuestComplete
+                ? QuestStatus.Ready
+                : QuestStatus.Progress;
+        }
         
         // Handle Supply/Reward Distribution
         res &= Parent.DistributeRewards(true);

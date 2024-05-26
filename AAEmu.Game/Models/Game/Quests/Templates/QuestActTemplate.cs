@@ -106,7 +106,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
         // If Score-base, calculate max objective count needed to get score
         if (ParentComponent.ParentQuestTemplate.Score > 0)
             val = (ParentComponent.ParentQuestTemplate.Score / Count) + 1;
-        return val > 0 ? (ParentQuestTemplate.LetItDone ? val * 3 / 2 : val) : 1;
+        return val > 0 ? (ParentQuestTemplate.LetItDone ? (int)Math.Ceiling(val * 3f / 2f) : val) : 1;
     }
 
     /// <summary>

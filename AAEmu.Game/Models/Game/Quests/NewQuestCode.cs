@@ -216,13 +216,13 @@ public partial class Quest
                 score += questComponentAct.Template.Count * Objectives[questComponentAct.Template.ThisComponentObjectiveIndex];
 
             // Check the score results
-            if (Template.LetItDone && score >= Template.Score * 3 / 2)
+            if (Template.LetItDone && score >= (int)Math.Ceiling(Template.Score * 3f / 2f))
                 return QuestObjectiveStatus.Overachieved;
             if (Template.LetItDone && score > Template.Score)
                 return QuestObjectiveStatus.ExtraProgress;
             if (score >= Template.Score)
                 return QuestObjectiveStatus.QuestComplete;
-            if (Template.LetItDone && (score >= Template.Score * 1 / 2))
+            if (Template.LetItDone && (score >= (int)Math.Ceiling(Template.Score * 1f / 2f)))
                 return QuestObjectiveStatus.CanEarlyComplete;
 
             return QuestObjectiveStatus.NotReady;
@@ -265,8 +265,8 @@ public partial class Quest
                 score += questComponentAct.Template.Count * Objectives[questComponentAct.Template.ThisComponentObjectiveIndex];
 
             // Check the score cap results
-            if (Template.LetItDone && score >= Template.Score * 3 / 2)
-                return Template.Score * 3f / 2f;
+            if (Template.LetItDone && score >= (int)Math.Ceiling(Template.Score * 3f / 2f))
+                return (int)Math.Ceiling(Template.Score * 3f / 2f);
 
             return 1f / Template.Score * score;
         }
