@@ -39,12 +39,9 @@ public class ExperienceManager : Singleton<ExperienceManager>
 
     public int GetSkillPointsForLevel(byte level)
     {
-        if (level > _levels.Count)
-            return 0;
-        var points = 0;
-        for (var i = 1; i <= level; i++)
-            points += _levels[level].SkillPoints;
-        return points;
+        if (_levels.TryGetValue(level, out var levelInfo))
+            return levelInfo.SkillPoints;
+        return 0;
     }
 
     public void Load()
