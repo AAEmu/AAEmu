@@ -11,7 +11,7 @@ public class SkillTemplate
     public bool Show { get; set; }
     public uint FireAnimId { get; set; }
     public Anim FireAnim { get; set; }
-    public byte AbilityId { get; set; }
+    public AbilityType AbilityId { get; set; }
     public int ManaCost { get; set; }
     public int TimingId { get; set; }
     public uint CooldownTime { get; set; }
