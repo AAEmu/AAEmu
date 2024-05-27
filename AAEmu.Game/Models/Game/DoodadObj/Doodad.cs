@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -554,6 +554,20 @@ public class Doodad : BaseUnit
 
         return stop; // if true, it did not pass the check for the quest (it must be aborted)
     }
+    public bool DoChangeOtherDoodadPhase(BaseUnit caster, Doodad doodad, int nextPhase)
+    {
+        //var prevFuncGroupId = FuncGroupId;
+        FuncGroupId = (uint)nextPhase;
+
+        if (nextPhase <= 0) { return false; }
+
+        Logger.Debug($"DoChangePhase: TemplateId {TemplateId}, ObjId {ObjId}, nextPhase {nextPhase}");
+        //var stop = DoPhaseFuncs(caster, ref nextPhase);
+        // the phase change packet call must be after the phase functions to have the correct FuncGroupId in the packet
+        BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true); // change the phase to display doodad
+
+        return false; // if true, it did not pass the check for the quest (it must be aborted)
+    }
 
     private bool HasOnlyGroupKindStart()
     {
@@ -572,8 +586,8 @@ public class Doodad : BaseUnit
     public uint GetFuncGroupId()
     {
         return (from funcGroup in Template.FuncGroups
-            where funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start
-            select funcGroup.Id).FirstOrDefault();
+                where funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start
+                select funcGroup.Id).FirstOrDefault();
     }
 
     public void OnSkillHit(BaseUnit caster, uint skillId)

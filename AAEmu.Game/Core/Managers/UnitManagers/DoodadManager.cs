@@ -22,7 +22,9 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
+
 using MySql.Data.MySqlClient;
+
 using NLog;
 
 // ReSharper disable ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
@@ -310,6 +312,97 @@ public class DoodadManager : Singleton<DoodadManager>
                             RelationshipId = reader.GetUInt32("relationship_id")
                         };
                         _funcTemplates["DoodadFuncBuff"].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_build_condition_infos
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_build_condition_infos";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncBuildConditionInfo();
+                        func.Id = reader.GetUInt32("id");
+                        func.IsDevote = reader.GetBoolean("isDevote", true);
+                        func.IsEnd = reader.GetBoolean("isEnd", true);
+                        _phaseFuncTemplates["DoodadFuncBuildConditionInfo"].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_build_condition_ui_opens
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_build_condition_ui_opens";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncBuildConditionUiOpen();
+                        func.Id = reader.GetUInt32("id");
+                        _funcTemplates["DoodadFuncBuildConditionUiOpen"].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_change_other_doodad_phases
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_change_other_doodad_phases";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncChangeOtherDoodadPhase();
+                        func.Id = reader.GetUInt32("id");
+                        func.NextPhase = reader.GetInt32("next_phase");
+                        func.TargetDoodadId = reader.GetUInt32("target_doodad_id");
+                        func.TargetPhase = reader.GetInt32("target_phase");
+                        _phaseFuncTemplates["DoodadFuncChangeOtherDoodadPhase"].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_devotes
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_devotes";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncDevote();
+                        func.Id = reader.GetUInt32("id");
+                        func.Count = reader.GetInt32("count");
+                        func.ItemCount = reader.GetInt32("item_count");
+                        func.ItemId = reader.GetUInt32("item_id");
+                        _funcTemplates["DoodadFuncDevote"].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_react_devotes
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_react_devotes";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncReactDevote();
+                        func.Id = reader.GetUInt32("id");
+                        func.Count = reader.GetUInt32("count");
+                        func.NextPhase = reader.GetInt32("next_phase");
+                        func.SkillId = reader.GetUInt32("skill_id");
+                        _phaseFuncTemplates["DoodadFuncReactDevote"].Add(func.Id, func);
                     }
                 }
             }
@@ -3133,7 +3226,7 @@ public class DoodadManager : Singleton<DoodadManager>
         {
             if (transaction != null)
                 command.Transaction = transaction;
-            
+
             // First grab item related data
             command.CommandText = "SELECT * FROM doodads WHERE id = @id LIMIT 1";
             command.Parameters.AddWithValue("@id", dbId);
@@ -3146,7 +3239,7 @@ public class DoodadManager : Singleton<DoodadManager>
                     attachedContainer = reader.GetUInt32("item_container_id");
                 }
             }
-            
+
             // Actually delete the doodad from DB
             command.CommandText = "DELETE FROM doodads WHERE id = @id";
             // command.Parameters.AddWithValue("@id", dbId); // recycled from above
@@ -3158,7 +3251,7 @@ public class DoodadManager : Singleton<DoodadManager>
             }
         }
         DoodadIdManager.Instance.ReleaseId(dbId); // Free up the Id
-        
+
         // Handle attached items
         if (attachedItemId > 0)
         {

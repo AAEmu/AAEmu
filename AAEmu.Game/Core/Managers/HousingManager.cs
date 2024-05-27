@@ -676,6 +676,7 @@ public class HousingManager : Singleton<HousingManager>
         connection.ActiveChar.SendPacket(new SCMyHousePacket(house));
         house.Spawn();
         UpdateTaxInfo(house);
+        ResidentManager.Instance.AddResidenMemberInfo(connection.ActiveChar);
     }
 
     /// <summary>
@@ -762,6 +763,10 @@ public class HousingManager : Singleton<HousingManager>
             ownerChar?.SendPacket(new SCHouseRemovedPacket(house.TlId));
             // Make killable
             UpdateHouseFaction(house, FactionsEnum.Monstrosity);
+            if (connection?.ActiveChar != null)
+            {
+                ResidentManager.Instance.RemoveResidenMemberInfo(connection.ActiveChar);
+            }
 
             SetForSaleMarkers(house, false);
 
@@ -1548,6 +1553,8 @@ public class HousingManager : Singleton<HousingManager>
             oldOwner.SendPacket(new SCHouseRemovedPacket(house.TlId));
 
         UpdateFurnitureOwner(house, character.Id);
+        ResidentManager.Instance.RemoveResidenMemberInfo(oldOwner);
+        ResidentManager.Instance.AddResidenMemberInfo(character);
 
         house.IsDirty = true;
 

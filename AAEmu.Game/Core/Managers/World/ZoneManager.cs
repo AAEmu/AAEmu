@@ -268,4 +268,10 @@ public class ZoneManager : Singleton<ZoneManager>
         // Check if it's in there
         return zoneClimates.Contains(doodad.Template.ClimateId);
     }
+
+    public uint GetZoneIdByKey(uint zoneKey)
+    {
+        _zones.TryGetValue(zoneKey, out var zone);
+        return zone?.GroupId ?? 0;
+    }
 }

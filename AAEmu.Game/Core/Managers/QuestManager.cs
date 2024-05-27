@@ -633,6 +633,21 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         }
         using (var command = connection.CreateCommand())
         {
+            command.CommandText = "SELECT * FROM quest_act_con_accept_npc_groups";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var template = new QuestActConAcceptNpcGroup();
+                    template.Id = reader.GetUInt32("id");
+                    template.QuestMonsterGroupId = reader.GetUInt32("quest_monster_group_id");
+                    AddActTemplate(template);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
             command.CommandText = "SELECT * FROM quest_act_con_accept_skills";
             command.Prepare();
             using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
@@ -732,6 +747,23 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
                     var template = new QuestActConReportNpc();
                     template.Id = reader.GetUInt32("id");
                     template.NpcId = reader.GetUInt32("npc_id");
+                    template.UseAlias = reader.GetBoolean("use_alias", true);
+                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    AddActTemplate(template);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_con_report_npc_groups";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var template = new QuestActConReportNpcGroup();
+                    template.Id = reader.GetUInt32("id");
+                    template.QuestMonsterGroupId = reader.GetUInt32("quest_act_obj_alias_id");
                     template.UseAlias = reader.GetBoolean("use_alias", true);
                     template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
                     AddActTemplate(template);
