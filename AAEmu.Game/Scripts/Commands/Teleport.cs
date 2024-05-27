@@ -161,6 +161,36 @@ public class Teleport : ICommand
             Z = 161,
             AltNames = new string[] { "arden" }
         });
+        locations.Add(new TPloc
+        {
+            Region = TeleportCommandRegions.West,
+            Name = "ahnimar",
+            Info = "Ahnimar",
+            X = 6290,
+            Y = 9442,
+            Z = 457,
+            AltNames = new string[] { "ahnim" }
+        });
+        locations.Add(new TPloc
+        {
+            Region = TeleportCommandRegions.West,
+            Name = "airan",
+            Info = "Airan Rock",
+            X = 6290,
+            Y = 9442,
+            Z = 457,
+            AltNames = new string[] { "airanrock" }
+        });
+        locations.Add(new TPloc
+        {
+            Region = TeleportCommandRegions.West,
+            Name = "aubre",
+            Info = "Aubre Cradle",
+            X = 7574,
+            Y = 12573,
+            Z = 687,
+            AltNames = new string[] { "aubrecradle" }
+        });
         #endregion
 
         #region east
@@ -291,6 +321,16 @@ public class Teleport : ICommand
             Y = 13158,
             Z = 116,
             AltNames = new string[] { "yny" }
+        });
+        locations.Add(new TPloc
+        {
+            Region = TeleportCommandRegions.East,
+            Name = "Sunbite",
+            Info = "Sunbite Wilds",
+            X = 21162,
+            Y = 5944,
+            Z = 247,
+            AltNames = new string[] { "Sunb" }
         });
         #endregion
 

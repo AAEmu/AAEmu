@@ -33,7 +33,7 @@ public class CSSelectCharacterPacket : GamePacket
             //var character = Connection.Characters[characterId];
             character.Load();
             character.Connection = Connection;
-            var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id);
+            var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id).ToList();
             MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(character);
 
             Connection.ActiveChar = character;
@@ -75,6 +75,7 @@ public class CSSelectCharacterPacket : GamePacket
                 }
             }
 
+            Connection.SendPacket(new SCResidentInfoListPacket(ResidentManager.Instance.GetInfo()));
             Connection.SendPacket(new SCCharacterStatePacket(character));
             Connection.SendPacket(new SCCharacterGamePointsPacket(character));
             Connection.ActiveChar.Inventory.Send();
