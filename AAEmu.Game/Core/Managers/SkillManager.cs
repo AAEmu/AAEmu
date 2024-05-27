@@ -339,7 +339,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.Cost = reader.GetInt32("cost");
                         template.Show = reader.GetBoolean("show", true);
                         template.FireAnim = AnimationManager.Instance.GetAnimation(reader.GetUInt32("fire_anim_id", 0));
-                        template.AbilityId = reader.GetByte("ability_id");
+                        template.AbilityId = (AbilityType)reader.GetByte("ability_id");
                         template.ManaCost = reader.GetInt32("mana_cost");
                         template.TimingId = reader.GetInt32("timing_id");
                         template.CooldownTime = reader.GetInt32("cooldown_time");
@@ -484,7 +484,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         var template = new PassiveBuffTemplate
                         {
                             Id = reader.GetUInt32("id"),
-                            AbilityId = reader.GetByte("ability_id"),
+                            AbilityId = (AbilityType)reader.GetByte("ability_id"),
                             Level = reader.GetByte("level"),
                             BuffId = reader.GetUInt32("buff_id"),
                             ReqPoints = reader.GetInt32("req_points"),
