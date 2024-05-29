@@ -32,7 +32,16 @@ CREATE TABLE `accounts` (
   PRIMARY KEY (`account_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Account specific values not related to login';
 
-CREATE TRIGGER update_timestamps BEFORE UPDATE ON accounts FOR EACH ROW BEGIN SET NEW.last_updated = UTC_TIMESTAMP(); END;
+DELIMITER //
+CREATE TRIGGER update_timestamps
+BEFORE UPDATE ON accounts
+FOR EACH ROW
+BEGIN
+    SET NEW.last_updated = NOW();
+END;
+//
+DELIMITER ;
+
 
 
 DROP TABLE IF EXISTS `actabilities`;
