@@ -12,9 +12,9 @@ public class CSResetSkillsPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        var abilityId = stream.ReadByte(); // a
+        var abilityId = (AbilityType)stream.ReadByte(); // a
         var ausp = stream.ReadBoolean();   // ausp
 
-        Connection.ActiveChar.Skills.Reset((AbilityType)abilityId, true);
+        Connection.ActiveChar.Skills.Reset(abilityId);
     }
 }

@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
+
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char;
@@ -133,12 +135,10 @@ public class CharacterSkills(Character owner)
                 continue;
             buff.Remove(Owner);
             PassiveBuffs.Remove(buff.Id);
-            Owner.Buffs.RemoveBuff(buff.Id);
             _removed.Add(buff.Id);
         }
 
-        if (notify)
-            Owner.SendPacket(new SCSkillsResetPacket(Owner.ObjId, abilityId));
+        Owner.BroadcastPacket(new SCSkillsResetPacket(Owner.ObjId, abilityId), true);
     }
 
     /// <summary>
